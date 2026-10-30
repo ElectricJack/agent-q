@@ -173,9 +173,10 @@ fn open_engine(cfg: &UpdaterConfig) -> Result<RealEngine, Exit> {
         Box::new(SpoolMaintenance::new(&status_dir)),
         EngineSettings::from_config(cfg),
     );
-    // Keep the `available` the last run found until the next poll.
+    // Keep the `available` the last run found until the next poll, if it is
+    // still newer than the active release.
     if let Some(prev) = spool::read_status(&status_dir) {
-        engine.set_available(prev.available);
+        engine.seed_available(prev.available);
     }
     engine.set_observer(Box::new(move |s| {
         if let Err(e) = spool::publish_status(&status_dir, s) {

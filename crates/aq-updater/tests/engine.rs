@@ -1726,3 +1726,49 @@ async fn sync_maintenance_follows_the_journal() {
     e.sync_maintenance().unwrap();
     assert!(!h.fake.maintenance_on(), "idle: marker removed");
 }
+
+#[tokio::test]
+async fn reaching_active_clears_an_available_release_it_covers() {
+    let (h, mut e, _a) = with_a().await;
+    let b = manifest(B, 1, &[1]);
+    h.publish(&b);
+    h.fake.set_channel(ver(B));
+    assert_eq!(
+        e.refresh_available().await.unwrap().unwrap().version,
+        ver(B)
+    );
+    let r = e.install(req(B)).await.unwrap();
+    assert_eq!(r.outcome, Outcome::Succeeded, "{}", r.detail);
+    assert!(
+        e.status().available.is_none(),
+        "B is installed, not available"
+    );
+
+    // A newer available release survives an install of an older one.
+    let (h, mut e, _a) = with_a().await;
+    let c = manifest("1.2.0", 1, &[1]);
+    h.publish(&c);
+    h.publish(&b);
+    h.fake.set_channel(ver("1.2.0"));
+    e.refresh_available().await.unwrap();
+    e.install(req(B)).await.unwrap();
+    assert_eq!(e.status().available.unwrap().version, ver("1.2.0"));
+}
+
+#[tokio::test]
+async fn seeded_available_must_be_newer_than_active() {
+    let (_h, mut e, a) = with_a().await;
+    let mut s = e.status().active.unwrap();
+    e.seed_available(Some(s.clone()));
+    assert!(e.status().available.is_none(), "same as active: dropped");
+    s.version = ver("0.9.0");
+    e.seed_available(Some(s.clone()));
+    assert!(e.status().available.is_none(), "older than active: dropped");
+    s.version = ver(B);
+    e.seed_available(Some(s.clone()));
+    assert_eq!(e.status().available.unwrap().version, ver(B));
+    assert_eq!(
+        e.journal_state().active.as_ref().unwrap().version,
+        a.version
+    );
+}

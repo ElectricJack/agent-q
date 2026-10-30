@@ -381,6 +381,26 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
         }
     }
 
+    /// Restore `available` from an earlier run (the last status.json),
+    /// keeping it only if it is still newer than the active release.
+    pub fn seed_available(&mut self, available: Option<ReleaseSummary>) {
+        let active = self.active_version();
+        let newer = available.filter(|a| active.as_ref().is_none_or(|v| a.version > *v));
+        self.set_available(newer);
+    }
+
+    /// `target` is now active: an `available` release it covers (same or
+    /// older version) is no longer an update.
+    fn installed(&mut self, target: &Version) {
+        if self
+            .available
+            .as_ref()
+            .is_some_and(|a| a.version <= *target)
+        {
+            self.available = None;
+        }
+    }
+
     /// Fetch and verify the channel's current release (read-only).
     pub async fn fetch_channel(&mut self) -> Result<ReleaseManifest, String> {
         fetch_verified(&self.runtime, &self.verifier, ReleaseSelector::Channel)
@@ -809,6 +829,7 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
             }
             Recorded::Nothing | Recorded::Unreadable(_) => false,
         };
+        self.installed(&cur.target.version);
         let entry = if recorded {
             None
         } else {
@@ -985,6 +1006,7 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
         };
         cur.step = Step::Active;
         s.current = Some(cur.clone());
+        self.installed(&cur.target.version);
         self.record(s)?;
         let detail = match mode {
             Mode::Install => format!("{} is active", cur.target.version),
