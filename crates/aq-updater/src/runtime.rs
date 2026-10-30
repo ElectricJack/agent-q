@@ -232,20 +232,22 @@ pub fn extract_tar_file(tar_bytes: &[u8], name: &str) -> Result<Vec<u8>, String>
 /// Interpret `psql -tAc <state format query>`: a missing database or `meta`
 /// table means no state format yet.
 pub fn parse_state_format(
-    success: bool,
+    status: &std::process::ExitStatus,
     stdout: &[u8],
     stderr: &[u8],
 ) -> RuntimeResult<Option<u32>> {
-    if !success {
+    if !status.success() {
         let err = String::from_utf8_lossy(stderr);
         let missing = err.contains("database \"agent_q\" does not exist")
             || err.contains("relation \"meta\" does not exist");
         return if missing {
             Ok(None)
         } else {
-            Err(failed(format!(
-                "psql (state format) failed: {}",
-                stderr_tail(stderr)
+            Err(failed(failure_text(
+                "psql (state format)",
+                status,
+                stderr,
+                true,
             )))
         };
     }
@@ -276,6 +278,8 @@ pub struct DockerCli {
 }
 
 struct Ran {
+    /// Run through `docker compose`: errors are sanitized.
+    compose: bool,
     success: bool,
     status: std::process::ExitStatus,
     stdout: Vec<u8>,
@@ -287,10 +291,11 @@ impl Ran {
         if self.success {
             Ok(self.stdout)
         } else {
-            Err(failed(format!(
-                "{name} failed ({}): {}",
-                self.status,
-                stderr_tail(&self.stderr)
+            Err(failed(failure_text(
+                name,
+                &self.status,
+                &self.stderr,
+                self.compose,
             )))
         }
     }
@@ -566,11 +571,13 @@ impl DockerCli {
         timeout: Duration,
         stdin: std::process::Stdio,
     ) -> RuntimeResult<Ran> {
+        let compose = argv.first().is_some_and(|a| a == "compose");
         let mut stdout = Vec::new();
         let (status, stderr, _) = self
             .exec_into(name, argv, timeout, stdin, &mut stdout, Some(MAX_CAPTURE))
             .await?;
         Ok(Ran {
+            compose,
             success: status.success(),
             status,
             stdout,
@@ -727,10 +734,7 @@ impl Runtime for DockerCli {
                 )
                 .await?;
             if !status.success() {
-                return Err(failed(format!(
-                    "pg_dump failed ({status}): {}",
-                    stderr_tail(&stderr)
-                )));
+                return Err(failed(failure_text("pg_dump", &status, &stderr, true)));
             }
             if n == 0 {
                 return Err(failed("pg_dump produced no output"));
@@ -816,11 +820,7 @@ impl Runtime for DockerCli {
         match serde_json::from_slice::<ReadinessReport>(&ran.stdout) {
             Ok(r) => Ok(r),
             Err(e) if ran.success => Err(failed(format!("{name}: unexpected output: {e}"))),
-            Err(_) => Err(failed(format!(
-                "{name} failed ({}): {}",
-                ran.status,
-                stderr_tail(&ran.stderr)
-            ))),
+            Err(_) => Err(failed(failure_text(name, &ran.status, &ran.stderr, true))),
         }
     }
 
@@ -834,7 +834,45 @@ impl Runtime for DockerCli {
                 std::process::Stdio::null(),
             )
             .await?;
-        parse_state_format(ran.success, &ran.stdout, &ran.stderr)
+        parse_state_format(&ran.status, &ran.stdout, &ran.stderr)
+    }
+}
+
+/// The one stderr line a failure of a command run through `docker compose`
+/// may show in history and `status.json`: the first line with `ERROR:` (else
+/// the first with `error`, any case), without control characters and at
+/// most 200 characters. Lines containing `CONTEXT:` or `=` are never used:
+/// PostgreSQL puts row data there, and Compose quotes env files.
+pub fn sanitized_stderr(stderr: &[u8]) -> Option<String> {
+    let text = String::from_utf8_lossy(stderr);
+    let usable: Vec<&str> = text
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty() && !l.contains("CONTEXT:") && !l.contains('='))
+        .collect();
+    let line = usable
+        .iter()
+        .find(|l| l.contains("ERROR:"))
+        .or_else(|| usable.iter().find(|l| l.to_lowercase().contains("error")))?;
+    Some(line.chars().filter(|c| !c.is_control()).take(200).collect())
+}
+
+/// The error text for a failed command. Compose calls (everything run in
+/// the containers, and anything that reads the env files) carry only the
+/// sanitized line; their full stderr tail goes to the updater's own log.
+fn failure_text(
+    name: &str,
+    status: &std::process::ExitStatus,
+    stderr: &[u8],
+    compose: bool,
+) -> String {
+    if !compose {
+        return format!("{name} failed ({status}): {}", stderr_tail(stderr));
+    }
+    tracing::warn!(command = name, %status, stderr = ?stderr_tail(stderr), "command failed");
+    match sanitized_stderr(stderr) {
+        Some(line) => format!("{name} failed ({status}): {line}"),
+        None => format!("{name} failed ({status})"),
     }
 }
 
@@ -1194,23 +1232,26 @@ mod tests {
 
     #[test]
     fn missing_database_or_table_is_no_state_format() {
-        assert_eq!(parse_state_format(true, b"3\n", b"").unwrap(), Some(3));
-        assert_eq!(parse_state_format(true, b"", b"").unwrap(), None);
+        use std::os::unix::process::ExitStatusExt;
+        let ok = std::process::ExitStatus::from_raw(0);
+        let bad = std::process::ExitStatus::from_raw(2 << 8);
+        assert_eq!(parse_state_format(&ok, b"3\n", b"").unwrap(), Some(3));
+        assert_eq!(parse_state_format(&ok, b"", b"").unwrap(), None);
         assert_eq!(
-            parse_state_format(false, b"", b"psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: FATAL:  database \"agent_q\" does not exist").unwrap(),
+            parse_state_format(&bad, b"", b"psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: FATAL:  database \"agent_q\" does not exist").unwrap(),
             None
         );
         assert_eq!(
             parse_state_format(
-                false,
+                &bad,
                 b"",
                 b"ERROR:  relation \"meta\" does not exist\nLINE 1: SELECT value FROM meta"
             )
             .unwrap(),
             None
         );
-        assert!(parse_state_format(false, b"", b"service \"postgres\" is not running").is_err());
-        assert!(parse_state_format(true, b"three", b"").is_err());
+        assert!(parse_state_format(&bad, b"", b"service \"postgres\" is not running").is_err());
+        assert!(parse_state_format(&ok, b"three", b"").is_err());
     }
 
     #[tokio::test]
@@ -1246,7 +1287,7 @@ mod tests {
         // A failing dump removes the partial file it created.
         std::fs::write(
             &fake,
-            "#!/bin/sh\nprintf 'partial'\necho 'disk full' >&2\nexit 1\n",
+            "#!/bin/sh\nprintf 'partial'\necho 'pg_dump: error: disk full' >&2\nexit 1\n",
         )
         .unwrap();
         let dest2 = t.path().join("c.dump");
@@ -1310,6 +1351,81 @@ mod tests {
             want.push(format!("rm -f {name}"));
             assert_eq!(calls, want);
         }
+    }
+
+    #[test]
+    fn compose_stderr_is_reduced_to_the_first_error_line() {
+        let pg_restore = b"pg_restore: connecting to database for restore\n\
+pg_restore: error: COPY failed for table \"users\": ERROR:  invalid input syntax for type uuid\n\
+CONTEXT:  COPY users, line 3: \"42\talice@example.com\tsecret-hash\"\n";
+        let got = sanitized_stderr(pg_restore).unwrap();
+        assert_eq!(
+            got,
+            "pg_restore: error: COPY failed for table \"users\": ERROR:  invalid input syntax for type uuid"
+        );
+        // Lines with `=` (env files, key=value detail) and CONTEXT are never used.
+        let env = b"failed to read /etc/agent-q/compose.env: line 2: error in PASSWORD=hunter2\n\
+CONTEXT: error near row 7\n";
+        assert_eq!(sanitized_stderr(env), None);
+        // ERROR: wins over a later lowercase match, and the line is bounded.
+        let long = format!("noise\nERROR:  {}\nanother error\n", "x".repeat(500));
+        let got = sanitized_stderr(long.as_bytes()).unwrap();
+        assert!(
+            got.starts_with("ERROR:  xxx") && got.chars().count() == 200,
+            "{got}"
+        );
+        // Control characters do not survive.
+        assert_eq!(
+            sanitized_stderr(b"psql: error: bad \x1b[31mthing\n").unwrap(),
+            "psql: error: bad [31mthing"
+        );
+        assert_eq!(sanitized_stderr(b"nothing useful here\n"), None);
+        assert_eq!(sanitized_stderr(b""), None);
+    }
+
+    #[tokio::test]
+    async fn compose_failures_do_not_leak_stderr_into_the_error() {
+        use std::os::unix::fs::PermissionsExt;
+        let t = tempfile::tempdir().unwrap();
+        let fake = t.path().join("docker");
+        std::fs::write(
+            &fake,
+            "#!/bin/sh\necho 'pg_restore: error: could not execute query: ERROR:  duplicate key' >&2\n\
+echo 'DETAIL:  Key (email)=(alice@example.com) already exists.' >&2\n\
+echo 'CONTEXT:  COPY users, line 1: \"alice@example.com\"' >&2\nexit 1\n",
+        )
+        .unwrap();
+        std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let c = DockerCli {
+            release_env: t.path().join("release.env"),
+            ..cli().with_docker_binary(fake.clone())
+        };
+        let dump = t.path().join("a.dump");
+        std::fs::write(&dump, b"PGDMP").unwrap();
+        for e in [
+            c.restore(&dump).await.unwrap_err().to_string(),
+            c.stop_server().await.unwrap_err().to_string(),
+            c.server_state_format().await.unwrap_err().to_string(),
+            c.backup(&t.path().join("b.dump"))
+                .await
+                .unwrap_err()
+                .to_string(),
+        ] {
+            assert!(!e.contains("alice"), "{e}");
+            assert!(e.contains("ERROR:  duplicate key"), "{e}");
+            assert!(e.contains("failed (exit status: 1)"), "{e}");
+        }
+        // An env-file error: nothing from stderr reaches the error.
+        std::fs::write(
+            &fake,
+            "#!/bin/sh\necho 'failed to read compose.env: line 2: unexpected character in \"SECRET=hunter2\"' >&2\nexit 15\n",
+        )
+        .unwrap();
+        let e = c.stop_server().await.unwrap_err().to_string();
+        assert_eq!(e, "docker compose stop failed (exit status: 15)");
+        // Plain docker calls (registry errors) keep their stderr tail.
+        let e = c.pull(IMAGE).await.unwrap_err().to_string();
+        assert!(e.contains("SECRET"), "{e}");
     }
 
     #[test]
