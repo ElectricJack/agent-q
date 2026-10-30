@@ -6,7 +6,7 @@
 
 **Architecture:** A Cargo workspace with three crates: `aq-protocol` (wire types and protocol version), `aq-server` (axum, PostgreSQL foundation store) and `aq-worker` (reqwest client). The server binds two listeners. The **admin listener** serves human routes behind an `IdentityVerifier` adapter (Cloudflare Access JWT in production, a dev substitute locally). The **worker listener** serves only machine routes. Origin isolation therefore holds by construction: cloudflared will map each hostname to one port. Foundation state lives in a dedicated PostgreSQL database (`agent_q`), run as its own Compose service. Editable non-secret configuration lives in a separately mounted vault directory.
 
-**Tech Stack:** Rust 1.96.1, edition 2024; axum 0.8, tokio 1, tower 0.5, sqlx 0.8 (postgres, runtime-tokio-rustls, uuid, chrono, migrate; runtime `sqlx::query`/`query_as` only, no compile-time `query!` macros, so builds need no database), jsonwebtoken 9, reqwest 0.12 (rustls, json), serde/serde_json, toml 0.8, clap 4 (derive, env), chrono, uuid v4, sha2, hex, rand 0.8, base64 0.22, thiserror 2, tracing, rpassword 7. Dev: tempfile, http-body-util, rsa 0.9. Docker Compose v2, PostgreSQL 17 (`postgres:17-bookworm`).
+**Tech Stack:** Rust 1.96.1, edition 2024; axum 0.8, tokio 1, tower 0.5, sqlx 0.8 (postgres, runtime-tokio-rustls, uuid, chrono — no `migrate` or `macros` features, because `migrate` pulls `sqlx-sqlite`/`libsqlite3-sys` into Cargo.lock; runtime `sqlx::query`/`query_as` only, no compile-time `query!` macros, so builds need no database), jsonwebtoken 9, reqwest 0.12 (rustls, json), serde/serde_json, toml 0.8, clap 4 (derive, env), chrono, uuid v4, sha2, hex, rand 0.8, base64 0.22, thiserror 2, tracing, rpassword 7. Dev: tempfile, http-body-util, rsa 0.9. Docker Compose v2, PostgreSQL 17 (`postgres:17-bookworm`).
 
 **Spec:** `docs/specs/0001-infrastructure-foundation.md`. This plan covers spec increment 1 (local foundation) plus the locally testable half of increment 2: the identity adapter, owner bootstrap, roles, and enrollment. Follow-on plans are listed at the end.
 
@@ -26,7 +26,7 @@
 - Any local authentication substitute cannot be enabled in the production configuration.
 - The application container never receives the Docker socket. It publishes no host port in the production Compose file.
 - Log rotation is configured from the first deployment: json-file, `max-size: 10m`, `max-file: "3"`.
-- PostgreSQL is the only database. No SQLite anywhere: no `sqlite` sqlx feature, no `libsqlite3-sys`, no `.sqlite` files. Verify with `cargo tree -i libsqlite3-sys` → "did not match any packages". This overrides the spec's provisional SQLite default.
+- PostgreSQL is the only database. No SQLite anywhere: no `sqlite` sqlx feature, no `libsqlite3-sys`, no `.sqlite` files. Verify with `grep -E 'name = "(libsqlite3-sys|sqlx-sqlite)"' Cargo.lock` → no output. Migrations use a small in-house runner (Task 3), and test databases come from `aq_server::test_support::TestDb`, not `#[sqlx::test]`. This overrides the spec's provisional SQLite default.
 - The database URL contains a secret. It comes from the `DATABASE_URL` environment variable, which the container entrypoint builds from a Compose secret file (the `aq-graph` pattern). It never goes in the vault or in Compose config.
 - Credentials never go in version control. `.gitignore` already excludes `.env`, `secrets/`, `state/`, `vault.local/`.
 
@@ -71,7 +71,7 @@ scripts/test-db  scripts/dev-up  scripts/dev-worker  scripts/smoke
 docs/development.md
 ```
 
-Shared time handling: `pub type Clock = Arc<dyn Fn() -> DateTime<Utc> + Send + Sync>;` defined in `aq-server/src/lib.rs`. Every expiry and offline computation reads `state.clock`, so tests use a fixed, advanceable clock. Every test in Tasks 3–8 that touches the store is a `#[sqlx::test(migrations = ...)]` taking a `PgPool` and building `Store::from_pool`. Those tests need `DATABASE_URL` from `scripts/test-db`.
+Shared time handling: `pub type Clock = Arc<dyn Fn() -> DateTime<Utc> + Send + Sync>;` defined in `aq-server/src/lib.rs`. Every expiry and offline computation reads `state.clock`, so tests use a fixed, advanceable clock. Every test in Tasks 3–8 that touches the store uses `aq_server::test_support::TestDb::create().await` (Task 3) and calls `.store().await`. Those tests need `DATABASE_URL` from `scripts/test-db`.
 
 ---
 
@@ -144,7 +144,7 @@ Validation rules (all yield `Invalid` naming the key):
 **Test database:**
 - `scripts/test-db` starts a disposable container named `agent-q-test-db` (`postgres:17-bookworm`, `127.0.0.1:55432`, password `test`, `--tmpfs /var/lib/postgresql/data`) if it isn't running.
 - It prints `export DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres`.
-- Database tests use `#[sqlx::test(migrations = "./migrations")]`. sqlx gives each test its own fresh database and cleans it up. A missing `DATABASE_URL` fails the test run; it never skips.
+- Database tests use `aq_server::test_support::TestDb` (module `crates/aq-server/src/test_support.rs`, compiled under `#[cfg(any(test, feature = "test-support"))]`; aq-server's own dev-dependency on itself enables the feature, and later aq-worker's dev-dependency does too). `TestDb::create().await` reads `DATABASE_URL` (panics with `set DATABASE_URL via scripts/test-db` if unset), creates database `aq_test_<uuid simple>`, and exposes `url()` and `store()`. Its `Drop` drops the database `WITH (FORCE)` on a helper thread. A missing `DATABASE_URL` fails the test run; it never skips.
 
 **Schema (`0001_foundation.sql`):**
 - `meta(key TEXT PRIMARY KEY, value TEXT NOT NULL)`, seeded with `state_format_version = '1'`.
@@ -161,9 +161,9 @@ All timestamps come from `state.clock`, never `now()` in SQL, so tests control t
   - `pub fn verifier(secret: &str) -> String`: lowercase hex SHA-256. A plain hash suffices because the secrets are high-entropy random values.
 - `store.rs`:
   - `pub struct Store { pool: PgPool }` (`Clone`)
-  - `pub async fn connect(database_url: &str) -> Result<Store>`: a pool with max 5 connections and a 5 s acquire timeout. It runs embedded migrations (`sqlx::migrate!`), then calls `check_state_format`.
-  - `pub async fn from_pool(pool: PgPool) -> Result<Store>`: the same checks; used by `#[sqlx::test]`.
-  - `check_state_format` refuses (`StoreError::IncompatibleState { found, supported: 1 }`) when `meta.state_format_version` > 1.
+  - `pub async fn connect(database_url: &str) -> Result<Store>`: a pool with max 5 connections and a 5 s acquire timeout, then `from_pool`.
+  - `pub async fn from_pool(pool: PgPool) -> Result<Store>`: checks the state format **before** migrating, then migrates.
+  - Migration runner (`crates/aq-server/src/store/migrate.rs`, or private fns in store.rs): `MIGRATIONS: &[(i32, &str)]` = `[(1, include_str!("../migrations/0001_foundation.sql"))]`. One transaction holding `pg_advisory_xact_lock(0x6167_656e_7471)` creates `schema_migrations(version INTEGER PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())` if absent. If `meta` exists and `state_format_version` > 1, or `schema_migrations` holds a version this binary doesn't know, it returns `StoreError::IncompatibleState { found, supported: 1 }` without changing anything (`found` = the meta value, or the highest unknown migration version). Otherwise it applies the missing migrations in order with `sqlx::raw_sql` and records each.
   - `pub enum Role { Owner, Viewer }`. It is defined here and re-exported by `authz`.
   - `pub struct User { pub id: Uuid, pub email: String, pub role: Role, pub issuer: Option<String>, pub subject: Option<String> }`
   - `pub async fn find_user_by_binding(&self, issuer: &str, subject: &str) -> Result<Option<User>>`
@@ -178,19 +178,21 @@ All timestamps come from `state.clock`, never `now()` in SQL, so tests control t
   - `pub async fn record_heartbeat(&self, node_id, worker_version, protocol_version, now) -> Result<()>`, `pub async fn revoke_node(&self, node_id, now) -> Result<bool>`, `pub async fn list_nodes(&self) -> Result<Vec<Node>>`
 
 - [ ] **Step 1: Write `scripts/test-db`, run it, and export `DATABASE_URL`.** Expected: `pg_isready` succeeds against `127.0.0.1:55432`.
-- [ ] **Step 2: Write failing tests** (`#[sqlx::test]` each):
-  - `reconnect_preserves_state`: create a user, drop the `Store`, build a new one from a fresh pool on the same database, and find the user.
+- [ ] **Step 2: Write failing tests** (each on its own `TestDb`):
+  - `reconnect_preserves_state`: create a user, drop the `Store`, `Store::connect(db.url())` again, and find the user.
+  - `migrations_are_idempotent`: `connect` twice on one database; the second run applies nothing and succeeds.
+  - `refuses_unknown_future_migration`: insert `schema_migrations(version) VALUES (99)`; reconnecting returns `IncompatibleState` and the schema is unchanged.
   - `bootstrap_owner_only_once`: the second call with a different email returns `None`.
   - `email_unique_case_insensitive`: inviting `A@x.com` after `a@x.com` errors.
   - `enrollment_code_single_use`: the second redeem returns `None`.
   - `enrollment_code_expires`: redeeming at `expires_at + 1s` returns `None`.
   - `concurrent_redeem_yields_one_node`: race two `redeem_enrollment` calls on one hash with `tokio::join!`; exactly one is `Some` and `nodes` holds one row.
-  - `refuses_newer_state_format`: set the meta value to `2`; `from_pool` returns `IncompatibleState`.
+  - `refuses_newer_state_format`: set the meta value to `2`; reconnecting returns `IncompatibleState`.
   - `verifier_is_deterministic_and_hex64` (plain `#[test]`).
   - `tokens_have_prefixes_and_are_unique` (plain `#[test]`).
 - [ ] **Step 3: Run** `cargo test -p aq-server --test store`. Expected: FAIL.
 - [ ] **Step 4: Implement** `tokens.rs`, `store.rs`, and the migration. Use `rand::rngs::OsRng`.
-- [ ] **Step 5: Run** the tests, then `cargo tree -i libsqlite3-sys`. Expected: tests PASS; the tree command reports no match.
+- [ ] **Step 5: Run** the tests, then `grep -E 'name = "(libsqlite3-sys|sqlx-sqlite)"' Cargo.lock`. Expected: tests PASS; grep prints nothing.
 - [ ] **Step 6: Commit** `feat: add PostgreSQL foundation store and credential verifiers`
 
 ### Task 4: Identity adapter (dev and Cloudflare Access)
@@ -369,7 +371,7 @@ All timestamps come from `state.clock`, never `now()` in SQL, so tests control t
   - `html_login_page_classified_as_access_rejected`
   - `server_down_is_transient` (Review Focus 4): a closed port.
   - `revoked_is_fatal`
-  - `lifecycle_enroll_heartbeat_restart_revoke` in `lifecycle.rs`. It is a `#[sqlx::test(migrations = "../aq-server/migrations")]`. It starts `aq-server` routers in-process on ephemeral ports with dev auth, creates an enrollment via the admin router as the owner, enrolls the worker client, and heartbeats. It drops and restarts the server on the same database, and the heartbeat with the same credential succeeds with the same node id. After revoking, the next heartbeat yields `Revoked`.
+  - `lifecycle_enroll_heartbeat_restart_revoke` in `lifecycle.rs`. It uses `aq_server::test_support::TestDb` (aq-worker dev-depends on aq-server with `features = ["test-support"]`). It starts `aq-server` routers in-process on ephemeral ports with dev auth, creates an enrollment via the admin router as the owner, enrolls the worker client, and heartbeats. It drops and restarts the server on the same database, and the heartbeat with the same credential succeeds with the same node id. After revoking, the next heartbeat yields `Revoked`.
 - [ ] **Step 2: Run** `cargo test -p aq-worker`. Expected: FAIL.
 - [ ] **Step 3: Implement** the connector.
 - [ ] **Step 4: Run** `cargo test --workspace`. Expected: PASS.
@@ -395,7 +397,7 @@ Decisions:
 
 - [ ] **Step 1: Write** `scripts/smoke` first and run it. Expected: it fails at "build images" (no Dockerfile).
 - [ ] **Step 2: Implement** the Dockerfile, Compose files, and scripts.
-- [ ] **Step 3: Run** `docker compose -f compose.yaml config` with dummy env. Expected: valid. Then `grep -c ports:` on the rendered production config prints `0`, and `grep docker.sock` finds nothing. `cargo tree -i libsqlite3-sys` still reports no match.
+- [ ] **Step 3: Run** `docker compose -f compose.yaml config` with dummy env. Expected: valid. Then `grep -c ports:` on the rendered production config prints `0`, and `grep docker.sock` finds nothing. The Cargo.lock SQLite grep still prints nothing.
 - [ ] **Step 4: Run** `scripts/smoke`. Expected: `smoke: PASS` with each step logged.
 - [ ] **Step 5: Write** `docs/development.md`. Cover the prerequisites (Rust 1.96.1, Docker), the two documented commands (`scripts/dev-up`, `scripts/dev-worker`), simulating a viewer with `X-AQ-Dev-Email`, a reminder that dev auth is refused in production, and how to run tests. Link it from the README.
 - [ ] **Step 6: Run** `cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings && scripts/smoke`. Expected: all pass.
