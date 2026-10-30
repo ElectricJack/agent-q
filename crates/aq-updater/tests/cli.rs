@@ -505,3 +505,128 @@ fn run_once_exits_with_a_stuck_request_entry() {
     assert_eq!(hist.len(), 1, "{hist:?}");
     assert_eq!(hist[0].outcome, Outcome::Rejected);
 }
+
+const NOTICE: &str = "aq-updater: interrupt received; finishing the current operation so recovery stays consistent (send SIGKILL to abort; the journal will recover on next start)";
+
+/// A `docker` stand-in on PATH: `docker <slow> ...` writes `started`,
+/// sleeps, writes `finished` and fails (so the command is refused, quickly
+/// and without a registry or database); everything else succeeds at once.
+fn slow_docker(dir: &Path, slow: &str) -> PathBuf {
+    let bin = dir.join("bin");
+    std::fs::create_dir_all(&bin).unwrap();
+    let script = bin.join("docker");
+    std::fs::write(
+        &script,
+        format!(
+            "#!/bin/sh\nif [ \"$1\" = {slow} ]; then\n  : > {d}/started\n  sleep 2\n  : > {d}/finished\n  echo 'Error: not found' >&2\n  exit 1\nfi\nexit 0\n",
+            d = dir.display(),
+        ),
+    )
+    .unwrap();
+    std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+    bin
+}
+
+fn wait_for(path: &Path, what: &str) {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    while !path.exists() {
+        assert!(std::time::Instant::now() < deadline, "timed out: {what}");
+        std::thread::sleep(std::time::Duration::from_millis(20));
+    }
+}
+
+fn spawn_with_path(h: &H, bin: &Path, args: &[&str]) -> std::process::Child {
+    let path = format!("{}:{}", bin.display(), std::env::var("PATH").unwrap());
+    Command::new(BIN)
+        .arg("--config")
+        .arg(&h.config)
+        .args(args)
+        .env("RUST_LOG", "warn")
+        .env("PATH", path)
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped())
+        .spawn()
+        .unwrap()
+}
+
+fn signal(pid: u32, sig: &str) {
+    let ok = Command::new("kill")
+        .args([sig, &pid.to_string()])
+        .status()
+        .unwrap()
+        .success();
+    assert!(ok, "kill {sig} {pid}");
+}
+
+/// Ctrl-C, a dropped SSH session or a SIGTERM during a manual install never
+/// kill aq-updater mid-operation: the running docker command completes and
+/// its outcome is recorded.
+#[test]
+fn install_finishes_through_interrupts() {
+    let h = H::new();
+    let bin = slow_docker(&h.root, "pull");
+    let child = spawn_with_path(&h, &bin, &["install", "1.2.3"]);
+    wait_for(&h.root.join("started"), "docker pull to start");
+    for sig in ["-INT", "-HUP", "-TERM", "-INT"] {
+        signal(child.id(), sig);
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    let o = child.wait_with_output().unwrap();
+    let out = text(&o);
+    // Exited by itself (a code, not a signal), after docker finished.
+    assert_eq!(o.status.code(), Some(1), "{out}");
+    assert!(h.root.join("finished").exists(), "{out}");
+    let stderr = String::from_utf8_lossy(&o.stderr);
+    assert_eq!(stderr.matches(NOTICE).count(), 1, "{out}");
+    let stdout = String::from_utf8_lossy(&o.stdout);
+    assert!(stdout.contains("refused"), "{out}");
+    let hist = read_history(&h.state_dir, 10).unwrap();
+    assert_eq!(hist.len(), 1, "{hist:?}");
+    assert_eq!(hist[0].outcome, Outcome::Refused);
+    assert!(
+        hist[0].detail.contains("cannot fetch the release"),
+        "{hist:?}"
+    );
+    let s: UpdateStatus = serde_json::from_slice(
+        &std::fs::read(h.state_dir.join("spool/status/status.json")).unwrap(),
+    )
+    .unwrap();
+    assert_eq!(s.state, UpdateState::Idle);
+}
+
+/// The same for `restore-previous`, interrupted while it reads the
+/// installed state format (a `docker compose exec`).
+#[test]
+fn restore_previous_finishes_through_interrupts() {
+    let h = H::new();
+    let bin = slow_docker(&h.root, "compose");
+    {
+        let mut j = Journal::open(lock(&h.state_dir).unwrap()).unwrap();
+        j.record(JournalState {
+            active: Some(manifest("1.1.0", 1)),
+            previous: Some(manifest("1.0.0", 1)),
+            current: None,
+            active_backup: None,
+        })
+        .unwrap();
+    }
+    let child = spawn_with_path(&h, &bin, &["restore-previous"]);
+    wait_for(&h.root.join("started"), "docker compose to start");
+    for sig in ["-HUP", "-INT", "-TERM"] {
+        signal(child.id(), sig);
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    }
+    let o = child.wait_with_output().unwrap();
+    let out = text(&o);
+    assert_eq!(o.status.code(), Some(1), "{out}");
+    assert!(h.root.join("finished").exists(), "{out}");
+    assert_eq!(
+        String::from_utf8_lossy(&o.stderr).matches(NOTICE).count(),
+        1,
+        "{out}"
+    );
+    let hist = read_history(&h.state_dir, 10).unwrap();
+    assert_eq!(hist.len(), 1, "{hist:?}");
+    assert_eq!(hist[0].outcome, Outcome::Refused);
+    assert!(hist[0].detail.contains("state format"), "{hist:?}");
+}

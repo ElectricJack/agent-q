@@ -572,8 +572,13 @@ impl DockerCli {
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .kill_on_drop(true)
-            // Own process group: a Ctrl-C at the terminal reaches only
-            // aq-updater, which finishes the step instead of losing it.
+            // Own process group: a Ctrl-C or hangup at the terminal reaches
+            // only aq-updater, never this child. Every command that runs
+            // docker handles those signals: `run` finishes the step and
+            // stops (SIGHUP is ignored), `install` and `restore-previous`
+            // print a notice and finish the whole operation. So the outcome
+            // of this child is always recorded; only SIGKILL cuts it short,
+            // and then recovery resumes from the journal.
             .process_group(0)
             .spawn()
             .map_err(|e| failed(format!("{name}: cannot run {}: {e}", self.docker.display())))?;

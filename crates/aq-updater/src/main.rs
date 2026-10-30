@@ -215,25 +215,73 @@ async fn start(engine: &mut RealEngine, cfg: &UpdaterConfig) -> Result<(), Exit>
 
 /// A shutdown flag set on the first SIGTERM or SIGINT. The handlers are
 /// installed at once, so a signal is never fatal; the work in progress (an
-/// install included) finishes and nothing new starts.
+/// install included) finishes and nothing new starts. SIGHUP (a `run --once`
+/// whose SSH session dropped) is ignored: the service keeps running.
 fn shutdown_signal() -> Result<tokio::sync::watch::Receiver<bool>, Exit> {
     use tokio::signal::unix::{SignalKind, signal};
     let mut sigterm = signal(SignalKind::terminate())
         .map_err(|e| failure(format!("cannot handle SIGTERM: {e}")))?;
     let mut sigint = signal(SignalKind::interrupt())
         .map_err(|e| failure(format!("cannot handle SIGINT: {e}")))?;
+    let mut sighup =
+        signal(SignalKind::hangup()).map_err(|e| failure(format!("cannot handle SIGHUP: {e}")))?;
     let (tx, rx) = tokio::sync::watch::channel(false);
     tokio::spawn(async move {
-        tokio::select! {
-            _ = sigterm.recv() => {}
-            _ = sigint.recv() => {}
+        loop {
+            tokio::select! {
+                _ = sigterm.recv() => break,
+                _ = sigint.recv() => break,
+                _ = sighup.recv() => tracing::info!("SIGHUP ignored"),
+            }
         }
         tracing::info!("shutdown requested; finishing the current step, starting nothing new");
         let _ = tx.send(true);
         // Keep the sender (and the handlers) alive: later signals are ignored.
-        std::future::pending::<()>().await;
+        loop {
+            tokio::select! {
+                _ = sigterm.recv() => {}
+                _ = sigint.recv() => {}
+                _ = sighup.recv() => {}
+            }
+        }
     });
     Ok(rx)
+}
+
+/// Printed (once) when a manual `install` or `restore-previous` is signalled.
+const INTERRUPT_NOTICE: &str = "aq-updater: interrupt received; finishing the current operation so recovery stays consistent (send SIGKILL to abort; the journal will recover on next start)";
+
+/// For `install` and `restore-previous`: from here on SIGINT, SIGTERM and
+/// SIGHUP never stop the process. The docker commands run in their own
+/// process group, so a signal that killed aq-updater would leave a
+/// `pg_restore` or `compose up` running with nobody to record its outcome.
+/// Instead the first signal prints `INTERRUPT_NOTICE` and the operation
+/// runs to its end; later ones are ignored the same way.
+fn hold_through_interrupts() -> Result<(), Exit> {
+    use tokio::signal::unix::{SignalKind, signal};
+    let handle = |kind: SignalKind, name: &str| {
+        signal(kind).map_err(|e| failure(format!("cannot handle {name}: {e}")))
+    };
+    let mut int = handle(SignalKind::interrupt(), "SIGINT")?;
+    let mut term = handle(SignalKind::terminate(), "SIGTERM")?;
+    let mut hup = handle(SignalKind::hangup(), "SIGHUP")?;
+    tokio::spawn(async move {
+        let mut told = false;
+        loop {
+            tokio::select! {
+                _ = int.recv() => {}
+                _ = term.recv() => {}
+                _ = hup.recv() => {}
+            }
+            if !told {
+                told = true;
+                // The terminal may be gone (SIGHUP): never panic on the write.
+                use std::io::Write;
+                let _ = writeln!(std::io::stderr(), "{INTERRUPT_NOTICE}");
+            }
+        }
+    });
+    Ok(())
 }
 
 async fn run(cfg: &UpdaterConfig, once: bool) -> CmdResult {
@@ -280,11 +328,15 @@ async fn run(cfg: &UpdaterConfig, once: bool) -> CmdResult {
     Ok(ExitCode::SUCCESS)
 }
 
+/// The outcome line. Its write may fail when the SSH session that started
+/// the command is gone; the outcome is in history either way.
 fn print_entry(e: &HistoryEntry) {
-    println!("{}", entry_line(e));
+    use std::io::Write;
+    let _ = writeln!(std::io::stdout(), "{}", entry_line(e));
 }
 
 async fn install(cfg: &UpdaterConfig, version: semver::Version) -> CmdResult {
+    hold_through_interrupts()?;
     let mut engine = open_engine(cfg)?;
     start(&mut engine, cfg).await?;
     let req = UpdateRequest {
@@ -301,6 +353,7 @@ async fn install(cfg: &UpdaterConfig, version: semver::Version) -> CmdResult {
 }
 
 async fn restore_previous(cfg: &UpdaterConfig, allow_restore: bool) -> CmdResult {
+    hold_through_interrupts()?;
     let mut engine = open_engine(cfg)?;
     start(&mut engine, cfg).await?;
     let entry = engine.restore_previous(allow_restore).await;
