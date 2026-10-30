@@ -1870,6 +1870,11 @@ async fn restore_backup_flag_never_restores_before_the_target_ran() {
     assert_eq!(out.outcome, Outcome::FailedNeedsOperator, "{}", out.detail);
     let cur = e.journal_state().current.clone().unwrap();
     assert_eq!(cur.step, Step::BackedUp);
+    assert!(
+        !out.detail.contains("--restore-backup"),
+        "no restore is offered: {}",
+        out.detail
+    );
     h.fake.clear_log();
 
     let r = e.restore_previous(true).await.unwrap();

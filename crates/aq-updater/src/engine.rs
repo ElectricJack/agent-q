@@ -1144,7 +1144,13 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
     }
 
     fn operator_steps(cur: &InFlight) -> String {
-        let restore = if cur.needs_restore_on_rollback {
+        // As `retry_active` decides: a restore only once the target may
+        // have run, and never at `Active`.
+        let may_restore = matches!(
+            cur.step,
+            Step::Replacing | Step::Probing | Step::RollingBack | Step::Unknown
+        );
+        let restore = if cur.needs_restore_on_rollback && may_restore {
             format!(
                 " --restore-backup (restores {})",
                 cur.backup
