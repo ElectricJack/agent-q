@@ -146,12 +146,45 @@ fn fsync_parent(path: &Path) -> std::io::Result<()> {
     }
 }
 
-/// Write `AQ_SERVER_IMAGE=<image>` to `path` atomically (temp file, fsync,
-/// rename, fsync dir), mode 0640. The image must be digest-pinned, which
-/// also rules out anything that could add another variable.
-pub fn write_release_env(path: &Path, image: &str) -> RuntimeResult<()> {
+/// The `AQ_SERVER_IMAGE` in `release.env` while no release is installed:
+/// digest-pinned (so it is a valid value) on a reserved `.invalid` host, so
+/// Compose can interpolate `compose.yaml` for postgres, psql and pg_dump on
+/// a fresh host, while starting the server with it can only fail.
+pub const NO_RELEASE_IMAGE: &str = "no-release-installed.invalid/agent-q-server@sha256:0000000000000000000000000000000000000000000000000000000000000000";
+
+fn env_path_re() -> &'static regex::Regex {
+    static RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    RE.get_or_init(|| regex::Regex::new(r"^/[A-Za-z0-9._/+@:-]*$").expect("static"))
+}
+
+/// Can `path` be written unquoted as a Compose env-file value? Absolute, and
+/// only characters that need no quoting and cannot interpolate (`$`), start
+/// a comment (`#`) or add a line.
+pub fn is_env_safe_path(path: &Path) -> bool {
+    path.to_str().is_some_and(|p| env_path_re().is_match(p))
+}
+
+/// The full `release.env`: the server image (digest-pinned, which also rules
+/// out anything that could add another variable) and the spool the updater
+/// uses, so the server's spool mounts always match it.
+fn release_env_body(image: &str, spool: &Path) -> RuntimeResult<String> {
     let image = digest_ref(image)?;
-    write_env_file(path, format!("AQ_SERVER_IMAGE={image}\n").as_bytes())
+    if !is_env_safe_path(spool) {
+        return Err(failed(format!(
+            "refusing spool path {:.200?} for release.env: it must be absolute and use only A-Z a-z 0-9 . _ / + @ : -",
+            spool
+        )));
+    }
+    Ok(format!(
+        "AQ_SERVER_IMAGE={image}\nAQ_UPDATER_SPOOL={}\n",
+        spool.display()
+    ))
+}
+
+/// Write `release.env` (`AQ_SERVER_IMAGE=<image>`, `AQ_UPDATER_SPOOL=<spool>`)
+/// to `path` atomically (temp file, fsync, rename, fsync dir), mode 0640.
+pub fn write_release_env(path: &Path, image: &str, spool: &Path) -> RuntimeResult<()> {
+    write_env_file(path, release_env_body(image, spool)?.as_bytes())
 }
 
 fn write_env_file(path: &Path, body: &[u8]) -> RuntimeResult<()> {
@@ -177,17 +210,33 @@ fn write_env_file(path: &Path, body: &[u8]) -> RuntimeResult<()> {
     fsync_parent(path).map_err(err)
 }
 
-/// Make sure `release.env` exists so Compose can read it: written with
-/// `image` (the active release) when given, otherwise empty. An existing
-/// file is never replaced.
-pub fn ensure_release_env(path: &Path, image: Option<&str>) -> RuntimeResult<()> {
-    if path.exists() {
+/// The digest-pinned `AQ_SERVER_IMAGE` an existing `release.env` names.
+fn release_env_image(text: &str) -> Option<&str> {
+    text.lines()
+        .find_map(|l| l.strip_prefix("AQ_SERVER_IMAGE="))
+        .filter(|i| aq_release::is_digest_ref(i))
+}
+
+/// Make sure `release.env` is complete before Compose reads it. The image
+/// it already names is kept (it is the one last started); otherwise `image`
+/// (the active release) is used, else [`NO_RELEASE_IMAGE`]. The spool line
+/// is always `spool`. A file that is already right is not rewritten.
+pub fn ensure_release_env(path: &Path, image: Option<&str>, spool: &Path) -> RuntimeResult<()> {
+    let existing = match std::fs::read_to_string(path) {
+        Ok(t) => Some(t),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+        Err(e) => return Err(failed(format!("cannot read {}: {e}", path.display()))),
+    };
+    let kept = existing
+        .as_deref()
+        .and_then(release_env_image)
+        // A placeholder gives way to a known active release.
+        .filter(|i| *i != NO_RELEASE_IMAGE || image.is_none());
+    let body = release_env_body(kept.or(image).unwrap_or(NO_RELEASE_IMAGE), spool)?;
+    if existing.as_deref() == Some(body.as_str()) {
         return Ok(());
     }
-    match image {
-        Some(i) => write_release_env(path, i),
-        None => write_env_file(path, b""),
-    }
+    write_env_file(path, body.as_bytes())
 }
 
 /// The content of the regular file `name` from a `docker cp <id>:/path -`
@@ -273,6 +322,8 @@ pub struct DockerCli {
     docker: std::path::PathBuf,
     compose: crate::config::ComposeConfig,
     release_env: std::path::PathBuf,
+    /// Written into `release.env` as `AQ_UPDATER_SPOOL`.
+    spool: std::path::PathBuf,
     release_repo: String,
     channel: String,
 }
@@ -312,6 +363,7 @@ impl DockerCli {
             docker: "docker".into(),
             compose,
             release_env: state_dir.join(RELEASE_ENV),
+            spool: crate::spool::spool_dir(state_dir),
             release_repo,
             channel,
         }
@@ -334,6 +386,13 @@ impl DockerCli {
 
     pub fn release_env_path(&self) -> &Path {
         &self.release_env
+    }
+
+    /// Create or complete `release.env` (see [`ensure_release_env`]) with
+    /// `image`, the active release, if there is one. Call before any Compose
+    /// command; every Compose call here also does.
+    pub fn ensure_release_env(&self, image: Option<&str>) -> RuntimeResult<()> {
+        ensure_release_env(&self.release_env, image, &self.spool)
     }
 
     // ------------------------------------------------- argv (pure, tested)
@@ -597,9 +656,10 @@ impl DockerCli {
             .ok(name)
     }
 
-    /// Compose fails on a missing `--env-file`; create an empty one first.
+    /// Compose fails on a missing `--env-file`, and compose.yaml requires
+    /// both of its variables: make sure it is complete first.
     fn compose_ready(&self) -> RuntimeResult<()> {
-        ensure_release_env(&self.release_env, None)
+        self.ensure_release_env(None)
     }
 
     async fn compose(
@@ -771,7 +831,7 @@ impl Runtime for DockerCli {
     }
 
     async fn start_server(&self, image: &str) -> RuntimeResult<()> {
-        write_release_env(&self.release_env, image)?;
+        write_release_env(&self.release_env, image, &self.spool)?;
         self.compose("docker compose up", self.start_server_argv(), CMD_TIMEOUT)
             .await
             .map(drop)
@@ -1153,16 +1213,20 @@ mod tests {
         }
     }
 
+    const SPOOL: &str = "/var/lib/agent-q/updater/spool";
+
+    fn body(image: &str) -> String {
+        format!("AQ_SERVER_IMAGE={image}\nAQ_UPDATER_SPOOL={SPOOL}\n")
+    }
+
     #[test]
     fn release_env_written_atomically_with_mode_0640() {
         let t = tempfile::tempdir().unwrap();
         let path = t.path().join("release.env");
+        let spool = Path::new(SPOOL);
         std::fs::write(t.path().join("release.env.tmp"), "stale").unwrap();
-        write_release_env(&path, IMAGE).unwrap();
-        assert_eq!(
-            std::fs::read_to_string(&path).unwrap(),
-            format!("AQ_SERVER_IMAGE={IMAGE}\n")
-        );
+        write_release_env(&path, IMAGE, spool).unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), body(IMAGE));
         let mode = std::fs::metadata(&path).unwrap().permissions().mode();
         assert_eq!(mode & 0o777, 0o640, "{mode:o}");
         let names: Vec<_> = std::fs::read_dir(t.path())
@@ -1172,29 +1236,108 @@ mod tests {
         assert_eq!(names, vec![OsString::from("release.env")]);
         // Only digest refs are written: no tags, no injected lines.
         for bad in ["nginx:latest", &format!("{IMAGE}\nAQ_VAULT_DIR=/"), ""] {
-            assert!(write_release_env(&path, bad).is_err(), "{bad:?}");
+            assert!(write_release_env(&path, bad, spool).is_err(), "{bad:?}");
         }
-        assert_eq!(
-            std::fs::read_to_string(&path).unwrap(),
-            format!("AQ_SERVER_IMAGE={IMAGE}\n")
-        );
-        // ensure_release_env never replaces an existing file.
-        ensure_release_env(&path, None).unwrap();
-        assert_eq!(
-            std::fs::read_to_string(&path).unwrap(),
-            format!("AQ_SERVER_IMAGE={IMAGE}\n")
-        );
-        let fresh = t.path().join("sub-release.env");
-        ensure_release_env(&fresh, Some(IMAGE)).unwrap();
+        // Only spool paths Compose reads back verbatim.
+        for bad in [
+            "rel/spool",
+            "/a b",
+            "/a$HOME",
+            "/a#b",
+            "/a\nAQ_VAULT_DIR=/",
+            "/a\"b",
+        ] {
+            let e = write_release_env(&path, IMAGE, Path::new(bad)).unwrap_err();
+            assert!(e.to_string().contains("spool path"), "{bad:?}: {e}");
+        }
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), body(IMAGE));
+    }
+
+    #[test]
+    fn no_release_placeholder_is_a_digest_ref_on_a_reserved_host() {
+        assert!(aq_release::is_digest_ref(NO_RELEASE_IMAGE));
+        assert!(NO_RELEASE_IMAGE.starts_with("no-release-installed.invalid/"));
+        assert!(NO_RELEASE_IMAGE.ends_with(&format!("@sha256:{}", "0".repeat(64))));
+    }
+
+    #[test]
+    fn ensure_release_env_bootstraps_a_fresh_host() {
+        let t = tempfile::tempdir().unwrap();
+        let spool = Path::new(SPOOL);
+        // No release installed: the placeholder image and the spool, so
+        // compose.yaml interpolates for postgres, psql and pg_dump.
+        let fresh = t.path().join("fresh.env");
+        ensure_release_env(&fresh, None, spool).unwrap();
         assert_eq!(
             std::fs::read_to_string(&fresh).unwrap(),
-            format!("AQ_SERVER_IMAGE={IMAGE}\n")
+            body(NO_RELEASE_IMAGE)
         );
-        let empty = t.path().join("empty-release.env");
-        ensure_release_env(&empty, None).unwrap();
-        assert_eq!(std::fs::read_to_string(&empty).unwrap(), "");
-        let mode = std::fs::metadata(&empty).unwrap().permissions().mode();
+        let mode = std::fs::metadata(&fresh).unwrap().permissions().mode();
         assert_eq!(mode & 0o777, 0o640, "{mode:o}");
+        // A placeholder gives way to the journal's active release.
+        ensure_release_env(&fresh, Some(IMAGE), spool).unwrap();
+        assert_eq!(std::fs::read_to_string(&fresh).unwrap(), body(IMAGE));
+        // Missing, with an active release.
+        let active = t.path().join("active.env");
+        ensure_release_env(&active, Some(IMAGE), spool).unwrap();
+        assert_eq!(std::fs::read_to_string(&active).unwrap(), body(IMAGE));
+        // An empty file (an older updater wrote these) is completed.
+        let empty = t.path().join("empty.env");
+        std::fs::write(&empty, "").unwrap();
+        ensure_release_env(&empty, None, spool).unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&empty).unwrap(),
+            body(NO_RELEASE_IMAGE)
+        );
+    }
+
+    #[test]
+    fn ensure_release_env_keeps_the_image_and_fixes_the_spool() {
+        use std::os::unix::fs::MetadataExt;
+        let t = tempfile::tempdir().unwrap();
+        let spool = Path::new(SPOOL);
+        let path = t.path().join("release.env");
+        const OTHER: &str = "ghcr.io/electricjack/agent-q-server@sha256:0000000000000000000000000000000000000000000000000000000000000200";
+        // The image last started is kept over the journal's; a missing or
+        // different spool line is replaced.
+        std::fs::write(&path, format!("AQ_SERVER_IMAGE={OTHER}\n")).unwrap();
+        ensure_release_env(&path, Some(IMAGE), spool).unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), body(OTHER));
+        std::fs::write(
+            &path,
+            format!("AQ_SERVER_IMAGE={OTHER}\nAQ_UPDATER_SPOOL=/elsewhere\n"),
+        )
+        .unwrap();
+        ensure_release_env(&path, None, spool).unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), body(OTHER));
+        // A complete file is left alone (same inode: not rewritten).
+        let ino = std::fs::metadata(&path).unwrap().ino();
+        ensure_release_env(&path, Some(IMAGE), spool).unwrap();
+        assert_eq!(std::fs::metadata(&path).unwrap().ino(), ino);
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), body(OTHER));
+        // An image line that is not digest-pinned is not trusted.
+        std::fs::write(&path, "AQ_SERVER_IMAGE=nginx:latest\n").unwrap();
+        ensure_release_env(&path, Some(IMAGE), spool).unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), body(IMAGE));
+    }
+
+    #[test]
+    fn docker_cli_writes_the_spool_of_its_state_dir() {
+        let t = tempfile::tempdir().unwrap();
+        let c = DockerCli::new(
+            cli().compose.clone(),
+            t.path(),
+            "ghcr.io/electricjack/agent-q-release".into(),
+            "stable".into(),
+        );
+        c.ensure_release_env(None).unwrap();
+        assert_eq!(
+            std::fs::read_to_string(c.release_env_path()).unwrap(),
+            format!(
+                "AQ_SERVER_IMAGE={NO_RELEASE_IMAGE}\nAQ_UPDATER_SPOOL={}\n",
+                t.path().join("spool").display()
+            )
+        );
     }
 
     fn tar_of(entries: &[(&str, &[u8])]) -> Vec<u8> {

@@ -106,3 +106,20 @@ public_key_hex = "00"
         VerifierConfig::TestKey { .. }
     ));
 }
+
+#[test]
+fn rejects_a_state_dir_that_cannot_go_into_release_env() {
+    // The spool path is written unquoted into release.env.
+    for bad in [
+        "/var/lib/agent q",
+        "/var/lib/$HOME",
+        "/var/lib/a#b",
+        "/var/lib/a\\nB=1",
+    ] {
+        let cfg = BASE.replace("/var/lib/agent-q/updater", bad);
+        let e = UpdaterConfig::parse(&cfg).unwrap_err();
+        assert!(e.to_string().contains("state_dir"), "{bad:?}: {e}");
+    }
+    let ok = BASE.replace("/var/lib/agent-q/updater", "/tmp/aq-suite.Ab3_x/state");
+    UpdaterConfig::parse(&ok).unwrap();
+}

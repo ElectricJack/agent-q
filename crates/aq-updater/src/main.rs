@@ -11,7 +11,7 @@ use aq_release::{
 use aq_updater::config::UpdaterConfig;
 use aq_updater::engine::{Engine, EngineSettings, Halted, update_state};
 use aq_updater::journal::{Journal, JournalError, LockError, lock, read_history};
-use aq_updater::runtime::{DockerCli, ensure_release_env};
+use aq_updater::runtime::DockerCli;
 use aq_updater::spool::{self, SpoolMaintenance};
 use aq_updater::verify::{self, ReleaseVerifier, VerifyError};
 use chrono::Utc;
@@ -162,8 +162,11 @@ fn open_engine(cfg: &UpdaterConfig) -> Result<RealEngine, Exit> {
         .active
         .as_ref()
         .map(|m| m.images.server.clone());
-    // Compose needs release.env; seed it from the journal if it is missing.
-    ensure_release_env(runtime.release_env_path(), active.as_deref()).map_err(failure)?;
+    // Before any Compose call: compose.yaml needs both release.env variables
+    // even on a fresh host (postgres, psql, pg_dump before the first install).
+    runtime
+        .ensure_release_env(active.as_deref())
+        .map_err(failure)?;
     let verifier = verify::from_config(&cfg.verifier).map_err(usage)?;
     let status_dir = spool::status_dir(&cfg.state_dir);
     let mut engine = Engine::new(

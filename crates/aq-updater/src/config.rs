@@ -123,6 +123,13 @@ impl UpdaterConfig {
                 return bad(format!("{name} must be an absolute path"));
             }
         }
+        // Written unquoted into release.env as AQ_UPDATER_SPOOL.
+        if !crate::runtime::is_env_safe_path(&crate::spool::spool_dir(&self.state_dir)) {
+            return bad(
+                "state_dir may use only A-Z a-z 0-9 . _ / + @ : - (its spool path is written into release.env)"
+                    .into(),
+            );
+        }
         if self.compose.files.is_empty() {
             return bad("compose.files must not be empty".into());
         }
