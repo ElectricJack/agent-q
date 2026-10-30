@@ -196,9 +196,6 @@ async fn take_backup<R: Runtime>(runtime: &R, dir: &Path, dest: &Path) -> Check<
     if let Err(e) = create_backup_dir(dir) {
         return Ok(Err(e));
     }
-    if dest.exists() {
-        return Ok(Err(format!("{} already exists", dest.display())));
-    }
     rt(runtime.backup(dest).await)
 }
 
@@ -711,6 +708,15 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
             Utc::now().format("%Y%m%dT%H%M%SZ"),
             cur.target.version
         ));
+        // Checked before the path is journaled: the in-flight backup (which
+        // failure and recovery delete) is always a file this attempt made.
+        if dest.exists() {
+            let detail = format!(
+                "backup failed, update abandoned before replacement: {} already exists",
+                dest.display()
+            );
+            return self.conclude(self.op_entry(&cur, Outcome::Aborted, detail), true);
+        }
         cur.backup = Some(dest.clone());
         self.set_step(&mut cur, Step::BackedUp)?;
         if let Err(e) = take_backup(&self.runtime, &dir, &dest).await? {

@@ -404,6 +404,32 @@ async fn backup_failure_aborts_and_leaves_maintenance() {
 }
 
 #[tokio::test]
+async fn existing_backup_file_is_never_overwritten_or_deleted() {
+    let (h, mut e, _a) = with_a().await;
+    h.publish(&manifest(B, 1, &[1]));
+    // Occupy the backup name for this second and the next two.
+    let now = Utc::now();
+    let taken: Vec<PathBuf> = (0..3)
+        .map(|s| {
+            let t = now + chrono::Duration::seconds(s);
+            let p = h
+                .backup_dir
+                .join(format!("{}-{A}-{B}.dump", t.format("%Y%m%dT%H%M%SZ")));
+            std::fs::write(&p, b"someone else's").unwrap();
+            p
+        })
+        .collect();
+    let r = e.install(req(B)).await.unwrap();
+    assert_eq!(r.outcome, Outcome::Aborted, "{}", r.detail);
+    assert!(r.detail.contains("already exists"), "{}", r.detail);
+    assert_eq!(h.fake.count("backup"), 0);
+    for p in &taken {
+        assert_eq!(std::fs::read(p).unwrap(), b"someone else's");
+    }
+    assert!(!h.fake.maintenance_on());
+}
+
+#[tokio::test]
 async fn unhealthy_b_rolls_back_to_a() {
     let (h, mut e, a) = with_a().await;
     h.publish(&manifest(B, 1, &[1]));
