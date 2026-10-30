@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Start (or reuse) the disposable PostgreSQL used by database tests.
+set -euo pipefail
+
+NAME=agent-q-test-db
+PORT=55432
+
+if [ "$(docker inspect -f '{{.State.Running}}' "$NAME" 2>/dev/null || true)" != "true" ]; then
+  docker rm -f "$NAME" >/dev/null 2>&1 || true
+  docker run -d --name "$NAME" \
+    -e POSTGRES_PASSWORD=test \
+    -p "127.0.0.1:${PORT}:5432" \
+    --tmpfs /var/lib/postgresql/data \
+    postgres:17-bookworm >/dev/null
+fi
+
+for _ in $(seq 1 60); do
+  if docker exec "$NAME" pg_isready -U postgres -h 127.0.0.1 >/dev/null 2>&1; then
+    echo "export DATABASE_URL=postgres://postgres:test@127.0.0.1:${PORT}/postgres"
+    exit 0
+  fi
+  sleep 1
+done
+echo "agent-q-test-db did not become ready" >&2
+exit 1
