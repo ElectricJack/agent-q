@@ -677,7 +677,7 @@ async fn second_request_rejected_while_in_flight() {
     assert_eq!(cur.step, Step::Probing);
     match e.status().state {
         UpdateState::InProgress { target, step, .. } => {
-            assert_eq!(target, ver(B));
+            assert_eq!(target, Some(ver(B)));
             assert_eq!(step, Step::Probing);
         }
         other => panic!("expected InProgress, got {other:?}"),
@@ -1647,7 +1647,7 @@ async fn observer_sees_every_step_of_an_install() {
         .iter()
         .filter_map(|s| match &s.state {
             UpdateState::InProgress { step, target, .. } => {
-                assert_eq!(*target, ver(B));
+                assert_eq!(*target, Some(ver(B)));
                 Some(*step)
             }
             _ => None,
@@ -1771,4 +1771,65 @@ async fn seeded_available_must_be_newer_than_active() {
         e.journal_state().active.as_ref().unwrap().version,
         a.version
     );
+}
+
+#[tokio::test]
+async fn taken_request_shows_in_progress_before_the_fetch() {
+    let (h, mut e, _a) = with_a().await;
+    let fake = h.fake.clone();
+    let seen = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let sink = seen.clone();
+    e.set_observer(Box::new(move |s: &aq_release::UpdateStatus| {
+        sink.lock()
+            .unwrap()
+            .push((s.state.clone(), fake.count("fetch_release")));
+    }));
+
+    // A version request that is then refused (nothing published).
+    let request = req(B);
+    let r = e.install(request.clone()).await.unwrap();
+    assert_eq!(r.outcome, Outcome::Refused, "{}", r.detail);
+    {
+        let seen = seen.lock().unwrap();
+        assert_eq!(seen.len(), 2, "{seen:?}");
+        match &seen[0] {
+            (
+                UpdateState::InProgress {
+                    request_id,
+                    target,
+                    step,
+                    ..
+                },
+                0,
+            ) => {
+                assert_eq!(*request_id, request.id);
+                assert_eq!(*target, Some(ver(B)));
+                assert_eq!(*step, Step::Requested);
+            }
+            other => panic!("expected InProgress before any fetch, got {other:?}"),
+        }
+        assert_eq!(
+            seen[1],
+            (UpdateState::Idle, 1),
+            "idle again after the refusal"
+        );
+    }
+    assert!(e.journal_state().current.is_none());
+
+    // A channel request: the target is not known yet.
+    seen.lock().unwrap().clear();
+    let mut channel = req(B);
+    channel.version = None;
+    let r = e.install(channel.clone()).await.unwrap();
+    assert_eq!(r.outcome, Outcome::Refused, "{}", r.detail);
+    let seen = seen.lock().unwrap();
+    assert!(
+        matches!(
+            &seen[0],
+            (UpdateState::InProgress { request_id, target: None, step: Step::Requested, .. }, _)
+                if *request_id == channel.id
+        ),
+        "{seen:?}"
+    );
+    assert_eq!(seen.last().unwrap().0, UpdateState::Idle);
 }

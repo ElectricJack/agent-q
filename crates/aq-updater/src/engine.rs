@@ -127,7 +127,7 @@ pub fn update_state(current: Option<&InFlight>, recorded: Option<&HistoryEntry>)
         },
         Some(c) => UpdateState::InProgress {
             request_id: c.request_id,
-            target: c.target.version.clone(),
+            target: Some(c.target.version.clone()),
             step: c.step,
             started_at: c.started_at,
         },
@@ -369,6 +369,24 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
         }
     }
 
+    /// Show a request as in progress while its release is fetched and
+    /// verified, before `Requested` is persisted (nothing is journaled yet,
+    /// so a crash here leaves nothing to recover). If install then refuses
+    /// without persisting, the history append publishes the real (idle)
+    /// state again.
+    fn notify_taken(&self, req: &UpdateRequest, started_at: DateTime<Utc>) {
+        if let Some(f) = &self.observer {
+            let mut s = self.status();
+            s.state = UpdateState::InProgress {
+                request_id: req.id,
+                target: req.version.clone(),
+                step: Step::Requested,
+                started_at,
+            };
+            f(&s);
+        }
+    }
+
     pub fn journal_state(&self) -> &JournalState {
         self.journal.state()
     }
@@ -502,6 +520,7 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
         if self.journal.state().current.is_some() {
             return self.log_only(entry(Outcome::Rejected, UPDATE_IN_PROGRESS.into()));
         }
+        self.notify_taken(&req, started_at);
 
         // Fetch, verify and parse: read-only, nothing to recover yet.
         let selector = match &req.version {

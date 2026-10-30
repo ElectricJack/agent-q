@@ -16,7 +16,7 @@ fn status_json_roundtrip() {
         updater_version: "0.1.0".into(),
         state: UpdateState::InProgress {
             request_id: Uuid::new_v4(),
-            target: Version::new(0, 2, 0),
+            target: Some(Version::new(0, 2, 0)),
             step: Step::Probing,
             started_at: now,
         },
@@ -45,6 +45,16 @@ fn status_json_roundtrip() {
     let f = UpdateState::FailedNeedsOperator { detail: "x".into() };
     let j = serde_json::to_vec(&f).unwrap();
     assert_eq!(serde_json::from_slice::<UpdateState>(&j).unwrap(), f);
+    // A channel request before its target is known: `target` is omitted.
+    let unknown = UpdateState::InProgress {
+        request_id: Uuid::new_v4(),
+        target: None,
+        step: Step::Requested,
+        started_at: now,
+    };
+    let j = serde_json::to_string(&unknown).unwrap();
+    assert!(!j.contains("target"), "{j}");
+    assert_eq!(serde_json::from_str::<UpdateState>(&j).unwrap(), unknown);
 }
 
 #[test]

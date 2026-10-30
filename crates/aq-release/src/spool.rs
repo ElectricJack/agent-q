@@ -71,7 +71,10 @@ pub enum UpdateState {
     Idle,
     InProgress {
         request_id: Uuid,
-        target: Version,
+        /// The version being installed. Absent only briefly, while a channel
+        /// request is fetched and verified (before the target is known).
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        target: Option<Version>,
         step: Step,
         started_at: DateTime<Utc>,
     },

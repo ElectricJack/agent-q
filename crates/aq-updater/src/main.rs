@@ -447,7 +447,10 @@ fn status(cfg: &UpdaterConfig) -> CmdResult {
         } => line(
             "state:",
             format!(
-                "in_progress: {target} at step {} (request {request_id}, started {})",
+                "in_progress: {} at step {} (request {request_id}, started {})",
+                target
+                    .as_ref()
+                    .map_or("the channel release".to_string(), |v| v.to_string()),
                 serde_json::to_value(step)
                     .ok()
                     .and_then(|v| v.as_str().map(str::to_string))
