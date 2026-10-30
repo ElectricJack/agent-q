@@ -1,6 +1,13 @@
 #!/usr/bin/env bash
 # Release-verification smoke test: proves the enrollment/heartbeat lifecycle
 # against built container images (not source), across a server+database restart.
+#
+# By default it builds the server and worker images from the working tree.
+# With both AQ_SMOKE_SERVER_IMAGE and AQ_SMOKE_WORKER_IMAGE set it builds
+# nothing and tests those images instead (tags or digest references such as
+# ghcr.io/electricjack/agent-q-server@sha256:…), pulling any that are not
+# present locally. The release workflow uses this to test the exact pushed
+# digests.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -10,7 +17,19 @@ ADMIN=http://127.0.0.1:8080
 STEP="start"
 LOG_DIR=${TMPDIR:-/tmp}
 
-export AQ_SERVER_IMAGE=${AQ_SERVER_IMAGE:-agent-q-server:smoke}
+SMOKE_SERVER=${AQ_SMOKE_SERVER_IMAGE:-}
+SMOKE_WORKER=${AQ_SMOKE_WORKER_IMAGE:-}
+if [ -n "$SMOKE_SERVER" ] && [ -n "$SMOKE_WORKER" ]; then
+  PREBUILT=1
+  export AQ_SERVER_IMAGE=$SMOKE_SERVER AQ_WORKER_IMAGE=$SMOKE_WORKER
+elif [ -n "$SMOKE_SERVER$SMOKE_WORKER" ]; then
+  echo "smoke: set both AQ_SMOKE_SERVER_IMAGE and AQ_SMOKE_WORKER_IMAGE, or neither" >&2
+  exit 2
+else
+  PREBUILT=0
+  export AQ_SERVER_IMAGE=${AQ_SERVER_IMAGE:-agent-q-server:smoke}
+  export AQ_WORKER_IMAGE=${AQ_WORKER_IMAGE:-agent-q-worker:dev}
+fi
 export AQ_VAULT_DIR="$PWD/vault.example"
 export AQ_SECRETS_DIR="$PWD/secrets.dev"
 # compose.yaml requires the updater spool. compose.dev.yaml mounts
@@ -64,13 +83,34 @@ step "fresh start (remove any previous smoke stack and volume)"
 # Creates the dev secret (once) and the dev spool directories.
 scripts/dev-up --init-only
 
-step "build images"
-"${DC[@]}" --profile smoke build >"$LOG_DIR/smoke-build.log" 2>&1 || {
-  tail -30 "$LOG_DIR/smoke-build.log" >&2; exit 1; }
+if [ "$PREBUILT" = 1 ]; then
+  step "use prebuilt images (no build)"
+  for image in "$AQ_SERVER_IMAGE" "$AQ_WORKER_IMAGE"; do
+    if ! docker image inspect "$image" >/dev/null 2>&1; then
+      docker pull --quiet "$image" >"$LOG_DIR/smoke-pull.log" 2>&1 || {
+        tail -30 "$LOG_DIR/smoke-pull.log" >&2; exit 1; }
+    fi
+    echo "smoke: image $image"
+  done
+else
+  step "build images"
+  "${DC[@]}" --profile smoke build >"$LOG_DIR/smoke-build.log" 2>&1 || {
+    tail -30 "$LOG_DIR/smoke-build.log" >&2; exit 1; }
+fi
+
+# expect_image SERVICE IMAGE: the service's running container uses IMAGE.
+expect_image() {
+  local id got
+  id=$("${DC[@]}" --profile smoke ps -q "$1")
+  [ -n "$id" ] || { echo "smoke: no $1 container" >&2; return 1; }
+  got=$(docker inspect --format '{{.Config.Image}}' "$id")
+  [ "$got" = "$2" ] || { echo "smoke: $1 runs $got, expected $2" >&2; return 1; }
+}
 
 step "start stack and wait for server health"
-"${DC[@]}" up -d --wait --wait-timeout 120 server >"$LOG_DIR/smoke-up.log" 2>&1 || {
+"${DC[@]}" up -d --no-build --wait --wait-timeout 120 server >"$LOG_DIR/smoke-up.log" 2>&1 || {
   tail -30 "$LOG_DIR/smoke-up.log" >&2; exit 1; }
+expect_image server "$AQ_SERVER_IMAGE"
 poll "admin /healthz" 60 curl -fsS --max-time 3 "$ADMIN/healthz"
 poll "in-container healthcheck" 60 \
   "${DC[@]}" exec -T server aq-server healthcheck
@@ -81,11 +121,12 @@ CODE=$(curl -fsS --max-time 5 -X POST -H 'X-AQ-Request: 1' "$ADMIN/api/enrollmen
 [ -n "$CODE" ]
 
 step "enroll the worker image"
-printf '%s\n' "$CODE" | "${DC[@]}" --profile smoke run --rm -T worker \
+printf '%s\n' "$CODE" | "${DC[@]}" --profile smoke run --rm -T --pull never worker \
   enroll --server http://server:8081 --name smoke
 
 step "run the worker and wait for its first heartbeat"
-"${DC[@]}" --profile smoke up -d worker >"$LOG_DIR/smoke-worker.log" 2>&1
+"${DC[@]}" --profile smoke up -d --no-build worker >"$LOG_DIR/smoke-worker.log" 2>&1
+expect_image worker "$AQ_WORKER_IMAGE"
 poll "worker online with last_seen_at" 60 worker_online
 NODE_ID=$(curl -fsS "$ADMIN/api/workers" | python3 -c '
 import json, sys

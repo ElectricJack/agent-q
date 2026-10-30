@@ -31,11 +31,12 @@ services:
   cloudflared:
     profiles: [tunnel]
   # Only used by scripts/smoke: the worker image, run as a container.
+  # scripts/smoke sets AQ_WORKER_IMAGE when it tests a prebuilt image.
   worker:
     build:
       context: .
       target: worker
-    image: agent-q-worker:dev
+    image: ${AQ_WORKER_IMAGE:-agent-q-worker:dev}
     profiles: [smoke]
     networks: [edge]
     volumes:
