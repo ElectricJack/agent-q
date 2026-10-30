@@ -1,0 +1,37 @@
+# Agent Q vault configuration (development example).
+
+# Schema version of this file. This server reads only version 1.
+format_version = 1
+
+# "development" or "production". Production forbids dev auth and requires https.
+environment = "development"
+
+[server]
+# Address of the human-facing admin listener.
+admin_bind = "0.0.0.0:8080"
+# Address of the worker-facing listener.
+worker_bind = "0.0.0.0:8081"
+# Externally visible origin of the admin UI; must be https:// in production.
+public_origin = "http://127.0.0.1:8080"
+
+[auth]
+# "dev" (development only) or "cloudflare_access".
+mode = "dev"
+# Identity assumed for every request in dev mode.
+dev_email = "owner@localhost"
+
+[bootstrap]
+# Email that becomes the first owner when bootstrap is enabled.
+owner_email = "owner@localhost"
+# Whether the first owner may be created automatically on first sign-in.
+enabled = true
+
+[enrollment]
+# Lifetime of a worker enrollment code, in seconds (default 600).
+code_ttl_secs = 600
+
+[workers]
+# How often workers send heartbeats, in seconds (default 15).
+heartbeat_interval_secs = 15
+# A worker is shown offline after this many seconds without a heartbeat (default 60); must exceed the heartbeat interval.
+offline_after_secs = 60

@@ -1,3 +1,4 @@
+pub mod config;
 use aq_protocol::{SUPPORTED_WORKER_PROTOCOLS, VersionInfo};
 use axum::{Json, Router, routing::get};
 use serde_json::{Value, json};
