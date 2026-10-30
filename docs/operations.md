@@ -483,12 +483,16 @@ updater never acts on a guess.
    - signs it keyless with `cosign sign-blob` (the workflow's OIDC identity);
    - builds the static `aq-updater` and verifies the manifest with it, using the
      production identity;
-   - pushes `agent-q-release:<version>`;
    - runs `scripts/smoke` against the pushed digests;
+   - only then pushes `agent-q-release:<version>`;
    - creates the GitHub Release with `manifest.json`,
      `manifest.sigstore.json`, `aq-updater-x86_64-linux` and `SHA256SUMS`.
 
-   If it fails, fix the cause and cut a new patch version. Do not move the tag.
+   The release image is pushed only after the smoke test passes, and the
+   updater and `promote.yml` find releases only through it. A run that fails
+   before then leaves at most server and worker images, which no host can
+   install. If it fails, fix the cause and cut a new patch version. Do not
+   move the tag.
 6. Promote it to the stable channel:
 
    ```sh

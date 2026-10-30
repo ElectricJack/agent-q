@@ -163,6 +163,15 @@ jobs:
           dist/aq-updater-x86_64-linux --config "$tmp/updater.toml" \
             verify-manifest release/manifest.json release/manifest.sigstore.json
 
+      # The spec's isolated test deployment: the exact pushed digests. It runs
+      # before the release image exists, so a release that fails it is never
+      # visible to the updater or to promote.yml.
+      - name: Smoke test the pushed images
+        env:
+          AQ_SMOKE_SERVER_IMAGE: ${{ steps.images.outputs.server }}
+          AQ_SMOKE_WORKER_IMAGE: ${{ steps.images.outputs.worker }}
+        run: scripts/smoke
+
       - name: Build and push the release image
         id: release_image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -179,13 +188,6 @@ jobs:
             AQ_VERSION=${{ steps.version.outputs.version }}
           labels: org.opencontainers.image.source=${{ env.SOURCE_URL }}
           tags: ${{ env.RELEASE_REPO }}:${{ steps.version.outputs.version }}
-
-      # The spec's isolated test deployment: the exact pushed digests.
-      - name: Smoke test the pushed images
-        env:
-          AQ_SMOKE_SERVER_IMAGE: ${{ steps.images.outputs.server }}
-          AQ_SMOKE_WORKER_IMAGE: ${{ steps.images.outputs.worker }}
-        run: scripts/smoke
 
       - name: Create the GitHub Release
         env:
