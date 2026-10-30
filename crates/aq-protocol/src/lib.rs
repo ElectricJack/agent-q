@@ -1,6 +1,8 @@
 //! Wire types shared by the Agent Q server and worker.
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 pub const PROTOCOL_VERSION: u32 = 1;
 
@@ -33,6 +35,54 @@ pub struct VersionInfo {
 pub struct ApiError {
     pub error: String,
     pub message: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EnrollRequest {
+    pub code: String,
+    pub name: String,
+    pub worker_version: String,
+    pub protocol_version: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EnrollResponse {
+    pub node_id: Uuid,
+    pub credential: String,
+    pub heartbeat_interval_secs: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HeartbeatRequest {
+    pub worker_version: String,
+    pub protocol_version: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct HeartbeatResponse {
+    pub server_version: String,
+    pub heartbeat_interval_secs: u64,
+}
+
+/// `nonce` is at most 64 characters.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProbeRequest {
+    pub nonce: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ProbeResponse {
+    pub nonce: String,
+    pub server_time: DateTime<Utc>,
+}
+
+/// Body of a 426 response. `error` is always `UNSUPPORTED_PROTOCOL`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompatibilityError {
+    pub error: String,
+    pub message: String,
+    pub supported_min: u32,
+    pub supported_max: u32,
 }
 
 #[cfg(test)]

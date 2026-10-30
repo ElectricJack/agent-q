@@ -31,11 +31,11 @@ pub fn admin_routes(state: &AppState) -> Router<AppState> {
         .route("/api/enrollments", post(create_enrollment))
         .route("/api/workers/{id}/revoke", post(revoke_worker))
         .route("/api/users", get(list_users).post(create_user))
-        .layer(from_fn_with_state(state.clone(), csrf_guard))
+        .route_layer(from_fn_with_state(state.clone(), csrf_guard))
 }
 
 /// `Json` extractor whose rejections are `ApiError` bodies with 400.
-struct ApiJson<T>(T);
+pub(crate) struct ApiJson<T>(pub(crate) T);
 
 impl<T> FromRequest<AppState> for ApiJson<T>
 where
@@ -46,6 +46,9 @@ where
     async fn from_request(req: Request, state: &AppState) -> Result<Self, Self::Rejection> {
         match Json::<T>::from_request(req, state).await {
             Ok(Json(v)) => Ok(ApiJson(v)),
+            Err(e) if e.status() == StatusCode::PAYLOAD_TOO_LARGE => {
+                Err(AppError::PayloadTooLarge(e.body_text()))
+            }
             Err(e) => Err(AppError::BadRequest(e.body_text())),
         }
     }
