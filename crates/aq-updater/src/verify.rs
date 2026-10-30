@@ -4,6 +4,7 @@
 
 use crate::config::VerifierConfig;
 use crate::runtime::stderr_tail;
+use aq_release::ReleaseManifest;
 use async_trait::async_trait;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
@@ -55,6 +56,40 @@ pub fn from_config(cfg: &VerifierConfig) -> Result<Box<dyn ReleaseVerifier>, Ver
     }
 }
 
+/// What a keyless signature must have been made for, read from the manifest
+/// it signs (still unverified at that point): `release.yml` running on the
+/// tag `refs/tags/v<version>` at the commit `source_revision`. Without this,
+/// any release's bundle would authenticate any manifest it was made for,
+/// whatever version and revision that manifest names.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReleaseBinding {
+    /// `refs/tags/v<version>`: the certificate's GitHub workflow ref.
+    pub tag_ref: String,
+    /// The tagged commit: the certificate's GitHub workflow SHA.
+    pub sha: String,
+}
+
+/// Parse the binding out of untrusted manifest bytes. A manifest that does
+/// not parse, or whose `source_revision` is not a full commit SHA, is
+/// refused: there is nothing to bind the signature to.
+pub fn release_binding(manifest: &[u8]) -> Result<ReleaseBinding, VerifyError> {
+    let m = ReleaseManifest::from_json(manifest).map_err(|e| {
+        VerifyError::Rejected(format!(
+            "the manifest cannot be bound to its signature: {e}"
+        ))
+    })?;
+    let sha = &m.source_revision;
+    if sha.len() != 40 || !sha.bytes().all(|b| matches!(b, b'0'..=b'9' | b'a'..=b'f')) {
+        return Err(VerifyError::Rejected(format!(
+            "the manifest's source_revision {sha:.64?} is not a 40-character lowercase commit SHA, so the signature cannot be bound to it"
+        )));
+    }
+    Ok(ReleaseBinding {
+        tag_ref: format!("refs/tags/v{}", m.version),
+        sha: sha.clone(),
+    })
+}
+
 /// `cosign verify-blob` with a fixed argument vector; no shell.
 #[derive(Debug, Clone)]
 pub struct CosignKeyless {
@@ -74,7 +109,11 @@ impl CosignKeyless {
         }
     }
 
-    fn args(&self, bundle: &Path, manifest: &Path) -> Vec<OsString> {
+    /// The identity regexp and issuer pin the signer to `release.yml` on a
+    /// `vX.Y.Z` tag; the GitHub workflow ref and SHA (cosign v3 flags, read
+    /// from the certificate's Fulcio extensions) pin it to the tag and
+    /// commit this manifest names.
+    fn args(&self, bundle: &Path, manifest: &Path, binding: &ReleaseBinding) -> Vec<OsString> {
         vec![
             "verify-blob".into(),
             "--bundle".into(),
@@ -83,6 +122,10 @@ impl CosignKeyless {
             self.identity_regexp.clone().into(),
             "--certificate-oidc-issuer".into(),
             self.oidc_issuer.clone().into(),
+            "--certificate-github-workflow-ref".into(),
+            binding.tag_ref.clone().into(),
+            "--certificate-github-workflow-sha".into(),
+            binding.sha.clone().into(),
             manifest.into(),
         ]
     }
@@ -93,6 +136,7 @@ impl ReleaseVerifier for CosignKeyless {
     async fn verify(&self, manifest: &[u8], bundle: &[u8]) -> Result<(), VerifyError> {
         let unavailable =
             |what: &str, e: std::io::Error| VerifyError::Unavailable(format!("{what}: {e}"));
+        let binding = release_binding(manifest)?;
         let dir =
             tempfile::TempDir::new().map_err(|e| unavailable("cannot create a temp dir", e))?;
         let m = dir.path().join("manifest.json");
@@ -101,7 +145,7 @@ impl ReleaseVerifier for CosignKeyless {
         std::fs::write(&b, bundle).map_err(|e| unavailable("cannot write the bundle", e))?;
         // kill_on_drop: when the timeout drops the wait, the child is killed.
         let child = tokio::process::Command::new(&self.cosign_path)
-            .args(self.args(&b, &m))
+            .args(self.args(&b, &m, &binding))
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
@@ -193,10 +237,55 @@ mod tests {
         )
     }
 
+    const SHA: &str = "0123456789abcdef0123456789abcdef01234567";
+
+    fn manifest_json(version: &str, source_revision: &str) -> Vec<u8> {
+        let zero = "0".repeat(64);
+        format!(
+            r#"{{"manifest_version":1,"version":"{version}","source_revision":"{source_revision}",
+"images":{{"server":"ghcr.io/electricjack/agent-q-server@sha256:{zero}","worker":"ghcr.io/electricjack/agent-q-worker@sha256:{zero}"}},
+"protocol":{{"min":1,"max":1}},"state_format":1,"readable_state_formats":[1],
+"upgrade_from":">=0.1.0","created_at":"2026-10-30T12:00:00Z"}}"#
+        )
+        .into_bytes()
+    }
+
+    #[test]
+    fn binding_comes_from_the_manifest() {
+        assert_eq!(
+            release_binding(&manifest_json("1.2.3", SHA)).unwrap(),
+            ReleaseBinding {
+                tag_ref: "refs/tags/v1.2.3".into(),
+                sha: SHA.into(),
+            }
+        );
+    }
+
+    #[test]
+    fn binding_refuses_unparsable_manifests_and_odd_revisions() {
+        for bad in [
+            b"{}".to_vec(),
+            b"not json".to_vec(),
+            manifest_json("1.2.3", "rev-1.2.3"),
+            manifest_json("1.2.3", &SHA.to_uppercase()),
+            manifest_json("1.2.3", &SHA[1..]),
+            manifest_json("1.2.3", &format!("{SHA}0")),
+            manifest_json("1.2.3", &format!("-{}", &SHA[1..])),
+        ] {
+            let e = release_binding(&bad).unwrap_err();
+            assert!(
+                matches!(e, VerifyError::Rejected(_)),
+                "{}: {e}",
+                String::from_utf8_lossy(&bad)
+            );
+        }
+    }
+
     #[test]
     fn cosign_argv_is_fixed() {
         let c = cosign("/usr/local/bin/cosign");
-        let args = c.args(Path::new("/t/b.json"), Path::new("/t/m.json"));
+        let binding = release_binding(&manifest_json("1.2.3", SHA)).unwrap();
+        let args = c.args(Path::new("/t/b.json"), Path::new("/t/m.json"), &binding);
         let args: Vec<&str> = args.iter().map(|a| a.to_str().unwrap()).collect();
         assert_eq!(
             args,
@@ -208,15 +297,29 @@ mod tests {
                 r"^https://github\.com/ElectricJack/agent-q/\.github/workflows/release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$",
                 "--certificate-oidc-issuer",
                 "https://token.actions.githubusercontent.com",
+                "--certificate-github-workflow-ref",
+                "refs/tags/v1.2.3",
+                "--certificate-github-workflow-sha",
+                SHA,
                 "/t/m.json",
             ]
         );
     }
 
     #[tokio::test]
-    async fn cosign_missing_binary_is_unavailable() {
+    async fn cosign_refuses_an_unparsable_manifest_before_running() {
+        // The binary does not exist: a refusal here never ran it.
         let e = cosign("/nonexistent/cosign")
             .verify(b"{}", b"{}")
+            .await
+            .unwrap_err();
+        assert!(matches!(e, VerifyError::Rejected(_)), "{e}");
+    }
+
+    #[tokio::test]
+    async fn cosign_missing_binary_is_unavailable() {
+        let e = cosign("/nonexistent/cosign")
+            .verify(&manifest_json("1.2.3", SHA), b"{}")
             .await
             .unwrap_err();
         assert!(matches!(e, VerifyError::Unavailable(_)), "{e}");
@@ -231,8 +334,12 @@ mod tests {
         else {
             return;
         };
-        let e = cosign(f).verify(b"{}", b"{}").await.unwrap_err();
+        let e = cosign(f)
+            .verify(&manifest_json("1.2.3", SHA), b"{}")
+            .await
+            .unwrap_err();
         assert!(matches!(e, VerifyError::Rejected(_)), "{e}");
+        assert!(e.to_string().contains("exited with"), "{e}");
     }
 
     #[tokio::test]
@@ -254,7 +361,10 @@ mod tests {
         let mut c = cosign(script.to_str().unwrap());
         c.timeout = Duration::from_millis(300);
         let started = std::time::Instant::now();
-        let e = c.verify(b"{}", b"{}").await.unwrap_err();
+        let e = c
+            .verify(&manifest_json("1.2.3", SHA), b"{}")
+            .await
+            .unwrap_err();
         assert_eq!(e, VerifyError::Unavailable("cosign timed out".into()));
         assert!(started.elapsed() < Duration::from_secs(10));
         // The child was killed, not left running.

@@ -365,10 +365,18 @@ fn verify_manifest_cosign_unavailable_is_config_error() {
     let h = H::new();
     let m = h.root.join("manifest.json");
     let b = h.root.join("manifest.sigstore.json");
-    std::fs::write(&m, manifest("1.0.0", 1).to_canonical_json()).unwrap();
+    let mut release = manifest("1.0.0", 1);
+    release.source_revision = "0123456789abcdef0123456789abcdef01234567".into();
+    std::fs::write(&m, release.to_canonical_json()).unwrap();
     std::fs::write(&b, b"{}").unwrap();
     let o = h.run(&["verify-manifest", m.to_str().unwrap(), b.to_str().unwrap()]);
     assert_eq!(o.status.code(), Some(2), "{}", text(&o));
+    // A manifest the signature cannot be bound to is refused before cosign
+    // runs: an invalid release, not a config error.
+    std::fs::write(&m, manifest("1.0.0", 1).to_canonical_json()).unwrap();
+    let o = h.run(&["verify-manifest", m.to_str().unwrap(), b.to_str().unwrap()]);
+    assert_eq!(o.status.code(), Some(1), "{}", text(&o));
+    assert!(text(&o).contains("source_revision"), "{}", text(&o));
     let o = h.run(&["verify-manifest", "/nonexistent/m", b.to_str().unwrap()]);
     assert_eq!(o.status.code(), Some(2), "{}", text(&o));
 }
