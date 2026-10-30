@@ -90,6 +90,53 @@ fn rt<T>(r: Result<T, RuntimeError>) -> Check<T> {
     }
 }
 
+/// Fetch, verify and parse a release, read-only. Borrows only the runtime
+/// and verifier so callers' futures stay `Send`.
+async fn fetch_verified<R: Runtime, V: ReleaseVerifier>(
+    runtime: &R,
+    verifier: &V,
+    selector: ReleaseSelector,
+) -> Check<ReleaseManifest> {
+    let (manifest, bundle) = match rt(runtime.fetch_release(selector).await)? {
+        Ok(x) => x,
+        Err(e) => return Ok(Err(format!("cannot fetch the release: {e}"))),
+    };
+    if let Err(e) = verifier.verify(&manifest, &bundle).await {
+        return Ok(Err(format!("verification failed: {e}")));
+    }
+    Ok(ReleaseManifest::from_json(&manifest).map_err(|e| e.to_string()))
+}
+
+/// The updater state `status.json` and `aq-updater status` report for an
+/// in-flight record, given the newest non-`Rejected` history entry for its
+/// request (if any).
+pub fn update_state(current: Option<&InFlight>, recorded: Option<&HistoryEntry>) -> UpdateState {
+    match current {
+        None => UpdateState::Idle,
+        // Outside a running operation, an attempted rollback that is still
+        // in flight means the rollback failed (or was cut short, which
+        // recovery also turns into this state).
+        Some(c) if c.rollback_attempted => UpdateState::FailedNeedsOperator {
+            detail: match recorded {
+                Some(e) if e.outcome == Outcome::FailedNeedsOperator => e.detail.clone(),
+                _ => format!(
+                    "the rollback after the failed update to {} did not complete",
+                    c.target.version
+                ),
+            },
+        },
+        Some(c) => UpdateState::InProgress {
+            request_id: c.request_id,
+            target: c.target.version.clone(),
+            step: c.step,
+            started_at: c.started_at,
+        },
+    }
+}
+
+/// Called with the new status after every journal write and history append.
+pub type StatusObserver = Box<dyn Fn(&UpdateStatus) + Send>;
+
 /// What history says about an in-flight request.
 enum Recorded {
     Nothing,
@@ -288,6 +335,7 @@ pub struct Engine<R: Runtime, V: ReleaseVerifier> {
     maintenance: Box<dyn MaintenanceSink + Send>,
     settings: EngineSettings,
     available: Option<ReleaseSummary>,
+    observer: Option<StatusObserver>,
 }
 
 impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
@@ -305,6 +353,19 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
             maintenance,
             settings,
             available: None,
+            observer: None,
+        }
+    }
+
+    /// Publish status on every step: `observer` is called after each
+    /// successful journal write and history append.
+    pub fn set_observer(&mut self, observer: StatusObserver) {
+        self.observer = Some(observer);
+    }
+
+    fn notify(&self) {
+        if let Some(f) = &self.observer {
+            f(&self.status());
         }
     }
 
@@ -314,7 +375,66 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
 
     /// The newest compatible release seen on the channel, for `status()`.
     pub fn set_available(&mut self, available: Option<ReleaseSummary>) {
-        self.available = available;
+        if self.available != available {
+            self.available = available;
+            self.notify();
+        }
+    }
+
+    /// Fetch and verify the channel's current release (read-only).
+    pub async fn fetch_channel(&mut self) -> Result<ReleaseManifest, String> {
+        fetch_verified(&self.runtime, &self.verifier, ReleaseSelector::Channel)
+            .await
+            .map_err(|h| h.0)?
+    }
+
+    /// Poll the channel: `available` becomes its release when that is newer
+    /// than the active one and `check_upgrade` accepts it (against the
+    /// active release's state format), and `None` otherwise. A fetch or
+    /// verification failure leaves `available` unchanged and is returned.
+    pub async fn refresh_available(&mut self) -> Result<Option<ReleaseSummary>, String> {
+        let target = self.fetch_channel().await?;
+        let active = self.journal.state().active.clone();
+        let found = active.as_ref().map(|a| a.state_format);
+        let available = match check_upgrade(active.as_ref(), found, &target) {
+            Ok(_) => Some(summary(&target)),
+            Err(refusal) => {
+                tracing::debug!(version = %target.version, %refusal, "channel release not offered");
+                None
+            }
+        };
+        self.set_available(available.clone());
+        Ok(available)
+    }
+
+    /// Make the maintenance marker match the journal: on while anything is
+    /// in flight (including `FailedNeedsOperator`), off when idle.
+    pub fn sync_maintenance(&self) -> Result<(), RuntimeError> {
+        if self.journal.state().current.is_some() {
+            self.maintenance.enter()
+        } else {
+            self.maintenance.leave()
+        }
+    }
+
+    /// Record a request that is not acted on (malformed, or a repeat that
+    /// arrived while an update ran) as `Rejected`.
+    pub fn reject(
+        &mut self,
+        request_id: Option<Uuid>,
+        to: Option<Version>,
+        detail: String,
+    ) -> Res<HistoryEntry> {
+        let now = Utc::now();
+        self.log_only(HistoryEntry {
+            request_id,
+            from: self.active_version(),
+            to,
+            outcome: Outcome::Rejected,
+            detail,
+            started_at: now,
+            finished_at: now,
+        })
     }
 
     pub fn status(&self) -> UpdateStatus {
@@ -326,27 +446,14 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
                 tracing::warn!(error = %e, "cannot read update history");
                 Vec::new()
             });
-        let state = match &s.current {
-            None => UpdateState::Idle,
-            // Outside a running operation, an attempted rollback that is
-            // still in flight means the rollback failed (or was cut short,
-            // which recovery also turns into this state).
-            Some(c) if c.rollback_attempted => UpdateState::FailedNeedsOperator {
-                detail: match self.recorded_outcome(c.request_id) {
-                    Recorded::Entry(e) if e.outcome == Outcome::FailedNeedsOperator => e.detail,
-                    _ => format!(
-                        "the rollback after the failed update to {} did not complete",
-                        c.target.version
-                    ),
-                },
+        let recorded = match &s.current {
+            Some(c) if c.rollback_attempted => match self.recorded_outcome(c.request_id) {
+                Recorded::Entry(e) => Some(e),
+                Recorded::Nothing | Recorded::Unreadable(_) => None,
             },
-            Some(c) => UpdateState::InProgress {
-                request_id: c.request_id,
-                target: c.target.version.clone(),
-                step: c.step,
-                started_at: c.started_at,
-            },
+            _ => None,
         };
+        let state = update_state(s.current.as_ref(), recorded.as_ref());
         UpdateStatus {
             updater_version: env!("CARGO_PKG_VERSION").to_string(),
             state,
@@ -381,21 +488,9 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
             Some(v) => ReleaseSelector::Version(v.clone()),
             None => ReleaseSelector::Channel,
         };
-        let (manifest, bundle) = match rt(self.runtime.fetch_release(selector).await)? {
-            Ok(x) => x,
-            Err(e) => {
-                return self.log_only(entry(
-                    Outcome::Refused,
-                    format!("cannot fetch the release: {e}"),
-                ));
-            }
-        };
-        if let Err(e) = self.verifier.verify(&manifest, &bundle).await {
-            return self.log_only(entry(Outcome::Refused, format!("verification failed: {e}")));
-        }
-        let target = match ReleaseManifest::from_json(&manifest) {
+        let target = match fetch_verified(&self.runtime, &self.verifier, selector).await? {
             Ok(m) => m,
-            Err(e) => return self.log_only(entry(Outcome::Refused, e.to_string())),
+            Err(e) => return self.log_only(entry(Outcome::Refused, e)),
         };
         if let Some(v) = &req.version
             && *v != target.version
@@ -730,7 +825,7 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
                 started_at: cur.started_at,
                 finished_at: Utc::now(),
             };
-            if let Err(e) = self.journal.append_history(entry.clone()) {
+            if let Err(e) = self.append(entry.clone()) {
                 tracing::warn!(error = %e, "cannot record the finished update in history");
             }
             Some(entry)
@@ -890,7 +985,7 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
         };
         cur.step = Step::Active;
         s.current = Some(cur.clone());
-        self.journal.record(s)?;
+        self.record(s)?;
         let detail = match mode {
             Mode::Install => format!("{} is active", cur.target.version),
             Mode::RestorePrevious if cur.needs_restore_on_rollback => format!(
@@ -1002,10 +1097,24 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
         }
     }
 
+    /// Journal write plus status notification.
+    fn record(&mut self, s: JournalState) -> Result<(), JournalError> {
+        self.journal.record(s)?;
+        self.notify();
+        Ok(())
+    }
+
+    /// History append plus status notification.
+    fn append(&self, entry: HistoryEntry) -> Result<(), JournalError> {
+        self.journal.append_history(entry)?;
+        self.notify();
+        Ok(())
+    }
+
     fn persist(&mut self, cur: &InFlight) -> Res<()> {
         let mut s = self.journal.state().clone();
         s.current = Some(cur.clone());
-        self.journal.record(s)?;
+        self.record(s)?;
         Ok(())
     }
 
@@ -1017,13 +1126,13 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
     fn clear_current(&mut self) -> Res<()> {
         let mut s = self.journal.state().clone();
         s.current = None;
-        self.journal.record(s)?;
+        self.record(s)?;
         Ok(())
     }
 
     /// A history entry with no in-flight state behind it.
     fn log_only(&mut self, entry: HistoryEntry) -> Res<HistoryEntry> {
-        self.journal.append_history(entry.clone())?;
+        self.append(entry.clone())?;
         Ok(entry)
     }
 
@@ -1033,7 +1142,7 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
     /// `FailedNeedsOperator`); once it is recorded, recovery only finishes
     /// the leave and the clear.
     fn conclude(&mut self, entry: HistoryEntry, leave: bool) -> Res<HistoryEntry> {
-        self.journal.append_history(entry.clone())?;
+        self.append(entry.clone())?;
         if leave && let Err(e) = rt(self.maintenance.leave())? {
             tracing::warn!(error = %e, "cannot leave maintenance; recovery at the next start clears it");
         }
@@ -1049,7 +1158,7 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
             detail.push_str(&format!(" Warning: could not enter maintenance: {e}"));
         }
         let entry = self.op_entry(cur, Outcome::FailedNeedsOperator, detail);
-        self.journal.append_history(entry.clone())?;
+        self.append(entry.clone())?;
         Ok(entry)
     }
 
