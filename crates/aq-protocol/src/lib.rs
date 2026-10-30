@@ -36,7 +36,10 @@ mod tests {
 
     #[test]
     fn api_error_round_trips() {
-        let e = ApiError { error: FORBIDDEN.into(), message: "no".into() };
+        let e = ApiError {
+            error: FORBIDDEN.into(),
+            message: "no".into(),
+        };
         let json = serde_json::to_string(&e).unwrap();
         assert_eq!(json, r#"{"error":"forbidden","message":"no"}"#);
         assert_eq!(serde_json::from_str::<ApiError>(&json).unwrap(), e);
