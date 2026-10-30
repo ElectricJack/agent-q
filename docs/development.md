@@ -88,10 +88,55 @@ the same node heartbeats again, and tears everything down with `down -v`. It
 ends with `smoke: PASS` or names the failed step. It needs ports 8080 and 8081
 free, so stop `scripts/dev-up` first.
 
+## Update lifecycle suite
+
+```sh
+scripts/update-lifecycle
+```
+
+Proves the host updater against real images, a real registry, the production
+`compose.yaml` and real PostgreSQL. It builds `aq-updater` with the
+`test-verifier` feature, starts a throwaway `registry:2` (`aq-suite-registry`
+on `127.0.0.1:5000`, so port 5000 must be free), and builds and pushes server
+images for 0.1.0, 0.1.1 and a broken 0.1.2, each with a manifest signed by a
+throwaway test key and its `release` image. Under the Compose project
+`aq-suite` with a production-shaped vault it then checks, through
+`aq-updater status` and `aq-server readiness`: a first install, an upgrade, a
+rollback of the broken release, recovery after `kill -9` mid-update, refusal of
+a release that cannot read the installed state format, refusal of a downgrade
+requested through the spool, and that the database survives all of it.
+It also starts from a fresh host: the updater's first `run --once` creates the
+spool and a `release.env` with a placeholder image, which is what lets Compose
+start postgres before any release is installed. Everything is removed on exit.
+It ends with `update-lifecycle: PASS` or names the failed step; on failure its
+logs are copied to a kept `${TMPDIR:-/tmp}/aq-update-lifecycle-logs.*`
+directory, whose path it prints. The first run compiles all dependencies;
+later runs reuse BuildKit cache mounts.
+
+## Releases and operations
+
+[`docs/operations.md`](operations.md) covers the CI, release and promote
+workflows, cutting a release, and installing and running the host updater
+(`aq-updater`), including what to do when an update needs an operator.
+
+`scripts/smoke` can also test prebuilt images instead of building: set both
+`AQ_SMOKE_SERVER_IMAGE` and `AQ_SMOKE_WORKER_IMAGE` (tags or digest
+references; missing ones are pulled). The release workflow uses this to smoke
+test the exact pushed digests.
+
 ## Production notes
 
 `compose.yaml` is the production shape: no published ports, a read-only vault
-mount, and secrets from `$AQ_SECRETS_DIR` (`postgres_password`, `tunnel_token`).
+mount, the updater spool from `$AQ_UPDATER_SPOOL` (`requests/` read-write at
+`/updater/requests`, `status/` read-only at `/updater/status`), and secrets from
+`$AQ_SECRETS_DIR` (`postgres_password`, `tunnel_token`). To check it:
+
+```sh
+AQ_SERVER_IMAGE=example/agent-q-server@sha256:$(printf '0%.0s' {1..64}) \
+AQ_VAULT_DIR=/tmp/vault AQ_SECRETS_DIR=/tmp/secrets AQ_UPDATER_SPOOL=/tmp/spool \
+  docker compose -f compose.yaml config
+```
+
 Compose bind-mounts secret files with their host permissions, so they must be
 readable by the container users (the server runs as UID 10001). The server
 entrypoint exports the database password as `PGPASSWORD` from the secret file

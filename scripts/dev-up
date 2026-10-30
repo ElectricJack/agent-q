@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build and start the development stack (server + PostgreSQL) in Docker Compose.
-# Pass --init-only to just create the dev secret.
+# Pass --init-only to just create the dev secret and spool directories.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -13,9 +13,14 @@ if [ ! -f secrets.dev/postgres_password ]; then
   chmod 0644 secrets.dev/postgres_password
   echo "created secrets.dev/postgres_password"
 fi
+# compose.yaml requires the updater spool. The dev vault has no [updates]
+# section, so updates stay unavailable in dev; the gitignored directory only
+# satisfies the bind mounts.
+mkdir -p state.dev/updater-spool/requests state.dev/updater-spool/status
 [ "${1:-}" = "--init-only" ] && exit 0
 
 export AQ_SERVER_IMAGE=${AQ_SERVER_IMAGE:-agent-q-server:dev}
 export AQ_VAULT_DIR="$PWD/vault.example"
 export AQ_SECRETS_DIR="$PWD/secrets.dev"
+export AQ_UPDATER_SPOOL="$PWD/state.dev/updater-spool"
 exec docker compose -f compose.yaml -f compose.dev.yaml up --build "$@"

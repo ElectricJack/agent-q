@@ -1,0 +1,146 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    name: fmt and clippy
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: Install the pinned Rust toolchain
+        run: |
+          toolchain=$(sed -n 's/^channel = "\(.*\)"$/\1/p' rust-toolchain.toml)
+          rustup toolchain install "$toolchain" --profile minimal --component rustfmt,clippy
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: cargo fmt
+        run: cargo fmt --all --check
+      - name: cargo clippy (default features)
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: cargo clippy (aq-updater with test-verifier)
+        run: cargo clippy -p aq-updater --all-targets --locked --features test-verifier -- -D warnings
+
+  test:
+    name: tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 30
+    env:
+      DATABASE_URL: postgres://postgres:test@localhost:5432/postgres
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: Install the pinned Rust toolchain
+        run: |
+          toolchain=$(sed -n 's/^channel = "\(.*\)"$/\1/p' rust-toolchain.toml)
+          rustup toolchain install "$toolchain" --profile minimal
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      # The server's manifest tests pass --source-revision r, which a binary
+      # stamped with AQ_SOURCE_REVISION refuses. Tests build unstamped.
+      - name: Check the build is unstamped
+        run: |
+          if [ -n "${AQ_SOURCE_REVISION:-}" ]; then
+            echo "::error::AQ_SOURCE_REVISION is set; cargo test must build unstamped"
+            exit 1
+          fi
+      - name: cargo test --workspace
+        run: cargo test --workspace --locked
+      - name: cargo test -p aq-updater --features test-verifier
+        run: cargo test -p aq-updater --locked --features test-verifier
+
+  # The static updater that release.yml ships, built the same way, so musl
+  # breakage shows up here rather than at tag time.
+  musl:
+    name: aq-updater static build (musl)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: Install the pinned Rust toolchain with the static (musl) target
+        run: |
+          toolchain=$(sed -n 's/^channel = "\(.*\)"$/\1/p' rust-toolchain.toml)
+          rustup toolchain install "$toolchain" --profile minimal --target x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Build aq-updater (release, no features)
+        run: cargo build --release --locked -p aq-updater --target x86_64-unknown-linux-musl
+
+  postgres-only:
+    name: no SQLite in Cargo.lock
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: grep Cargo.lock for SQLite crates
+        run: |
+          if grep -E 'name = "(libsqlite3-sys|sqlx-sqlite)"' Cargo.lock; then
+            echo "::error::Cargo.lock contains a SQLite crate; Agent Q is PostgreSQL only"
+            exit 1
+          fi
+
+  smoke:
+    name: smoke (built images)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: scripts/smoke
+        run: scripts/smoke
+
+  update-lifecycle:
+    name: update lifecycle suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: Install the pinned Rust toolchain
+        run: |
+          toolchain=$(sed -n 's/^channel = "\(.*\)"$/\1/p' rust-toolchain.toml)
+          rustup toolchain install "$toolchain" --profile minimal
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: scripts/update-lifecycle
+        run: scripts/update-lifecycle
+      # On failure the suite copies its logs to /tmp/aq-update-lifecycle-logs.*
+      - name: Upload the suite's logs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: update-lifecycle-logs
+          path: /tmp/aq-update-lifecycle-logs.*
+          if-no-files-found: ignore
+          retention-days: 7

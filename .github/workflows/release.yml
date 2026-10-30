@@ -1,0 +1,259 @@
+name: release
+
+# Publishes a release from a vX.Y.Z tag: digest-pinned server and worker
+# images, a release manifest signed keyless with this workflow's identity,
+# the release image that carries both, and a GitHub Release with the
+# manifest, its bundle and the aq-updater binary. Promotion to the stable
+# channel is a separate, manual step (promote.yml).
+
+on:
+  push:
+    tags: ['v*.*.*']
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  SERVER_REPO: ghcr.io/electricjack/agent-q-server
+  WORKER_REPO: ghcr.io/electricjack/agent-q-worker
+  RELEASE_REPO: ghcr.io/electricjack/agent-q-release
+  SOURCE_URL: https://github.com/ElectricJack/agent-q
+  COSIGN_RELEASE: v3.1.3
+  COSIGN_IDENTITY_REGEXP: '^https://github\.com/ElectricJack/agent-q/\.github/workflows/release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'
+  COSIGN_OIDC_ISSUER: https://token.actions.githubusercontent.com
+  CARGO_TERM_COLOR: always
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+
+      - name: Check the tag is vX.Y.Z and equals the workspace version
+        id: version
+        run: |
+          tag=$GITHUB_REF_NAME
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::tag $tag is not vX.Y.Z"
+            exit 1
+          fi
+          version=${tag#v}
+          workspace=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
+          if [ "$version" != "$workspace" ]; then
+            echo "::error::tag $tag does not match the workspace version $workspace"
+            exit 1
+          fi
+          echo "version=$version" >>"$GITHUB_OUTPUT"
+          # The image labels come from the same constants `aq-server manifest`
+          # reports; the labels are checked against the manifest before signing.
+          state_format=$(sed -n 's/^pub const STATE_FORMAT_VERSION: u32 = \([0-9][0-9]*\);$/\1/p' crates/aq-server/src/lib.rs)
+          protocol_max=$(sed -n 's/^pub const SUPPORTED_WORKER_PROTOCOLS: (u32, u32) = ([0-9][0-9]*, \([0-9][0-9]*\));$/\1/p' crates/aq-protocol/src/lib.rs)
+          if [[ ! "$state_format" =~ ^[0-9]+$ || ! "$protocol_max" =~ ^[0-9]+$ ]]; then
+            echo "::error::cannot read STATE_FORMAT_VERSION ('$state_format') or SUPPORTED_WORKER_PROTOCOLS ('$protocol_max') from the source"
+            exit 1
+          fi
+          echo "state_format=$state_format" >>"$GITHUB_OUTPUT"
+          echo "protocol_max=$protocol_max" >>"$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      # Release images are built from a clean builder (no shared cache) and
+      # stamped with the tagged commit, which `aq-server manifest` checks.
+      - name: Build and push the server image
+        id: server
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ./Dockerfile
+          target: server
+          push: true
+          provenance: false
+          sbom: false
+          build-args: |
+            AQ_SOURCE_REVISION=${{ github.sha }}
+            AQ_VERSION=${{ steps.version.outputs.version }}
+            AQ_STATE_FORMAT=${{ steps.version.outputs.state_format }}
+            AQ_PROTOCOL_MAX=${{ steps.version.outputs.protocol_max }}
+          labels: org.opencontainers.image.source=${{ env.SOURCE_URL }}
+          tags: ${{ env.SERVER_REPO }}:${{ steps.version.outputs.version }}
+
+      - name: Build and push the worker image
+        id: worker
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ./Dockerfile
+          target: worker
+          push: true
+          provenance: false
+          sbom: false
+          build-args: |
+            AQ_SOURCE_REVISION=${{ github.sha }}
+            AQ_VERSION=${{ steps.version.outputs.version }}
+            AQ_STATE_FORMAT=${{ steps.version.outputs.state_format }}
+            AQ_PROTOCOL_MAX=${{ steps.version.outputs.protocol_max }}
+          labels: org.opencontainers.image.source=${{ env.SOURCE_URL }}
+          tags: ${{ env.WORKER_REPO }}:${{ steps.version.outputs.version }}
+
+      - name: Generate manifest.json with the server image's own binary
+        id: images
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          SERVER_DIGEST: ${{ steps.server.outputs.digest }}
+          WORKER_DIGEST: ${{ steps.worker.outputs.digest }}
+        run: |
+          for d in "$SERVER_DIGEST" "$WORKER_DIGEST"; do
+            if [[ ! "$d" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+              echo "::error::unexpected image digest '$d'"
+              exit 1
+            fi
+          done
+          server=$SERVER_REPO@$SERVER_DIGEST
+          worker=$WORKER_REPO@$WORKER_DIGEST
+          mkdir -p release dist
+          docker run --rm "$server" manifest \
+            --server-image "$server" --worker-image "$worker" \
+            --version "$VERSION" --source-revision "$GITHUB_SHA" >release/manifest.json
+          cat release/manifest.json
+          echo
+          echo "server=$server" >>"$GITHUB_OUTPUT"
+          echo "worker=$worker" >>"$GITHUB_OUTPUT"
+
+      # The updater refuses a server image whose state-format label differs
+      # from its manifest; never sign a manifest the pushed images contradict.
+      - name: Check the pushed images' labels match manifest.json
+        env:
+          SERVER: ${{ steps.images.outputs.server }}
+          WORKER: ${{ steps.images.outputs.worker }}
+        run: |
+          want_state=$(jq -r .state_format release/manifest.json)
+          want_protocol=$(jq -r .protocol.max release/manifest.json)
+          for image in "$SERVER" "$WORKER"; do
+            docker pull --quiet "$image" >/dev/null
+            state=$(docker image inspect --format '{{index .Config.Labels "io.agent-q.state-format"}}' "$image")
+            protocol=$(docker image inspect --format '{{index .Config.Labels "io.agent-q.protocol-max"}}' "$image")
+            echo "$image: state-format=$state protocol-max=$protocol"
+            if [ "$state" != "$want_state" ] || [ "$protocol" != "$want_protocol" ]; then
+              echo "::error::$image is labelled state-format=$state protocol-max=$protocol but manifest.json says state_format=$want_state protocol.max=$want_protocol"
+              exit 1
+            fi
+          done
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        with:
+          cosign-release: ${{ env.COSIGN_RELEASE }}
+
+      - name: Sign manifest.json (keyless, this workflow's OIDC identity)
+        working-directory: release
+        run: cosign sign-blob --yes --bundle manifest.sigstore.json manifest.json
+
+      - name: Install the pinned Rust toolchain with the static (musl) target
+        run: |
+          toolchain=$(sed -n 's/^channel = "\(.*\)"$/\1/p' rust-toolchain.toml)
+          rustup toolchain install "$toolchain" --profile minimal --target x86_64-unknown-linux-musl
+
+      # Static, so it runs on any x86_64 Linux host regardless of its glibc.
+      # Never built with the test-verifier feature.
+      - name: Build aq-updater (release, no features)
+        run: |
+          cargo build --release --locked -p aq-updater --target x86_64-unknown-linux-musl
+          cp target/x86_64-unknown-linux-musl/release/aq-updater dist/aq-updater-x86_64-linux
+
+      # Exactly the hosts' check: the identity regexp and issuer, plus the
+      # bindings aq-updater derives from the manifest itself
+      # (--certificate-github-workflow-ref refs/tags/v<version> and
+      # --certificate-github-workflow-sha <source_revision>).
+      - name: Verify the signed manifest with aq-updater (production identity)
+        run: |
+          tmp=$RUNNER_TEMP/aq-verify
+          mkdir -p "$tmp"
+          # verify-manifest reads only [verifier]; the rest satisfies the schema.
+          cat >"$tmp/updater.toml" <<EOF
+          state_dir = "$tmp/state"
+          backup_dir = "$tmp/backups"
+
+          [compose]
+          project_dir = "$GITHUB_WORKSPACE"
+          files = ["$GITHUB_WORKSPACE/compose.yaml"]
+          project_name = "aq-verify"
+
+          [verifier]
+          kind = "cosign_keyless"
+          cosign_path = "$(command -v cosign)"
+          identity_regexp = '$COSIGN_IDENTITY_REGEXP'
+          oidc_issuer = "$COSIGN_OIDC_ISSUER"
+          EOF
+          dist/aq-updater-x86_64-linux --config "$tmp/updater.toml" \
+            verify-manifest release/manifest.json release/manifest.sigstore.json
+
+      # The spec's isolated test deployment: the exact pushed digests. It runs
+      # before the release image exists, so a release that fails it is never
+      # visible to the updater or to promote.yml.
+      - name: Smoke test the pushed images
+        env:
+          AQ_SMOKE_SERVER_IMAGE: ${{ steps.images.outputs.server }}
+          AQ_SMOKE_WORKER_IMAGE: ${{ steps.images.outputs.worker }}
+        run: scripts/smoke
+
+      - name: Build and push the release image
+        id: release_image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          # Only manifest.json and manifest.sigstore.json are in this context.
+          context: release
+          file: ./Dockerfile
+          target: release
+          push: true
+          provenance: false
+          sbom: false
+          build-args: |
+            AQ_SOURCE_REVISION=${{ github.sha }}
+            AQ_VERSION=${{ steps.version.outputs.version }}
+          labels: org.opencontainers.image.source=${{ env.SOURCE_URL }}
+          tags: ${{ env.RELEASE_REPO }}:${{ steps.version.outputs.version }}
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+          VERSION: ${{ steps.version.outputs.version }}
+          SERVER: ${{ steps.images.outputs.server }}
+          WORKER: ${{ steps.images.outputs.worker }}
+          RELEASE_DIGEST: ${{ steps.release_image.outputs.digest }}
+        run: |
+          cp release/manifest.json release/manifest.sigstore.json dist/
+          cd dist
+          sha256sum manifest.json manifest.sigstore.json aq-updater-x86_64-linux >SHA256SUMS
+          cat >notes.md <<EOF
+          Agent Q $VERSION, built from $GITHUB_SHA.
+
+          - server: \`$SERVER\`
+          - worker: \`$WORKER\`
+          - release image: \`$RELEASE_REPO:$VERSION\` (\`$RELEASE_DIGEST\`)
+          - signed with cosign $COSIGN_RELEASE (keyless, \`release.yml\` on the tag)
+
+          Not on the \`stable\` channel until promote.yml runs for $VERSION.
+
+          SHA-256:
+          \`\`\`
+          $(cat SHA256SUMS)
+          \`\`\`
+          EOF
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
+            --title "Agent Q $VERSION" --notes-file notes.md \
+            manifest.json manifest.sigstore.json aq-updater-x86_64-linux SHA256SUMS

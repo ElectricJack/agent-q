@@ -32,6 +32,7 @@ pub fn admin_routes() -> Router<AppState> {
         .route("/api/enrollments", post(create_enrollment))
         .route("/api/workers/{id}/revoke", post(revoke_worker))
         .route("/api/users", get(list_users).post(create_user))
+        .merge(crate::updates::update_routes())
 }
 
 /// `Json` extractor whose rejections are `ApiError` bodies with 400.
@@ -91,26 +92,17 @@ async fn me(State(state): State<AppState>, CurrentUser(user): CurrentUser) -> Js
 }
 
 #[derive(Serialize)]
-struct UpdateStatus {
-    state: &'static str,
-    detail: &'static str,
-}
-
-#[derive(Serialize)]
 struct StatusResponse {
     version: VersionInfo,
     health: &'static str,
-    update: UpdateStatus,
+    update: serde_json::Value,
 }
 
-async fn status(_user: CurrentUser) -> Json<StatusResponse> {
+async fn status(State(state): State<AppState>, _user: CurrentUser) -> Json<StatusResponse> {
     Json(StatusResponse {
         version: version_info(),
         health: "ok",
-        update: UpdateStatus {
-            state: "unavailable",
-            detail: "host updater not installed",
-        },
+        update: crate::updates::status_summary(&state),
     })
 }
 

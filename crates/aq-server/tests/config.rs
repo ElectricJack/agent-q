@@ -158,3 +158,17 @@ fn rejects_zero_durations() {
         assert!(err.contains(key) && err.contains("at least 1"), "{err}");
     }
 }
+
+#[test]
+fn updates_section_is_optional_strict_and_absolute() {
+    let cfg = load(vault_with(VALID).path()).unwrap();
+    assert!(cfg.updates.is_none());
+    let ok = format!("{VALID}\n[updates]\nspool_dir = \"/updater\"\n");
+    let cfg = load(vault_with(&ok).path()).unwrap();
+    assert_eq!(cfg.updates.unwrap().spool_dir, Path::new("/updater"));
+    let unknown = format!("{VALID}\n[updates]\nspool_dir = \"/u\"\nimage = \"x\"\n");
+    assert!(load(vault_with(&unknown).path()).is_err());
+    let rel = format!("{VALID}\n[updates]\nspool_dir = \"updater\"\n");
+    let err = load(vault_with(&rel).path()).unwrap_err().to_string();
+    assert!(err.contains("updates.spool_dir"), "{err}");
+}

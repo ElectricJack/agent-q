@@ -299,7 +299,8 @@ async fn status_reports_update_unavailable() {
     assert_eq!(s, StatusCode::OK, "{v}");
     assert_eq!(v["health"], "ok");
     assert_eq!(v["update"]["state"], "unavailable");
-    assert_eq!(v["update"]["detail"], "host updater not installed");
+    assert!(v["update"]["active_version"].is_null());
+    assert!(v["update"]["available_version"].is_null());
     assert_eq!(v["version"]["server_version"], env!("CARGO_PKG_VERSION"));
 }
 

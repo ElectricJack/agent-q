@@ -235,6 +235,20 @@ pub struct Store {
 }
 
 impl Store {
+    /// `SELECT 1`: true when the database answers within `limit`.
+    pub async fn ping(&self, limit: std::time::Duration) -> bool {
+        matches!(
+            tokio::time::timeout(limit, sqlx::query("SELECT 1").execute(&self.pool)).await,
+            Ok(Ok(_))
+        )
+    }
+
+    /// Closes the pool; later queries fail. Used by tests to simulate an outage.
+    #[cfg(any(test, feature = "test-support"))]
+    pub async fn close(&self) {
+        self.pool.close().await;
+    }
+
     pub async fn connect(database_url: &str) -> Result<Store> {
         Self::connect_with(database_url.parse::<PgConnectOptions>()?).await
     }
@@ -458,5 +472,41 @@ impl Store {
         .into_iter()
         .map(Node::from)
         .collect())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::MIGRATIONS;
+    use crate::{READABLE_STATE_FORMATS, STATE_FORMAT_VERSION};
+
+    /// Every migration is a state-format change. The updater decides whether
+    /// a rollback must restore the pre-update backup by comparing manifest
+    /// state formats, while the server refuses a database holding any
+    /// migration newer than it knows. A migration added without bumping
+    /// `STATE_FORMAT_VERSION` would make the updater roll back without a
+    /// restore onto data the old server refuses to open.
+    #[test]
+    fn state_format_is_the_latest_migration() {
+        let numbers: Vec<i32> = MIGRATIONS.iter().map(|m| m.0).collect();
+        let expected: Vec<i32> = (1..=numbers.len() as i32).collect();
+        assert_eq!(
+            numbers, expected,
+            "migrations must be numbered 1, 2, 3, ... with no gaps"
+        );
+        let latest = *numbers.last().expect("at least one migration") as u32;
+        assert_eq!(
+            STATE_FORMAT_VERSION, latest,
+            "STATE_FORMAT_VERSION must equal the newest migration number: every migration is a \
+             state-format change. Bump STATE_FORMAT_VERSION (and READABLE_STATE_FORMATS, and the \
+             Dockerfile's AQ_STATE_FORMAT default) together with the migration"
+        );
+        assert!(READABLE_STATE_FORMATS.contains(&STATE_FORMAT_VERSION));
+        for (n, sql) in MIGRATIONS {
+            assert!(
+                sql.contains("state_format_version") && sql.contains(&format!("'{n}'")),
+                "migration {n} must set meta.state_format_version to '{n}'"
+            );
+        }
     }
 }

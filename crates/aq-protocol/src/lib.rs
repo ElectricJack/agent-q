@@ -21,6 +21,10 @@ pub const NOT_FOUND: &str = "not_found";
 pub const BAD_REQUEST: &str = "bad_request";
 pub const CONFLICT: &str = "conflict";
 pub const INTERNAL: &str = "internal";
+pub const UPDATE_IN_PROGRESS: &str = "update_in_progress";
+pub const MAINTENANCE: &str = "maintenance";
+pub const UPDATES_UNAVAILABLE: &str = "updates_unavailable";
+pub const INVALID_VERSION: &str = "invalid_version";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VersionInfo {

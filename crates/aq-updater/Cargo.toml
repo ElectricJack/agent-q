@@ -1,0 +1,29 @@
+[package]
+name = "aq-updater"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[features]
+# Test-only trust root. Release builds never enable this.
+test-verifier = ["dep:ed25519-dalek"]
+
+[dependencies]
+aq-release.workspace = true
+async-trait.workspace = true
+chrono.workspace = true
+clap.workspace = true
+nix.workspace = true
+ed25519-dalek = { workspace = true, optional = true }
+regex.workspace = true
+semver.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tar.workspace = true
+tempfile.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+toml.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+uuid.workspace = true

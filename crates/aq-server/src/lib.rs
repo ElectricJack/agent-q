@@ -3,10 +3,12 @@ pub mod authz;
 pub mod config;
 pub mod error;
 pub mod identity;
+pub mod readiness;
 pub mod store;
 #[cfg(any(test, feature = "test-support"))]
 pub mod test_support;
 pub mod tokens;
+pub mod updates;
 pub mod worker_api;
 use crate::config::Config;
 use crate::identity::IdentityVerifier;
@@ -21,9 +23,18 @@ use axum::response::Response;
 use axum::{Json, Router, routing::get};
 use chrono::{DateTime, Utc};
 use serde_json::{Value, json};
+use std::net::SocketAddr;
 use std::sync::Arc;
 
+/// The database state format: always the newest migration's number, because
+/// every migration is a state-format change (`store` tests enforce it). The
+/// updater restores the pre-update backup on rollback only when the format
+/// changes, so a migration without a bump would strand the old release.
 pub const STATE_FORMAT_VERSION: u32 = 1;
+/// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
+pub const READABLE_STATE_FORMATS: &[u32] = &[1];
+/// Versions that may be upgraded to this release.
+pub const UPGRADE_FROM: &str = ">=0.1.0";
 
 pub fn version_info() -> VersionInfo {
     VersionInfo {
@@ -93,8 +104,13 @@ pub fn build_admin_router(state: AppState) -> Router {
     Router::new()
         .merge(admin_api::admin_routes())
         .route("/healthz", get(healthz))
+        .route("/readyz", get(readiness::readyz))
         .fallback(not_found)
         .method_not_allowed_fallback(method_not_allowed)
+        .layer(from_fn_with_state(
+            state.clone(),
+            updates::admin_maintenance_gate,
+        ))
         .layer(from_fn_with_state(state.clone(), authz::csrf_guard))
         .layer(from_fn(harden))
         .with_state(state)
@@ -105,8 +121,13 @@ pub fn build_worker_router(state: AppState) -> Router {
     Router::new()
         .merge(worker_api::worker_routes())
         .route("/healthz", get(healthz))
+        .route("/readyz", get(readiness::readyz))
         .fallback(not_found)
         .method_not_allowed_fallback(method_not_allowed)
+        .layer(from_fn_with_state(
+            state.clone(),
+            updates::worker_maintenance_gate,
+        ))
         .layer(from_fn(harden))
         .with_state(state)
 }
@@ -130,14 +151,20 @@ pub async fn run_with_listeners(
     let worker_app = build_worker_router(state);
     tokio::try_join!(
         async {
-            axum::serve(admin, admin_app)
-                .with_graceful_shutdown(wait(rx.clone()))
-                .await
+            axum::serve(
+                admin,
+                admin_app.into_make_service_with_connect_info::<SocketAddr>(),
+            )
+            .with_graceful_shutdown(wait(rx.clone()))
+            .await
         },
         async {
-            axum::serve(worker, worker_app)
-                .with_graceful_shutdown(wait(rx.clone()))
-                .await
+            axum::serve(
+                worker,
+                worker_app.into_make_service_with_connect_info::<SocketAddr>(),
+            )
+            .with_graceful_shutdown(wait(rx.clone()))
+            .await
         },
     )?;
     Ok(())

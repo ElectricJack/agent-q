@@ -6,6 +6,7 @@ publish.workspace = true
 
 [dependencies]
 aq-protocol.workspace = true
+aq-release.workspace = true
 anyhow.workspace = true
 async-trait.workspace = true
 axum.workspace = true
@@ -17,6 +18,7 @@ jsonwebtoken.workspace = true
 rand.workspace = true
 reqwest.workspace = true
 serde.workspace = true
+semver.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
 sqlx.workspace = true

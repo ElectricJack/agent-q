@@ -10,7 +10,7 @@ Phase one establishes the infrastructure on which Agent Queue v2 will run: local
 
 Success means the owner can open a secure URL from a phone, log in, see a registered desktop worker, install a new version, and reconnect after the restart. Task scheduling and agent execution belong to subsequent specifications.
 
-The initial deployment targets a Bluehost self-managed Linux VPS with Cloudflare DNS, Tunnel, and Access. Standard Docker Compose keeps the application portable to another VPS. Self-update means installing a new version of Agent Queue’s own software and restarting it. Whether installation starts manually or automatically remains an open policy decision.
+The initial deployment targets a Bluehost self-managed Linux VPS with Cloudflare DNS, Tunnel, and Access. Standard Docker Compose keeps the application portable to another VPS. Self-update means installing a new version of Agent Queue’s own software and restarting it. Installation starts manually: the owner requests each install. Automatic installation from a release channel can be enabled later using the same mechanism.
 
 ## Scope
 
@@ -146,13 +146,13 @@ The initial delivery path is:
 
 7. Let the installed system fetch and apply the release.
 
-The manifest records source revision, immutable artifact digests, protocol compatibility, state-format compatibility, and supported upgrade paths. Releases must be authenticated using a configured trust mechanism. Registry, CI provider, signing implementation, and branch conventions remain open.
+The manifest records source revision, immutable artifact digests, protocol compatibility, state-format compatibility, and supported upgrade paths. Releases must be authenticated using a configured trust mechanism. Decided: source on GitHub (`ElectricJack/agent-q`, public), CI on GitHub Actions, images and release artifacts on GitHub Container Registry, and manifests signed with Sigstore cosign keyless signing bound to the release workflow's identity. Work lands on `main` through feature branches; releases are `vX.Y.Z` tags.
 
 Production does not build from an uncommitted checkout. Future agents can author changes through this same pipeline; automatically authoring code is outside the foundation phase.
 
 ## Self-update and restart
 
-The owner can request an update through the administration page. The server records the request and hands it to the host updater, which remains running while the application is replaced. Polling for releases and automatic installation are separable policies; the trigger policy is still undecided.
+The owner can request an update through the authenticated API (a later dashboard will use the same API). The server records the request and hands it to the host updater, which remains running while the application is replaced. Polling for releases and automatic installation are separable policies. Phase one polls to report available releases, and installs only on an owner request.
 
 The application container does not receive the Docker socket. Docker daemon access carries substantial host authority, so the proposed design confines that access to the installation and update service. [Docker Engine security](https://docs.docker.com/engine/security/)
 
@@ -219,9 +219,9 @@ Build the phase in four increments:
 
 4. **Recovery proof:** reboot tests, credential revocation, off-host backup and restore, and concise operating instructions.
 
-Before implementation, resolve the Bluehost plan and region, supported Linux image, domain, Cloudflare account setup, initial desktop operating mode, artifact registry, and implementation language for the shell and connector. Bluehost plus Cloudflare is the initial deployment direction; specific purchases and accounts remain unset. Select the backup destination and authenticated release mechanism before pilot deployment.
+Before implementation, resolve the Bluehost plan and region, supported Linux image, domain, Cloudflare account setup, initial desktop operating mode, artifact registry (decided: GHCR), and implementation language for the shell and connector (decided: Rust). Bluehost plus Cloudflare is the initial deployment direction; specific purchases and accounts remain unset. Select the backup destination before pilot deployment; the authenticated release mechanism is cosign keyless signing.
 
-The remaining update-policy question is whether the owner initiates each installation or enables automatic installation from a selected release channel. Both use the same update mechanism.
+Update policy is decided for phase one: the owner initiates each installation. Automatic installation from a selected release channel can follow; both use the same update mechanism.
 
 Later specifications can add tasks, workers that execute agents, playbooks, and integration while reusing this foundation’s deployment, authentication, connectivity, and release lifecycle.
 
