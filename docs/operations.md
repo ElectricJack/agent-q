@@ -122,11 +122,11 @@ cosign version
 
 The binary is attached to each GitHub Release as `aq-updater-x86_64-linux`
 (static, built without the `test-verifier` feature), with a `SHA256SUMS`
-file. The repository is private, so download it with an authenticated `gh`
-(on a workstation, then copy it over) or the GitHub API:
+file. The repository is public, so download both directly:
 
 ```sh
-gh release download v0.1.0 -R ElectricJack/agent-q -p aq-updater-x86_64-linux -p SHA256SUMS
+base=https://github.com/ElectricJack/agent-q/releases/download/v0.1.0
+curl -fsSLO "$base/aq-updater-x86_64-linux" -fsSLO "$base/SHA256SUMS"
 sha256sum -c --ignore-missing SHA256SUMS
 install -m 0755 aq-updater-x86_64-linux /usr/local/bin/aq-updater
 aq-updater --version

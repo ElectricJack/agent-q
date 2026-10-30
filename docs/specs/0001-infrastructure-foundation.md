@@ -146,7 +146,7 @@ The initial delivery path is:
 
 7. Let the installed system fetch and apply the release.
 
-The manifest records source revision, immutable artifact digests, protocol compatibility, state-format compatibility, and supported upgrade paths. Releases must be authenticated using a configured trust mechanism. Decided: source on GitHub (`ElectricJack/agent-q`, private), CI on GitHub Actions, images and release artifacts on GitHub Container Registry, and manifests signed with Sigstore cosign keyless signing bound to the release workflow's identity. Work lands on `main` through feature branches; releases are `vX.Y.Z` tags.
+The manifest records source revision, immutable artifact digests, protocol compatibility, state-format compatibility, and supported upgrade paths. Releases must be authenticated using a configured trust mechanism. Decided: source on GitHub (`ElectricJack/agent-q`, public), CI on GitHub Actions, images and release artifacts on GitHub Container Registry, and manifests signed with Sigstore cosign keyless signing bound to the release workflow's identity. Work lands on `main` through feature branches; releases are `vX.Y.Z` tags.
 
 Production does not build from an uncommitted checkout. Future agents can author changes through this same pipeline; automatically authoring code is outside the foundation phase.
 
