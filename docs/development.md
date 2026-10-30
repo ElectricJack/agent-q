@@ -88,10 +88,40 @@ the same node heartbeats again, and tears everything down with `down -v`. It
 ends with `smoke: PASS` or names the failed step. It needs ports 8080 and 8081
 free, so stop `scripts/dev-up` first.
 
+## Update lifecycle suite
+
+```sh
+scripts/update-lifecycle
+```
+
+Proves the host updater against real images, a real registry, the production
+`compose.yaml` and real PostgreSQL. It builds `aq-updater` with the
+`test-verifier` feature, starts a throwaway `registry:2` (`aq-suite-registry`
+on `127.0.0.1:5000`, so port 5000 must be free), and builds and pushes server
+images for 0.1.0, 0.1.1 and a broken 0.1.2, each with a manifest signed by a
+throwaway test key and its `release` image. Under the Compose project
+`aq-suite` with a production-shaped vault it then checks, through
+`aq-updater status` and `aq-server readiness`: a first install, an upgrade, a
+rollback of the broken release, recovery after `kill -9` mid-update, refusal of
+a release that cannot read the installed state format, refusal of a downgrade
+requested through the spool, and that the database survives all of it.
+Everything is removed on exit. It ends with `update-lifecycle: PASS` or names
+the failed step; logs are in `${TMPDIR:-/tmp}/aq-update-lifecycle-logs`. The first run
+compiles all dependencies; later runs reuse BuildKit cache mounts.
+
 ## Production notes
 
 `compose.yaml` is the production shape: no published ports, a read-only vault
-mount, and secrets from `$AQ_SECRETS_DIR` (`postgres_password`, `tunnel_token`).
+mount, the updater spool from `$AQ_UPDATER_SPOOL` (`requests/` read-write at
+`/updater/requests`, `status/` read-only at `/updater/status`), and secrets from
+`$AQ_SECRETS_DIR` (`postgres_password`, `tunnel_token`). To check it:
+
+```sh
+AQ_SERVER_IMAGE=example/agent-q-server@sha256:$(printf '0%.0s' {1..64}) \
+AQ_VAULT_DIR=/tmp/vault AQ_SECRETS_DIR=/tmp/secrets AQ_UPDATER_SPOOL=/tmp/spool \
+  docker compose -f compose.yaml config
+```
+
 Compose bind-mounts secret files with their host permissions, so they must be
 readable by the container users (the server runs as UID 10001). The server
 entrypoint exports the database password as `PGPASSWORD` from the secret file

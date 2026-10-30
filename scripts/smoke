@@ -13,6 +13,12 @@ LOG_DIR=${TMPDIR:-/tmp}
 export AQ_SERVER_IMAGE=${AQ_SERVER_IMAGE:-agent-q-server:smoke}
 export AQ_VAULT_DIR="$PWD/vault.example"
 export AQ_SECRETS_DIR="$PWD/secrets.dev"
+# compose.yaml requires the updater spool. compose.dev.yaml mounts
+# ./state.dev/updater-spool instead and the dev vault has no [updates], so a
+# throwaway directory satisfies it.
+AQ_UPDATER_SPOOL=$(mktemp -d "${TMPDIR:-/tmp}/aq-smoke-spool.XXXXXX")
+export AQ_UPDATER_SPOOL
+mkdir -p "$AQ_UPDATER_SPOOL/requests" "$AQ_UPDATER_SPOOL/status"
 
 step() { STEP="$1"; echo "smoke: $1"; }
 
@@ -23,6 +29,7 @@ cleanup() {
     "${DC[@]}" --profile smoke logs --no-color --tail 40 server worker >&2 2>/dev/null || true
   fi
   "${DC[@]}" --profile smoke down -v --remove-orphans >/dev/null 2>&1 || true
+  rm -rf "$AQ_UPDATER_SPOOL"
   exit "$rc"
 }
 trap cleanup EXIT
@@ -54,7 +61,8 @@ worker_online() { [ "$(worker_field status)" = online ] && worker_field last_see
 
 step "fresh start (remove any previous smoke stack and volume)"
 "${DC[@]}" --profile smoke down -v --remove-orphans >/dev/null 2>&1 || true
-[ -f secrets.dev/postgres_password ] || scripts/dev-up --init-only
+# Creates the dev secret (once) and the dev spool directories.
+scripts/dev-up --init-only
 
 step "build images"
 "${DC[@]}" --profile smoke build >"$LOG_DIR/smoke-build.log" 2>&1 || {

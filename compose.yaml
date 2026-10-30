@@ -37,6 +37,17 @@ services:
         source: ${AQ_VAULT_DIR:?set AQ_VAULT_DIR to the vault directory}
         target: /vault
         read_only: true
+      # The spool shared with the host updater (the vault's
+      # [updates] spool_dir = "/updater"): the server drops update requests
+      # into requests/ and reads status.json and the maintenance marker
+      # from status/. It never gets the Docker socket.
+      - type: bind
+        source: ${AQ_UPDATER_SPOOL:?set AQ_UPDATER_SPOOL to the updater spool directory}/requests
+        target: /updater/requests
+      - type: bind
+        source: ${AQ_UPDATER_SPOOL:?set AQ_UPDATER_SPOOL to the updater spool directory}/status
+        target: /updater/status
+        read_only: true
     secrets:
       - postgres_password
     networks: [database, edge]

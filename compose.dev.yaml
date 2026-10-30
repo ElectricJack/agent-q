@@ -1,5 +1,7 @@
-# Development overlay: builds from source, uses the example vault, publishes
-# the listeners on loopback only and keeps cloudflared off by default.
+# Development overlay: builds from source, uses the example vault and a local
+# updater spool, publishes the listeners on loopback only and keeps
+# cloudflared off by default. compose.yaml still requires AQ_VAULT_DIR and
+# AQ_UPDATER_SPOOL to be set (scripts/dev-up and scripts/smoke set them).
 services:
   server:
     build:
@@ -13,6 +15,15 @@ services:
       - type: bind
         source: ./vault.example
         target: /vault
+        read_only: true
+      # The updater spool (scripts/dev-up creates it; gitignored). The example
+      # vault has no [updates] section, so updates stay unavailable in dev.
+      - type: bind
+        source: ./state.dev/updater-spool/requests
+        target: /updater/requests
+      - type: bind
+        source: ./state.dev/updater-spool/status
+        target: /updater/status
         read_only: true
     ports:
       - '127.0.0.1:8080:8080'
