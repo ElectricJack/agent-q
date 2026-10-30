@@ -35,7 +35,7 @@
 - PostgreSQL only: `grep -E 'name = "(libsqlite3-sys|sqlx-sqlite)"' Cargo.lock` must print nothing.
 - The application container never receives the Docker socket. Only `aq-updater` runs `docker`.
 - The host updater accepts only validated releases for the configured Agent Queue installation. It must not expose arbitrary shell commands, arbitrary images, or user-supplied Compose definitions through the web API. The server writes only `{id, version?, requested_by, requested_at}`.
-- Every `docker` invocation uses `std::process::Command` with an explicit argument vector. Nothing goes through `sh -c`. Image references are always digest-pinned (`repo@sha256:…`).
+- Every `docker` invocation uses `std::process::Command` with an explicit argument vector. Nothing goes through `sh -c`. Image references are always digest-pinned (`host[:port]/path@sha256:…`, matching the manifest image regex below; ruling 24).
 - The image must be downloaded and verified before the running application is stopped.
 - Repeating an update request must not start concurrent replacements. Failed health checks trigger bounded rollback, not an endless restart loop.
 - Recovery must handle failure after every persisted update step, including host reboot.
@@ -102,7 +102,7 @@ docs/operations.md                      updater install, SSH status/restore, rel
 - `ReleaseManifest` (JSON, `manifest_version: 1`, `deny_unknown_fields`) has these fields:
   - `version: semver::Version`
   - `source_revision: String`
-  - `images: { server: String, worker: String }`. Both must match `^[a-z0-9./_-]+@sha256:[0-9a-f]{64}$`.
+  - `images: { server: String, worker: String }`. Both must match `^[a-z0-9][a-z0-9.-]*(:[0-9]+)?/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$` (ruling 24): a host that starts with a letter or digit, an optional registry port, a path with no `:` (so no tag), then the digest.
   - `protocol: { min: u32, max: u32 }`
   - `state_format: u32`
   - `readable_state_formats: Vec<u32>` (must contain `state_format`)
