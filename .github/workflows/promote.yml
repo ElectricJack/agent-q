@@ -90,15 +90,25 @@ jobs:
           docker cp "$id:/manifest.json" fetched/manifest.json
           docker cp "$id:/manifest.sigstore.json" fetched/manifest.sigstore.json
           docker rm "$id" >/dev/null
-          cosign verify-blob --bundle fetched/manifest.sigstore.json \
-            --certificate-identity-regexp "$COSIGN_IDENTITY_REGEXP" \
-            --certificate-oidc-issuer "$COSIGN_OIDC_ISSUER" \
-            fetched/manifest.json
+          # The same bindings aq-updater uses: the signature must come from
+          # release.yml on refs/tags/v<version> at the manifest's
+          # source_revision, not just from some release tag.
           got=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["version"])' fetched/manifest.json)
           if [ "$got" != "$VERSION" ]; then
             echo "::error::the manifest in $RELEASE_REPO:$VERSION is for version $got"
             exit 1
           fi
+          sha=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["source_revision"])' fetched/manifest.json)
+          if [[ ! "$sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::the manifest's source_revision '$sha' is not a commit SHA"
+            exit 1
+          fi
+          cosign verify-blob --bundle fetched/manifest.sigstore.json \
+            --certificate-identity-regexp "$COSIGN_IDENTITY_REGEXP" \
+            --certificate-oidc-issuer "$COSIGN_OIDC_ISSUER" \
+            --certificate-github-workflow-ref "refs/tags/v$VERSION" \
+            --certificate-github-workflow-sha "$sha" \
+            fetched/manifest.json
           echo "digest=$digest" >>"$GITHUB_OUTPUT"
 
       - name: Point the stable channel at the verified release image
