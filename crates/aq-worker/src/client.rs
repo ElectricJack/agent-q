@@ -135,13 +135,28 @@ impl Client {
             // Connect failures, timeouts and mid-flight resets are all retryable.
             .map_err(|e| {
                 if e.is_builder() {
-                    CallError::Other(e.without_url().to_string())
+                    CallError::Other(error_chain(e))
                 } else {
-                    CallError::Transient(e.without_url().to_string())
+                    CallError::Transient(error_chain(e))
                 }
             })?;
         classify(resp).await
     }
+}
+
+/// Renders a reqwest error with its whole `source()` chain, so the OS-level
+/// cause (connection refused, DNS, TLS) is visible. The URL is stripped, since
+/// it could carry userinfo.
+pub fn error_chain(e: reqwest::Error) -> String {
+    let e = e.without_url();
+    let mut msg = e.to_string();
+    let mut src = std::error::Error::source(&e);
+    while let Some(s) = src {
+        msg.push_str(": ");
+        msg.push_str(&s.to_string());
+        src = s.source();
+    }
+    msg
 }
 
 fn is_html(resp: &Response) -> bool {
@@ -171,7 +186,7 @@ async fn classify<T: DeserializeOwned>(resp: Response) -> Result<T, CallError> {
     let bytes = resp
         .bytes()
         .await
-        .map_err(|e| CallError::Transient(e.without_url().to_string()))?;
+        .map_err(|e| CallError::Transient(error_chain(e)))?;
     if status.is_success() {
         return serde_json::from_slice(&bytes)
             .map_err(|_| CallError::Other("server sent an unreadable response".into()));
@@ -191,6 +206,13 @@ async fn classify<T: DeserializeOwned>(resp: Response) -> Result<T, CallError> {
         (StatusCode::UNAUTHORIZED, Some(e)) if e.error == INVALID_CREDENTIAL => {
             Err(CallError::InvalidCredential)
         }
+        (StatusCode::NOT_FOUND, None) => Err(CallError::Other(
+            "server returned 404 Not Found; is --server pointing at the worker port (8081)?".into(),
+        )),
+        (_, Some(e)) if status == StatusCode::NOT_FOUND => Err(CallError::Other(format!(
+            "{} ({}); is --server pointing at the worker port (8081)?",
+            e.message, e.error
+        ))),
         (_, Some(e)) => Err(CallError::Other(format!("{} ({})", e.message, e.error))),
         (s, None) => Err(CallError::Other(format!("unexpected response {s}"))),
     }

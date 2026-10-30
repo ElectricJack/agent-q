@@ -240,3 +240,39 @@ async fn html_429_and_408_and_502_are_transient() {
     );
     assert!(matches!(hb_err(app).await, CallError::Transient(_)));
 }
+
+#[tokio::test]
+async fn connection_refused_error_includes_the_cause() {
+    // Bind then drop to get a port nothing listens on.
+    let l = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let port = l.local_addr().unwrap().port();
+    drop(l);
+    let e = client(&format!("http://127.0.0.1:{port}"))
+        .heartbeat(&hb())
+        .await
+        .unwrap_err();
+    let CallError::Transient(msg) = e else {
+        panic!("expected transient, got {e:?}")
+    };
+    let lower = msg.to_lowercase();
+    assert!(
+        lower.contains("refused") || lower.contains("connect"),
+        "{msg}"
+    );
+    assert!(lower.contains("refused"), "{msg}");
+    assert!(!msg.contains("127.0.0.1"), "url must not appear: {msg}");
+}
+
+#[tokio::test]
+async fn not_found_hints_at_the_worker_port() {
+    for body in ["", r#"{"error":"not_found","message":"no such route"}"#] {
+        let app = Router::new().route(
+            "/v1/worker/heartbeat",
+            post(move || async move { (StatusCode::NOT_FOUND, body) }),
+        );
+        let CallError::Other(m) = hb_err(app).await else {
+            panic!("expected Other")
+        };
+        assert!(m.contains("worker port (8081)"), "{m}");
+    }
+}
