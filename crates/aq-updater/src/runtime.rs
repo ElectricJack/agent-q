@@ -399,6 +399,11 @@ impl DockerCli {
 
     /// `compose --project-name <n> --project-directory <d> -f <f>…
     /// --env-file <e>… --env-file <state_dir>/release.env <args>`.
+    ///
+    /// `release.env` is the last `--env-file`, so its `AQ_SERVER_IMAGE` and
+    /// `AQ_UPDATER_SPOOL` override the operator's env files. Variables set in
+    /// this process's own environment still beat every env file (Compose's
+    /// precedence), so the updater must not run with those two exported.
     pub fn compose_argv(&self, args: &[&str]) -> Vec<OsString> {
         let c = &self.compose;
         let mut v: Vec<OsString> = os(&["compose", "--project-name", &c.project_name]);

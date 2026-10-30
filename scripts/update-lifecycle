@@ -79,15 +79,21 @@ dc() {
   if [ -f "$STATE/release.env" ]; then args+=(--env-file "$STATE/release.env"); fi
   timeout -k 10 "$DC_TIMEOUT" docker compose "${args[@]}" "$@"
 }
+# `timeout` runs its command in a new process group. Run from a terminal,
+# anything there that reads the terminal (`compose exec` attaches stdin even
+# with -T) is stopped by SIGTTIN and only ends at the timeout. Every call
+# below therefore gets stdin from /dev/null, or from a pipe.
 
 # `down` needs only a parseable compose.yaml: before the updater has written
 # release.env, its two variables get values that are never used.
 dc_down() {
   AQ_SERVER_IMAGE=$NO_RELEASE_IMAGE AQ_UPDATER_SPOOL=$ROOT/no-spool \
-    dc down -v --remove-orphans
+    dc down -v --remove-orphans </dev/null
 }
 
-updater() { timeout -k 30 600 "$UPDATER" --config "$CONFIG" "$@" 2>>"$UPDATER_LOG"; }
+updater() {
+  timeout -k 30 600 "$UPDATER" --config "$CONFIG" "$@" </dev/null 2>>"$UPDATER_LOG"
+}
 
 cleanup() {
   local rc=$?
@@ -100,7 +106,7 @@ cleanup() {
     echo "update-lifecycle: FAIL at step: $STEP" >&2
     echo "--- last 40 server log lines ---" >&2
     if [ -f "$STATE/release.env" ]; then
-      dc logs --no-color --tail 40 server >&2 2>&1
+      dc logs --no-color --tail 40 server </dev/null >&2 2>&1
     else
       echo "(no release.env yet: nothing was started)" >&2
     fi
@@ -197,7 +203,7 @@ publish_release() {
   mkdir -p "$dir"
   timeout -k 10 120 docker run --rm "$binary" manifest --server-image "$server" --worker-image "$worker" \
     --version "$version" --source-revision "suite-$version" \
-    >"$dir/manifest.json" 2>>"$BUILD_LOG" || fail "aq-server manifest failed for $version"
+    </dev/null >"$dir/manifest.json" 2>>"$BUILD_LOG" || fail "aq-server manifest failed for $version"
   sign_and_publish "$version" "$dir"
   say "  release $version: server $server"
 }
@@ -214,7 +220,7 @@ release_from() {
 
 # ------------------------------------------------------------ assertions
 
-readiness_json() { dc exec -T server aq-server readiness 2>>"$COMPOSE_LOG"; }
+readiness_json() { dc exec -T server aq-server readiness </dev/null 2>>"$COMPOSE_LOG"; }
 
 # expect_ready VERSION: the running server is VERSION, built as suite-VERSION,
 # with its database reachable and Cloudflare Access configured.
@@ -283,7 +289,7 @@ expect_status() {
 
 psql_suite() {
   dc exec -T postgres psql -U agent_q -d agent_q -v ON_ERROR_STOP=1 -tAc "$1" \
-    2>>"$COMPOSE_LOG"
+    </dev/null 2>>"$COMPOSE_LOG"
 }
 
 add_marker() {
@@ -309,7 +315,7 @@ expect_no_maintenance() {
 # read-only mount and it names VERSION as active.
 expect_server_sees() {
   local json
-  json=$(dc exec -T server cat /updater/status/status.json 2>>"$COMPOSE_LOG") ||
+  json=$(dc exec -T server cat /updater/status/status.json </dev/null 2>>"$COMPOSE_LOG") ||
     fail "the server cannot read /updater/status/status.json"
   python3 -c '
 import json, sys
@@ -322,7 +328,7 @@ sys.exit(0 if (s.get("active") or {}).get("version") == sys.argv[2] else 1)' "$j
 # The running server container: id, start time and image.
 server_container() {
   local id
-  id=$(dc ps -q server 2>>"$COMPOSE_LOG")
+  id=$(dc ps -q server </dev/null 2>>"$COMPOSE_LOG")
   [ -n "$id" ] || fail "no server container"
   docker inspect --format '{{.Id}} {{.State.StartedAt}} {{.Config.Image}}' "$id"
 }
@@ -453,7 +459,7 @@ m.update(version="0.1.3", state_format=2, readable_state_formats=[2],
          images={"server": sys.argv[3], "worker": sys.argv[4]})
 open(sys.argv[2], "w").write(json.dumps(m, separators=(",", ":"), sort_keys=True))
 PY
-if timeout -k 10 60 docker pull -q "$NEVER_SERVER" >>"$BUILD_LOG" 2>&1; then
+if timeout -k 10 60 docker pull -q "$NEVER_SERVER" </dev/null >>"$BUILD_LOG" 2>&1; then
   fail "$NEVER_SERVER can be pulled; case 5 would not detect a pull"
 fi
 sign_and_publish 0.1.3 "$ROOT/release-0.1.3"
@@ -498,7 +504,7 @@ else
 fi
 
 step "start postgres"
-dc up -d --wait --wait-timeout 120 postgres >>"$COMPOSE_LOG" 2>&1 || {
+dc up -d --wait --wait-timeout 120 postgres </dev/null >>"$COMPOSE_LOG" 2>&1 || {
   tail -20 "$COMPOSE_LOG" >&2
   fail "postgres did not become healthy"
 }
@@ -546,7 +552,7 @@ expect_markers under-0.1.0 under-0.1.1
 say "PASS case 3: broken release rolled back"
 
 step "case 4: update interrupted by kill -9 while probing, then recovered"
-"$UPDATER" --config "$CONFIG" install 0.1.2 >>"$UPDATER_LOG" 2>&1 &
+"$UPDATER" --config "$CONFIG" install 0.1.2 </dev/null >>"$UPDATER_LOG" 2>&1 &
 BG_PID=$!
 deadline=$((SECONDS + 180))
 until [ "$(journal_step)" = probing ]; do
@@ -591,15 +597,19 @@ from datetime import datetime, timezone
 print(json.dumps({"id": sys.argv[1], "version": "0.1.0", "requested_by": "suite@example.com",
                   "requested_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")}))' "$REQ_ID")
 # The server's write: a dotfile (ignored by the updater), then a rename.
-# Done inside the server container, as UID 10001, through its mount.
-if [ "$SPOOL_ACL" = 1 ] && printf '%s\n' "$REQ_JSON" | dc exec -T server sh -ec \
-  'cat >"/updater/requests/.tmp-$1" && mv "/updater/requests/.tmp-$1" "/updater/requests/$1.json"' \
-  sh "$REQ_ID" 2>>"$COMPOSE_LOG"; then
+# Done inside the server container, as UID 10001, through its mount. With
+# the ACL in place a failure is a broken mount and fails the suite; only
+# without one (no way to grant UID 10001 access here) is it written from
+# the host instead.
+if [ "$SPOOL_ACL" = 1 ]; then
+  printf '%s\n' "$REQ_JSON" | dc exec -T server sh -ec \
+    'cat >"/updater/requests/.tmp-$1" && mv "/updater/requests/.tmp-$1" "/updater/requests/$1.json"' \
+    sh "$REQ_ID" 2>>"$COMPOSE_LOG" ||
+    fail "the server container cannot write the request through /updater/requests"
   owner=$(stat -c %u "$SPOOL/requests/$REQ_ID.json")
   [ "$owner" = 10001 ] || fail "the request file is owned by UID $owner, not the server's 10001"
   say "  request $REQ_ID written by the server container (UID 10001) via /updater/requests"
 else
-  rm -f "$SPOOL/requests/.tmp-$REQ_ID" 2>/dev/null || true
   REQ_TMP=$SPOOL/requests/.tmp-$REQ_ID
   printf '%s\n' "$REQ_JSON" >"$REQ_TMP"
   chmod 0640 "$REQ_TMP"
@@ -618,9 +628,8 @@ assert s["state"] == {"kind": "idle"}, s["state"]
 print("update-lifecycle:   status.json: request %s refused" % e["request_id"])
 PY
 [ ! -e "$SPOOL/requests/$REQ_ID.json" ] || fail "requests/$REQ_ID.json is still there"
-# Nothing else either, dotfiles included (only set-aside `.rejected-*`
-# entries, which the suite never creates, would be tolerated).
-left=$(find "$SPOOL/requests" -mindepth 1 -maxdepth 1 ! -name '.rejected-*' -print)
+# Nothing else either, dotfiles included.
+left=$(find "$SPOOL/requests" -mindepth 1 -print)
 [ -z "$left" ] || fail "requests/ still holds: $left"
 say "  requests/ is empty"
 expect_ready 0.1.1
