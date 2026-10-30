@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["crates/aq-protocol", "crates/aq-server", "crates/aq-worker"]
+members = ["crates/aq-protocol", "crates/aq-release", "crates/aq-server", "crates/aq-worker"]
 
 [workspace.package]
 version = "0.1.0"
@@ -9,6 +9,7 @@ publish = false
 
 [workspace.dependencies]
 aq-protocol = { path = "crates/aq-protocol" }
+aq-release = { path = "crates/aq-release" }
 anyhow = "1"
 async-trait = "0.1"
 axum = "0.8"
@@ -20,6 +21,8 @@ jsonwebtoken = "9"
 rand = "0.8"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 rpassword = "7"
+regex = "1"
+semver = { version = "1", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
