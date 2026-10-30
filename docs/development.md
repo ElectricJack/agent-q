@@ -19,6 +19,18 @@ gitignored), then builds and starts PostgreSQL and the server from source using
 both bound to loopback only. The vault is `vault.example/`, which enables dev
 auth with the owner `owner@localhost`.
 
+The PostgreSQL data lives in the `aq_postgres` Docker volume and persists
+between `scripts/dev-up` runs. To reset it (this deletes all dev data):
+
+```sh
+docker compose -f compose.yaml -f compose.dev.yaml down -v
+```
+
+PostgreSQL only reads the password when it first initializes the volume. If you
+delete or regenerate `secrets.dev/postgres_password` while an old volume exists,
+the server fails with password authentication errors until you reset the volume
+as above.
+
 Cloudflared is disabled in development (it sits behind the `tunnel` profile).
 
 ## Run a worker from source
@@ -47,7 +59,12 @@ curl -H 'X-AQ-Dev-Email: viewer@example.com' http://127.0.0.1:8080/api/me
 ```
 
 Dev auth is refused in production: the server will not start with
-`environment = "production"` and `auth.mode = "dev"`.
+`environment = "production"` and `auth.mode = "dev"`. In addition,
+`compose.yaml` sets `AQ_DEPLOYMENT=production` on the server. With that
+variable set, the server exits with status 2 unless the vault has
+`environment = "production"` and a non-dev `auth.mode`, so a development vault
+such as `vault.example/` cannot be mounted into the production stack by
+mistake. `compose.dev.yaml` overrides it to `development`.
 
 ## Tests
 
@@ -76,4 +93,8 @@ free, so stop `scripts/dev-up` first.
 `compose.yaml` is the production shape: no published ports, a read-only vault
 mount, and secrets from `$AQ_SECRETS_DIR` (`postgres_password`, `tunnel_token`).
 Compose bind-mounts secret files with their host permissions, so they must be
-readable by the container users (the server runs as UID 10001).
+readable by the container users (the server runs as UID 10001). The server
+entrypoint exports the database password as `PGPASSWORD` from the secret file
+and uses a password-less `DATABASE_URL`, so the password needs no URL encoding.
+The image sets `AQ_VAULT_DIR=/vault`; `aq-server healthcheck` reads the vault to
+find the admin port.

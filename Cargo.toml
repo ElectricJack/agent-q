@@ -29,9 +29,9 @@ sqlx-postgres = { version = "0.8.6", default-features = false, features = ["uuid
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
 toml = "0.8"
-tower = { version = "0.5", features = ["util", "limit"] }
+tower = { version = "0.5", features = ["util"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 # dev
 http-body-util = "0.1"
