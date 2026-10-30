@@ -11,7 +11,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs::{File, OpenOptions, TryLockError};
 use std::io::{Read, Seek, SeekFrom, Write};
-use std::marker::PhantomData;
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
@@ -72,13 +71,13 @@ struct OnDisk {
     current: Option<InFlight>,
 }
 
-/// Writer handle. It borrows the [`UpdateLock`], so it cannot outlive the
-/// lock and cannot be created without it. Readers use [`Journal::read`].
+/// Writer handle. It owns the [`UpdateLock`], so it cannot exist without it
+/// and dropping it releases the lock. Readers use [`Journal::read`].
 #[derive(Debug)]
-pub struct Journal<'l> {
+pub struct Journal {
     dir: PathBuf,
     state: JournalState,
-    _lock: PhantomData<&'l UpdateLock>,
+    _lock: UpdateLock,
 }
 
 fn io(path: &Path) -> impl FnOnce(std::io::Error) -> JournalError + '_ {
@@ -92,7 +91,7 @@ fn fsync_dir(dir: &Path) -> Result<(), JournalError> {
     File::open(dir).and_then(|d| d.sync_all()).map_err(io(dir))
 }
 
-impl<'l> Journal<'l> {
+impl Journal {
     fn journal_path(&self) -> PathBuf {
         self.dir.join("journal.json")
     }
@@ -100,10 +99,17 @@ impl<'l> Journal<'l> {
         self.dir.join("history.jsonl")
     }
 
-    /// Open the journal for writing. Requires the process lock, so the stale
-    /// `journal.json.tmp` cleanup cannot race a live `record`. Creates
-    /// `state_dir` (0750) if missing; a missing journal is a first run.
-    pub fn open(state_dir: &Path, _lock: &'l UpdateLock) -> Result<Journal<'l>, JournalError> {
+    pub fn state_dir(&self) -> &Path {
+        &self.dir
+    }
+
+    /// Open the journal for writing, taking ownership of the process lock
+    /// (and the state dir it locked), so the stale `journal.json.tmp` cleanup
+    /// cannot race a live `record`. Creates the dir (0750) if missing; a
+    /// missing journal is a first run.
+    pub fn open(lock: UpdateLock) -> Result<Journal, JournalError> {
+        let state_dir = lock.state_dir().to_path_buf();
+        let state_dir = state_dir.as_path();
         if !state_dir.exists() {
             std::fs::DirBuilder::new()
                 .recursive(true)
@@ -120,7 +126,7 @@ impl<'l> Journal<'l> {
         Ok(Journal {
             dir: state_dir.to_path_buf(),
             state: Self::read(state_dir)?,
-            _lock: PhantomData,
+            _lock: lock,
         })
     }
 
@@ -285,6 +291,13 @@ pub enum LockError {
 #[derive(Debug)]
 pub struct UpdateLock {
     _file: File,
+    state_dir: PathBuf,
+}
+
+impl UpdateLock {
+    pub fn state_dir(&self) -> &Path {
+        &self.state_dir
+    }
 }
 
 /// Take a non-blocking exclusive lock on `<state_dir>/lock`.
@@ -308,7 +321,10 @@ pub fn lock(state_dir: &Path) -> Result<UpdateLock, LockError> {
         .open(&path)
         .map_err(ioe)?;
     match file.try_lock() {
-        Ok(()) => Ok(UpdateLock { _file: file }),
+        Ok(()) => Ok(UpdateLock {
+            _file: file,
+            state_dir: state_dir.to_path_buf(),
+        }),
         Err(TryLockError::WouldBlock) => Err(LockError::AlreadyLocked(path)),
         Err(TryLockError::Error(e)) => Err(ioe(e)),
     }

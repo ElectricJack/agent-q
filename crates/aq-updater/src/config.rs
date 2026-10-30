@@ -133,7 +133,12 @@ impl UpdaterConfig {
         }
         let repo = &self.release_repo;
         let last = repo.rsplit('/').next().unwrap_or("");
-        if repo.is_empty() || repo.contains('@') || !repo.contains('/') || last.contains(':') {
+        if repo.is_empty()
+            || repo.contains('@')
+            || !repo.contains('/')
+            || last.is_empty()
+            || last.contains(':')
+        {
             return bad(
                 "release_repo must look like host[:port]/path with no tag or digest ('@', or ':' in the last segment)"
                     .into(),

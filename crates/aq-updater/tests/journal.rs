@@ -70,8 +70,7 @@ fn assert_corrupt(dir: &std::path::Path) {
 fn first_open_is_empty_and_creates_dir() {
     let t = tempfile::tempdir().unwrap();
     let dir = t.path().join("state");
-    let l = lock(&dir).unwrap();
-    let j = Journal::open(&dir, &l).unwrap();
+    let j = Journal::open(lock(&dir).unwrap()).unwrap();
     assert!(j.state().active.is_none() && j.state().current.is_none());
     use std::os::unix::fs::PermissionsExt;
     assert_eq!(
@@ -81,11 +80,10 @@ fn first_open_is_empty_and_creates_dir() {
 }
 
 #[test]
-fn file_modes_are_0640() {
+fn file_modes_are_private() {
     use std::os::unix::fs::PermissionsExt;
     let t = tempfile::tempdir().unwrap();
-    let l = lock(t.path()).unwrap();
-    let mut j = Journal::open(t.path(), &l).unwrap();
+    let mut j = Journal::open(lock(t.path()).unwrap()).unwrap();
     j.record(JournalState::default()).unwrap();
     j.append_history(entry(1)).unwrap();
     for f in ["journal.json", "history.jsonl"] {
@@ -93,15 +91,15 @@ fn file_modes_are_0640() {
             .unwrap()
             .permissions()
             .mode();
-        assert_eq!(m & 0o777, 0o640, "{f}");
+        // The umask may tighten but never loosen: no group-write, no other access.
+        assert_eq!(m & 0o037, 0, "{f} mode {m:o}");
     }
 }
 
 #[test]
 fn record_roundtrips() {
     let t = tempfile::tempdir().unwrap();
-    let l = lock(t.path()).unwrap();
-    let mut j = Journal::open(t.path(), &l).unwrap();
+    let mut j = Journal::open(lock(t.path()).unwrap()).unwrap();
     let s = JournalState {
         current: Some(in_flight()),
         ..Default::default()
@@ -114,8 +112,7 @@ fn record_roundtrips() {
 #[test]
 fn record_is_atomic() {
     let t = tempfile::tempdir().unwrap();
-    let l = lock(t.path()).unwrap();
-    let mut j = Journal::open(t.path(), &l).unwrap();
+    let mut j = Journal::open(lock(t.path()).unwrap()).unwrap();
     let s = JournalState {
         current: Some(in_flight()),
         ..Default::default()
@@ -124,7 +121,7 @@ fn record_is_atomic() {
     // Crash mid-write: garbage temp file left behind.
     std::fs::write(t.path().join("journal.json.tmp"), b"{\"journal_for").unwrap();
     drop(j);
-    let j2 = Journal::open(t.path(), &l).unwrap();
+    let j2 = Journal::open(lock(t.path()).unwrap()).unwrap();
     assert_eq!(j2.state().current.as_ref().unwrap().step, Step::Pulled);
     assert!(!t.path().join("journal.json.tmp").exists());
 }
@@ -160,9 +157,8 @@ fn corrupt_journal_reported_not_guessed() {
         other => panic!("expected Corrupt, got {other:?}"),
     }
     // The writer path reports it too, and leaves the file untouched.
-    let l = lock(t.path()).unwrap();
     assert!(matches!(
-        Journal::open(t.path(), &l),
+        Journal::open(lock(t.path()).unwrap()),
         Err(JournalError::Corrupt { .. })
     ));
     assert!(
@@ -254,8 +250,7 @@ fn unknown_format_refused() {
 #[test]
 fn history_appends_and_reads_newest_first() {
     let t = tempfile::tempdir().unwrap();
-    let l = lock(t.path()).unwrap();
-    let j = Journal::open(t.path(), &l).unwrap();
+    let j = Journal::open(lock(t.path()).unwrap()).unwrap();
     assert!(j.recent_history(5).unwrap().is_empty());
     for n in 1..=3 {
         j.append_history(entry(n)).unwrap();
@@ -269,8 +264,7 @@ fn history_appends_and_reads_newest_first() {
 #[test]
 fn torn_history_line_skipped() {
     let t = tempfile::tempdir().unwrap();
-    let l = lock(t.path()).unwrap();
-    let j = Journal::open(t.path(), &l).unwrap();
+    let j = Journal::open(lock(t.path()).unwrap()).unwrap();
     j.append_history(entry(1)).unwrap();
     j.append_history(entry(2)).unwrap();
     tear(t.path());
@@ -291,8 +285,7 @@ fn tear(dir: &std::path::Path) {
 #[test]
 fn append_after_torn_line_is_readable() {
     let t = tempfile::tempdir().unwrap();
-    let l = lock(t.path()).unwrap();
-    let j = Journal::open(t.path(), &l).unwrap();
+    let j = Journal::open(lock(t.path()).unwrap()).unwrap();
     j.append_history(entry(1)).unwrap();
     tear(t.path());
     j.append_history(entry(2)).unwrap();
@@ -323,4 +316,20 @@ fn second_lock_fails_fast() {
     assert!(e.to_string().contains("lock"), "{e}");
     drop(first);
     lock(t.path()).expect("lock is released on drop");
+}
+
+#[test]
+fn journal_is_send_static() {
+    fn assert_send<T: Send + 'static>() {}
+    assert_send::<Journal>();
+}
+
+#[test]
+fn dropping_journal_releases_lock() {
+    let t = tempfile::tempdir().unwrap();
+    let j = Journal::open(lock(t.path()).unwrap()).unwrap();
+    assert_eq!(j.state_dir(), t.path());
+    assert!(lock(t.path()).is_err());
+    drop(j);
+    lock(t.path()).expect("lock released with the journal");
 }

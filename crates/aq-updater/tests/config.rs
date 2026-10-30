@@ -57,6 +57,8 @@ fn rejects_out_of_range_numbers_and_names() {
         r#"release_repo = "ghcr.io/x/y:stable""#,
         r#"release_repo = "ghcr.io/x/y@sha256:abc""#,
         r#"release_repo = "agent-q-release""#,
+        r#"release_repo = "ghcr.io/""#,
+        r#"release_repo = "host:5000/""#,
     ] {
         assert!(UpdaterConfig::parse(&with(bad)).is_err(), "{bad} accepted");
     }
