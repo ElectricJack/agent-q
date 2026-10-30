@@ -11,3 +11,4 @@ vault.local/
 # Editor and OS files
 .DS_Store
 Thumbs.db
+target/
