@@ -60,6 +60,10 @@ pub struct UpdaterConfig {
     /// The `auth_mode` a release's readiness report must show.
     #[serde(default = "d_auth_mode")]
     pub expected_auth_mode: String,
+    /// Seconds to wait after entering maintenance before the backup starts,
+    /// so admin writes already past the maintenance gate can commit.
+    #[serde(default = "d_drain")]
+    pub maintenance_drain_secs: u64,
 }
 
 fn d_repo() -> String {
@@ -78,6 +82,9 @@ fn d_free() -> u64 {
     2_147_483_648
 }
 fn d_keep() -> usize {
+    5
+}
+fn d_drain() -> u64 {
     5
 }
 fn d_auth_mode() -> String {

@@ -302,6 +302,7 @@ mod with_engine {
                     min_free_bytes: 1024,
                     backups_keep: 5,
                     expected_auth_mode: "cloudflare_access".into(),
+                    maintenance_drain: Duration::ZERO,
                 },
             )
         }

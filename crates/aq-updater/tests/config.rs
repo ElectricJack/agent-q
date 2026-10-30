@@ -28,6 +28,16 @@ fn defaults_apply() {
     assert_eq!(c.min_free_bytes, 2_147_483_648);
     assert_eq!(c.backups_keep, 5);
     assert_eq!(c.expected_auth_mode, "cloudflare_access");
+    assert_eq!(c.maintenance_drain_secs, 5);
+}
+
+#[test]
+fn maintenance_drain_may_be_zero() {
+    let c = UpdaterConfig::parse(&with("maintenance_drain_secs = 0")).unwrap();
+    assert_eq!(c.maintenance_drain_secs, 0);
+    let c = UpdaterConfig::parse(&with("maintenance_drain_secs = 30")).unwrap();
+    assert_eq!(c.maintenance_drain_secs, 30);
+    assert!(UpdaterConfig::parse(&with("maintenance_drain_secs = -1")).is_err());
 }
 
 #[test]

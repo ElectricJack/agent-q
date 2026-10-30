@@ -49,6 +49,10 @@ pub struct EngineSettings {
     pub backups_keep: usize,
     /// The `auth_mode` a healthy release must report (spec step 6).
     pub expected_auth_mode: String,
+    /// Wait after entering maintenance and before the backup, so admin
+    /// writes that passed the maintenance gate just before it closed can
+    /// commit and land in the backup.
+    pub maintenance_drain: Duration,
 }
 
 impl EngineSettings {
@@ -59,6 +63,7 @@ impl EngineSettings {
             min_free_bytes: cfg.min_free_bytes,
             backups_keep: cfg.backups_keep,
             expected_auth_mode: cfg.expected_auth_mode.clone(),
+            maintenance_drain: Duration::from_secs(cfg.maintenance_drain_secs),
         }
     }
 }
@@ -956,6 +961,11 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
         if let Err(e) = rt(self.maintenance.enter())? {
             let detail = format!("cannot enter maintenance: {e}");
             return self.conclude(self.op_entry(&cur, Outcome::Aborted, detail), true);
+        }
+        // Drain: a mutation that passed the gate just before the marker
+        // appeared may still be committing; let it finish before the dump.
+        if !self.settings.maintenance_drain.is_zero() {
+            tokio::time::sleep(self.settings.maintenance_drain).await;
         }
 
         // BackedUp: the path is persisted before the dump starts.

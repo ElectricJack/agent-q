@@ -94,6 +94,7 @@ impl H {
             min_free_bytes: 2 * 1024 * 1024 * 1024,
             backups_keep: 5,
             expected_auth_mode: "cloudflare_access".into(),
+            maintenance_drain: Duration::ZERO,
         }
     }
 
@@ -1832,4 +1833,44 @@ async fn taken_request_shows_in_progress_before_the_fetch() {
         "{seen:?}"
     );
     assert_eq!(seen.last().unwrap().0, UpdateState::Idle);
+}
+
+#[tokio::test]
+async fn backup_waits_for_the_maintenance_drain() {
+    let drain = Duration::from_millis(400);
+    let (h, _e, _a) = with_a().await;
+    drop(_e);
+    let b = manifest(B, 1, &[1]);
+    h.publish(&b);
+    let mut e = h.engine_with(EngineSettings {
+        maintenance_drain: drain,
+        ..h.settings()
+    });
+    let fake = h.fake.clone();
+    let marks = std::sync::Arc::new(std::sync::Mutex::new(Vec::new()));
+    let sink = marks.clone();
+    e.set_observer(Box::new(move |s: &aq_release::UpdateStatus| {
+        if let UpdateState::InProgress { step, .. } = s.state {
+            sink.lock().unwrap().push((
+                step,
+                std::time::Instant::now(),
+                fake.maintenance_on(),
+                fake.count("backup"),
+            ));
+        }
+    }));
+    let r = e.install(req(B)).await.unwrap();
+    assert_eq!(r.outcome, Outcome::Succeeded, "{}", r.detail);
+    let marks = marks.lock().unwrap();
+    let at = |want: Step| marks.iter().find(|m| m.0 == want).cloned().unwrap();
+    let (_, entered, on_before, _) = at(Step::Maintenance);
+    let (_, backed_up, on, backups) = at(Step::BackedUp);
+    assert!(!on_before, "Maintenance is persisted before the marker");
+    assert!(on, "the marker is on before the backup step");
+    assert_eq!(backups, 0, "the dump starts after the drain");
+    assert!(
+        backed_up.duration_since(entered) >= drain,
+        "{:?}",
+        backed_up.duration_since(entered)
+    );
 }
