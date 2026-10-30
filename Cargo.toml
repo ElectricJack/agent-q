@@ -24,6 +24,8 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"
 sqlx = { version = "0.8", default-features = false, features = ["runtime-tokio-rustls", "postgres"] }
+# uuid/chrono support is enabled here, not on sqlx: sqlx's own uuid/chrono features pull sqlx-sqlite into Cargo.lock.
+sqlx-postgres = { version = "0.8.6", default-features = false, features = ["uuid", "chrono"] }
 thiserror = "2"
 tokio = { version = "1", features = ["full"] }
 toml = "0.8"
