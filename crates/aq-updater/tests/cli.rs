@@ -103,6 +103,12 @@ fn manifest(v: &str, state_format: u32) -> ReleaseManifest {
 /// A journal left in `FailedNeedsOperator`: B failed and the rollback to A
 /// failed too, with the state format changed so a restore is needed.
 fn seed_needs_operator(state_dir: &Path) -> String {
+    seed_needs_operator_locked(state_dir).0
+}
+
+/// As `seed_needs_operator`, also returning the journal, which still holds
+/// the update lock.
+fn seed_needs_operator_locked(state_dir: &Path) -> (String, Journal) {
     let (a, b) = (manifest("1.0.0", 1), manifest("1.1.0", 2));
     let request_id = Uuid::new_v4();
     let backup = PathBuf::from("/var/lib/agent-q/backups/20261030T120000Z-1.0.0-1.1.0.dump");
@@ -149,15 +155,17 @@ fn seed_needs_operator(state_dir: &Path) -> String {
         })
         .unwrap();
     }
-    detail
+    (detail, j)
 }
 
 #[test]
 fn status_prints_needs_operator_instructions() {
     let h = H::new();
-    let detail = seed_needs_operator(&h.state_dir);
     // `status` is lock-free: it works while another process holds the lock.
-    let _held = lock(&h.state_dir).unwrap();
+    // The seeding journal keeps it: dropping it and locking again can fail
+    // while another test's spawned child has not yet exec'd (its copy of
+    // the lock fd shares the flock until then).
+    let (detail, _held) = seed_needs_operator_locked(&h.state_dir);
     let journal_before = std::fs::read(h.state_dir.join("journal.json")).unwrap();
     let o = h.run(&["status"]);
     let out = text(&o);
