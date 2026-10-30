@@ -88,6 +88,28 @@ fn container_id_re() -> &'static regex::Regex {
     RE.get_or_init(|| regex::Regex::new(r"^[0-9a-f]{12,64}$").expect("static"))
 }
 
+fn fetch_container_re() -> &'static regex::Regex {
+    static RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
+    RE.get_or_init(|| regex::Regex::new(r"^aq-release-fetch-[0-9a-f]{32}$").expect("static"))
+}
+
+/// A fresh name for the temporary container `fetch_release` creates, so it
+/// can be removed by name whatever `docker create` printed (or if it never
+/// finished).
+pub fn fetch_container_name() -> String {
+    format!("aq-release-fetch-{}", uuid::Uuid::new_v4().simple())
+}
+
+fn fetch_container(name: &str) -> RuntimeResult<&str> {
+    if fetch_container_re().is_match(name) {
+        Ok(name)
+    } else {
+        Err(failed(format!(
+            "unexpected fetch container name {name:.100?}"
+        )))
+    }
+}
+
 fn failed(m: impl Into<String>) -> RuntimeError {
     RuntimeError::Failed(m.into())
 }
@@ -425,16 +447,30 @@ impl DockerCli {
     pub fn release_pull_argv(&self, release_ref: &str) -> Vec<OsString> {
         os(&["pull", "--quiet", release_ref])
     }
-    /// Only for refs from `release_ref`. `none` is the (never run) command:
-    /// the release image is `FROM scratch`.
-    pub fn release_create_argv(&self, release_ref: &str) -> Vec<OsString> {
-        os(&["create", release_ref, "none"])
+    /// Only for refs from `release_ref`; `name` from `fetch_container_name`.
+    /// `none` is the (never run) command: the release image is `FROM scratch`.
+    pub fn release_create_argv(
+        &self,
+        name: &str,
+        release_ref: &str,
+    ) -> RuntimeResult<Vec<OsString>> {
+        Ok(os(&[
+            "create",
+            "--name",
+            fetch_container(name)?,
+            release_ref,
+            "none",
+        ]))
     }
-    pub fn cp_argv(&self, id: &str, path: &str) -> RuntimeResult<Vec<OsString>> {
-        Ok(os(&["cp", &format!("{}:{path}", container_id(id)?), "-"]))
+    pub fn cp_argv(&self, name: &str, path: &str) -> RuntimeResult<Vec<OsString>> {
+        Ok(os(&[
+            "cp",
+            &format!("{}:{path}", fetch_container(name)?),
+            "-",
+        ]))
     }
-    pub fn rm_argv(&self, id: &str) -> RuntimeResult<Vec<OsString>> {
-        Ok(os(&["rm", container_id(id)?]))
+    pub fn rm_argv(&self, name: &str) -> RuntimeResult<Vec<OsString>> {
+        Ok(os(&["rm", "-f", fetch_container(name)?]))
     }
 
     // --------------------------------------------------------- execution
@@ -601,19 +637,37 @@ impl Runtime for DockerCli {
         let r = self.release_ref(&selector)?;
         self.run("docker pull", self.release_pull_argv(&r), PULL_TIMEOUT)
             .await?;
-        let out = self
-            .run("docker create", self.release_create_argv(&r), CMD_TIMEOUT)
-            .await?;
-        let text = String::from_utf8_lossy(&out);
-        let id = container_id(text.trim())?.to_string();
-        let files = async {
-            let manifest = self.cp_file(&id, "manifest.json").await?;
-            let bundle = self.cp_file(&id, "manifest.sigstore.json").await?;
-            Ok((manifest, bundle))
-        }
-        .await;
-        if let Err(e) = self.run("docker rm", self.rm_argv(&id)?, CMD_TIMEOUT).await {
-            tracing::warn!(container = %id, error = %e, "cannot remove the temporary release container");
+        let name = fetch_container_name();
+        let created = self
+            .run(
+                "docker create",
+                self.release_create_argv(&name, &r)?,
+                CMD_TIMEOUT,
+            )
+            .await;
+        let made = created.is_ok();
+        let files = match created {
+            Ok(_) => {
+                async {
+                    let manifest = self.cp_file(&name, "manifest.json").await?;
+                    let bundle = self.cp_file(&name, "manifest.sigstore.json").await?;
+                    Ok((manifest, bundle))
+                }
+                .await
+            }
+            Err(e) => Err(e),
+        };
+        // Always, by name: also after a failed or timed-out create, which may
+        // still have left the container behind.
+        if let Err(e) = self
+            .run("docker rm", self.rm_argv(&name)?, CMD_TIMEOUT)
+            .await
+        {
+            if made {
+                tracing::warn!(container = %name, error = %e, "cannot remove the temporary release container");
+            } else {
+                tracing::debug!(container = %name, error = %e, "no temporary release container to remove");
+            }
         }
         files
     }
@@ -1012,20 +1066,36 @@ mod tests {
         odd.channel = "-bad".into();
         assert!(odd.release_ref(&ReleaseSelector::Channel).is_err());
 
-        let id = "0123456789ab";
+        let name = fetch_container_name();
+        assert!(name.starts_with("aq-release-fetch-"), "{name}");
+        assert_ne!(name, fetch_container_name());
         assert_eq!(
-            strs(&c.release_create_argv("ghcr.io/electricjack/agent-q-release:1.2.3")),
+            strs(
+                &c.release_create_argv(&name, "ghcr.io/electricjack/agent-q-release:1.2.3")
+                    .unwrap()
+            ),
             [
                 "create",
+                "--name",
+                name.as_str(),
                 "ghcr.io/electricjack/agent-q-release:1.2.3",
                 "none"
             ]
         );
         assert_eq!(
-            strs(&c.cp_argv(id, "/manifest.json").unwrap()),
-            ["cp", "0123456789ab:/manifest.json", "-"]
+            strs(&c.cp_argv(&name, "/manifest.json").unwrap()),
+            ["cp", format!("{name}:/manifest.json").as_str(), "-"]
         );
-        assert_eq!(strs(&c.rm_argv(id).unwrap()), ["rm", id]);
+        assert_eq!(
+            strs(&c.rm_argv(&name).unwrap()),
+            ["rm", "-f", name.as_str()]
+        );
+        for bad in ["0123456789ab", "aq-release-fetch-x", "--rm", ""] {
+            assert!(c.release_create_argv(bad, "r:1").is_err(), "{bad}");
+            assert!(c.cp_argv(bad, "/manifest.json").is_err(), "{bad}");
+            assert!(c.rm_argv(bad).is_err(), "{bad}");
+        }
+        let id = "0123456789ab";
         assert_eq!(
             strs(&c.health_argv(id).unwrap()),
             ["inspect", "--format", "{{.State.Health.Status}}", id]
@@ -1194,30 +1264,52 @@ mod tests {
         let t = tempfile::tempdir().unwrap();
         let fake = t.path().join("docker");
         let log = t.path().join("log");
-        // create prints an id; cp fails; every call is logged.
-        std::fs::write(
-            &fake,
+        // Every call is logged; `create` and `cp` behave per case.
+        let script = |create: &str, cp: &str| {
             format!(
-                "#!/bin/sh\necho \"$*\" >> {log}\ncase \"$1\" in\n  create) echo 0123456789abcdef ;;\n  cp) echo 'no such file' >&2; exit 1 ;;\nesac\n",
+                "#!/bin/sh\necho \"$*\" >> {log}\ncase \"$1\" in\n  create) {create} ;;\n  cp) {cp} ;;\nesac\n",
                 log = log.display()
+            )
+        };
+        let cases = [
+            // cp fails after a good create.
+            (
+                script("echo 0123456789abcdef", "echo 'no such file' >&2; exit 1"),
+                "docker cp",
+                true,
             ),
-        )
-        .unwrap();
-        std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
-        let c = cli().with_docker_binary(fake);
-        let e = c.fetch_release(ReleaseSelector::Channel).await.unwrap_err();
-        assert!(e.to_string().contains("docker cp"), "{e}");
-        let calls = std::fs::read_to_string(&log).unwrap();
-        let calls: Vec<&str> = calls.lines().collect();
-        assert_eq!(
-            calls,
-            [
-                "pull --quiet ghcr.io/electricjack/agent-q-release:stable",
-                "create ghcr.io/electricjack/agent-q-release:stable none",
-                "cp 0123456789abcdef:/manifest.json -",
-                "rm 0123456789abcdef",
-            ]
-        );
+            // create fails: the container may still exist; remove it by name.
+            (
+                script("echo 'conflict' >&2; exit 1", "exit 1"),
+                "docker create",
+                false,
+            ),
+        ];
+        for (body, failing, reaches_cp) in cases {
+            let _ = std::fs::remove_file(&log);
+            std::fs::write(&fake, body).unwrap();
+            std::fs::set_permissions(&fake, std::fs::Permissions::from_mode(0o755)).unwrap();
+            let c = cli().with_docker_binary(fake.clone());
+            let e = c.fetch_release(ReleaseSelector::Channel).await.unwrap_err();
+            assert!(e.to_string().contains(failing), "{e}");
+            let calls = std::fs::read_to_string(&log).unwrap();
+            let calls: Vec<&str> = calls.lines().collect();
+            assert_eq!(
+                calls[0],
+                "pull --quiet ghcr.io/electricjack/agent-q-release:stable"
+            );
+            let name = calls[1]
+                .strip_prefix("create --name ")
+                .and_then(|r| r.strip_suffix(" ghcr.io/electricjack/agent-q-release:stable none"))
+                .unwrap_or_else(|| panic!("{calls:?}"));
+            assert!(name.starts_with("aq-release-fetch-"), "{calls:?}");
+            let mut want = vec![calls[0].to_string(), calls[1].to_string()];
+            if reaches_cp {
+                want.push(format!("cp {name}:/manifest.json -"));
+            }
+            want.push(format!("rm -f {name}"));
+            assert_eq!(calls, want);
+        }
     }
 
     #[test]
