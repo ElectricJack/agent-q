@@ -8,7 +8,7 @@
 use crate::engine::{Engine, Halted, MaintenanceSink, UPDATE_IN_PROGRESS};
 use crate::runtime::{Runtime, RuntimeError};
 use crate::verify::ReleaseVerifier;
-use aq_release::{HistoryEntry, UpdateRequest, UpdateStatus};
+use aq_release::{HistoryEntry, Outcome, UpdateRequest, UpdateStatus};
 use semver::Version;
 use std::fs::{File, OpenOptions, Permissions};
 use std::io::{Read, Write};
@@ -88,12 +88,18 @@ impl std::fmt::Display for SpoolReject {
 enum Taken {
     Request(UpdateRequest),
     Reject(String, Option<Uuid>),
+    /// A directory, symlink, FIFO or other non-regular entry.
+    NotAFile,
 }
 
-fn read_one(path: &Path, name: &str) -> std::io::Result<Taken> {
-    let id_from_name = name
+/// The id a `<uuid>.json` file name carries.
+fn id_from_name(name: &std::ffi::OsStr) -> Option<Uuid> {
+    name.to_str()?
         .strip_suffix(".json")
-        .and_then(|s| Uuid::parse_str(s).ok());
+        .and_then(|s| Uuid::parse_str(s).ok())
+}
+
+fn read_one(path: &Path, id_from_name: Option<Uuid>) -> std::io::Result<Taken> {
     // O_NOFOLLOW: a symlink is never followed; O_NONBLOCK: a FIFO cannot hang
     // the open. The type is checked on the opened file.
     let f = match OpenOptions::new()
@@ -102,13 +108,11 @@ fn read_one(path: &Path, name: &str) -> std::io::Result<Taken> {
         .open(path)
     {
         Ok(f) => f,
-        Err(e) if e.raw_os_error() == Some(nix::libc::ELOOP) => {
-            return Ok(Taken::Reject("not a regular file".into(), None));
-        }
+        Err(e) if e.raw_os_error() == Some(nix::libc::ELOOP) => return Ok(Taken::NotAFile),
         Err(e) => return Err(e),
     };
     if !f.metadata()?.is_file() {
-        return Ok(Taken::Reject("not a regular file".into(), None));
+        return Ok(Taken::NotAFile);
     }
     let mut buf = Vec::new();
     f.take(REQUEST_LIMIT + 1).read_to_end(&mut buf)?;
@@ -120,14 +124,17 @@ fn read_one(path: &Path, name: &str) -> std::io::Result<Taken> {
     }
     Ok(match serde_json::from_slice::<UpdateRequest>(&buf) {
         Ok(r) => Taken::Request(r),
-        Err(e) => Taken::Reject(format!("not a valid update request: {e}"), None),
+        // Debug-escaped: the error can quote the file's content.
+        Err(e) => Taken::Reject(
+            format!("not a valid update request: {:?}", e.to_string()),
+            id_from_name,
+        ),
     })
 }
 
-/// Read and delete every request file in `dir`, oldest first (by mtime,
-/// then name). Dotfiles (the server's temp files) are skipped. A file that
-/// cannot be deleted is skipped and logged, so it is never acted on twice.
-pub fn take_requests(dir: &Path) -> Vec<Result<UpdateRequest, SpoolReject>> {
+/// Request entries in `dir`, oldest first (by mtime, then name). Dotfiles
+/// (the server's temp files and set-aside rejects) are skipped.
+fn pending(dir: &Path) -> Vec<std::ffi::OsString> {
     let rd = match std::fs::read_dir(dir) {
         Ok(rd) => rd,
         Err(e) => {
@@ -135,11 +142,11 @@ pub fn take_requests(dir: &Path) -> Vec<Result<UpdateRequest, SpoolReject>> {
             return Vec::new();
         }
     };
-    let mut files: Vec<(SystemTime, String)> = rd
+    let mut files: Vec<(SystemTime, std::ffi::OsString)> = rd
         .filter_map(|e| e.ok())
         .filter_map(|e| {
-            let name = e.file_name().to_str()?.to_string();
-            if name.starts_with('.') {
+            let name = e.file_name();
+            if name.as_encoded_bytes().starts_with(b".") {
                 return None;
             }
             let mtime = e
@@ -150,36 +157,91 @@ pub fn take_requests(dir: &Path) -> Vec<Result<UpdateRequest, SpoolReject>> {
         })
         .collect();
     files.sort();
-    let mut out = Vec::new();
-    for (_, name) in files {
-        let path = dir.join(&name);
-        let read = read_one(&path, &name);
-        if let Err(e) = std::fs::remove_file(&path) {
-            if e.kind() != std::io::ErrorKind::NotFound {
-                tracing::error!(path = %path.display(), error = %e, "cannot delete update request; ignoring it");
+    files.into_iter().map(|(_, n)| n).collect()
+}
+
+/// Set a non-file entry aside as `.rejected-<name>` (ignored from then on).
+/// If even that fails, remember it for this process so it is reported once.
+fn set_aside(dir: &Path, name: &std::ffi::OsStr) -> bool {
+    static SEEN: std::sync::Mutex<Vec<PathBuf>> = std::sync::Mutex::new(Vec::new());
+    let path = dir.join(name);
+    let mut aside = std::ffi::OsString::from(".rejected-");
+    aside.push(name);
+    match std::fs::rename(&path, dir.join(aside)) {
+        Ok(()) => true,
+        Err(e) => {
+            let mut seen = SEEN.lock().unwrap_or_else(|p| p.into_inner());
+            if seen.contains(&path) {
+                return false;
             }
-            continue;
+            tracing::error!(path = ?path, error = %e, "cannot set aside a rejected request entry; ignoring it");
+            seen.push(path);
+            true
         }
-        out.push(match read {
-            Ok(Taken::Request(r)) => Ok(r),
-            Ok(Taken::Reject(reason, request_id)) => Err(SpoolReject {
-                file: name,
-                request_id,
-                reason,
-            }),
-            Err(e) => Err(SpoolReject {
-                file: name,
-                request_id: None,
-                reason: format!("cannot be read: {e}"),
-            }),
-        });
     }
-    if !out.is_empty()
-        && let Err(e) = fsync_dir(dir)
-    {
+}
+
+/// Read and remove one request entry. `None`: nothing to report (it is gone,
+/// could not be removed, or was already reported).
+fn take_one(dir: &Path, name: &std::ffi::OsStr) -> Option<Result<UpdateRequest, SpoolReject>> {
+    let path = dir.join(name);
+    let id = id_from_name(name);
+    let reject = |reason: &str| SpoolReject {
+        file: name.to_string_lossy().into_owned(),
+        request_id: id,
+        reason: reason.to_string(),
+    };
+    let meta = std::fs::symlink_metadata(&path).ok()?;
+    let odd = if name.to_str().is_none() {
+        Some("the file name is not UTF-8")
+    } else if !meta.file_type().is_file() {
+        Some("not a regular file")
+    } else {
+        None
+    };
+    // Re-checked on the opened file, in case the entry was swapped.
+    let read = match odd {
+        Some(_) => Ok(Taken::NotAFile),
+        None => read_one(&path, id),
+    };
+    if let Ok(Taken::NotAFile) = read {
+        return set_aside(dir, name).then(|| Err(reject(odd.unwrap_or("not a regular file"))));
+    }
+    if let Err(e) = std::fs::remove_file(&path) {
+        if e.kind() != std::io::ErrorKind::NotFound {
+            tracing::error!(path = ?path, error = %e, "cannot delete update request; ignoring it");
+        }
+        return None;
+    }
+    Some(match read {
+        Ok(Taken::Request(r)) => Ok(r),
+        Ok(Taken::Reject(reason, request_id)) => Err(SpoolReject {
+            request_id,
+            ..reject(&reason)
+        }),
+        Ok(Taken::NotAFile) => Err(reject("not a regular file")),
+        Err(e) => Err(reject(&format!("cannot be read: {e}"))),
+    })
+}
+
+/// Read and remove every request in `dir`, oldest first (by mtime, then
+/// name). Dotfiles are skipped. Regular files are deleted; anything else
+/// (directories, symlinks, FIFOs, names that are not UTF-8) is rejected once
+/// and set aside as `.rejected-<name>`. An entry that cannot be removed is
+/// skipped and logged, so it is never acted on twice.
+pub fn take_requests(dir: &Path) -> Vec<Result<UpdateRequest, SpoolReject>> {
+    let out: Vec<_> = pending(dir)
+        .iter()
+        .filter_map(|n| take_one(dir, n))
+        .collect();
+    sync_requests(dir, !out.is_empty());
+    out
+}
+
+fn sync_requests(dir: &Path, changed: bool) {
+    if changed && let Err(e) = fsync_dir(dir) {
         tracing::warn!(dir = %dir.display(), error = %e, "cannot fsync the requests directory");
     }
-    out
 }
 
 /// Write `status.json` atomically (temp file, fsync, rename, fsync dir),
@@ -256,51 +318,95 @@ impl MaintenanceSink for SpoolMaintenance {
     }
 }
 
-/// Install pending requests one at a time until the spool is empty.
+/// What the last install in a pass asked for and how it ended.
+struct Finished {
+    request_id: Uuid,
+    asked: Option<Version>,
+    got: Option<Version>,
+    outcome: Outcome,
+}
+
+/// Install pending requests one at a time until the spool is empty or
+/// `stop` is set. `stop` is checked before each request is taken, so once it
+/// is set no new install starts and untaken requests stay on disk.
 ///
-/// Malformed files are recorded as `Rejected`. After an install finishes,
+/// Malformed entries are recorded as `Rejected`. After an install finishes,
 /// a queued request that repeats it (the same version, or the channel when
 /// the channel offers nothing newer than what was just installed) is
-/// recorded as `Rejected: update_in_progress` instead of being installed;
-/// anything else is installed in turn. Requests written while an install
-/// runs are picked up by the next round of this loop.
+/// recorded as `Rejected` instead of being installed: `update_in_progress`
+/// after a success, `duplicate of request <id>, just processed (<outcome>)`
+/// otherwise. Anything else is installed in turn. Requests written while an
+/// install runs are picked up by the next round of this loop.
 pub async fn process_requests<R: Runtime, V: ReleaseVerifier>(
     engine: &mut Engine<R, V>,
     dir: &Path,
+    stop: &tokio::sync::watch::Receiver<bool>,
 ) -> Result<Vec<HistoryEntry>, Halted> {
     let mut out = Vec::new();
-    // What the last install in this pass asked for and ended up targeting.
-    let mut last: Option<(Option<Version>, Option<Version>)> = None;
+    let mut last: Option<Finished> = None;
     loop {
-        let batch = take_requests(dir);
-        if batch.is_empty() {
+        let names = pending(dir);
+        if names.is_empty() || *stop.borrow() {
             return Ok(out);
         }
-        for item in batch {
+        for name in names {
+            if *stop.borrow() {
+                tracing::info!(
+                    "shutdown requested; leaving queued update requests for the next start"
+                );
+                return Ok(out);
+            }
+            let Some(item) = take_one(dir, &name) else {
+                continue;
+            };
+            sync_requests(dir, true);
             let req = match item {
                 Ok(r) => r,
                 Err(rej) => {
-                    tracing::warn!(%rej, "rejected update request");
+                    tracing::warn!(file = ?rej.file, reason = ?rej.reason, "rejected update request");
                     out.push(engine.reject(rej.request_id, None, rej.to_string())?);
                     continue;
                 }
             };
-            if let Some((asked, got)) = &last
-                && repeats(engine, &req, asked, got.as_ref()).await
+            if let Some(prev) = &last
+                && repeats(engine, &req, &prev.asked, prev.got.as_ref()).await
             {
-                tracing::info!(request_id = %req.id, "repeat of the update just finished; rejected");
+                let detail = if prev.outcome == Outcome::Succeeded {
+                    UPDATE_IN_PROGRESS.to_string()
+                } else {
+                    format!(
+                        "duplicate of request {}, just processed ({})",
+                        prev.request_id,
+                        outcome_name(prev.outcome)
+                    )
+                };
+                tracing::info!(request_id = %req.id, %detail, "repeat of the update just finished; rejected");
                 let to = req.version.clone();
-                out.push(engine.reject(Some(req.id), to, UPDATE_IN_PROGRESS.into())?);
+                out.push(engine.reject(Some(req.id), to, detail)?);
                 continue;
             }
-            tracing::info!(request_id = %req.id, version = ?req.version, by = %req.requested_by, "installing");
+            tracing::info!(request_id = %req.id, version = ?req.version, by = ?req.requested_by, "installing");
             let asked = req.version.clone();
+            let request_id = req.id;
             let entry = engine.install(req).await?;
-            tracing::info!(outcome = ?entry.outcome, detail = %entry.detail, "update finished");
-            last = Some((asked, entry.to.clone()));
+            tracing::info!(outcome = ?entry.outcome, detail = ?entry.detail, "update finished");
+            last = Some(Finished {
+                request_id,
+                asked,
+                got: entry.to.clone(),
+                outcome: entry.outcome,
+            });
             out.push(entry);
         }
     }
+}
+
+/// `Outcome` as it is serialized (`rolled_back`, ...).
+fn outcome_name(o: Outcome) -> String {
+    serde_json::to_value(o)
+        .ok()
+        .and_then(|v| v.as_str().map(str::to_string))
+        .unwrap_or_else(|| format!("{o:?}"))
 }
 
 /// Does `req` ask for what the install that just finished already did?

@@ -424,3 +424,33 @@ fn test_sign_round_trip_through_verify_manifest() {
     let o = h.run(&["verify-manifest", m.to_str().unwrap(), b.to_str().unwrap()]);
     assert_eq!(o.status.code(), Some(1), "{}", text(&o));
 }
+
+#[test]
+fn status_escapes_control_characters_in_history() {
+    let h = H::new();
+    {
+        let j = Journal::open(lock(&h.state_dir).unwrap()).unwrap();
+        j.append_history(HistoryEntry {
+            request_id: None,
+            from: None,
+            to: None,
+            outcome: Outcome::Rejected,
+            detail: "bad \u{1b}[31mred\u{7} name".into(),
+            started_at: Utc::now(),
+            finished_at: Utc::now(),
+        })
+        .unwrap();
+    }
+    let o = h.run(&["status"]);
+    assert_eq!(o.status.code(), Some(0), "{}", text(&o));
+    assert!(
+        !o.stdout.contains(&0x1b) && !o.stdout.contains(&0x07),
+        "{}",
+        text(&o)
+    );
+    assert!(
+        String::from_utf8_lossy(&o.stdout).contains("bad \\u{1b}[31mred"),
+        "{}",
+        text(&o)
+    );
+}

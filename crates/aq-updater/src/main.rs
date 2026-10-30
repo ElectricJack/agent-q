@@ -198,7 +198,7 @@ async fn start(engine: &mut RealEngine, cfg: &UpdaterConfig) -> Result<(), Exit>
     publish(engine, cfg);
     match recovered {
         Ok(Some(e)) => {
-            tracing::info!(outcome = ?e.outcome, detail = %e.detail, "recovered an interrupted update")
+            tracing::info!(outcome = ?e.outcome, detail = ?e.detail, "recovered an interrupted update")
         }
         Ok(None) => {}
         Err(h) => return Err(halted(h)),
@@ -209,18 +209,36 @@ async fn start(engine: &mut RealEngine, cfg: &UpdaterConfig) -> Result<(), Exit>
     Ok(())
 }
 
-async fn run(cfg: &UpdaterConfig, once: bool) -> CmdResult {
+/// A shutdown flag set on the first SIGTERM or SIGINT. The handlers are
+/// installed at once, so a signal is never fatal; the work in progress (an
+/// install included) finishes and nothing new starts.
+fn shutdown_signal() -> Result<tokio::sync::watch::Receiver<bool>, Exit> {
     use tokio::signal::unix::{SignalKind, signal};
-    // Before anything else, so a signal during startup is not fatal.
     let mut sigterm = signal(SignalKind::terminate())
         .map_err(|e| failure(format!("cannot handle SIGTERM: {e}")))?;
     let mut sigint = signal(SignalKind::interrupt())
         .map_err(|e| failure(format!("cannot handle SIGINT: {e}")))?;
+    let (tx, rx) = tokio::sync::watch::channel(false);
+    tokio::spawn(async move {
+        tokio::select! {
+            _ = sigterm.recv() => {}
+            _ = sigint.recv() => {}
+        }
+        tracing::info!("shutdown requested; finishing the current step, starting nothing new");
+        let _ = tx.send(true);
+        // Keep the sender (and the handlers) alive: later signals are ignored.
+        std::future::pending::<()>().await;
+    });
+    Ok(rx)
+}
+
+async fn run(cfg: &UpdaterConfig, once: bool) -> CmdResult {
+    let mut stop = shutdown_signal()?;
     let mut engine = open_engine(cfg)?;
     start(&mut engine, cfg).await?;
     let requests = spool::requests_dir(&cfg.state_dir);
     if once {
-        let r = spool::process_requests(&mut engine, &requests).await;
+        let r = spool::process_requests(&mut engine, &requests, &stop).await;
         publish(&engine, cfg);
         r.map_err(halted)?;
         return Ok(ExitCode::SUCCESS);
@@ -230,15 +248,15 @@ async fn run(cfg: &UpdaterConfig, once: bool) -> CmdResult {
     requests_tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
     let mut poll_tick = tokio::time::interval(Duration::from_secs(cfg.poll_interval_secs));
     poll_tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
-    loop {
-        // Only the waits race the signals; once a branch is chosen its body
-        // (an install included) runs to completion before the next check.
+    while !*stop.borrow() {
+        // Only the waits race the shutdown flag; a chosen branch runs to
+        // completion. `process_requests` also checks the flag before each
+        // install, so no new install starts after a signal.
         tokio::select! {
             biased;
-            _ = sigterm.recv() => break,
-            _ = sigint.recv() => break,
+            _ = stop.changed() => {}
             _ = requests_tick.tick() => {
-                let r = spool::process_requests(&mut engine, &requests).await;
+                let r = spool::process_requests(&mut engine, &requests, &stop).await;
                 if let Err(h) = r {
                     publish(&engine, cfg);
                     return Err(halted(h));
@@ -360,6 +378,20 @@ fn summary(m: &ReleaseManifest) -> ReleaseSummary {
     }
 }
 
+/// History details can quote request content; never let them drive the
+/// operator's terminal.
+fn printable(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        if c.is_control() {
+            out.extend(c.escape_default());
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 fn entry_line(e: &HistoryEntry) -> String {
     let v = |v: &Option<semver::Version>| v.as_ref().map_or("-".to_string(), |v| v.to_string());
     format!(
@@ -368,7 +400,7 @@ fn entry_line(e: &HistoryEntry) -> String {
         outcome_name(e.outcome),
         v(&e.from),
         v(&e.to),
-        e.detail
+        printable(&e.detail)
     )
 }
 
@@ -431,6 +463,7 @@ fn status(cfg: &UpdaterConfig) -> CmdResult {
     );
     line("available:", release_line(available.as_ref()));
     if let UpdateState::FailedNeedsOperator { detail } = &state {
+        let detail = printable(detail);
         let cmd = if detail.contains("--restore-backup") {
             "aq-updater restore-previous --restore-backup"
         } else {

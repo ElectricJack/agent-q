@@ -72,7 +72,8 @@ fn take_requests_rejects_oversized_and_malformed() {
     set_age(&big, 20);
 
     // Not JSON, and JSON with an unknown field: no id is trusted.
-    let junk = dir.join(format!("{}.json", Uuid::new_v4()));
+    let junk_id = Uuid::new_v4();
+    let junk = dir.join(format!("{junk_id}.json"));
     std::fs::write(&junk, b"{not json").unwrap();
     set_age(&junk, 10);
     let extra = dir.join("extra.json");
@@ -95,9 +96,10 @@ fn take_requests_rejects_oversized_and_malformed() {
     let big_rej: &SpoolReject = got[1].as_ref().unwrap_err();
     assert_eq!(big_rej.request_id, Some(big_id));
     assert!(big_rej.reason.contains("4096"), "{}", big_rej.reason);
-    for r in &got[2..4] {
+    // Malformed content keeps the id a `<uuid>.json` name carries.
+    for (r, id) in got[2..4].iter().zip([Some(junk_id), None]) {
         let rej = r.as_ref().unwrap_err();
-        assert_eq!(rej.request_id, None, "{rej:?}");
+        assert_eq!(rej.request_id, id, "{rej:?}");
         assert!(rej.reason.contains("not a valid update request"), "{rej:?}");
     }
     assert_eq!(got[4], Ok(edge));
@@ -111,10 +113,30 @@ fn take_requests_rejects_non_regular_files() {
     let target = t.path().join("..").join("outside");
     std::os::unix::fs::symlink(&target, dir.join("link.json")).unwrap();
     nix::unistd::mkfifo(&dir.join("fifo.json"), nix::sys::stat::Mode::S_IRWXU).unwrap();
+    let sub_id = Uuid::new_v4();
+    std::fs::create_dir(dir.join(format!("{sub_id}.json"))).unwrap();
+    std::fs::write(dir.join("inner"), b"x").unwrap();
+    std::fs::rename(dir.join("inner"), dir.join(format!("{sub_id}.json/inner"))).unwrap();
+    // A name that is not UTF-8, with valid content.
+    use std::os::unix::ffi::OsStrExt;
+    let odd = std::ffi::OsStr::from_bytes(b"req-\xff.json");
+    std::fs::write(dir.join(odd), serde_json::to_vec(&request(None)).unwrap()).unwrap();
+
     let got = take_requests(dir);
-    assert_eq!(got.len(), 2, "{got:?}");
+    assert_eq!(got.len(), 4, "{got:?}");
     assert!(got.iter().all(|r| r.is_err()), "{got:?}");
-    assert!(names(dir).is_empty(), "{:?}", names(dir));
+    let sub = got
+        .iter()
+        .map(|r| r.as_ref().unwrap_err())
+        .find(|r| r.file.contains(&sub_id.to_string()))
+        .unwrap();
+    assert_eq!(sub.request_id, Some(sub_id));
+    // Recorded once, then set aside as dotfiles so nothing retries them.
+    let left = names(dir);
+    assert_eq!(left.len(), 4, "{left:?}");
+    assert!(left.iter().all(|n| n.starts_with(".rejected-")), "{left:?}");
+    assert!(take_requests(dir).is_empty());
+    assert!(dir.join(format!(".rejected-{sub_id}.json/inner")).exists());
 }
 
 #[test]
@@ -297,6 +319,70 @@ mod with_engine {
         }
     }
 
+    fn no_stop() -> tokio::sync::watch::Receiver<bool> {
+        tokio::sync::watch::channel(false).1
+    }
+
+    /// Shutdown requested while an install runs: that install finishes, the
+    /// next queued request is not started and stays on disk.
+    #[tokio::test]
+    async fn shutdown_stops_before_the_next_install() {
+        let h = H::new();
+        let (a, b) = (manifest("1.0.0"), manifest("1.1.0"));
+        h.publish(&a);
+        h.publish(&b);
+        let mut e = h.engine();
+        let (first, second) = (request(Some("1.0.0")), request(Some("1.1.0")));
+        drop_request(&h.requests, &first, 20);
+        drop_request(&h.requests, &second, 10);
+        let (tx, rx) = tokio::sync::watch::channel(false);
+        e.set_observer(Box::new(move |s: &UpdateStatus| {
+            if matches!(
+                s.state,
+                UpdateState::InProgress {
+                    step: Step::Pulled,
+                    ..
+                }
+            ) {
+                let _ = tx.send(true);
+            }
+        }));
+        let out = process_requests(&mut e, &h.requests, &rx).await.unwrap();
+        assert_eq!(out.len(), 1, "{out:?}");
+        assert_eq!(out[0].request_id, Some(first.id));
+        assert_eq!(out[0].outcome, Outcome::Succeeded, "{}", out[0].detail);
+        assert_eq!(h.fake.count("start_server"), 1);
+        assert_eq!(names(&h.requests), vec![format!("{}.json", second.id)]);
+        // Already stopped: nothing is taken at all.
+        let out = process_requests(&mut e, &h.requests, &rx).await.unwrap();
+        assert!(out.is_empty());
+        assert_eq!(names(&h.requests).len(), 1);
+    }
+
+    /// A repeat of a request that just failed says so, rather than claiming
+    /// an update is in progress.
+    #[tokio::test]
+    async fn repeat_after_a_failed_install_names_the_duplicate() {
+        let h = H::new();
+        let mut e = h.engine();
+        let (first, second) = (request(Some("9.9.9")), request(Some("9.9.9")));
+        drop_request(&h.requests, &first, 20);
+        drop_request(&h.requests, &second, 10);
+        let out = process_requests(&mut e, &h.requests, &no_stop())
+            .await
+            .unwrap();
+        assert_eq!(out.len(), 2, "{out:?}");
+        assert_eq!(out[0].outcome, Outcome::Refused, "{}", out[0].detail);
+        assert_eq!(out[1].outcome, Outcome::Rejected);
+        assert_eq!(
+            out[1].detail,
+            format!(
+                "duplicate of request {}, just processed (refused)",
+                first.id
+            )
+        );
+    }
+
     #[tokio::test]
     async fn malformed_requests_are_recorded_as_rejected() {
         let h = H::new();
@@ -308,7 +394,9 @@ mod with_engine {
         )
         .unwrap();
         std::fs::write(h.requests.join("junk.json"), b"[]").unwrap();
-        let out = process_requests(&mut e, &h.requests).await.unwrap();
+        let out = process_requests(&mut e, &h.requests, &no_stop())
+            .await
+            .unwrap();
         assert_eq!(out.len(), 2);
         let hist = h.history();
         assert_eq!(hist, out);
@@ -332,7 +420,9 @@ mod with_engine {
         let second = request(Some("1.0.0"));
         drop_request(&h.requests, &first, 20);
         drop_request(&h.requests, &second, 10);
-        let out = process_requests(&mut e, &h.requests).await.unwrap();
+        let out = process_requests(&mut e, &h.requests, &no_stop())
+            .await
+            .unwrap();
         assert_eq!(out.len(), 2, "{out:?}");
         assert_eq!(out[0].request_id, Some(first.id));
         assert_eq!(out[0].outcome, Outcome::Succeeded, "{}", out[0].detail);
@@ -380,7 +470,9 @@ mod with_engine {
             }));
         }
         drop_request(&h.requests, &first, 60);
-        let out = process_requests(&mut e, &h.requests).await.unwrap();
+        let out = process_requests(&mut e, &h.requests, &no_stop())
+            .await
+            .unwrap();
         assert!(*dropped.lock().unwrap());
         let summary: Vec<_> = out
             .iter()
