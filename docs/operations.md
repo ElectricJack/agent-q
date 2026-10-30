@@ -25,15 +25,25 @@ hosted-access plan; see [Not covered here](#not-covered-here).
   from it.
 
 Trust: the updater accepts a release only if `cosign verify-blob` accepts its
-manifest bundle for this identity and issuer:
+manifest bundle for this identity and issuer, bound to the tag and commit the
+manifest itself names:
 
 ```
 --certificate-identity-regexp '^https://github\.com/ElectricJack/agent-q/\.github/workflows/release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'
 --certificate-oidc-issuer https://token.actions.githubusercontent.com
+--certificate-github-workflow-ref refs/tags/v<manifest version>
+--certificate-github-workflow-sha <manifest source_revision>
 ```
 
-That is, the manifest was signed by `release.yml` running on a `vX.Y.Z` tag of
-this repository.
+That is, the manifest was signed by `release.yml` running on the `vX.Y.Z` tag
+of this repository that matches its own `version`, at the commit its
+`source_revision` names. The updater reads both values from the manifest
+before verifying it, and refuses a manifest that does not parse or whose
+`source_revision` is not a full commit SHA. The regexp must be anchored (`^`
+and `$`); the updater refuses a config whose regexp is not.
+
+Anyone who can push a `v*` tag can get a release signed, so tag creation is
+restricted; see [Protect the release tags](#protect-the-release-tags).
 
 **Pinned cosign: v3.1.3.** `release.yml` and `promote.yml` install exactly this
 version (`sigstore/cosign-installer` with `cosign-release: v3.1.3`), and hosts
@@ -208,6 +218,7 @@ backup_dir = "/var/lib/agent-q/backups"
 # min_free_bytes = 2147483648
 # backups_keep = 5
 # expected_auth_mode = "cloudflare_access"
+# maintenance_drain_secs = 5
 
 [compose]
 project_dir = "/opt/agent-q"
@@ -226,9 +237,16 @@ oidc_issuer = "https://token.actions.githubusercontent.com"
 install -o root -g aq-updater -m 0640 updater.toml /etc/agent-q/updater.toml
 ```
 
+`maintenance_drain_secs` is how long the updater waits after turning
+maintenance on and before it starts the backup, so that an admin write that
+passed the maintenance check just before the marker appeared can commit and
+land in the backup. `0` turns the wait off.
+
 ### Registry login (`docker login ghcr.io`)
 
-The packages are private. Create a GitHub token that can only read packages:
+If the GHCR packages are private (the default for new packages), the updater
+needs a login. Public packages need no login: skip this section. Create a
+GitHub token that can only read packages:
 a classic personal access token with only the `read:packages` scope (or a
 fine-grained token limited to reading packages, where GitHub accepts those for
 GHCR). Log in **as `aq-updater`**, because Docker reads the credentials of the
@@ -254,6 +272,11 @@ Description=Agent Q host updater
 Documentation=https://github.com/ElectricJack/agent-q/blob/main/docs/operations.md
 Wants=network-online.target docker.service
 After=network-online.target docker.service
+# At most 5 starts in 10 minutes. Restart= below restarts the updater after a
+# halt so recovery runs; if it keeps failing (Docker down, a broken host),
+# systemd stops trying instead of looping, and `systemctl status` shows it.
+StartLimitIntervalSec=600
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -281,7 +304,9 @@ UMask=0027
 WantedBy=multi-user.target
 ```
 
-Do not enable it yet: do the first install by hand (next section).
+Do not enable it yet: do the first install by hand (next section). After the
+start limit is hit, fix the cause and run `systemctl reset-failed aq-updater`
+before starting it again.
 
 ## First install on a fresh host
 
@@ -356,7 +381,14 @@ protection). Errors:
 
 The updater never installs automatically: the hourly channel poll only fills
 in `available`. The updater validates every request itself (signature,
-upgrade path, state format, no downgrade) and records refusals in the history.
+upgrade path, worker protocol range, state format, no downgrade) and records
+refusals in the history. A release whose worker protocol range shares no
+protocol with the active release's is refused: upgrade the workers first, or
+install an intermediate release whose range overlaps both.
+
+While the updater fetches and verifies a requested release, `GET
+/api/updates` already shows `in_progress` at step `requested` (without a
+target for a channel request); a refusal then shows `idle` again.
 
 ## Manual commands over SSH
 
@@ -384,11 +416,36 @@ sudo -u aq-updater aq-updater status
 
   Without the stop, they exit 1: "The update service holds the lock while it
   runs".
+
+  Once started, `install` and `restore-previous` run to the end. A Ctrl-C,
+  a SIGTERM or the SSH session dropping (SIGHUP) does not stop them: the
+  first prints `aq-updater: interrupt received; finishing the current
+  operation so recovery stays consistent (send SIGKILL to abort; the journal
+  will recover on next start)` and the operation continues, with its
+  `docker` commands (a `pg_restore`, say) in their own process group. Only
+  SIGKILL stops it, and then the next start recovers from the journal. So
+  that a dropped connection does not lose the output either, run them in a
+  transient unit or in tmux:
+
+  ```sh
+  systemd-run --pty --collect --unit aq-updater-manual \
+    --uid aq-updater --gid aq-updater \
+    /usr/local/bin/aq-updater install 0.2.0
+  # or: tmux new -s aq, then sudo -u aq-updater aq-updater ... inside it
+  ```
+
+  With `systemd-run` the command runs as its own unit, outside your SSH
+  session: if the connection drops it keeps going, and `systemctl status
+  aq-updater-manual` and `aq-updater status` show how it went. (`--collect`
+  lets the next run reuse the unit name even if this one failed.)
 - `aq-updater restore-previous` makes the previous release active again. If
   both releases use the same state format it swaps the images only. If they
   differ, it refuses unless you add `--restore-backup`, which restores the
   backup taken before the active release was installed. **Every change made
-  since that backup is lost.**
+  since that backup is lost**, including worker revocations and enrollments:
+  a worker revoked since the backup is enrolled again, and one enrolled since
+  is unknown. After any restore, check `GET /api/workers`, and revoke or
+  re-enroll workers as needed.
 - `aq-updater verify-manifest <manifest.json> <manifest.sigstore.json>` checks a
   manifest against the configured verifier (exit 0 valid, 1 invalid, 2 usage
   error).
@@ -444,6 +501,18 @@ updater never acts on a guess.
      restores the pre-update backup named in the detail; changes made after
      it are lost.
 
+   `--restore-backup` restores the recorded pre-update backup whenever one
+   exists and the failed release got as far as being started, even when the
+   detail does not ask for it. Use it when the logs show the active release
+   cannot read the data (for example, the failed release changed it without
+   changing its state format). It never restores once the swap to the new
+   release was recorded (step `active`), or before the failed release was
+   started (the data is still the active release's own).
+
+   **A restore also undoes worker revocations and enrollments made since the
+   backup.** After it, check `GET /api/workers`, and revoke or re-enroll
+   workers as needed.
+
    Success prints a `rolled_back` entry ("operator restore: … is running
    again") and clears maintenance. The retry is a single attempt; if it fails,
    the state stays `failed_needs_operator` with the new detail, and you can
@@ -454,18 +523,54 @@ updater never acts on a guess.
    `/var/lib/agent-q/backups/`, newest first by name. Do not delete
    `journal.json` to get out of this state; ask for help instead.
 
+## Protect the release tags
+
+Do this once, before the first tag. `release.yml` signs whatever a `v*` tag
+points at, so only the owner may create those tags. This is the owner's
+action in the GitHub UI; nothing in the repository sets it up.
+
+On github.com/ElectricJack/agent-q: **Settings → Rules → Rulesets → New
+ruleset → New tag ruleset**, then:
+
+- **Ruleset name:** `release tags`
+- **Enforcement status:** Active
+- **Bypass list:** add **Repository admin** (the owner), set to *Always
+  allow*. Nobody else.
+- **Target tags:** *Add target → Include by pattern* `v*`
+- **Rules:** check **Restrict creations**, **Restrict updates**, **Restrict
+  deletions** and **Block force pushes**.
+
+Create it, then check it is listed as *Active* under **Settings → Rules →
+Rulesets**. Tag rulesets have no rule that requires the tagged commit to be on
+`main` (at the time of writing). Until GitHub offers one, the owner's
+procedure is the safeguard: tag only a merge commit on `main` (step 4 below),
+and check before pushing:
+
+```sh
+git fetch origin main
+git merge-base --is-ancestor <merge-commit> origin/main && echo "on main"
+```
+
 ## Cutting a release
 
 1. On a branch, bump `[workspace.package] version` in `Cargo.toml` and run
    `cargo update --workspace` so `Cargo.lock` matches (release builds use
    `--locked`).
-2. If the release changes the database state format, update
-   `STATE_FORMAT_VERSION` and `READABLE_STATE_FORMATS` in
-   `crates/aq-server/src/lib.rs`, and the `io.agent-q.state-format` labels in
-   the `Dockerfile`. If it cannot upgrade from every earlier release, narrow
-   `UPGRADE_FROM` there too. The updater refuses releases that cannot read the
-   installed data; a release that only reads a new format needs a tested
-   migration and restore procedure first.
+2. **Every database migration is a state-format change.** A release that
+   adds a migration sets `STATE_FORMAT_VERSION` in
+   `crates/aq-server/src/lib.rs` to the new migration's number (the migration
+   also writes that number to `meta.state_format_version`), and updates
+   `READABLE_STATE_FORMATS`. A unit test in `aq-server` fails if they differ.
+   The reason: the updater restores the pre-update backup on rollback only
+   when the state format changes, while the old server refuses to start on a
+   database holding a migration it does not know; a migration without a bump
+   would leave the rollback with nothing that can start. The image labels
+   (`io.agent-q.state-format`, `io.agent-q.protocol-max`) are derived from the
+   source by `release.yml` and checked against the manifest; there is nothing
+   to edit in the `Dockerfile`. If the release cannot upgrade from every
+   earlier release, narrow `UPGRADE_FROM` too. The updater refuses releases
+   that cannot read the installed data; a release that only reads a new
+   format needs a tested migration and restore procedure first.
 3. Open a PR, wait for `ci` to pass, and merge it.
 4. Tag the merge commit on `main` and push the tag:
 
@@ -480,6 +585,9 @@ updater never acts on a guess.
      commit;
    - generates `manifest.json` with the new server image's own
      `aq-server manifest`;
+   - checks the pushed images' `io.agent-q.state-format` and
+     `io.agent-q.protocol-max` labels equal the manifest's `state_format` and
+     `protocol.max`;
    - signs it keyless with `cosign sign-blob` (the workflow's OIDC identity);
    - builds the static `aq-updater` and verifies the manifest with it, using the
      production identity;
@@ -502,10 +610,11 @@ updater never acts on a guess.
 
    `promote.yml` requires the GitHub Release to exist (that is, the release
    run finished, smoke test included). It resolves
-   `agent-q-release:<version>` to its digest, verifies the manifest and bundle
-   in that image with cosign and the production identity, checks the manifest
-   names the version, and only then points `agent-q-release:stable` at that
-   digest (`docker buildx imagetools create --prefer-index=false`).
+   `agent-q-release:<version>` to its digest, checks the manifest in that
+   image names the version, verifies the manifest and bundle with cosign, the
+   production identity and the same tag and commit bindings as the updater,
+   and only then points `agent-q-release:stable` at that digest (`docker
+   buildx imagetools create --prefer-index=false`).
 7. Hosts show the new release as `available` after their next channel poll
    (within an hour). Request the update through the API.
 
@@ -539,16 +648,19 @@ them from the worker image digest in a verified manifest:
 
    ```sh
    gh release download v0.2.0 -R ElectricJack/agent-q -p manifest.json -p manifest.sigstore.json
+   SHA=$(python3 -c 'import json; print(json.load(open("manifest.json"))["source_revision"])')
    cosign verify-blob --bundle manifest.sigstore.json \
      --certificate-identity-regexp '^https://github\.com/ElectricJack/agent-q/\.github/workflows/release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$' \
      --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+     --certificate-github-workflow-ref refs/tags/v0.2.0 \
+     --certificate-github-workflow-sha "$SHA" \
      manifest.json
    WORKER=$(python3 -c 'import json; print(json.load(open("manifest.json"))["images"]["worker"])')
    echo "$WORKER"     # ghcr.io/electricjack/agent-q-worker@sha256:…
    ```
 
 2. On the worker machine, log in to GHCR with a `read:packages` token as
-   above, then pull the digest:
+   above if the packages are private, then pull the digest:
 
    ```sh
    docker pull "$WORKER"
