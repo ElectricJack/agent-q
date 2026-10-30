@@ -333,3 +333,22 @@ fn dropping_journal_releases_lock() {
     drop(j);
     lock(t.path()).expect("lock released with the journal");
 }
+
+#[test]
+fn active_backup_is_optional_and_roundtrips() {
+    let t = tempfile::tempdir().unwrap();
+    // A format-1 journal written before the field existed still parses.
+    write_journal(t.path(), on_disk());
+    assert_eq!(Journal::read(t.path()).unwrap().active_backup, None);
+    let mut j = Journal::open(lock(t.path()).unwrap()).unwrap();
+    let s = JournalState {
+        active_backup: Some("/b/a.dump".into()),
+        ..Default::default()
+    };
+    j.record(s).unwrap();
+    let read = Journal::read(t.path()).unwrap();
+    assert_eq!(read.active_backup, Some("/b/a.dump".into()));
+    let raw: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(t.path().join("journal.json")).unwrap()).unwrap();
+    assert_eq!(raw["journal_format"], 1);
+}

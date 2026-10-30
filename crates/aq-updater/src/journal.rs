@@ -59,6 +59,11 @@ pub struct JournalState {
     pub active: Option<ReleaseManifest>,
     pub previous: Option<ReleaseManifest>,
     pub current: Option<InFlight>,
+    /// The pre-update backup taken when `active` was installed: the data
+    /// `previous` last ran on. `restore-previous` restores it when the two
+    /// releases' state formats differ.
+    #[serde(default)]
+    pub active_backup: Option<PathBuf>,
 }
 
 /// On-disk shape: `JournalState` plus the format guard.
@@ -69,6 +74,8 @@ struct OnDisk {
     active: Option<ReleaseManifest>,
     previous: Option<ReleaseManifest>,
     current: Option<InFlight>,
+    #[serde(default)]
+    active_backup: Option<PathBuf>,
 }
 
 /// Writer handle. It owns the [`UpdateLock`], so it cannot exist without it
@@ -177,6 +184,7 @@ impl Journal {
             active: d.active,
             previous: d.previous,
             current: d.current,
+            active_backup: d.active_backup,
         })
     }
 
@@ -191,6 +199,7 @@ impl Journal {
             active: state.active.clone(),
             previous: state.previous.clone(),
             current: state.current.clone(),
+            active_backup: state.active_backup.clone(),
         };
         let bytes = serde_json::to_vec_pretty(&disk)?;
         let tmp = self.dir.join("journal.json.tmp");

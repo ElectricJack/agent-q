@@ -145,6 +145,7 @@ name = "aq-updater"
 version = "0.1.0"
 dependencies = [
  "aq-release",
+ "async-trait",
  "chrono",
  "clap",
  "ed25519-dalek",
@@ -154,6 +155,7 @@ dependencies = [
  "serde_json",
  "tempfile",
  "thiserror",
+ "tokio",
  "toml",
  "tracing",
  "uuid",
