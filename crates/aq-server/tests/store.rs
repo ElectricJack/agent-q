@@ -1,8 +1,9 @@
 use aq_server::store::{NewNode, Role, Store, StoreError};
+use aq_server::test_support::TestDb;
 use aq_server::tokens::{new_enrollment_code, new_node_credential, verifier};
 use chrono::{DateTime, Duration, TimeZone, Utc};
-use sqlx::PgPool;
-use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
+use std::sync::Arc;
+use tokio::sync::Barrier;
 
 fn t0() -> DateTime<Utc> {
     Utc.with_ymd_and_hms(2026, 1, 1, 12, 0, 0).unwrap()
@@ -17,10 +18,10 @@ fn new_node(name: &str) -> NewNode {
     }
 }
 
-#[sqlx::test(migrations = "./migrations")]
-async fn reconnect_preserves_state(pool_opts: PgPoolOptions, conn: PgConnectOptions) {
-    let pool = pool_opts.clone().connect_with(conn.clone()).await.unwrap();
-    let store = Store::from_pool(pool).await.unwrap();
+#[tokio::test]
+async fn reconnect_preserves_state() {
+    let db = TestDb::create().await;
+    let store = db.store().await;
     store
         .bootstrap_owner("o@x.com", "iss", "sub", t0())
         .await
@@ -28,8 +29,7 @@ async fn reconnect_preserves_state(pool_opts: PgPoolOptions, conn: PgConnectOpti
         .unwrap();
     drop(store);
 
-    let pool2 = pool_opts.connect_with(conn).await.unwrap();
-    let store2 = Store::from_pool(pool2).await.unwrap();
+    let store2 = Store::connect(db.url()).await.unwrap();
     let user = store2
         .find_user_by_binding("iss", "sub")
         .await
@@ -39,9 +39,50 @@ async fn reconnect_preserves_state(pool_opts: PgPoolOptions, conn: PgConnectOpti
     assert_eq!(user.role, Role::Owner);
 }
 
-#[sqlx::test(migrations = "./migrations")]
-async fn bootstrap_owner_only_once(pool: PgPool) {
-    let store = Store::from_pool(pool).await.unwrap();
+#[tokio::test]
+async fn migrations_are_idempotent() {
+    let db = TestDb::create().await;
+    drop(db.store().await);
+    drop(Store::connect(db.url()).await.unwrap());
+    let pool = db.pool().await;
+    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM schema_migrations")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(n, 1);
+}
+
+#[tokio::test]
+async fn refuses_unknown_future_migration() {
+    let db = TestDb::create().await;
+    drop(db.store().await);
+    let pool = db.pool().await;
+    sqlx::query("INSERT INTO schema_migrations (version) VALUES (99)")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let err = Store::connect(db.url()).await.err().unwrap();
+    assert!(
+        matches!(
+            err,
+            StoreError::IncompatibleState {
+                found: 99,
+                supported: 1
+            }
+        ),
+        "{err:?}"
+    );
+    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM schema_migrations")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(n, 2);
+}
+
+#[tokio::test]
+async fn bootstrap_owner_only_once() {
+    let db = TestDb::create().await;
+    let store = db.store().await;
     assert!(
         store
             .bootstrap_owner("a@x.com", "i", "1", t0())
@@ -59,9 +100,10 @@ async fn bootstrap_owner_only_once(pool: PgPool) {
     assert_eq!(store.list_users().await.unwrap().len(), 1);
 }
 
-#[sqlx::test(migrations = "./migrations")]
-async fn email_unique_case_insensitive(pool: PgPool) {
-    let store = Store::from_pool(pool).await.unwrap();
+#[tokio::test]
+async fn email_unique_case_insensitive() {
+    let db = TestDb::create().await;
+    let store = db.store().await;
     store
         .invite_user("a@x.com", Role::Viewer, t0())
         .await
@@ -73,9 +115,10 @@ async fn email_unique_case_insensitive(pool: PgPool) {
     assert!(matches!(err, StoreError::EmailTaken), "{err:?}");
 }
 
-#[sqlx::test(migrations = "./migrations")]
-async fn invited_user_binds_once(pool: PgPool) {
-    let store = Store::from_pool(pool).await.unwrap();
+#[tokio::test]
+async fn invited_user_binds_once() {
+    let db = TestDb::create().await;
+    let store = db.store().await;
     store
         .invite_user("a@x.com", Role::Viewer, t0())
         .await
@@ -119,9 +162,10 @@ async fn owner_and_code(store: &Store, expires_in: Duration) -> (String, DateTim
     (hash, expires)
 }
 
-#[sqlx::test(migrations = "./migrations")]
-async fn enrollment_code_single_use(pool: PgPool) {
-    let store = Store::from_pool(pool).await.unwrap();
+#[tokio::test]
+async fn enrollment_code_single_use() {
+    let db = TestDb::create().await;
+    let store = db.store().await;
     let (hash, _) = owner_and_code(&store, Duration::minutes(10)).await;
     let node = store
         .redeem_enrollment(&hash, new_node("n1"), t0() + Duration::minutes(1))
@@ -138,9 +182,10 @@ async fn enrollment_code_single_use(pool: PgPool) {
     );
 }
 
-#[sqlx::test(migrations = "./migrations")]
-async fn enrollment_code_expires(pool: PgPool) {
-    let store = Store::from_pool(pool).await.unwrap();
+#[tokio::test]
+async fn enrollment_code_expires() {
+    let db = TestDb::create().await;
+    let store = db.store().await;
     let (hash, expires) = owner_and_code(&store, Duration::minutes(10)).await;
     let r = store
         .redeem_enrollment(&hash, new_node("n"), expires + Duration::seconds(1))
@@ -149,23 +194,30 @@ async fn enrollment_code_expires(pool: PgPool) {
     assert!(r.is_none());
 }
 
-#[sqlx::test(migrations = "./migrations")]
-async fn concurrent_redeem_yields_one_node(pool: PgPool) {
-    let store = Store::from_pool(pool).await.unwrap();
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn concurrent_redeem_yields_one_node() {
+    let db = TestDb::create().await;
+    let store = db.store().await;
     let (hash, _) = owner_and_code(&store, Duration::minutes(10)).await;
     let now = t0() + Duration::minutes(1);
-    let (a, b) = tokio::join!(
-        store.redeem_enrollment(&hash, new_node("a"), now),
-        store.redeem_enrollment(&hash, new_node("b"), now),
-    );
-    let (a, b) = (a.unwrap(), b.unwrap());
+    let barrier = Arc::new(Barrier::new(2));
+    let spawn_redeem = |name: &'static str| {
+        let (store, hash, barrier) = (store.clone(), hash.clone(), barrier.clone());
+        tokio::spawn(async move {
+            barrier.wait().await;
+            store.redeem_enrollment(&hash, new_node(name), now).await
+        })
+    };
+    let (a, b) = (spawn_redeem("a"), spawn_redeem("b"));
+    let (a, b) = (a.await.unwrap().unwrap(), b.await.unwrap().unwrap());
     assert_eq!(a.is_some() as u8 + b.is_some() as u8, 1);
     assert_eq!(store.list_nodes().await.unwrap().len(), 1);
 }
 
-#[sqlx::test(migrations = "./migrations")]
-async fn node_lifecycle(pool: PgPool) {
-    let store = Store::from_pool(pool).await.unwrap();
+#[tokio::test]
+async fn node_lifecycle() {
+    let db = TestDb::create().await;
+    let store = db.store().await;
     let (hash, _) = owner_and_code(&store, Duration::minutes(10)).await;
     let nn = new_node("n");
     let cred = nn.credential_hash.clone();
@@ -198,15 +250,16 @@ async fn node_lifecycle(pool: PgPool) {
     );
 }
 
-#[sqlx::test(migrations = "./migrations")]
-async fn refuses_newer_state_format(pool: PgPool) {
-    let store = Store::from_pool(pool.clone()).await.unwrap();
-    drop(store);
+#[tokio::test]
+async fn refuses_newer_state_format() {
+    let db = TestDb::create().await;
+    drop(db.store().await);
+    let pool = db.pool().await;
     sqlx::query("UPDATE meta SET value = '2' WHERE key = 'state_format_version'")
         .execute(&pool)
         .await
         .unwrap();
-    let err = Store::from_pool(pool).await.err().unwrap();
+    let err = Store::connect(db.url()).await.err().unwrap();
     assert!(
         matches!(
             err,

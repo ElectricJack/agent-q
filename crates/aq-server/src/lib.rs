@@ -1,5 +1,7 @@
 pub mod config;
 pub mod store;
+#[cfg(any(test, feature = "test-support"))]
+pub mod test_support;
 pub mod tokens;
 use aq_protocol::{SUPPORTED_WORKER_PROTOCOLS, VersionInfo};
 use axum::{Json, Router, routing::get};

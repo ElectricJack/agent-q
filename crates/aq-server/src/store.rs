@@ -4,7 +4,8 @@ use crate::STATE_FORMAT_VERSION;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPoolOptions;
-use sqlx::{FromRow, PgPool};
+use sqlx::postgres::PgRow;
+use sqlx::{FromRow, PgPool, Row};
 use std::time::Duration;
 use uuid::Uuid;
 
@@ -18,8 +19,6 @@ pub enum StoreError {
     EmailTaken,
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
-    #[error("migration error: {0}")]
-    Migrate(#[from] sqlx::migrate::MigrateError),
     #[error("corrupt data: {0}")]
     Corrupt(String),
 }
@@ -81,13 +80,24 @@ pub struct Node {
     pub revoked_at: Option<DateTime<Utc>>,
 }
 
-#[derive(FromRow)]
 struct UserRow {
     id: Uuid,
     email: String,
     role: String,
     issuer: Option<String>,
     subject: Option<String>,
+}
+
+impl<'r> FromRow<'r, PgRow> for UserRow {
+    fn from_row(row: &'r PgRow) -> sqlx::Result<Self> {
+        Ok(UserRow {
+            id: parse_uuid(row.try_get("id")?)?,
+            email: row.try_get("email")?,
+            role: row.try_get("role")?,
+            issuer: row.try_get("issuer")?,
+            subject: row.try_get("subject")?,
+        })
+    }
 }
 
 impl TryFrom<UserRow> for User {
@@ -103,7 +113,6 @@ impl TryFrom<UserRow> for User {
     }
 }
 
-#[derive(FromRow)]
 struct NodeRow {
     id: Uuid,
     name: String,
@@ -112,6 +121,26 @@ struct NodeRow {
     enrolled_at: DateTime<Utc>,
     last_seen_at: Option<DateTime<Utc>>,
     revoked_at: Option<DateTime<Utc>>,
+}
+
+impl<'r> FromRow<'r, PgRow> for NodeRow {
+    fn from_row(row: &'r PgRow) -> sqlx::Result<Self> {
+        Ok(NodeRow {
+            id: parse_uuid(row.try_get("id")?)?,
+            name: row.try_get("name")?,
+            worker_version: row.try_get("worker_version")?,
+            protocol_version: row.try_get("protocol_version")?,
+            enrolled_at: parse_ts(row.try_get("enrolled_at")?)?,
+            last_seen_at: row
+                .try_get::<Option<String>, _>("last_seen_at")?
+                .map(parse_ts)
+                .transpose()?,
+            revoked_at: row
+                .try_get::<Option<String>, _>("revoked_at")?
+                .map(parse_ts)
+                .transpose()?,
+        })
+    }
 }
 
 impl From<NodeRow> for Node {
@@ -128,9 +157,33 @@ impl From<NodeRow> for Node {
     }
 }
 
-const USER_COLS: &str = "id, email, role, issuer, subject";
-const NODE_COLS: &str =
-    "id, name, worker_version, protocol_version, enrolled_at, last_seen_at, revoked_at";
+// The sqlx `uuid` and `chrono` features are deliberately not enabled (they drag
+// SQLite crates into Cargo.lock), so UUIDs and timestamps cross the wire as text.
+const USER_COLS: &str = "id::text AS id, email, role, issuer, subject";
+const NODE_COLS: &str = concat!(
+    "id::text AS id, name, worker_version, protocol_version, ",
+    "to_char(enrolled_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS enrolled_at, ",
+    "to_char(last_seen_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS last_seen_at, ",
+    "to_char(revoked_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') AS revoked_at"
+);
+
+fn decode_err(e: impl std::error::Error + Send + Sync + 'static) -> sqlx::Error {
+    sqlx::Error::Decode(Box::new(e))
+}
+
+fn parse_uuid(s: String) -> sqlx::Result<Uuid> {
+    Uuid::parse_str(&s).map_err(decode_err)
+}
+
+fn parse_ts(s: String) -> sqlx::Result<DateTime<Utc>> {
+    DateTime::parse_from_rfc3339(&s)
+        .map(|d| d.with_timezone(&Utc))
+        .map_err(decode_err)
+}
+
+fn ts(t: DateTime<Utc>) -> String {
+    t.to_rfc3339_opts(chrono::SecondsFormat::Micros, true)
+}
 
 fn map_user_insert_err(e: sqlx::Error) -> StoreError {
     if let sqlx::Error::Database(db) = &e
@@ -140,6 +193,70 @@ fn map_user_insert_err(e: sqlx::Error) -> StoreError {
         return StoreError::EmailTaken;
     }
     StoreError::Database(e)
+}
+
+const MIGRATIONS: &[(i32, &str)] = &[(1, include_str!("../migrations/0001_foundation.sql"))];
+
+/// Applies missing migrations in one transaction under an advisory lock.
+/// Refuses, changing nothing, when the database is from a newer server.
+async fn migrate(pool: &PgPool) -> Result<()> {
+    let mut tx = pool.begin().await?;
+    sqlx::query("SELECT pg_advisory_xact_lock(x'6167656e7471'::bigint)")
+        .execute(&mut *tx)
+        .await?;
+
+    let has_meta: bool = sqlx::query_scalar("SELECT to_regclass('meta') IS NOT NULL")
+        .fetch_one(&mut *tx)
+        .await?;
+    if has_meta {
+        let value: Option<String> =
+            sqlx::query_scalar("SELECT value FROM meta WHERE key = 'state_format_version'")
+                .fetch_optional(&mut *tx)
+                .await?;
+        if let Some(value) = value {
+            let found: u32 = value
+                .parse()
+                .map_err(|_| StoreError::Corrupt(format!("state_format_version {value:?}")))?;
+            if found > STATE_FORMAT_VERSION {
+                return Err(StoreError::IncompatibleState {
+                    found,
+                    supported: STATE_FORMAT_VERSION,
+                });
+            }
+        }
+    }
+
+    sqlx::raw_sql(
+        "CREATE TABLE IF NOT EXISTS schema_migrations (\
+         version INTEGER PRIMARY KEY, \
+         applied_at TIMESTAMPTZ NOT NULL DEFAULT now())",
+    )
+    .execute(&mut *tx)
+    .await?;
+
+    let applied: Vec<i32> = sqlx::query_scalar("SELECT version FROM schema_migrations")
+        .fetch_all(&mut *tx)
+        .await?;
+    let newest_known = MIGRATIONS.iter().map(|m| m.0).max().unwrap_or(0);
+    if let Some(&found) = applied.iter().filter(|v| **v > newest_known).max() {
+        return Err(StoreError::IncompatibleState {
+            found: found as u32,
+            supported: STATE_FORMAT_VERSION,
+        });
+    }
+
+    for (version, sql) in MIGRATIONS {
+        if applied.contains(version) {
+            continue;
+        }
+        sqlx::raw_sql(sql).execute(&mut *tx).await?;
+        sqlx::query("INSERT INTO schema_migrations (version) VALUES ($1)")
+            .bind(version)
+            .execute(&mut *tx)
+            .await?;
+    }
+    tx.commit().await?;
+    Ok(())
 }
 
 #[derive(Clone)]
@@ -158,27 +275,8 @@ impl Store {
     }
 
     pub async fn from_pool(pool: PgPool) -> Result<Store> {
-        sqlx::migrate!("./migrations").run(&pool).await?;
-        let store = Store { pool };
-        store.check_state_format().await?;
-        Ok(store)
-    }
-
-    async fn check_state_format(&self) -> Result<()> {
-        let value: String =
-            sqlx::query_scalar("SELECT value FROM meta WHERE key = 'state_format_version'")
-                .fetch_one(&self.pool)
-                .await?;
-        let found: u32 = value
-            .parse()
-            .map_err(|_| StoreError::Corrupt(format!("state_format_version {value:?}")))?;
-        if found > STATE_FORMAT_VERSION {
-            return Err(StoreError::IncompatibleState {
-                found,
-                supported: STATE_FORMAT_VERSION,
-            });
-        }
-        Ok(())
+        migrate(&pool).await?;
+        Ok(Store { pool })
     }
 
     pub async fn find_user_by_binding(&self, issuer: &str, subject: &str) -> Result<Option<User>> {
@@ -202,13 +300,13 @@ impl Store {
         now: DateTime<Utc>,
     ) -> Result<Option<User>> {
         sqlx::query_as::<_, UserRow>(&format!(
-            "UPDATE users SET issuer = $2, subject = $3, bound_at = $4 \
+            "UPDATE users SET issuer = $2, subject = $3, bound_at = $4::timestamptz \
              WHERE lower(email) = lower($1) AND issuer IS NULL RETURNING {USER_COLS}"
         ))
         .bind(email)
         .bind(issuer)
         .bind(subject)
-        .bind(now)
+        .bind(ts(now))
         .fetch_optional(&self.pool)
         .await?
         .map(User::try_from)
@@ -236,13 +334,13 @@ impl Store {
         }
         let row = sqlx::query_as::<_, UserRow>(&format!(
             "INSERT INTO users (id, email, role, issuer, subject, created_at, bound_at) \
-             VALUES ($1, $2, 'owner', $3, $4, $5, $5) RETURNING {USER_COLS}"
+             VALUES ($1::uuid, $2, 'owner', $3, $4, $5::timestamptz, $5::timestamptz) RETURNING {USER_COLS}"
         ))
-        .bind(Uuid::new_v4())
+        .bind(Uuid::new_v4().to_string())
         .bind(email)
         .bind(issuer)
         .bind(subject)
-        .bind(now)
+        .bind(ts(now))
         .fetch_one(&mut *tx)
         .await
         .map_err(map_user_insert_err)?;
@@ -252,13 +350,13 @@ impl Store {
 
     pub async fn invite_user(&self, email: &str, role: Role, now: DateTime<Utc>) -> Result<User> {
         sqlx::query_as::<_, UserRow>(&format!(
-            "INSERT INTO users (id, email, role, created_at) VALUES ($1, $2, $3, $4) \
+            "INSERT INTO users (id, email, role, created_at) VALUES ($1::uuid, $2, $3, $4::timestamptz) \
              RETURNING {USER_COLS}"
         ))
-        .bind(Uuid::new_v4())
+        .bind(Uuid::new_v4().to_string())
         .bind(email)
         .bind(role.as_str())
-        .bind(now)
+        .bind(ts(now))
         .fetch_one(&self.pool)
         .await
         .map_err(map_user_insert_err)?
@@ -286,13 +384,13 @@ impl Store {
         let id = Uuid::new_v4();
         sqlx::query(
             "INSERT INTO enrollment_codes (id, code_hash, created_by, created_at, expires_at) \
-             VALUES ($1, $2, $3, $4, $5)",
+             VALUES ($1::uuid, $2, $3::uuid, $4::timestamptz, $5::timestamptz)",
         )
-        .bind(id)
+        .bind(id.to_string())
         .bind(code_hash)
-        .bind(created_by)
-        .bind(now)
-        .bind(expires_at)
+        .bind(created_by.to_string())
+        .bind(ts(now))
+        .bind(ts(expires_at))
         .execute(&self.pool)
         .await?;
         Ok(id)
@@ -308,11 +406,11 @@ impl Store {
         let node_id = Uuid::new_v4();
         let mut tx = self.pool.begin().await?;
         let claimed = sqlx::query(
-            "UPDATE enrollment_codes SET used_at = $1, node_id = $2 \
-             WHERE code_hash = $3 AND used_at IS NULL AND expires_at > $1",
+            "UPDATE enrollment_codes SET used_at = $1::timestamptz, node_id = $2::uuid \
+             WHERE code_hash = $3 AND used_at IS NULL AND expires_at > $1::timestamptz",
         )
-        .bind(now)
-        .bind(node_id)
+        .bind(ts(now))
+        .bind(node_id.to_string())
         .bind(code_hash)
         .execute(&mut *tx)
         .await?;
@@ -321,14 +419,14 @@ impl Store {
         }
         let row = sqlx::query_as::<_, NodeRow>(&format!(
             "INSERT INTO nodes (id, name, credential_hash, worker_version, protocol_version, \
-             enrolled_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING {NODE_COLS}"
+             enrolled_at) VALUES ($1::uuid, $2, $3, $4, $5, $6::timestamptz) RETURNING {NODE_COLS}"
         ))
-        .bind(node_id)
+        .bind(node_id.to_string())
         .bind(&node.name)
         .bind(&node.credential_hash)
         .bind(&node.worker_version)
         .bind(node.protocol_version as i32)
-        .bind(now)
+        .bind(ts(now))
         .fetch_one(&mut *tx)
         .await?;
         tx.commit().await?;
@@ -354,11 +452,11 @@ impl Store {
         now: DateTime<Utc>,
     ) -> Result<()> {
         sqlx::query(
-            "UPDATE nodes SET last_seen_at = $2, worker_version = $3, protocol_version = $4 \
-             WHERE id = $1",
+            "UPDATE nodes SET last_seen_at = $2::timestamptz, worker_version = $3, protocol_version = $4 \
+             WHERE id = $1::uuid",
         )
-        .bind(node_id)
-        .bind(now)
+        .bind(node_id.to_string())
+        .bind(ts(now))
         .bind(worker_version)
         .bind(protocol_version as i32)
         .execute(&self.pool)
@@ -369,9 +467,9 @@ impl Store {
     /// Returns true if the node was newly revoked.
     pub async fn revoke_node(&self, node_id: Uuid, now: DateTime<Utc>) -> Result<bool> {
         let r =
-            sqlx::query("UPDATE nodes SET revoked_at = $2 WHERE id = $1 AND revoked_at IS NULL")
-                .bind(node_id)
-                .bind(now)
+            sqlx::query("UPDATE nodes SET revoked_at = $2::timestamptz WHERE id = $1::uuid AND revoked_at IS NULL")
+                .bind(node_id.to_string())
+                .bind(ts(now))
                 .execute(&self.pool)
                 .await?;
         Ok(r.rows_affected() == 1)
