@@ -146,7 +146,22 @@ async fn readyz_answers_loopback_over_real_listener() {
 #[tokio::test]
 async fn ping_times_out_instead_of_hanging() {
     let db = TestDb::create().await;
-    let st = state(&db).await;
-    assert!(st.store.ping(std::time::Duration::from_secs(5)).await);
-    assert!(!st.store.ping(std::time::Duration::from_nanos(1)).await);
+    // One connection, held below by the test: the ping's acquire cannot
+    // complete, so only the ping's own limit can end it.
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .max_connections(1)
+        .acquire_timeout(std::time::Duration::from_secs(30))
+        .connect_with(db.options())
+        .await
+        .unwrap();
+    let store = aq_server::store::Store::from_pool(pool.clone())
+        .await
+        .unwrap();
+    assert!(store.ping(std::time::Duration::from_secs(5)).await);
+    let held = pool.acquire().await.unwrap();
+    let started = std::time::Instant::now();
+    assert!(!store.ping(std::time::Duration::from_millis(50)).await);
+    assert!(started.elapsed() < std::time::Duration::from_secs(5));
+    drop(held);
+    assert!(store.ping(std::time::Duration::from_secs(5)).await);
 }
