@@ -91,6 +91,15 @@ pub enum ConfigError {
     },
     #[error("cannot parse {}: {message}", path.display())]
     Parse { path: PathBuf, message: String },
+    #[error(
+        "AQ_DEPLOYMENT=production but the vault is not a production configuration: \
+         environment is {environment:?} and auth.mode is {auth_mode:?}; \
+         set environment = \"production\" and auth.mode = \"cloudflare_access\""
+    )]
+    NotProduction {
+        environment: &'static str,
+        auth_mode: &'static str,
+    },
     #[error("invalid config {}: {key}: {reason}", path.display())]
     Invalid {
         path: PathBuf,
@@ -143,6 +152,18 @@ fn validate(c: &Config) -> Result<(), (String, String)> {
     {
         return invalid("auth.team_domain", "must start with https://".into());
     }
+    for (key, v) in [
+        ("enrollment.code_ttl_secs", c.enrollment.code_ttl_secs),
+        (
+            "workers.heartbeat_interval_secs",
+            c.workers.heartbeat_interval_secs,
+        ),
+        ("workers.offline_after_secs", c.workers.offline_after_secs),
+    ] {
+        if v < 1 {
+            return invalid(key, "must be at least 1".into());
+        }
+    }
     if c.workers.offline_after_secs <= c.workers.heartbeat_interval_secs {
         return invalid(
             "workers.offline_after_secs",
@@ -156,4 +177,89 @@ fn validate(c: &Config) -> Result<(), (String, String)> {
         );
     }
     Ok(())
+}
+
+/// Refuses a vault that is not a production configuration when the process is
+/// told it runs in production (`AQ_DEPLOYMENT=production`, set by compose.yaml).
+/// This stops a development vault (dev auth) from being mounted behind a tunnel.
+pub fn check_deployment(config: &Config, deployment: Option<&str>) -> Result<(), ConfigError> {
+    if deployment != Some("production") {
+        return Ok(());
+    }
+    let dev_auth = matches!(config.auth, AuthConfig::Dev { .. });
+    if config.environment == Environment::Production && !dev_auth {
+        return Ok(());
+    }
+    Err(ConfigError::NotProduction {
+        environment: match config.environment {
+            Environment::Development => "development",
+            Environment::Production => "production",
+        },
+        auth_mode: if dev_auth { "dev" } else { "cloudflare_access" },
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn cfg(env: Environment, dev: bool) -> Config {
+        Config {
+            format_version: 1,
+            environment: env,
+            server: ServerConfig {
+                admin_bind: "127.0.0.1:8080".parse().unwrap(),
+                worker_bind: "127.0.0.1:8081".parse().unwrap(),
+                public_origin: "https://x".into(),
+            },
+            auth: if dev {
+                AuthConfig::Dev {
+                    dev_email: "a@b".into(),
+                }
+            } else {
+                AuthConfig::CloudflareAccess {
+                    team_domain: "https://t".into(),
+                    audience: "a".into(),
+                }
+            },
+            bootstrap: BootstrapConfig {
+                owner_email: None,
+                enabled: false,
+            },
+            enrollment: Default::default(),
+            workers: Default::default(),
+        }
+    }
+
+    #[test]
+    fn production_deployment_rejects_dev_vault() {
+        let e = check_deployment(&cfg(Environment::Development, true), Some("production"))
+            .unwrap_err()
+            .to_string();
+        assert!(e.contains("development") && e.contains("dev"), "{e}");
+    }
+
+    #[test]
+    fn production_deployment_rejects_dev_auth_in_production_env() {
+        assert!(check_deployment(&cfg(Environment::Production, true), Some("production")).is_err());
+    }
+
+    #[test]
+    fn production_deployment_rejects_development_env_with_access_auth() {
+        assert!(
+            check_deployment(&cfg(Environment::Development, false), Some("production")).is_err()
+        );
+    }
+
+    #[test]
+    fn production_deployment_accepts_production_vault() {
+        check_deployment(&cfg(Environment::Production, false), Some("production")).unwrap();
+    }
+
+    #[test]
+    fn other_deployments_accept_dev_vault() {
+        for d in [None, Some("development"), Some("")] {
+            check_deployment(&cfg(Environment::Development, true), d).unwrap();
+        }
+    }
 }

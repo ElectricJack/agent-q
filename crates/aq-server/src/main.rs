@@ -22,7 +22,11 @@ enum Command {
         vault: PathBuf,
     },
     /// Probe the local admin listener's /healthz; exit 0 if healthy, 1 if not.
-    Healthcheck,
+    Healthcheck {
+        /// Vault directory; the probe targets its admin_bind port (default 8080).
+        #[arg(long, env = "AQ_VAULT_DIR")]
+        vault: Option<PathBuf>,
+    },
 }
 
 #[tokio::main]
@@ -36,7 +40,7 @@ async fn main() {
         .init();
     let result = match cli.command {
         Command::Serve { vault } => serve(vault).await,
-        Command::Healthcheck => std::process::exit(healthcheck().await),
+        Command::Healthcheck { vault } => std::process::exit(healthcheck(vault).await),
     };
     if let Err(e) = result {
         eprintln!("aq-server: {e:#}");
@@ -46,6 +50,9 @@ async fn main() {
 
 async fn serve(vault: PathBuf) -> anyhow::Result<()> {
     let config = aq_server::config::load(&vault)?;
+    // Checked before touching the database so a misconfigured production
+    // deployment fails fast.
+    aq_server::config::check_deployment(&config, std::env::var("AQ_DEPLOYMENT").ok().as_deref())?;
     let Some(url) = std::env::var("DATABASE_URL").ok().filter(|u| !u.is_empty()) else {
         bail!("DATABASE_URL is not set");
     };
@@ -58,20 +65,24 @@ async fn serve(vault: PathBuf) -> anyhow::Result<()> {
         "connecting to database"
     );
     // sqlx connection errors do not include the password.
-    let store = Store::connect(&url)
+    let store = Store::connect_with(opts)
         .await
         .context("cannot connect to the database")?;
     aq_server::run(config, store).await
 }
 
 /// Container health probe. The image has no curl, so the binary checks itself.
-async fn healthcheck() -> i32 {
+async fn healthcheck(vault: Option<PathBuf>) -> i32 {
+    let port = vault
+        .and_then(|v| aq_server::config::load(&v).ok())
+        .map(|c| c.server.admin_bind.port())
+        .unwrap_or(8080);
     let probe = async {
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(3))
             .build()?;
         client
-            .get("http://127.0.0.1:8080/healthz")
+            .get(format!("http://127.0.0.1:{port}/healthz"))
             .send()
             .await?
             .error_for_status()

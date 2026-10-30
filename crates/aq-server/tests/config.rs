@@ -145,3 +145,16 @@ fn bootstrap_enabled_requires_email() {
     let err = load(dir.path()).unwrap_err().to_string();
     assert!(err.contains("bootstrap.owner_email"), "{err}");
 }
+
+#[test]
+fn rejects_zero_durations() {
+    for (section, key) in [
+        ("enrollment", "code_ttl_secs"),
+        ("workers", "heartbeat_interval_secs"),
+        ("workers", "offline_after_secs"),
+    ] {
+        let dir = vault_with(&format!("{VALID}\n[{section}]\n{key} = 0\n"));
+        let err = load(dir.path()).unwrap_err().to_string();
+        assert!(err.contains(key) && err.contains("at least 1"), "{err}");
+    }
+}

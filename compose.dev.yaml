@@ -6,6 +6,9 @@ services:
       context: .
       target: server
     image: ${AQ_SERVER_IMAGE:-agent-q-server:dev}
+    environment:
+      # compose.yaml sets production; the example vault is a development vault.
+      AQ_DEPLOYMENT: development
     volumes:
       - type: bind
         source: ./vault.example

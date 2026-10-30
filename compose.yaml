@@ -22,11 +22,16 @@ services:
       options: {max-size: 10m, max-file: '3'}
   server:
     image: ${AQ_SERVER_IMAGE:?set AQ_SERVER_IMAGE to the server image reference}
-    # The entrypoint builds DATABASE_URL from the secret file so the password
-    # never appears in Compose config or the container environment listing.
+    environment:
+      # Refuses to start with a development vault or dev authentication.
+      AQ_DEPLOYMENT: production
+      AQ_VAULT_DIR: /vault
+    # The entrypoint exports PGPASSWORD from the secret file (read by the
+    # PostgreSQL client library when the URL has no password), so the password
+    # never appears in Compose config, the URL or needs URL-encoding.
     entrypoint: [/bin/sh, -ec]
     command:
-      - 'export DATABASE_URL="postgres://agent_q:$$(cat /run/secrets/postgres_password)@postgres:5432/agent_q"; exec aq-server serve --vault /vault'
+      - 'export PGPASSWORD="$$(cat /run/secrets/postgres_password)" DATABASE_URL="postgres://agent_q@postgres:5432/agent_q"; exec aq-server serve --vault /vault'
     volumes:
       - type: bind
         source: ${AQ_VAULT_DIR:?set AQ_VAULT_DIR to the vault directory}
