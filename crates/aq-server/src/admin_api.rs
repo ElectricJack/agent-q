@@ -7,23 +7,23 @@ use std::time::Duration;
 use aq_protocol::VersionInfo;
 use axum::extract::{FromRequest, Path, Request, State};
 use axum::http::StatusCode;
+use axum::middleware::from_fn_with_state;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::authz::{CsrfChecked, CurrentUser, RequireOwner};
+use crate::authz::{CurrentUser, RequireOwner, csrf_guard};
 use crate::config::AuthConfig;
 use crate::error::AppError;
 use crate::store::{Node, Role, StoreError};
 use crate::tokens::{new_enrollment_code, verifier};
 use crate::{AppState, version_info};
 
-/// All admin routes. State-changing handlers take `CsrfChecked` first (see
-/// its docs), so no extra layer is needed; callers may still layer
-/// `csrf_guard` on top.
-pub fn admin_routes() -> Router<AppState> {
+/// All admin routes, behind `csrf_guard`. The guard is a layer on the whole
+/// router, so a handler added later is protected by default.
+pub fn admin_routes(state: &AppState) -> Router<AppState> {
     Router::new()
         .route("/api/me", get(me))
         .route("/api/status", get(status))
@@ -31,6 +31,7 @@ pub fn admin_routes() -> Router<AppState> {
         .route("/api/enrollments", post(create_enrollment))
         .route("/api/workers/{id}/revoke", post(revoke_worker))
         .route("/api/users", get(list_users).post(create_user))
+        .layer(from_fn_with_state(state.clone(), csrf_guard))
 }
 
 /// `Json` extractor whose rejections are `ApiError` bodies with 400.
@@ -151,7 +152,6 @@ struct EnrollmentResponse {
 }
 
 async fn create_enrollment(
-    _csrf: CsrfChecked,
     State(state): State<AppState>,
     RequireOwner(owner): RequireOwner,
 ) -> Result<(StatusCode, Json<EnrollmentResponse>), AppError> {
@@ -174,7 +174,6 @@ async fn create_enrollment(
 }
 
 async fn revoke_worker(
-    _csrf: CsrfChecked,
     State(state): State<AppState>,
     _owner: RequireOwner,
     Path(id): Path<String>,
@@ -228,7 +227,6 @@ struct NewUserRequest {
 }
 
 async fn create_user(
-    _csrf: CsrfChecked,
     State(state): State<AppState>,
     _owner: RequireOwner,
     ApiJson(req): ApiJson<NewUserRequest>,

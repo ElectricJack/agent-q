@@ -93,7 +93,7 @@ impl FromRequestParts<AppState> for RequireOwner {
 /// custom header cannot be sent cross-origin without a CORS preflight, which
 /// this server never grants) and, if an `Origin` is sent, it must be our own.
 /// GET and HEAD are exempt, so their handlers must never change state.
-pub fn csrf_check(
+fn csrf_check(
     state: &AppState,
     method: &Method,
     headers: &axum::http::HeaderMap,
@@ -120,30 +120,12 @@ pub fn csrf_check(
     Ok(())
 }
 
-/// Middleware form of [`csrf_check`] for routers that can be given state at
-/// construction (`from_fn_with_state`).
+/// Middleware applying [`csrf_check`]; layer it with `from_fn_with_state`.
 ///
 /// GET and HEAD bypass this guard, so their handlers must never change state.
 pub async fn csrf_guard(State(state): State<AppState>, req: Request, next: Next) -> Response {
     match csrf_check(&state, req.method(), req.headers()) {
         Ok(()) => next.run(req).await,
         Err(e) => e.into_response(),
-    }
-}
-
-/// Extractor form of the CSRF check. `Router<AppState>` cannot carry a
-/// state-aware layer before state is supplied, so state-changing handlers take
-/// this as their FIRST argument (before auth, so a forged request is rejected
-/// before any identity work).
-pub struct CsrfChecked;
-
-impl FromRequestParts<AppState> for CsrfChecked {
-    type Rejection = AppError;
-
-    async fn from_request_parts(
-        parts: &mut Parts,
-        state: &AppState,
-    ) -> Result<Self, Self::Rejection> {
-        csrf_check(state, &parts.method, &parts.headers).map(|()| CsrfChecked)
     }
 }

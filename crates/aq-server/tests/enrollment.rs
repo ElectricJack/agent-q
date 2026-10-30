@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use aq_server::admin_api::{admin_routes, worker_status};
 use aq_server::config::Config;
-use aq_server::identity::CloudflareAccessVerifier;
+use aq_server::identity::{CloudflareAccessVerifier, DevIdentity};
 use aq_server::store::{NewNode, Node, Role, Store};
 use aq_server::test_support::TestDb;
 use aq_server::tokens::verifier;
@@ -73,7 +73,7 @@ async fn harness() -> Harness {
         identity: Arc::new(verifier),
         clock,
     };
-    let app = admin_routes().with_state(state);
+    let app = admin_routes(&state).with_state(state);
     Harness {
         app,
         store,
@@ -362,7 +362,7 @@ async fn revoke_unknown_is_404_and_malformed_is_not_500() {
 }
 
 #[tokio::test]
-async fn every_mutation_requires_csrf_header() {
+async fn every_mutation_requires_csrf_header_via_admin_routes() {
     let h = harness().await;
     let uid = Uuid::new_v4();
     let revoke = format!("/api/workers/{uid}/revoke");
@@ -434,4 +434,47 @@ async fn user_creation_validates_input() {
             "{body} -> {s}"
         );
     }
+}
+
+#[tokio::test]
+async fn me_reports_dev_auth_mode() {
+    let db = TestDb::create().await;
+    let store = db.store().await;
+    let cfg: Config = toml::from_str(&format!(
+        r#"
+format_version = 1
+environment = "development"
+[server]
+admin_bind = "127.0.0.1:8080"
+worker_bind = "127.0.0.1:8081"
+public_origin = "{ORIGIN}"
+[auth]
+mode = "dev"
+dev_email = "dev@example.com"
+[bootstrap]
+owner_email = "dev@example.com"
+enabled = true
+"#
+    ))
+    .unwrap();
+    let clock: Clock = Arc::new(t0);
+    let state = AppState {
+        config: Arc::new(cfg),
+        store,
+        identity: Arc::new(DevIdentity::new("dev@example.com".into())),
+        clock,
+    };
+    let app = admin_routes(&state).with_state(state);
+    let req = Request::builder()
+        .uri("/api/me")
+        .body(Body::empty())
+        .unwrap();
+    let resp = app.oneshot(req).await.unwrap();
+    assert_eq!(resp.status(), StatusCode::OK);
+    let bytes = resp.into_body().collect().await.unwrap().to_bytes();
+    let v: Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(
+        v,
+        json!({"email": "dev@example.com", "role": "owner", "auth_mode": "dev"})
+    );
 }
