@@ -407,7 +407,7 @@ Decisions:
 
 ## Follow-on plans (written after this one lands)
 
-- **Admin page:** the spec's small phone-friendly page (login, version, health, workers, enrollment, revoke, update progress) built on this plan's API. It must exist before the spec's phone-login demonstration in Plan 2. The full dashboard stays out of Phase 1 per the spec.
+- **Admin page:** moved out of the infrastructure plans into a separate dashboard task (owner decision, 2026-10-30). Phase-one demonstrations use the JSON API until then.
 - **Plan 2: Hosted access** (rest of spec increment 2):
   - Bluehost NVMe 4 provisioning runbook (SSH, recovery console, firewall, Docker) and the Cloudflare DNS, Tunnel ingress (admin hostname → `server:8080`, worker hostname → `server:8081`), and two Access applications (email OTP allowlist; Service Auth).
   - Per-node service tokens.
