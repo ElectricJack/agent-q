@@ -13,7 +13,6 @@ aq-release.workspace = true
 chrono.workspace = true
 clap.workspace = true
 ed25519-dalek = { workspace = true, optional = true }
-fd-lock.workspace = true
 regex.workspace = true
 semver.workspace = true
 serde.workspace = true

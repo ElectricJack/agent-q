@@ -62,6 +62,14 @@ impl ReleaseManifest {
     /// Parse and validate a manifest.
     pub fn from_json(bytes: &[u8]) -> Result<Self, ManifestError> {
         let m: Self = serde_json::from_slice(bytes)?;
+        m.validate()?;
+        Ok(m)
+    }
+
+    /// Check the invariants `from_json` enforces. Use it on manifests that
+    /// were deserialized some other way (for example from the updater journal).
+    pub fn validate(&self) -> Result<(), ManifestError> {
+        let m = self;
         if m.manifest_version != MANIFEST_VERSION {
             return Err(ManifestError::UnsupportedManifestVersion(
                 m.manifest_version,
@@ -78,7 +86,7 @@ impl ReleaseManifest {
         if !m.readable_state_formats.contains(&m.state_format) {
             return Err(ManifestError::StateFormatNotReadable {
                 state_format: m.state_format,
-                readable: m.readable_state_formats,
+                readable: m.readable_state_formats.clone(),
             });
         }
         if m.protocol.min > m.protocol.max {
@@ -87,7 +95,7 @@ impl ReleaseManifest {
                 max: m.protocol.max,
             });
         }
-        Ok(m)
+        Ok(())
     }
 
     /// The exact bytes that get signed: object keys sorted, no whitespace.

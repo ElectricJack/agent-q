@@ -9,8 +9,9 @@
 use aq_release::{HistoryEntry, ReleaseManifest, Step};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::fs::{File, OpenOptions};
-use std::io::{Read, Write};
+use std::fs::{File, OpenOptions, TryLockError};
+use std::io::{Read, Seek, SeekFrom, Write};
+use std::marker::PhantomData;
 use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
@@ -21,7 +22,7 @@ const RAW_CAP: usize = 64 * 1024;
 #[derive(Debug, thiserror::Error)]
 pub enum JournalError {
     #[error(
-        "journal {path} is unreadable and will not be guessed at; inspect it, then fix or remove it (raw content is in the error)"
+        "journal {path} is unreadable and will not be guessed at. Restore the file by hand from the raw content in this error, status.json and history.jsonl. Do not delete it: that would lose the active, previous and in-flight release records and skip the downgrade and restore checks"
     )]
     Corrupt { path: PathBuf, raw: String },
     #[error(
@@ -71,10 +72,13 @@ struct OnDisk {
     current: Option<InFlight>,
 }
 
+/// Writer handle. It borrows the [`UpdateLock`], so it cannot outlive the
+/// lock and cannot be created without it. Readers use [`Journal::read`].
 #[derive(Debug)]
-pub struct Journal {
+pub struct Journal<'l> {
     dir: PathBuf,
     state: JournalState,
+    _lock: PhantomData<&'l UpdateLock>,
 }
 
 fn io(path: &Path) -> impl FnOnce(std::io::Error) -> JournalError + '_ {
@@ -88,7 +92,7 @@ fn fsync_dir(dir: &Path) -> Result<(), JournalError> {
     File::open(dir).and_then(|d| d.sync_all()).map_err(io(dir))
 }
 
-impl Journal {
+impl<'l> Journal<'l> {
     fn journal_path(&self) -> PathBuf {
         self.dir.join("journal.json")
     }
@@ -96,9 +100,10 @@ impl Journal {
         self.dir.join("history.jsonl")
     }
 
-    /// Open the journal. A missing file is a first run (empty state); a stale
-    /// `journal.json.tmp` from an interrupted write is deleted and ignored.
-    pub fn open(state_dir: &Path) -> Result<Journal, JournalError> {
+    /// Open the journal for writing. Requires the process lock, so the stale
+    /// `journal.json.tmp` cleanup cannot race a live `record`. Creates
+    /// `state_dir` (0750) if missing; a missing journal is a first run.
+    pub fn open(state_dir: &Path, _lock: &'l UpdateLock) -> Result<Journal<'l>, JournalError> {
         if !state_dir.exists() {
             std::fs::DirBuilder::new()
                 .recursive(true)
@@ -112,20 +117,22 @@ impl Journal {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(e) => return Err(io(&tmp)(e)),
         }
-        let path = state_dir.join("journal.json");
-        let state = match File::open(&path) {
-            Ok(mut f) => {
-                let mut bytes = Vec::new();
-                f.read_to_end(&mut bytes).map_err(io(&path))?;
-                Self::parse(&path, &bytes)?
-            }
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => JournalState::default(),
-            Err(e) => return Err(io(&path)(e)),
-        };
         Ok(Journal {
             dir: state_dir.to_path_buf(),
-            state,
+            state: Self::read(state_dir)?,
+            _lock: PhantomData,
         })
+    }
+
+    /// Pure read: no lock, no directory creation, no deletion. A missing
+    /// directory or file is an empty state.
+    pub fn read(state_dir: &Path) -> Result<JournalState, JournalError> {
+        let path = state_dir.join("journal.json");
+        match std::fs::read(&path) {
+            Ok(bytes) => Self::parse(&path, &bytes),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(JournalState::default()),
+            Err(e) => Err(io(&path)(e)),
+        }
     }
 
     fn parse(path: &Path, bytes: &[u8]) -> Result<JournalState, JournalError> {
@@ -150,6 +157,15 @@ impl Journal {
         // written by this binary, so do not act on it.
         if d.current.as_ref().is_some_and(|c| c.step == Step::Unknown) {
             return Err(corrupt());
+        }
+        let manifests = [d.active.as_ref(), d.previous.as_ref()]
+            .into_iter()
+            .flatten()
+            .chain(d.current.as_ref().map(|c| &c.target));
+        for m in manifests {
+            if m.validate().is_err() {
+                return Err(corrupt());
+            }
         }
         Ok(JournalState {
             active: d.active,
@@ -189,48 +205,67 @@ impl Journal {
         Ok(())
     }
 
-    /// Append one history line (`O_APPEND`) and fsync it.
+    /// Append one history line (`O_APPEND`) and fsync it. If the file ends
+    /// in a torn line (no trailing newline) a newline is written first so the
+    /// new entry is not glued onto the garbage.
     pub fn append_history(&self, entry: HistoryEntry) -> Result<(), JournalError> {
         let path = self.history_path();
         let mut line = serde_json::to_vec(&entry)?;
         line.push(b'\n');
         let mut f = OpenOptions::new()
+            .read(true)
             .append(true)
             .create(true)
             .mode(0o640)
             .open(&path)
             .map_err(io(&path))?;
-        // A single write keeps the line contiguous under O_APPEND.
+        let len = f.metadata().map_err(io(&path))?.len();
+        if len > 0 {
+            f.seek(SeekFrom::Start(len - 1)).map_err(io(&path))?;
+            let mut last = [0u8; 1];
+            f.read_exact(&mut last).map_err(io(&path))?;
+            if last[0] != b'\n' {
+                line.insert(0, b'\n');
+            }
+        }
+        // A single write keeps the entry contiguous under O_APPEND.
         f.write_all(&line).map_err(io(&path))?;
         f.sync_all().map_err(io(&path))?;
         fsync_dir(&self.dir)
     }
 
-    /// Newest `n` entries, newest first. Unparseable lines (for example a
-    /// torn trailing append) are skipped with a warning.
-    pub fn recent_history(&self, n: usize) -> Vec<HistoryEntry> {
-        let path = self.history_path();
-        let Ok(bytes) = std::fs::read(&path) else {
-            return Vec::new();
-        };
-        let text = String::from_utf8_lossy(&bytes);
-        let mut out = Vec::new();
-        for line in text.lines().rev() {
-            if out.len() >= n {
-                break;
-            }
-            if line.trim().is_empty() {
-                continue;
-            }
-            match serde_json::from_str::<HistoryEntry>(line) {
-                Ok(e) => out.push(e),
-                Err(e) => {
-                    tracing::warn!(path = %path.display(), error = %e, "skipping malformed history line")
-                }
+    pub fn recent_history(&self, n: usize) -> Result<Vec<HistoryEntry>, JournalError> {
+        read_history(&self.dir, n)
+    }
+}
+
+/// Newest `n` history entries, newest first; usable without the lock.
+/// A missing file is empty. Unparseable lines (for example a torn trailing
+/// append) are skipped with a warning; other read errors are returned.
+pub fn read_history(state_dir: &Path, n: usize) -> Result<Vec<HistoryEntry>, JournalError> {
+    let path = state_dir.join("history.jsonl");
+    let bytes = match std::fs::read(&path) {
+        Ok(b) => b,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => return Err(io(&path)(e)),
+    };
+    let text = String::from_utf8_lossy(&bytes);
+    let mut out = Vec::new();
+    for line in text.lines().rev() {
+        if out.len() >= n {
+            break;
+        }
+        if line.trim().is_empty() {
+            continue;
+        }
+        match serde_json::from_str::<HistoryEntry>(line) {
+            Ok(e) => out.push(e),
+            Err(e) => {
+                tracing::warn!(path = %path.display(), error = %e, "skipping malformed history line")
             }
         }
-        out
     }
+    Ok(out)
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -244,37 +279,12 @@ pub enum LockError {
     },
 }
 
-/// Alias matching the task contract name.
-pub type AlreadyLocked = LockError;
-
-/// Holds the exclusive lock until dropped.
-///
-/// `fd_lock::RwLockWriteGuard` borrows its `RwLock`, so the pair is
-/// self-referential. The `RwLock` lives in a heap allocation owned through a
-/// raw pointer, the guard's lifetime is erased to `'static`, and `Drop`
-/// releases the guard before freeing the allocation. The guard is never
-/// exposed.
+/// Exclusive process lock; released when dropped (the OS also releases it if
+/// the process dies). Locks are per open file description, so two `lock`
+/// calls conflict even within one process.
+#[derive(Debug)]
 pub struct UpdateLock {
-    guard: Option<fd_lock::RwLockWriteGuard<'static, File>>,
-    lock: *mut fd_lock::RwLock<File>,
-}
-
-// The lock is only ever touched by its owner and by Drop.
-unsafe impl Send for UpdateLock {}
-
-impl std::fmt::Debug for UpdateLock {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("UpdateLock")
-    }
-}
-
-impl Drop for UpdateLock {
-    fn drop(&mut self) {
-        self.guard.take();
-        // SAFETY: `lock` came from Box::into_raw in `lock()` and the only
-        // borrower (the guard) was dropped on the previous line.
-        drop(unsafe { Box::from_raw(self.lock) });
-    }
+    _file: File,
 }
 
 /// Take a non-blocking exclusive lock on `<state_dir>/lock`.
@@ -297,21 +307,9 @@ pub fn lock(state_dir: &Path) -> Result<UpdateLock, LockError> {
         .mode(0o640)
         .open(&path)
         .map_err(ioe)?;
-    let raw = Box::into_raw(Box::new(fd_lock::RwLock::new(file)));
-    // SAFETY: `raw` is valid and uniquely borrowed until UpdateLock::drop.
-    match unsafe { &mut *raw }.try_write() {
-        Ok(guard) => Ok(UpdateLock {
-            guard: Some(guard),
-            lock: raw,
-        }),
-        Err(e) => {
-            // SAFETY: the failed attempt returned no guard borrowing `raw`.
-            drop(unsafe { Box::from_raw(raw) });
-            if e.kind() == std::io::ErrorKind::WouldBlock {
-                Err(LockError::AlreadyLocked(path))
-            } else {
-                Err(ioe(e))
-            }
-        }
+    match file.try_lock() {
+        Ok(()) => Ok(UpdateLock { _file: file }),
+        Err(TryLockError::WouldBlock) => Err(LockError::AlreadyLocked(path)),
+        Err(TryLockError::Error(e)) => Err(ioe(e)),
     }
 }

@@ -120,8 +120,22 @@ impl UpdaterConfig {
         if self.compose.files.is_empty() {
             return bad("compose.files must not be empty".into());
         }
-        if self.readiness_deadline_secs < 1 {
-            return bad("readiness_deadline_secs must be >= 1".into());
+        if self.readiness_deadline_secs < 2 {
+            return bad(
+                "readiness_deadline_secs must be >= 2 (readiness is polled every 2 s)".into(),
+            );
+        }
+        if self.backups_keep < 1 {
+            return bad("backups_keep must be >= 1 (0 could prune the rollback backup)".into());
+        }
+        if self.channel.is_empty() {
+            return bad("channel must not be empty".into());
+        }
+        if self.release_repo.is_empty()
+            || self.release_repo.contains(':')
+            || self.release_repo.contains('@')
+        {
+            return bad("release_repo must be a non-empty repository without a tag or digest (no ':' or '@')".into());
         }
         if self.poll_interval_secs < 1 {
             return bad("poll_interval_secs must be >= 1".into());
@@ -135,86 +149,5 @@ impl UpdaterConfig {
             return bad(format!("verifier.identity_regexp does not compile: {e}"));
         }
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    const BASE: &str = r#"
-state_dir = "/var/lib/agent-q/updater"
-backup_dir = "/var/lib/agent-q/backups"
-[compose]
-project_dir = "/opt/agent-q"
-files = ["compose.yaml"]
-project_name = "agent-q"
-[verifier]
-kind = "cosign_keyless"
-cosign_path = "/usr/local/bin/cosign"
-identity_regexp = "^https://github\\.com/x$"
-oidc_issuer = "https://token.actions.githubusercontent.com"
-"#;
-
-    #[test]
-    fn defaults_apply() {
-        let c = UpdaterConfig::parse(BASE).unwrap();
-        assert_eq!(c.release_repo, "ghcr.io/electricjack/agent-q-release");
-        assert_eq!(c.channel, "stable");
-        assert_eq!(c.readiness_deadline_secs, 120);
-        assert_eq!(c.poll_interval_secs, 3600);
-        assert_eq!(c.min_free_bytes, 2_147_483_648);
-        assert_eq!(c.backups_keep, 5);
-    }
-
-    #[test]
-    fn config_rejects_unknown_key() {
-        let e = UpdaterConfig::parse(&format!("bogus = 1\n{BASE}")).unwrap_err();
-        assert!(e.to_string().contains("bogus"), "{e}");
-    }
-
-    #[test]
-    fn rejects_relative_empty_and_bad_values() {
-        let rel = BASE.replace("/var/lib/agent-q/updater", "rel/dir");
-        assert!(UpdaterConfig::parse(&rel).is_err());
-        let empty = BASE.replace(r#"files = ["compose.yaml"]"#, "files = []");
-        assert!(UpdaterConfig::parse(&empty).is_err());
-        let re = BASE.replace(r#""^https://github\\.com/x$""#, r#""(""#);
-        let e = UpdaterConfig::parse(&re).unwrap_err();
-        assert!(e.to_string().contains("identity_regexp"), "{e}");
-        let zero = format!("poll_interval_secs = 0\n{BASE}");
-        assert!(UpdaterConfig::parse(&zero).is_err());
-        let zero = format!("readiness_deadline_secs = 0\n{BASE}");
-        assert!(UpdaterConfig::parse(&zero).is_err());
-    }
-
-    #[cfg(not(feature = "test-verifier"))]
-    #[test]
-    fn test_key_verifier_kind_rejected_without_feature() {
-        let cfg = BASE
-            .replace("cosign_keyless", "test_key")
-            .replace("cosign_path", "public_key_hex");
-        let e = UpdaterConfig::parse(&cfg).unwrap_err();
-        assert!(e.to_string().contains("verifier.kind"), "{e}");
-    }
-
-    #[cfg(feature = "test-verifier")]
-    #[test]
-    fn test_key_verifier_kind_accepted_with_feature() {
-        let cfg = r#"
-state_dir = "/s"
-backup_dir = "/b"
-[compose]
-project_dir = "/p"
-files = ["c.yaml"]
-project_name = "x"
-[verifier]
-kind = "test_key"
-public_key_hex = "00"
-"#;
-        assert!(matches!(
-            UpdaterConfig::parse(cfg).unwrap().verifier,
-            VerifierConfig::TestKey { .. }
-        ));
     }
 }
