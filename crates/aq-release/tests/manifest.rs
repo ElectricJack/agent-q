@@ -191,6 +191,44 @@ fn downgrade_refused() {
     ));
 }
 
+fn with_protocol(mut r: ReleaseManifest, min: u32, max: u32) -> ReleaseManifest {
+    r.protocol = ProtocolRange { min, max };
+    r
+}
+
+#[test]
+fn protocol_ranges_must_overlap() {
+    let c = with_protocol(m("0.1.0", ">=0.1.0", 1, &[1]), 1, 2);
+    // Overlapping ranges (touching at one end included) are accepted.
+    for (min, max) in [(1, 2), (2, 3), (1, 1), (2, 2), (0, 1), (1, 5)] {
+        let t = with_protocol(m("0.2.0", ">=0.1.0", 1, &[1]), min, max);
+        assert!(
+            check_upgrade(Some(&c), Some(1), &t).is_ok(),
+            "{min}..{max} overlaps 1..2"
+        );
+    }
+    // Disjoint either way is refused, naming both ranges and the fix.
+    for (min, max) in [(3, 4), (0, 0)] {
+        let t = with_protocol(m("0.2.0", ">=0.1.0", 1, &[1]), min, max);
+        let e = check_upgrade(Some(&c), Some(1), &t).unwrap_err();
+        assert_eq!(
+            e,
+            Refusal::ProtocolGap {
+                current: ProtocolRange { min: 1, max: 2 },
+                target: ProtocolRange { min, max },
+            }
+        );
+        let text = e.to_string();
+        assert!(text.contains(&format!("{min}..{max}")), "{text}");
+        assert!(text.contains("1..2"), "{text}");
+        assert!(text.contains("upgrade the workers first"), "{text}");
+        assert!(text.contains("intermediate release"), "{text}");
+    }
+    // A first install has no active range to overlap.
+    let t = with_protocol(m("0.2.0", ">=0.1.0", 1, &[1]), 7, 9);
+    assert!(check_upgrade(None, None, &t).is_ok());
+}
+
 #[test]
 fn restore_needed_when_state_format_changes() {
     let c = m("0.1.0", ">=0.1.0", 1, &[1]);

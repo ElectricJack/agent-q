@@ -178,6 +178,14 @@ pub enum Refusal {
         "{target} is older than installed {current}; downgrades are refused by install, use `aq-updater restore-previous` instead"
     )]
     Downgrade { current: Version, target: Version },
+    #[error(
+        "the target speaks worker protocols {}..{} but the installed release speaks {}..{}, with no protocol in common, so no worker could talk to both; upgrade the workers first, or install an intermediate release whose protocol range overlaps both",
+        .target.min, .target.max, .current.min, .current.max
+    )]
+    ProtocolGap {
+        current: ProtocolRange,
+        target: ProtocolRange,
+    },
 }
 
 /// Decide whether `target` may be installed over `current`.
@@ -200,6 +208,15 @@ pub fn check_upgrade(
             return Err(Refusal::NotInUpgradePath {
                 current: cur.version.clone(),
                 allowed: target.upgrade_from.clone(),
+            });
+        }
+        // Workers speak one protocol of the active release's range; a target
+        // whose range shares none would strand every enrolled worker.
+        let (c, t) = (cur.protocol, target.protocol);
+        if t.min > c.max || c.min > t.max {
+            return Err(Refusal::ProtocolGap {
+                current: c,
+                target: t,
             });
         }
     }
