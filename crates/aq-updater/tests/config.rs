@@ -54,12 +54,20 @@ fn rejects_out_of_range_numbers_and_names() {
         "backups_keep = 0",
         r#"channel = """#,
         r#"release_repo = """#,
-        r#"release_repo = "ghcr.io/x/y:latest""#,
+        r#"release_repo = "ghcr.io/x/y:stable""#,
         r#"release_repo = "ghcr.io/x/y@sha256:abc""#,
+        r#"release_repo = "agent-q-release""#,
     ] {
         assert!(UpdaterConfig::parse(&with(bad)).is_err(), "{bad} accepted");
     }
     assert!(UpdaterConfig::parse(&with("readiness_deadline_secs = 2")).is_ok());
+    for good in [
+        "127.0.0.1:5000/agent-q-release",
+        "ghcr.io/electricjack/agent-q-release",
+    ] {
+        let c = with(&format!("release_repo = \"{good}\""));
+        assert!(UpdaterConfig::parse(&c).is_ok(), "{good} refused");
+    }
 }
 
 #[cfg(not(feature = "test-verifier"))]

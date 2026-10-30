@@ -131,11 +131,13 @@ impl UpdaterConfig {
         if self.channel.is_empty() {
             return bad("channel must not be empty".into());
         }
-        if self.release_repo.is_empty()
-            || self.release_repo.contains(':')
-            || self.release_repo.contains('@')
-        {
-            return bad("release_repo must be a non-empty repository without a tag or digest (no ':' or '@')".into());
+        let repo = &self.release_repo;
+        let last = repo.rsplit('/').next().unwrap_or("");
+        if repo.is_empty() || repo.contains('@') || !repo.contains('/') || last.contains(':') {
+            return bad(
+                "release_repo must look like host[:port]/path with no tag or digest ('@', or ':' in the last segment)"
+                    .into(),
+            );
         }
         if self.poll_interval_secs < 1 {
             return bad("poll_interval_secs must be >= 1".into());
