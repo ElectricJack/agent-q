@@ -89,3 +89,25 @@ fn readiness_report_roundtrip() {
     v["extra"] = 1.into();
     assert!(serde_json::from_value::<ReadinessReport>(v).is_err());
 }
+
+#[test]
+fn status_tolerates_unknown_fields_and_variants() {
+    let j = r#"{"updater_version":"9.9.9","future":true,
+"state":{"kind":"in_progress","request_id":"67e55044-10b1-426f-9247-bb680e5fe0c8","target":"0.2.0","step":"warming_up","started_at":"2026-10-30T12:00:00Z","extra":1},
+"active":{"version":"0.1.0","source_revision":"a","server_image":"i","state_format":1,"new":2},
+"previous":null,"available":null,
+"history":[{"request_id":null,"from":null,"to":null,"outcome":"vaporized","detail":"","started_at":"2026-10-30T12:00:00Z","finished_at":"2026-10-30T12:00:00Z","more":1}],
+"updated_at":"2026-10-30T12:00:00Z"}"#;
+    let st: UpdateStatus = serde_json::from_str(j).unwrap();
+    assert!(matches!(
+        st.state,
+        UpdateState::InProgress {
+            step: Step::Unknown,
+            ..
+        }
+    ));
+    assert_eq!(st.history[0].outcome, Outcome::Unknown);
+    let j2 = j.replace(r#""kind":"in_progress""#, r#""kind":"teleporting""#);
+    let st: UpdateStatus = serde_json::from_str(&j2).unwrap();
+    assert_eq!(st.state, UpdateState::Unknown);
+}

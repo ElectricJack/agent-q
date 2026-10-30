@@ -190,6 +190,6 @@ pub fn check_upgrade(
         });
     }
     Ok(UpgradePlan {
-        needs_restore_on_rollback: current.is_some_and(|c| c.state_format != target.state_format),
+        needs_restore_on_rollback: found.is_some_and(|f| f != target.state_format),
     })
 }

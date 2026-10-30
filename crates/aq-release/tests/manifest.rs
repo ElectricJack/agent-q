@@ -69,6 +69,76 @@ fn rejects_inverted_protocol_range_and_bad_manifest_version() {
 }
 
 #[test]
+fn rejects_malformed_digests_for_both_images() {
+    let good = "a".repeat(64);
+    let bad = [
+        format!("ghcr.io/x/y@sha256:{}", "A".repeat(64)),
+        format!("ghcr.io/x/y@sha256:{good}0"),
+        format!("ghcr.io/x/y@sha256:{good}.sig"),
+        format!("ghcr.io/x/y@sha256:{}", "a".repeat(63)),
+        format!("ghcr.io/x/y@sha256:{good}\n"),
+        format!("ghcr.io/x/y:tag@sha256:{good}"),
+    ];
+    for b in &bad {
+        for (orig, role) in [(DIGEST, "server"), (DIGEST_W, "worker")] {
+            let j = json("0.2.0", ">=0.1.0", 1, &[1]).replace(orig, &b.replace('\n', "\\n"));
+            match ReleaseManifest::from_json(j.as_bytes()) {
+                Err(ManifestError::InvalidImage { role: r, .. }) => assert_eq!(r, role, "{b:?}"),
+                other => panic!("{role} {b:?} accepted or wrong error: {other:?}"),
+            }
+        }
+    }
+}
+
+#[test]
+fn canonical_json_golden_bytes() {
+    let scrambled = format!(
+        r#"{{ "upgrade_from" : ">=0.1.0",
+  "state_format":1, "version":"0.2.0",
+  "readable_state_formats":[1],
+  "protocol":{{"max":2,"min":1}},
+  "images":{{"worker":"{DIGEST_W}","server":"{DIGEST}"}},
+  "created_at":"2026-10-30T14:00:00+02:00",
+  "source_revision":"abc123","manifest_version":1 }}"#
+    );
+    let r = ReleaseManifest::from_json(scrambled.as_bytes()).unwrap();
+    let expected = format!(
+        r#"{{"created_at":"2026-10-30T12:00:00Z","images":{{"server":"{DIGEST}","worker":"{DIGEST_W}"}},"manifest_version":1,"protocol":{{"max":2,"min":1}},"readable_state_formats":[1],"source_revision":"abc123","state_format":1,"upgrade_from":">=0.1.0","version":"0.2.0"}}"#
+    );
+    assert_eq!(String::from_utf8(r.to_canonical_json()).unwrap(), expected);
+}
+
+#[test]
+fn restore_uses_observed_state_format() {
+    // first install over existing data: found 1, target 2
+    let t = m("0.2.0", ">=0.1.0", 2, &[1, 2]);
+    assert!(
+        check_upgrade(None, Some(1), &t)
+            .unwrap()
+            .needs_restore_on_rollback
+    );
+    // nothing known: false
+    assert!(
+        !check_upgrade(None, None, &t)
+            .unwrap()
+            .needs_restore_on_rollback
+    );
+    // observed format disagrees with the manifest: observed wins
+    let c = m("0.1.0", ">=0.1.0", 2, &[1, 2]);
+    assert!(
+        check_upgrade(Some(&c), Some(1), &t)
+            .unwrap()
+            .needs_restore_on_rollback
+    );
+    let c1 = m("0.1.0", ">=0.1.0", 1, &[1, 2]);
+    assert!(
+        !check_upgrade(Some(&c1), Some(2), &t)
+            .unwrap()
+            .needs_restore_on_rollback
+    );
+}
+
+#[test]
 fn first_install_allowed() {
     let t = m("0.2.0", ">=0.1.0", 1, &[1]);
     let plan = check_upgrade(None, None, &t).unwrap();

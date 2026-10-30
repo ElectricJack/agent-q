@@ -27,10 +27,12 @@ pub enum Step {
     Probing,
     Active,
     RollingBack,
+    /// A step written by a newer updater; read side only.
+    #[serde(other)]
+    Unknown,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct ReleaseSummary {
     pub version: Version,
     pub source_revision: String,
@@ -47,10 +49,12 @@ pub enum Outcome {
     Rejected,
     Aborted,
     FailedNeedsOperator,
+    /// An outcome written by a newer updater; read side only.
+    #[serde(other)]
+    Unknown,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct HistoryEntry {
     pub request_id: Option<Uuid>,
     pub from: Option<Version>,
@@ -74,12 +78,16 @@ pub enum UpdateState {
     FailedNeedsOperator {
         detail: String,
     },
+    /// A state written by a newer updater; read side only.
+    #[serde(other)]
+    Unknown,
 }
 
 /// Written by the updater to `status/status.json`, read by the server.
 /// `history` holds at most 20 entries, newest first.
+/// Deliberately tolerant of unknown fields and variants: the server may be a
+/// different version than the updater (e.g. after a rollback).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
 pub struct UpdateStatus {
     pub updater_version: String,
     pub state: UpdateState,
