@@ -8,7 +8,6 @@ use std::sync::Arc;
 use aq_release::ReleaseManifest;
 use aq_server::config::Config;
 use aq_server::identity::CloudflareAccessVerifier;
-use aq_server::store::Role;
 use aq_server::test_support::TestDb;
 use aq_server::{AppState, Clock, build_admin_router, build_worker_router};
 use axum::Router;
@@ -379,7 +378,6 @@ async fn viewer_cannot_request_update() {
     let (s, _) = call(&h.admin, "POST", "/api/updates", &tok, Some(json!({}))).await;
     assert_eq!(s, StatusCode::FORBIDDEN);
     assert!(request_files(&h).is_empty());
-    let _ = Role::Viewer;
 }
 
 #[tokio::test]
@@ -525,4 +523,71 @@ async fn request_body_rejects_image_field() {
     .await;
     assert_eq!(s, StatusCode::BAD_REQUEST);
     assert!(request_files(&h).is_empty());
+}
+
+#[tokio::test]
+async fn unknown_state_blocks_request() {
+    let h = harness(true).await;
+    write_status(&h, json!({"kind": "from_the_future"}));
+    let (s, v) = call(
+        &h.admin,
+        "POST",
+        "/api/updates",
+        &owner_token(),
+        Some(json!({})),
+    )
+    .await;
+    assert_eq!(s, StatusCode::CONFLICT);
+    assert_eq!(v["error"], "update_in_progress");
+    assert!(request_files(&h).is_empty());
+}
+
+#[tokio::test]
+async fn prerelease_and_build_versions_rejected() {
+    let h = harness(true).await;
+    for bad in [
+        "1.0.0-rc.1",
+        "1.0.0+build5",
+        &format!("1.0.0-{}", "a".repeat(5000)),
+    ] {
+        let (s, v) = call(
+            &h.admin,
+            "POST",
+            "/api/updates",
+            &owner_token(),
+            Some(json!({"version": bad})),
+        )
+        .await;
+        assert_eq!(s, StatusCode::BAD_REQUEST);
+        assert_eq!(v["error"], "invalid_version");
+    }
+    assert!(request_files(&h).is_empty());
+}
+
+#[tokio::test]
+async fn maintenance_allows_probe() {
+    let h = harness(true).await;
+    std::fs::write(h.spool.path().join("status/maintenance"), "").unwrap();
+    let (s, v) = call(&h.worker, "POST", "/v1/worker/probe", "", Some(json!({}))).await;
+    assert_ne!(v["error"], "maintenance");
+    assert_ne!(s, StatusCode::SERVICE_UNAVAILABLE);
+}
+
+#[test]
+fn manifest_stdout_is_exact_under_trace_logging() {
+    let out = Command::new(env!("CARGO_BIN_EXE_aq-server"))
+        .env("RUST_LOG", "trace")
+        .args(["manifest", "--server-image", DIGEST_S])
+        .args(["--worker-image", DIGEST_W])
+        .args([
+            "--version",
+            env!("CARGO_PKG_VERSION"),
+            "--source-revision",
+            "r",
+        ])
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(0));
+    let m = ReleaseManifest::from_json(&out.stdout).unwrap();
+    assert_eq!(m.to_canonical_json(), out.stdout);
 }

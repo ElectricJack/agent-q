@@ -235,12 +235,16 @@ pub struct Store {
 }
 
 impl Store {
-    /// `SELECT 1`: true when the database answers.
-    pub async fn ping(&self) -> bool {
-        sqlx::query("SELECT 1").execute(&self.pool).await.is_ok()
+    /// `SELECT 1`: true when the database answers within `limit`.
+    pub async fn ping(&self, limit: std::time::Duration) -> bool {
+        matches!(
+            tokio::time::timeout(limit, sqlx::query("SELECT 1").execute(&self.pool)).await,
+            Ok(Ok(_))
+        )
     }
 
     /// Closes the pool; later queries fail. Used by tests to simulate an outage.
+    #[cfg(any(test, feature = "test-support"))]
     pub async fn close(&self) {
         self.pool.close().await;
     }

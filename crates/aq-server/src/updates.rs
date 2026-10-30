@@ -35,8 +35,25 @@ fn maintenance_marker(spool: &Path) -> PathBuf {
     spool.join("status").join("maintenance")
 }
 
+/// Fails closed: if the marker cannot be checked, treat it as maintenance.
+pub fn marker_present(marker: &Path) -> bool {
+    match marker.try_exists() {
+        Ok(present) => present,
+        Err(e) => {
+            tracing::warn!(error = %e, marker = %marker.display(), "cannot check maintenance marker; assuming maintenance");
+            true
+        }
+    }
+}
+
 fn under_maintenance(state: &AppState) -> bool {
-    spool_dir(state).is_some_and(|s| maintenance_marker(s).exists())
+    spool_dir(state).is_some_and(|s| marker_present(&maintenance_marker(s)))
+}
+
+const UNAVAILABLE: &str = "unavailable";
+
+fn unavailable_summary() -> Value {
+    json!({"state": UNAVAILABLE, "active_version": null, "available_version": null})
 }
 
 fn maintenance_error() -> Response {
@@ -79,7 +96,7 @@ fn read_status(spool: &Path) -> Result<UpdateStatus, String> {
 /// `(state, active_version, available_version)` for `/api/status`.
 pub fn status_summary(state: &AppState) -> Value {
     let Some(spool) = spool_dir(state) else {
-        return json!({"state": "unavailable", "active_version": null, "available_version": null});
+        return unavailable_summary();
     };
     match read_status(spool) {
         Ok(s) => {
@@ -95,9 +112,7 @@ pub fn status_summary(state: &AppState) -> Value {
                 "available_version": s.available.map(|r| r.version.to_string()),
             })
         }
-        Err(_) => {
-            json!({"state": "unavailable", "active_version": null, "available_version": null})
-        }
+        Err(_) => unavailable_summary(),
     }
 }
 
@@ -105,13 +120,19 @@ pub fn update_routes() -> Router<AppState> {
     Router::new().route("/api/updates", get(get_updates).post(request_update))
 }
 
-async fn get_updates(State(state): State<AppState>, _user: CurrentUser) -> Json<Value> {
-    let unavailable = |detail: String| Json(json!({"state": "unavailable", "detail": detail}));
+async fn get_updates(
+    State(state): State<AppState>,
+    _user: CurrentUser,
+) -> Result<Json<Value>, AppError> {
+    let unavailable = |detail: String| Ok(Json(json!({"state": UNAVAILABLE, "detail": detail})));
     let Some(spool) = spool_dir(&state) else {
         return unavailable("updates are not configured for this installation".into());
     };
     match read_status(spool) {
-        Ok(s) => Json(serde_json::to_value(s).unwrap_or(Value::Null)),
+        Ok(s) => serde_json::to_value(s).map(Json).map_err(|e| {
+            tracing::error!(error = %e, "cannot serialize update status");
+            AppError::Internal
+        }),
         Err(detail) => unavailable(detail),
     }
 }
@@ -149,15 +170,22 @@ async fn request_update(
     let version = body
         .version
         .map(|v| {
+            let bad = || AppError::InvalidVersion(format!("{v:.64?} is not a version like 1.2.3"));
+            // Releases are plain X.Y.Z; this also bounds the request size.
             Version::parse(&v)
-                .map_err(|_| AppError::InvalidVersion(format!("{v:?} is not a version like 1.2.3")))
+                .ok()
+                .filter(|p| p.pre.is_empty() && p.build.is_empty() && v.len() <= 64)
+                .ok_or_else(bad)
         })
         .transpose()?;
     let in_progress = || AppError::UpdateInProgress("an update is already in progress".into());
     // A missing or unreadable status does not block: the updater validates
     // and records the request itself.
     if let Ok(s) = read_status(spool)
-        && matches!(s.state, UpdateState::InProgress { .. })
+        && matches!(
+            s.state,
+            UpdateState::InProgress { .. } | UpdateState::Unknown
+        )
     {
         return Err(in_progress());
     }
@@ -219,6 +247,10 @@ pub enum BuildManifestError {
          bump the workspace version or pass the matching tag"
     )]
     VersionMismatch { requested: String, actual: String },
+    #[error(
+        "--source-revision {requested} does not match the revision this binary was built from ({actual})"
+    )]
+    RevisionMismatch { requested: String, actual: String },
     #[error("--version {0:?} is not a valid semantic version")]
     BadVersion(String),
     #[error(transparent)]
@@ -233,6 +265,30 @@ pub fn build_manifest(
     version: &str,
     source_revision: &str,
 ) -> Result<ReleaseManifest, BuildManifestError> {
+    build_manifest_for(
+        server_image,
+        worker_image,
+        version,
+        source_revision,
+        &version_info().source_revision,
+    )
+}
+
+/// `built_revision` is the revision stamped into this binary. Unstamped
+/// builds ("dev", or the Dockerfile's "unknown" default) accept any value.
+pub fn build_manifest_for(
+    server_image: &str,
+    worker_image: &str,
+    version: &str,
+    source_revision: &str,
+    built_revision: &str,
+) -> Result<ReleaseManifest, BuildManifestError> {
+    if !matches!(built_revision, "dev" | "unknown") && built_revision != source_revision {
+        return Err(BuildManifestError::RevisionMismatch {
+            requested: source_revision.into(),
+            actual: built_revision.into(),
+        });
+    }
     let actual = env!("CARGO_PKG_VERSION");
     let parsed =
         Version::parse(version).map_err(|_| BuildManifestError::BadVersion(version.into()))?;
@@ -262,4 +318,44 @@ pub fn build_manifest(
     };
     ReleaseManifest::from_json(&manifest.to_canonical_json())?;
     Ok(manifest)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const S: &str = "r/s@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const W: &str = "r/w@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+
+    #[test]
+    fn stamped_binary_refuses_other_revision() {
+        let v = env!("CARGO_PKG_VERSION");
+        let err = build_manifest_for(S, W, v, "other", "abc123").unwrap_err();
+        assert!(matches!(err, BuildManifestError::RevisionMismatch { .. }));
+        assert!(build_manifest_for(S, W, v, "abc123", "abc123").is_ok());
+    }
+
+    #[test]
+    fn unstamped_binary_accepts_any_revision() {
+        let v = env!("CARGO_PKG_VERSION");
+        assert!(build_manifest_for(S, W, v, "anything", "dev").is_ok());
+        assert!(build_manifest_for(S, W, v, "anything", "unknown").is_ok());
+    }
+
+    #[test]
+    fn unreadable_marker_dir_counts_as_maintenance() {
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        let status = dir.path().join("status");
+        std::fs::create_dir(&status).unwrap();
+        let marker = status.join("maintenance");
+        assert!(!marker_present(&marker));
+        std::fs::set_permissions(&status, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let root = std::fs::read_dir(&status).is_ok(); // root ignores modes
+        let present = marker_present(&marker);
+        std::fs::set_permissions(&status, std::fs::Permissions::from_mode(0o755)).unwrap();
+        if !root {
+            assert!(present, "I/O error must fail closed");
+        }
+    }
 }

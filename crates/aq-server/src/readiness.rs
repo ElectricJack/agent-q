@@ -25,7 +25,7 @@ pub async fn readyz(State(state): State<AppState>, req: Request) -> Response {
         return AppError::NotFound("no such route".into()).into_response();
     }
     let info = version_info();
-    let db_ok = state.store.ping().await;
+    let db_ok = state.store.ping(std::time::Duration::from_secs(2)).await;
     let report = ReadinessReport {
         version: info
             .server_version

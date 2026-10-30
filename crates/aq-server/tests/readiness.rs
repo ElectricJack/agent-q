@@ -107,6 +107,32 @@ async fn readyz_answers_loopback_over_real_listener() {
     let server = tokio::spawn(aq_server::run_with_listeners(st, admin, worker, async {
         let _ = rx.await;
     }));
+    // The subcommand's stdout must be pure JSON even with trace logging on.
+    let vault = tempfile::tempdir().unwrap();
+    let toml = std::fs::read_to_string("../../vault.example/config.toml")
+        .unwrap()
+        .replace("0.0.0.0:8080", &a.to_string());
+    std::fs::write(vault.path().join("config.toml"), toml).unwrap();
+    let out = tokio::process::Command::new(env!("CARGO_BIN_EXE_aq-server"))
+        .env("RUST_LOG", "trace")
+        .args(["readiness", "--vault"])
+        .arg(vault.path())
+        .output()
+        .await
+        .unwrap();
+    assert_eq!(
+        out.status.code(),
+        Some(0),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+    let report: ReadinessReport = serde_json::from_slice(&out.stdout).unwrap_or_else(|e| {
+        panic!(
+            "stdout not pure JSON: {e}\n{}",
+            String::from_utf8_lossy(&out.stdout)
+        )
+    });
+    assert_eq!(report.database, "ok");
     for addr in [a, w] {
         let r = reqwest::get(format!("http://{addr}/readyz")).await.unwrap();
         assert_eq!(r.status(), 200);
@@ -115,4 +141,12 @@ async fn readyz_answers_loopback_over_real_listener() {
     }
     tx.send(()).unwrap();
     server.await.unwrap().unwrap();
+}
+
+#[tokio::test]
+async fn ping_times_out_instead_of_hanging() {
+    let db = TestDb::create().await;
+    let st = state(&db).await;
+    assert!(st.store.ping(std::time::Duration::from_secs(5)).await);
+    assert!(!st.store.ping(std::time::Duration::from_nanos(1)).await);
 }
