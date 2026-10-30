@@ -11,6 +11,12 @@ fn digest_re() -> &'static Regex {
     RE.get_or_init(|| Regex::new(r"^[a-z0-9./_-]+@sha256:[0-9a-f]{64}$").expect("static regex"))
 }
 
+/// True when `image` is a digest-pinned reference (`repo@sha256:<64 hex>`),
+/// the only form a manifest may carry and the updater may pass to `docker`.
+pub fn is_digest_ref(image: &str) -> bool {
+    digest_re().is_match(image)
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum ManifestError {
     #[error("manifest is not valid: {0}")]

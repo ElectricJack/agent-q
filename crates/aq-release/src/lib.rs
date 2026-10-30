@@ -6,6 +6,7 @@ pub mod spool;
 
 pub use manifest::{
     ImageRefs, ManifestError, ProtocolRange, Refusal, ReleaseManifest, UpgradePlan, check_upgrade,
+    is_digest_ref,
 };
 pub use spool::{
     HistoryEntry, Outcome, ReadinessReport, ReleaseSummary, Step, UpdateRequest, UpdateState,
