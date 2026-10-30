@@ -1,10 +1,8 @@
 //! Authorization: current-user resolution, owner bootstrap, CSRF guard.
 
-use aq_protocol::{ApiError, CSRF_REJECTED};
-use axum::Json;
 use axum::extract::{FromRequestParts, Request, State};
+use axum::http::Method;
 use axum::http::request::Parts;
-use axum::http::{Method, StatusCode};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 
@@ -47,6 +45,16 @@ async fn resolve(parts: &Parts, state: &AppState) -> Result<User, AppError> {
     {
         return Ok(user);
     }
+    // Concurrent first logins with the same token: a sibling request may have
+    // just bound or bootstrapped this identity and committed, making our
+    // conditional write a no-op. Look the binding up once more before denying.
+    if let Some(user) = state
+        .store
+        .find_user_by_binding(&id.issuer, &id.subject)
+        .await?
+    {
+        return Ok(user);
+    }
     Err(AppError::Forbidden(format!(
         "{} is not authorized for this Agent Q installation",
         id.email
@@ -81,20 +89,11 @@ impl FromRequestParts<AppState> for RequireOwner {
     }
 }
 
-fn csrf_reject(message: &str) -> Response {
-    (
-        StatusCode::FORBIDDEN,
-        Json(ApiError {
-            error: CSRF_REJECTED.to_string(),
-            message: message.to_string(),
-        }),
-    )
-        .into_response()
-}
-
 /// Middleware for admin routes. Mutations need `X-AQ-Request: 1` (a custom
 /// header cannot be sent cross-origin without a CORS preflight, which this
 /// server never grants) and, if an `Origin` is sent, it must be our own.
+///
+/// GET and HEAD bypass this guard, so their handlers must never change state.
 pub async fn csrf_guard(State(state): State<AppState>, req: Request, next: Next) -> Response {
     if !matches!(*req.method(), Method::GET | Method::HEAD) {
         let header_ok = req
@@ -102,12 +101,13 @@ pub async fn csrf_guard(State(state): State<AppState>, req: Request, next: Next)
             .get("x-aq-request")
             .is_some_and(|v| v.as_bytes() == b"1");
         if !header_ok {
-            return csrf_reject("missing X-AQ-Request: 1 header");
+            return AppError::CsrfRejected("missing X-AQ-Request: 1 header".into()).into_response();
         }
         if let Some(origin) = req.headers().get("origin") {
             let expected = state.config.server.public_origin.trim_end_matches('/');
             if origin.as_bytes() != expected.as_bytes() {
-                return csrf_reject("request origin is not allowed");
+                return AppError::CsrfRejected("request origin is not allowed".into())
+                    .into_response();
             }
         }
     }

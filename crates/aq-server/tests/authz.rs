@@ -289,3 +289,41 @@ async fn no_cors_headers_emitted() {
             .all(|k| !k.as_str().starts_with("access-control-"))
     );
 }
+
+async fn concurrent_first_logins(h: &Harness, tok: &str) {
+    const N: usize = 8;
+    let barrier = Arc::new(tokio::sync::Barrier::new(N));
+    let handles: Vec<_> = (0..N)
+        .map(|_| {
+            let app = h.app.clone();
+            let b = barrier.clone();
+            let r = req("GET", "/probe-viewer", Some(tok), &[]);
+            tokio::spawn(async move {
+                b.wait().await;
+                send(&app, r).await
+            })
+        })
+        .collect();
+    for hd in handles {
+        let (s, body) = hd.await.unwrap();
+        assert_eq!(s, StatusCode::OK, "{body}");
+    }
+    assert_eq!(h.store.list_users().await.unwrap().len(), 1);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn concurrent_first_logins_bootstrap_owner() {
+    let h = harness(true).await;
+    concurrent_first_logins(&h, &token("s1", "owner@example.com")).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn concurrent_first_logins_invited_viewer() {
+    let h = harness(true).await;
+    let now = Utc.with_ymd_and_hms(2026, 1, 1, 0, 0, 0).unwrap();
+    h.store
+        .invite_user("viewer@example.com", Role::Viewer, now)
+        .await
+        .unwrap();
+    concurrent_first_logins(&h, &token("v1", "viewer@example.com")).await;
+}
