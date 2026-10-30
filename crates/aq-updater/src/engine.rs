@@ -557,10 +557,15 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
     /// target may have changed the data.
     async fn retry_active(
         &mut self,
-        cur: InFlight,
+        mut cur: InFlight,
         allow_restore: bool,
         started_at: DateTime<Utc>,
     ) -> Res<HistoryEntry> {
+        // At `Active` the swap is done: `active` is the target, and the
+        // in-flight backup holds the other release's data. Never restore it.
+        if cur.step == Step::Active {
+            cur.needs_restore_on_rollback = false;
+        }
         let refuse = |detail: String| HistoryEntry {
             // No request id: this must not read as the in-flight outcome.
             request_id: None,
@@ -632,6 +637,9 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
             }
             return Ok(None);
         };
+        if cur.step == Step::Active {
+            return self.finish_active(cur);
+        }
         match self.recorded_outcome(cur.request_id) {
             Recorded::Nothing => {}
             Recorded::Entry(done) if done.outcome == Outcome::FailedNeedsOperator => {
@@ -680,22 +688,8 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
             (Step::Replacing | Step::Probing | Step::RollingBack, false) => {
                 self.fail_forward(cur, why).await?
             }
-            (Step::Active, _) => {
-                let s = self.journal.state();
-                let entry = HistoryEntry {
-                    request_id: Some(cur.request_id),
-                    from: s.previous.as_ref().map(|m| m.version.clone()),
-                    to: Some(cur.target.version.clone()),
-                    outcome: Outcome::Succeeded,
-                    detail: format!(
-                        "{} is active (finished by recovery: {why})",
-                        cur.target.version
-                    ),
-                    started_at: cur.started_at,
-                    finished_at: Utc::now(),
-                };
-                self.conclude(entry, true)?
-            }
+            // Handled before the history lookup; kept total without a panic.
+            (Step::Active, _) => return self.finish_active(cur),
             (Step::Replacing | Step::Probing | Step::RollingBack, true) | (Step::Unknown, _) => {
                 let detail = format!(
                     "{why} during the rollback from {}; the rollback is not retried automatically. {}",
@@ -706,6 +700,46 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
             }
         };
         Ok(Some(entry))
+    }
+
+    /// `Active` is persisted together with the swap, so the journal alone
+    /// proves the target is installed: finish as `Succeeded` whatever
+    /// history says. Only a known, already-recorded outcome is not appended
+    /// again; an unknown or unreadable one is not trusted, and failing to
+    /// append the line does not stop the finish.
+    fn finish_active(&mut self, cur: InFlight) -> Res<Option<HistoryEntry>> {
+        let recorded = match self.recorded_outcome(cur.request_id) {
+            Recorded::Entry(e) => {
+                !matches!(e.outcome, Outcome::Unknown | Outcome::FailedNeedsOperator)
+            }
+            Recorded::Nothing | Recorded::Unreadable(_) => false,
+        };
+        let entry = if recorded {
+            None
+        } else {
+            let s = self.journal.state();
+            let entry = HistoryEntry {
+                request_id: Some(cur.request_id),
+                from: s.previous.as_ref().map(|m| m.version.clone()),
+                to: Some(cur.target.version.clone()),
+                outcome: Outcome::Succeeded,
+                detail: format!(
+                    "{} is active (finished by recovery: interrupted at step active)",
+                    cur.target.version
+                ),
+                started_at: cur.started_at,
+                finished_at: Utc::now(),
+            };
+            if let Err(e) = self.journal.append_history(entry.clone()) {
+                tracing::warn!(error = %e, "cannot record the finished update in history");
+            }
+            Some(entry)
+        };
+        if let Err(e) = rt(self.maintenance.leave())? {
+            tracing::warn!(error = %e, "cannot leave maintenance");
+        }
+        self.clear_current()?;
+        Ok(entry)
     }
 
     /// Abandon an update that never replaced the active release, then make

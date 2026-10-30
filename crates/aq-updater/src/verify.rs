@@ -258,7 +258,17 @@ mod tests {
         assert_eq!(e, VerifyError::Unavailable("cosign timed out".into()));
         assert!(started.elapsed() < Duration::from_secs(10));
         // The child was killed, not left running.
-        let pid = std::fs::read_to_string(&pidfile).unwrap();
+        // The script may still be starting when the timeout fires.
+        let poll_until = std::time::Instant::now() + Duration::from_secs(2);
+        let pid = loop {
+            match std::fs::read_to_string(&pidfile) {
+                Ok(p) if !p.trim().is_empty() => break p,
+                _ if std::time::Instant::now() < poll_until => {
+                    tokio::time::sleep(Duration::from_millis(20)).await
+                }
+                other => panic!("no pid written by the stand-in: {other:?}"),
+            }
+        };
         let proc_dir = format!("/proc/{}", pid.trim());
         let deadline = std::time::Instant::now() + Duration::from_secs(5);
         while Path::new(&proc_dir).exists()
