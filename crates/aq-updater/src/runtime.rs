@@ -43,8 +43,14 @@ pub trait Runtime: Send + Sync {
     async fn backup(&self, dest: &Path) -> RuntimeResult<u64>;
     /// Replace the database with `src`. Only called with the server stopped.
     async fn restore(&self, src: &Path) -> RuntimeResult<()>;
-    /// Start (or replace) the server container with `image`.
+    /// Start (or replace) the server container with `image`. Also records
+    /// `image` as the one a plain `docker compose up` starts.
     async fn start_server(&self, image: &str) -> RuntimeResult<()>;
+    /// Record `image` as the one a plain `docker compose up` starts
+    /// (`release.env`), without starting anything. Called before the server
+    /// is stopped for a rollback restore, so a manual `compose up` after a
+    /// failure mid-restore starts the release being brought back.
+    async fn select_release(&self, image: &str) -> RuntimeResult<()>;
     async fn stop_server(&self) -> RuntimeResult<()>;
     async fn wait_healthy(&self, deadline: Duration) -> RuntimeResult<()>;
     async fn readiness(&self) -> RuntimeResult<ReadinessReport>;
@@ -840,6 +846,10 @@ impl Runtime for DockerCli {
         self.compose("docker compose up", self.start_server_argv(), CMD_TIMEOUT)
             .await
             .map(drop)
+    }
+
+    async fn select_release(&self, image: &str) -> RuntimeResult<()> {
+        write_release_env(&self.release_env, image, &self.spool)
     }
 
     async fn stop_server(&self) -> RuntimeResult<()> {

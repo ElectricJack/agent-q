@@ -323,6 +323,11 @@ async fn bring_back<R: Runtime>(
         let Some(backup) = &cur.backup else {
             return Ok(Err("no pre-update backup is recorded to restore".into()));
         };
+        // Before anything stops: if the restore fails, a manual
+        // `docker compose up` must start `active`, not the failed target.
+        if let Err(e) = rt(runtime.select_release(&active.images.server).await)? {
+            return Ok(Err(format!("select_release: {e}")));
+        }
         if let Err(e) = rt(runtime.stop_server().await)? {
             return Ok(Err(format!("stop_server: {e}")));
         }

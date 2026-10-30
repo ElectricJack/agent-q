@@ -1775,6 +1775,30 @@ async fn seeded_available_must_be_newer_than_active() {
 }
 
 #[tokio::test]
+async fn rollback_restore_selects_the_active_release_before_stopping() {
+    let (h, mut e, a) = with_a().await;
+    let b = manifest(B, 2, &[1, 2]);
+    h.publish(&b);
+    h.fake.fail("wait_healthy", 0, "B unhealthy");
+    h.fake.fail("restore", 0, "pg_restore failed");
+    let r = e.install(req(B)).await.unwrap();
+    assert_eq!(r.outcome, Outcome::FailedNeedsOperator, "{}", r.detail);
+    // B was started (and selected), then the rollback selected A again
+    // before stopping B, so a manual `compose up` now starts A.
+    let select_a = format!("select_release {}", a.images.server);
+    let log = h.fake.log();
+    let sel = log.iter().position(|c| *c == select_a).expect("A selected");
+    let start_b = log
+        .iter()
+        .position(|c| *c == format!("start_server {}", b.images.server))
+        .unwrap();
+    let stop = log.iter().position(|c| c == "stop_server").unwrap();
+    assert!(start_b < sel && sel < stop, "{log:?}");
+    assert_eq!(h.fake.selected().as_deref(), Some(a.images.server.as_str()));
+    assert!(h.fake.running().is_none());
+}
+
+#[tokio::test]
 async fn taken_request_shows_in_progress_before_the_fetch() {
     let (h, mut e, _a) = with_a().await;
     let fake = h.fake.clone();

@@ -14,7 +14,8 @@
 //! include the database's format "migrates" it to the release's format;
 //! a release that cannot read the database reports `database: "error"`.
 //! `backup` writes the database format into the dump and `restore` reads it
-//! back, so a missing restore is observable.
+//! back, so a missing restore is observable. `selected` is the image
+//! `release.env` names (what a manual `docker compose up` would start).
 #![allow(dead_code)]
 
 use aq_release::{ReadinessReport, ReleaseManifest};
@@ -48,7 +49,11 @@ struct Inner {
     free: u64,
     backup_size: usize,
     running: Option<String>,
+    selected: Option<String>,
     db_format: Option<u32>,
+    /// Starting this image leaves the database in this format, whatever
+    /// its manifest says (a release that migrates without a format bump).
+    start_migrates: HashMap<String, u32>,
     maintenance: bool,
     auth_mode: String,
     /// Set by a `CrashAfter` script; reported when the call finishes.
@@ -72,7 +77,9 @@ impl Default for FakeRuntime {
             free: 100 * 1024 * 1024 * 1024,
             backup_size: 100,
             running: None,
+            selected: None,
             db_format: None,
+            start_migrates: HashMap::new(),
             maintenance: false,
             auth_mode: "cloudflare_access".into(),
             pending_crash: None,
@@ -180,6 +187,10 @@ impl FakeRuntime {
     pub fn set_db_format(&self, f: Option<u32>) {
         self.inner().db_format = f;
     }
+    /// Starting `image` leaves the database in format `fmt`.
+    pub fn set_start_migrates(&self, image: &str, fmt: u32) {
+        self.inner().start_migrates.insert(image.into(), fmt);
+    }
 
     // ---- inspection ----
 
@@ -203,6 +214,10 @@ impl FakeRuntime {
     }
     pub fn running(&self) -> Option<String> {
         self.inner().running.clone()
+    }
+    /// The image `release.env` names.
+    pub fn selected(&self) -> Option<String> {
+        self.inner().selected.clone()
     }
     pub fn db_format(&self) -> Option<u32> {
         self.inner().db_format
@@ -299,12 +314,24 @@ impl FakeRuntime {
             .cloned()
             .ok_or_else(|| RuntimeError::Failed(format!("unknown image {image}")))?;
         i.running = Some(image.to_string());
+        i.selected = Some(image.to_string());
         // The server migrates data it can read up to its own format.
         if i.db_format
             .is_none_or(|f| m.readable_state_formats.contains(&f))
         {
-            i.db_format = Some(m.state_format);
+            i.db_format = Some(
+                i.start_migrates
+                    .get(image)
+                    .copied()
+                    .unwrap_or(m.state_format),
+            );
         }
+        Ok(())
+    }
+
+    async fn select_release_impl(&self, image: &str) -> Result<(), RuntimeError> {
+        self.call("select_release", image)?;
+        self.inner().selected = Some(image.to_string());
         Ok(())
     }
 
@@ -386,6 +413,10 @@ impl Runtime for FakeRuntime {
     }
     async fn start_server(&self, image: &str) -> Result<(), RuntimeError> {
         let r = self.start_server_impl(image).await;
+        self.finish(r)
+    }
+    async fn select_release(&self, image: &str) -> Result<(), RuntimeError> {
+        let r = self.select_release_impl(image).await;
         self.finish(r)
     }
     async fn stop_server(&self) -> Result<(), RuntimeError> {
