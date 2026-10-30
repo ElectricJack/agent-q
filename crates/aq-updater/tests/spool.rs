@@ -323,6 +323,77 @@ mod with_engine {
         tokio::sync::watch::channel(false).1
     }
 
+    /// Run `process_requests` on its own thread and runtime: a spinning loop
+    /// never yields, so only a wall-clock wait can catch it.
+    fn process_within(
+        e: Engine<FakeRuntime, TestKey>,
+        dir: PathBuf,
+        limit: Duration,
+    ) -> (Engine<FakeRuntime, TestKey>, Vec<HistoryEntry>) {
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Runtime::new().unwrap();
+            let mut e = e;
+            let out = rt
+                .block_on(process_requests(&mut e, &dir, &no_stop()))
+                .unwrap();
+            let _ = tx.send((e, out));
+        });
+        rx.recv_timeout(limit)
+            .expect("process_requests did not return (spinning on a stuck entry?)")
+    }
+
+    /// An entry that can be neither removed nor set aside is reported once
+    /// and then skipped; the call returns instead of spinning.
+    #[test]
+    fn stuck_entries_do_not_spin() {
+        let h = H::new();
+        let e = h.engine();
+        // A non-empty directory, with a non-empty `.rejected-` twin already
+        // in the way: rename fails (ENOTEMPTY) and so does removal.
+        let stuck = h.requests.join("x.json");
+        std::fs::create_dir(&stuck).unwrap();
+        std::fs::write(stuck.join("a"), b"1").unwrap();
+        let twin = h.requests.join(".rejected-x.json");
+        std::fs::create_dir(&twin).unwrap();
+        std::fs::write(twin.join("b"), b"2").unwrap();
+        let (e, out) = process_within(e, h.requests.clone(), Duration::from_secs(2));
+        assert_eq!(out.len(), 1, "{out:?}");
+        assert_eq!(out[0].outcome, Outcome::Rejected);
+        assert!(stuck.exists());
+        // Already reported: later calls are silent and still return.
+        let (_e, out) = process_within(e, h.requests.clone(), Duration::from_secs(2));
+        assert!(out.is_empty(), "{out:?}");
+        assert_eq!(h.history().len(), 1);
+    }
+
+    /// A request that cannot be deleted (read-only directory) is never acted
+    /// on, and the call returns.
+    #[test]
+    fn undeletable_request_is_skipped_without_spinning() {
+        use std::os::unix::fs::PermissionsExt;
+        if nix::unistd::geteuid().is_root() {
+            return; // root ignores the directory mode
+        }
+        let h = H::new();
+        h.publish(&manifest("1.0.0"));
+        let e = h.engine();
+        let r = request(Some("1.0.0"));
+        drop_request(&h.requests, &r, 10);
+        let set = |mode| {
+            std::fs::set_permissions(&h.requests, std::fs::Permissions::from_mode(mode)).unwrap()
+        };
+        set(0o555);
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            process_within(e, h.requests.clone(), Duration::from_secs(2))
+        }));
+        set(0o755);
+        let (_e, out) = result.unwrap();
+        assert!(out.is_empty(), "{out:?}");
+        assert_eq!(h.fake.count("fetch_release"), 0, "never installed");
+        assert_eq!(names(&h.requests), vec![format!("{}.json", r.id)]);
+    }
+
     /// Shutdown requested while an install runs: that install finishes, the
     /// next queued request is not started and stays on disk.
     #[tokio::test]

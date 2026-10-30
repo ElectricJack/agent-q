@@ -160,24 +160,30 @@ fn pending(dir: &Path) -> Vec<std::ffi::OsString> {
     files.into_iter().map(|(_, n)| n).collect()
 }
 
+/// Entries this process could not remove or set aside. Each is logged (and,
+/// for a set-aside failure, reported) once, then left alone.
+static STUCK: std::sync::Mutex<Vec<PathBuf>> = std::sync::Mutex::new(Vec::new());
+
+/// Record `path` as stuck; true the first time (log and report it then).
+fn first_time_stuck(path: &Path, what: &str, e: &std::io::Error) -> bool {
+    let mut stuck = STUCK.lock().unwrap_or_else(|p| p.into_inner());
+    if stuck.iter().any(|p| p == path) {
+        return false;
+    }
+    tracing::error!(path = ?path, error = %e, "{what}; ignoring it");
+    stuck.push(path.to_path_buf());
+    true
+}
+
 /// Set a non-file entry aside as `.rejected-<name>` (ignored from then on).
-/// If even that fails, remember it for this process so it is reported once.
+/// If even that fails, it is reported once for this process and then left.
 fn set_aside(dir: &Path, name: &std::ffi::OsStr) -> bool {
-    static SEEN: std::sync::Mutex<Vec<PathBuf>> = std::sync::Mutex::new(Vec::new());
     let path = dir.join(name);
     let mut aside = std::ffi::OsString::from(".rejected-");
     aside.push(name);
     match std::fs::rename(&path, dir.join(aside)) {
         Ok(()) => true,
-        Err(e) => {
-            let mut seen = SEEN.lock().unwrap_or_else(|p| p.into_inner());
-            if seen.contains(&path) {
-                return false;
-            }
-            tracing::error!(path = ?path, error = %e, "cannot set aside a rejected request entry; ignoring it");
-            seen.push(path);
-            true
-        }
+        Err(e) => first_time_stuck(&path, "cannot set aside a rejected request entry", &e),
     }
 }
 
@@ -191,7 +197,15 @@ fn take_one(dir: &Path, name: &std::ffi::OsStr) -> Option<Result<UpdateRequest, 
         request_id: id,
         reason: reason.to_string(),
     };
-    let meta = std::fs::symlink_metadata(&path).ok()?;
+    let meta = match std::fs::symlink_metadata(&path) {
+        Ok(m) => m,
+        Err(e) => {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                first_time_stuck(&path, "cannot inspect update request entry", &e);
+            }
+            return None;
+        }
+    };
     let odd = if name.to_str().is_none() {
         Some("the file name is not UTF-8")
     } else if !meta.file_type().is_file() {
@@ -209,7 +223,7 @@ fn take_one(dir: &Path, name: &std::ffi::OsStr) -> Option<Result<UpdateRequest, 
     }
     if let Err(e) = std::fs::remove_file(&path) {
         if e.kind() != std::io::ErrorKind::NotFound {
-            tracing::error!(path = ?path, error = %e, "cannot delete update request; ignoring it");
+            first_time_stuck(&path, "cannot delete update request", &e);
         }
         return None;
     }
@@ -344,11 +358,18 @@ pub async fn process_requests<R: Runtime, V: ReleaseVerifier>(
 ) -> Result<Vec<HistoryEntry>, Halted> {
     let mut out = Vec::new();
     let mut last: Option<Finished> = None;
+    // Each entry is tried at most once per call: one that cannot be taken
+    // (stuck, or vanished) must not be listed and retried in a tight loop.
+    let mut attempted = std::collections::HashSet::new();
     loop {
-        let names = pending(dir);
+        let names: Vec<_> = pending(dir)
+            .into_iter()
+            .filter(|n| !attempted.contains(n))
+            .collect();
         if names.is_empty() || *stop.borrow() {
             return Ok(out);
         }
+        let mut took = false;
         for name in names {
             if *stop.borrow() {
                 tracing::info!(
@@ -356,9 +377,11 @@ pub async fn process_requests<R: Runtime, V: ReleaseVerifier>(
                 );
                 return Ok(out);
             }
+            attempted.insert(name.clone());
             let Some(item) = take_one(dir, &name) else {
                 continue;
             };
+            took = true;
             sync_requests(dir, true);
             let req = match item {
                 Ok(r) => r,
@@ -397,6 +420,9 @@ pub async fn process_requests<R: Runtime, V: ReleaseVerifier>(
                 outcome: entry.outcome,
             });
             out.push(entry);
+        }
+        if !took {
+            return Ok(out);
         }
     }
 }

@@ -454,3 +454,38 @@ fn status_escapes_control_characters_in_history() {
         text(&o)
     );
 }
+
+#[test]
+fn run_once_exits_with_a_stuck_request_entry() {
+    let h = H::new();
+    let requests = h.state_dir.join("spool/requests");
+    std::fs::create_dir_all(requests.join("x.json")).unwrap();
+    std::fs::write(requests.join("x.json/a"), b"1").unwrap();
+    std::fs::create_dir_all(requests.join(".rejected-x.json")).unwrap();
+    std::fs::write(requests.join(".rejected-x.json/b"), b"2").unwrap();
+    let mut child = Command::new(BIN)
+        .arg("--config")
+        .arg(&h.config)
+        .args(["run", "--once"])
+        .env("RUST_LOG", "warn")
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .spawn()
+        .unwrap();
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    let status = loop {
+        if let Some(s) = child.try_wait().unwrap() {
+            break s;
+        }
+        if std::time::Instant::now() > deadline {
+            let _ = child.kill();
+            let _ = child.wait();
+            panic!("run --once did not exit");
+        }
+        std::thread::sleep(std::time::Duration::from_millis(50));
+    };
+    assert_eq!(status.code(), Some(0));
+    let hist = read_history(&h.state_dir, 10).unwrap();
+    assert_eq!(hist.len(), 1, "{hist:?}");
+    assert_eq!(hist[0].outcome, Outcome::Rejected);
+}
