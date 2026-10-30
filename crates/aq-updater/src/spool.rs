@@ -243,7 +243,11 @@ fn take_one(dir: &Path, name: &std::ffi::OsStr) -> Option<Result<UpdateRequest, 
 /// (directories, symlinks, FIFOs, names that are not UTF-8) is rejected once
 /// and set aside as `.rejected-<name>`. An entry that cannot be removed is
 /// skipped and logged, so it is never acted on twice.
-pub fn take_requests(dir: &Path) -> Vec<Result<UpdateRequest, SpoolReject>> {
+///
+/// Test only: `process_requests` takes entries one at a time with the same
+/// `take_one`, so these tests cover its intake.
+#[cfg(test)]
+fn take_requests(dir: &Path) -> Vec<Result<UpdateRequest, SpoolReject>> {
     let out: Vec<_> = pending(dir)
         .iter()
         .filter_map(|n| take_one(dir, n))
@@ -458,5 +462,161 @@ async fn repeats<R: Runtime, V: ReleaseVerifier>(
             }
         },
         (None, None) => false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+    use std::time::Duration;
+
+    fn request(version: Option<&str>) -> UpdateRequest {
+        UpdateRequest {
+            id: Uuid::new_v4(),
+            version: version.map(|v| v.parse().unwrap()),
+            requested_by: "owner@example.com".into(),
+            requested_at: Utc::now(),
+        }
+    }
+
+    /// Write a request the way the server does, with an explicit mtime.
+    fn drop_request(dir: &Path, r: &UpdateRequest, age_secs: u64) {
+        let path = dir.join(format!("{}.json", r.id));
+        std::fs::write(&path, serde_json::to_vec(r).unwrap()).unwrap();
+        set_age(&path, age_secs);
+    }
+
+    fn set_age(path: &Path, age_secs: u64) {
+        let f = std::fs::File::options().write(true).open(path).unwrap();
+        f.set_modified(SystemTime::now() - Duration::from_secs(age_secs))
+            .unwrap();
+    }
+
+    fn names(dir: &Path) -> Vec<String> {
+        let mut v: Vec<String> = std::fs::read_dir(dir)
+            .unwrap()
+            .map(|e| e.unwrap().file_name().to_string_lossy().into_owned())
+            .collect();
+        v.sort();
+        v
+    }
+
+    #[test]
+    fn take_requests_rejects_oversized_and_malformed() {
+        let t = tempfile::tempdir().unwrap();
+        let dir = t.path();
+        let good = request(Some("1.2.3"));
+        drop_request(dir, &good, 30);
+
+        // Oversized: the id still comes from the file name.
+        let big_id = Uuid::new_v4();
+        let big = dir.join(format!("{big_id}.json"));
+        std::fs::write(&big, vec![b' '; REQUEST_LIMIT as usize + 1]).unwrap();
+        set_age(&big, 20);
+
+        // Not JSON, and JSON with an unknown field: no id is trusted.
+        let junk_id = Uuid::new_v4();
+        let junk = dir.join(format!("{junk_id}.json"));
+        std::fs::write(&junk, b"{not json").unwrap();
+        set_age(&junk, 10);
+        let extra = dir.join("extra.json");
+        let mut v = serde_json::to_value(request(None)).unwrap();
+        v["image"] = "evil@sha256:00".into();
+        std::fs::write(&extra, serde_json::to_vec(&v).unwrap()).unwrap();
+        set_age(&extra, 5);
+
+        // Exactly at the limit is accepted (padded with whitespace).
+        let edge = request(Some("2.0.0"));
+        let mut body = serde_json::to_vec(&edge).unwrap();
+        body.resize(REQUEST_LIMIT as usize, b' ');
+        let edge_path = dir.join(format!("{}.json", edge.id));
+        std::fs::write(&edge_path, &body).unwrap();
+        set_age(&edge_path, 1);
+
+        let got = take_requests(dir);
+        assert_eq!(got.len(), 5, "{got:?}");
+        assert_eq!(got[0], Ok(good));
+        let big_rej: &SpoolReject = got[1].as_ref().unwrap_err();
+        assert_eq!(big_rej.request_id, Some(big_id));
+        assert!(big_rej.reason.contains("4096"), "{}", big_rej.reason);
+        // Malformed content keeps the id a `<uuid>.json` name carries.
+        for (r, id) in got[2..4].iter().zip([Some(junk_id), None]) {
+            let rej = r.as_ref().unwrap_err();
+            assert_eq!(rej.request_id, id, "{rej:?}");
+            assert!(rej.reason.contains("not a valid update request"), "{rej:?}");
+        }
+        assert_eq!(got[4], Ok(edge));
+        assert!(names(dir).is_empty(), "{:?}", names(dir));
+    }
+
+    #[test]
+    fn take_requests_rejects_non_regular_files() {
+        let t = tempfile::tempdir().unwrap();
+        let dir = t.path();
+        let target = t.path().join("..").join("outside");
+        std::os::unix::fs::symlink(&target, dir.join("link.json")).unwrap();
+        nix::unistd::mkfifo(&dir.join("fifo.json"), nix::sys::stat::Mode::S_IRWXU).unwrap();
+        let sub_id = Uuid::new_v4();
+        std::fs::create_dir(dir.join(format!("{sub_id}.json"))).unwrap();
+        std::fs::write(dir.join("inner"), b"x").unwrap();
+        std::fs::rename(dir.join("inner"), dir.join(format!("{sub_id}.json/inner"))).unwrap();
+        // A name that is not UTF-8, with valid content.
+        use std::os::unix::ffi::OsStrExt;
+        let odd = std::ffi::OsStr::from_bytes(b"req-\xff.json");
+        std::fs::write(dir.join(odd), serde_json::to_vec(&request(None)).unwrap()).unwrap();
+
+        let got = take_requests(dir);
+        assert_eq!(got.len(), 4, "{got:?}");
+        assert!(got.iter().all(|r| r.is_err()), "{got:?}");
+        let sub = got
+            .iter()
+            .map(|r| r.as_ref().unwrap_err())
+            .find(|r| r.file.contains(&sub_id.to_string()))
+            .unwrap();
+        assert_eq!(sub.request_id, Some(sub_id));
+        // Recorded once, then set aside as dotfiles so nothing retries them.
+        let left = names(dir);
+        assert_eq!(left.len(), 4, "{left:?}");
+        assert!(left.iter().all(|n| n.starts_with(".rejected-")), "{left:?}");
+        assert!(take_requests(dir).is_empty());
+        assert!(dir.join(format!(".rejected-{sub_id}.json/inner")).exists());
+    }
+
+    #[test]
+    fn take_requests_deletes_processed() {
+        let t = tempfile::tempdir().unwrap();
+        let dir = t.path();
+        let (old, new, same_a, same_b) = (
+            request(Some("1.0.0")),
+            request(None),
+            request(Some("1.0.1")),
+            request(Some("1.0.2")),
+        );
+        drop_request(dir, &new, 10);
+        drop_request(dir, &old, 100);
+        // Equal mtimes fall back to name order.
+        let mtime = SystemTime::now() - Duration::from_secs(50);
+        for r in [&same_a, &same_b] {
+            let p = dir.join(format!("{}.json", r.id));
+            std::fs::write(&p, serde_json::to_vec(r).unwrap()).unwrap();
+            std::fs::File::options()
+                .write(true)
+                .open(&p)
+                .unwrap()
+                .set_modified(mtime)
+                .unwrap();
+        }
+        // The server's in-progress temp files are dotfiles and are left alone.
+        std::fs::write(dir.join(format!(".tmp-{}", Uuid::new_v4())), b"partial").unwrap();
+
+        let got: Vec<UpdateRequest> = take_requests(dir).into_iter().map(Result::unwrap).collect();
+        let mut tie = [same_a.clone(), same_b.clone()];
+        tie.sort_by_key(|r| format!("{}.json", r.id));
+        assert_eq!(got, vec![old, tie[0].clone(), tie[1].clone(), new]);
+        let left = names(dir);
+        assert_eq!(left.len(), 1);
+        assert!(left[0].starts_with(".tmp-"), "{left:?}");
+        assert!(take_requests(dir).is_empty());
     }
 }
