@@ -417,7 +417,7 @@ impl DockerCli {
     }
 
     pub fn pull_argv(&self, image: &str) -> RuntimeResult<Vec<OsString>> {
-        Ok(os(&["pull", "--quiet", digest_ref(image)?]))
+        Ok(os(&["pull", "--quiet", "--", digest_ref(image)?]))
     }
     pub fn labels_argv(&self, image: &str) -> RuntimeResult<Vec<OsString>> {
         Ok(os(&[
@@ -425,6 +425,7 @@ impl DockerCli {
             "inspect",
             "--format",
             "{{json .Config.Labels}}",
+            "--",
             digest_ref(image)?,
         ]))
     }
@@ -450,7 +451,7 @@ impl DockerCli {
     }
     /// Only for refs from `release_ref`.
     pub fn release_pull_argv(&self, release_ref: &str) -> Vec<OsString> {
-        os(&["pull", "--quiet", release_ref])
+        os(&["pull", "--quiet", "--", release_ref])
     }
     /// Only for refs from `release_ref`; `name` from `fetch_container_name`.
     /// `none` is the (never run) command: the release image is `FROM scratch`.
@@ -1061,13 +1062,13 @@ mod tests {
         let c = cli();
         assert_eq!(
             strs(&c.pull_argv(IMAGE).unwrap()),
-            ["pull", "--quiet", IMAGE]
+            ["pull", "--quiet", "--", IMAGE]
         );
         // A local registry with a port is a valid digest ref.
         let local = IMAGE.replace("ghcr.io/electricjack", "127.0.0.1:5000");
         assert_eq!(
             strs(&c.pull_argv(&local).unwrap()),
-            ["pull", "--quiet", local.as_str()]
+            ["pull", "--quiet", "--", local.as_str()]
         );
         assert_eq!(
             strs(&c.labels_argv(IMAGE).unwrap()),
@@ -1076,6 +1077,7 @@ mod tests {
                 "inspect",
                 "--format",
                 "{{json .Config.Labels}}",
+                "--",
                 IMAGE
             ]
         );
@@ -1337,7 +1339,7 @@ mod tests {
             let calls: Vec<&str> = calls.lines().collect();
             assert_eq!(
                 calls[0],
-                "pull --quiet ghcr.io/electricjack/agent-q-release:stable"
+                "pull --quiet -- ghcr.io/electricjack/agent-q-release:stable"
             );
             let name = calls[1]
                 .strip_prefix("create --name ")

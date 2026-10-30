@@ -8,10 +8,11 @@ const MANIFEST_VERSION: u32 = 1;
 
 fn digest_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    // Optional registry `host:port`, then a path whose segments cannot hold
-    // `:` (so no tag), then the digest.
+    // A host starting with a letter or digit (never `-`, so it cannot read as
+    // an option), an optional `:port`, then a path whose segments cannot
+    // hold `:` (so no tag), then the digest.
     RE.get_or_init(|| {
-        Regex::new(r"^[a-z0-9.-]+(:[0-9]+)?/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$")
+        Regex::new(r"^[a-z0-9][a-z0-9.-]*(:[0-9]+)?/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$")
             .expect("static regex")
     })
 }
