@@ -235,6 +235,16 @@ pub struct Store {
 }
 
 impl Store {
+    /// `SELECT 1`: true when the database answers.
+    pub async fn ping(&self) -> bool {
+        sqlx::query("SELECT 1").execute(&self.pool).await.is_ok()
+    }
+
+    /// Closes the pool; later queries fail. Used by tests to simulate an outage.
+    pub async fn close(&self) {
+        self.pool.close().await;
+    }
+
     pub async fn connect(database_url: &str) -> Result<Store> {
         Self::connect_with(database_url.parse::<PgConnectOptions>()?).await
     }

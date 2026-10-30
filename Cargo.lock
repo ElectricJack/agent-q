@@ -111,6 +111,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "aq-protocol",
+ "aq-release",
  "aq-server",
  "async-trait",
  "axum",
@@ -123,6 +124,7 @@ dependencies = [
  "rand 0.8.8",
  "reqwest",
  "rsa",
+ "semver",
  "serde",
  "serde_json",
  "sha2",

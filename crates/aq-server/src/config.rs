@@ -18,6 +18,16 @@ pub struct Config {
     pub enrollment: EnrollmentConfig,
     #[serde(default)]
     pub workers: WorkersConfig,
+    /// Absent in development: the update API then answers `updates_unavailable`.
+    #[serde(default)]
+    pub updates: Option<UpdatesConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct UpdatesConfig {
+    /// Spool shared with the host updater: `requests/` (rw) and `status/` (ro).
+    pub spool_dir: PathBuf,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -170,6 +180,11 @@ fn validate(c: &Config) -> Result<(), (String, String)> {
             "must be greater than workers.heartbeat_interval_secs".into(),
         );
     }
+    if let Some(u) = &c.updates
+        && !u.spool_dir.is_absolute()
+    {
+        return invalid("updates.spool_dir", "must be an absolute path".into());
+    }
     if c.bootstrap.enabled && c.bootstrap.owner_email.is_none() {
         return invalid(
             "bootstrap.owner_email",
@@ -228,6 +243,7 @@ mod tests {
             },
             enrollment: Default::default(),
             workers: Default::default(),
+            updates: None,
         }
     }
 

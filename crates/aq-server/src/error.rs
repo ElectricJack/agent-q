@@ -2,8 +2,9 @@
 
 use aq_protocol::{
     ApiError, BAD_REQUEST, CONFLICT, CREDENTIAL_REVOKED, CSRF_REJECTED, CompatibilityError,
-    ENROLLMENT_INVALID, FORBIDDEN, IDENTITY_UNAVAILABLE, INTERNAL, INVALID_CREDENTIAL, NOT_FOUND,
-    UNAUTHENTICATED,
+    ENROLLMENT_INVALID, FORBIDDEN, IDENTITY_UNAVAILABLE, INTERNAL, INVALID_CREDENTIAL,
+    INVALID_VERSION, MAINTENANCE, NOT_FOUND, UNAUTHENTICATED, UPDATE_IN_PROGRESS,
+    UPDATES_UNAVAILABLE,
 };
 use axum::Json;
 use axum::http::StatusCode;
@@ -28,6 +29,10 @@ pub enum AppError {
     CredentialRevoked,
     /// Unknown, expired or used code: deliberately indistinguishable.
     EnrollmentInvalid,
+    UpdateInProgress(String),
+    Maintenance(String),
+    UpdatesUnavailable(String),
+    InvalidVersion(String),
     Internal,
 }
 
@@ -46,6 +51,11 @@ impl AppError {
                 StatusCode::UNAUTHORIZED
             }
             AppError::EnrollmentInvalid => StatusCode::BAD_REQUEST,
+            AppError::UpdateInProgress(_) => StatusCode::CONFLICT,
+            AppError::Maintenance(_) | AppError::UpdatesUnavailable(_) => {
+                StatusCode::SERVICE_UNAVAILABLE
+            }
+            AppError::InvalidVersion(_) => StatusCode::BAD_REQUEST,
             AppError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -70,6 +80,10 @@ impl AppError {
                 ENROLLMENT_INVALID,
                 "enrollment code is invalid, expired or already used".to_string(),
             ),
+            AppError::UpdateInProgress(m) => (UPDATE_IN_PROGRESS, m.clone()),
+            AppError::Maintenance(m) => (MAINTENANCE, m.clone()),
+            AppError::UpdatesUnavailable(m) => (UPDATES_UNAVAILABLE, m.clone()),
+            AppError::InvalidVersion(m) => (INVALID_VERSION, m.clone()),
             AppError::Internal => (INTERNAL, "internal server error".to_string()),
         };
         ApiError {
