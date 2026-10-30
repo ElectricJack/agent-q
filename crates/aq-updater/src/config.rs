@@ -174,9 +174,18 @@ impl UpdaterConfig {
         if let VerifierConfig::CosignKeyless {
             identity_regexp, ..
         } = &self.verifier
-            && let Err(e) = regex::Regex::new(identity_regexp)
         {
-            return bad(format!("verifier.identity_regexp does not compile: {e}"));
+            if let Err(e) = regex::Regex::new(identity_regexp) {
+                return bad(format!("verifier.identity_regexp does not compile: {e}"));
+            }
+            // cosign matches the regexp anywhere in the identity unless it
+            // is anchored: an unanchored pattern would also accept, say, a
+            // workflow in another repository whose URL contains this one.
+            if !identity_regexp.starts_with('^') || !identity_regexp.ends_with('$') {
+                return bad(
+                    "verifier.identity_regexp must be anchored: start with ^ and end with $".into(),
+                );
+            }
         }
         Ok(())
     }

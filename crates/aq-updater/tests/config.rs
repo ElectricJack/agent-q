@@ -41,6 +41,27 @@ fn maintenance_drain_may_be_zero() {
 }
 
 #[test]
+fn identity_regexp_must_be_anchored() {
+    for bad in [
+        r#""https://github\\.com/x$""#,
+        r#""^https://github\\.com/x""#,
+        r#""https://github\\.com/x""#,
+        r#""""#,
+    ] {
+        let cfg = BASE.replace(r#""^https://github\\.com/x$""#, bad);
+        assert_ne!(cfg, BASE, "{bad}: replacement did not apply");
+        let e = UpdaterConfig::parse(&cfg).unwrap_err();
+        assert!(e.to_string().contains("anchored"), "{bad}: {e}");
+    }
+    let production = BASE.replace(
+        r#""^https://github\\.com/x$""#,
+        r#"'^https://github\.com/ElectricJack/agent-q/\.github/workflows/release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'"#,
+    );
+    assert_ne!(production, BASE);
+    UpdaterConfig::parse(&production).unwrap();
+}
+
+#[test]
 fn config_rejects_unknown_key() {
     let e = UpdaterConfig::parse(&with("bogus = 1")).unwrap_err();
     assert!(e.to_string().contains("bogus"), "{e}");
