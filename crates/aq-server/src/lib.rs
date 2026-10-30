@@ -1,3 +1,4 @@
+pub mod admin_api;
 pub mod authz;
 pub mod config;
 pub mod error;

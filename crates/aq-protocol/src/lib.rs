@@ -15,6 +15,9 @@ pub const FORBIDDEN: &str = "forbidden";
 pub const UNAUTHENTICATED: &str = "unauthenticated";
 pub const CSRF_REJECTED: &str = "csrf_rejected";
 pub const IDENTITY_UNAVAILABLE: &str = "identity_unavailable";
+pub const NOT_FOUND: &str = "not_found";
+pub const BAD_REQUEST: &str = "bad_request";
+pub const CONFLICT: &str = "conflict";
 pub const INTERNAL: &str = "internal";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

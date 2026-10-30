@@ -89,27 +89,61 @@ impl FromRequestParts<AppState> for RequireOwner {
     }
 }
 
-/// Middleware for admin routes. Mutations need `X-AQ-Request: 1` (a custom
-/// header cannot be sent cross-origin without a CORS preflight, which this
-/// server never grants) and, if an `Origin` is sent, it must be our own.
+/// Applies the CSRF rules to a request: mutations need `X-AQ-Request: 1` (a
+/// custom header cannot be sent cross-origin without a CORS preflight, which
+/// this server never grants) and, if an `Origin` is sent, it must be our own.
+/// GET and HEAD are exempt, so their handlers must never change state.
+pub fn csrf_check(
+    state: &AppState,
+    method: &Method,
+    headers: &axum::http::HeaderMap,
+) -> Result<(), AppError> {
+    if matches!(*method, Method::GET | Method::HEAD) {
+        return Ok(());
+    }
+    let header_ok = headers
+        .get("x-aq-request")
+        .is_some_and(|v| v.as_bytes() == b"1");
+    if !header_ok {
+        return Err(AppError::CsrfRejected(
+            "missing X-AQ-Request: 1 header".into(),
+        ));
+    }
+    if let Some(origin) = headers.get("origin") {
+        let expected = state.config.server.public_origin.trim_end_matches('/');
+        if origin.as_bytes() != expected.as_bytes() {
+            return Err(AppError::CsrfRejected(
+                "request origin is not allowed".into(),
+            ));
+        }
+    }
+    Ok(())
+}
+
+/// Middleware form of [`csrf_check`] for routers that can be given state at
+/// construction (`from_fn_with_state`).
 ///
 /// GET and HEAD bypass this guard, so their handlers must never change state.
 pub async fn csrf_guard(State(state): State<AppState>, req: Request, next: Next) -> Response {
-    if !matches!(*req.method(), Method::GET | Method::HEAD) {
-        let header_ok = req
-            .headers()
-            .get("x-aq-request")
-            .is_some_and(|v| v.as_bytes() == b"1");
-        if !header_ok {
-            return AppError::CsrfRejected("missing X-AQ-Request: 1 header".into()).into_response();
-        }
-        if let Some(origin) = req.headers().get("origin") {
-            let expected = state.config.server.public_origin.trim_end_matches('/');
-            if origin.as_bytes() != expected.as_bytes() {
-                return AppError::CsrfRejected("request origin is not allowed".into())
-                    .into_response();
-            }
-        }
+    match csrf_check(&state, req.method(), req.headers()) {
+        Ok(()) => next.run(req).await,
+        Err(e) => e.into_response(),
     }
-    next.run(req).await
+}
+
+/// Extractor form of the CSRF check. `Router<AppState>` cannot carry a
+/// state-aware layer before state is supplied, so state-changing handlers take
+/// this as their FIRST argument (before auth, so a forged request is rejected
+/// before any identity work).
+pub struct CsrfChecked;
+
+impl FromRequestParts<AppState> for CsrfChecked {
+    type Rejection = AppError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        csrf_check(state, &parts.method, &parts.headers).map(|()| CsrfChecked)
+    }
 }

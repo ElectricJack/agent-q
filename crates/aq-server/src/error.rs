@@ -1,7 +1,8 @@
 //! API error type shared by all routes: a status code plus an `ApiError` body.
 
 use aq_protocol::{
-    ApiError, CSRF_REJECTED, FORBIDDEN, IDENTITY_UNAVAILABLE, INTERNAL, UNAUTHENTICATED,
+    ApiError, BAD_REQUEST, CONFLICT, CSRF_REJECTED, FORBIDDEN, IDENTITY_UNAVAILABLE, INTERNAL,
+    NOT_FOUND, UNAUTHENTICATED,
 };
 use axum::Json;
 use axum::http::StatusCode;
@@ -16,6 +17,9 @@ pub enum AppError {
     Forbidden(String),
     CsrfRejected(String),
     IdentityUnavailable(String),
+    NotFound(String),
+    BadRequest(String),
+    Conflict(String),
     Internal,
 }
 
@@ -25,6 +29,9 @@ impl AppError {
             AppError::Unauthenticated(_) => StatusCode::UNAUTHORIZED,
             AppError::Forbidden(_) | AppError::CsrfRejected(_) => StatusCode::FORBIDDEN,
             AppError::IdentityUnavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
+            AppError::NotFound(_) => StatusCode::NOT_FOUND,
+            AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
+            AppError::Conflict(_) => StatusCode::CONFLICT,
             AppError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
         }
     }
@@ -35,6 +42,9 @@ impl AppError {
             AppError::Forbidden(m) => (FORBIDDEN, m.clone()),
             AppError::CsrfRejected(m) => (CSRF_REJECTED, m.clone()),
             AppError::IdentityUnavailable(m) => (IDENTITY_UNAVAILABLE, m.clone()),
+            AppError::NotFound(m) => (NOT_FOUND, m.clone()),
+            AppError::BadRequest(m) => (BAD_REQUEST, m.clone()),
+            AppError::Conflict(m) => (CONFLICT, m.clone()),
             AppError::Internal => (INTERNAL, "internal server error".to_string()),
         };
         ApiError {
@@ -71,6 +81,9 @@ impl From<IdentityError> for AppError {
 
 impl From<StoreError> for AppError {
     fn from(e: StoreError) -> Self {
+        if matches!(e, StoreError::EmailTaken) {
+            return AppError::Conflict("a user with that email already exists".to_string());
+        }
         tracing::error!(error = %e, "store error");
         AppError::Internal
     }
