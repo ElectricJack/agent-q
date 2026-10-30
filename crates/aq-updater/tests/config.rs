@@ -27,6 +27,7 @@ fn defaults_apply() {
     assert_eq!(c.poll_interval_secs, 3600);
     assert_eq!(c.min_free_bytes, 2_147_483_648);
     assert_eq!(c.backups_keep, 5);
+    assert_eq!(c.expected_auth_mode, "cloudflare_access");
 }
 
 #[test]
@@ -53,6 +54,7 @@ fn rejects_out_of_range_numbers_and_names() {
         "readiness_deadline_secs = 1",
         "backups_keep = 0",
         r#"channel = """#,
+        r#"expected_auth_mode = """#,
         r#"release_repo = """#,
         r#"release_repo = "ghcr.io/x/y:stable""#,
         r#"release_repo = "ghcr.io/x/y@sha256:abc""#,
@@ -63,6 +65,8 @@ fn rejects_out_of_range_numbers_and_names() {
         assert!(UpdaterConfig::parse(&with(bad)).is_err(), "{bad} accepted");
     }
     assert!(UpdaterConfig::parse(&with("readiness_deadline_secs = 2")).is_ok());
+    let dev = UpdaterConfig::parse(&with(r#"expected_auth_mode = "dev""#)).unwrap();
+    assert_eq!(dev.expected_auth_mode, "dev");
     for good in [
         "127.0.0.1:5000/agent-q-release",
         "ghcr.io/electricjack/agent-q-release",

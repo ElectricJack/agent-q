@@ -93,6 +93,7 @@ impl H {
             readiness_deadline: Duration::from_secs(120),
             min_free_bytes: 2 * 1024 * 1024 * 1024,
             backups_keep: 5,
+            expected_auth_mode: "cloudflare_access".into(),
         }
     }
 
@@ -460,7 +461,7 @@ async fn readiness_version_mismatch_rolls_back() {
             protocol_min: 1,
             protocol_max: 1,
             database: "ok".into(),
-            auth_mode: "access".into(),
+            auth_mode: "cloudflare_access".into(),
         },
     );
     let r = e.install(req(B)).await.unwrap();
@@ -471,7 +472,7 @@ async fn readiness_version_mismatch_rolls_back() {
 }
 
 #[tokio::test]
-async fn readiness_checks_revision_database_and_protocol() {
+async fn readiness_checks_revision_database_protocol_and_auth() {
     let mk = |f: &dyn Fn(&mut ReadinessReport)| {
         let b = manifest(B, 1, &[1]);
         let mut r = ReadinessReport {
@@ -481,7 +482,7 @@ async fn readiness_checks_revision_database_and_protocol() {
             protocol_min: 1,
             protocol_max: 1,
             database: "ok".into(),
-            auth_mode: "access".into(),
+            auth_mode: "cloudflare_access".into(),
         };
         f(&mut r);
         r
@@ -494,6 +495,7 @@ async fn readiness_checks_revision_database_and_protocol() {
         ("state_format", mk(&|r| r.state_format = 2)),
         ("database", mk(&|r| r.database = "error".into())),
         ("protocol", mk(&|r| r.protocol_max = 2)),
+        ("auth_mode", mk(&|r| r.auth_mode = "dev".into())),
     ];
     for (what, report) in cases {
         let (h, mut e, _a) = with_a().await;
@@ -574,12 +576,16 @@ async fn failed_rollback_stops_with_needs_operator() {
         other => panic!("expected FailedNeedsOperator, got {other:?}"),
     }
 
-    // Nothing loops: a restart takes no automatic action and adds no entry.
+    // Nothing loops: a restart takes no runtime action and adds no entry,
+    // but makes sure maintenance is on even if the marker was lost.
     drop(e);
     h.fake.clear_log();
+    h.fake.set_maintenance(false);
     let mut e = h.engine();
     assert_eq!(e.recover().await.unwrap(), None);
-    assert!(h.fake.log().is_empty(), "{:?}", h.fake.log());
+    assert_eq!(h.fake.log(), vec!["enter".to_string()]);
+    assert!(h.fake.maintenance_on());
+    h.fake.clear_log();
     assert_eq!(
         h.history()
             .iter()
@@ -686,18 +692,24 @@ struct CrashCase {
     /// Rewrite the persisted journal before recovery (seed a state the
     /// engine itself never writes).
     rollback_attempted_override: Option<bool>,
+    /// The crash came after the outcome line was appended. With
+    /// `drop_history_line` the line is removed again, i.e. the crash landed
+    /// between the journal write and the history append.
+    recorded: bool,
+    drop_history_line: bool,
     outcome: Outcome,
     active: &'static str,
     maintenance_on: bool,
 }
 
-#[tokio::test]
-async fn recover_after_crash_at_each_step() {
-    let cases = [
+fn crash_cases() -> Vec<CrashCase> {
+    vec![
         CrashCase {
             step: Step::Requested,
             script: |f| f.crash("server_state_format", 0),
             rollback_attempted_override: None,
+            recorded: false,
+            drop_history_line: false,
             outcome: Outcome::Aborted,
             active: A,
             maintenance_on: false,
@@ -706,6 +718,8 @@ async fn recover_after_crash_at_each_step() {
             step: Step::Validated,
             script: |f| f.crash("free_bytes", 0),
             rollback_attempted_override: None,
+            recorded: false,
+            drop_history_line: false,
             outcome: Outcome::Aborted,
             active: A,
             maintenance_on: false,
@@ -714,6 +728,8 @@ async fn recover_after_crash_at_each_step() {
             step: Step::Pulled,
             script: |f| f.crash("pull", 0),
             rollback_attempted_override: None,
+            recorded: false,
+            drop_history_line: false,
             outcome: Outcome::Aborted,
             active: A,
             maintenance_on: false,
@@ -722,6 +738,8 @@ async fn recover_after_crash_at_each_step() {
             step: Step::Maintenance,
             script: |f| f.crash("enter", 0),
             rollback_attempted_override: None,
+            recorded: false,
+            drop_history_line: false,
             outcome: Outcome::Aborted,
             active: A,
             maintenance_on: false,
@@ -730,6 +748,8 @@ async fn recover_after_crash_at_each_step() {
             step: Step::BackedUp,
             script: |f| f.crash("backup", 0),
             rollback_attempted_override: None,
+            recorded: false,
+            drop_history_line: false,
             outcome: Outcome::Aborted,
             active: A,
             maintenance_on: false,
@@ -738,6 +758,8 @@ async fn recover_after_crash_at_each_step() {
             step: Step::Replacing,
             script: |f| f.crash("start_server", 0),
             rollback_attempted_override: None,
+            recorded: false,
+            drop_history_line: false,
             outcome: Outcome::RolledBack,
             active: A,
             maintenance_on: false,
@@ -746,16 +768,63 @@ async fn recover_after_crash_at_each_step() {
             step: Step::Probing,
             script: |f| f.crash("wait_healthy", 0),
             rollback_attempted_override: None,
+            recorded: false,
+            drop_history_line: false,
             outcome: Outcome::RolledBack,
             active: A,
             maintenance_on: false,
         },
+        // Swap persisted, crash before the history line: recovery finishes.
         CrashCase {
             step: Step::Active,
             script: |f| f.crash("leave", 0),
             rollback_attempted_override: None,
+            recorded: true,
+            drop_history_line: true,
             outcome: Outcome::Succeeded,
             active: B,
+            maintenance_on: false,
+        },
+        // Outcome recorded, crash after leave(): recovery only clears.
+        CrashCase {
+            step: Step::Active,
+            script: |f| f.crash_after("leave", 0),
+            rollback_attempted_override: None,
+            recorded: true,
+            drop_history_line: false,
+            outcome: Outcome::Succeeded,
+            active: B,
+            maintenance_on: false,
+        },
+        // Rollback finished and maintenance left, but the history line is
+        // missing: the engine cannot tell the rollback worked, so it stops
+        // for the operator and turns maintenance back on.
+        CrashCase {
+            step: Step::RollingBack,
+            script: |f| {
+                f.fail("wait_healthy", 0, "B unhealthy");
+                f.crash_after("leave", 0);
+            },
+            rollback_attempted_override: None,
+            recorded: true,
+            drop_history_line: true,
+            outcome: Outcome::FailedNeedsOperator,
+            active: A,
+            maintenance_on: true,
+        },
+        // Same crash with the line present: history is written before
+        // leave(), so the rollback is known to have worked.
+        CrashCase {
+            step: Step::RollingBack,
+            script: |f| {
+                f.fail("wait_healthy", 0, "B unhealthy");
+                f.crash_after("leave", 0);
+            },
+            rollback_attempted_override: None,
+            recorded: true,
+            drop_history_line: false,
+            outcome: Outcome::RolledBack,
+            active: A,
             maintenance_on: false,
         },
         // Crash during the rollback itself: never retried automatically.
@@ -766,6 +835,8 @@ async fn recover_after_crash_at_each_step() {
                 f.crash("start_server", 1);
             },
             rollback_attempted_override: None,
+            recorded: false,
+            drop_history_line: false,
             outcome: Outcome::FailedNeedsOperator,
             active: A,
             maintenance_on: true,
@@ -775,11 +846,20 @@ async fn recover_after_crash_at_each_step() {
             step: Step::RollingBack,
             script: |f| f.crash("wait_healthy", 0),
             rollback_attempted_override: Some(false),
+            recorded: false,
+            drop_history_line: false,
             outcome: Outcome::RolledBack,
             active: A,
             maintenance_on: false,
         },
-    ];
+    ]
+}
+
+/// Crash right after each persisted step of an A -> B install, restart, and
+/// check what recovery concludes. B has `b_format`; when it differs from A's
+/// (1), B migrates the data and every rollback must restore it.
+async fn run_crash_table(b_format: u32, b_readable: &[u32]) {
+    let cases = crash_cases();
     // Every persisted step is covered.
     for s in [
         Step::Requested,
@@ -797,11 +877,11 @@ async fn recover_after_crash_at_each_step() {
 
     for c in &cases {
         let label = format!(
-            "{:?} (override {:?})",
-            c.step, c.rollback_attempted_override
+            "B format {b_format}: {:?} (override {:?}, recorded {}, dropped {})",
+            c.step, c.rollback_attempted_override, c.recorded, c.drop_history_line
         );
-        let (h, mut e, _a) = with_a().await;
-        let b = manifest(B, 1, &[1]);
+        let (h, mut e, a) = with_a().await;
+        let b = manifest(B, b_format, b_readable);
         h.publish(&b);
         (c.script)(&h.fake);
         let request = req(B);
@@ -825,14 +905,30 @@ async fn recover_after_crash_at_each_step() {
             let mut j = Journal::open(lock(&h.state_dir).unwrap()).unwrap();
             j.record(on_disk.clone()).unwrap();
         }
+        if c.drop_history_line {
+            let path = h.state_dir.join("history.jsonl");
+            let text = std::fs::read_to_string(&path).unwrap();
+            let mut lines: Vec<&str> = text.lines().collect();
+            let last: HistoryEntry = serde_json::from_str(lines.pop().unwrap()).unwrap();
+            assert_eq!(last.request_id, Some(request.id), "{label}: dropped line");
+            let rest: String = lines.iter().map(|l| format!("{l}\n")).collect();
+            std::fs::write(&path, rest).unwrap();
+        }
+        let kept = c.recorded && !c.drop_history_line;
         let history_before = h.history().len();
+        h.fake.clear_log();
 
         let mut e = h.engine();
-        let out = e
-            .recover()
-            .await
-            .unwrap()
-            .unwrap_or_else(|| panic!("{label}: no outcome"));
+        let out = match e.recover().await.unwrap() {
+            Some(out) => {
+                assert!(!kept, "{label}: outcome was already recorded");
+                out
+            }
+            None => {
+                assert!(kept, "{label}: no outcome");
+                h.history()[0].clone()
+            }
+        };
         assert_eq!(out.outcome, c.outcome, "{label}: {}", out.detail);
         assert_eq!(out.request_id, Some(request.id), "{label}");
         assert_eq!(active_version(&e), Some(ver(c.active)), "{label}");
@@ -850,6 +946,27 @@ async fn recover_after_crash_at_each_step() {
                 Some(active_image),
                 "{label}: active running"
             );
+            let active_format = e.journal_state().active.as_ref().unwrap().state_format;
+            assert_eq!(h.fake.db_format(), Some(active_format), "{label}: data");
+        }
+        // When recovery itself rolled back, check how.
+        if c.outcome == Outcome::RolledBack && !kept {
+            let log = h.fake.log();
+            let start_a = h
+                .fake
+                .position(&format!("start_server {}", a.images.server))
+                .unwrap_or_else(|| panic!("{label}: A not started: {log:?}"));
+            if b_format != a.state_format {
+                // B may have migrated the data: restore before starting A.
+                let stop = h.fake.position("stop_server");
+                let restore = h.fake.position("restore");
+                assert!(
+                    stop.is_some_and(|s| restore.is_some_and(|r| s < r && r < start_a)),
+                    "{label}: expected stop, restore, start(A): {log:?}"
+                );
+            } else {
+                assert_eq!(h.fake.count("restore"), 0, "{label}: {log:?}");
+            }
         }
         assert_eq!(
             h.fake.maintenance_on(),
@@ -862,15 +979,27 @@ async fn recover_after_crash_at_each_step() {
             "{label}: in-flight cleared"
         );
         // Exactly one history entry per terminal outcome.
-        assert_eq!(h.history().len(), history_before + 1, "{label}");
+        let added = if kept { 0 } else { 1 };
+        assert_eq!(h.history().len(), history_before + added, "{label}");
         assert_eq!(h.history()[0], out, "{label}");
 
         // A second restart is a no-op.
         drop(e);
         let mut e = h.engine();
         assert_eq!(e.recover().await.unwrap(), None, "{label}: second recover");
-        assert_eq!(h.history().len(), history_before + 1, "{label}");
+        assert_eq!(h.history().len(), history_before + added, "{label}");
+        assert_eq!(h.fake.maintenance_on(), c.maintenance_on, "{label}");
     }
+}
+
+#[tokio::test]
+async fn recover_after_crash_at_each_step() {
+    run_crash_table(1, &[1]).await;
+}
+
+#[tokio::test]
+async fn recover_after_crash_at_each_step_with_state_format_change() {
+    run_crash_table(2, &[1, 2]).await;
 }
 
 #[tokio::test]
@@ -1102,4 +1231,275 @@ fn install_future_is_send() {
     assert_send(e.install(req(A)));
     assert_send(e.recover());
     assert_send(e.restore_previous(false));
+}
+
+#[tokio::test]
+async fn auth_mode_must_match_settings() {
+    // Matching mode passes.
+    let h = H::new();
+    h.publish(&manifest(A, 1, &[1]));
+    h.fake.set_auth_mode("dev");
+    let settings = EngineSettings {
+        expected_auth_mode: "dev".into(),
+        ..h.settings()
+    };
+    let mut e = h.engine_with(settings);
+    let r = e.install(req(A)).await.unwrap();
+    assert_eq!(r.outcome, Outcome::Succeeded, "{}", r.detail);
+
+    // B comes up with dev auth where Access is expected: rolled back.
+    let (h, mut e, a) = with_a().await;
+    let b = manifest(B, 1, &[1]);
+    h.publish(&b);
+    h.fake.set_report(
+        &b.images.server,
+        ReadinessReport {
+            version: ver(B),
+            source_revision: b.source_revision.clone(),
+            state_format: 1,
+            protocol_min: 1,
+            protocol_max: 1,
+            database: "ok".into(),
+            auth_mode: "dev".into(),
+        },
+    );
+    let r = e.install(req(B)).await.unwrap();
+    assert_eq!(r.outcome, Outcome::RolledBack, "{}", r.detail);
+    assert!(r.detail.contains("auth_mode"), "{}", r.detail);
+    assert_eq!(h.fake.running().unwrap(), a.images.server);
+}
+
+#[tokio::test]
+async fn unknown_recorded_outcome_holds_for_operator() {
+    let (h, mut e, _a) = with_a().await;
+    h.publish(&manifest(B, 1, &[1]));
+    h.fake.crash("wait_healthy", 0);
+    let request = req(B);
+    assert!(e.install(request.clone()).await.is_err());
+    drop(e);
+    // A newer updater recorded an outcome this one does not know.
+    let line = serde_json::json!({
+        "request_id": request.id,
+        "from": A,
+        "to": B,
+        "outcome": "some_future_outcome",
+        "detail": "?",
+        "started_at": Utc::now(),
+        "finished_at": Utc::now()
+    });
+    let path = h.state_dir.join("history.jsonl");
+    let mut text = std::fs::read_to_string(&path).unwrap();
+    text.push_str(&format!("{line}\n"));
+    std::fs::write(&path, text).unwrap();
+    h.fake.clear_log();
+
+    let mut e = h.engine();
+    let out = e.recover().await.unwrap().unwrap();
+    assert_eq!(out.outcome, Outcome::FailedNeedsOperator, "{}", out.detail);
+    assert_eq!(h.fake.log(), vec!["enter".to_string()], "no runtime action");
+    assert!(h.fake.maintenance_on());
+    let cur = e.journal_state().current.clone().expect("current kept");
+    assert!(cur.rollback_attempted);
+    assert!(matches!(
+        e.status().state,
+        UpdateState::FailedNeedsOperator { .. }
+    ));
+    drop(e);
+    let mut e = h.engine();
+    assert_eq!(e.recover().await.unwrap(), None);
+}
+
+/// Crash points inside `restore_previous(true)` from B (format 2) back to A
+/// (format 1); recovery must leave a consistent release and its data.
+#[tokio::test]
+async fn restore_previous_recovers_after_crash() {
+    struct Case {
+        name: &'static str,
+        script: fn(&FakeRuntime),
+        step: Step,
+        outcome: Outcome,
+        active: &'static str,
+    }
+    let cases = [
+        Case {
+            name: "after backup started",
+            script: |f| f.crash("backup", 0),
+            step: Step::BackedUp,
+            outcome: Outcome::Aborted,
+            active: B,
+        },
+        Case {
+            name: "after restore(active_backup), before start_server(A)",
+            script: |f| f.crash("start_server", 0),
+            step: Step::Replacing,
+            outcome: Outcome::RolledBack,
+            active: B,
+        },
+        Case {
+            name: "while probing A",
+            script: |f| f.crash("wait_healthy", 0),
+            step: Step::Probing,
+            outcome: Outcome::RolledBack,
+            active: B,
+        },
+        Case {
+            name: "after the swap",
+            script: |f| f.crash("leave", 0),
+            step: Step::Active,
+            outcome: Outcome::Succeeded,
+            active: A,
+        },
+    ];
+    for c in cases {
+        let (h, mut e, a) = with_a().await;
+        let b = manifest(B, 2, &[1, 2]);
+        h.publish(&b);
+        assert_eq!(e.install(req(B)).await.unwrap().outcome, Outcome::Succeeded);
+        let a_backup = e.journal_state().active_backup.clone().unwrap();
+        h.fake.clear_log();
+        (c.script)(&h.fake);
+        assert!(e.restore_previous(true).await.is_err(), "{}: crash", c.name);
+        if c.step == Step::Replacing {
+            assert!(
+                h.fake
+                    .position(&format!("restore {}", a_backup.display()))
+                    .is_some()
+            );
+            assert_eq!(h.fake.db_format(), Some(1), "{}: A's data restored", c.name);
+        }
+        drop(e);
+        let cur = Journal::read(&h.state_dir).unwrap().current.unwrap();
+        assert_eq!(cur.step, c.step, "{}", c.name);
+
+        h.fake.clear_log();
+        let mut e = h.engine();
+        // A crash in leave() comes after the outcome line: nothing to redo.
+        let out = match e.recover().await.unwrap() {
+            Some(out) => out,
+            None if c.step == Step::Active => h.history()[0].clone(),
+            None => panic!("{}: no outcome", c.name),
+        };
+        assert_eq!(out.outcome, c.outcome, "{}: {}", c.name, out.detail);
+        assert_eq!(active_version(&e), Some(ver(c.active)), "{}", c.name);
+        let (image, format) = if c.active == A {
+            (&a.images.server, 1)
+        } else {
+            (&b.images.server, 2)
+        };
+        assert_eq!(h.fake.running().as_ref(), Some(image), "{}", c.name);
+        assert_eq!(h.fake.db_format(), Some(format), "{}: data", c.name);
+        assert!(!h.fake.maintenance_on(), "{}", c.name);
+        assert!(e.journal_state().current.is_none(), "{}", c.name);
+        if c.outcome == Outcome::RolledBack {
+            // B's data comes back from the fresh pre-restore backup.
+            let log = h.fake.log();
+            let stop = h.fake.position("stop_server").unwrap();
+            let restore = h.fake.position("restore").unwrap();
+            let start_b = h
+                .fake
+                .position(&format!("start_server {}", b.images.server))
+                .unwrap();
+            assert!(stop < restore && restore < start_b, "{}: {log:?}", c.name);
+            assert_ne!(log[restore], format!("restore {}", a_backup.display()));
+            assert_eq!(e.journal_state().active_backup.as_ref(), Some(&a_backup));
+        }
+        if c.outcome == Outcome::Succeeded {
+            assert!(e.journal_state().active_backup.is_none(), "{}", c.name);
+        }
+    }
+}
+
+#[tokio::test]
+async fn first_install_recovers_after_crash() {
+    struct Case {
+        script: fn(&FakeRuntime),
+        step: Step,
+        outcome: Outcome,
+        installed: bool,
+    }
+    let cases = [
+        Case {
+            script: |f| f.crash("pull", 0),
+            step: Step::Pulled,
+            outcome: Outcome::Aborted,
+            installed: false,
+        },
+        Case {
+            script: |f| f.crash("wait_healthy", 0),
+            step: Step::Probing,
+            outcome: Outcome::Aborted,
+            installed: false,
+        },
+        Case {
+            script: |f| f.crash("leave", 0),
+            step: Step::Active,
+            outcome: Outcome::Succeeded,
+            installed: true,
+        },
+    ];
+    for c in cases {
+        let h = H::new();
+        let a = manifest(A, 1, &[1]);
+        h.publish(&a);
+        (c.script)(&h.fake);
+        let mut e = h.engine();
+        assert!(e.install(req(A)).await.is_err());
+        drop(e);
+        assert_eq!(
+            Journal::read(&h.state_dir).unwrap().current.unwrap().step,
+            c.step
+        );
+        h.fake.clear_log();
+        let mut e = h.engine();
+        let out = match e.recover().await.unwrap() {
+            Some(out) => out,
+            None if c.step == Step::Active => h.history()[0].clone(),
+            None => panic!("{:?}: no outcome", c.step),
+        };
+        assert_eq!(out.outcome, c.outcome, "{:?}: {}", c.step, out.detail);
+        assert_eq!(
+            e.journal_state().active.is_some(),
+            c.installed,
+            "{:?}",
+            c.step
+        );
+        assert!(e.journal_state().current.is_none());
+        assert!(!h.fake.maintenance_on());
+        if c.installed {
+            assert_eq!(h.fake.running().unwrap(), a.images.server);
+        } else {
+            // Nothing to roll back to: no release left running, none started.
+            assert!(h.fake.running().is_none(), "{:?}", c.step);
+            assert_eq!(h.fake.count("start_server"), 0, "{:?}", c.step);
+        }
+    }
+}
+
+#[tokio::test]
+async fn restore_previous_refuses_missing_backup_file_without_downtime() {
+    let (h, mut e, _a) = with_a().await;
+    h.publish(&manifest(B, 2, &[1, 2]));
+    assert_eq!(e.install(req(B)).await.unwrap().outcome, Outcome::Succeeded);
+    let backup = e.journal_state().active_backup.clone().unwrap();
+    std::fs::remove_file(&backup).unwrap();
+    h.fake.clear_log();
+    let r = e.restore_previous(true).await.unwrap();
+    assert_eq!(r.outcome, Outcome::Refused, "{}", r.detail);
+    assert!(r.detail.contains("missing"), "{}", r.detail);
+    assert!(h.fake.log().is_empty(), "{:?}", h.fake.log());
+    assert!(e.journal_state().current.is_none());
+}
+
+#[tokio::test]
+async fn restore_previous_refuses_unreadable_current_data() {
+    let (h, mut e, _a) = with_a().await;
+    h.publish(&manifest(B, 1, &[1]));
+    assert_eq!(e.install(req(B)).await.unwrap().outcome, Outcome::Succeeded);
+    // Same manifest format, but the database says 3, which A cannot read.
+    h.fake.set_db_format(Some(3));
+    h.fake.clear_log();
+    let r = e.restore_previous(false).await.unwrap();
+    assert_eq!(r.outcome, Outcome::Refused, "{}", r.detail);
+    assert!(r.detail.contains("state format 3"), "{}", r.detail);
+    assert_eq!(h.fake.log(), vec!["server_state_format".to_string()]);
 }

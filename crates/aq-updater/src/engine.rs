@@ -47,6 +47,8 @@ pub struct EngineSettings {
     pub readiness_deadline: Duration,
     pub min_free_bytes: u64,
     pub backups_keep: usize,
+    /// The `auth_mode` a healthy release must report (spec step 6).
+    pub expected_auth_mode: String,
 }
 
 impl EngineSettings {
@@ -56,6 +58,7 @@ impl EngineSettings {
             readiness_deadline: Duration::from_secs(cfg.readiness_deadline_secs),
             min_free_bytes: cfg.min_free_bytes,
             backups_keep: cfg.backups_keep,
+            expected_auth_mode: cfg.expected_auth_mode.clone(),
         }
     }
 }
@@ -85,6 +88,14 @@ fn rt<T>(r: Result<T, RuntimeError>) -> Check<T> {
         Err(RuntimeError::Failed(m)) => Ok(Err(m)),
         Err(RuntimeError::Interrupted(m)) => Err(Halted(m)),
     }
+}
+
+/// What history says about an in-flight request.
+enum Recorded {
+    Nothing,
+    Entry(HistoryEntry),
+    /// History could not be read: the outcome cannot be told.
+    Unreadable(String),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -117,9 +128,13 @@ fn summary(m: &ReleaseManifest) -> ReleaseSummary {
     }
 }
 
-/// A readiness report passes only if it describes exactly `m` and the
-/// database is reachable.
-pub fn check_ready(r: &ReadinessReport, m: &ReleaseManifest) -> Result<(), String> {
+/// A readiness report passes only if it describes exactly `m`, the database
+/// is reachable, and authentication is configured as `auth_mode`.
+pub fn check_ready(
+    r: &ReadinessReport,
+    m: &ReleaseManifest,
+    auth_mode: &str,
+) -> Result<(), String> {
     let mut bad = Vec::new();
     if r.version != m.version {
         bad.push(format!("version {} (expected {})", r.version, m.version));
@@ -143,6 +158,12 @@ pub fn check_ready(r: &ReadinessReport, m: &ReleaseManifest) -> Result<(), Strin
         bad.push(format!(
             "protocol {}..{} (expected {}..{})",
             r.protocol_min, r.protocol_max, m.protocol.min, m.protocol.max
+        ));
+    }
+    if r.auth_mode != auth_mode {
+        bad.push(format!(
+            "auth_mode {:?} (expected {auth_mode:?})",
+            r.auth_mode
         ));
     }
     if bad.is_empty() {
@@ -218,27 +239,31 @@ async fn replace<R: Runtime>(
         .map_err(|e| format!("start_server: {e}")))
 }
 
-async fn probe<R: Runtime>(runtime: &R, deadline: Duration, m: &ReleaseManifest) -> Check {
-    if let Err(e) = rt(runtime.wait_healthy(deadline).await)? {
+async fn probe<R: Runtime>(runtime: &R, cfg: &EngineSettings, m: &ReleaseManifest) -> Check {
+    if let Err(e) = rt(runtime.wait_healthy(cfg.readiness_deadline).await)? {
         return Ok(Err(format!("wait_healthy: {e}")));
     }
     match rt(runtime.readiness().await)? {
-        Ok(report) => Ok(check_ready(&report, m)),
+        Ok(report) => Ok(check_ready(&report, m, &cfg.expected_auth_mode)),
         Err(e) => Ok(Err(format!("readiness: {e}"))),
     }
 }
 
-async fn ensure_running<R: Runtime>(runtime: &R, deadline: Duration, m: &ReleaseManifest) -> Check {
+async fn ensure_running<R: Runtime>(
+    runtime: &R,
+    cfg: &EngineSettings,
+    m: &ReleaseManifest,
+) -> Check {
     if let Err(e) = rt(runtime.start_server(&m.images.server).await)? {
         return Ok(Err(format!("start_server: {e}")));
     }
-    probe(runtime, deadline, m).await
+    probe(runtime, cfg, m).await
 }
 
 /// Stop, restore the in-flight backup if needed, start `active`, probe.
 async fn bring_back<R: Runtime>(
     runtime: &R,
-    deadline: Duration,
+    cfg: &EngineSettings,
     cur: &InFlight,
     active: &ReleaseManifest,
 ) -> Check {
@@ -253,7 +278,7 @@ async fn bring_back<R: Runtime>(
             return Ok(Err(format!("restore of {}: {e}", backup.display())));
         }
     }
-    ensure_running(runtime, deadline, active).await
+    ensure_running(runtime, cfg, active).await
 }
 
 pub struct Engine<R: Runtime, V: ReleaseVerifier> {
@@ -307,16 +332,13 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
             // still in flight means the rollback failed (or was cut short,
             // which recovery also turns into this state).
             Some(c) if c.rollback_attempted => UpdateState::FailedNeedsOperator {
-                detail: self
-                    .recorded_outcome(c.request_id)
-                    .filter(|e| e.outcome == Outcome::FailedNeedsOperator)
-                    .map(|e| e.detail)
-                    .unwrap_or_else(|| {
-                        format!(
-                            "the rollback after the failed update to {} did not complete",
-                            c.target.version
-                        )
-                    }),
+                detail: match self.recorded_outcome(c.request_id) {
+                    Recorded::Entry(e) if e.outcome == Outcome::FailedNeedsOperator => e.detail,
+                    _ => format!(
+                        "the rollback after the failed update to {} did not complete",
+                        c.target.version
+                    ),
+                },
             },
             Some(c) => UpdateState::InProgress {
                 request_id: c.request_id,
@@ -368,7 +390,7 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
                 ));
             }
         };
-        if let Err(e) = self.verifier.verify(&manifest, &bundle) {
+        if let Err(e) = self.verifier.verify(&manifest, &bundle).await {
             return self.log_only(entry(Outcome::Refused, format!("verification failed: {e}")));
         }
         let target = match ReleaseManifest::from_json(&manifest) {
@@ -465,6 +487,20 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
                     ),
                 ));
             };
+            if !matches!(backup.try_exists(), Ok(true)) {
+                return self.log_only(refuse(
+                    to,
+                    format!(
+                        "{} uses state format {} but {} uses {}, and the backup of {}'s data ({}) is missing; it cannot be restored automatically",
+                        prev.version,
+                        prev.state_format,
+                        active.version,
+                        active.state_format,
+                        prev.version,
+                        backup.display()
+                    ),
+                ));
+            }
             if !allow_restore {
                 return self.log_only(refuse(
                     to,
@@ -479,6 +515,28 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
                         active.version
                     ),
                 ));
+            }
+        } else {
+            // No restore: `prev` runs on the data as it is now, so it must be
+            // able to read it (as `install` checks). With a restore the data
+            // is replaced by the backup `prev` last ran on.
+            match rt(self.runtime.server_state_format().await)? {
+                Ok(Some(found)) if !prev.readable_state_formats.contains(&found) => {
+                    return self.log_only(refuse(
+                        to,
+                        format!(
+                            "installed data uses state format {found}, which {} reads only as {:?}; it cannot be restored without a compatible backup",
+                            prev.version, prev.readable_state_formats
+                        ),
+                    ));
+                }
+                Ok(_) => {}
+                Err(e) => {
+                    return self.log_only(refuse(
+                        to,
+                        format!("cannot read the installed state format: {e}"),
+                    ));
+                }
             }
         }
         let cur = InFlight {
@@ -517,6 +575,21 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
             let e = refuse("no active release is recorded to restore".into());
             return self.log_only(e);
         };
+        if cur.needs_restore_on_rollback
+            && !cur
+                .backup
+                .as_ref()
+                .is_some_and(|b| matches!(b.try_exists(), Ok(true)))
+        {
+            let e = refuse(format!(
+                "bringing back {} needs the pre-update backup {}, which is missing; restore the database by hand",
+                active.version,
+                cur.backup
+                    .as_ref()
+                    .map_or("<none recorded>".into(), |b| b.display().to_string())
+            ));
+            return self.log_only(e);
+        }
         if cur.needs_restore_on_rollback && !allow_restore {
             let backup = cur
                 .backup
@@ -528,14 +601,7 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
             ));
             return self.log_only(e);
         }
-        match bring_back(
-            &self.runtime,
-            self.settings.readiness_deadline,
-            &cur,
-            &active,
-        )
-        .await?
-        {
+        match bring_back(&self.runtime, &self.settings, &cur, &active).await? {
             Ok(()) => {
                 let detail = format!(
                     "operator restore: {} is running again after the failed update to {}",
@@ -566,15 +632,39 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
             }
             return Ok(None);
         };
-        if let Some(done) = self.recorded_outcome(cur.request_id) {
-            if done.outcome != Outcome::FailedNeedsOperator {
+        match self.recorded_outcome(cur.request_id) {
+            Recorded::Nothing => {}
+            Recorded::Entry(done) if done.outcome == Outcome::FailedNeedsOperator => {
+                // Already waiting for the operator; make sure maintenance is on.
+                if let Err(e) = rt(self.maintenance.enter())? {
+                    tracing::warn!(error = %e, "cannot enter maintenance");
+                }
+                return Ok(None);
+            }
+            Recorded::Entry(done) if done.outcome == Outcome::Unknown => {
+                let detail = format!(
+                    "history holds an outcome this updater does not understand for the update to {}; it cannot tell what happened. {}",
+                    cur.target.version,
+                    Self::operator_steps(&cur)
+                );
+                return Ok(Some(self.hold_for_operator(cur, detail)?));
+            }
+            Recorded::Entry(_) => {
                 // Outcome recorded, journal not yet cleared.
                 if let Err(e) = rt(self.maintenance.leave())? {
                     tracing::warn!(error = %e, "cannot clear the maintenance marker");
                 }
                 self.clear_current()?;
+                return Ok(None);
             }
-            return Ok(None);
+            Recorded::Unreadable(e) => {
+                let detail = format!(
+                    "history is unreadable ({e}), so whether the update to {} already finished cannot be told. {}",
+                    cur.target.version,
+                    Self::operator_steps(&cur)
+                );
+                return Ok(Some(self.hold_for_operator(cur, detail)?));
+            }
         }
         let why = format!("interrupted at step {}", step_name(cur.step));
         let entry = match (cur.step, cur.rollback_attempted) {
@@ -628,7 +718,7 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
     ) -> Res<HistoryEntry> {
         let mut detail = format!("{why}; update to {} abandoned", cur.target.version);
         if let Some(active) = self.journal.state().active.clone() {
-            match ensure_running(&self.runtime, self.settings.readiness_deadline, &active).await? {
+            match ensure_running(&self.runtime, &self.settings, &active).await? {
                 Ok(()) => detail.push_str(&format!("; {} is running", active.version)),
                 Err(e) => detail.push_str(&format!(
                     "; warning: {} did not pass its readiness check: {e}",
@@ -750,9 +840,7 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
 
         // Probing.
         self.set_step(&mut cur, Step::Probing)?;
-        if let Err(check) =
-            probe(&self.runtime, self.settings.readiness_deadline, &cur.target).await?
-        {
+        if let Err(check) = probe(&self.runtime, &self.settings, &cur.target).await? {
             return self.fail_forward(cur, check).await;
         }
 
@@ -817,14 +905,7 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
         cur.step = Step::RollingBack;
         cur.rollback_attempted = true;
         self.persist(&cur)?;
-        match bring_back(
-            &self.runtime,
-            self.settings.readiness_deadline,
-            &cur,
-            &active,
-        )
-        .await?
-        {
+        match bring_back(&self.runtime, &self.settings, &cur, &active).await? {
             Ok(()) => {
                 let restored = if cur.needs_restore_on_rollback {
                     " and its data restored from the pre-update backup"
@@ -912,36 +993,51 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
         Ok(entry)
     }
 
-    /// Terminal outcome: optionally leave maintenance, record history, then
-    /// clear `current`.
-    fn conclude(&mut self, mut entry: HistoryEntry, leave: bool) -> Res<HistoryEntry> {
-        if leave && let Err(e) = rt(self.maintenance.leave())? {
-            tracing::warn!(error = %e, "cannot leave maintenance");
-            entry
-                .detail
-                .push_str(&format!("; warning: could not leave maintenance: {e}"));
-        }
+    /// Terminal outcome: record history, optionally leave maintenance, then
+    /// clear `current`. History comes first: until the outcome is recorded a
+    /// crash must leave maintenance on (recovery may decide
+    /// `FailedNeedsOperator`); once it is recorded, recovery only finishes
+    /// the leave and the clear.
+    fn conclude(&mut self, entry: HistoryEntry, leave: bool) -> Res<HistoryEntry> {
         self.journal.append_history(entry.clone())?;
+        if leave && let Err(e) = rt(self.maintenance.leave())? {
+            tracing::warn!(error = %e, "cannot leave maintenance; recovery at the next start clears it");
+        }
         self.clear_current()?;
         Ok(entry)
     }
 
-    /// Record `FailedNeedsOperator`; `current` and maintenance stay as they are.
-    fn needs_operator(&mut self, cur: &InFlight, detail: String) -> Res<HistoryEntry> {
+    /// Record `FailedNeedsOperator`: maintenance is (re-)entered and
+    /// `current` is kept.
+    fn needs_operator(&mut self, cur: &InFlight, mut detail: String) -> Res<HistoryEntry> {
+        if let Err(e) = rt(self.maintenance.enter())? {
+            tracing::warn!(error = %e, "cannot enter maintenance");
+            detail.push_str(&format!(" Warning: could not enter maintenance: {e}"));
+        }
         let entry = self.op_entry(cur, Outcome::FailedNeedsOperator, detail);
         self.journal.append_history(entry.clone())?;
         Ok(entry)
     }
 
-    /// The newest non-`Rejected` history entry for `request_id`, if any.
-    fn recorded_outcome(&self, request_id: Uuid) -> Option<HistoryEntry> {
+    /// "Cannot tell what happened": stop automatic action for this update
+    /// (marked as if its rollback had been attempted, so status shows it and
+    /// `restore_previous` can retry) and wait for the operator.
+    fn hold_for_operator(&mut self, mut cur: InFlight, detail: String) -> Res<HistoryEntry> {
+        cur.rollback_attempted = true;
+        self.persist(&cur)?;
+        self.needs_operator(&cur, detail)
+    }
+
+    /// The newest non-`Rejected` history entry for `request_id`.
+    fn recorded_outcome(&self, request_id: Uuid) -> Recorded {
         match self.journal.recent_history(usize::MAX) {
             Ok(h) => h
                 .into_iter()
-                .find(|e| e.request_id == Some(request_id) && e.outcome != Outcome::Rejected),
+                .find(|e| e.request_id == Some(request_id) && e.outcome != Outcome::Rejected)
+                .map_or(Recorded::Nothing, Recorded::Entry),
             Err(e) => {
                 tracing::warn!(error = %e, "cannot read update history");
-                None
+                Recorded::Unreadable(e.to_string())
             }
         }
     }

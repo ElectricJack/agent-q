@@ -57,6 +57,9 @@ pub struct UpdaterConfig {
     pub min_free_bytes: u64,
     #[serde(default = "d_keep")]
     pub backups_keep: usize,
+    /// The `auth_mode` a release's readiness report must show.
+    #[serde(default = "d_auth_mode")]
+    pub expected_auth_mode: String,
 }
 
 fn d_repo() -> String {
@@ -76,6 +79,9 @@ fn d_free() -> u64 {
 }
 fn d_keep() -> usize {
     5
+}
+fn d_auth_mode() -> String {
+    "cloudflare_access".into()
 }
 
 impl UpdaterConfig {
@@ -127,6 +133,9 @@ impl UpdaterConfig {
         }
         if self.backups_keep < 1 {
             return bad("backups_keep must be >= 1 (0 could prune the rollback backup)".into());
+        }
+        if self.expected_auth_mode.is_empty() {
+            return bad("expected_auth_mode must not be empty".into());
         }
         if self.channel.is_empty() {
             return bad("channel must not be empty".into());

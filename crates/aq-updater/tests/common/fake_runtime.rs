@@ -4,8 +4,10 @@
 //!
 //! Failures are keyed by method name and per-method call index (0-based,
 //! reset by `clear_log`). `fail` returns `RuntimeError::Failed`; `crash`
-//! returns `RuntimeError::Interrupted`, which makes the engine stop with the
-//! journal as written, like a killed process.
+//! returns `RuntimeError::Interrupted` before the call has any effect, which
+//! makes the engine stop with the journal as written, like a killed process;
+//! `crash_after` lets the call take effect and then reports the crash (the
+//! process died right after the action, before its result was seen).
 //!
 //! The fake models a host: which server image is running and which state
 //! format the database holds. Starting a release whose readable formats
@@ -31,6 +33,7 @@ pub const STATE_FORMAT_LABEL: &str = "io.agent-q.state-format";
 enum Script {
     Fail(String),
     Crash,
+    CrashAfter,
 }
 
 struct Inner {
@@ -47,6 +50,9 @@ struct Inner {
     running: Option<String>,
     db_format: Option<u32>,
     maintenance: bool,
+    auth_mode: String,
+    /// Set by a `CrashAfter` script; reported when the call finishes.
+    pending_crash: Option<String>,
 }
 
 #[derive(Clone)]
@@ -68,6 +74,8 @@ impl Default for FakeRuntime {
             running: None,
             db_format: None,
             maintenance: false,
+            auth_mode: "cloudflare_access".into(),
+            pending_crash: None,
         })))
     }
 }
@@ -91,9 +99,21 @@ impl FakeRuntime {
         match i.scripts.get(&(method.to_string(), idx)) {
             None => Ok(()),
             Some(Script::Fail(m)) => Err(RuntimeError::Failed(format!("{method}: {m}"))),
+            Some(Script::CrashAfter) => {
+                i.pending_crash = Some(format!("simulated crash after {method}"));
+                Ok(())
+            }
             Some(Script::Crash) => Err(RuntimeError::Interrupted(format!(
                 "simulated crash in {method}"
             ))),
+        }
+    }
+
+    /// Report a `crash_after` once the call's effect has been applied.
+    fn finish<T>(&self, r: Result<T, RuntimeError>) -> Result<T, RuntimeError> {
+        match self.inner().pending_crash.take() {
+            Some(m) => Err(RuntimeError::Interrupted(m)),
+            None => r,
         }
     }
 
@@ -111,6 +131,22 @@ impl FakeRuntime {
         self.inner()
             .scripts
             .insert((method.into(), idx), Script::Crash);
+    }
+
+    /// Let `method`'s `idx`-th call take effect, then "crash".
+    pub fn crash_after(&self, method: &str, idx: usize) {
+        self.inner()
+            .scripts
+            .insert((method.into(), idx), Script::CrashAfter);
+    }
+
+    pub fn set_auth_mode(&self, mode: &str) {
+        self.inner().auth_mode = mode.into();
+    }
+
+    /// Change the marker behind the engine's back (e.g. an operator removed it).
+    pub fn set_maintenance(&self, on: bool) {
+        self.inner().maintenance = on;
     }
 
     /// Publish a release: fetchable by version, startable by its server image,
@@ -179,9 +215,9 @@ impl FakeRuntime {
     }
 }
 
-#[async_trait]
-impl Runtime for FakeRuntime {
-    async fn fetch_release(
+/// Method bodies; the `Runtime` impl below wraps each in `finish`.
+impl FakeRuntime {
+    async fn fetch_release_impl(
         &self,
         selector: ReleaseSelector,
     ) -> Result<(Vec<u8>, Vec<u8>), RuntimeError> {
@@ -204,21 +240,24 @@ impl Runtime for FakeRuntime {
             .ok_or_else(|| RuntimeError::Failed(format!("release {v} not found")))
     }
 
-    async fn pull(&self, image: &str) -> Result<(), RuntimeError> {
+    async fn pull_impl(&self, image: &str) -> Result<(), RuntimeError> {
         self.call("pull", image)
     }
 
-    async fn image_labels(&self, image: &str) -> Result<HashMap<String, String>, RuntimeError> {
+    async fn image_labels_impl(
+        &self,
+        image: &str,
+    ) -> Result<HashMap<String, String>, RuntimeError> {
         self.call("image_labels", image)?;
         Ok(self.inner().labels.get(image).cloned().unwrap_or_default())
     }
 
-    async fn free_bytes(&self, path: &Path) -> Result<u64, RuntimeError> {
+    async fn free_bytes_impl(&self, path: &Path) -> Result<u64, RuntimeError> {
         self.call("free_bytes", &path.display().to_string())?;
         Ok(self.inner().free)
     }
 
-    async fn backup(&self, dest: &Path) -> Result<u64, RuntimeError> {
+    async fn backup_impl(&self, dest: &Path) -> Result<u64, RuntimeError> {
         self.call("backup", &dest.display().to_string())?;
         let (fmt, size) = {
             let i = self.inner();
@@ -233,7 +272,7 @@ impl Runtime for FakeRuntime {
         Ok(body.len() as u64)
     }
 
-    async fn restore(&self, src: &Path) -> Result<(), RuntimeError> {
+    async fn restore_impl(&self, src: &Path) -> Result<(), RuntimeError> {
         self.call("restore", &src.display().to_string())?;
         let mut i = self.inner();
         if i.running.is_some() {
@@ -251,7 +290,7 @@ impl Runtime for FakeRuntime {
         Ok(())
     }
 
-    async fn start_server(&self, image: &str) -> Result<(), RuntimeError> {
+    async fn start_server_impl(&self, image: &str) -> Result<(), RuntimeError> {
         self.call("start_server", image)?;
         let mut i = self.inner();
         let m = i
@@ -269,13 +308,14 @@ impl Runtime for FakeRuntime {
         Ok(())
     }
 
-    async fn stop_server(&self) -> Result<(), RuntimeError> {
+    async fn stop_server_impl(&self) -> Result<(), RuntimeError> {
         self.call("stop_server", "")?;
         self.inner().running = None;
         Ok(())
     }
 
-    async fn wait_healthy(&self, _deadline: Duration) -> Result<(), RuntimeError> {
+    async fn wait_healthy_impl(&self, deadline: Duration) -> Result<(), RuntimeError> {
+        let _ = deadline;
         self.call("wait_healthy", "")?;
         if self.inner().running.is_some() {
             Ok(())
@@ -284,7 +324,7 @@ impl Runtime for FakeRuntime {
         }
     }
 
-    async fn readiness(&self) -> Result<ReadinessReport, RuntimeError> {
+    async fn readiness_impl(&self) -> Result<ReadinessReport, RuntimeError> {
         self.call("readiness", "")?;
         let i = self.inner();
         let image = i
@@ -305,13 +345,64 @@ impl Runtime for FakeRuntime {
             protocol_min: m.protocol.min,
             protocol_max: m.protocol.max,
             database: if readable { "ok" } else { "error" }.into(),
-            auth_mode: "access".into(),
+            auth_mode: i.auth_mode.clone(),
         })
     }
 
-    async fn server_state_format(&self) -> Result<Option<u32>, RuntimeError> {
+    async fn server_state_format_impl(&self) -> Result<Option<u32>, RuntimeError> {
         self.call("server_state_format", "")?;
         Ok(self.inner().db_format)
+    }
+}
+
+#[async_trait]
+impl Runtime for FakeRuntime {
+    async fn fetch_release(
+        &self,
+        selector: ReleaseSelector,
+    ) -> Result<(Vec<u8>, Vec<u8>), RuntimeError> {
+        let r = self.fetch_release_impl(selector).await;
+        self.finish(r)
+    }
+    async fn pull(&self, image: &str) -> Result<(), RuntimeError> {
+        let r = self.pull_impl(image).await;
+        self.finish(r)
+    }
+    async fn image_labels(&self, image: &str) -> Result<HashMap<String, String>, RuntimeError> {
+        let r = self.image_labels_impl(image).await;
+        self.finish(r)
+    }
+    async fn free_bytes(&self, path: &Path) -> Result<u64, RuntimeError> {
+        let r = self.free_bytes_impl(path).await;
+        self.finish(r)
+    }
+    async fn backup(&self, dest: &Path) -> Result<u64, RuntimeError> {
+        let r = self.backup_impl(dest).await;
+        self.finish(r)
+    }
+    async fn restore(&self, src: &Path) -> Result<(), RuntimeError> {
+        let r = self.restore_impl(src).await;
+        self.finish(r)
+    }
+    async fn start_server(&self, image: &str) -> Result<(), RuntimeError> {
+        let r = self.start_server_impl(image).await;
+        self.finish(r)
+    }
+    async fn stop_server(&self) -> Result<(), RuntimeError> {
+        let r = self.stop_server_impl().await;
+        self.finish(r)
+    }
+    async fn wait_healthy(&self, deadline: Duration) -> Result<(), RuntimeError> {
+        let r = self.wait_healthy_impl(deadline).await;
+        self.finish(r)
+    }
+    async fn readiness(&self) -> Result<ReadinessReport, RuntimeError> {
+        let r = self.readiness_impl().await;
+        self.finish(r)
+    }
+    async fn server_state_format(&self) -> Result<Option<u32>, RuntimeError> {
+        let r = self.server_state_format_impl().await;
+        self.finish(r)
     }
 }
 
@@ -321,11 +412,11 @@ impl MaintenanceSink for FakeMaintenance {
     fn enter(&self) -> Result<(), RuntimeError> {
         self.0.call("enter", "")?;
         self.0.inner().maintenance = true;
-        Ok(())
+        self.0.finish(Ok(()))
     }
     fn leave(&self) -> Result<(), RuntimeError> {
         self.0.call("leave", "")?;
         self.0.inner().maintenance = false;
-        Ok(())
+        self.0.finish(Ok(()))
     }
 }

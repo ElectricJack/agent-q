@@ -4,9 +4,14 @@
 
 use crate::config::VerifierConfig;
 use crate::runtime::stderr_tail;
+use async_trait::async_trait;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Stdio;
+use std::time::Duration;
+
+/// How long `cosign verify-blob` may run before it is killed.
+pub const COSIGN_TIMEOUT: Duration = Duration::from_secs(120);
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum VerifyError {
@@ -18,14 +23,16 @@ pub enum VerifyError {
     Unavailable(String),
 }
 
+#[async_trait]
 pub trait ReleaseVerifier: Send + Sync {
     /// Check that `bundle` authenticates exactly these `manifest` bytes.
-    fn verify(&self, manifest: &[u8], bundle: &[u8]) -> Result<(), VerifyError>;
+    async fn verify(&self, manifest: &[u8], bundle: &[u8]) -> Result<(), VerifyError>;
 }
 
+#[async_trait]
 impl ReleaseVerifier for Box<dyn ReleaseVerifier> {
-    fn verify(&self, manifest: &[u8], bundle: &[u8]) -> Result<(), VerifyError> {
-        (**self).verify(manifest, bundle)
+    async fn verify(&self, manifest: &[u8], bundle: &[u8]) -> Result<(), VerifyError> {
+        (**self).verify(manifest, bundle).await
     }
 }
 
@@ -54,6 +61,7 @@ pub struct CosignKeyless {
     cosign_path: PathBuf,
     identity_regexp: String,
     oidc_issuer: String,
+    timeout: Duration,
 }
 
 impl CosignKeyless {
@@ -62,6 +70,7 @@ impl CosignKeyless {
             cosign_path,
             identity_regexp,
             oidc_issuer,
+            timeout: COSIGN_TIMEOUT,
         }
     }
 
@@ -79,8 +88,9 @@ impl CosignKeyless {
     }
 }
 
+#[async_trait]
 impl ReleaseVerifier for CosignKeyless {
-    fn verify(&self, manifest: &[u8], bundle: &[u8]) -> Result<(), VerifyError> {
+    async fn verify(&self, manifest: &[u8], bundle: &[u8]) -> Result<(), VerifyError> {
         let unavailable =
             |what: &str, e: std::io::Error| VerifyError::Unavailable(format!("{what}: {e}"));
         let dir =
@@ -89,11 +99,19 @@ impl ReleaseVerifier for CosignKeyless {
         let b = dir.path().join("manifest.sigstore.json");
         std::fs::write(&m, manifest).map_err(|e| unavailable("cannot write the manifest", e))?;
         std::fs::write(&b, bundle).map_err(|e| unavailable("cannot write the bundle", e))?;
-        let out = Command::new(&self.cosign_path)
+        // kill_on_drop: when the timeout drops the wait, the child is killed.
+        let child = tokio::process::Command::new(&self.cosign_path)
             .args(self.args(&b, &m))
             .stdin(Stdio::null())
-            .output()
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .kill_on_drop(true)
+            .spawn()
             .map_err(|e| unavailable(&format!("cannot run {}", self.cosign_path.display()), e))?;
+        let out = match tokio::time::timeout(self.timeout, child.wait_with_output()).await {
+            Ok(r) => r.map_err(|e| unavailable("cannot wait for cosign", e))?,
+            Err(_) => return Err(VerifyError::Unavailable("cosign timed out".into())),
+        };
         if out.status.success() {
             Ok(())
         } else {
@@ -129,8 +147,9 @@ impl TestKey {
 }
 
 #[cfg(feature = "test-verifier")]
+#[async_trait]
 impl ReleaseVerifier for TestKey {
-    fn verify(&self, manifest: &[u8], bundle: &[u8]) -> Result<(), VerifyError> {
+    async fn verify(&self, manifest: &[u8], bundle: &[u8]) -> Result<(), VerifyError> {
         let text = bundle.strip_suffix(b"\n").unwrap_or(bundle);
         let sig: [u8; 64] = decode_lower_hex(text).ok_or_else(|| {
             VerifyError::Rejected("bundle is not 128 lowercase hex characters".into())
@@ -194,16 +213,17 @@ mod tests {
         );
     }
 
-    #[test]
-    fn cosign_missing_binary_is_unavailable() {
+    #[tokio::test]
+    async fn cosign_missing_binary_is_unavailable() {
         let e = cosign("/nonexistent/cosign")
             .verify(b"{}", b"{}")
+            .await
             .unwrap_err();
         assert!(matches!(e, VerifyError::Unavailable(_)), "{e}");
     }
 
-    #[test]
-    fn cosign_nonzero_exit_is_rejected() {
+    #[tokio::test]
+    async fn cosign_nonzero_exit_is_rejected() {
         // `false` ignores its arguments and exits 1; no real cosign runs.
         let Some(f) = ["/bin/false", "/usr/bin/false"]
             .into_iter()
@@ -211,8 +231,47 @@ mod tests {
         else {
             return;
         };
-        let e = cosign(f).verify(b"{}", b"{}").unwrap_err();
+        let e = cosign(f).verify(b"{}", b"{}").await.unwrap_err();
         assert!(matches!(e, VerifyError::Rejected(_)), "{e}");
+    }
+
+    #[tokio::test]
+    async fn cosign_timeout_kills_and_is_unavailable() {
+        use std::os::unix::fs::PermissionsExt;
+        // A stand-in that ignores its arguments and hangs.
+        let dir = tempfile::tempdir().unwrap();
+        let script = dir.path().join("hang");
+        let pidfile = dir.path().join("pid");
+        std::fs::write(
+            &script,
+            format!(
+                "#!/bin/sh\necho $$ > {}\nexec sleep 30\n",
+                pidfile.display()
+            ),
+        )
+        .unwrap();
+        std::fs::set_permissions(&script, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let mut c = cosign(script.to_str().unwrap());
+        c.timeout = Duration::from_millis(300);
+        let started = std::time::Instant::now();
+        let e = c.verify(b"{}", b"{}").await.unwrap_err();
+        assert_eq!(e, VerifyError::Unavailable("cosign timed out".into()));
+        assert!(started.elapsed() < Duration::from_secs(10));
+        // The child was killed, not left running.
+        let pid = std::fs::read_to_string(&pidfile).unwrap();
+        let proc_dir = format!("/proc/{}", pid.trim());
+        let deadline = std::time::Instant::now() + Duration::from_secs(5);
+        while Path::new(&proc_dir).exists()
+            && !std::fs::read_to_string(format!("{proc_dir}/stat"))
+                .unwrap_or_default()
+                .contains(") Z")
+        {
+            assert!(
+                std::time::Instant::now() < deadline,
+                "cosign child still running"
+            );
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
     }
 
     #[cfg(feature = "test-verifier")]
@@ -230,31 +289,38 @@ mod tests {
             (sk, tk)
         }
 
-        #[test]
-        fn accepts_signature_with_or_without_newline() {
+        #[tokio::test]
+        async fn accepts_signature_with_or_without_newline() {
             let (sk, tk) = pair(7);
             let sig = hex(&sk.sign(b"manifest").to_bytes());
-            tk.verify(b"manifest", sig.as_bytes()).unwrap();
+            tk.verify(b"manifest", sig.as_bytes()).await.unwrap();
             tk.verify(b"manifest", format!("{sig}\n").as_bytes())
+                .await
                 .unwrap();
         }
 
-        #[test]
-        fn rejects_tampering_wrong_key_and_bad_encoding() {
+        #[tokio::test]
+        async fn rejects_tampering_wrong_key_and_bad_encoding() {
             let (sk, tk) = pair(7);
             let (_, other) = pair(8);
             let sig = hex(&sk.sign(b"manifest").to_bytes());
-            let rejected = |r: Result<(), VerifyError>| matches!(r, Err(VerifyError::Rejected(_)));
-            assert!(rejected(tk.verify(b"manifest!", sig.as_bytes())));
-            assert!(rejected(other.verify(b"manifest", sig.as_bytes())));
-            assert!(rejected(
-                tk.verify(b"manifest", sig.to_uppercase().as_bytes())
-            ));
-            assert!(rejected(
-                tk.verify(b"manifest", format!("{sig}\n\n").as_bytes())
-            ));
-            assert!(rejected(tk.verify(b"manifest", &sig.as_bytes()[2..])));
-            assert!(rejected(tk.verify(b"manifest", b"")));
+            let upper = sig.to_uppercase();
+            let doubled = format!("{sig}\n\n");
+            let cases: [(&TestKey, &[u8], &[u8]); 6] = [
+                (&tk, b"manifest!", sig.as_bytes()),
+                (&other, b"manifest", sig.as_bytes()),
+                (&tk, b"manifest", upper.as_bytes()),
+                (&tk, b"manifest", doubled.as_bytes()),
+                (&tk, b"manifest", &sig.as_bytes()[2..]),
+                (&tk, b"manifest", b""),
+            ];
+            for (i, (key, m, b)) in cases.into_iter().enumerate() {
+                let r = key.verify(m, b).await;
+                assert!(
+                    matches!(r, Err(VerifyError::Rejected(_))),
+                    "case {i}: {r:?}"
+                );
+            }
         }
 
         #[test]
