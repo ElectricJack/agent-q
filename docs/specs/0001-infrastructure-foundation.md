@@ -114,7 +114,7 @@ This phase proves connectivity. Filesystem access, Docker access, and sandbox pr
 
 Retain a vault directory for editable, non-secret configuration. Mount it separately from application code, validate it at startup, and version its format. Local development and the VPS use separate vaults.
 
-Use a small private foundation store for user identities and role assignments, worker identities, credential verifiers, and enrollment records. SQLite on a persistent volume is a proposed single-instance default, pending implementation review. This choice imposes no storage requirement on the future task service.
+Use a small private foundation store for user identities and role assignments, worker identities, credential verifiers, and enrollment records. Store it in PostgreSQL, run as a separate Compose service with its data on a persistent volume; Agent Q does not use SQLite. The foundation uses its own database, and this choice does not dictate the future task service's schema or ownership.
 
 Keep the updater’s deployment journal on the host so it remains readable when the application cannot start. Separate secrets from the vault, image, repository, and ordinary logs.
 
