@@ -9,7 +9,7 @@ if [ ! -f secrets.dev/postgres_password ]; then
   chmod 0700 secrets.dev
   # The directory is private to this user; the file itself must be readable by
   # the container user (UID 10001), because Compose bind-mounts it as-is.
-  (umask 022; head -c 24 /dev/urandom | base64 | tr -d '/+=\n' >secrets.dev/postgres_password)
+  (umask 022; head -c 24 /dev/urandom | base64 | tr -d '\n' >secrets.dev/postgres_password)
   chmod 0644 secrets.dev/postgres_password
   echo "created secrets.dev/postgres_password"
 fi

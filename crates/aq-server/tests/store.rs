@@ -29,7 +29,7 @@ async fn reconnect_preserves_state() {
         .unwrap();
     drop(store);
 
-    let store2 = Store::connect(db.url()).await.unwrap();
+    let store2 = Store::connect_with(db.options()).await.unwrap();
     let user = store2
         .find_user_by_binding("iss", "sub")
         .await
@@ -43,7 +43,7 @@ async fn reconnect_preserves_state() {
 async fn migrations_are_idempotent() {
     let db = TestDb::create().await;
     drop(db.store().await);
-    drop(Store::connect(db.url()).await.unwrap());
+    drop(Store::connect_with(db.options()).await.unwrap());
     let pool = db.pool().await;
     let n: i64 = sqlx::query_scalar("SELECT count(*) FROM schema_migrations")
         .fetch_one(&pool)
@@ -61,7 +61,7 @@ async fn refuses_unknown_future_migration() {
         .execute(&pool)
         .await
         .unwrap();
-    let err = Store::connect(db.url()).await.err().unwrap();
+    let err = Store::connect_with(db.options()).await.err().unwrap();
     assert!(
         matches!(
             err,
@@ -259,7 +259,7 @@ async fn refuses_newer_state_format() {
         .execute(&pool)
         .await
         .unwrap();
-    let err = Store::connect(db.url()).await.err().unwrap();
+    let err = Store::connect_with(db.options()).await.err().unwrap();
     assert!(
         matches!(
             err,

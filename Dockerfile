@@ -18,6 +18,7 @@ LABEL org.opencontainers.image.title="agent-q-server" \
       io.agent-q.protocol-max="1" \
       io.agent-q.state-format="1"
 COPY --from=build /build/target/release/aq-server /usr/local/bin/aq-server
+ENV AQ_VAULT_DIR=/vault
 USER 10001:10001
 EXPOSE 8080 8081
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 CMD ["aq-server", "healthcheck"]

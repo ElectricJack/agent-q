@@ -1,14 +1,15 @@
 //! Per-test PostgreSQL databases. Needs `DATABASE_URL` (see `scripts/test-db`).
 
 use crate::store::Store;
-use sqlx::postgres::PgPoolOptions;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{Connection, PgConnection, PgPool};
+use std::str::FromStr;
 use uuid::Uuid;
 
 pub struct TestDb {
     admin_url: String,
     name: String,
-    url: String,
+    options: PgConnectOptions,
 }
 
 impl TestDb {
@@ -24,31 +25,34 @@ impl TestDb {
             .await
             .expect("create test database");
         let _ = conn.close().await;
-        let (base, _) = admin_url
-            .rsplit_once('/')
-            .expect("DATABASE_URL has a database");
-        let url = format!("{base}/{name}");
+        let options = PgConnectOptions::from_str(&admin_url)
+            .expect("DATABASE_URL is a valid PostgreSQL URL")
+            .database(&name);
         TestDb {
             admin_url,
             name,
-            url,
+            options,
         }
     }
 
-    pub fn url(&self) -> &str {
-        &self.url
+    /// Connect options (host, credentials, query parameters of `DATABASE_URL`)
+    /// pointing at this test's database.
+    pub fn options(&self) -> PgConnectOptions {
+        self.options.clone()
     }
 
     /// Connects (and migrates) a fresh `Store` to this database.
     pub async fn store(&self) -> Store {
-        Store::connect(&self.url).await.expect("connect store")
+        Store::connect_with(self.options())
+            .await
+            .expect("connect store")
     }
 
     /// A raw pool for tests that poke at tables directly.
     pub async fn pool(&self) -> PgPool {
         PgPoolOptions::new()
             .max_connections(2)
-            .connect(&self.url)
+            .connect_with(self.options())
             .await
             .expect("connect pool")
     }

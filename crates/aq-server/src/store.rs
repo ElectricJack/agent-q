@@ -3,8 +3,8 @@
 use crate::STATE_FORMAT_VERSION;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::postgres::PgPoolOptions;
 use sqlx::postgres::PgRow;
+use sqlx::postgres::{PgConnectOptions, PgPoolOptions};
 use sqlx::{FromRow, PgPool, Row};
 use std::time::Duration;
 use uuid::Uuid;
@@ -236,10 +236,14 @@ pub struct Store {
 
 impl Store {
     pub async fn connect(database_url: &str) -> Result<Store> {
+        Self::connect_with(database_url.parse::<PgConnectOptions>()?).await
+    }
+
+    pub async fn connect_with(options: PgConnectOptions) -> Result<Store> {
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .acquire_timeout(Duration::from_secs(5))
-            .connect(database_url)
+            .connect_with(options)
             .await?;
         Self::from_pool(pool).await
     }
