@@ -479,9 +479,9 @@ AQ_UPDATER_SPOOL=$SPOOL"
 [ -d "$SPOOL/requests" ] && [ -d "$SPOOL/status" ] || fail "the updater did not create the spool"
 say "  release.env: AQ_SERVER_IMAGE=$NO_RELEASE_IMAGE"
 say "  release.env: AQ_UPDATER_SPOOL=$SPOOL"
-# Test-only: in production requests/ belongs to group 10001 (the updater
-# runs as root; see the operations docs). Here an ACL lets the server's UID
-# write through its mount. The updater's chmod to 2770 keeps it effective.
+# Test-only: in production requests/ is aq-updater:10001, set once at
+# install (docs/operations.md). Here an ACL lets the server's UID write
+# through its mount. The updater's chmod to 2770 keeps it effective.
 SPOOL_ACL=0
 if command -v setfacl >/dev/null; then
   setfacl -m u:10001:rwx,d:u:10001:rwx "$SPOOL/requests" 2>>"$COMPOSE_LOG" && SPOOL_ACL=1

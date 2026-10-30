@@ -113,6 +113,17 @@ logs are copied to a kept `${TMPDIR:-/tmp}/aq-update-lifecycle-logs.*`
 directory, whose path it prints. The first run compiles all dependencies;
 later runs reuse BuildKit cache mounts.
 
+## Releases and operations
+
+[`docs/operations.md`](operations.md) covers the CI, release and promote
+workflows, cutting a release, and installing and running the host updater
+(`aq-updater`), including what to do when an update needs an operator.
+
+`scripts/smoke` can also test prebuilt images instead of building: set both
+`AQ_SMOKE_SERVER_IMAGE` and `AQ_SMOKE_WORKER_IMAGE` (tags or digest
+references; missing ones are pulled). The release workflow uses this to smoke
+test the exact pushed digests.
+
 ## Production notes
 
 `compose.yaml` is the production shape: no published ports, a read-only vault
