@@ -76,6 +76,24 @@ jobs:
       - name: cargo test -p aq-updater --features test-verifier
         run: cargo test -p aq-updater --locked --features test-verifier
 
+  # The static updater that release.yml ships, built the same way, so musl
+  # breakage shows up here rather than at tag time.
+  musl:
+    name: aq-updater static build (musl)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - name: Install the pinned Rust toolchain with the static (musl) target
+        run: |
+          toolchain=$(sed -n 's/^channel = "\(.*\)"$/\1/p' rust-toolchain.toml)
+          rustup toolchain install "$toolchain" --profile minimal --target x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Build aq-updater (release, no features)
+        run: cargo build --release --locked -p aq-updater --target x86_64-unknown-linux-musl
+
   postgres-only:
     name: no SQLite in Cargo.lock
     runs-on: ubuntu-latest
