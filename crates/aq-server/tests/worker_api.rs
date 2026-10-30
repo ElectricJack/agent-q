@@ -76,7 +76,12 @@ async fn send(
     bearer: Option<&str>,
     body: Option<Value>,
 ) -> (StatusCode, Value) {
-    let mut b = Request::builder().method(method).uri(path);
+    // The CSRF header lets requests to the admin router past the guard, so
+    // 404 assertions prove the route is absent.
+    let mut b = Request::builder()
+        .method(method)
+        .uri(path)
+        .header("x-aq-request", "1");
     if let Some(t) = bearer {
         b = b.header("authorization", format!("Bearer {t}"));
     }

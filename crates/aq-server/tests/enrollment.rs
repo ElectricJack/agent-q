@@ -3,13 +3,13 @@ mod common;
 use std::sync::Arc;
 use std::time::Duration;
 
-use aq_server::admin_api::{admin_routes, worker_status};
+use aq_server::admin_api::worker_status;
 use aq_server::config::Config;
 use aq_server::identity::{CloudflareAccessVerifier, DevIdentity};
 use aq_server::store::{NewNode, Node, Role, Store};
 use aq_server::test_support::TestDb;
 use aq_server::tokens::verifier;
-use aq_server::{AppState, Clock};
+use aq_server::{AppState, Clock, build_admin_router};
 use axum::Router;
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
@@ -73,7 +73,7 @@ async fn harness() -> Harness {
         identity: Arc::new(verifier),
         clock,
     };
-    let app = admin_routes(&state).with_state(state);
+    let app = build_admin_router(state);
     Harness {
         app,
         store,
@@ -464,7 +464,7 @@ enabled = true
         identity: Arc::new(DevIdentity::new("dev@example.com".into())),
         clock,
     };
-    let app = admin_routes(&state).with_state(state);
+    let app = build_admin_router(state);
     let req = Request::builder()
         .uri("/api/me")
         .body(Body::empty())

@@ -1,29 +1,30 @@
 //! JSON admin API: identity, status, workers, enrollment issuance and users.
 //!
-//! All routes sit behind `csrf_guard`. GET handlers here never change state.
+//! `build_admin_router` puts every route behind `csrf_guard`. GET handlers here never change state.
 
 use std::time::Duration;
 
 use aq_protocol::VersionInfo;
 use axum::extract::{FromRequest, Path, Request, State};
 use axum::http::StatusCode;
-use axum::middleware::from_fn_with_state;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::authz::{CurrentUser, RequireOwner, csrf_guard};
+use crate::authz::{CurrentUser, RequireOwner};
 use crate::config::AuthConfig;
 use crate::error::AppError;
 use crate::store::{Node, Role, StoreError};
 use crate::tokens::{new_enrollment_code, verifier};
 use crate::{AppState, version_info};
 
-/// All admin routes, behind `csrf_guard`. The guard is a layer on the whole
-/// router, so a handler added later is protected by default.
-pub fn admin_routes(state: &AppState) -> Router<AppState> {
+/// All admin routes, WITHOUT the CSRF guard. `build_admin_router` layers
+/// `csrf_guard` over the fully merged router (a `layer`, not a `route_layer`
+/// declared mid-chain), so every admin route and the fallback is covered no
+/// matter where it is declared.
+pub fn admin_routes() -> Router<AppState> {
     Router::new()
         .route("/api/me", get(me))
         .route("/api/status", get(status))
@@ -31,7 +32,6 @@ pub fn admin_routes(state: &AppState) -> Router<AppState> {
         .route("/api/enrollments", post(create_enrollment))
         .route("/api/workers/{id}/revoke", post(revoke_worker))
         .route("/api/users", get(list_users).post(create_user))
-        .route_layer(from_fn_with_state(state.clone(), csrf_guard))
 }
 
 /// `Json` extractor whose rejections are `ApiError` bodies with 400.

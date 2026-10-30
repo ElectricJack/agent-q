@@ -13,8 +13,10 @@ use crate::identity::IdentityVerifier;
 use crate::store::Store;
 use aq_protocol::{SUPPORTED_WORKER_PROTOCOLS, VersionInfo};
 use axum::extract::Request;
+use axum::http::StatusCode;
 use axum::http::{HeaderValue, header};
-use axum::middleware::{Next, from_fn};
+use axum::middleware::{Next, from_fn, from_fn_with_state};
+use axum::response::IntoResponse;
 use axum::response::Response;
 use axum::{Json, Router, routing::get};
 use chrono::{DateTime, Utc};
@@ -66,11 +68,34 @@ async fn harden(req: Request, next: Next) -> Response {
     resp
 }
 
+async fn not_found() -> Response {
+    error::AppError::NotFound("no such route".into()).into_response()
+}
+
+async fn method_not_allowed() -> Response {
+    (
+        StatusCode::METHOD_NOT_ALLOWED,
+        Json(aq_protocol::ApiError {
+            error: "method_not_allowed".into(),
+            message: "method not allowed for this route".into(),
+        }),
+    )
+        .into_response()
+}
+
 /// Human routes plus `/healthz`. Worker routes are not mounted here.
+///
+/// `csrf_guard` is layered over the whole merged router (fallbacks included),
+/// so it covers every admin route regardless of declaration order. A POST to
+/// an unmatched path therefore gets 403 `csrf_rejected` unless it carries
+/// the CSRF header.
 pub fn build_admin_router(state: AppState) -> Router {
     Router::new()
-        .merge(admin_api::admin_routes(&state))
+        .merge(admin_api::admin_routes())
         .route("/healthz", get(healthz))
+        .fallback(not_found)
+        .method_not_allowed_fallback(method_not_allowed)
+        .layer(from_fn_with_state(state.clone(), authz::csrf_guard))
         .layer(from_fn(harden))
         .with_state(state)
 }
@@ -80,6 +105,8 @@ pub fn build_worker_router(state: AppState) -> Router {
     Router::new()
         .merge(worker_api::worker_routes())
         .route("/healthz", get(healthz))
+        .fallback(not_found)
+        .method_not_allowed_fallback(method_not_allowed)
         .layer(from_fn(harden))
         .with_state(state)
 }
