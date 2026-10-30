@@ -69,30 +69,30 @@ async fn accepts_valid_token() {
 async fn rejects_wrong_audience() {
     let (v, _s) = std_verifier().await;
     let t = TestKeys::get().mint(claims(|c| c["aud"] = json!(["other"])));
-    assert!(matches!(
+    assert_eq!(
         v.verify(&headers(&t)).await,
-        Err(IdentityError::Invalid(_))
-    ));
+        Err(IdentityError::Invalid("wrong audience".into()))
+    );
 }
 
 #[tokio::test]
 async fn rejects_wrong_issuer() {
     let (v, _s) = std_verifier().await;
     let t = TestKeys::get().mint(claims(|c| c["iss"] = json!("https://evil.example.com")));
-    assert!(matches!(
+    assert_eq!(
         v.verify(&headers(&t)).await,
-        Err(IdentityError::Invalid(_))
-    ));
+        Err(IdentityError::Invalid("wrong issuer".into()))
+    );
 }
 
 #[tokio::test]
 async fn rejects_expired_beyond_leeway() {
     let (v, _s) = std_verifier().await;
     let t = TestKeys::get().mint(claims(|c| c["exp"] = json!(now() - 120)));
-    assert!(matches!(
+    assert_eq!(
         v.verify(&headers(&t)).await,
-        Err(IdentityError::Invalid(_))
-    ));
+        Err(IdentityError::Invalid("token expired".into()))
+    );
 }
 
 #[tokio::test]
@@ -128,10 +128,44 @@ async fn rejects_hs256_token() {
         &jsonwebtoken::EncodingKey::from_secret(b"secret"),
     )
     .unwrap();
-    assert!(matches!(
+    assert_eq!(
         v.verify(&headers(&t)).await,
-        Err(IdentityError::Invalid(_))
-    ));
+        Err(IdentityError::Invalid(
+            "unsupported signing algorithm".into()
+        ))
+    );
+}
+
+#[tokio::test]
+async fn hs256_rejected_before_any_jwks_fetch() {
+    let (v, server) = std_verifier().await;
+    let mut h = jsonwebtoken::Header::new(jsonwebtoken::Algorithm::HS256);
+    h.kid = Some("test-1".into());
+    let t = jsonwebtoken::encode(
+        &h,
+        &claims(|_| {}),
+        &jsonwebtoken::EncodingKey::from_secret(b"secret"),
+    )
+    .unwrap();
+    assert_eq!(
+        v.verify(&headers(&t)).await,
+        Err(IdentityError::Invalid(
+            "unsupported signing algorithm".into()
+        ))
+    );
+    assert_eq!(server.fetch_count(), 0);
+}
+
+#[tokio::test]
+async fn stalled_jwks_endpoint_times_out_as_keys_unavailable() {
+    let (v, server) = std_verifier().await;
+    server.set_delay_ms(5_000);
+    let v = v.with_fetch_timeout(std::time::Duration::from_millis(200));
+    let t = TestKeys::get().mint(claims(|_| {}));
+    let started = std::time::Instant::now();
+    let r = v.verify(&headers(&t)).await;
+    assert!(matches!(r, Err(IdentityError::KeysUnavailable(_))), "{r:?}");
+    assert!(started.elapsed() < std::time::Duration::from_secs(3));
 }
 
 #[tokio::test]

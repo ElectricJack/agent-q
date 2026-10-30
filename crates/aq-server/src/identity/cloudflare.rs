@@ -12,6 +12,7 @@ use super::{IdentityError, IdentityVerifier, VerifiedIdentity};
 const JWT_HEADER: &str = "cf-access-jwt-assertion";
 const UNKNOWN_KID_REFETCH_INTERVAL: Duration = Duration::from_secs(60);
 const LEEWAY_SECS: u64 = 60;
+const JWKS_FETCH_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Default)]
 struct KeyCache {
@@ -28,6 +29,7 @@ pub struct CloudflareAccessVerifier {
     audience: String,
     jwks_url: String,
     http: reqwest::Client,
+    fetch_timeout: Duration,
     cache: Mutex<KeyCache>,
 }
 
@@ -57,8 +59,15 @@ impl CloudflareAccessVerifier {
             audience,
             jwks_url,
             http,
+            fetch_timeout: JWKS_FETCH_TIMEOUT,
             cache: Mutex::new(KeyCache::default()),
         }
+    }
+
+    /// Overrides the JWKS fetch timeout (default 5 s).
+    pub fn with_fetch_timeout(mut self, timeout: Duration) -> Self {
+        self.fetch_timeout = timeout;
+        self
     }
 
     async fn fetch_jwks(&self) -> Result<JwkSet, IdentityError> {
@@ -66,6 +75,7 @@ impl CloudflareAccessVerifier {
         let resp = self
             .http
             .get(&self.jwks_url)
+            .timeout(self.fetch_timeout)
             .send()
             .await
             .map_err(|e| unavailable(format!("fetching signing keys failed: {e}")))?;

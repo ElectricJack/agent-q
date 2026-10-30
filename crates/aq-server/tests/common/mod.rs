@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use base64::Engine;
@@ -63,9 +63,15 @@ pub struct JwksServer {
     pub handle: JoinHandle<()>,
     fetches: Arc<AtomicUsize>,
     body: Arc<Mutex<Value>>,
+    delay_ms: Arc<AtomicU64>,
 }
 
 impl JwksServer {
+    /// Makes every later response wait this long before answering.
+    pub fn set_delay_ms(&self, ms: u64) {
+        self.delay_ms.store(ms, Ordering::SeqCst);
+    }
+
     pub fn fetch_count(&self) -> usize {
         self.fetches.load(Ordering::SeqCst)
     }
@@ -83,18 +89,25 @@ pub async fn serve_jwks(json: Value) -> JwksServer {
     struct S {
         fetches: Arc<AtomicUsize>,
         body: Arc<Mutex<Value>>,
+        delay_ms: Arc<AtomicU64>,
     }
+    let delay_ms = Arc::new(AtomicU64::new(0));
     let fetches = Arc::new(AtomicUsize::new(0));
     let body = Arc::new(Mutex::new(json));
     let state = S {
         fetches: fetches.clone(),
         body: body.clone(),
+        delay_ms: delay_ms.clone(),
     };
     let app = Router::new()
         .route(
             "/jwks",
             get(|State(s): State<S>| async move {
                 s.fetches.fetch_add(1, Ordering::SeqCst);
+                let d = s.delay_ms.load(Ordering::SeqCst);
+                if d > 0 {
+                    tokio::time::sleep(std::time::Duration::from_millis(d)).await;
+                }
                 Json(s.body.lock().unwrap().clone())
             }),
         )
@@ -109,5 +122,6 @@ pub async fn serve_jwks(json: Value) -> JwksServer {
         handle,
         fetches,
         body,
+        delay_ms,
     }
 }
