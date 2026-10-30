@@ -8,9 +8,10 @@
 #   3. broken 0.1.2 rolled back        7. data survives upgrade and rollbacks
 #   4. interrupted update recovered
 #
-# Everything lives under one temporary directory, the Compose project
-# `aq-suite` and the registry container `aq-suite-registry` on
-# 127.0.0.1:5000; all of it is removed on exit. Ends with
+# Everything lives under one temporary directory (logs included), the
+# Compose project `aq-suite` and the registry container `aq-suite-registry`
+# on 127.0.0.1:5000; all of it is removed on exit. On failure the logs are
+# first copied to a kept directory whose path is printed. Ends with
 # `update-lifecycle: PASS` or names the failed step.
 set -euo pipefail
 shopt -s inherit_errexit
@@ -22,17 +23,14 @@ REGISTRY=127.0.0.1:5000
 # Short, so the broken release fails over quickly (production uses 120 s).
 DEADLINE=45
 UPDATER=$REPO/target/debug/aq-updater
-MARKER="survives-upgrade-and-rollback"
+# Bounds every `docker compose` call the suite makes (exec included).
+DC_TIMEOUT=180
+ZERO=$(printf '0%.0s' {1..64})
+# What the updater writes into release.env before the first install.
+NO_RELEASE_IMAGE=no-release-installed.invalid/agent-q-server@sha256:$ZERO
 STEP=start
 BG_PID=
 IMAGES=()
-
-LOG_DIR=${TMPDIR:-/tmp}/aq-update-lifecycle-logs
-rm -rf "$LOG_DIR"
-mkdir -p "$LOG_DIR"
-BUILD_LOG=$LOG_DIR/build.log
-UPDATER_LOG=$LOG_DIR/updater.log
-COMPOSE_LOG=$LOG_DIR/compose.log
 
 # Compose must take every variable from the suite's env files: a variable in
 # the shell environment would override release.env.
@@ -48,15 +46,19 @@ SECRETS=$ROOT/secrets
 KEYS=$ROOT/keys
 CONFIG=$ROOT/updater.toml
 SUITE_ENV=$ROOT/suite.env
+LOG_DIR=$ROOT/logs
+BUILD_LOG=$LOG_DIR/build.log
+UPDATER_LOG=$LOG_DIR/updater.log
+COMPOSE_LOG=$LOG_DIR/compose.log
+mkdir -p "$LOG_DIR"
 
-# The operator's env file. AQ_SERVER_IMAGE is a placeholder: compose.yaml
-# requires a value even to start postgres before the first install, and
-# release.env (read after this file) overrides it once a release is active.
+# The operator's env file holds only the operator's own paths.
+# AQ_SERVER_IMAGE and AQ_UPDATER_SPOOL come from the updater's release.env,
+# which it creates at startup (with a placeholder image before the first
+# install).
 cat >"$SUITE_ENV" <<EOF
 AQ_VAULT_DIR=$VAULT
 AQ_SECRETS_DIR=$SECRETS
-AQ_UPDATER_SPOOL=$SPOOL
-AQ_SERVER_IMAGE=no-release-installed.invalid/agent-q-server
 EOF
 
 say() { echo "update-lifecycle: $*"; }
@@ -75,7 +77,14 @@ dc() {
   local args=(--project-name "$PROJECT" --project-directory "$REPO"
     -f "$REPO/compose.yaml" --env-file "$SUITE_ENV")
   if [ -f "$STATE/release.env" ]; then args+=(--env-file "$STATE/release.env"); fi
-  docker compose "${args[@]}" "$@"
+  timeout -k 10 "$DC_TIMEOUT" docker compose "${args[@]}" "$@"
+}
+
+# `down` needs only a parseable compose.yaml: before the updater has written
+# release.env, its two variables get values that are never used.
+dc_down() {
+  AQ_SERVER_IMAGE=$NO_RELEASE_IMAGE AQ_UPDATER_SPOOL=$ROOT/no-spool \
+    dc down -v --remove-orphans
 }
 
 updater() { timeout -k 30 600 "$UPDATER" --config "$CONFIG" "$@" 2>>"$UPDATER_LOG"; }
@@ -90,12 +99,20 @@ cleanup() {
   if [ "$rc" -ne 0 ]; then
     echo "update-lifecycle: FAIL at step: $STEP" >&2
     echo "--- last 40 server log lines ---" >&2
-    dc logs --no-color --tail 40 server >&2 2>&1
+    if [ -f "$STATE/release.env" ]; then
+      dc logs --no-color --tail 40 server >&2 2>&1
+    else
+      echo "(no release.env yet: nothing was started)" >&2
+    fi
     echo "--- aq-updater status ---" >&2
     if [ -x "$UPDATER" ] && [ -f "$CONFIG" ]; then
       "$UPDATER" --config "$CONFIG" status >&2 2>/dev/null
     fi
-    echo "--- logs: $LOG_DIR ---" >&2
+    local kept
+    if kept=$(mktemp -d "${TMPDIR:-/tmp}/aq-update-lifecycle-logs.XXXXXX") &&
+      cp -r "$LOG_DIR/." "$kept/"; then
+      echo "--- logs kept in $kept ---" >&2
+    fi
   fi
   teardown >/dev/null 2>&1
   exit "$rc"
@@ -104,7 +121,7 @@ trap cleanup EXIT
 trap 'exit 130' INT TERM
 
 teardown() {
-  dc down -v --remove-orphans
+  dc_down
   docker rm -fv "$REGISTRY_NAME"
   if [ "${#IMAGES[@]}" -gt 0 ]; then docker image rm -f "${IMAGES[@]}"; fi
   rm -rf "$ROOT"
@@ -178,7 +195,7 @@ sign_and_publish() {
 publish_release() {
   local version=$1 binary=$2 server=$3 worker=$4 dir=$ROOT/release-$1
   mkdir -p "$dir"
-  docker run --rm "$binary" manifest --server-image "$server" --worker-image "$worker" \
+  timeout -k 10 120 docker run --rm "$binary" manifest --server-image "$server" --worker-image "$worker" \
     --version "$version" --source-revision "suite-$version" \
     >"$dir/manifest.json" 2>>"$BUILD_LOG" || fail "aq-server manifest failed for $version"
   sign_and_publish "$version" "$dir"
@@ -264,12 +281,24 @@ expect_status() {
   }
 }
 
-expect_marker() {
-  local v
-  v=$(dc exec -T postgres psql -U agent_q -d agent_q -v ON_ERROR_STOP=1 -tAc \
-    'SELECT x FROM suite_marker' 2>>"$COMPOSE_LOG") || fail "cannot read the marker row"
-  [ "$v" = "$MARKER" ] || fail "marker row is ${v:-missing}, expected $MARKER"
-  say "  data: marker row present ($MARKER)"
+psql_suite() {
+  dc exec -T postgres psql -U agent_q -d agent_q -v ON_ERROR_STOP=1 -tAc "$1" \
+    2>>"$COMPOSE_LOG"
+}
+
+add_marker() {
+  psql_suite "INSERT INTO suite_marker VALUES ('$1')" >/dev/null ||
+    fail "cannot insert marker row $1"
+}
+
+# expect_markers ROW...: suite_marker holds exactly these rows (sorted). A
+# rollback that restored an older backup would lose the newer rows.
+expect_markers() {
+  local got
+  got=$(psql_suite 'SELECT x FROM suite_marker ORDER BY x' | paste -sd' ') ||
+    fail "cannot read the marker rows"
+  [ "$got" = "$*" ] || fail "marker rows are '$got', expected '$*'"
+  say "  data: marker rows present ($*)"
 }
 
 expect_no_maintenance() {
@@ -312,9 +341,9 @@ for tool in docker cargo python3 curl timeout; do
   command -v "$tool" >/dev/null || fail "$tool is required"
 done
 docker compose version >/dev/null || fail "docker compose v2 is required"
-dc down -v --remove-orphans >>"$COMPOSE_LOG" 2>&1 || true
+dc_down >>"$COMPOSE_LOG" 2>&1 || true
 docker rm -fv "$REGISTRY_NAME" >/dev/null 2>&1 || true
-say "  work dir $ROOT, logs $LOG_DIR"
+say "  work dir $ROOT (logs in $LOG_DIR)"
 
 step "build aq-updater with the test verifier"
 cargo build --manifest-path "$REPO/Cargo.toml" -p aq-updater --features test-verifier \
@@ -358,15 +387,6 @@ chmod 0644 "$VAULT/config.toml"
 # cloudflared is never started; Compose only needs the file to exist.
 echo "suite-dummy-tunnel-token" >"$SECRETS/tunnel_token"
 chmod 0644 "$SECRETS/postgres_password" "$SECRETS/tunnel_token"
-# Test-only shortcut: the server (UID 10001) reads status/ and requests/
-# through the bind mounts, and the suite cannot chown to group 10001 as a
-# normal user. Production ownership and modes are in the operations docs.
-# (The updater, not running as root here, resets requests/ to 2770 with the
-# host user's group when it starts; no case goes through the server's API, so
-# only status/ must stay readable by the server.)
-mkdir -p "$SPOOL/requests" "$SPOOL/status"
-chmod 0777 "$SPOOL/requests"
-chmod 0755 "$SPOOL" "$SPOOL/status"
 "$UPDATER" test-keygen "$KEYS" >/dev/null 2>>"$UPDATER_LOG"
 cat >"$CONFIG" <<EOF
 state_dir = "$STATE"
@@ -419,15 +439,63 @@ C_WORKER=$(push "$REGISTRY/agent-q-worker:0.1.2")
 # C's manifest describes C0's binary, which C runs.
 publish_release 0.1.2 "$REGISTRY/agent-q-server:0.1.2-c0" "$C_SERVER" "$C_WORKER"
 
-step "release 0.1.3 (incompatible: B's manifest, state format 2 only)"
+step "release 0.1.3 (incompatible: state format 2 only, images never pushed)"
 mkdir -p "$ROOT/release-0.1.3"
-python3 - "$ROOT/release-0.1.1/manifest.json" "$ROOT/release-0.1.3/manifest.json" <<'PY'
+NEVER_SERVER=$REGISTRY/agent-q-server@sha256:$ZERO
+NEVER_WORKER=$REGISTRY/agent-q-worker@sha256:$ZERO
+# B's manifest with images nobody pushed: an install that pulled before
+# checking compatibility would fail the pull (aborted), not be refused.
+python3 - "$ROOT/release-0.1.1/manifest.json" "$ROOT/release-0.1.3/manifest.json" \
+  "$NEVER_SERVER" "$NEVER_WORKER" <<'PY'
 import json, sys
 m = json.load(open(sys.argv[1]))
-m.update(version="0.1.3", state_format=2, readable_state_formats=[2])
+m.update(version="0.1.3", state_format=2, readable_state_formats=[2],
+         images={"server": sys.argv[3], "worker": sys.argv[4]})
 open(sys.argv[2], "w").write(json.dumps(m, separators=(",", ":"), sort_keys=True))
 PY
+if timeout -k 10 60 docker pull -q "$NEVER_SERVER" >>"$BUILD_LOG" 2>&1; then
+  fail "$NEVER_SERVER can be pulled; case 5 would not detect a pull"
+fi
 sign_and_publish 0.1.3 "$ROOT/release-0.1.3"
+say "  release 0.1.3: server $NEVER_SERVER (not in the registry)"
+
+step "bootstrap: the updater's first start on a fresh host"
+# Nothing exists yet but the operator's env file. The updater creates its
+# state, the spool and a complete release.env, so Compose can start postgres
+# before any release is installed.
+updater run --once || fail "aq-updater run --once failed on a fresh host"
+want_env="AQ_SERVER_IMAGE=$NO_RELEASE_IMAGE
+AQ_UPDATER_SPOOL=$SPOOL"
+[ "$(cat "$STATE/release.env")" = "$want_env" ] || {
+  cat "$STATE/release.env" >&2
+  fail "release.env does not hold the placeholder image and the spool"
+}
+[ -d "$SPOOL/requests" ] && [ -d "$SPOOL/status" ] || fail "the updater did not create the spool"
+say "  release.env: AQ_SERVER_IMAGE=$NO_RELEASE_IMAGE"
+say "  release.env: AQ_UPDATER_SPOOL=$SPOOL"
+# Test-only: in production requests/ belongs to group 10001 (the updater
+# runs as root; see the operations docs). Here an ACL lets the server's UID
+# write through its mount. The updater's chmod to 2770 keeps it effective.
+SPOOL_ACL=0
+if command -v setfacl >/dev/null; then
+  setfacl -m u:10001:rwx,d:u:10001:rwx "$SPOOL/requests" 2>>"$COMPOSE_LOG" && SPOOL_ACL=1
+else
+  # No acl tools: the same access and default ACL as setfacl would write
+  # (user::rwx, user:10001:rwx, group::rwx, mask::rwx, other::---), set
+  # through the POSIX ACL xattrs (format version 2).
+  python3 -c '
+import os, struct, sys
+UNDEF = 0xFFFFFFFF
+entries = [(0x01, 7, UNDEF), (0x02, 7, 10001), (0x04, 7, UNDEF), (0x10, 7, UNDEF), (0x20, 0, UNDEF)]
+blob = struct.pack("<I", 2) + b"".join(struct.pack("<HHI", *e) for e in entries)
+for name in ("system.posix_acl_access", "system.posix_acl_default"):
+    os.setxattr(sys.argv[1], name, blob)' "$SPOOL/requests" 2>>"$COMPOSE_LOG" && SPOOL_ACL=1
+fi
+if [ "$SPOOL_ACL" = 1 ]; then
+  say "  requests/: ACL grants UID 10001 rwx"
+else
+  say "  requests/: no ACL for UID 10001 (setfacl and the ACL xattrs both refused)"
+fi
 
 step "start postgres"
 dc up -d --wait --wait-timeout 120 postgres >>"$COMPOSE_LOG" 2>&1 || {
@@ -445,19 +513,22 @@ expect_no_maintenance
 expect_server_sees 0.1.0
 say "PASS case 1: first install"
 
-step "case 7 (setup): insert the marker row"
-dc exec -T postgres psql -U agent_q -d agent_q -v ON_ERROR_STOP=1 -q -c \
-  "CREATE TABLE suite_marker(x text); INSERT INTO suite_marker VALUES ('$MARKER');" \
-  >>"$COMPOSE_LOG" 2>&1 || fail "cannot insert the marker row"
-expect_marker
+step "case 7 (setup): insert a marker row under 0.1.0"
+psql_suite "CREATE TABLE suite_marker(x text)" >/dev/null || fail "cannot create suite_marker"
+add_marker under-0.1.0
+expect_markers under-0.1.0
 
 step "case 2: upgrade 0.1.0 -> 0.1.1"
 updater install 0.1.1 || fail "install 0.1.1 failed"
 expect_status idle 0.1.1 0.1.0 succeeded 0.1.0 0.1.1 "0.1.1 is active"
 expect_ready 0.1.1
 expect_no_maintenance
-expect_marker
+expect_markers under-0.1.0
 say "PASS case 2: upgrade"
+
+step "case 7 (setup): insert a second marker row under 0.1.1"
+add_marker under-0.1.1
+expect_markers under-0.1.0 under-0.1.1
 
 step "case 3: broken 0.1.2 rolls back to 0.1.1"
 started=$SECONDS
@@ -471,7 +542,7 @@ say "  install 0.1.2 finished in ${elapsed}s (readiness deadline ${DEADLINE}s)"
 expect_status idle 0.1.1 0.1.0 rolled_back 0.1.1 0.1.2 "not healthy within $DEADLINE s"
 expect_ready 0.1.1
 expect_no_maintenance
-expect_marker
+expect_markers under-0.1.0 under-0.1.1
 say "PASS case 3: broken release rolled back"
 
 step "case 4: update interrupted by kill -9 while probing, then recovered"
@@ -496,7 +567,7 @@ expect_status idle 0.1.1 0.1.0 rolled_back 0.1.1 0.1.2 "interrupted at step prob
 expect_ready 0.1.1
 expect_no_maintenance
 expect_server_sees 0.1.1
-expect_marker
+expect_markers under-0.1.0 under-0.1.1
 say "PASS case 4: interrupted update recovered"
 
 step "case 5: incompatible 0.1.3 is refused and 0.1.1 keeps running"
@@ -514,16 +585,27 @@ say "PASS case 5: incompatible release refused"
 
 step "case 6: downgrade request through the spool is refused"
 REQ_ID=$(python3 -c 'import uuid; print(uuid.uuid4())')
-REQ_TMP=$SPOOL/requests/.tmp-$REQ_ID
-# The server's write: a dotfile (ignored by the updater), then a rename.
-python3 - "$REQ_ID" >"$REQ_TMP" <<'PY'
+REQ_JSON=$(python3 -c '
 import json, sys
 from datetime import datetime, timezone
 print(json.dumps({"id": sys.argv[1], "version": "0.1.0", "requested_by": "suite@example.com",
-                  "requested_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")}))
-PY
-chmod 0640 "$REQ_TMP"
-mv "$REQ_TMP" "$SPOOL/requests/$REQ_ID.json"
+                  "requested_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")}))' "$REQ_ID")
+# The server's write: a dotfile (ignored by the updater), then a rename.
+# Done inside the server container, as UID 10001, through its mount.
+if [ "$SPOOL_ACL" = 1 ] && printf '%s\n' "$REQ_JSON" | dc exec -T server sh -ec \
+  'cat >"/updater/requests/.tmp-$1" && mv "/updater/requests/.tmp-$1" "/updater/requests/$1.json"' \
+  sh "$REQ_ID" 2>>"$COMPOSE_LOG"; then
+  owner=$(stat -c %u "$SPOOL/requests/$REQ_ID.json")
+  [ "$owner" = 10001 ] || fail "the request file is owned by UID $owner, not the server's 10001"
+  say "  request $REQ_ID written by the server container (UID 10001) via /updater/requests"
+else
+  rm -f "$SPOOL/requests/.tmp-$REQ_ID" 2>/dev/null || true
+  REQ_TMP=$SPOOL/requests/.tmp-$REQ_ID
+  printf '%s\n' "$REQ_JSON" >"$REQ_TMP"
+  chmod 0640 "$REQ_TMP"
+  mv "$REQ_TMP" "$SPOOL/requests/$REQ_ID.json"
+  say "NOTE: server-side spool write not exercised locally (VPS run covers it); request written from the host"
+fi
 updater run --once || fail "run --once failed"
 expect_status idle 0.1.1 0.1.0 refused 0.1.1 0.1.0 "older than installed 0.1.1"
 python3 - "$SPOOL/status/status.json" "$REQ_ID" <<'PY' || fail "status.json does not record the refusal"
@@ -535,14 +617,17 @@ assert e["outcome"] == "refused" and e["to"] == "0.1.0" and "older" in e["detail
 assert s["state"] == {"kind": "idle"}, s["state"]
 print("update-lifecycle:   status.json: request %s refused" % e["request_id"])
 PY
-left=$(find "$SPOOL/requests" -mindepth 1 -maxdepth 1 ! -name '.*' -print)
+[ ! -e "$SPOOL/requests/$REQ_ID.json" ] || fail "requests/$REQ_ID.json is still there"
+# Nothing else either, dotfiles included (only set-aside `.rejected-*`
+# entries, which the suite never creates, would be tolerated).
+left=$(find "$SPOOL/requests" -mindepth 1 -maxdepth 1 ! -name '.rejected-*' -print)
 [ -z "$left" ] || fail "requests/ still holds: $left"
 say "  requests/ is empty"
 expect_ready 0.1.1
 say "PASS case 6: downgrade request refused"
 
 step "case 7: data survived the upgrade and both rollbacks"
-expect_marker
+expect_markers under-0.1.0 under-0.1.1
 say "PASS case 7: data survives"
 
 step "tear down"

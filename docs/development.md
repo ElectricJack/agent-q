@@ -105,9 +105,13 @@ throwaway test key and its `release` image. Under the Compose project
 rollback of the broken release, recovery after `kill -9` mid-update, refusal of
 a release that cannot read the installed state format, refusal of a downgrade
 requested through the spool, and that the database survives all of it.
-Everything is removed on exit. It ends with `update-lifecycle: PASS` or names
-the failed step; logs are in `${TMPDIR:-/tmp}/aq-update-lifecycle-logs`. The first run
-compiles all dependencies; later runs reuse BuildKit cache mounts.
+It also starts from a fresh host: the updater's first `run --once` creates the
+spool and a `release.env` with a placeholder image, which is what lets Compose
+start postgres before any release is installed. Everything is removed on exit.
+It ends with `update-lifecycle: PASS` or names the failed step; on failure its
+logs are copied to a kept `${TMPDIR:-/tmp}/aq-update-lifecycle-logs.*`
+directory, whose path it prints. The first run compiles all dependencies;
+later runs reuse BuildKit cache mounts.
 
 ## Production notes
 
