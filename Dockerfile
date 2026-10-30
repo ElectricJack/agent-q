@@ -32,11 +32,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 FROM runtime AS server
 ARG AQ_SOURCE_REVISION=unknown
 ARG AQ_VERSION=unknown
+# The release's state format and newest worker protocol. release.yml passes
+# them from the source (STATE_FORMAT_VERSION, SUPPORTED_WORKER_PROTOCOLS) and
+# checks the pushed labels against the manifest; the updater refuses a
+# server image whose state-format label disagrees with its manifest.
+ARG AQ_STATE_FORMAT=1
+ARG AQ_PROTOCOL_MAX=1
 LABEL org.opencontainers.image.title="agent-q-server" \
       org.opencontainers.image.revision="${AQ_SOURCE_REVISION}" \
       org.opencontainers.image.version="${AQ_VERSION}" \
-      io.agent-q.protocol-max="1" \
-      io.agent-q.state-format="1"
+      io.agent-q.protocol-max="${AQ_PROTOCOL_MAX}" \
+      io.agent-q.state-format="${AQ_STATE_FORMAT}"
 COPY --from=build /out/aq-server /usr/local/bin/aq-server
 ENV AQ_VAULT_DIR=/vault
 USER 10001:10001
@@ -48,11 +54,14 @@ CMD ["serve", "--vault", "/vault"]
 FROM runtime AS worker
 ARG AQ_SOURCE_REVISION=unknown
 ARG AQ_VERSION=unknown
+# The same release labels as the server image.
+ARG AQ_STATE_FORMAT=1
+ARG AQ_PROTOCOL_MAX=1
 LABEL org.opencontainers.image.title="agent-q-worker" \
       org.opencontainers.image.revision="${AQ_SOURCE_REVISION}" \
       org.opencontainers.image.version="${AQ_VERSION}" \
-      io.agent-q.protocol-max="1" \
-      io.agent-q.state-format="1"
+      io.agent-q.protocol-max="${AQ_PROTOCOL_MAX}" \
+      io.agent-q.state-format="${AQ_STATE_FORMAT}"
 COPY --from=build /out/aq-worker /usr/local/bin/aq-worker
 # The config directory is created and owned by the runtime user so a named
 # volume mounted here inherits that ownership.

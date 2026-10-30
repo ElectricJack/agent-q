@@ -53,6 +53,16 @@ jobs:
             exit 1
           fi
           echo "version=$version" >>"$GITHUB_OUTPUT"
+          # The image labels come from the same constants `aq-server manifest`
+          # reports; the labels are checked against the manifest before signing.
+          state_format=$(sed -n 's/^pub const STATE_FORMAT_VERSION: u32 = \([0-9][0-9]*\);$/\1/p' crates/aq-server/src/lib.rs)
+          protocol_max=$(sed -n 's/^pub const SUPPORTED_WORKER_PROTOCOLS: (u32, u32) = ([0-9][0-9]*, \([0-9][0-9]*\));$/\1/p' crates/aq-protocol/src/lib.rs)
+          if [[ ! "$state_format" =~ ^[0-9]+$ || ! "$protocol_max" =~ ^[0-9]+$ ]]; then
+            echo "::error::cannot read STATE_FORMAT_VERSION ('$state_format') or SUPPORTED_WORKER_PROTOCOLS ('$protocol_max') from the source"
+            exit 1
+          fi
+          echo "state_format=$state_format" >>"$GITHUB_OUTPUT"
+          echo "protocol_max=$protocol_max" >>"$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
@@ -77,6 +87,8 @@ jobs:
           build-args: |
             AQ_SOURCE_REVISION=${{ github.sha }}
             AQ_VERSION=${{ steps.version.outputs.version }}
+            AQ_STATE_FORMAT=${{ steps.version.outputs.state_format }}
+            AQ_PROTOCOL_MAX=${{ steps.version.outputs.protocol_max }}
           labels: org.opencontainers.image.source=${{ env.SOURCE_URL }}
           tags: ${{ env.SERVER_REPO }}:${{ steps.version.outputs.version }}
 
@@ -93,6 +105,8 @@ jobs:
           build-args: |
             AQ_SOURCE_REVISION=${{ github.sha }}
             AQ_VERSION=${{ steps.version.outputs.version }}
+            AQ_STATE_FORMAT=${{ steps.version.outputs.state_format }}
+            AQ_PROTOCOL_MAX=${{ steps.version.outputs.protocol_max }}
           labels: org.opencontainers.image.source=${{ env.SOURCE_URL }}
           tags: ${{ env.WORKER_REPO }}:${{ steps.version.outputs.version }}
 
@@ -119,6 +133,26 @@ jobs:
           echo
           echo "server=$server" >>"$GITHUB_OUTPUT"
           echo "worker=$worker" >>"$GITHUB_OUTPUT"
+
+      # The updater refuses a server image whose state-format label differs
+      # from its manifest; never sign a manifest the pushed images contradict.
+      - name: Check the pushed images' labels match manifest.json
+        env:
+          SERVER: ${{ steps.images.outputs.server }}
+          WORKER: ${{ steps.images.outputs.worker }}
+        run: |
+          want_state=$(jq -r .state_format release/manifest.json)
+          want_protocol=$(jq -r .protocol.max release/manifest.json)
+          for image in "$SERVER" "$WORKER"; do
+            docker pull --quiet "$image" >/dev/null
+            state=$(docker image inspect --format '{{index .Config.Labels "io.agent-q.state-format"}}' "$image")
+            protocol=$(docker image inspect --format '{{index .Config.Labels "io.agent-q.protocol-max"}}' "$image")
+            echo "$image: state-format=$state protocol-max=$protocol"
+            if [ "$state" != "$want_state" ] || [ "$protocol" != "$want_protocol" ]; then
+              echo "::error::$image is labelled state-format=$state protocol-max=$protocol but manifest.json says state_format=$want_state protocol.max=$want_protocol"
+              exit 1
+            fi
+          done
 
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
         with:

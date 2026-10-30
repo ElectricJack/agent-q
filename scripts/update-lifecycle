@@ -150,10 +150,19 @@ poll() {
 
 # ---------------------------------------------------------------- images
 
+# The release labels, from the same constants release.yml reads.
+STATE_FORMAT=$(sed -n 's/^pub const STATE_FORMAT_VERSION: u32 = \([0-9][0-9]*\);$/\1/p' \
+  "$REPO/crates/aq-server/src/lib.rs")
+PROTOCOL_MAX=$(sed -n 's/^pub const SUPPORTED_WORKER_PROTOCOLS: (u32, u32) = ([0-9][0-9]*, \([0-9][0-9]*\));$/\1/p' \
+  "$REPO/crates/aq-protocol/src/lib.rs")
+[[ "$STATE_FORMAT" =~ ^[0-9]+$ && "$PROTOCOL_MAX" =~ ^[0-9]+$ ]] ||
+  fail "cannot read STATE_FORMAT_VERSION or SUPPORTED_WORKER_PROTOCOLS from the source"
+
 # build TARGET TAG CONTEXT VERSION: a Dockerfile target, stamped for VERSION.
 build() {
   docker build --target "$1" -f "$REPO/Dockerfile" \
     --build-arg "AQ_SOURCE_REVISION=suite-$4" --build-arg "AQ_VERSION=$4" \
+    --build-arg "AQ_STATE_FORMAT=$STATE_FORMAT" --build-arg "AQ_PROTOCOL_MAX=$PROTOCOL_MAX" \
     -t "$2" "$3" >>"$BUILD_LOG" 2>&1 || {
     tail -30 "$BUILD_LOG" >&2
     fail "docker build --target $1 for $4 failed"
