@@ -1904,6 +1904,48 @@ async fn rollback_restore_selects_the_active_release_before_stopping() {
 }
 
 #[tokio::test]
+async fn early_step_recovery_leaves_a_healthy_active_release_running() {
+    for healthy in [true, false] {
+        let (h, mut e, a) = with_a().await;
+        h.publish(&manifest(B, 1, &[1]));
+        h.fake.crash("pull", 0);
+        assert!(e.install(req(B)).await.is_err());
+        drop(e);
+        assert_eq!(
+            Journal::read(&h.state_dir).unwrap().current.unwrap().step,
+            Step::Pulled
+        );
+        h.fake.clear_log();
+        if !healthy {
+            h.fake.fail("wait_healthy", 0, "A unhealthy");
+        }
+        let mut e = h.engine();
+        let out = e.recover().await.unwrap().unwrap();
+        assert_eq!(out.outcome, Outcome::Aborted, "{}", out.detail);
+        assert!(
+            out.detail.contains(&format!("{A} is running")),
+            "{}",
+            out.detail
+        );
+        let starts = h.fake.count("start_server");
+        if healthy {
+            assert_eq!(starts, 0, "A was recreated: {:?}", h.fake.log());
+            assert_eq!(h.fake.count("wait_healthy"), 1);
+        } else {
+            assert_eq!(starts, 1, "{:?}", h.fake.log());
+            let log = h.fake.log();
+            let first_probe = log.iter().position(|c| c == "wait_healthy").unwrap();
+            let start = log
+                .iter()
+                .position(|c| c.starts_with("start_server"))
+                .unwrap();
+            assert!(first_probe < start, "{log:?}");
+        }
+        assert_eq!(h.fake.running().unwrap(), a.images.server);
+    }
+}
+
+#[tokio::test]
 async fn taken_request_shows_in_progress_before_the_fetch() {
     let (h, mut e, _a) = with_a().await;
     let fake = h.fake.clone();

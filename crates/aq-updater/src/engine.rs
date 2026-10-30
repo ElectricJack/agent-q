@@ -915,7 +915,17 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
     ) -> Res<HistoryEntry> {
         let mut detail = format!("{why}; update to {} abandoned", cur.target.version);
         if let Some(active) = self.journal.state().active.clone() {
-            match ensure_running(&self.runtime, &self.settings, &active).await? {
+            // The active release was never replaced before `Replacing`: if it
+            // still passes its probe, leave it running rather than recreate
+            // it. Only a failed probe recreates it.
+            let checked = match probe(&self.runtime, &self.settings, &active).await? {
+                Ok(()) => Ok(()),
+                Err(first) => {
+                    tracing::warn!(error = %first, version = %active.version, "active release failed its probe during recovery; recreating it");
+                    ensure_running(&self.runtime, &self.settings, &active).await?
+                }
+            };
+            match checked {
                 Ok(()) => detail.push_str(&format!("; {} is running", active.version)),
                 Err(e) => detail.push_str(&format!(
                     "; warning: {} did not pass its readiness check: {e}",
