@@ -705,10 +705,28 @@ impl<R: Runtime, V: ReleaseVerifier> Engine<R, V> {
         allow_restore: bool,
         started_at: DateTime<Utc>,
     ) -> Res<HistoryEntry> {
-        // At `Active` the swap is done: `active` is the target, and the
-        // in-flight backup holds the other release's data. Never restore it.
-        if cur.step == Step::Active {
-            cur.needs_restore_on_rollback = false;
+        match cur.step {
+            // At `Active` the swap is done: `active` is the target, and the
+            // in-flight backup holds the other release's data. Never restore
+            // it (ruling 23).
+            Step::Active => cur.needs_restore_on_rollback = false,
+            // Before `Replacing` the target never ran, so the data is the
+            // active release's own, and at `BackedUp` the dump may be
+            // partial. Nothing to restore.
+            Step::Requested
+            | Step::Validated
+            | Step::Pulled
+            | Step::Maintenance
+            | Step::BackedUp => cur.needs_restore_on_rollback = false,
+            // The target may have run: `--restore-backup` restores the
+            // complete pre-update backup even when the state formats say
+            // it is not needed (a release that changed the data without
+            // changing its state format, for one).
+            Step::Replacing | Step::Probing | Step::RollingBack | Step::Unknown => {
+                if allow_restore && cur.backup.is_some() {
+                    cur.needs_restore_on_rollback = true;
+                }
+            }
         }
         let refuse = |detail: String| HistoryEntry {
             // No request id: this must not read as the in-flight outcome.
