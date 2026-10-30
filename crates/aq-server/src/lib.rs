@@ -1,12 +1,19 @@
+pub mod authz;
 pub mod config;
+pub mod error;
 pub mod identity;
 pub mod store;
 #[cfg(any(test, feature = "test-support"))]
 pub mod test_support;
 pub mod tokens;
+use crate::config::Config;
+use crate::identity::IdentityVerifier;
+use crate::store::Store;
 use aq_protocol::{SUPPORTED_WORKER_PROTOCOLS, VersionInfo};
 use axum::{Json, Router, routing::get};
+use chrono::{DateTime, Utc};
 use serde_json::{Value, json};
+use std::sync::Arc;
 
 pub const STATE_FORMAT_VERSION: u32 = 1;
 
@@ -29,4 +36,20 @@ pub fn health_router() -> Router {
 
 async fn healthz() -> Json<Value> {
     Json(json!({"status": "ok"}))
+}
+
+/// Source of "now". Every expiry and offline computation reads this so tests
+/// can use a fixed clock.
+pub type Clock = Arc<dyn Fn() -> DateTime<Utc> + Send + Sync>;
+
+pub fn system_clock() -> Clock {
+    Arc::new(Utc::now)
+}
+
+#[derive(Clone)]
+pub struct AppState {
+    pub config: Arc<Config>,
+    pub store: Store,
+    pub identity: Arc<dyn IdentityVerifier>,
+    pub clock: Clock,
 }

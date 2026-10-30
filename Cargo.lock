@@ -101,6 +101,7 @@ dependencies = [
  "tokio",
  "toml",
  "tower",
+ "tracing",
  "uuid",
 ]
 

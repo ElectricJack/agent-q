@@ -14,6 +14,8 @@ pub const ENROLLMENT_INVALID: &str = "enrollment_invalid";
 pub const FORBIDDEN: &str = "forbidden";
 pub const UNAUTHENTICATED: &str = "unauthenticated";
 pub const CSRF_REJECTED: &str = "csrf_rejected";
+pub const IDENTITY_UNAVAILABLE: &str = "identity_unavailable";
+pub const INTERNAL: &str = "internal";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VersionInfo {

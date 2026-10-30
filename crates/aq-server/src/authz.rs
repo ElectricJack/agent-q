@@ -1,0 +1,115 @@
+//! Authorization: current-user resolution, owner bootstrap, CSRF guard.
+
+use aq_protocol::{ApiError, CSRF_REJECTED};
+use axum::Json;
+use axum::extract::{FromRequestParts, Request, State};
+use axum::http::request::Parts;
+use axum::http::{Method, StatusCode};
+use axum::middleware::Next;
+use axum::response::{IntoResponse, Response};
+
+use crate::AppState;
+use crate::error::AppError;
+use crate::store::{Role, User};
+
+/// The authenticated, authorized user (Owner or Viewer).
+pub struct CurrentUser(pub User);
+
+/// An authenticated Owner; Viewers get 403.
+pub struct RequireOwner(pub User);
+
+async fn resolve(parts: &Parts, state: &AppState) -> Result<User, AppError> {
+    let id = state.identity.verify(&parts.headers).await?;
+    if let Some(user) = state
+        .store
+        .find_user_by_binding(&id.issuer, &id.subject)
+        .await?
+    {
+        return Ok(user);
+    }
+    let now = (state.clock)();
+    if let Some(user) = state
+        .store
+        .bind_invited_user(&id.email, &id.issuer, &id.subject, now)
+        .await?
+    {
+        return Ok(user);
+    }
+    let b = &state.config.bootstrap;
+    if b.enabled
+        && b.owner_email
+            .as_deref()
+            .is_some_and(|e| e.eq_ignore_ascii_case(&id.email))
+        && let Some(user) = state
+            .store
+            .bootstrap_owner(&id.email, &id.issuer, &id.subject, now)
+            .await?
+    {
+        return Ok(user);
+    }
+    Err(AppError::Forbidden(format!(
+        "{} is not authorized for this Agent Q installation",
+        id.email
+    )))
+}
+
+impl FromRequestParts<AppState> for CurrentUser {
+    type Rejection = AppError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        resolve(parts, state).await.map(CurrentUser)
+    }
+}
+
+impl FromRequestParts<AppState> for RequireOwner {
+    type Rejection = AppError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        let user = resolve(parts, state).await?;
+        if user.role != Role::Owner {
+            return Err(AppError::Forbidden(
+                "this action requires the owner role".to_string(),
+            ));
+        }
+        Ok(RequireOwner(user))
+    }
+}
+
+fn csrf_reject(message: &str) -> Response {
+    (
+        StatusCode::FORBIDDEN,
+        Json(ApiError {
+            error: CSRF_REJECTED.to_string(),
+            message: message.to_string(),
+        }),
+    )
+        .into_response()
+}
+
+/// Middleware for admin routes. Mutations need `X-AQ-Request: 1` (a custom
+/// header cannot be sent cross-origin without a CORS preflight, which this
+/// server never grants) and, if an `Origin` is sent, it must be our own.
+pub async fn csrf_guard(State(state): State<AppState>, req: Request, next: Next) -> Response {
+    if !matches!(*req.method(), Method::GET | Method::HEAD) {
+        let header_ok = req
+            .headers()
+            .get("x-aq-request")
+            .is_some_and(|v| v.as_bytes() == b"1");
+        if !header_ok {
+            return csrf_reject("missing X-AQ-Request: 1 header");
+        }
+        if let Some(origin) = req.headers().get("origin") {
+            let expected = state.config.server.public_origin.trim_end_matches('/');
+            if origin.as_bytes() != expected.as_bytes() {
+                return csrf_reject("request origin is not allowed");
+            }
+        }
+    }
+    next.run(req).await
+}
