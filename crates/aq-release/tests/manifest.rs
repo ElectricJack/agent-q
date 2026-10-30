@@ -246,7 +246,7 @@ fn digest_refs_allow_a_registry_port_but_no_tags() {
         format!("ghcr.io:abc/x@sha256:{good}"),
         format!("127.0.0.1:5000/x:1@sha256:{good}"),
         format!("agent-q-server@sha256:{good}"),
-        format!("ghcr.io/x/y:tag"),
+        "ghcr.io/x/y:tag".to_string(),
     ];
     for r in &reject {
         assert!(!is_digest_ref(r), "{r:?}");
