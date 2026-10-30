@@ -1,0 +1,13 @@
+# Local secrets and runtime state
+.env
+.env.*
+!.env.example
+secrets/
+state/
+backups/
+vault.local/
+*.log
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
