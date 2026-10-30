@@ -1,0 +1,75 @@
+name: agent-q
+services:
+  postgres:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: agent_q
+      POSTGRES_USER: agent_q
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    volumes:
+      - aq_postgres:/var/lib/postgresql/data
+    networks: [database]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U agent_q -d agent_q']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+  server:
+    image: ${AQ_SERVER_IMAGE:?set AQ_SERVER_IMAGE to the server image reference}
+    # The entrypoint builds DATABASE_URL from the secret file so the password
+    # never appears in Compose config or the container environment listing.
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - 'export DATABASE_URL="postgres://agent_q:$$(cat /run/secrets/postgres_password)@postgres:5432/agent_q"; exec aq-server serve --vault /vault'
+    volumes:
+      - type: bind
+        source: ${AQ_VAULT_DIR:?set AQ_VAULT_DIR to the vault directory}
+        target: /vault
+        read_only: true
+    secrets:
+      - postgres_password
+    networks: [database, edge]
+    depends_on:
+      postgres: {condition: service_healthy}
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+  cloudflared:
+    image: cloudflare/cloudflared:2025.10.0
+    command: [tunnel, --no-autoupdate, run]
+    environment:
+      TUNNEL_TOKEN_FILE: /run/secrets/tunnel_token
+    secrets:
+      - tunnel_token
+    networks: [edge]
+    depends_on:
+      server: {condition: service_healthy}
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+networks:
+  edge: {}
+  database:
+    internal: true
+volumes:
+  aq_postgres:
+secrets:
+  postgres_password:
+    file: ${AQ_SECRETS_DIR:?set AQ_SECRETS_DIR to the secrets directory}/postgres_password
+  tunnel_token:
+    file: ${AQ_SECRETS_DIR:?set AQ_SECRETS_DIR to the secrets directory}/tunnel_token

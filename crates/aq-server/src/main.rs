@@ -21,6 +21,8 @@ enum Command {
         #[arg(long, env = "AQ_VAULT_DIR")]
         vault: PathBuf,
     },
+    /// Probe the local admin listener's /healthz; exit 0 if healthy, 1 if not.
+    Healthcheck,
 }
 
 #[tokio::main]
@@ -34,6 +36,7 @@ async fn main() {
         .init();
     let result = match cli.command {
         Command::Serve { vault } => serve(vault).await,
+        Command::Healthcheck => std::process::exit(healthcheck().await),
     };
     if let Err(e) = result {
         eprintln!("aq-server: {e:#}");
@@ -59,4 +62,25 @@ async fn serve(vault: PathBuf) -> anyhow::Result<()> {
         .await
         .context("cannot connect to the database")?;
     aq_server::run(config, store).await
+}
+
+/// Container health probe. The image has no curl, so the binary checks itself.
+async fn healthcheck() -> i32 {
+    let probe = async {
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(3))
+            .build()?;
+        client
+            .get("http://127.0.0.1:8080/healthz")
+            .send()
+            .await?
+            .error_for_status()
+    };
+    match probe.await {
+        Ok(_) => 0,
+        Err(e) => {
+            eprintln!("aq-server: unhealthy: {e}");
+            1
+        }
+    }
 }

@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# Release-verification smoke test: proves the enrollment/heartbeat lifecycle
+# against built container images (not source), across a server+database restart.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+PROJECT=agent-q-smoke
+DC=(docker compose -p "$PROJECT" -f compose.yaml -f compose.dev.yaml)
+ADMIN=http://127.0.0.1:8080
+STEP="start"
+LOG_DIR=${TMPDIR:-/tmp}
+
+export AQ_SERVER_IMAGE=${AQ_SERVER_IMAGE:-agent-q-server:smoke}
+export AQ_VAULT_DIR="$PWD/vault.example"
+export AQ_SECRETS_DIR="$PWD/secrets.dev"
+
+step() { STEP="$1"; echo "smoke: $1"; }
+
+cleanup() {
+  local rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "smoke: FAIL at step: $STEP" >&2
+    "${DC[@]}" --profile smoke logs --no-color --tail 40 server worker >&2 2>/dev/null || true
+  fi
+  "${DC[@]}" --profile smoke down -v --remove-orphans >/dev/null 2>&1 || true
+  exit "$rc"
+}
+trap cleanup EXIT
+
+# poll DESCRIPTION TIMEOUT_SECS COMMAND...: retry once a second until it succeeds.
+poll() {
+  local what=$1 timeout=$2 i
+  shift 2
+  for ((i = 0; i < timeout; i++)); do
+    if "$@" >/dev/null 2>&1; then return 0; fi
+    sleep 1
+  done
+  echo "smoke: timed out after ${timeout}s waiting for: $what" >&2
+  return 1
+}
+
+# worker_field FIELD: prints a field of the smoke worker from /api/workers.
+worker_field() {
+  curl -fsS --max-time 5 "$ADMIN/api/workers" | python3 -c '
+import json, sys
+ws = [w for w in json.load(sys.stdin) if w["name"] == "smoke"]
+if len(ws) != 1: sys.exit(1)
+v = ws[0].get(sys.argv[1])
+if v is None: sys.exit(1)
+print(v)' "$1"
+}
+
+worker_online() { [ "$(worker_field status)" = online ] && worker_field last_seen_at; }
+
+step "fresh start (remove any previous smoke stack and volume)"
+"${DC[@]}" --profile smoke down -v --remove-orphans >/dev/null 2>&1 || true
+[ -f secrets.dev/postgres_password ] || scripts/dev-up --init-only
+
+step "build images"
+"${DC[@]}" --profile smoke build >"$LOG_DIR/smoke-build.log" 2>&1 || {
+  tail -30 "$LOG_DIR/smoke-build.log" >&2; exit 1; }
+
+step "start stack and wait for server health"
+"${DC[@]}" up -d --wait --wait-timeout 120 server >"$LOG_DIR/smoke-up.log" 2>&1 || {
+  tail -30 "$LOG_DIR/smoke-up.log" >&2; exit 1; }
+poll "admin /healthz" 60 curl -fsS --max-time 3 "$ADMIN/healthz"
+poll "in-container healthcheck" 60 \
+  "${DC[@]}" exec -T server aq-server healthcheck
+
+step "create enrollment code through the admin API"
+CODE=$(curl -fsS --max-time 5 -X POST -H 'X-AQ-Request: 1' "$ADMIN/api/enrollments" |
+  python3 -c 'import json,sys; print(json.load(sys.stdin)["code"])')
+[ -n "$CODE" ]
+
+step "enroll the worker image"
+printf '%s\n' "$CODE" | "${DC[@]}" --profile smoke run --rm -T worker \
+  enroll --server http://server:8081 --name smoke
+
+step "run the worker and wait for its first heartbeat"
+"${DC[@]}" --profile smoke up -d worker >"$LOG_DIR/smoke-worker.log" 2>&1
+poll "worker online with last_seen_at" 60 worker_online
+NODE_ID=$(curl -fsS "$ADMIN/api/workers" | python3 -c '
+import json, sys
+print([w for w in json.load(sys.stdin) if w["name"] == "smoke"][0]["id"])')
+SEEN1=$(worker_field last_seen_at)
+echo "smoke: node $NODE_ID first heartbeat $SEEN1"
+
+step "restart server and postgres"
+"${DC[@]}" restart server postgres >"$LOG_DIR/smoke-restart.log" 2>&1
+poll "admin /healthz after restart" 90 curl -fsS --max-time 3 "$ADMIN/healthz"
+
+step "wait for a later heartbeat from the same node"
+advanced() {
+  local id seen
+  id=$(curl -fsS --max-time 5 "$ADMIN/api/workers" | python3 -c '
+import json, sys
+print([w for w in json.load(sys.stdin) if w["name"] == "smoke"][0]["id"])') || return 1
+  [ "$id" = "$NODE_ID" ] || { echo "node id changed" >&2; return 1; }
+  seen=$(worker_field last_seen_at) || return 1
+  python3 - "$SEEN1" "$seen" <<'PY'
+import sys
+from datetime import datetime
+p = lambda s: datetime.fromisoformat(s.replace("Z", "+00:00"))
+sys.exit(0 if p(sys.argv[2]) > p(sys.argv[1]) else 1)
+PY
+}
+poll "last_seen_at to advance for node $NODE_ID" 90 advanced
+echo "smoke: node $NODE_ID heartbeat advanced to $(worker_field last_seen_at)"
+
+step "tear down"
+echo "smoke: PASS"

@@ -1,0 +1,36 @@
+# Development overlay: builds from source, uses the example vault, publishes
+# the listeners on loopback only and keeps cloudflared off by default.
+services:
+  server:
+    build:
+      context: .
+      target: server
+    image: ${AQ_SERVER_IMAGE:-agent-q-server:dev}
+    volumes:
+      - type: bind
+        source: ./vault.example
+        target: /vault
+        read_only: true
+    ports:
+      - '127.0.0.1:8080:8080'
+      - '127.0.0.1:8081:8081'
+  cloudflared:
+    profiles: [tunnel]
+  # Only used by scripts/smoke: the worker image, run as a container.
+  worker:
+    build:
+      context: .
+      target: worker
+    image: agent-q-worker:dev
+    profiles: [smoke]
+    networks: [edge]
+    volumes:
+      - worker_config:/config
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+volumes:
+  worker_config:
+secrets:
+  postgres_password:
+    file: ./secrets.dev/postgres_password

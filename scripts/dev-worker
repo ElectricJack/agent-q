@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Run a worker from source against the development stack's worker listener.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+SERVER=http://127.0.0.1:8081
+CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/agent-q/worker.toml"
+
+if [ ! -f "$CONFIG" ]; then
+  cat >&2 <<MSG
+No worker config at $CONFIG. Enroll this machine first:
+
+  1. Start the stack:   scripts/dev-up
+  2. Get a code:        curl -fsS -X POST -H 'X-AQ-Request: 1' http://127.0.0.1:8080/api/enrollments
+  3. Enroll (paste the code when prompted):
+       cargo run -p aq-worker -- enroll --server $SERVER --name "\$(hostname)"
+
+Then run scripts/dev-worker again.
+MSG
+  exit 1
+fi
+exec cargo run -p aq-worker -- run

@@ -12,3 +12,5 @@ vault.local/
 .DS_Store
 Thumbs.db
 target/
+
+secrets.dev/
