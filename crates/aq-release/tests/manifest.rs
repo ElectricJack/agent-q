@@ -221,3 +221,42 @@ fn canonical_json_roundtrips_byte_identical() {
     assert!(s.starts_with(r#"{"created_at":"#));
     assert!(s.find("\"images\"").unwrap() < s.find("\"version\"").unwrap());
 }
+
+#[test]
+fn digest_refs_allow_a_registry_port_but_no_tags() {
+    let good = "a".repeat(64);
+    let accept = [
+        format!("127.0.0.1:5000/agent-q-server@sha256:{good}"),
+        format!("ghcr.io/electricjack/agent-q-server@sha256:{good}"),
+        format!("localhost:5000/a/b_c.d-e@sha256:{good}"),
+    ];
+    for a in &accept {
+        assert!(is_digest_ref(a), "{a}");
+        let j = json("0.2.0", ">=0.1.0", 1, &[1]).replace(DIGEST, a);
+        assert!(ReleaseManifest::from_json(j.as_bytes()).is_ok(), "{a}");
+    }
+    let reject = [
+        format!("ghcr.io/x/y:tag@sha256:{good}"),
+        format!("y:tag@sha256:{good}"),
+        format!("ghcr.io/x/y@sha256:{}", "A".repeat(64)),
+        format!("ghcr.io/x/y@sha256:{good}0"),
+        format!("ghcr.io/x/y@sha256:{good}.sig"),
+        format!("ghcr.io/x/y@sha256:{good}\n"),
+        format!("ghcr.io/x/y@sha256:{}", "a".repeat(63)),
+        format!("ghcr.io:abc/x@sha256:{good}"),
+        format!("127.0.0.1:5000/x:1@sha256:{good}"),
+        format!("agent-q-server@sha256:{good}"),
+        format!("ghcr.io/x/y:tag"),
+    ];
+    for r in &reject {
+        assert!(!is_digest_ref(r), "{r:?}");
+        let j = json("0.2.0", ">=0.1.0", 1, &[1]).replace(DIGEST, &r.replace('\n', "\\n"));
+        assert!(
+            matches!(
+                ReleaseManifest::from_json(j.as_bytes()),
+                Err(ManifestError::InvalidImage { .. })
+            ),
+            "{r:?}"
+        );
+    }
+}

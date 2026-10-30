@@ -97,7 +97,7 @@ fn digest_ref(image: &str) -> RuntimeResult<&str> {
         Ok(image)
     } else {
         Err(failed(format!(
-            "refusing image reference {:.200?}: not digest-pinned (repo@sha256:<64 hex>)",
+            "refusing image reference {:.200?}: not digest-pinned (host[:port]/path@sha256:<64 hex>)",
             image
         )))
     }
@@ -970,6 +970,12 @@ mod tests {
         assert_eq!(
             strs(&c.pull_argv(IMAGE).unwrap()),
             ["pull", "--quiet", IMAGE]
+        );
+        // A local registry with a port is a valid digest ref.
+        let local = IMAGE.replace("ghcr.io/electricjack", "127.0.0.1:5000");
+        assert_eq!(
+            strs(&c.pull_argv(&local).unwrap()),
+            ["pull", "--quiet", local.as_str()]
         );
         assert_eq!(
             strs(&c.labels_argv(IMAGE).unwrap()),

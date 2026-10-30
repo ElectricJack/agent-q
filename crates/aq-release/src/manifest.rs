@@ -8,10 +8,16 @@ const MANIFEST_VERSION: u32 = 1;
 
 fn digest_re() -> &'static Regex {
     static RE: OnceLock<Regex> = OnceLock::new();
-    RE.get_or_init(|| Regex::new(r"^[a-z0-9./_-]+@sha256:[0-9a-f]{64}$").expect("static regex"))
+    // Optional registry `host:port`, then a path whose segments cannot hold
+    // `:` (so no tag), then the digest.
+    RE.get_or_init(|| {
+        Regex::new(r"^[a-z0-9.-]+(:[0-9]+)?/[a-z0-9._/-]+@sha256:[0-9a-f]{64}$")
+            .expect("static regex")
+    })
 }
 
-/// True when `image` is a digest-pinned reference (`repo@sha256:<64 hex>`),
+/// True when `image` is a digest-pinned reference
+/// (`host[:port]/path@sha256:<64 hex>`, no tag),
 /// the only form a manifest may carry and the updater may pass to `docker`.
 pub fn is_digest_ref(image: &str) -> bool {
     digest_re().is_match(image)
@@ -23,7 +29,9 @@ pub enum ManifestError {
     Parse(#[from] serde_json::Error),
     #[error("unsupported manifest_version {0}; this updater understands only version 1")]
     UnsupportedManifestVersion(u32),
-    #[error("{role} image {image:?} is not digest-pinned (expected repo@sha256:<64 hex>)")]
+    #[error(
+        "{role} image {image:?} is not digest-pinned (expected host[:port]/path@sha256:<64 hex>)"
+    )]
     InvalidImage { role: &'static str, image: String },
     #[error(
         "state_format {state_format} is not in readable_state_formats {readable:?}; add it to the manifest"
