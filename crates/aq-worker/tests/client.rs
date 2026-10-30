@@ -198,3 +198,45 @@ async fn sends_bearer_and_cf_headers() {
         15
     );
 }
+
+#[test]
+fn malformed_server_urls_are_rejected() {
+    for bad in [
+        "htps://example.com",
+        "example.com",
+        "ftp://example.com",
+        "http://",
+    ] {
+        assert!(Client::new(bad, None, None, None).is_err(), "{bad}");
+    }
+    assert!(Client::new("https://example.com/", None, None, None).is_ok());
+}
+
+#[tokio::test]
+async fn html_429_and_408_and_502_are_transient() {
+    for status in [
+        StatusCode::TOO_MANY_REQUESTS,
+        StatusCode::REQUEST_TIMEOUT,
+        StatusCode::BAD_GATEWAY,
+    ] {
+        let app = Router::new().route(
+            "/v1/worker/heartbeat",
+            post(move || async move {
+                (
+                    status,
+                    [(header::CONTENT_TYPE, "text/html")],
+                    "<html>slow down</html>",
+                )
+            }),
+        );
+        assert!(
+            matches!(hb_err(app).await, CallError::Transient(_)),
+            "{status}"
+        );
+    }
+    let app = Router::new().route(
+        "/v1/worker/heartbeat",
+        post(|| async { StatusCode::TOO_MANY_REQUESTS }),
+    );
+    assert!(matches!(hb_err(app).await, CallError::Transient(_)));
+}

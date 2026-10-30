@@ -67,6 +67,11 @@ impl Client {
         cf_client_id: Option<String>,
         cf_client_secret: Option<String>,
     ) -> anyhow::Result<Client> {
+        let url = reqwest::Url::parse(server_url)
+            .map_err(|e| anyhow::anyhow!("invalid server URL {server_url:?}: {e}"))?;
+        if !matches!(url.scheme(), "http" | "https") || url.host_str().is_none() {
+            anyhow::bail!("invalid server URL {server_url:?}: must be http:// or https://");
+        }
         let mut headers = HeaderMap::new();
         if let (Some(id), Some(secret)) = (cf_client_id, cf_client_secret) {
             headers.insert(
@@ -128,7 +133,13 @@ impl Client {
             .send()
             .await
             // Connect failures, timeouts and mid-flight resets are all retryable.
-            .map_err(|e| CallError::Transient(e.without_url().to_string()))?;
+            .map_err(|e| {
+                if e.is_builder() {
+                    CallError::Other(e.without_url().to_string())
+                } else {
+                    CallError::Transient(e.without_url().to_string())
+                }
+            })?;
         classify(resp).await
     }
 }
@@ -143,6 +154,13 @@ fn is_html(resp: &Response) -> bool {
 async fn classify<T: DeserializeOwned>(resp: Response) -> Result<T, CallError> {
     let status = resp.status();
     if status.is_server_error() {
+        return Err(CallError::Transient(format!("server returned {status}")));
+    }
+    // Timeouts and rate limits (Cloudflare's 429 page is HTML) are retryable.
+    if matches!(
+        status,
+        StatusCode::REQUEST_TIMEOUT | StatusCode::TOO_MANY_REQUESTS
+    ) {
         return Err(CallError::Transient(format!("server returned {status}")));
     }
     // Cloudflare Access answers a rejected service token with a redirect to

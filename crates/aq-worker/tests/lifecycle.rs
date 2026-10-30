@@ -163,6 +163,10 @@ async fn lifecycle_enroll_heartbeat_restart_revoke() {
     assert_eq!(list[0]["id"], enrolled.node_id.to_string());
 
     // The run loop stops on clean shutdown...
+    let seen_before = workers(&http, &s2.admin).await[0]["last_seen_at"]
+        .as_str()
+        .unwrap()
+        .to_string();
     let (tx, rx) = oneshot::channel::<()>();
     let c2 = Client::from_config(&restarted).unwrap();
     let looped = tokio::spawn(async move {
@@ -172,6 +176,11 @@ async fn lifecycle_enroll_heartbeat_restart_revoke() {
         .await
     });
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+    let seen_after = workers(&http, &s2.admin).await[0]["last_seen_at"]
+        .as_str()
+        .unwrap()
+        .to_string();
+    assert!(seen_after > seen_before, "{seen_before} -> {seen_after}");
     tx.send(()).unwrap();
     assert!(looped.await.unwrap().is_ok());
 
@@ -184,9 +193,13 @@ async fn lifecycle_enroll_heartbeat_restart_revoke() {
     assert!(r.status().is_success());
     let e = client.heartbeat(&hb()).await.unwrap_err();
     assert!(matches!(e, CallError::Revoked), "{e:?}");
-    let e = run_loop(&client, std::future::pending::<()>())
-        .await
-        .unwrap_err();
+    let e = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        run_loop(&client, std::future::pending::<()>()),
+    )
+    .await
+    .expect("run_loop did not stop on revocation")
+    .unwrap_err();
     assert!(matches!(e, CallError::Revoked), "{e:?}");
     s2.shutdown().await;
 }
