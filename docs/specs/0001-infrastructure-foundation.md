@@ -227,6 +227,8 @@ Later specifications can add tasks, workers that execute agents, playbooks, and 
 
 ## Relationship to the existing system
 
-Build alongside the existing Agent Queue installation. This phase does not change its database, configuration, daemon, or task ownership. Later specifications will define migration boundaries once hosting, identity, connectivity, and release recovery are established.
+Build AQ v2 as a fresh start alongside the existing Agent Queue installation. This phase does not change its database, configuration, daemon, or task ownership. New v2 workspaces do not require importing v1 data or achieving full v1 feature parity.
+
+Do not include a v1 importer or supported migration workflow in aq-graph. If the owner later chooses to transfer selected data, use a separately maintained external one-off script. Supporting migration for other installations is outside the product scope. Normal v2 state/schema upgrades, backups, and recovery remain part of deployment operations.
 
 This repository's specification is the implementation reference. It incorporates the subsequent Bluehost and Cloudflare decisions from the discussion after the [original brainstorming draft](https://chatgpt.com/space/page_232b155a4fc48191ad7bfab383f1093d).

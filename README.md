@@ -1,6 +1,6 @@
 # Agent Q
 
-The new Agent Queue foundation, built alongside the existing system for gradual migration.
+The new Agent Queue foundation, developed as a fresh start alongside the existing installation. V1 migration is not a launch requirement. Any optional owner-specific data transfer belongs in an external one-off script outside aq-graph.
 
 Start with [Phase 1: Infrastructure foundation](docs/specs/0001-infrastructure-foundation.md).
 
