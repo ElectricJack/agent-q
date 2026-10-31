@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "source_revision": "9b0b4801098cf0afc031b89a01e9e97f2dfbe063",
+  "prerequisite_revision": "b64db82e2587e0582d5ec90c641d0251e336f091",
+  "archive": {
+    "path": "/tmp/aq14-protocol-source/source.tar",
+    "sha256": "cc62507eb0ea9f281603b830c12e6685546a81725f311f24bbdbcbad62a7f108",
+    "publication": "exact source closure; no registry publication"
+  },
+  "qualification": {
+    "kind": "extracted-only standalone",
+    "rust_tests_passed": 11,
+    "python_digest_vectors_passed": 6,
+    "strict_all_target_clippy": true,
+    "format": true,
+    "native_source_or_human_approval": false
+  },
+  "source_files": [
+    {
+      "path": "crates/aq-review-protocol/Cargo.toml",
+      "sha256": "7a241f72b89b499b901546b7cf18df183df61e9047512a331d31ac1c244553d1"
+    },
+    {
+      "path": "crates/aq-review-protocol/README.md",
+      "sha256": "0df732f0a5c1c649ad28e244e96c57d766153e5b5f50522036aa1e63b561b9df"
+    },
+    {
+      "path": "crates/aq-review-protocol/artifacts/check.schema.json",
+      "sha256": "aca6a52bc5b589d8a2bf49ecf13a208c102952dc1502da1efed96dc5264b464e"
+    },
+    {
+      "path": "crates/aq-review-protocol/artifacts/decision.schema.json",
+      "sha256": "ae8b7bc7ff2874ef7b02639efbd8a7f7e22d92d6f14e0c088d2a120312d2762d"
+    },
+    {
+      "path": "crates/aq-review-protocol/artifacts/fixtures.json",
+      "sha256": "d6b7891b8fdab86dbb9da438da5a805217d826fb0a929da26084ab51ad9a412b"
+    },
+    {
+      "path": "crates/aq-review-protocol/artifacts/subject.schema.json",
+      "sha256": "47f11b43a7679579fde8f6d1dc627712d479e4c006d392909b7426b35bf8c744"
+    },
+    {
+      "path": "crates/aq-review-protocol/artifacts/upstream-outcome-v1.fixture.json",
+      "sha256": "6db72d816b024813d139feffda00978648430916cd24939824c08783e7f2b0f1"
+    },
+    {
+      "path": "crates/aq-review-protocol/artifacts/upstream-result-record-v1.fixture.json",
+      "sha256": "4179990a70b643f901ddf93f452e24b2e17b8a1f6bae69a31e791ac99c675596"
+    },
+    {
+      "path": "crates/aq-review-protocol/examples/export.rs",
+      "sha256": "c12bd38e90274208a7f2ab8d63d7deb1ba15f3afe9ff8a3982feaa8e11558ba5"
+    },
+    {
+      "path": "crates/aq-review-protocol/examples/support/mod.rs",
+      "sha256": "e975d6cd50d73fd790414bb4f3d76913d31cb26a53e6033faa05226650962679"
+    },
+    {
+      "path": "crates/aq-review-protocol/scripts/check_vectors.py",
+      "sha256": "126dde39aebe660e97eedff9b5f5ff2c077023ffe9b0eccc6b53c70a6140adc3"
+    },
+    {
+      "path": "crates/aq-review-protocol/src/lib.rs",
+      "sha256": "25aa423b9f98f66a51b4c8e3b7332863084a8ef40658d3a51548f5571bfc3b40"
+    },
+    {
+      "path": "crates/aq-review-protocol/tests/conformance.rs",
+      "sha256": "aeb05fab23c85dc16014b7f682c1b7d8a83e006766b4285dfc7e651fe8d3749a"
+    },
+    {
+      "path": "vendor/aq-session-protocol-0.1.0/.cargo_vcs_info.json",
+      "sha256": "811343d11ae685d566fb21a924d0ec3fdcae60e305f6abf09cf049b061360e30"
+    },
+    {
+      "path": "vendor/aq-session-protocol-0.1.0/Cargo.lock",
+      "sha256": "9ec38bd3a72d3d3692231e1ffd6f8d31e1621da9bf3b693c9a4a8da0ed06c592"
+    },
+    {
+      "path": "vendor/aq-session-protocol-0.1.0/Cargo.toml",
+      "sha256": "e9a26d13041e5f9e85d3dd85e12f4f1ddb1f3ad79cbf940d1469f7c530a8805c"
+    },
+    {
+      "path": "vendor/aq-session-protocol-0.1.0/Cargo.toml.orig",
+      "sha256": "be2332fe376fe4fdb1e4b7589dcdc3a58b053f6665373ee050f7cbde2f1dcfbc"
+    },
+    {
+      "path": "vendor/aq-session-protocol-0.1.0/README.md",
+      "sha256": "250d6f654175d798d0e0712ffaab2bccb1d014e4b83246b756aa635b3bd59bb7"
+    },
+    {
+      "path": "vendor/aq-session-protocol-0.1.0/artifacts/contract.schema.json",
+      "sha256": "344661b098e6d8cbf6a5451fc975aba2a5e06f1641c3d1f5e3d5458151f9c500"
+    },
+    {
+      "path": "vendor/aq-session-protocol-0.1.0/artifacts/fixtures.json",
+      "sha256": "cf24fc767dbbdc437d211b4b59d60f699c2248cbd65b9f078fb88f2818161609"
+    },
+    {
+      "path": "vendor/aq-session-protocol-0.1.0/examples/export.rs",
+      "sha256": "b90a4f0cd3d5d3930349b264bdde6875afb805ab842a24f34347c87936031cb6"
+    },
+    {
+      "path": "vendor/aq-session-protocol-0.1.0/src/lib.rs",
+      "sha256": "667c73b2055d65b11f10e47229cb7ebdf998040fddf9d0dd7ecb226ca5833200"
+    },
+    {
+      "path": "vendor/aq-session-protocol-0.1.0/tests/conformance.rs",
+      "sha256": "027627bea220e4d99abc78bab019ebefc71d05cb9c05fff5d663a1ff59e10b22"
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq14-review-9b0b480/clippy.log",
+      "sha256": "29e09b31ea0744f624a21bd3776eb3ffbaa0db9b1edf73741beced0091237a97"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-review-9b0b480/fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-review-9b0b480/tests.log",
+      "sha256": "a8ac62407c8ef20f24b668643509b55fe236cb93f570275b182419584f89e83f"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-review-9b0b480/vectors.log",
+      "sha256": "67197730ceb8c5bfe5c08ed9b874591d0b0a8ef2a9205b8d01ebc1264aab622e"
+    }
+  ]
+}
