@@ -646,7 +646,7 @@ Acceptance:
 
 Requirement links: D1, D6, D9, W3, W4, W5, W13, P2, P4, P5, P6, P7.
 
-Evidence: [AQ-08-stage1.md](../implementation/AQ-08-stage1.md), [AQ-08-stage1.json](../implementation/AQ-08-stage1.json).
+Evidence: [AQ-08-stage1.md](../implementation/AQ-08-stage1.md), [AQ-08-stage1.json](../implementation/AQ-08-stage1.json), [AQ-08-contract-0.1.1.json](../implementation/AQ-08-contract-0.1.1.json), [AQ-08-execution-spec-0.1.2.json](../implementation/AQ-08-execution-spec-0.1.2.json), [AQ-08-hot-authority-qualification.json](../implementation/AQ-08-hot-authority-qualification.json), [AQ-08-source-grant-gate-qualification.json](../implementation/AQ-08-source-grant-gate-qualification.json).
 
 ### WRK-05
 
@@ -1083,6 +1083,8 @@ Requirement links: S2, S3, S5, H4.
 
 Outside this task: Guessing tokens from terminal characters or owning central cost rates/budgets.
 
+Evidence: [WRK-15-component.md](../../../aq-worker/docs/implementation/WRK-15-component.md), [WRK-15-component.json](../../../aq-worker/docs/implementation/WRK-15-component.json).
+
 ### AQ-22
 
 **Implement session observations, transcript inspection and usage accounting**
@@ -1103,7 +1105,7 @@ Requirement links: S1, S2, S3, S5.
 
 Outside this task: Inferring semantic progress from token count or retaining unlimited transcripts.
 
-Evidence: [AQ-22-plan.md](../implementation/AQ-22-plan.md).
+Evidence: [AQ-22-plan.md](../implementation/AQ-22-plan.md), [AQ-22-ledger.md](../implementation/AQ-22-ledger.md), [AQ-22-inspection.md](../implementation/AQ-22-inspection.md), [AQ-22-observation-api.json](../implementation/AQ-22-observation-api.json), [AQ-22-mounted-qualification.json](../implementation/AQ-22-mounted-qualification.json).
 
 ### AQ-23
 
@@ -1439,6 +1441,8 @@ Acceptance:
 Requirement links: R1, R2, R3, R4, R5, R6, D7, D9, S1.
 
 Outside this task: Browser rendering, literal terminal input as domain approval, unbounded transcript retention.
+
+Evidence: [AQ-21-migration12.md](../implementation/AQ-21-migration12.md), [AQ-21-migration12.json](../implementation/AQ-21-migration12.json).
 
 ### WRK-11
 
