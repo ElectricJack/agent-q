@@ -206,3 +206,30 @@ pub async fn install(state: &AppState) -> Result<InstallReport, AppError> {
     tx.commit().await.map_err(db)?;
     Ok(report)
 }
+
+/// Fence the complete installed configuration, including runtime allowlists.
+/// Caller holds the node lock and must call before taking project/policy locks:
+/// the installer owns configuration -> project -> policy lock order.
+pub async fn fence_configuration_locked(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    config: &ProfiledConfig,
+) -> Result<(), AppError> {
+    let value: String = sqlx::query_scalar("SELECT value FROM meta WHERE key=$1 FOR SHARE")
+        .bind(OWNER_KEY)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(db)?
+        .ok_or_else(|| conflict("profiled configuration is not installed"))?;
+    if value.len() > 4096 {
+        return Err(AppError::Internal);
+    }
+    let owner: ConfigurationOwner = serde_json::from_str(&value).map_err(|_| AppError::Internal)?;
+    if owner.schema_version != 1
+        || owner.revision != config.revision
+        || owner.configuration_digest
+            != aq_selection::digest(config).map_err(|_| AppError::Internal)?
+    {
+        return Err(conflict("profiled configuration is stale"));
+    }
+    Ok(())
+}
