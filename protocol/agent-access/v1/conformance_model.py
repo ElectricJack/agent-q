@@ -146,7 +146,7 @@ def authorize_batch(principal, context, request, graph):
             created.add(node_id)
             if len(created) > write['max_created_records']:
                 raise Refused('scope_denied')
-            local['nodes'][node_id] = {'workspace_id': context['binding']['workspace_id'], 'kind': 'knowledge', 'created_by': principal['graph_actor_id'], 'verification': 'unverified'}
+            local['nodes'][node_id] = {'workspace_id': context['binding']['workspace_id'], 'kind': 'knowledge', 'created_by': principal['graph_actor_id'], 'verification': 'unverified', 'version': 1}
         elif kind == 'correct_record':
             require_write(command['id'], context, local, created)
             node = local['nodes'][command['id']]
@@ -193,6 +193,8 @@ def authorize_batch(principal, context, request, graph):
                 require_graph_guard(local['nodes'][node_id], principal)
             edge_ids = set()
             for edge in command['relationships']:
+                if edge['edge_type'] not in write['relationship_types'] or edge['edge_type'] not in context['profile']['read_scope']['edge_types']:
+                    raise Refused('scope_denied')
                 if edge['id'] in graph['edges'] or edge['id'] in edge_ids:
                     raise Refused('id_conflict')
                 edge_ids.add(edge['id'])
@@ -206,6 +208,20 @@ def authorize_batch(principal, context, request, graph):
                             raise Refused('missing_precondition')
                     if node_id in local['nodes'] and local['nodes'][node_id]['kind'] != 'task':
                         raise Refused('invalid_request')
+    # A protection/author observation authorizes only that exact public version.
+    # In particular, a future CAS token cannot bless a later protected state.
+    for command in request['commands']:
+        checks = []
+        if command['kind'] == 'correct_record':
+            checks.append((command['id'], command['expected_version']))
+        elif command['kind'] in ('add_relationship', 'remove_relationship'):
+            checks.append((command['source'], command['expected_source_version']))
+        elif command['kind'] == 'propose_decomposition':
+            checks.append((command['parent_id'], command['expected_parent_version']))
+            checks.extend((guard['id'], guard['expected_version']) for guard in command['guards'])
+        for node_id, expected in checks:
+            if local['nodes'][node_id]['version'] != int(expected):
+                raise Refused('version_conflict')
     return created
 
 

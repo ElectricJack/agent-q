@@ -44,7 +44,7 @@ class Conformance(unittest.TestCase):
         self.assertIn('commands', module.CommandRequest.__annotations__)
         Draft202012Validator.check_schema(SCHEMA)
         openapi = json.loads((ROOT / 'openapi.json').read_text())
-        self.assertEqual(len(openapi['paths']), 11)
+        self.assertEqual(len(openapi['paths']), 12)
         for path in ['/v1/agent/messages/send', '/v1/agent/messages/inbox', '/v1/agent/messages/ack', '/v1/agent/messages/body', '/v2/worker/messages/poll', '/v2/worker/messages/ack']:
             self.assertIn(path, openapi['paths'])
         self.assertEqual(openapi['paths']['/v2/worker/agent-operations/query']['post']['security'], [{'NodeRecoveryBearer': []}])
@@ -239,8 +239,11 @@ class Conformance(unittest.TestCase):
     def test_all_five_commands_map_to_qualified_graph_shapes(self):
         for kind, request in self.base['command_requests'].items():
             with self.subTest(kind=kind):
-                authorize_batch(self.agent, self.context, request, self.graph)
-                intent = translate_fixture(request, self.context)
+                context = deepcopy(self.context)
+                if kind == 'propose_decomposition':
+                    context['profile']['write_scope']['relationship_types'] += ['blocks', 'parent-child']
+                authorize_batch(self.agent, context, request, self.graph)
+                intent = translate_fixture(request, context)
                 upstream_validate('DraftRequest' if kind == 'propose_decomposition' else 'MutationRequest', intent['payload'])
                 self.assertEqual(intent['workspace_id'], self.context['binding']['workspace_id'])
                 self.assertLessEqual(len(intent['payload']['idempotency_key'].encode()), 128)
@@ -292,11 +295,13 @@ class Conformance(unittest.TestCase):
         request = deepcopy(self.base['command_requests']['correct_record']);request['commands'][0]['id'] = uid(1)
         self.refused('capability_denied', authorize_batch, self.agent, self.context, request, self.graph)
         self.context['profile']['capabilities'].append('write.task_content')
+        request['commands'][0]['expected_version'] = str(self.graph['nodes'][uid(1)]['version'])
         authorize_batch(self.agent, self.context, request, self.graph)
         self.graph['nodes'][uid(1)]['verification'] = 'verified'
         self.refused('guard_unavailable', authorize_batch, self.agent, self.context, request, self.graph)
 
     def test_proposal_never_applies_or_mixes_with_live_writes(self):
+        self.context['profile']['write_scope']['relationship_types'] += ['blocks', 'parent-child']
         request = deepcopy(self.base['command_requests']['propose_decomposition'])
         authorize_batch(self.agent, self.context, request, self.graph)
         intent = translate_fixture(request, self.context)
@@ -412,6 +417,24 @@ class Conformance(unittest.TestCase):
         invalid['sender'] = {'kind': 'owner'}
         with self.assertRaises(ValidationError):
             validate('MessageSend', invalid)
+
+
+    def test_mutation_delivery_guards_and_explicit_structural_scope(self):
+        vectors = json.loads((ROOT / 'fixtures/mutation-delivery.json').read_text())
+        for vector in vectors['wire']:
+            validate(vector['type'], vector['value'])
+        for vector in vectors['proposal_profiles']:
+            context = deepcopy(self.context)
+            context['profile'] = deepcopy(vector['profile'])
+            request = deepcopy(self.base['command_requests']['propose_decomposition'])
+            if vector['authorized']:
+                authorize_batch(self.agent, context, request, self.graph)
+            else:
+                self.refused('scope_denied', authorize_batch, self.agent, context, request, self.graph)
+        for kind, field in [('correct_record', 'expected_version'), ('add_relationship', 'expected_source_version')]:
+            request = deepcopy(self.base['command_requests'][kind])
+            request['commands'][0][field] = '3'
+            self.refused('version_conflict', authorize_batch, self.agent, self.context, request, self.graph)
 
 
 if __name__ == '__main__':

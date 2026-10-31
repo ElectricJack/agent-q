@@ -1,6 +1,6 @@
 # Scoped agent graph access v1
 
-API-01 publishes this contract for AQ-06/AQ-07 and WRK-05. The routes are reserved, not installed in the current daemon. JSON Schema 2020-12 (`schema.json`, identifier `urn:agent-q:agent-access:1`) is the public type boundary; `openapi.json` describes five HTTP routes. `client_types.py` contains generated Python type declarations for developer/client tooling. The validator and fixture oracle are developer-only, with no production SDK, authentication implementation or runtime dependency implied. Rust and other clients can generate types from the public schemas.
+API-01 publishes this contract for AQ-06/AQ-07 and WRK-05. The daemon implements the scoped server routes; owning implementation evidence qualifies their behavior separately. JSON Schema 2020-12 (`schema.json`, identifier `urn:agent-q:agent-access:1`) is the public type boundary; `openapi.json` describes twelve machine HTTP routes, including the messaging extension below. `client_types.py` contains generated Python type declarations for developer/client tooling. The validator and fixture oracle are developer-only, with no production SDK, authentication implementation or runtime dependency implied. Rust and other clients can generate types from the public schemas.
 
 | Method/path | Authority and purpose |
 | --- | --- |
@@ -9,8 +9,9 @@ API-01 publishes this contract for AQ-06/AQ-07 and WRK-05. The routes are reserv
 | POST `/v1/agent/graph/commands` | Active agent session: one bounded typed graph command batch admitted under current authority. |
 | GET `/v1/agent/operations/{operation_id}` | Agent's own existing operation disposition; no new action. Expired/revoked credentials use node/operator recovery. |
 | POST `/v2/worker/agent-operations/query` | Enrolled node: bounded lookup/list of its own existing attempt/session/generation operations; no graph query, command, arbitrary payload or new intent. |
+| POST `/v2/worker/agent-operations/retry` | Enrolled node: reconcile exactly one associated retained intent under its original immutable payload/key and budget. |
 
-The node route is an execution-protocol-2 extension carrying this independently versioned agent-access-1 body. It does not reinterpret foundation connectivity protocol 1. AQ-06/AQ-07 must negotiate support before worker/client use. Requests/answers identify agent API version 1; responses carry `X-AQ-Agent-API-Version: 1` and `Cache-Control: no-store`. An unsupported explicit version is refused with HTTP 426. Strict bodies reject unknown fields and commands. Standard schema validation describes shape; `x-utf8-maxBytes`, `x-int64-token`, digest equality, cursor/receipt bindings and authorization rules are additional normative semantic checks. Independently generated clients must implement those checks and run the published vectors; JSON Schema alone is not authorization. There is no forward-any-route, URL, SQL, shell, aq-git or graph-admin operation. The twelve playbook Host commands are separate and are not agent graph commands.
+The node recovery routes are execution-protocol-2 extensions carrying this independently versioned agent-access-1 body. It does not reinterpret foundation connectivity protocol 1. AQ-06/AQ-07 must negotiate support before worker/client use. Requests/answers identify agent API version 1; responses carry `X-AQ-Agent-API-Version: 1` and `Cache-Control: no-store`. An unsupported explicit version is refused with HTTP 426. Strict bodies reject unknown fields and commands. Standard schema validation describes shape; `x-utf8-maxBytes`, `x-int64-token`, digest equality, cursor/receipt bindings and authorization rules are additional normative semantic checks. Independently generated clients must implement those checks and run the published vectors; JSON Schema alone is not authorization. There is no forward-any-route, URL, SQL, shell, aq-git or graph-admin operation. The twelve playbook Host commands are separate and are not agent graph commands.
 
 ## Authority, profile and context
 
@@ -75,7 +76,7 @@ If the host lacks `ensurepip`, create the environment with `python3 -m venv --wi
 
 Optional `capture_graph_fixture.py` reproduces the narrow probe with already-installed qualified images. It refuses a mismatched graph image ID, creates unique disposable Docker resources with a dynamic loopback HTTP port and synthetic credentials, uses only public graph APIs, and removes owned resources. It neither pulls/publishes nor contacts production resources. Re-capture changes fixture timestamps/receipt UUIDs and must be reviewed before regeneration.
 
-Tests establish schemas, client decisions, scope/receipt fixture invariants and actual guard behavior on graph revision `225329cd6acf5a775fd2a0b016dd1c45fb16c79b`, image `sha256:807beba98dcd20b0ae335f09cae8c06ecb182a352ee78de278cb47fccb2ee3be`. In-memory fixture ledger/service are not durable AQ authority or a graph engine. Authentication, author delegation, SQL/outbox atomicity, exhaustive graph invariants, real scoped traversal/search/history/cursors, production retry scheduling, CLI persistence and HTTP routes remain AQ-06/AQ-07/WRK-05 work. No production authorization, exactly-once guarantee, task completion, scale or deployment gate is accepted here.
+Tests establish schemas, client decisions, scope/receipt fixture invariants and actual guard behavior on graph revision `225329cd6acf5a775fd2a0b016dd1c45fb16c79b`, image `sha256:807beba98dcd20b0ae335f09cae8c06ecb182a352ee78de278cb47fccb2ee3be`. In-memory fixture ledger/service are not durable AQ authority or a graph engine. API-01 fixture evidence alone does not establish authentication, author delegation, SQL/outbox atomicity, exhaustive graph invariants or real scoped traversal/search/history/cursors. AQ-06/AQ-07 runtime evidence qualifies the daemon boundaries separately; production CLI persistence remains WRK-05 work. No production authorization, exactly-once guarantee, task completion, scale or deployment gate is accepted here.
 
 ## Additive AQ-11 messaging extension
 
@@ -94,3 +95,24 @@ outbound and returns durable per-attempt IDs. `delivery_unknown` is terminal for
 ordinary delivery and does not trigger automatic injection retry, including on a
 successor. These interfaces supply persistence and authentication; AQ-11 does not
 implement provider message delivery or human notifications.
+
+
+## AQ-07 durable mutation implementation
+
+The daemon now implements finite mutation admission, status lookup and scoped
+node/owner recovery; see [graph mutation operations](../../../docs/operations/graph-mutations.md)
+for exact routes, configuration, quotas, dispatch/cancellation semantics and
+qualification limits. `mutation_actor_id` must name the actual ordinary service
+actor. The new `RecoveryRetry` route permits one existing associated intent and
+never accepts replacement graph bytes or renews an agent credential.
+
+Guard author/protection observations now require the caller's original CAS token
+to equal the fetched public version before admission. Future tokens are refused;
+concurrent changes remain fenced by the same-batch graph CAS. The bounded fixture
+oracle mirrors this rule. `write_scope.relationship_types` accepts structural
+EdgeType values as an additive extension; drafts require explicit structural
+write scope plus read edge scope, while ordinary relationship commands remain
+informational-only. Original profile/base and wire-message fixture bytes remain
+unchanged. The legacy informational-only proposal scope vector now expects a
+refusal; new `fixtures/mutation-delivery.json` explicitly covers both profiles.
+There is no agent draft-apply or task-completion route.

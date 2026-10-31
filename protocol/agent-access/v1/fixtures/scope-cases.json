@@ -556,7 +556,7 @@
         }
       ]
     },
-    "expected": "allowed"
+    "expected": "scope_denied"
   },
   {
     "name": "wrong-credential-read-node",

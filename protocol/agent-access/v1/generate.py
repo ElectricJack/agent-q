@@ -132,7 +132,7 @@ def definitions():
     obj('ReadScope', {'mode': {'enum': ['workspace', 'records']}, 'record_ids': array(UUID, 256, unique=True),
                       'include_created_by_attempt': BOOL, 'edge_types': array(ref('EdgeType'), 8, unique=True)},
         allOf=[{'if': {'properties': {'mode': const('workspace')}}, 'then': {'properties': {'record_ids': {'maxItems': 0}}}}])
-    obj('WriteScope', {'record_ids': array(UUID, 256, unique=True), 'relationship_types': array(ref('InformationalEdgeType'), 6, unique=True),
+    obj('WriteScope', {'record_ids': array(UUID, 256, unique=True), 'relationship_types': array(ref('EdgeType'), 8, unique=True),
                        'correct_fields': array({'enum': ['title', 'body', 'labels']}, 3, unique=True),
                        'max_created_records': integer(256), 'max_proposal_tasks': integer(8)})
     obj('RetryBudget', {'max_attempts': integer(8, 1), 'max_elapsed_ms': integer(120000, 1),
@@ -244,6 +244,7 @@ def definitions():
     obj('RecoveryLookup', {**recovery, 'mode': const('lookup'), 'operation_ids': array(UUID, 64, 1, True)})
     obj('RecoveryList', {**recovery, 'mode': const('list'), 'limit': integer(64, 1), 'cursor': nullable(text(2048, 1))})
     union('RecoveryRequest', ['RecoveryLookup', 'RecoveryList'])
+    obj('RecoveryRetry', {**recovery, 'mode': const('lookup'), 'operation_ids': array(UUID, 1, 1, True)})
     obj('RecoveryResponse', {'api_version': API, 'request_id': UUID, 'attempt': ref('AttemptRef'),
                              'operations': array(ref('OperationStatus'), 64), 'next_cursor': nullable(text(2048, 1)),
                              'coverage': ref('Coverage')})
@@ -280,10 +281,14 @@ def openapi(document):
         if request:
             item['requestBody'] = {'required': True, 'content': content(request)}
         return item
-    lookup = route('agentOperationGet', 'OperationStatus')
+    commands = route('agentGraphCommand', 'OperationStatus', 'CommandRequest', statuses=['200', '202', '409', '422'])
+    commands['parameters'].append({'name': 'Prefer', 'in': 'header', 'required': False,
+                                   'description': 'respond-async commits admission without starting dispatch; identical replay without this header may dispatch.',
+                                   'schema': {'type': 'string', 'enum': ['respond-async']}})
+    lookup = route('agentOperationGet', 'OperationStatus', statuses=['200', '202', '409', '422'])
     lookup['parameters'].append({'name': 'operation_id', 'in': 'path', 'required': True, 'schema': UUID})
     return {'openapi': '3.1.0', 'info': {'title': 'AQ agent graph access', 'version': '1.0.0',
-             'description': 'Contract only. AQ-06/AQ-07 implement these routes later. No raw graph proxy or playbook Host API.'},
+             'description': 'Versioned public agent routes. See owning implementation evidence for qualified behavior; no raw graph proxy or playbook Host API.'},
             'paths': {'/v1/agent/context': {'get': route('agentContextGet', 'ContextResponse')},
                       '/v1/agent/graph/read': {'post': route('agentGraphRead', 'ReadResponse', 'ReadRequest')},
                       '/v1/agent/messages/send': {'post': route('agentMessageSend', 'MessageSendReceipt', 'MessageSend')},
@@ -292,9 +297,10 @@ def openapi(document):
                       '/v1/agent/messages/body': {'post': route('agentMessageBody', 'MessageBodyResponse', 'MessageBodyRequest')},
                       '/v2/worker/messages/poll': {'post': route('workerMessagePoll', 'MessageNodeBatch', 'MessageNodePoll', node=True)},
                       '/v2/worker/messages/ack': {'post': route('workerMessageAck', 'MessageNodeAckReceipt', 'MessageNodeAck', node=True)},
-                      '/v1/agent/graph/commands': {'post': route('agentGraphCommand', 'OperationStatus', 'CommandRequest', statuses=['200', '202', '409', '422'])},
+                      '/v1/agent/graph/commands': {'post': commands},
                       '/v1/agent/operations/{operation_id}': {'get': lookup},
-                      '/v2/worker/agent-operations/query': {'post': route('workerAgentOperationQuery', 'RecoveryResponse', 'RecoveryRequest', node=True)}},
+                      '/v2/worker/agent-operations/query': {'post': route('workerAgentOperationQuery', 'RecoveryResponse', 'RecoveryRequest', node=True)},
+                      '/v2/worker/agent-operations/retry': {'post': route('workerAgentOperationRetry', 'RecoveryResponse', 'RecoveryRetry', node=True)}},
             'components': {'securitySchemes': {'AgentSessionBearer': {'type': 'http', 'scheme': 'bearer', 'description': 'Opaque scoped per-attempt credential; node/worker/service credentials refused.'},
                                                'NodeRecoveryBearer': {'type': 'http', 'scheme': 'bearer', 'description': 'Enrolled node credential, own existing attempt operations only; no graph request body or new admission.'}},
                            'schemas': remap(document['$defs'])}}

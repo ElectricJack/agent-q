@@ -1,0 +1,108 @@
+{
+  "source_revision": "225329cd6acf5a775fd2a0b016dd1c45fb16c79b",
+  "image_id": "sha256:807beba98dcd20b0ae335f09cae8c06ecb182a352ee78de278cb47fccb2ee3be",
+  "method": "Actual public /changesets response from scripts/test-agent-mutations.py isolated synthetic qualification; expected operations are the finite submitted draft mapping.",
+  "expected_operations": [
+    {
+      "expected_version": 3,
+      "id": "00000000-0000-0000-0000-000000000001",
+      "op": "update_node",
+      "patch": {}
+    },
+    {
+      "expected_version": 2,
+      "id": "00000000-0000-0000-0000-000000000003",
+      "op": "update_node",
+      "patch": {}
+    },
+    {
+      "acceptance_criteria": "No direct apply",
+      "body": "Draft only",
+      "id": "aae34923-0dbb-490e-9918-7f34450b0bb8",
+      "kind": "task",
+      "op": "create_node",
+      "provenance": [
+        {
+          "attempt_id": "00000000-0000-0000-0000-000000000066",
+          "kind": "task",
+          "session_id": "00000000-0000-0000-0000-000000000067",
+          "source_id": "aq:00000000-0000-0000-0000-000000000066",
+          "task_id": "00000000-0000-0000-0000-000000000001"
+        }
+      ],
+      "task_state": "draft",
+      "title": "Proposed task"
+    }
+  ],
+  "response": {
+    "actor_id": "api01-writer",
+    "applied_at": null,
+    "created_at": "2026-10-31T07:05:53.436076+00:00",
+    "id": "e5d616da-c991-410c-b85a-5164cd770d36",
+    "name": "Bounded draft",
+    "operations": [
+      {
+        "expected_version": 3,
+        "id": "00000000-0000-0000-0000-000000000001",
+        "op": "update_node",
+        "patch": {
+          "acceptance_criteria": null,
+          "body": null,
+          "knowledge_type": null,
+          "labels": null,
+          "metadata": null,
+          "provenance": null,
+          "retired": null,
+          "retirement_reason": null,
+          "task_state": null,
+          "title": null,
+          "verification": null
+        }
+      },
+      {
+        "expected_version": 2,
+        "id": "00000000-0000-0000-0000-000000000003",
+        "op": "update_node",
+        "patch": {
+          "acceptance_criteria": null,
+          "body": null,
+          "knowledge_type": null,
+          "labels": null,
+          "metadata": null,
+          "provenance": null,
+          "retired": null,
+          "retirement_reason": null,
+          "task_state": null,
+          "title": null,
+          "verification": null
+        }
+      },
+      {
+        "acceptance_criteria": "No direct apply",
+        "body": "Draft only",
+        "id": "aae34923-0dbb-490e-9918-7f34450b0bb8",
+        "kind": "task",
+        "knowledge_type": null,
+        "labels": [],
+        "metadata": {},
+        "op": "create_node",
+        "provenance": [
+          {
+            "attempt_id": "00000000-0000-0000-0000-000000000066",
+            "kind": "task",
+            "session_id": "00000000-0000-0000-0000-000000000067",
+            "source_id": "aq:00000000-0000-0000-0000-000000000066",
+            "task_id": "00000000-0000-0000-0000-000000000001"
+          }
+        ],
+        "task_state": "draft",
+        "title": "Proposed task",
+        "verification": null
+      }
+    ],
+    "reason": "Test authorized immutable intent",
+    "result": null,
+    "status": "draft",
+    "workspace_id": "00000000-0000-0000-0000-000000000069"
+  }
+}

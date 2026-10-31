@@ -1204,10 +1204,10 @@
         "relationship_types": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/InformationalEdgeType"
+            "$ref": "#/$defs/EdgeType"
           },
           "minItems": 0,
-          "maxItems": 6,
+          "maxItems": 8,
           "uniqueItems": true
         },
         "correct_fields": {
@@ -3630,6 +3630,59 @@
         {
           "$ref": "#/$defs/RecoveryList"
         }
+      ]
+    },
+    "RecoveryRetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "const": 1
+        },
+        "request_id": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[0-9a-f-]{36}$",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          }
+        },
+        "node_id": {
+          "type": "string",
+          "format": "uuid",
+          "pattern": "^[0-9a-f-]{36}$",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          }
+        },
+        "attempt": {
+          "$ref": "#/$defs/AttemptRef"
+        },
+        "mode": {
+          "const": "lookup"
+        },
+        "operation_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^[0-9a-f-]{36}$",
+            "not": {
+              "const": "00000000-0000-0000-0000-000000000000"
+            }
+          },
+          "minItems": 1,
+          "maxItems": 1,
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "api_version",
+        "request_id",
+        "node_id",
+        "attempt",
+        "mode",
+        "operation_ids"
       ]
     },
     "RecoveryResponse": {

@@ -134,6 +134,7 @@ enabled=true
     let fake_app = Router::new().fallback(fake_graph).with_state(fake.clone());
     let fake_server = tokio::spawn(async move { axum::serve(listener, fake_app).await.unwrap() });
     let runtime = Runtime::new(&AgentAccessConfig {
+        mutation_actor_id: None,
         graph_url: std::env::var("AQ_AGENT_GRAPH_TEST_URL").unwrap_or(fake_url),
         graph_token_file: std::env::var_os("AQ_AGENT_GRAPH_TEST_TOKEN_FILE")
             .map(std::path::PathBuf::from)

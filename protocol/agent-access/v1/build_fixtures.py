@@ -133,7 +133,7 @@ def build():
             hidden = deepcopy(request);hidden['query']['node_id'] = uid(4)
             case('hidden-root-' + kind, 'read', hidden, 'not_found')
     for kind, request in command_requests.items():
-        case('authorized-command-' + kind, 'command', request)
+        case('authorized-command-' + kind, 'command', request, 'scope_denied' if kind == 'propose_decomposition' else 'allowed')
     for principal_kind in ['node', 'graph_service']:
         case('wrong-credential-read-' + principal_kind, 'read', requests['get'], 'unauthorized', principal_kind)
         case('wrong-credential-write-' + principal_kind, 'command', command_requests['correct_record'], 'unauthorized', principal_kind)

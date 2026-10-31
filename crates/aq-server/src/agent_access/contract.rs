@@ -93,6 +93,11 @@ fn check(root: &Value, s: &Value, v: &Value) -> bool {
         }
     }
     if let Some(a) = v.as_array() {
+        if let Some(item) = s.get("contains")
+            && !a.iter().any(|v| check(root, item, v))
+        {
+            return false;
+        }
         if s["minItems"].as_u64().is_some_and(|n| a.len() < n as usize)
             || s["maxItems"].as_u64().is_some_and(|n| a.len() > n as usize)
         {
@@ -126,6 +131,13 @@ fn check(root: &Value, s: &Value, v: &Value) -> bool {
         }
         if let Some(p) = s["pattern"].as_str()
             && !match p {
+                "^https?://" => t.starts_with("https://") || t.starts_with("http://"),
+                "^([0-9a-f]{40}|[0-9a-f]{64})$" => {
+                    matches!(t.len(), 40 | 64)
+                        && t.bytes()
+                            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+                }
+                "\\S" => t.chars().any(|c| !c.is_whitespace()),
                 "^[0-9a-f]{64}$" => {
                     t.len() == 64
                         && t.bytes()
@@ -231,4 +243,15 @@ impl<'de> serde::Deserialize<'de> for StrictValue {
         }
         d.deserialize_any(Visitor)
     }
+}
+
+pub(super) fn upstream_valid(name: &str, value: &Value) -> bool {
+    static UPSTREAM: OnceLock<Value> = OnceLock::new();
+    let root = UPSTREAM.get_or_init(|| {
+        serde_json::from_str(include_str!(
+            "../../../../protocol/agent-access/v1/upstream/aq-graph-openapi.json"
+        ))
+        .expect("retained upstream schema")
+    });
+    check(root, &root["components"]["schemas"][name], value)
 }

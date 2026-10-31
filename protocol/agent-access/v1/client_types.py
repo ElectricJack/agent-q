@@ -180,7 +180,7 @@ class ReadScope(TypedDict):
 
 class WriteScope(TypedDict):
     record_ids: list[str]
-    relationship_types: list[InformationalEdgeType]
+    relationship_types: list[EdgeType]
     correct_fields: list[Literal['title', 'body', 'labels']]
     max_created_records: int
     max_proposal_tasks: int
@@ -543,6 +543,14 @@ class RecoveryList(TypedDict):
     mode: Literal['list']
     limit: int
     cursor: Union[str, None]
+
+class RecoveryRetry(TypedDict):
+    api_version: Literal[1]
+    request_id: str
+    node_id: str
+    attempt: AttemptRef
+    mode: Literal['lookup']
+    operation_ids: list[str]
 
 class RecoveryResponse(TypedDict):
     api_version: Literal[1]

@@ -1,21 +1,21 @@
 {
   "contract": "agent-access",
   "major": 1,
-  "status": "local public contract candidate; production gateway/client not implemented",
+  "status": "Finite daemon gateway implemented and locally qualified; full product/harness integration and production client qualification remain pending. No release/deployment claim.",
   "inventory_algorithm": "SHA256 of canonical sorted JSON map of relative paths to SHA256 and byte size; excludes MANIFEST.json and Python caches",
-  "inventory_sha256": "5d630aa5cf25781e4c7197249cc1c174c0c8ef2bb2873fdf0cf5ced7c0e62245",
+  "inventory_sha256": "fdb3177afd64f383dd497057185beb24d2aaed374a7353fe211c75cae9b7966f",
   "files": {
     ".gitignore": {
       "sha256": "e99f6ee4eb88882ea6589ecb717e10a41401763241b246b6821bc091cfe2227e",
       "bytes": 20
     },
     "v1/README.md": {
-      "sha256": "a5d0c85bef94c433d12ab948033491eb00814c7893a59b1321d0671637bbc852",
-      "bytes": 15540
+      "sha256": "c1ad1191e9525ec50c36af56cbf282abf7873f7de4d72c8e0dc5335b090cf3fe",
+      "bytes": 17194
     },
     "v1/build_fixtures.py": {
-      "sha256": "ecbb223536e72904124288879d0b0dc747206ca6b5893b32c79fdab4a5b6a902",
-      "bytes": 14506
+      "sha256": "2eb4d5405a0de6d79b10e636e086f39de1a82f8dd666c3ef711ca9bf85f7df69",
+      "bytes": 14572
     },
     "v1/capture_graph_fixture.py": {
       "sha256": "ca5d34d196e955c525b4311d519ba4f446e20ed2fdf7f30d317f006a1088b40b",
@@ -26,12 +26,12 @@
       "bytes": 2416
     },
     "v1/client_types.py": {
-      "sha256": "d123a46e539b0c6d250c1fd1cb30890c90cac6d9184a37a1b5187f296a103972",
-      "bytes": 15839
+      "sha256": "47a2be0ef54b16f8031909f13a489fc51a80bffd08d17aa96e39a5e3c4ea4cd0",
+      "bytes": 16005
     },
     "v1/conformance_model.py": {
-      "sha256": "2ecf3d0f3b1ddf8f9ad979214a051fc8830159bcc898c95a91bc27748ecf4211",
-      "bytes": 25241
+      "sha256": "c7748743977da091aad30de642db61ace1aed66d9db54d927748ac9673adc505",
+      "bytes": 26353
     },
     "v1/fixtures/base.json": {
       "sha256": "e3deade737992bad2800b8e5d6e0e89282f8c3078b484896e9b8c81fc2af78e5",
@@ -61,33 +61,41 @@
       "sha256": "b6e5e86da0fe752fea0168e67fe48599c516e229c483690f57a94994d7928d50",
       "bytes": 12987
     },
+    "v1/fixtures/mutation-delivery.json": {
+      "sha256": "12ad3cc630778ef0088e75569b7cd586e5ff393ef71bb9753c5a4dea2e1958a3",
+      "bytes": 5155
+    },
+    "v1/fixtures/native-draft-normalization.json": {
+      "sha256": "75bc7f6b3793e7122a1032e96365b2599c571c65b9aaf47e94030dca568de049",
+      "bytes": 3323
+    },
     "v1/fixtures/qualified-graph.json": {
       "sha256": "5339a187b153636afdc28e66971ccd02f8846b68080fa8b17c80cdf42d8622f0",
       "bytes": 25900
     },
     "v1/fixtures/scope-cases.json": {
-      "sha256": "29880559715363bd3c718b9752ed8236c1c972ded33232ca0960b1d5794a4dae",
-      "bytes": 58419
+      "sha256": "8d58c701ab1ebd6dfe4c67357bbe80e93e38ea60ebcb528bea2b4149eacf33bc",
+      "bytes": 58424
     },
     "v1/generate.py": {
-      "sha256": "2ede287cf0622689e874641d1ca62919ed4b821ca650eff16b95c73471b0818d",
-      "bytes": 27194
+      "sha256": "e7d40ea363bb825b5e66f3d8332beb10a87a06385a542cce3c5ef2133702fa32",
+      "bytes": 27880
     },
     "v1/openapi.json": {
-      "sha256": "73edcf23406147ae48e0bbc4d988bb3768fef8360fc2a14326428a3dbd39f746",
-      "bytes": 173060
+      "sha256": "eace57b329766da89478d87f1fd68a69c7463073a276fc5f65c9b4ac1917e7e7",
+      "bytes": 183327
     },
     "v1/requirements-dev.txt": {
       "sha256": "e5d8aad6444e49bf2726aa35af230a27c9e754aa5e539bbd85f96aae54b4a878",
       "bytes": 235
     },
     "v1/schema.json": {
-      "sha256": "db0ef5eaecb12aa9b9accae7d58cb1fd0881905af4dd337299789893924189a1",
-      "bytes": 84726
+      "sha256": "a9fdaf3766c09ee40c87c68aeb161da738991decb876e79aa8d7efba112fab97",
+      "bytes": 85989
     },
     "v1/test_conformance.py": {
-      "sha256": "cd880711053cb6a1f27867296c141dea01fc4bd539fc72e031e8576bae519f58",
-      "bytes": 26856
+      "sha256": "13ab445cfc1f3997bde81e3ac8493c318e8f4ac11500b5818c52e94fac2f98dc",
+      "bytes": 28325
     },
     "v1/upstream/aq-graph-api.md": {
       "sha256": "64f916198677872f732599e3dcd51beffb889165240687b3a2f25e3ee687c59e",
@@ -107,6 +115,7 @@
     }
   },
   "extensions": [
-    "AQ-11 additive messaging shapes and explicit profile capabilities; prior fixtures unchanged"
+    "AQ-11 additive scoped messaging and explicit profile capabilities",
+    "AQ-07 durable finite mutation delivery/recovery, structural draft allowlists and captured native draft defaults"
   ]
 }

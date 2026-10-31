@@ -1,8 +1,8 @@
-//! AQ-06: online attempt credentials and finite, scoped graph reads.
-//! Durable mutation routes are deliberately absent (AQ-07).
+//! Online attempt credentials, scoped graph reads, durable graph intent and mail.
 mod contract;
 mod graph;
 mod messaging;
+mod mutations;
 use crate::{
     AppState,
     authz::RequireOwner,
@@ -28,6 +28,8 @@ use uuid::Uuid;
 pub struct AgentAccessConfig {
     pub graph_url: String,
     pub graph_token_file: PathBuf,
+    #[serde(default)]
+    pub mutation_actor_id: Option<String>,
     #[serde(default = "default_ttl")]
     pub credential_ttl_ms: u64,
 }
@@ -39,6 +41,7 @@ pub struct Runtime {
     url: reqwest::Url,
     token: String,
     ttl: u64,
+    mutation_actor: Option<String>,
 }
 impl Runtime {
     pub async fn new(config: &AgentAccessConfig) -> anyhow::Result<Self> {
@@ -80,6 +83,12 @@ impl Runtime {
             (1000..=120_000).contains(&config.credential_ttl_ms),
             "agent credential TTL outside bounds"
         );
+        if let Some(actor) = &config.mutation_actor_id {
+            anyhow::ensure!(
+                !actor.is_empty() && actor.len() <= 128 && !actor.chars().any(char::is_control),
+                "invalid mutation actor identity"
+            );
+        }
         Ok(Self {
             client: reqwest::Client::builder()
                 .redirect(reqwest::redirect::Policy::none())
@@ -88,7 +97,71 @@ impl Runtime {
             url,
             token,
             ttl: config.credential_ttl_ms,
+            mutation_actor: config.mutation_actor_id.clone(),
         })
+    }
+}
+/// Public graph reachability/access evidence, not an execution claim.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum WorkspaceVerificationError {
+    NotFound,
+    Forbidden,
+    Unavailable,
+}
+impl Runtime {
+    pub async fn verify_workspace(
+        &self,
+        workspace: Uuid,
+    ) -> std::result::Result<(), WorkspaceVerificationError> {
+        use WorkspaceVerificationError::*;
+        let url = self
+            .url
+            .join(&format!("/v1/workspaces/{workspace}/nodes"))
+            .map_err(|_| Unavailable)?;
+        let mut response = self
+            .client
+            .get(url)
+            .bearer_auth(&self.token)
+            .header("X-AQ-Graph-API-Version", "1")
+            .query(&[("limit", "1")])
+            .send()
+            .await
+            .map_err(|_| Unavailable)?;
+        if response
+            .headers()
+            .get("X-AQ-Graph-API-Version")
+            .is_none_or(|v| v != "1")
+        {
+            return Err(Unavailable);
+        }
+        match response.status().as_u16() {
+            401 | 403 => return Err(Forbidden),
+            404 => return Err(NotFound),
+            200 => {}
+            _ => return Err(Unavailable),
+        }
+        if response.content_length().is_some_and(|n| n > 1048576) {
+            return Err(Unavailable);
+        }
+        let mut bytes = Vec::new();
+        while let Some(chunk) = response.chunk().await.map_err(|_| Unavailable)? {
+            if bytes.len() + chunk.len() > 1048576 {
+                return Err(Unavailable);
+            }
+            bytes.extend_from_slice(&chunk);
+        }
+        let page: Value = serde_json::from_slice(&bytes).map_err(|_| Unavailable)?;
+        if !contract::upstream_valid("NodePage", &page)
+            || page["items"].as_array().is_none_or(|items| {
+                items.len() > 1
+                    || items
+                        .iter()
+                        .any(|node| node["workspace_id"] != json!(workspace))
+            })
+        {
+            return Err(Unavailable);
+        }
+        Ok(())
     }
 }
 #[derive(Debug)]
@@ -114,7 +187,7 @@ impl Error {
         let status = match self.0 {
             "unauthorized" | "session_expired" | "session_revoked" => StatusCode::UNAUTHORIZED,
             "scope_denied" | "unsupported_capability" => StatusCode::FORBIDDEN,
-            "not_found" => StatusCode::NOT_FOUND,
+            "not_found" | "operation_unknown" => StatusCode::NOT_FOUND,
             "unsupported_api_version" => StatusCode::UPGRADE_REQUIRED,
             "internal" => StatusCode::INTERNAL_SERVER_ERROR,
             "overloaded" => StatusCode::SERVICE_UNAVAILABLE,
@@ -203,6 +276,7 @@ fn now(state: &AppState) -> u64 {
 pub fn admin_routes(state: AppState) -> Router<AppState> {
     Router::new()
         .merge(messaging::admin_routes())
+        .merge(mutations::admin_routes())
         .route("/api/agent-access/provision", post(provision))
         .with_state(state.clone())
         .merge(
@@ -215,12 +289,14 @@ pub fn admin_routes(state: AppState) -> Router<AppState> {
 pub fn machine_routes(state: AppState) -> Router<AppState> {
     Router::new()
         .merge(messaging::machine_routes())
+        .merge(mutations::machine_routes())
         .route("/v1/agent/context", get(context))
         .route("/v1/agent/graph/read", post(read))
         .with_state(state.clone())
         .merge(
             Router::new()
                 .merge(messaging::node_routes())
+                .merge(mutations::node_routes())
                 .route("/v2/worker/agent-session", post(issue))
                 .with_state(state.control_view()),
         )
@@ -236,6 +312,7 @@ struct Provision {
 }
 #[derive(Clone)]
 struct Principal {
+    created: Vec<Value>,
     binding: Value,
     profile: Value,
     context: Value,
@@ -270,7 +347,8 @@ impl Principal {
         Ok(body)
     }
     fn readable(&self, id: &Value) -> bool {
-        self.profile["read_scope"]["mode"] == "workspace"
+        self.created.contains(id)
+            || self.profile["read_scope"]["mode"] == "workspace"
             || self.profile["read_scope"]["record_ids"]
                 .as_array()
                 .is_some_and(|ids| ids.contains(id))
@@ -355,6 +433,7 @@ async fn provision(
         return Err(Error("invalid_request"));
     }
     let principal = Principal {
+        created: Vec::new(),
         binding: binding.clone(),
         profile: request.profile.clone(),
         context: request.context.clone(),
@@ -450,6 +529,7 @@ async fn issue(
     let token = secret();
 
     let p = Principal {
+        created: Vec::new(),
         binding: row.get("binding"),
         profile: row.get("profile"),
         context: row.get("context"),
@@ -496,7 +576,8 @@ async fn authenticate_locked(
     if expires <= now(state) {
         return Err(Error("session_expired"));
     }
-    let p = Principal {
+    let mut p = Principal {
+        created: Vec::new(),
         binding: row.get("binding"),
         profile: row.get("profile"),
         context: row.get("context"),
@@ -509,6 +590,10 @@ async fn authenticate_locked(
         || p.binding["boot_id"] != a.offer.identity.boot_id.to_string()
     {
         return Err(Error("stale_generation"));
+    }
+    if p.profile["read_scope"]["include_created_by_attempt"] == true {
+        let records: Vec<Uuid> = sqlx::query_scalar("SELECT record_id FROM agent_created_records WHERE attempt_id=$1 ORDER BY record_id LIMIT 256").bind(attempt).fetch_all(&mut **tx).await?;
+        p.created = records.into_iter().map(|id| json!(id)).collect();
     }
     Ok(p)
 }
@@ -632,6 +717,7 @@ mod tests {
     fn context_and_issuance_budgets_include_profile_binding_and_credentials() {
         let c = fixture()["context"].clone();
         let mut p = Principal {
+            created: Vec::new(),
             binding: c["binding"].clone(),
             profile: c["profile"].clone(),
             context: c["context"].clone(),

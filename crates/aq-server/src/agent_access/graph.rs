@@ -104,7 +104,7 @@ pub(super) fn validate_launch(p: &Principal) -> Result<()> {
     Ok(())
 }
 impl Runtime {
-    async fn get(&self, path: &str, params: &[(String, String)]) -> Result<Value> {
+    pub(super) async fn get(&self, path: &str, params: &[(String, String)]) -> Result<Value> {
         let url = self.url.join(path).map_err(|_| Error("internal"))?;
         let mut response = self
             .client
@@ -506,6 +506,7 @@ mod tests {
         .unwrap();
         let c = &f["context"];
         Principal {
+            created: Vec::new(),
             binding: c["binding"].clone(),
             profile: c["profile"].clone(),
             context: c["context"].clone(),
@@ -570,6 +571,7 @@ mod tests {
                 .unwrap()
             });
             let rt = Runtime {
+                mutation_actor: None,
                 client: reqwest::Client::new(),
                 url: format!("http://{address}").parse().unwrap(),
                 token: "ordinary-service-token-0000000000000000".into(),
@@ -603,6 +605,7 @@ mod tests {
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
         let rt = Runtime::new(&AgentAccessConfig {
+            mutation_actor_id: None,
             graph_url: format!("http://{address}"),
             graph_token_file: path,
             credential_ttl_ms: 10000,

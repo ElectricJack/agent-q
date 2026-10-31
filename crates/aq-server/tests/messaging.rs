@@ -137,6 +137,7 @@ enabled=true
     )
     .unwrap();
     let runtime = Runtime::new(&AgentAccessConfig {
+        mutation_actor_id: None,
         graph_url: "http://127.0.0.1:9".into(),
         graph_token_file: token_file,
         credential_ttl_ms: 10000,

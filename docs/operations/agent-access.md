@@ -34,11 +34,11 @@ the next expected version; that invalidates the previous verifier. This is not
 an idempotent plaintext-token recovery endpoint. WRK-05's token-file launch and
 client retry integration remain separate work.
 
-Only `GET /v1/agent/context` and `POST /v1/agent/graph/read` are mounted for agents.
+`GET /v1/agent/context` and `POST /v1/agent/graph/read` provide scoped reads.
 Every read authenticates current central authority before dispatch and again
 before responding, including immutable launch-context reads. Node, owner and
 upstream service credentials cannot substitute for `aqa_` session credentials.
-No AQ-07 mutation/operation success routes are installed.
+[AQ-07 durable mutation routes](graph-mutations.md) and [AQ-11 messaging routes](messaging.md) add separately authorized operations.
 
 The read gateway validates API-01 shapes, unknown fields, duplicate JSON keys,
 UTF-8 lengths, integer revision tokens and canonical digests. It projects nodes,
@@ -51,9 +51,9 @@ Rotation invalidates cursors. Per-attempt live cursors are capped at 128.
 Scans, response bytes, upstream calls and request duration are bounded. A context
 or relationship scan may return explicit partial coverage with no continuation;
 it never asserts global absence. Search/history scan at most eight pages per
-call. Historical unavailable relationships remain null and unavailable. Runtime
-creation-derived read grants are intentionally absent until AQ-07 central
-admission exists; the profile's include-created flag alone grants no record.
+call. Historical unavailable relationships remain null and unavailable. Confirmed AQ-07 findings can receive creation-derived read grants when the frozen
+profile permits them; the include-created flag alone grants no record, and unknown
+operations or unapplied draft tasks confer no derived read permission.
 
 Run unit and PostgreSQL tests with `cargo test -p aq-server --lib agent_access`
 and `cargo test -p aq-server --test agent_access` using a disposable DATABASE_URL.
