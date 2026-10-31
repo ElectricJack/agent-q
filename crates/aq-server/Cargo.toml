@@ -5,6 +5,7 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
+aq-profiles = { path = "../aq-profiles", version = "=0.1.0" }
 aq-protocol.workspace = true
 aq-worker-protocol.workspace = true
 aq-release.workspace = true

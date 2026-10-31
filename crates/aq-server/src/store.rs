@@ -171,6 +171,7 @@ const MIGRATIONS: &[(i32, &str)] = &[
     (3, include_str!("../migrations/0003_agent_access.sql")),
     (4, include_str!("../migrations/0004_source_retention.sql")),
     (5, include_str!("../migrations/0005_messaging.sql")),
+    (6, include_str!("../migrations/0006_profile_catalog.sql")),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.

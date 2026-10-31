@@ -6,6 +6,7 @@ pub mod config;
 pub mod error;
 pub mod execution;
 pub mod identity;
+pub mod profile_catalog;
 pub mod readiness;
 pub mod source_retention;
 pub mod store;
@@ -34,9 +35,9 @@ use std::sync::Arc;
 /// every migration is a state-format change (`store` tests enforce it). The
 /// updater restores the pre-update backup on rollback only when the format
 /// changes, so a migration without a bump would strand the old release.
-pub const STATE_FORMAT_VERSION: u32 = 5;
+pub const STATE_FORMAT_VERSION: u32 = 6;
 /// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
-pub const READABLE_STATE_FORMATS: &[u32] = &[1, 2, 3, 4, 5];
+pub const READABLE_STATE_FORMATS: &[u32] = &[1, 2, 3, 4, 5, 6];
 /// Versions that may be upgraded to this release.
 pub const UPGRADE_FROM: &str = ">=0.1.0";
 
@@ -118,6 +119,7 @@ async fn method_not_allowed() -> Response {
 pub fn build_admin_router(state: AppState) -> Router {
     Router::new()
         .merge(admin_api::admin_routes())
+        .merge(profile_catalog::admin_routes())
         .merge(agent_access::admin_routes(state.clone()))
         .merge(source_retention::admin_routes())
         .merge(execution::api::admin_routes(state.clone()))
