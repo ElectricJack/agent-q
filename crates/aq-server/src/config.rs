@@ -18,6 +18,8 @@ pub struct Config {
     pub enrollment: EnrollmentConfig,
     #[serde(default)]
     pub workers: WorkersConfig,
+    #[serde(default)]
+    pub projects: crate::project_bindings::domain::ProjectConfig,
     /// Absent in development: the update API then answers `updates_unavailable`.
     #[serde(default)]
     pub updates: Option<UpdatesConfig>,
@@ -189,6 +191,7 @@ fn validate(c: &Config) -> Result<(), (String, String)> {
     {
         return invalid("updates.spool_dir", "must be an absolute path".into());
     }
+    c.projects.validate().map_err(|e| ("projects".into(), e))?;
     if let Some(settings) = &c.source_retention {
         settings
             .validate()
@@ -284,6 +287,7 @@ mod tests {
             },
             enrollment: Default::default(),
             workers: Default::default(),
+            projects: Default::default(),
             updates: None,
             agent_access: None,
             source_retention: None,
