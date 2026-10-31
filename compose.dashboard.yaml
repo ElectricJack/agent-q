@@ -1,0 +1,11 @@
+# Optional overlay for an independently built aq-dashboard bundle.
+# Combine with the installation's normal Compose files/environment.
+services:
+  server:
+    environment:
+      AQ_DASHBOARD_DIR: /usr/share/agent-q/dashboard
+    volumes:
+      - type: bind
+        source: ${AQ_DASHBOARD_BUNDLE:?Set AQ_DASHBOARD_BUNDLE to the absolute dashboard dist directory}
+        target: /usr/share/agent-q/dashboard
+        read_only: true
