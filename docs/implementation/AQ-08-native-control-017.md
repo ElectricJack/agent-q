@@ -117,3 +117,20 @@ bounds, old delivery expiry versus renewal, lost-reply replay and current-node
 rotation/lock-wait expiry in actual handlers. Exact archive pin precedes ordinary
 worker HTTP adoption. The worker driver core can independently consume the frozen
 individual NativeOffer/plan/initial-grant types while this surface is finalized.
+
+## Material receipt time provenance
+
+The frozen `MaterialReceipt.received_at_ms` uses the conservative observed
+server-time watermark `MaterialDelivery.clock.server_time_ms`. It is not a claim
+of synchronized worker wall time or an exact arrival/install instant. The worker
+privately journals actual CLOCK_BOOTTIME send, complete-body receive and
+installation/fsync completion, and rechecks local remaining expiry before
+publishing a receipt. The daemon independently checks current server time,
+original lease/preparation expiry, exact scope, bytes and admitted fingerprint;
+the watermark is constrained provenance only and never fresh execution authority.
+
+The initial grant delivery additionally echoes the original Prepare operation ID.
+All positive replies use `control::ControlReply` tagged `kind`/`body`; requests
+remain the raw existing frozen structs. An explicit reconcile batch is complete,
+contains at most its requested limit and uses no discovery cursor. An empty
+batch discovers only authenticated owned attempts using the bounded cursor.
