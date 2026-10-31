@@ -204,6 +204,11 @@ const MIGRATIONS: &[(i32, &str)] = &[
         17,
         include_str!("../migrations/0017_policy_decision_principals.sql"),
     ),
+    (18, include_str!("../migrations/0018_profiled_started.sql")),
+    (
+        19,
+        include_str!("../migrations/0019_native_registration.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.

@@ -28,11 +28,10 @@ use std::{
     time::Duration,
 };
 async fn setup(prepared: bool) -> (Fixture, Request) {
+    setup_native(prepared, true).await
+}
+async fn setup_native(prepared: bool, native_admitted: bool) -> (Fixture, Request) {
     let mut f = fixture().await;
-    sqlx::raw_sql(include_str!("../migrations/0018_profiled_started.sql"))
-        .execute(&f.db.pool().await)
-        .await
-        .unwrap();
     let mut request: Request = serde_json::from_str(include_str!(
         "../../aq-admission/artifacts/started.fixture.json"
     ))
@@ -66,7 +65,9 @@ async fn setup(prepared: bool) -> (Fixture, Request) {
         projects: vec![],
     }));
     f.state.config = Arc::new(config);
-    aq_server::profiled_execution::policies::install(&f.state).await.unwrap();
+    aq_server::profiled_execution::policies::install(&f.state)
+        .await
+        .unwrap();
     let native = NativeRegistration {
         schema_version: 1,
         semantic_digest: registration::semantic_digest(&registered).unwrap(),
@@ -76,12 +77,16 @@ async fn setup(prepared: bool) -> (Fixture, Request) {
         registered_at_ms: NOW,
     };
     let pool = f.db.pool().await;
-    sqlx::query("UPDATE execution_nodes SET state=jsonb_set(state,'{native}',$2) WHERE node_id=$1")
+    if native_admitted {
+        sqlx::query(
+            "UPDATE execution_nodes SET state=jsonb_set(state,'{native}',$2) WHERE node_id=$1",
+        )
         .bind(f.node.node_id)
         .bind(json!(native))
         .execute(&pool)
         .await
         .unwrap();
+    }
     let attempt = insert(&f).await;
     let mut hot = HotState::from_compat(&f.profiled).unwrap();
     let mut tx = pool.begin().await.unwrap();
@@ -250,11 +255,8 @@ async fn missing_prepared_head_foreign_owner_and_unregistered_allowlist_never_ma
     changed = r.clone();
     changed.qualification = artifact("other-qualification", b"other");
     assert!(started::record(&g.state, &auth, &changed).await.is_err());
-    sqlx::query("UPDATE execution_nodes SET state=state-'native' WHERE node_id=$1")
-        .bind(g.node.node_id)
-        .execute(&g.db.pool().await)
-        .await
-        .unwrap();
+    let (g, r) = setup_native(true, false).await;
+    let auth = context(&g).await;
     assert!(started::record(&g.state, &auth, &r).await.is_err());
     assert_eq!(state(&g, &r).await["stop"]["kind"], "unknown");
 }
@@ -315,18 +317,111 @@ async fn grant_expiring_while_waiting_for_owner_lock_cannot_become_running() {
 }
 #[tokio::test]
 async fn worker_http_start_report_uses_current_node_auth_and_returns_only_historical_ack() {
-    use axum::{body::Body,http::{Request as HttpRequest,StatusCode}};
+    use axum::{
+        body::Body,
+        http::{Request as HttpRequest, StatusCode},
+    };
     use tower::ServiceExt;
-    let(f,r)=setup(true).await;
-    let router=aq_server::build_worker_router(f.state.clone());
-    let request=|token:&str,body:Vec<u8>|HttpRequest::builder().method("POST").uri("/v1/worker/profiled/started").header("authorization",format!("Bearer {token}")).header("content-type","application/json").body(Body::from(body)).unwrap();
-    let bytes=serde_json::to_vec(&r).unwrap();
-    assert_eq!(router.clone().oneshot(request("aqn_wrong",bytes.clone())).await.unwrap().status(),StatusCode::UNAUTHORIZED);
-    let response=router.clone().oneshot(request(&f.credential,bytes.clone())).await.unwrap();
-    assert_eq!(response.status(),StatusCode::OK);assert_eq!(response.headers()["cache-control"],"no-store");
-    let response=axum::body::to_bytes(response.into_body(),16384).await.unwrap();
-    aq_admission::started::decode_receipt(&response,&r).unwrap();
-    assert_eq!(router.clone().oneshot(request(&f.credential,vec![b' ';16385])).await.unwrap().status(),StatusCode::PAYLOAD_TOO_LARGE);
-    sqlx::query("UPDATE nodes SET revoked_at=now() WHERE id=$1").bind(f.node.node_id).execute(&f.db.pool().await).await.unwrap();
-    assert_ne!(router.oneshot(request(&f.credential,bytes)).await.unwrap().status(),StatusCode::OK);
+    let (f, r) = setup(true).await;
+    let router = aq_server::build_worker_router(f.state.clone());
+    let request = |token: &str, body: Vec<u8>| {
+        HttpRequest::builder()
+            .method("POST")
+            .uri("/v1/worker/profiled/started")
+            .header("authorization", format!("Bearer {token}"))
+            .header("content-type", "application/json")
+            .body(Body::from(body))
+            .unwrap()
+    };
+    let bytes = serde_json::to_vec(&r).unwrap();
+    assert_eq!(
+        router
+            .clone()
+            .oneshot(request("aqn_wrong", bytes.clone()))
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::UNAUTHORIZED
+    );
+    let response = router
+        .clone()
+        .oneshot(request(&f.credential, bytes.clone()))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.headers()["cache-control"], "no-store");
+    let response = axum::body::to_bytes(response.into_body(), 16384)
+        .await
+        .unwrap();
+    aq_admission::started::decode_receipt(&response, &r).unwrap();
+    assert_eq!(
+        router
+            .clone()
+            .oneshot(request(&f.credential, vec![b' '; 16385]))
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::PAYLOAD_TOO_LARGE
+    );
+    sqlx::query("UPDATE nodes SET revoked_at=now() WHERE id=$1")
+        .bind(f.node.node_id)
+        .execute(&f.db.pool().await)
+        .await
+        .unwrap();
+    assert_ne!(
+        router
+            .oneshot(request(&f.credential, bytes))
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::OK
+    );
+}
+#[tokio::test]
+async fn journal_heads_preserve_exact_phase_scope_and_require_original_start_record() {
+    let (f, r) = setup(true).await;
+    let pool = f.db.pool().await;
+    let auth = context(&f).await;
+    let mut tx = pool.begin().await.unwrap();
+    aq_server::worker_api::lock_current_node(&mut tx, &auth)
+        .await
+        .unwrap();
+    authority::load_locked(&f.state, &mut tx, &r.binding.session, Policy::IdentityOnly)
+        .await
+        .unwrap();
+    let owner = LaunchOwner {
+        guardian_id: r.guardian_id,
+        launch_id: r.launch_id,
+        reservation_id: r.reservation_id,
+    };
+    journal::record_prepared(
+        &mut tx,
+        &r.binding,
+        &owner,
+        r.grant_id,
+        2,
+        &Digest::of(b"prepared"),
+    )
+    .await
+    .unwrap();
+    assert!(
+        journal::record_prepared(
+            &mut tx,
+            &r.binding,
+            &owner,
+            r.grant_id,
+            2,
+            &Digest::of(b"changed")
+        )
+        .await
+        .is_err()
+    );
+    assert!(
+        journal::record_reserved(&mut tx, &r.binding, &owner, 1, &Digest::of(b"reserved"))
+            .await
+            .is_err()
+    );
+    tx.commit().await.unwrap();
+    assert!(sqlx::query("UPDATE profiled_owner_journals SET phase='started',revision=3,digest=$2 WHERE attempt_id=$1").bind(r.binding.attempt_id).bind(r.journal_digest.as_str()).execute(&pool).await.is_err());
+    assert_eq!(state(&f, &r).await["stop"]["kind"], "unknown");
 }

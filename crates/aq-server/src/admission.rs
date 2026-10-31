@@ -68,6 +68,12 @@ pub(crate) fn agent_revoke_path(path: &str) -> bool {
         .is_some_and(|id| uuid::Uuid::parse_str(id).is_ok())
 }
 pub fn classify(path: &str) -> Class {
+    if matches!(
+        path,
+        "/v1/worker/profiled/register" | "/v1/worker/profiled/started"
+    ) {
+        return Class::Control;
+    }
     if path.starts_with("/api/observations/") {
         return Class::ObservationRead;
     }

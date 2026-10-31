@@ -158,12 +158,13 @@ pub async fn record(
     tx.commit().await.map_err(db)?;
     Ok(receipt)
 }
-pub fn routes() -> axum::Router<AppState> {
+pub fn routes(state: AppState) -> axum::Router<AppState> {
     axum::Router::new()
         .route("/v1/worker/profiled/started", axum::routing::post(report))
         .layer(axum::extract::DefaultBodyLimit::max(
             aq_admission::started::MAX_BYTES,
         ))
+        .with_state(state.control_view())
 }
 async fn report(
     axum::extract::State(state): axum::extract::State<AppState>,

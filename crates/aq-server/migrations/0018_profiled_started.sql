@@ -38,6 +38,11 @@ BEGIN
       OR (OLD.grant_id IS NOT NULL AND NEW.grant_id IS DISTINCT FROM OLD.grant_id)
    THEN RAISE EXCEPTION 'owner journal cannot rewrite scope, regress, or skip a phase'; END IF;
  END IF;
+ IF NEW.phase='started' AND NOT EXISTS(SELECT 1 FROM profiled_started_receipts r
+   WHERE r.attempt_id=NEW.attempt_id
+   AND (convert_from(r.request_bytes,'UTF8')::JSONB)->>'journal_revision'=NEW.revision::TEXT
+   AND (convert_from(r.request_bytes,'UTF8')::JSONB)->>'journal_digest'=NEW.digest)
+ THEN RAISE EXCEPTION 'started journal requires its original started receipt'; END IF;
  RETURN NEW;
 END $$;
 CREATE TRIGGER profiled_owner_journal_guard BEFORE INSERT OR UPDATE OR DELETE ON profiled_owner_journals
@@ -112,3 +117,5 @@ END $$;
 CREATE TRIGGER profiled_started_projection_guard BEFORE UPDATE ON profiled_authority_hot
  FOR EACH ROW EXECUTE FUNCTION profiled_started_projection_guard();
 -- Ordered runtime registration follows qualification of the native producer seam.
+
+UPDATE meta SET value='18' WHERE key='state_format_version';

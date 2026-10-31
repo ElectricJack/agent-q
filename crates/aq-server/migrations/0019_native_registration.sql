@@ -34,3 +34,5 @@ BEGIN
 END $$;
 CREATE TRIGGER native_incarnation_guard BEFORE INSERT OR UPDATE ON execution_nodes
  FOR EACH ROW EXECUTE FUNCTION native_incarnation_guard();
+
+UPDATE meta SET value='19' WHERE key='state_format_version';
