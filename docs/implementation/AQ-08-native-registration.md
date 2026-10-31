@@ -3,7 +3,7 @@
 The common execution_nodes state currently contains real incarnation identity,
 capability IDs, worker version and a replacement-boot permit (`Registered` in
 execution.rs). It is not an ExecutionSpec or attempt state. Native registration
-will add an optional typed native record containing the exact independent
+adds an optional typed native record containing the exact independent
 admission Register request and its server-owned qualification reference/revision.
 Absent metadata retains existing serialized legacy bytes. No fake harness or
 legacy execution capability is inserted to satisfy native admission.
@@ -55,10 +55,11 @@ ever issued, permanent closure against later prepare/grant, material revocation,
 and actual source/effect quiescence. This does not claim physical guardian stop.
 Migration013 is immutable; the distinct closure and genuine qualified host-start
 producer/consumer seam require coordinated additive runtime storage/contracts.
-Until those owners exist, neither unknown stop nor a journal revision authorizes
-release, Running, terminal activity, or lifecycle-source registration.
+Migration015 now owns verified NeverGranted closure and migration018 owns genuine
+Started/journal admission. Unknown stop and a journal revision alone still do not
+authorize release, Running, terminal activity, or lifecycle-source registration.
 
-The current writer candidate uses a separate append-only operation history in
+The installed writer uses a separate append-only operation history in
 migration019. Exact historical receipts return the original Register document
 under current machine authentication and never reinstall the old metadata.
 A new operation with identical semantic registration leaves current metadata
@@ -75,10 +76,10 @@ order and never takes node/attempt locks. Native callers take node first and
 must fence configuration before taking project/policy locks. Historical receipt
 readback does not require the old runtime to remain qualified.
 
-The API candidate is POST `/v1/worker/profiled/register`, machine-listener only,
+The installed API is POST `/v1/worker/profiled/register`, machine-listener only,
 64KiB body ceiling, strict transport Register document; the echoed Register is
 an acknowledgment and confers no grant or graph/source/terminal access. It is
-not mounted until ordered migration018/019 registration is integrated. Tests
-use explicit019 SQL while018 remains in the independent Started worktree.
+mounted on the machine listener through the ordinary ordered migration chain
+018/019; the current daemon is at state20. Tests use normal migrations.
 The test runtime and qualification artifacts are synthetic; these tests do not
 qualify an installed worker, host adapter, provider credential, or cold launch.
