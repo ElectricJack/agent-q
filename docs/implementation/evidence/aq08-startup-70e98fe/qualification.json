@@ -1,0 +1,42 @@
+{
+  "source_revision": "70e98fe1192dad48b7859a72be91319f7d465c10",
+  "source": [
+    {
+      "path": "crates/aq-admission/README.md",
+      "sha256": "815723d7b68a5de6d53b49ec467621b4a3a2c1b82644db2eb17812105144476d"
+    },
+    {
+      "path": "crates/aq-admission/src/startup.rs",
+      "sha256": "590d7c86ecc92a4d049c37fbba7818d01766b736eb51d58cf3a22d07182f8ba9"
+    },
+    {
+      "path": "crates/aq-admission/tests/startup.rs",
+      "sha256": "c5b5e7f1f98caaa3cb26e27f4e34662bac22f65642b493aeec93ff2210bd26b5"
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-startup-70e98fe/aq08-startup-tests.log",
+      "sha256": "542d2c1ae6a41ee3b71ed1268ca324099e5600577e3f9fe3dfa15be806e64323"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-startup-70e98fe/aq08-startup-clippy.log",
+      "sha256": "9976e4adeee62e291014afb6a8f30cdea148b8ac4ad9ee00fb2419edb60d654e"
+    }
+  ],
+  "commands": [
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-admission --locked --offline",
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo clippy -p aq-admission --all-targets --locked --offline -- -D warnings",
+    "cargo fmt --package aq-admission --check"
+  ],
+  "results": {
+    "pure_tests": 43,
+    "strict_clippy": "pass",
+    "format": "pass"
+  },
+  "limitations": [
+    "Unpublished combined admission0.1.6 candidate, no archive qualification claimed.",
+    "No worker delivery, native grant, actual renderer/tokenizer/model qualification or provider invocation.",
+    "Slice witnesses prove designated constituent byte presence; all remaining framing is producer-qualified."
+  ]
+}
