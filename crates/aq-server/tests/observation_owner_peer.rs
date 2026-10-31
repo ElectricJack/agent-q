@@ -329,7 +329,62 @@ async fn actual_http_lost_prepare_activate_reply_restart_and_missing_active_stor
 #[ignore = "requires separately qualified exact owner_peer artifact and scripts/test-db disposable Postgres"]
 async fn actual_http_boot_advance_lost_reply_exact_recovery_and_revocation() {
     let binary = executable();
-    let f = fixture().await;
+    let mut f = fixture().await;
+    // The shared profiled fixture deliberately retains its old assignment. Add
+    // a distinct enrolled/registered node with no execution writers instead of
+    // deleting that assignment or inventing stop/retention evidence.
+    let now = (f.state.clock)();
+    let credential = aq_server::tokens::new_node_credential();
+    f.state
+        .store
+        .create_enrollment(
+            "owner-peer-node",
+            f.actor,
+            now,
+            now + chrono::Duration::minutes(5),
+        )
+        .await
+        .unwrap();
+    let fresh = f
+        .state
+        .store
+        .redeem_enrollment(
+            "owner-peer-node",
+            aq_server::store::NewNode {
+                name: "owner-peer-node".into(),
+                credential_hash: aq_server::tokens::verifier(&credential),
+                worker_version: "synthetic-owner-peer-qualification".into(),
+                protocol_version: 1,
+            },
+            now,
+        )
+        .await
+        .unwrap()
+        .unwrap();
+    f.node = aq_worker_protocol::NodeIdentity {
+        node_id: fresh.id,
+        boot_id: Uuid::new_v4(),
+    };
+    f.credential = credential;
+    f.state
+        .store
+        .execution_register(&aq_worker_protocol::RegisterRequest {
+            identity: f.node.clone(),
+            operation_id: Uuid::new_v4(),
+            protocol_version: 2,
+            worker_version: "synthetic-owner-peer-qualification".into(),
+            capabilities: vec![aq_worker_protocol::FAKE_HARNESS_CAPABILITY.into()],
+        })
+        .await
+        .unwrap();
+    let held: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM execution_attempts WHERE node_id=$1 AND holds_task",
+    )
+    .bind(f.node.node_id)
+    .fetch_one(&f.db.pool().await)
+    .await
+    .unwrap();
+    assert_eq!(held, 0);
     let (addr, server) = start(&f).await;
     let proxy = LostReplyProxy::new(addr, &["advance_boot"]);
     let t = tempfile::tempdir().unwrap();
@@ -371,6 +426,17 @@ async fn actual_http_boot_advance_lost_reply_exact_recovery_and_revocation() {
         worker_version: "synthetic-owner-peer-qualification".into(),
         capabilities: vec![aq_worker_protocol::FAKE_HARNESS_CAPABILITY.into()],
     };
+    // Incarnation replacement is an explicit operator action even with no
+    // writers. Transport ownership never grants this permission. Use the real
+    // guarded operator storage API as a fixture precondition, then qualify the
+    // current worker registration over the actual HTTP listener.
+    let mut operator = register.clone();
+    operator.operation_id = Uuid::new_v4();
+    f.state
+        .store
+        .execution_replace_incarnation(&operator)
+        .await
+        .unwrap();
     let response = reqwest::Client::builder()
         .no_proxy()
         .redirect(reqwest::redirect::Policy::none())
