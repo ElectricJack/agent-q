@@ -9,6 +9,8 @@ const SUPPORTED_FORMAT_VERSION: u32 = 1;
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
+    #[serde(default, deserialize_with = "crate::terminal::config::deserialize")]
+    pub terminals: Option<std::sync::Arc<crate::terminal::config::Loaded>>,
     #[serde(
         default,
         deserialize_with = "crate::notifications::config::deserialize"
@@ -309,6 +311,8 @@ mod tests {
             updates: None,
             agent_access: None,
             source_retention: None,
+            terminals: None,
+
             intelligence: None,
         }
     }

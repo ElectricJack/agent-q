@@ -23,6 +23,10 @@ pub struct Admission {
     notification: Semaphore,
     observation: Semaphore,
     observation_read: Semaphore,
+    terminal_poll: Semaphore,
+    terminal_output: Semaphore,
+    terminal_interactive: Semaphore,
+    terminal_read: Semaphore,
 }
 impl Default for Admission {
     fn default() -> Self {
@@ -33,6 +37,10 @@ impl Default for Admission {
             notification: Semaphore::new(4),
             observation: Semaphore::new(2),
             observation_read: Semaphore::new(2),
+            terminal_poll: Semaphore::new(32),
+            terminal_output: Semaphore::new(4),
+            terminal_interactive: Semaphore::new(8),
+            terminal_read: Semaphore::new(4),
         }
     }
 }
@@ -44,6 +52,10 @@ pub enum Class {
     Notification,
     Observation,
     ObservationRead,
+    TerminalPoll,
+    TerminalOutput,
+    TerminalInteractive,
+    TerminalRead,
 }
 pub(crate) fn execution_cancel_path(path: &str) -> bool {
     path.strip_prefix("/api/execution/attempts/")
@@ -68,6 +80,25 @@ pub fn classify(path: &str) -> Class {
     if path == "/api/notifications" || path.starts_with("/api/notifications/") {
         return Class::Notification;
     }
+    if path == "/v1/terminal-relay/poll" {
+        return Class::TerminalPoll;
+    }
+    if path == "/v1/terminal-relay/upload" {
+        return Class::TerminalOutput;
+    }
+    if path.starts_with("/api/v1/terminals/")
+        && !path.ends_with("/mutations")
+        && !path.ends_with("/access")
+    {
+        return Class::TerminalRead;
+    }
+    if path.starts_with("/v1/terminal-relay/")
+        || path == "/api/v1/terminals"
+        || path.starts_with("/api/v1/terminals/")
+    {
+        return Class::TerminalInteractive;
+    }
+
     if path == "/v1/execution/sources/status" {
         return Class::Control;
     }
@@ -155,6 +186,10 @@ pub async fn gate(
         Class::Notification => (&admission.notification, Duration::from_secs(10)),
         Class::Observation => (&admission.observation, Duration::from_secs(8)),
         Class::ObservationRead => (&admission.observation_read, Duration::from_secs(8)),
+        Class::TerminalPoll => (&admission.terminal_poll, Duration::from_secs(23)),
+        Class::TerminalOutput => (&admission.terminal_output, Duration::from_secs(5)),
+        Class::TerminalInteractive => (&admission.terminal_interactive, Duration::from_secs(5)),
+        Class::TerminalRead => (&admission.terminal_read, Duration::from_secs(5)),
     };
     let Ok(_permit) = slots.try_acquire() else {
         return busy(

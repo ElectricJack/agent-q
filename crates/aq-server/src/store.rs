@@ -274,6 +274,8 @@ pub struct Store {
     control_pool: PgPool,
     pub(crate) notification_pool: PgPool,
     pub(crate) observation_pool: PgPool,
+    terminal_pool: PgPool,
+    terminal_data_pool: PgPool,
     pub(crate) admission: std::sync::Arc<crate::admission::Admission>,
     pub(crate) verified_profiled_facts:
         std::sync::Arc<std::sync::Mutex<crate::execution::authority::cache::VerifiedCache>>,
@@ -282,6 +284,29 @@ pub struct Store {
 }
 
 impl Store {
+    /// Terminal authentication and data use independent connections; never the
+    /// execution renewal/cancellation pool. Held polls release SQL before wait.
+    pub(crate) fn terminal_read_view(&self) -> Self {
+        Self {
+            pool: self.terminal_data_pool.clone(),
+            ..self.clone()
+        }
+    }
+    #[cfg(feature = "test-support")]
+    pub fn terminal_control_pool_for_testing(&self) -> PgPool {
+        self.terminal_pool.clone()
+    }
+    #[cfg(feature = "test-support")]
+    pub fn terminal_data_pool_for_testing(&self) -> PgPool {
+        self.terminal_data_pool.clone()
+    }
+    pub(crate) fn terminal_view(&self) -> Self {
+        Self {
+            pool: self.terminal_pool.clone(),
+            ..self.clone()
+        }
+    }
+
     pub(crate) fn observation_view(&self) -> Self {
         Self {
             pool: self.observation_pool.clone(),
@@ -327,6 +352,8 @@ impl Store {
         self.control_pool.close().await;
         self.notification_pool.close().await;
         self.observation_pool.close().await;
+        self.terminal_pool.close().await;
+        self.terminal_data_pool.close().await;
     }
 
     pub async fn connect(database_url: &str) -> Result<Store> {
@@ -378,7 +405,55 @@ impl Store {
                 })
             })
             .connect_lazy_with(pool.connect_options().as_ref().clone());
+        let terminal_pool = PgPoolOptions::new()
+            .max_connections(4)
+            .acquire_timeout(Duration::from_secs(1))
+            .after_connect(|connection, _| {
+                Box::pin(async move {
+                    sqlx::query("SET statement_timeout='750ms'")
+                        .execute(&mut *connection)
+                        .await?;
+                    sqlx::query("SET lock_timeout='100ms'")
+                        .execute(&mut *connection)
+                        .await?;
+                    sqlx::query("SET idle_in_transaction_session_timeout='2s'")
+                        .execute(&mut *connection)
+                        .await?;
+                    Ok(())
+                })
+            })
+            .connect_lazy_with(
+                pool.connect_options()
+                    .as_ref()
+                    .clone()
+                    .application_name("aq-terminal"),
+            );
+        let terminal_data_pool = PgPoolOptions::new()
+            .max_connections(2)
+            .acquire_timeout(Duration::from_secs(1))
+            .after_connect(|connection, _| {
+                Box::pin(async move {
+                    sqlx::query("SET statement_timeout='750ms'")
+                        .execute(&mut *connection)
+                        .await?;
+                    sqlx::query("SET lock_timeout='100ms'")
+                        .execute(&mut *connection)
+                        .await?;
+                    sqlx::query("SET idle_in_transaction_session_timeout='2s'")
+                        .execute(&mut *connection)
+                        .await?;
+                    Ok(())
+                })
+            })
+            .connect_lazy_with(
+                pool.connect_options()
+                    .as_ref()
+                    .clone()
+                    .application_name("aq-terminal-data"),
+            );
         Ok(Store {
+            terminal_pool,
+            terminal_data_pool,
             observation_pool,
             notification_pool,
             pool,
