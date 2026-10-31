@@ -1,0 +1,120 @@
+{
+  "source": [
+    {
+      "revision": "cdead021ed308f7c4e52916e21804d56776c6939",
+      "files": [
+        {
+          "path": "Cargo.lock",
+          "sha256": "04bf0ceceb8033c6ed49ef8f5ba128a136fc5079f5b66a4426b0adc6281b13c7"
+        },
+        {
+          "path": "crates/aq-admission/Cargo.toml",
+          "sha256": "0c664f17e56ee96c297f2b86f62bf8360898028c6cf44a47d2a1c4ae5f1f1c26"
+        },
+        {
+          "path": "crates/aq-admission/README.md",
+          "sha256": "ae71d67964881a993d3a2f04277bc193e58e4ad9422c9d752ddcc41c0f352f95"
+        },
+        {
+          "path": "crates/aq-admission/artifacts/control.compatibility-sha256.json",
+          "sha256": "23d083519430c8e4156f73b0b7c41723fd43abe2ddf2a91bbc0ad5db3507304d"
+        },
+        {
+          "path": "crates/aq-admission/artifacts/control.fixture.json",
+          "sha256": "da31ccc3e14c3ea0c5fbc535ddb487d1adab60ecf20387cd8680d567db57cbbe"
+        },
+        {
+          "path": "crates/aq-admission/artifacts/control.python-vectors.json",
+          "sha256": "a90fcb7068623031691bea00a8d58ac9e113dcb2a5a5594ff753488ab6500176"
+        },
+        {
+          "path": "crates/aq-admission/artifacts/control.schema.json",
+          "sha256": "929d5c4873ebf8f56556088971d3ed60d66753d04041baac367849cbb3a2afec"
+        },
+        {
+          "path": "crates/aq-admission/examples/export_control.rs",
+          "sha256": "9971c44b669ec03c973c64d628978985e47e2477b7e411956d2d2735a2a9b475"
+        },
+        {
+          "path": "crates/aq-admission/src/control.rs",
+          "sha256": "f80942650e54ed9e9b3f5b4824e3fc336a904f799da58ea05b56c7765262193c"
+        },
+        {
+          "path": "crates/aq-admission/src/lib.rs",
+          "sha256": "231f5c76fbdb198bd78f84e3ede3f1bd5210de9aa7dc8fea7426a9202de3d23c"
+        },
+        {
+          "path": "crates/aq-admission/tests/control.rs",
+          "sha256": "17687af84baacb4cb47eb162383eb5b943a698fa28013da568ec7b528027eab6"
+        },
+        {
+          "path": "crates/aq-admission/tests/control_common.rs",
+          "sha256": "ce2cd0409eabf732def0563ac2a3270bde459a23b745c5a8691866d50db55e49"
+        },
+        {
+          "path": "crates/aq-server/Cargo.toml",
+          "sha256": "5542ef03519e2dd8e94c34f1ac75c1cbb28a979275ecb0f29a194fc802b2e600"
+        },
+        {
+          "path": "docs/implementation/AQ-08-native-control-017.md",
+          "sha256": "2a3dcaa6869f18a17578c8aa8794231a5b8f46e003042b59732d74509819646a"
+        }
+      ]
+    },
+    {
+      "revision": "0c376e0e946785fe70c1fb0e2339457cf2cf4f3c",
+      "files": [
+        {
+          "path": "crates/aq-admission/src/control.rs",
+          "sha256": "8ce64ef118493a343310932342046e55ee9565372d3955b997ab40c96934e966"
+        },
+        {
+          "path": "crates/aq-admission/tests/control.rs",
+          "sha256": "92bc15ab7543dca7bdcbbe1bc3bbf20a754c8ea8b528d4cf04cd161bd3d6083a"
+        },
+        {
+          "path": "docs/implementation/AQ-08-native-control-017.md",
+          "sha256": "6ae69aa34452c220a6e3320ce956e9ab06bebbd5061ff2caf9376b240140cd1a"
+        }
+      ]
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-control-017-0c376e0/aq08-control-tests.log",
+      "sha256": "6010dbbfce03149cc69f74ae7becef41d9ce78941c30f6c6ab785df692bc3988"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-control-017-0c376e0/aq08-control-clippy.log",
+      "sha256": "b968228a2ba8fbd91b71bb41fb04705b51f8484186786b3cc2db2a71767ed23a"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-control-017-0c376e0/aq08-control-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "commands": [
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-admission --locked --offline",
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo clippy -p aq-admission --all-targets --locked --offline -- -D warnings",
+    "cargo fmt --package aq-admission --check",
+    "git diff --check"
+  ],
+  "results": {
+    "pure_repo_tests": 53,
+    "strict_all_target_clippy": "pass",
+    "format": "pass"
+  },
+  "compatibility": {
+    "baseline_version": "0.1.6",
+    "baseline_archive_sha256": "d74db09f5766a437b9d43b6d63710a56afc4db69432953ef06699ec7ab09e066",
+    "old_source_and_publication_byte_inventory_test": "pass",
+    "independent_python_reply_and_original_receipt_vectors": "pass"
+  },
+  "limitations": [
+    "No archive/extracted qualification claimed here; root owns exact0.1.7 packaging after review.",
+    "No native poll/accept/prepare/grant/renew service or worker control integration claimed by pure DTO tests.",
+    "CurrentAuthority/reconcile is read-only and does not provide launch/renew authority.",
+    "Current authorization, actual installed-binding/file fingerprint, physical host and source/effect/receipt owners remain runtime checks.",
+    "MaterialReceipt time is observed server-time watermark, not synchronized worker arrival time."
+  ]
+}
