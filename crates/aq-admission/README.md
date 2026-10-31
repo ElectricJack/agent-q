@@ -162,3 +162,19 @@ use a new report and explicit predecessor; evidence-policy evaluation remains a
 separate immutable operation. The initial profile records only post-Started
 stopped work. Version0.1.6 remains unpublished until the joint native startup
 artifact descriptor is integrated and independently qualified.
+
+The additive `startup::NativeOffer` profile pins one already-rendered UTF-8
+payload through a content-addressed descriptor in `manifest.modules`. The
+original required task-context Startup reference remains unchanged. Ordered
+nonoverlapping byte-span witnesses cover every constituent Startup artifact
+exactly once; the consumer verifies each slice and the complete payload, then
+passes only the final bytes to its qualified adapter. It must not append the
+constituents, framing, or another prompt. OnDemand references remain separate.
+
+The descriptor counts complete payload tokens plus qualified implicit overhead
+against the original input/output/window budgets. Numeric bounds do not prove a
+tokenizer, model capacity, renderer qualification or authorization: those remain
+current owner facts. Payload/descriptor/qualification retention, digest pins,
+ordered coverage, spans and checked budget relationships require the Rust
+validator in addition to JSON Schema. New startup fixtures/schema/Python SHA256
+vectors are published independently; frozen transport fixtures are unchanged.
