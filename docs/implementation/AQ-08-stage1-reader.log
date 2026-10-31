@@ -1,0 +1,10 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.13s
+     Running tests/scheduling_reads.rs (target/debug/deps/scheduling_reads-a9ffd072682991c7)
+
+running 3 tests
+test invalid_inputs_do_not_contact_graph_or_choose_other_routes ... ok
+test actual_fixed_public_routes_preserve_exact_revision_raw_artifact_and_partial_coverage ... ok
+test foreign_stale_malformed_duplicate_wrong_version_and_oversize_refuse ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

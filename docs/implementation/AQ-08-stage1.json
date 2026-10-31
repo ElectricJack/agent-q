@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "task": "AQ-08",
+  "status": "stage_1_only_task_in_progress",
+  "source_revision": "3520832b9c3134d02327c82d9e9ce50541e32b5c",
+  "source_files": {
+    "Cargo.lock": "640131a76e9c52cc979234e9e365cb6dc37e22c113546535f41a86c3df0c3eb9",
+    "Cargo.toml": "15560f2523029f4708ec5e9fea195e9681064a381c4e82bf9a348054811c4be7",
+    "crates/aq-admission/Cargo.toml": "adfefc08a2fc3697345b16140acbc397e41db6e3900691bbd4a9a956b75c4ae1",
+    "crates/aq-admission/README.md": "a4264f2eecacdc7bdc8b623152aa54efaa363db7a46a821fa62a6780ea939586",
+    "crates/aq-admission/artifacts/contract.schema.json": "1a5637238c16ec1345f40232a732ae391143d518a320f6823da94241c9c6f988",
+    "crates/aq-admission/artifacts/fixtures.json": "53217ced2c2d36e8f03542298212275327b3741eabe848a8fec236464a857a24",
+    "crates/aq-admission/artifacts/shared-launch.json": "34b28ba102cbec61985249edecee228cafdebc76896d2e0625b8b518e612517d",
+    "crates/aq-admission/examples/export.rs": "b0b07b7c2ee381bb47b55ddc3ded00218b075aad343b83115cc7f79880ad72de",
+    "crates/aq-admission/src/lib.rs": "b8f60e14975e5b2782ffb4fcff3ef1649c5d2efd47ded962beb8adb7933d592b",
+    "crates/aq-admission/src/placement.rs": "97031dd2400be6404490db678988c6d106bebd4fbaecd2773d9358226886dd13",
+    "crates/aq-admission/tests/common.rs": "0e8ca341f86e73bdc63d7144eae7e5c381349e25b95fb56444391de989692b07",
+    "crates/aq-admission/tests/contracts.rs": "a14980e77071ee2ca183eb61453f2ced66e1ed24282424f0bfe7c07f9b7300b5",
+    "crates/aq-admission/tests/placement.rs": "63754549e9d2b140ceac40e736c70db60d69c07f1c10bb806f25c89952a4ba30",
+    "crates/aq-server/Cargo.toml": "1966e9a75048336b905827b76741cdb29565f81f060e17ce92b17d4f77ab7592",
+    "crates/aq-server/src/agent_access.rs": "a39b99c4f789d833f0151512bfbdf7f104fea1173654106af4db9e7b3e7a58a4",
+    "crates/aq-server/src/agent_access/scheduling.rs": "e0f001e61e5093a8e07fe8cefb71d4130212d51e78bffb3a125047031b421739",
+    "crates/aq-server/src/agent_access/scheduling/parse.rs": "5c9428ccc3f0da9fb4e1c09a436e8525fd2196f55adb867cc75f0e5649fcb5a0",
+    "crates/aq-server/tests/scheduling_reads.rs": "41da4f91ec3679b24cdcd30535f3e6c91be87dc196df3ea9c09e642b12b84f8a",
+    "docs/implementation/AQ-08-authority-bridge.md": "3f65a4300a83a8f8c5a34481c0149205bbbae3cee1c7e99a38cabc177c7f8ec6",
+    "docs/implementation/AQ-08-plan.md": "9d016c5a0827c5f1f42433d25d188511f5292b36b8455d27a9f1764ffa0df4e2"
+  },
+  "logs": {
+    "docs/implementation/AQ-08-stage1-contracts.log": "e8c3550502145f3821f29ecb0e1a1c5011432105c76a72adf00ff0f8e4e6a3a1",
+    "docs/implementation/AQ-08-stage1-reader.log": "cc41031ea643936a920a844410d3ab181954fa60df48c6819ec37ed51e42fac2",
+    "docs/implementation/AQ-08-stage1-clippy.log": "6bc96d646f4d436d77bd4ac4618801cfeccadc61ac883f08c9f17e16406089c0",
+    "docs/implementation/AQ-08-stage1-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/implementation/AQ-08-stage1-package.log": "adcfc4f08dc825956b3c30869490d0b727459a4a7d7335f9052af055d7a632f4",
+    "docs/implementation/AQ-08-stage1-standalone.log": "cffb9dca9dcd0039bb6de7f183e69682452e24a6b61e4261982ead0c12c825f8"
+  },
+  "checks": {
+    "pure_contract_and_placement_tests": 12,
+    "fake_public_graph_reader_tests": 3,
+    "strict_all_target_clippy": "passed",
+    "format": "passed",
+    "standalone_package_tests": 12
+  },
+  "not_qualified": [
+    "common authority storage migration",
+    "actual profiled lifecycle or scheduling",
+    "provider material delivery",
+    "live native harness execution"
+  ]
+}

@@ -1,0 +1,9 @@
+warning: manifest has no license, license-file, documentation, homepage or repository
+  |
+  = note: see https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info
+   Packaging aq-admission v0.1.0 (/home/jkern/dev/agent-q/crates/aq-admission)
+    Packaged 14 files, 96.6KiB (19.3KiB compressed)
+   Verifying aq-admission v0.1.0 (/home/jkern/dev/agent-q/crates/aq-admission)
+   Compiling aq-session-protocol v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-session-protocol-0.1.0)
+   Compiling aq-admission v0.1.0 (/home/jkern/dev/agent-q/target/package/aq-admission-0.1.0)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.19s

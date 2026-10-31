@@ -1,0 +1,74 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling serde_core v1.0.229
+   Compiling typenum v1.20.1
+   Compiling zmij v1.0.23
+   Compiling serde_json v1.0.154
+   Compiling ref-cast v1.0.27
+   Compiling serde v1.0.229
+   Compiling itoa v1.0.18
+   Compiling thiserror v2.0.21
+   Compiling memchr v2.8.3
+   Compiling cfg-if v1.0.5
+   Compiling cpufeatures v0.2.17
+   Compiling dyn-clone v1.0.20
+   Compiling generic-array v0.14.7
+   Compiling syn v3.0.9
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling uuid v1.29.0
+   Compiling serde_derive_internals v0.30.0
+   Compiling ref-cast-impl v1.0.27
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.21
+   Compiling schemars_derive v1.2.3
+   Compiling schemars v1.2.3
+   Compiling aq-session-protocol v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-session-protocol-0.1.0)
+   Compiling aq-admission v0.1.0 (/tmp/aq08-stage1-package-djp8cW/aq-admission-0.1.0)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.51s
+     Running unittests src/lib.rs (/tmp/aq08-contract-package-target/debug/deps/aq_admission-d1f55fcf87410a7d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/common.rs (/tmp/aq08-contract-package-target/debug/deps/common-fdb0c2687f93c0b3)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contracts.rs (/tmp/aq08-contract-package-target/debug/deps/contracts-373094498f06b6fb)
+
+running 7 tests
+test material_bytes_and_receipts_are_exact_attempt_binding_not_presence_claims ... ok
+test source_requires_explicit_safe_ref_or_matching_immutable_object_and_freshness ... ok
+test artifact_requires_real_matching_bytes_and_current_retention_metadata ... ok
+test shipped_shared_offer_uses_exact_existing_launch_binding_bridge ... ok
+test mutations_reject_unknown_duplicate_nil_unbounded_and_wrong_versions ... ok
+test retained_role_and_byte_coverage_validates_against_resealed_public_offer ... ok
+test published_schema_and_fixtures_drift_test_packaged_artifacts ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/placement.rs (/tmp/aq08-contract-package-target/debug/deps/placement-60c67d5adf6cb289)
+
+running 5 tests
+test bounded_project_round_robin_preserves_priority_then_advances_cursor ... ok
+test oversized_head_does_not_hide_later_fit_and_resources_are_reserved_in_proposal ... ok
+test stable_ties_and_snapshot_bounds_are_explicit ... ok
+test warmth_is_only_after_eligibility_and_cold_nodes_can_prepare ... ok
+test stale_boot_capacity_candidate_and_duplicate_subjects_never_become_authority ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aq_admission
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
