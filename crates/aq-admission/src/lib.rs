@@ -519,3 +519,5 @@ pub mod outcome;
 pub mod result_record;
 
 pub mod startup;
+
+pub mod control;

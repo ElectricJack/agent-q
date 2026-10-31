@@ -186,3 +186,34 @@ other payload bytes or prove their semantic nonduplication: all intervening and
 surrounding framing remains the qualified producer renderer's responsibility.
 The extra descriptor/module/retention entries count against existing finite caps;
 otherwise maximal manifests may refuse rather than exceed them.
+
+Native control0.1.7 adds `control::ControlReply` (`kind`/`body`) around bounded
+poll, preparation, initial grant, renewed authority, reconciliation and failure
+variants. Existing0.1.6 request bodies and nested original plan/grant fields stay
+byte-exact. `aq-delivery-nonce` identifies one physical send; a fresh delivery
+stamp is outside the immutable mutation digest and clamps to current/original
+expiry. Its client deadline charges that nonce's send/receive interval and never
+revives an earlier known terminal deadline. Workers validate both the decoded
+shape and the expected request/nonce/owner correlation, plus persisted monotonic
+revision/history fences. The initial grant wrapper echoes the Prepare operation.
+
+Reconciliation is read-only: `CurrentAuthority` deliberately has no delivery
+clock or launch/renew permit. Explicit request batches are complete and fit the
+requested limit; empty batches discover only owned attempts through a bounded
+cursor. Foreign requests receive scoped refusal instead of another binding.
+Unknown/expired/cancelled authority cannot become a live grant through recovery.
+Schemas do not establish current authorization, host/receipt ownership, actual
+installed material or current fingerprint facts; those remain owner checks.
+
+Retrieval lease expiry forbids another material fetch. A verified admitted private
+installation can back same-grant renewal under current machine/agent/registry/
+profile/fingerprint fences, without reissuing the delivery lease. Renewal keeps
+the original hard deadline and owner, and the old permit expires independently.
+`MaterialReceipt.received_at_ms` is the observed server-time watermark from the
+material delivery clock, not a synchronized worker arrival time. Actual local
+send/full-body-receive/install-complete CLOCK_BOOTTIME stamps remain in the
+private journal; installation rechecks expiry before publishing its receipt.
+
+`artifacts/control.*` publishes the new schema/fixtures/independent Python hash
+vectors and a hash inventory from the exact0.1.6 archive. Packaged drift tests
+verify all old module/publication bytes (the old lib.rs prefix) are retained.
