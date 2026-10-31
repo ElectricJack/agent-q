@@ -146,6 +146,18 @@ On daemon restart, reconstruct pending offers, grants, directives, graph deliver
 
 Expose task/attempt explanations containing: current authorization, latest worker observation/time, input revisions, active holds, pending delivery IDs, retained evidence, retry budget, disposition reasons and the action/authority needed for progress. Resource observations and complete domain facts are labelled separately. API clients display pending operations and stale observations without inventing success.
 
+The first implemented browser read profile is `dashboard-read-1`, with capability
+version `1`, published under [protocol/dashboard-read/v1](../../protocol/dashboard-read/v1/README.md).
+Authenticated bootstrap, bounded session list/detail, owner-only configured
+projects and a partial overview reuse current human identity and exact-session
+inspection ACLs. Existing status/worker reads retain their own routes and ACLs.
+Unknown process activity and aggregate counts remain unknown; unsupported task,
+decision, search, supervisor, quota and terminal views are explicitly unavailable.
+Optional verified static assets are served only by the human listener. This
+subset does not satisfy the broader explanation/action contracts above or close
+API-02/UI-01; exact source and current qualification are recorded in the
+[dashboard integration checkpoint](../implementation/UI-01-live-dashboard.md).
+
 Logs carry correlation IDs but exclude secrets and unauthorized content. Detailed protected reports require scoped reads. Bulk telemetry retention is bounded and cannot prevent critical control admission.
 
 ## 9. Testing and implementation order

@@ -2018,7 +2018,7 @@
       "repo": "agent-q",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "AQ-10",
         "AQ-11",
@@ -2042,7 +2042,13 @@
         "Publish session observation/usage, wait/continuation and notification inspection contracts coordinated with CON-03; UI-04 may develop against fixtures before runtime integration."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/UI-01-live-dashboard.md",
+        "../implementation/dashboard-read-1.md",
+        "../implementation/dashboard-read-1-evidence.md",
+        "../implementation/dashboard-read-1-evidence.json",
+        "../../protocol/dashboard-read/v1/schema.json"
+      ]
     },
     {
       "id": "UI-01",
@@ -2050,7 +2056,7 @@
       "repo": "aq-dashboard",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "API-02"
       ],
@@ -2069,7 +2075,12 @@
         "Separate dashboard backend",
         "Full v1 UI parity"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/UI-01-live-dashboard.md",
+        "../evidence/dashboard-assets/README.md",
+        "../evidence/dashboard-assets/source.json",
+        "../../../aq-dashboard/docs/evidence/d04.md"
+      ]
     },
     {
       "id": "UI-02",
@@ -2783,6 +2794,10 @@
     {
       "source": "../implementation/AQ-14-result-owner-read.md",
       "summary": "Extract completed AQ-10 B1 ledger/owner-read slice as AQ-28. AQ-14 consumes that frozen owner boundary rather than waiting for full AQ-10 settlement; human decision/check receipts can develop before the evaluator that consumes them. B2/C and all product acceptance gates stay open."
+    },
+    {
+      "source": "../implementation/UI-01-live-dashboard.md",
+      "summary": "First dashboard-read-1 human API and optional verified bundle service merged: bounded current-ACL session/project inspection and explicitly partial overview, with exact backend/static component evidence. API-02/UI-01 remain in progress; assembled daemon/browser smoke and broader domain/product gates remain open."
     }
   ],
   "implementation_reference_maps": [

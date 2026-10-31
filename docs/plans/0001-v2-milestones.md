@@ -29,6 +29,7 @@ The original planning baseline completed AUD-00; current statuses below record s
 - [0004-session-operations-waits-and-notifications.md](../architecture/0004-session-operations-waits-and-notifications.md): Required session peek/attach/nudge, transcript and usage accounting, bounded stall recovery, Discord notification delivery, escalation/digest policy and verified agent suspension/hibernation with cross-node wake. M5 mechanisms and M6 product qualification are mandatory; earlier completed evidence remains unchanged.
 - [2026-10-31-execution-sessions-policy-progress.md](2026-10-31-execution-sessions-policy-progress.md): Three-area design/implementation reconciliation: full state24 checkpoint778tests; ordered state25 source-owner/read integration with38focused checks; exact native control, private material and source-client components with26worker tests. Durable native driver, physical terminal baseline and human/check integration continue; product gates remain open.
 - [AQ-14-result-owner-read.md](../implementation/AQ-14-result-owner-read.md): Extract completed AQ-10 B1 ledger/owner-read slice as AQ-28. AQ-14 consumes that frozen owner boundary rather than waiting for full AQ-10 settlement; human decision/check receipts can develop before the evaluator that consumes them. B2/C and all product acceptance gates stay open.
+- [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md): First dashboard-read-1 human API and optional verified bundle service merged: bounded current-ACL session/project inspection and explicitly partial overview, with exact backend/static component evidence. API-02/UI-01 remain in progress; assembled daemon/browser smoke and broader domain/product gates remain open.
 
 ### V1 implementation evidence
 
@@ -168,8 +169,8 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | Task | Owner | Hard prerequisites | Status |
 | --- | --- | --- | --- |
 | [PB-02](#pb-02): Establish the playbook storage and scheduling operating envelope | aq-playbooks | [PB-01](#pb-01) | complete |
-| [API-02](#api-02): Expose task, attempt and workflow explanation views | agent-q | [AQ-10](#aq-10), [AQ-11](#aq-11), [AQ-12](#aq-12), [AQ-18](#aq-18), [AQ-20](#aq-20) | planned |
-| [UI-01](#ui-01): Create the independent dashboard application and mock suite | aq-dashboard | [API-02](#api-02) | planned |
+| [API-02](#api-02): Expose task, attempt and workflow explanation views | agent-q | [AQ-10](#aq-10), [AQ-11](#aq-11), [AQ-12](#aq-12), [AQ-18](#aq-18), [AQ-20](#aq-20) | in_progress |
+| [UI-01](#ui-01): Create the independent dashboard application and mock suite | aq-dashboard | [API-02](#api-02) | in_progress |
 | [UI-02](#ui-02): Implement pending-safe actions and browser compatibility | aq-dashboard | [UI-01](#ui-01) | planned |
 | [REL-01](#rel-01): Version the composite product manifest and component inventory | agent-q | [INT-01](#int-01), [GRAPH-01](#graph-01), [GIT-01](#git-01), [PB-01](#pb-01) | planned |
 | [REL-02](#rel-02): Implement multi-component update and recovery orchestration | agent-q | [REL-01](#rel-01), [GATE-05](#gate-05) | planned |
@@ -1312,7 +1313,7 @@ Evidence: [PB-02.md](../../../aq-playbooks/docs/implementation/PB-02.md), [PB-02
 
 **Expose task, attempt and workflow explanation views**
 
-Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [AQ-10](#aq-10), [AQ-11](#aq-11), [AQ-12](#aq-12), [AQ-18](#aq-18), [AQ-20](#aq-20).
 
@@ -1327,11 +1328,13 @@ Acceptance:
 
 Requirement links: D9, U2, U3, U4, E6, P3.
 
+Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), [dashboard-read-1.md](../implementation/dashboard-read-1.md), [dashboard-read-1-evidence.md](../implementation/dashboard-read-1-evidence.md), [dashboard-read-1-evidence.json](../implementation/dashboard-read-1-evidence.json), [schema.json](../../protocol/dashboard-read/v1/schema.json).
+
 ### UI-01
 
 **Create the independent dashboard application and mock suite**
 
-Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: planned.
+Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [API-02](#api-02).
 
@@ -1345,6 +1348,8 @@ Acceptance:
 Requirement links: U1, U2, U3, U6.
 
 Outside this task: Separate dashboard backend; Full v1 UI parity.
+
+Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), [README.md](../evidence/dashboard-assets/README.md), [source.json](../evidence/dashboard-assets/source.json), [d04.md](../../../aq-dashboard/docs/evidence/d04.md).
 
 ### UI-02
 
