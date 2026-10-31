@@ -70,3 +70,20 @@ refusal, project and retention scope, concurrent final-slot quota admission,
 capacity refusal preserving exact replay, range reassembly, altered full binding,
 current credential checks and an observed artifact-lock wait across offer expiry.
 Native offer production and actual harness startup remain separately tracked.
+
+## Qualification checkpoint
+
+Clean source `ce1214f` passed 678 workspace tests with six declared optional
+tests ignored, strict workspace lint and formatting. The retained
+[AQ-08-inline-artifacts-qualification.json](AQ-08-inline-artifacts-qualification.json)
+binds source and raw logs, including the earlier missing state-format footer
+failure and successful full rerun. Independent read-only review found no blocker
+within this bounded retention and range-transfer scope.
+
+Trusted producer links define the artifact allowlist; the route does not require
+every linked reference to appear in the sealed manifest. Workers cannot create
+these links. Nonsecret content classification and typed catalog validation are
+producer obligations. The four focused owner/HTTP tests directly exercise Offered
+transfer; Preparing and Granted branches have been inspected but are not qualified
+by those tests. The helper requires caller node/attempt locks as documented; its
+Rust signature does not enforce that precondition.
