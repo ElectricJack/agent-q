@@ -56,7 +56,7 @@ async fn issuance_rotation_revocation_and_locked_authority_are_online() {
         .await
         .unwrap()
         .unwrap();
-    let node_token = tokens::new_node_credential();
+    let mut node_token = tokens::new_node_credential();
     store
         .create_enrollment("agent-test", owner.id, now, now + Duration::minutes(5))
         .await
@@ -252,6 +252,82 @@ enabled=true
         .execute(&pool)
         .await
         .unwrap();
+    // A credential authenticated before a real node-lock wait cannot issue an
+    // agent credential after that machine credential rotates under the lock.
+    let mut locked = pool.begin().await.unwrap();
+    sqlx::query("SELECT id FROM nodes WHERE id=$1 FOR UPDATE")
+        .bind(node.id)
+        .execute(&mut *locked)
+        .await
+        .unwrap();
+    let xid: String = sqlx::query_scalar("SELECT txid_current()::text")
+        .fetch_one(&mut *locked)
+        .await
+        .unwrap();
+    let pending_app = app.clone();
+    let old_token = node_token.clone();
+    let pending_issue = issue.clone();
+    let pending = tokio::spawn(async move {
+        send(
+            &pending_app,
+            "/v2/worker/agent-session",
+            Some(&old_token),
+            Some(pending_issue),
+        )
+        .await
+    });
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(2);
+    loop {
+        let waiting: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM pg_locks WHERE transactionid::text=$1 AND NOT granted)",
+        )
+        .bind(&xid)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        if waiting {
+            break;
+        }
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "issuance did not reach the observed node lock wait"
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    }
+    let rotated_node_token = tokens::new_node_credential();
+    sqlx::query("UPDATE nodes SET credential_hash=$2 WHERE id=$1")
+        .bind(node.id)
+        .bind(tokens::verifier(&rotated_node_token))
+        .execute(&mut *locked)
+        .await
+        .unwrap();
+    locked.commit().await.unwrap();
+    assert_eq!(
+        pending.await.unwrap().0,
+        StatusCode::UNAUTHORIZED,
+        "the old credential cannot mint agent authority after rotation"
+    );
+    let (version, verifier): (i64, Option<String>) = sqlx::query_as(
+        "SELECT credential_version,credential_verifier FROM agent_launch_bindings WHERE attempt_id=$1")
+        .bind(attempt_id).fetch_one(&pool).await.unwrap();
+    assert_eq!(version, 0);
+    assert!(
+        verifier.is_none(),
+        "refused stale machine credential changed issuance state"
+    );
+    assert_eq!(
+        send(
+            &app,
+            "/v2/worker/agent-session",
+            Some(&node_token),
+            Some(issue.clone())
+        )
+        .await
+        .0,
+        StatusCode::UNAUTHORIZED
+    );
+    // The following positive issuance and all other cases use the new credential.
+    node_token = rotated_node_token;
     let (status, issued) = send(
         &app,
         "/v2/worker/agent-session",

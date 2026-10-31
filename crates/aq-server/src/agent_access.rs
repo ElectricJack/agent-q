@@ -471,14 +471,20 @@ async fn issue(
 ) -> Result<Response> {
     version(&headers)?;
     let rt = runtime(&state)?;
-    let node = crate::worker_api::authenticate(&state, &headers)
+    let node = crate::worker_api::authenticate_context(&state, &headers)
         .await
         .map_err(|_| Error("unauthorized"))?;
-    if node.id != request.identity.node_id {
+    if node.id() != request.identity.node_id {
         return Err(Error("unauthorized"));
     }
     let mut tx = state.store.pool.begin().await?;
-    let a = lock_attempt(&state, &mut tx, request.attempt.attempt_id, node.id).await?;
+    crate::worker_api::lock_current_node(&mut tx, &node)
+        .await
+        .map_err(|error| match error {
+            crate::error::AppError::CredentialRevoked => Error("unauthorized"),
+            _ => Error("internal"),
+        })?;
+    let a = lock_attempt(&state, &mut tx, request.attempt.attempt_id, node.id()).await?;
     if a.identity != request.identity || a.attempt != request.attempt {
         return Err(Error("stale_generation"));
     }
