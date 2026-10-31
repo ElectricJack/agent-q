@@ -27,15 +27,15 @@ fn artifact(id: &str) -> ArtifactRef {
         digest: Digest::of(id.as_bytes()),
     }
 }
-async fn attempts(state: &AppState, lineage: &TaskLineage) -> Result<u32> {
-    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM execution_attempts WHERE task_id=$1")
-        .bind(lineage.task_id)
-        .fetch_one(&state.store.pool)
-        .await
-        .map_err(db)?;
-    n.try_into()
-        .map_err(|_| conflict("task attempt count exhausted"))
+async fn attempts(
+    state: &AppState,
+    lineage: &TaskLineage,
+) -> Result<crate::profiled_execution::no_grant::AttemptCounts> {
+    crate::profiled_execution::no_grant::attempt_counts(&state.store.pool, lineage.task_id)
+        .await?
+        .check_retry_bound()
 }
+
 pub(super) fn relevant(
     observations: Vec<AvailabilityObservation>,
     credentials: &[AuthorizedCredential],
@@ -166,10 +166,10 @@ pub async fn resolve_trusted(
         // reconciliation or provider ledger authority is invented for them.
         budget: BudgetSnapshot {
             lineage: request.lineage,
-            revision: count as u64 + 1,
-            attempts_started: count,
+            revision: count.budget_revision(),
+            attempts_started: count.started,
             last_attempt_id: None,
-            elapsed_ms: if count == 0 { Some(0) } else { None },
+            elapsed_ms: if count.started == 0 { Some(0) } else { None },
             spent_microunits: None,
             currency: None,
             accounting: AccountingCompleteness::Unavailable,
@@ -325,14 +325,16 @@ async fn fence_snapshot(
     {
         return Err(conflict("relevant availability changed"));
     }
-    let attempts: i64 =
-        sqlx::query_scalar("SELECT count(*) FROM execution_attempts WHERE task_id=$1")
-            .bind(decision.inputs.project.lineage.task_id)
-            .fetch_one(&mut **tx)
-            .await
-            .map_err(db)?;
-    if attempts != i64::from(decision.inputs.budget.attempts_started) {
-        return Err(conflict("task retry budget changed"));
+    let counts = crate::profiled_execution::no_grant::attempt_counts_locked(
+        tx,
+        decision.inputs.project.lineage.task_id,
+    )
+    .await?
+    .check_retry_bound()?;
+    if counts.started != decision.inputs.budget.attempts_started
+        || counts.budget_revision() != decision.inputs.budget.revision
+    {
+        return Err(conflict("task retry budget/history changed"));
     }
     check_time(state, decision)
 }

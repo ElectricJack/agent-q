@@ -23,6 +23,8 @@ pub struct HotState {
     pub grant: Option<ProfiledGrant>,
     pub execution_deadline_ms: Option<u64>,
     pub owner: Option<LaunchOwner>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preparation_operation_id: Option<Uuid>,
     pub cancellation_id: Option<Uuid>,
     pub revoked: bool,
     pub stop: Stop,
@@ -43,6 +45,7 @@ impl HotState {
             grant: value.grant.clone(),
             execution_deadline_ms: value.execution_deadline_ms,
             owner: None,
+            preparation_operation_id: None,
             cancellation_id: value.cancellation_id,
             revoked: value.revoked,
             stop: value.stop.clone(),
@@ -59,7 +62,8 @@ impl HotState {
         {
             return Err("hot state version or byte bound");
         }
-        if self.cancellation_id.is_some_and(|id| id.is_nil())
+        if self.preparation_operation_id.is_some_and(|id| id.is_nil())
+            || self.cancellation_id.is_some_and(|id| id.is_nil())
             || self.execution_deadline_ms == Some(0)
             || self.owner.as_ref().is_some_and(|owner| {
                 owner.guardian_id.is_nil()
@@ -88,6 +92,11 @@ impl HotState {
                 || self.stop.known_stopped())
         {
             return Err("granted hot state needs actual grant and owner");
+        }
+        if self.status == Status::NeverGranted
+            && (self.grant.is_some() || !matches!(self.stop, Stop::Unknown))
+        {
+            return Err("never-granted is not physical stop proof");
         }
         if (self.status == Status::Offered
             && (self.owner.is_some()
