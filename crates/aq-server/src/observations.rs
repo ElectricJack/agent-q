@@ -1,5 +1,5 @@
-//! Durable AQ22 ledger adapter. Runtime catalog admission and HTTP routing are
-//! separate pending work. The owner-only source function is not a worker API.
+//! Durable AQ22 ledger adapter with separate human and worker HTTP surfaces.
+//! Trusted catalog admission remains pending; source registration is not a worker API.
 use crate::{
     AppState,
     execution::authority::{self, AuthorityView, Kind, Policy as AuthorityPolicy},

@@ -1,4 +1,4 @@
--- AQ22 draft: exercised explicitly until ordered migrations012/013 land.
+-- AQ22 durable observation ledger and original-attempt accounting projections.
 -- This metadata ledger stores references, not transcript bodies or provider secrets.
 CREATE TABLE observation_nodes (
  node_id UUID PRIMARY KEY REFERENCES nodes(id),
@@ -78,4 +78,4 @@ CREATE TRIGGER observation_event_immutable BEFORE UPDATE OR DELETE ON observatio
 CREATE TRIGGER observation_fact_immutable BEFORE UPDATE OR DELETE ON observation_facts
  FOR EACH ROW EXECUTE FUNCTION refuse_observation_history_mutation();
 -- No retention deletion/namespace reuse is authorized by this checkpoint.
--- Ordered registration will update state_format_version when012/013 are present.
+UPDATE meta SET value='14' WHERE key='state_format_version';

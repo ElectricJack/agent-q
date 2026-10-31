@@ -32,10 +32,6 @@ async fn setup() -> (Fixture, OwnerSource) {
     });
     f.profiled.stop = Stop::Running;
     insert(&f).await;
-    sqlx::raw_sql(include_str!("../migrations/0014_observation_ledger.sql"))
-        .execute(&f.db.pool().await)
-        .await
-        .unwrap();
     let source = OwnerSource {
         binding: aq_admission::transport::lifecycle_binding(&f.profiled.offer).unwrap(),
         source_id: Uuid::new_v4(),
@@ -381,7 +377,22 @@ async fn concurrent_exact_delivery_returns_one_receipt_and_one_charge() {
 async fn worker_route_requires_node_credentials_and_rejects_wrong_packet_scope() {
     let (f, s) = setup().await;
     let p = packet(&f, vec![event(&s, 1, 10)]);
-    let router = observations::api::routes(f.state.clone()).with_state(f.state.clone());
+    let router = aq_server::build_worker_router(f.state.clone());
+    let hidden = router
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!(
+                    "/api/observations/sessions/{}/usage",
+                    s.binding.attempt_id
+                ))
+                .header("authorization", format!("Bearer {}", f.credential))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(hidden.status(), StatusCode::NOT_FOUND);
     let request = |credential: &str, body: Vec<u8>| {
         Request::builder()
             .method("POST")
@@ -667,7 +678,19 @@ async fn inspection_uses_exact_acl_and_stable_bounded_snapshot_pages() {
         view.usage.completeness,
         aq_lifecycle_api::AccountingCompleteness::Incomplete { .. }
     ));
-    let human = observations::api::admin_routes(f.state.clone()).with_state(f.state.clone());
+    let human = aq_server::build_admin_router(f.state.clone());
+    let hidden = human
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/v1/worker/observations/batch")
+                .header("x-aq-dev-email", "observer@fixture.test")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(hidden.status(), StatusCode::NOT_FOUND);
     let request = |tail: &str| {
         Request::builder()
             .uri(format!(

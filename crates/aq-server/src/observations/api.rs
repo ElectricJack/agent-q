@@ -1,4 +1,4 @@
-//! Explicitly constructed route pending ordered migration/runtime registration.
+//! Bounded observation routes mounted on the separate machine and human listeners.
 //! Worker bearer credentials only; no source/policy registration on this surface.
 use super::*;
 use crate::{admin_api::ApiJson, authz::CurrentUser, error::AppError};
