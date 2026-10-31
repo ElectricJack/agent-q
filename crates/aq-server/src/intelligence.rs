@@ -6,6 +6,14 @@ mod inventory;
 mod principal;
 mod registry;
 pub mod resolver;
+/// Recheck the installed registry while retaining its lock through admission.
+/// This never installs configuration or reads private files.
+pub(crate) async fn fence_current_registry(
+    state: &AppState,
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+) -> Result<u64> {
+    registry::check_current(state, tx).await
+}
 pub fn worker_routes() -> Router<AppState> {
     Router::new()
         .route("/v1/worker/intelligence/inventory", post(inventory::report))
