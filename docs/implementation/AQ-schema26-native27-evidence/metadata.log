@@ -1,0 +1,32 @@
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq-schema26-native27/vendor/aq-session-protocol-0.1.0)
+   Compiling aq-playbooks-model v0.1.0 (/tmp/aq-schema26-native27/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-model)
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/aq-schema26-native27/vendor/aq-lifecycle-protocol-0.1.0)
+   Compiling aq-session-api v0.1.0 (/tmp/aq-schema26-native27/crates/aq-session-api)
+   Compiling aq-lifecycle-api v0.1.0 (/tmp/aq-schema26-native27/crates/aq-lifecycle-api)
+   Compiling aq-playbooks-runner v0.1.2 (/tmp/aq-schema26-native27/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-runner)
+   Compiling aq-agent-api v0.1.0 (/tmp/aq-schema26-native27/crates/aq-agent-api)
+   Compiling aq-profiles v0.1.1 (/tmp/aq-schema26-native27/crates/aq-profiles)
+   Compiling aq-playbooks-postgres v0.1.2 (/tmp/aq-schema26-native27/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-postgres)
+   Compiling aq-terminal-relay-protocol v0.1.0 (/tmp/aq-schema26-native27/crates/aq-terminal-relay-protocol)
+   Compiling aq-release v0.1.0 (/tmp/aq-schema26-native27/crates/aq-release)
+   Compiling aq-terminal-relay v0.1.0 (/tmp/aq-schema26-native27/crates/aq-terminal-relay)
+   Compiling aq-playbook-host v0.1.2 (/tmp/aq-schema26-native27/crates/aq-playbook-host)
+   Compiling aq-notifications v0.1.0 (/tmp/aq-schema26-native27/crates/aq-notifications)
+   Compiling aq-selection v0.1.2 (/tmp/aq-schema26-native27/crates/aq-selection)
+   Compiling aq-observation-api v0.1.0 (/tmp/aq-schema26-native27/crates/aq-observation-api)
+   Compiling aq-observation-admission v0.1.0 (/tmp/aq-schema26-native27/crates/aq-observation-admission)
+   Compiling aq-accounting v0.1.0 (/tmp/aq-schema26-native27/crates/aq-accounting)
+   Compiling aq-admission v0.1.7 (/tmp/aq-schema26-native27/crates/aq-admission)
+   Compiling aq-review-protocol v0.1.0 (/tmp/aq-schema26-native27/crates/aq-review-protocol)
+   Compiling aq-protocol v0.1.0 (/tmp/aq-schema26-native27/vendor/aq-protocol-0.1.0)
+   Compiling aq-worker-protocol v0.2.0 (/tmp/aq-schema26-native27/vendor/aq-worker-protocol-0.2.0)
+   Compiling aq-server v0.1.0 (/tmp/aq-schema26-native27/crates/aq-server)
+   Compiling aq-playbooks-compiler v0.1.0 (/tmp/aq-schema26-native27/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-compiler)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2m 11s
+     Running unittests src/lib.rs (/home/jkern/dev/agent-q/target/debug/deps/aq_server-f655029f9b38a729)
+
+running 1 test
+test store::tests::state_format_is_the_latest_migration ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 59 filtered out; finished in 0.00s
+

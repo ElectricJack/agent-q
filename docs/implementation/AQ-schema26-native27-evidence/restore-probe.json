@@ -1,0 +1,394 @@
+{
+  "scope": "Actual pg_dump/pg_restore on two new disposable databases; not an automatic updater/deployment test. Old-reader refusal separately uses same production guard with frozen25 SQL profile.",
+  "postgres_image": "sha256:99445113a4a19e82dd3713c65bd9f6fb5bf972065ab043df8d1e1c93e957da9a",
+  "backup_bytes": 323512,
+  "backup_sha256": "f360f98b1788bd403b114b182c76cd4a16e273519dd1a923af2bce29b2c70143",
+  "before": {
+    "users": [
+      {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "role": "owner",
+        "email": "restore-fixture@example.invalid",
+        "issuer": "fixture",
+        "subject": "backup-restore",
+        "bound_at": null,
+        "created_at": "2026-10-31T23:45:45.248061+00:00"
+      }
+    ],
+    "format": "25",
+    "migrations": [
+      {
+        "version": 1,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 2,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 3,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 4,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 5,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 6,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 7,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 8,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 9,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 10,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 11,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 12,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 13,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 14,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 15,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 16,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 17,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 18,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 19,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 20,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 21,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 22,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 23,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 24,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 25,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      }
+    ],
+    "catalog_profile": false
+  },
+  "upgraded": {
+    "users": [
+      {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "role": "owner",
+        "email": "restore-fixture@example.invalid",
+        "issuer": "fixture",
+        "subject": "backup-restore",
+        "bound_at": null,
+        "created_at": "2026-10-31T23:45:45.248061+00:00"
+      }
+    ],
+    "format": "27",
+    "migrations": [
+      {
+        "version": 1,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 2,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 3,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 4,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 5,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 6,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 7,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 8,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 9,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 10,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 11,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 12,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 13,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 14,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 15,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 16,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 17,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 18,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 19,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 20,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 21,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 22,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 23,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 24,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 25,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 26,
+        "applied_at": "2026-10-31T23:45:46.159616+00:00"
+      },
+      {
+        "version": 27,
+        "applied_at": "2026-10-31T23:45:46.159616+00:00"
+      }
+    ],
+    "catalog_profile": true
+  },
+  "restored": {
+    "users": [
+      {
+        "id": "00000000-0000-0000-0000-000000000001",
+        "role": "owner",
+        "email": "restore-fixture@example.invalid",
+        "issuer": "fixture",
+        "subject": "backup-restore",
+        "bound_at": null,
+        "created_at": "2026-10-31T23:45:45.248061+00:00"
+      }
+    ],
+    "format": "25",
+    "migrations": [
+      {
+        "version": 1,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 2,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 3,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 4,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 5,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 6,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 7,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 8,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 9,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 10,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 11,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 12,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 13,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 14,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 15,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 16,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 17,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 18,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 19,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 20,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 21,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 22,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 23,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 24,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      },
+      {
+        "version": 25,
+        "applied_at": "2026-10-31T23:45:45.248061+00:00"
+      }
+    ],
+    "catalog_profile": false
+  },
+  "migration_sha256": {
+    "0001_foundation.sql": "2ac1359cde1cebfbe9b94de1dc91c67d7277f04e723081ae0f98b69d93be3715",
+    "0002_execution.sql": "e52191473cf6eca5b5b8e81662873f25dc9eb80967e11d5a8d7b390c583e34ed",
+    "0003_agent_access.sql": "863cfa9e1bf91d863452a9f473c26612e2d4e9d71cfcc42a4727682b6bde77d3",
+    "0004_source_retention.sql": "54a00da384fa810f01060cd04bf0b3cb9b30c52a32d4fc370e7697ef30d77606",
+    "0005_messaging.sql": "07fa84e6557172caf38aaeba6b4a631ca9fdfc15e1e133781ff07b96b6938716",
+    "0006_profile_catalog.sql": "69873c07fd6f0436cf1b9fc6c66fc62b75c94c8ee79133169eee889e2e3b84c6",
+    "0007_graph_mutations.sql": "0ec5317b0e54466b5a88aef05fc951827a7b4e156ecdfca6e60d1a5dd75faa64",
+    "0008_project_bindings.sql": "dab779e5f1bd7d88694695981691753d91b4a3ce600f6feb31c29c3ef0c96043",
+    "0009_intelligence_selection.sql": "4817b6191e6c9f5ece5c2e103747f7775a6f30fe066784d30e9035f295e61b86",
+    "0010_profiled_authority.sql": "5c8abce1c3b06db1b90afe728247341442723ef113e6527e1cd0266893326909",
+    "0011_notifications.sql": "5f197bdaaf429c35f0f29f09509ef8a30b579b597030ceed48495b77708eeb0b",
+    "0012_terminal_relay.sql": "848ffaba3034e30cc2d9f6716150f4b079d341b39f028411ced986b8c1249dc7",
+    "0013_profiled_hot_authority.sql": "2de40704ae7de694c0f29ea7606b48f0cd97bb44fd40bad4a199f99d47be9c0c",
+    "0014_observation_ledger.sql": "d8c16d8c5b0bfdab2b6f53a57ed54b472a67549b0ecf9dc1fe1cff02dd6cbd29",
+    "0015_never_granted_closure.sql": "6dbfeee6391ba650b6f2486d8ee507a32ebbc08a352c4701468255b62e0c853c",
+    "0016_observation_transport.sql": "1a1daad1da217aeb0f6edf82e7403d9bd819800d9e83fb47caf63fe2c1380fa4",
+    "0017_policy_decision_principals.sql": "9f7ad26f2645b10dbea6bbc52bf71a26233a962961b773d8e590d2d09d538c3e",
+    "0018_profiled_started.sql": "ce64fe4cf491382975090575516c07db4299d09aad18adf49e68e7fdf354ff11",
+    "0019_native_registration.sql": "92844d5c11b576122bef43fb462658587c6e1302024a4904a3383ee8dc619409",
+    "0020_inline_artifact_owner.sql": "c746e191fe65ab731a0527491b2d5175f5849c86e47380e7ad127444178eddd5",
+    "0021_profiled_stopped.sql": "05b3692151d1750cc9d032b3de8103d717df2e7db396ff23c0b1351ce16ad20d",
+    "0022_profiled_source_exports.sql": "8656485f0e9f45bb37da4ee3139c8582125c5cb112fe73390da4d3428fdb9475",
+    "0023_playbook_bridge.sql": "071882c333e404026b4a23e42727143e5dfc88b9990633594786547e0026cfbc",
+    "0024_profiled_results.sql": "b5de98d626581c83b93cc6ad9646fff1f74cf278bcd8bbd2ee94f116ae5238c7",
+    "0025_native_source_observations.sql": "6fbb1ee724ddb9253aeb779e84f0a6953a41a9c1f23d4c2550defbd54dacc5c6",
+    "0026_review_owners.sql": "1f2999baeca7caf48e23a08cb74e1970ea2c1725d15d6a88c6258b32e4ae392e",
+    "0027_native_definition_identities.sql": "ee1622b0d1470286cad47963b2eee971b859861b304452b8d5bed365a07113f7"
+  }
+}

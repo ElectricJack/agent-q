@@ -1,0 +1,12 @@
+   Compiling aq-updater v0.1.0 (/tmp/aq-schema26-native27/crates/aq-updater)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.52s
+     Running tests/engine.rs (/home/jkern/dev/agent-q/target/debug/deps/engine-71cf4e28d21c4d13)
+
+running 4 tests
+test rollback_restore_selects_the_active_release_before_stopping ... ok
+test failed_rollback_stops_with_needs_operator ... ok
+test rollback_restores_backup_when_state_format_changed ... ok
+test rollback_skips_restore_when_state_format_same ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 1.03s
+

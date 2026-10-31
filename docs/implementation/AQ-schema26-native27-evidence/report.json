@@ -1,0 +1,51 @@
+{
+  "source_commit": "50840a01142173f3e345dd17a4c8301e6bccfe19",
+  "base": "af35351",
+  "startup_union_commit": "3468456",
+  "registration_commit": "84b079d",
+  "guard_commit": "b591f12",
+  "state_format": 27,
+  "tests": {
+    "combined": {
+      "passed": 206,
+      "ignored": 2,
+      "failed": 0,
+      "test_processes": 19,
+      "summed_test_process_seconds": 96.22,
+      "cargo_build": "2m52s",
+      "shell_exit": "not separately retained; all19 expected process summaries successful"
+    },
+    "updater_rollback": {
+      "passed": 4,
+      "failed": 0,
+      "exit": 0,
+      "feature": "test-verifier"
+    }
+  },
+  "checks": {
+    "strict_server_alltargets_allfeatures_clippy": {
+      "exit": 0,
+      "duration": "1m17s"
+    },
+    "workspace_fmt": {
+      "exit": 0
+    }
+  },
+  "environment": {
+    "RUST_TEST_THREADS": "2",
+    "CARGO_BUILD_JOBS": "2",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_TARGET_DIR": "/home/jkern/dev/agent-q/target",
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "postgres_image": "sha256:99445113a4a19e82dd3713c65bd9f6fb5bf972065ab043df8d1e1c93e957da9a"
+  },
+  "limits": [
+    "No total wall-time measurement",
+    "Concurrent other builds/test load not isolated",
+    "No production migration/deployment",
+    "No optional owner activation or native grant/harness claim",
+    "Old-reader guard tested with actual frozen25 SQL profile, not an old executable",
+    "Initial updater invocation without test-verifier ran zero tests; retained and superseded by qualified4-case run",
+    "Preflight logs precede final guard; final combined/lint/fmt reflect exact frozen source"
+  ]
+}

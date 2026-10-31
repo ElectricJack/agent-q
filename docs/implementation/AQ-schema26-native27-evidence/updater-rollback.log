@@ -1,0 +1,10 @@
+    Blocking waiting for file lock on build directory
+   Compiling aq-release v0.1.0 (/tmp/aq-schema26-native27/crates/aq-release)
+   Compiling aq-updater v0.1.0 (/tmp/aq-schema26-native27/crates/aq-updater)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 32.33s
+     Running tests/engine.rs (/home/jkern/dev/agent-q/target/debug/deps/engine-8f0806d19fd77db8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
