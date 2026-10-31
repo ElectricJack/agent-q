@@ -370,7 +370,7 @@ async fn exact_schema_two_upgrades_preserving_node_and_result_receipt() {
         assert_eq!(&migrations[..2], original_migrations.as_slice());
         assert_eq!(
             migrations.iter().map(|(v, _)| *v).collect::<Vec<_>>(),
-            vec![1, 2, 3, 4]
+            vec![1, 2, 3, 4, 5]
         );
         assert_eq!(
             sqlx::query_scalar::<_, String>(
@@ -379,7 +379,7 @@ async fn exact_schema_two_upgrades_preserving_node_and_result_receipt() {
             .fetch_one(&pool)
             .await
             .unwrap(),
-            "4"
+            "5"
         );
         drop(store);
     }

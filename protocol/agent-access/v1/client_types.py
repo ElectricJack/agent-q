@@ -2,6 +2,158 @@
 from __future__ import annotations
 from typing import Any, Literal, NotRequired, TypeAlias, TypedDict, Union
 
+class TaskMailbox(TypedDict):
+    kind: Literal['task']
+    workspace_id: str
+    project_id: str
+    task_id: str
+
+class SessionMailbox(TypedDict):
+    kind: Literal['session']
+    workspace_id: str
+    project_id: str
+    task_id: str
+    session_id: str
+    attempt_id: str
+    generation: int
+
+class MessageSend(TypedDict):
+    operation_id: str
+    message_id: str
+    thread_id: str
+    recipient: MailboxRecipient
+    body: str
+
+class MessageInbox(TypedDict):
+    recipient: MailboxRecipient
+    after: str
+    thread_id: NotRequired[Union[str, None]]
+    limit: int
+
+class MessageAck(TypedDict):
+    operation_id: str
+    recipient: MailboxRecipient
+    message_id: str
+    disposition: Literal['received', 'read']
+
+class MessageSendReceipt(TypedDict):
+    api_version: Literal[1]
+    operation_id: str
+    message_id: str
+    recipient: MailboxRecipient
+    thread_id: str
+    cursor: str
+    disposition: Literal['queued']
+    node_delivery: Literal['not_attempted']
+    harness_delivery: Literal['not_attempted']
+    notification_delivery: Literal['not_attempted']
+
+class MessageAckReceipt(TypedDict):
+    api_version: Literal[1]
+    operation_id: str
+    message_id: str
+    recipient: MailboxRecipient
+    cursor: str
+    attempt_id: str
+    disposition: Literal['received', 'read']
+    node_delivery: Literal['not_attempted']
+    harness_delivery: Literal['not_attempted']
+
+class OwnerMessageSender(TypedDict):
+    kind: Literal['owner']
+    user_id: str
+
+class SessionMessageSender(TypedDict):
+    kind: Literal['session']
+    binding: Binding
+
+class MailboxMessage(TypedDict):
+    message_id: str
+    thread_id: str
+    cursor: str
+    sender: MessageSender
+    recipient: MailboxRecipient
+    body: str
+    payload_digest: str
+    created_at_ms: int
+    disposition: Literal['queued', 'received', 'read']
+    delivery: Union[MessageDelivery, None]
+
+class MessageDelivery(TypedDict):
+    attempt_id: str
+    disposition: Literal['pending', 'received_by_node', 'handed_to_harness', 'delivery_unknown', 'stale']
+
+class OmittedMailboxMessage(TypedDict):
+    message_id: str
+    cursor: str
+    body_omitted: Literal[True]
+    body_bytes: int
+    recovery: Literal['message_body']
+    body_request: MessageBodyRequest
+
+class MessageInboxResponse(TypedDict):
+    api_version: Literal[1]
+    recipient: MailboxRecipient
+    after: str
+    next_cursor: str
+    has_more: bool
+    messages: list[MailboxEntry]
+
+class MessageBodyRequest(TypedDict):
+    recipient: MailboxRecipient
+    message_id: str
+    offset: str
+    max_bytes: int
+
+class MessageBodyResponse(TypedDict):
+    api_version: Literal[1]
+    message_id: str
+    cursor: str
+    payload_digest: str
+    offset: str
+    next_offset: str
+    complete: bool
+    body: str
+
+class MessageNodeIdentity(TypedDict):
+    node_id: str
+    boot_id: str
+
+class MessageNodePoll(TypedDict):
+    identity: MessageNodeIdentity
+    attempt: AttemptRef
+    limit: int
+
+class MessageNodeAck(TypedDict):
+    operation_id: str
+    identity: MessageNodeIdentity
+    attempt: AttemptRef
+    delivery_id: str
+    disposition: Literal['received_by_node', 'handed_to_harness', 'delivery_unknown', 'stale']
+
+class MessageNodeDelivery(TypedDict):
+    delivery_id: str
+    message_id: str
+    recipient: MailboxRecipient
+    thread_id: str
+    cursor: str
+    body: str
+    payload_digest: str
+    sender: MessageSender
+    disposition: Literal['pending', 'received_by_node']
+
+class MessageNodeBatch(TypedDict):
+    api_version: Literal[1]
+    attempt: AttemptRef
+    deliveries: list[MessageNodeDelivery]
+
+class MessageNodeAckReceipt(TypedDict):
+    api_version: Literal[1]
+    operation_id: str
+    delivery_id: str
+    attempt: AttemptRef
+    disposition: Literal['received_by_node', 'handed_to_harness', 'delivery_unknown', 'stale']
+
 class AttemptRef(TypedDict):
     attempt_id: str
     session_id: str
@@ -402,7 +554,10 @@ class RecoveryResponse(TypedDict):
 
 EdgeType: TypeAlias = Literal['blocks', 'parent-child', 'references', 'motivated_by', 'produces', 'supports', 'contradicts', 'supersedes']
 InformationalEdgeType: TypeAlias = Literal['references', 'motivated_by', 'produces', 'supports', 'contradicts', 'supersedes']
-Capability: TypeAlias = Literal['read.get', 'read.revision', 'read.history', 'read.search', 'read.context', 'read.relationships', 'write.finding', 'write.correct', 'write.proposal', 'write.relationships', 'write.task_content']
+Capability: TypeAlias = Literal['read.get', 'read.revision', 'read.history', 'read.search', 'read.context', 'read.relationships', 'write.finding', 'write.correct', 'write.proposal', 'write.relationships', 'write.task_content', 'message.send', 'message.read', 'message.ack']
+MailboxRecipient: TypeAlias = Union[TaskMailbox, SessionMailbox]
+MessageSender: TypeAlias = Union[OwnerMessageSender, SessionMessageSender]
+MailboxEntry: TypeAlias = Union[MailboxMessage, OmittedMailboxMessage]
 NodeKind: TypeAlias = Literal['task', 'knowledge']
 ContentType: TypeAlias = Literal['fact', 'decision', 'policy', 'procedure', 'incident', 'reference', 'note']
 Verification: TypeAlias = Literal['unverified', 'verified', 'disputed']

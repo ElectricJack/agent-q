@@ -44,7 +44,9 @@ class Conformance(unittest.TestCase):
         self.assertIn('commands', module.CommandRequest.__annotations__)
         Draft202012Validator.check_schema(SCHEMA)
         openapi = json.loads((ROOT / 'openapi.json').read_text())
-        self.assertEqual(len(openapi['paths']), 5)
+        self.assertEqual(len(openapi['paths']), 11)
+        for path in ['/v1/agent/messages/send', '/v1/agent/messages/inbox', '/v1/agent/messages/ack', '/v1/agent/messages/body', '/v2/worker/messages/poll', '/v2/worker/messages/ack']:
+            self.assertIn(path, openapi['paths'])
         self.assertEqual(openapi['paths']['/v2/worker/agent-operations/query']['post']['security'], [{'NodeRecoveryBearer': []}])
 
     def test_retained_upstream_sources_and_actual_http_probe(self):
@@ -397,6 +399,19 @@ class Conformance(unittest.TestCase):
                                 input='{"secret_token":"DO-NOT-ECHO"}', capture_output=True, text=True)
         self.assertEqual(result.returncode, 2)
         self.assertNotIn('DO-NOT-ECHO', result.stdout + result.stderr)
+
+
+    def test_messaging_extension_shapes_preserve_old_profile_bytes(self):
+        for fixture in json.loads((ROOT / 'fixtures/messaging.json').read_text()):
+            validate(fixture['type'], fixture['value'])
+        profile = deepcopy(self.context['profile'])
+        for cap in ['message.send', 'message.read', 'message.ack']:
+            profile['capabilities'].append(cap)
+        validate('ResolvedProfile', profile)
+        invalid = json.loads((ROOT / 'fixtures/messaging.json').read_text())[0]['value']
+        invalid['sender'] = {'kind': 'owner'}
+        with self.assertRaises(ValidationError):
+            validate('MessageSend', invalid)
 
 
 if __name__ == '__main__':

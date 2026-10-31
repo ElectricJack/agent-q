@@ -2,6 +2,7 @@
 //! Durable mutation routes are deliberately absent (AQ-07).
 mod contract;
 mod graph;
+mod messaging;
 use crate::{
     AppState,
     authz::RequireOwner,
@@ -201,6 +202,7 @@ fn now(state: &AppState) -> u64 {
 
 pub fn admin_routes(state: AppState) -> Router<AppState> {
     Router::new()
+        .merge(messaging::admin_routes())
         .route("/api/agent-access/provision", post(provision))
         .with_state(state.clone())
         .merge(
@@ -212,11 +214,13 @@ pub fn admin_routes(state: AppState) -> Router<AppState> {
 }
 pub fn machine_routes(state: AppState) -> Router<AppState> {
     Router::new()
+        .merge(messaging::machine_routes())
         .route("/v1/agent/context", get(context))
         .route("/v1/agent/graph/read", post(read))
         .with_state(state.clone())
         .merge(
             Router::new()
+                .merge(messaging::node_routes())
                 .route("/v2/worker/agent-session", post(issue))
                 .with_state(state.control_view()),
         )
@@ -459,6 +463,16 @@ async fn issue(
     Ok(ok(body))
 }
 async fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Principal> {
+    let mut tx = state.store.pool.begin().await?;
+    let p = authenticate_locked(state, headers, &mut tx).await?;
+    tx.commit().await?;
+    Ok(p)
+}
+async fn authenticate_locked(
+    state: &AppState,
+    headers: &HeaderMap,
+    tx: &mut Transaction<'_, Postgres>,
+) -> Result<Principal> {
     version(headers)?;
     runtime(state)?;
     let token = bearer(headers)?;
@@ -470,12 +484,11 @@ async fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Principal
         "SELECT attempt_id,node_id FROM agent_launch_bindings WHERE credential_verifier=$1",
     )
     .bind(&verifier)
-    .fetch_optional(&state.store.pool)
+    .fetch_optional(&mut **tx)
     .await?;
     let (attempt, node) = identity.ok_or(Error("unauthorized"))?;
-    let mut tx = state.store.pool.begin().await?;
-    let a = lock_attempt(state, &mut tx, attempt, node).await?;
-    let row=sqlx::query("SELECT binding,profile,context,credential_version,authority_revision,credential_expires_at_ms,revoked FROM agent_launch_bindings WHERE attempt_id=$1 AND credential_verifier=$2 FOR UPDATE").bind(attempt).bind(verifier).fetch_optional(&mut *tx).await?.ok_or(Error("unauthorized"))?;
+    let a = lock_attempt(state, tx, attempt, node).await?;
+    let row=sqlx::query("SELECT binding,profile,context,credential_version,authority_revision,credential_expires_at_ms,revoked FROM agent_launch_bindings WHERE attempt_id=$1 AND credential_verifier=$2 FOR UPDATE").bind(attempt).bind(verifier).fetch_optional(&mut **tx).await?.ok_or(Error("unauthorized"))?;
     if row.get::<bool, _>("revoked") {
         return Err(Error("session_revoked"));
     }
@@ -497,7 +510,6 @@ async fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Principal
     {
         return Err(Error("stale_generation"));
     }
-    tx.commit().await?;
     Ok(p)
 }
 async fn context(State(state): State<AppState>, headers: HeaderMap) -> Result<Response> {

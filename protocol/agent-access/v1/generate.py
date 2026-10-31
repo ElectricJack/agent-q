@@ -60,13 +60,67 @@ API = const(1)
 EDGE_TYPES = ['blocks', 'parent-child', 'references', 'motivated_by', 'produces', 'supports', 'contradicts', 'supersedes']
 INFO_TYPES = EDGE_TYPES[2:]
 CAPABILITIES = ['read.get', 'read.revision', 'read.history', 'read.search', 'read.context', 'read.relationships',
-                'write.finding', 'write.correct', 'write.proposal', 'write.relationships', 'write.task_content']
+                'write.finding', 'write.correct', 'write.proposal', 'write.relationships', 'write.task_content', 'message.send', 'message.read', 'message.ack']
 
 
 def definitions():
     enum('EdgeType', EDGE_TYPES)
     enum('InformationalEdgeType', INFO_TYPES)
     enum('Capability', CAPABILITIES)
+
+    obj('TaskMailbox', {'kind': const('task'), 'workspace_id': UUID, 'project_id': UUID, 'task_id': UUID})
+    obj('SessionMailbox', {'kind': const('session'), 'workspace_id': UUID, 'project_id': UUID, 'task_id': UUID,
+                           'session_id': UUID, 'attempt_id': UUID, 'generation': integer(2**63-1, 1)})
+    union('MailboxRecipient', ['TaskMailbox', 'SessionMailbox'])
+    obj('MessageSend', {'operation_id': UUID, 'message_id': UUID, 'thread_id': UUID,
+                        'recipient': ref('MailboxRecipient'), 'body': text(16384, 1)})
+    cursor = {'type': 'string', 'pattern': '^(0|[1-9][0-9]{0,18})$'}
+    obj('MessageInbox', {'recipient': ref('MailboxRecipient'), 'after': cursor, 'thread_id': nullable(UUID),
+                         'limit': integer(32, 1)}, optional=('thread_id',))
+    obj('MessageAck', {'operation_id': UUID, 'recipient': ref('MailboxRecipient'), 'message_id': UUID,
+                       'disposition': {'enum': ['received', 'read']}})
+
+    delivery = const('not_attempted')
+    obj('MessageSendReceipt', {'api_version': API, 'operation_id': UUID, 'message_id': UUID,
+                               'recipient': ref('MailboxRecipient'), 'thread_id': UUID, 'cursor': VERSION,
+                               'disposition': const('queued'), 'node_delivery': delivery,
+                               'harness_delivery': delivery, 'notification_delivery': delivery})
+    obj('MessageAckReceipt', {'api_version': API, 'operation_id': UUID, 'message_id': UUID,
+                              'recipient': ref('MailboxRecipient'), 'cursor': VERSION, 'attempt_id': UUID,
+                              'disposition': {'enum': ['received', 'read']}, 'node_delivery': delivery,
+                              'harness_delivery': delivery})
+    obj('OwnerMessageSender', {'kind': const('owner'), 'user_id': UUID})
+    obj('SessionMessageSender', {'kind': const('session'), 'binding': ref('Binding')})
+    union('MessageSender', ['OwnerMessageSender', 'SessionMessageSender'])
+    obj('MailboxMessage', {'message_id': UUID, 'thread_id': UUID, 'cursor': VERSION,
+                           'sender': ref('MessageSender'), 'recipient': ref('MailboxRecipient'),
+                           'body': text(16384, 1), 'payload_digest': SHA, 'created_at_ms': integer(2**63-1),
+                           'disposition': {'enum': ['queued', 'received', 'read']},
+                           'delivery': nullable(ref('MessageDelivery'))})
+    node_states = ['pending', 'received_by_node', 'handed_to_harness', 'delivery_unknown', 'stale']
+    obj('MessageDelivery', {'attempt_id': UUID, 'disposition': {'enum': node_states}})
+    obj('OmittedMailboxMessage', {'message_id': UUID, 'cursor': VERSION, 'body_omitted': const(True),
+                                 'body_bytes': integer(16384, 1), 'recovery': const('message_body'), 'body_request': ref('MessageBodyRequest')})
+    union('MailboxEntry', ['MailboxMessage', 'OmittedMailboxMessage'])
+    obj('MessageInboxResponse', {'api_version': API, 'recipient': ref('MailboxRecipient'), 'after': cursor,
+                                 'next_cursor': cursor, 'has_more': BOOL, 'messages': array(ref('MailboxEntry'), 32)})
+    obj('MessageBodyRequest', {'recipient': ref('MailboxRecipient'), 'message_id': UUID,
+                              'offset': cursor, 'max_bytes': integer(16384, 1)})
+    obj('MessageBodyResponse', {'api_version': API, 'message_id': UUID, 'cursor': VERSION,
+                               'payload_digest': SHA, 'offset': cursor, 'next_offset': cursor,
+                               'complete': BOOL, 'body': text(16384)})
+    obj('MessageNodeIdentity', {'node_id': UUID, 'boot_id': UUID})
+    obj('MessageNodePoll', {'identity': ref('MessageNodeIdentity'), 'attempt': ref('AttemptRef'), 'limit': integer(16, 1)})
+    obj('MessageNodeAck', {'operation_id': UUID, 'identity': ref('MessageNodeIdentity'), 'attempt': ref('AttemptRef'),
+                          'delivery_id': UUID, 'disposition': {'enum': node_states[1:]}})
+    obj('MessageNodeDelivery', {'delivery_id': UUID, 'message_id': UUID, 'recipient': ref('MailboxRecipient'),
+                               'thread_id': UUID, 'cursor': VERSION, 'body': text(16384, 1), 'payload_digest': SHA,
+                               'sender': ref('MessageSender'), 'disposition': {'enum': node_states[:2]}})
+    obj('MessageNodeBatch', {'api_version': API, 'attempt': ref('AttemptRef'), 'deliveries': array(ref('MessageNodeDelivery'), 16)})
+    obj('MessageNodeAckReceipt', {'api_version': API, 'operation_id': UUID, 'delivery_id': UUID,
+                                 'attempt': ref('AttemptRef'), 'disposition': {'enum': node_states[1:]}})
+
+
     enum('NodeKind', ['task', 'knowledge'])
     enum('ContentType', ['fact', 'decision', 'policy', 'procedure', 'incident', 'reference', 'note'])
     enum('Verification', ['unverified', 'verified', 'disputed'])
@@ -232,6 +286,12 @@ def openapi(document):
              'description': 'Contract only. AQ-06/AQ-07 implement these routes later. No raw graph proxy or playbook Host API.'},
             'paths': {'/v1/agent/context': {'get': route('agentContextGet', 'ContextResponse')},
                       '/v1/agent/graph/read': {'post': route('agentGraphRead', 'ReadResponse', 'ReadRequest')},
+                      '/v1/agent/messages/send': {'post': route('agentMessageSend', 'MessageSendReceipt', 'MessageSend')},
+                      '/v1/agent/messages/inbox': {'post': route('agentMessageInbox', 'MessageInboxResponse', 'MessageInbox')},
+                      '/v1/agent/messages/ack': {'post': route('agentMessageAck', 'MessageAckReceipt', 'MessageAck')},
+                      '/v1/agent/messages/body': {'post': route('agentMessageBody', 'MessageBodyResponse', 'MessageBodyRequest')},
+                      '/v2/worker/messages/poll': {'post': route('workerMessagePoll', 'MessageNodeBatch', 'MessageNodePoll', node=True)},
+                      '/v2/worker/messages/ack': {'post': route('workerMessageAck', 'MessageNodeAckReceipt', 'MessageNodeAck', node=True)},
                       '/v1/agent/graph/commands': {'post': route('agentGraphCommand', 'OperationStatus', 'CommandRequest', statuses=['200', '202', '409', '422'])},
                       '/v1/agent/operations/{operation_id}': {'get': lookup},
                       '/v2/worker/agent-operations/query': {'post': route('workerAgentOperationQuery', 'RecoveryResponse', 'RecoveryRequest', node=True)}},

@@ -76,3 +76,21 @@ If the host lacks `ensurepip`, create the environment with `python3 -m venv --wi
 Optional `capture_graph_fixture.py` reproduces the narrow probe with already-installed qualified images. It refuses a mismatched graph image ID, creates unique disposable Docker resources with a dynamic loopback HTTP port and synthetic credentials, uses only public graph APIs, and removes owned resources. It neither pulls/publishes nor contacts production resources. Re-capture changes fixture timestamps/receipt UUIDs and must be reviewed before regeneration.
 
 Tests establish schemas, client decisions, scope/receipt fixture invariants and actual guard behavior on graph revision `225329cd6acf5a775fd2a0b016dd1c45fb16c79b`, image `sha256:807beba98dcd20b0ae335f09cae8c06ecb182a352ee78de278cb47fccb2ee3be`. In-memory fixture ledger/service are not durable AQ authority or a graph engine. Authentication, author delegation, SQL/outbox atomicity, exhaustive graph invariants, real scoped traversal/search/history/cursors, production retry scheduling, CLI persistence and HTTP routes remain AQ-06/AQ-07/WRK-05 work. No production authorization, exactly-once guarantee, task completion, scale or deployment gate is accepted here.
+
+## Additive AQ-11 messaging extension
+
+`message.send`, `message.read` and `message.ack` are explicit, independent profile
+capabilities. Older profiles retain their original bytes and digests and gain no
+permission. New request/response schemas and machine routes are included in the
+same v1 generated contract; examples are in `fixtures/messaging.json`. An older
+peer may reject the new capability or route. Refusal never permits raw-keystroke
+fallback or borrowing a graph capability. The server checks current authority at
+each admission, including body chunks and node delivery acknowledgements.
+
+See [messaging operations](../../../docs/operations/messaging.md) for owner routes,
+limits, cursor semantics, immutable task/session identity, separate agent versus
+node/harness receipts, and explicit oversized-body recovery. Worker polling is
+outbound and returns durable per-attempt IDs. `delivery_unknown` is terminal for
+ordinary delivery and does not trigger automatic injection retry, including on a
+successor. These interfaces supply persistence and authentication; AQ-11 does not
+implement provider message delivery or human notifications.
