@@ -1069,8 +1069,10 @@ async fn project_policy_decisions_have_no_human_actor_and_recheck_installed_poli
             .is_err(),
         "configured alone is not installed policy"
     );
-    // Synthetic startup-owner installation, separately from resolver authority.
-    sqlx::query("INSERT INTO admission_source_policies(project_id,revision,policy_digest,policy) VALUES($1,$2,$3,$4)").bind(lineage.project_id).bind(record.revision as i64).bind(reference.digest.as_str()).bind(json!(record)).execute(&env.pool).await.unwrap();
+    let installed = aq_server::profiled_execution::policies::install(&env.state)
+        .await
+        .unwrap();
+    assert_eq!(installed.installed, 1);
     let human = resolver::resolve_trusted(&env.state, actor, request())
         .await
         .unwrap();
@@ -1184,9 +1186,17 @@ async fn project_policy_decisions_have_no_human_actor_and_recheck_installed_poli
     let mut newer = policy.clone();
     newer.revision = 2;
     newer.projects[0].enabled = false;
-    let disabled = newer.project_policy_record(lineage.project_id).unwrap();
-    let disabled_ref = disabled.artifact().unwrap();
-    sqlx::query("UPDATE admission_source_policies SET revision=$2,policy_digest=$3,policy=$4 WHERE project_id=$1").bind(lineage.project_id).bind(2i64).bind(disabled_ref.digest.as_str()).bind(json!(disabled)).execute(&env.pool).await.unwrap();
+    let mut future = env.state.clone();
+    let mut config = (*future.config).clone();
+    config.profiled_execution = Some(Arc::new(newer.clone()));
+    future.config = Arc::new(config);
+    assert_eq!(
+        aq_server::profiled_execution::policies::install(&future)
+            .await
+            .unwrap()
+            .disabled,
+        1
+    );
     assert!(
         resolver::resolve_for_project_policy(&env.state, request())
             .await
@@ -1209,4 +1219,129 @@ async fn project_policy_decisions_have_no_human_actor_and_recheck_installed_poli
             .unwrap();
     assert_eq!(retained, json!(decision));
     assert!(sqlx::query("UPDATE intelligence_decisions SET authority_kind='human_owner',actor_id=$2 WHERE decision_id=$1").bind(decision.decision_id).bind(actor).execute(&env.pool).await.is_err());
+}
+
+#[tokio::test]
+async fn policy_install_is_atomic_retains_tombstones_and_refuses_configuration_rollback() {
+    use aq_server::profiled_execution::{
+        config::{ProfiledConfig, ProjectPolicy},
+        policies,
+    };
+    let SelectionFixture {
+        mut env, lineage, ..
+    } = selection_fixture().await;
+    let source = aq_admission::SourceSelection::Immutable {
+        object: aq_admission::ObjectId {
+            format: aq_admission::ObjectFormat::Sha1,
+            hex: "a".repeat(40),
+        },
+    };
+    let configured = ProfiledConfig {
+        revision: 1,
+        qualified_runtimes: vec![],
+        projects: vec![
+            ProjectPolicy {
+                project_id: lineage.project_id,
+                enabled: true,
+                priority: 0,
+                source: source.clone(),
+                retention_handle: Uuid::new_v4(),
+            },
+            ProjectPolicy {
+                project_id: Uuid::new_v4(),
+                enabled: true,
+                priority: 0,
+                source,
+                retention_handle: Uuid::new_v4(),
+            },
+        ],
+    };
+    let mut config = (*env.state.config).clone();
+    config.profiled_execution = Some(Arc::new(configured.clone()));
+    env.state.config = Arc::new(config);
+    let first = policies::install(&env.state).await.unwrap();
+    assert_eq!((first.installed, first.disabled, first.unbound), (1, 0, 1));
+    let retry = policies::install(&env.state).await.unwrap();
+    assert_eq!((retry.installed, retry.disabled, retry.unbound), (0, 0, 1));
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM admission_source_policies")
+        .fetch_one(&env.pool)
+        .await
+        .unwrap();
+    assert_eq!(count, 1);
+    let newer = ProfiledConfig {
+        revision: 2,
+        qualified_runtimes: vec![],
+        projects: vec![],
+    };
+    let mut future = env.state.clone();
+    let mut config = (*future.config).clone();
+    config.profiled_execution = Some(Arc::new(newer));
+    future.config = Arc::new(config);
+    sqlx::raw_sql("CREATE FUNCTION test_policy_failure() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic policy write failure'; END $$; CREATE TRIGGER test_policy_failure BEFORE UPDATE ON admission_source_policies FOR EACH ROW EXECUTE FUNCTION test_policy_failure();").execute(&env.pool).await.unwrap();
+    assert!(policies::install(&future).await.is_err());
+    let meta: String =
+        sqlx::query_scalar("SELECT value FROM meta WHERE key='profiled_policy_configuration_v1'")
+            .fetch_one(&env.pool)
+            .await
+            .unwrap();
+    assert_eq!(serde_json::from_str::<Value>(&meta).unwrap()["revision"], 1);
+    let enabled: bool = sqlx::query_scalar(
+        "SELECT (policy->>'enabled')::boolean FROM admission_source_policies WHERE project_id=$1",
+    )
+    .bind(lineage.project_id)
+    .fetch_one(&env.pool)
+    .await
+    .unwrap();
+    assert!(enabled);
+    sqlx::query("DROP TRIGGER test_policy_failure ON admission_source_policies")
+        .execute(&env.pool)
+        .await
+        .unwrap();
+    assert_eq!(policies::install(&future).await.unwrap().disabled, 1);
+    let enabled: bool = sqlx::query_scalar(
+        "SELECT (policy->>'enabled')::boolean FROM admission_source_policies WHERE project_id=$1",
+    )
+    .bind(lineage.project_id)
+    .fetch_one(&env.pool)
+    .await
+    .unwrap();
+    assert!(!enabled);
+    assert!(
+        policies::install(&env.state).await.is_err(),
+        "older daemon cannot reinstall removed projects"
+    );
+    let mut changed = configured;
+    changed.revision = 2;
+    let mut config = (*env.state.config).clone();
+    config.profiled_execution = Some(Arc::new(changed));
+    env.state.config = Arc::new(config);
+    assert!(
+        policies::install(&env.state).await.is_err(),
+        "same revision changed content refuses"
+    );
+    assert_eq!(policies::install(&future).await.unwrap().disabled, 0);
+}
+#[tokio::test]
+async fn empty_policy_configuration_still_retains_global_revision_owner() {
+    use aq_server::profiled_execution::{config::ProfiledConfig, policies};
+    let mut env = setup(false).await;
+    let mut config = (*env.state.config).clone();
+    config.profiled_execution = Some(Arc::new(ProfiledConfig {
+        revision: 10,
+        qualified_runtimes: vec![],
+        projects: vec![],
+    }));
+    env.state.config = Arc::new(config);
+    assert_eq!(
+        policies::install(&env.state).await.unwrap().revision,
+        Some(10)
+    );
+    let mut config = (*env.state.config).clone();
+    config.profiled_execution = Some(Arc::new(ProfiledConfig {
+        revision: 9,
+        qualified_runtimes: vec![],
+        projects: vec![],
+    }));
+    env.state.config = Arc::new(config);
+    assert!(policies::install(&env.state).await.is_err());
 }
