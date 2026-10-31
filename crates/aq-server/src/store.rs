@@ -184,6 +184,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
     ),
     (11, include_str!("../migrations/0011_notifications.sql")),
     (12, include_str!("../migrations/0012_terminal_relay.sql")),
+    (
+        13,
+        include_str!("../migrations/0013_profiled_hot_authority.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -255,6 +259,8 @@ pub struct Store {
     pub(crate) notification_pool: PgPool,
     pub(crate) observation_pool: PgPool,
     pub(crate) admission: std::sync::Arc<crate::admission::Admission>,
+    pub(crate) verified_profiled_facts:
+        std::sync::Arc<std::sync::Mutex<crate::execution::authority::cache::VerifiedCache>>,
     #[cfg(feature = "recovery-test-support")]
     pub(crate) recovery_test: std::sync::Arc<crate::execution::testing::Controls>,
 }
@@ -280,6 +286,14 @@ impl Store {
             pool: self.control_pool.clone(),
             ..self.clone()
         }
+    }
+
+    #[cfg(feature = "test-support")]
+    pub fn profiled_cache_stats(&self) -> Option<(usize, usize, u64, u64)> {
+        self.verified_profiled_facts
+            .lock()
+            .ok()
+            .map(|cache| cache.stats())
     }
 
     /// `SELECT 1`: true when the database answers within `limit`.
@@ -354,6 +368,7 @@ impl Store {
             pool,
             control_pool,
             admission: std::sync::Arc::new(crate::admission::Admission::default()),
+            verified_profiled_facts: Default::default(),
             #[cfg(feature = "recovery-test-support")]
             recovery_test: std::sync::Arc::new(crate::execution::testing::Controls::default()),
         })
