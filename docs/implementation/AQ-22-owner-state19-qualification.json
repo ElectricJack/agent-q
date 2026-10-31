@@ -1,0 +1,32 @@
+{
+  "server_revision": "68eeaccdeccbebd8ce17cd93c473b34c8d0659b6",
+  "server_state_format": 19,
+  "fixture_source_revision": "e189615168d02bfa28b2d0cf03b9715ab571f29b",
+  "fixture_sha256": "fd6c48ecc924c7dadc7bed968bfa282a0f59273aedcdf304c3de3d7929b17f6e",
+  "worker_source_revision": "ab2921022bf1193a411448b019380dcbcab1c025",
+  "worker_archive_sha256": "09d1b057698ac2563ad9a3d86bd9b1cebc757c19ea0d1bb21d1379c0c8a82f37",
+  "worker_extracted_binary": "/tmp/wrk15-http-clean-target-ab292102-standalone/release/examples/owner_peer",
+  "worker_extracted_binary_sha256": "518014de89060fefc42b4b1bf7013f205f409c00e9301f01e97a3e18bca3f84b",
+  "qualification": {
+    "actual_http_postgres_child_process_tests": 2,
+    "failed": 0,
+    "target_strict_clippy": "passed",
+    "format": "passed"
+  },
+  "commands": [
+    "DATABASE_URL=<disposable PostgreSQL> RUST_TEST_THREADS=2 AQ_OBSERVATION_OWNER_PEER=<exact extracted binary> AQ_OBSERVATION_OWNER_PEER_SHA256=518014de89060fefc42b4b1bf7013f205f409c00e9301f01e97a3e18bca3f84b cargo test -p aq-server --all-features --test observation_owner_peer --locked --offline -- --ignored",
+    "cargo clippy -p aq-server --all-features --test observation_owner_peer --locked --offline -- -D warnings",
+    "cargo fmt --all -- --check"
+  ],
+  "evidence_sha256": {
+    "docs/implementation/evidence/aq22-owner-state19-68eeacc/clippy.log": "77c4bd6b16ebc8e3a2722b9d6baaaf6d543e5fe6fbf00d33aa5fb3d2c1bc4d83",
+    "docs/implementation/evidence/aq22-owner-state19-68eeacc/tests.log": "84fae2d136953af946606f6f1d412d00e48e53d7ca0b8c47f4d2290ae84eb5a2",
+    "docs/implementation/evidence/aq22-owner-state19-68eeacc/format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "limitations": [
+    "Explicit synthetic loopback HTTP and disposable database; no production credentials or provider calls.",
+    "Fixture remains ignored in ordinary daemon tests; it requires the separately qualified worker binary and independently expected hash.",
+    "Transport owner prepare/activate/boot recovery only; no source catalog or transcript ingestion qualification.",
+    "The existing source file was imported unchanged; its SHA matches original peer qualification."
+  ]
+}
