@@ -1,0 +1,128 @@
+{
+  "task": "AQ-11",
+  "status": "qualified implementation; no deployment or real harness delivery claimed",
+  "base_revision": "bd593b463b0c6645e9c8e31ba768990d30710947",
+  "source_identity": "Immutable committed source revision plus exact file SHA-256 inventory. Logs distinguish pre-review full suite from final affected tests.",
+  "files": {
+    "crates/aq-server/src/agent_access.rs": "4223e08e002f7b5b3f11c09a9413b53e728d5209cf05858b94fe1f76303d644e",
+    "crates/aq-server/src/agent_access/messaging.rs": "330fb017b9f934e978145e48fac79919ec2da2d15b965e67e22a60d743a5c66a",
+    "crates/aq-server/migrations/0005_messaging.sql": "07fa84e6557172caf38aaeba6b4a631ca9fdfc15e1e133781ff07b96b6938716",
+    "crates/aq-server/src/lib.rs": "26af9a263f0b0fc50bd83597516e95c90749c2de950500dbfb27b328e2546d18",
+    "crates/aq-server/src/store.rs": "7e754d673b081a411e7ea0b7069966b1e4d62e46975b343f13b8f131330bc3c2",
+    "crates/aq-server/tests/messaging.rs": "4772671285cc51e4d9eed8ce4a762b558bdb12cc11518c82757343accac186f3",
+    "crates/aq-server/tests/store.rs": "5010c349beb48be7792a4f8244b825615e5bfe61517b5ba2b5f145e004396d73",
+    "Dockerfile": "e0b58ca2f7395b96099eb1080a87387fa51622008db695635e5545c0b6fe02ed",
+    "protocol/agent-access/v1/generate.py": "2ede287cf0622689e874641d1ca62919ed4b821ca650eff16b95c73471b0818d",
+    "protocol/agent-access/v1/schema.json": "db0ef5eaecb12aa9b9accae7d58cb1fd0881905af4dd337299789893924189a1",
+    "protocol/agent-access/v1/openapi.json": "73edcf23406147ae48e0bbc4d988bb3768fef8360fc2a14326428a3dbd39f746",
+    "protocol/agent-access/v1/client_types.py": "d123a46e539b0c6d250c1fd1cb30890c90cac6d9184a37a1b5187f296a103972",
+    "protocol/agent-access/v1/fixtures/messaging.json": "b6e5e86da0fe752fea0168e67fe48599c516e229c483690f57a94994d7928d50",
+    "protocol/agent-access/v1/test_conformance.py": "cd880711053cb6a1f27867296c141dea01fc4bd539fc72e031e8576bae519f58",
+    "protocol/agent-access/v1/README.md": "a5d0c85bef94c433d12ab948033491eb00814c7893a59b1321d0671637bbc852",
+    "protocol/agent-access/v1/MANIFEST.json": "f71557ff5d5e1c4cd2604a03d55a81cbaeab86d6ff03fde7d450ba9357b215e0",
+    "docs/operations/messaging.md": "cf335d60d7160002c53f6820afeee8cdecb213fa437000e7584111b63fb919f9"
+  },
+  "state_format": 5,
+  "environment": {
+    "database": "Disposable PostgreSQL 17 container from scripts/test-db, isolated database per Rust TestDb; no production database.",
+    "provider_calls": false,
+    "human_notifications": false,
+    "network": "Loopback disposable PostgreSQL; agent Runtime configured to unused loopback origin; no graph calls in messaging paths."
+  },
+  "checks": [
+    {
+      "command": "DATABASE_URL=<scripts/test-db disposable URL> cargo test -p aq-server --offline",
+      "result": "177 passed before narrow root-review revisions; 1 pre-existing real aq-git qualification test ignored by declared marker. Final affected messaging suite rerun below.",
+      "log": "server"
+    },
+    {
+      "command": "cargo clippy -p aq-server --all-targets --offline -- -D warnings",
+      "result": "passed before narrow root-review revisions; root requested affected tests and format check for final revisions",
+      "log": "clippy"
+    },
+    {
+      "command": "python3 protocol/agent-access/v1/generate.py --check",
+      "result": "passed"
+    },
+    {
+      "command": "cd protocol/agent-access/v1 && python3 -m unittest test_conformance -q",
+      "result": "31 passed",
+      "log": "protocol"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "DATABASE_URL=<scripts/test-db disposable URL> cargo test -p aq-server --test messaging --offline",
+      "result": "11 passed after root-review revisions",
+      "log": "review-messaging"
+    },
+    {
+      "command": "cargo fmt --package aq-server --check",
+      "result": "passed after root-review revisions"
+    },
+    {
+      "command": "cd protocol/agent-access/v1 && python3 generate.py --check && python3 -m unittest test_conformance -q",
+      "result": "generator matched; 31 passed after root-review revisions",
+      "log": "review-protocol"
+    }
+  ],
+  "logs": {
+    "server": {
+      "path": "docs/implementation/AQ-11-server.log",
+      "sha256": "6d50454f1f90a13dbcaf4c5309c7c999d083609f150e5b8be1d83c38c60bbe77"
+    },
+    "clippy": {
+      "path": "docs/implementation/AQ-11-clippy.log",
+      "sha256": "41f607fd7393186851f3f3e85797371b1cad03d37e16625772156911a19c8d8b"
+    },
+    "protocol": {
+      "path": "docs/implementation/AQ-11-protocol.log",
+      "sha256": "294bc9539dac24e0a18b49e294c3b4420b2bb4664ccc7ddfe64d5563cd481737"
+    },
+    "review-messaging": {
+      "path": "docs/implementation/AQ-11-review-messaging.log",
+      "sha256": "fdf6a75fea95eba290dd68641f61424873bd4a0bc8324ee383062a8ce3457828"
+    },
+    "review-protocol": {
+      "path": "docs/implementation/AQ-11-review-protocol.log",
+      "sha256": "76749d02309d20cd13453dab6553eec1e7075f6a696c7610e4433f863b49a7a1"
+    }
+  },
+  "messaging_tests": [
+    "durable_identity_scope_cursors_receipts_and_restart",
+    "bounded_inputs_auth_capabilities_and_online_expiry_cancellation",
+    "concurrent_sends_have_gapless_durable_mailbox_order",
+    "successor_reads_task_mail_but_cannot_consume_predecessor_session_mail",
+    "cancellation_and_revocation_serialize_before_new_admission",
+    "node_delivery_replay_unknown_stale_and_harness_handoff_are_distinct",
+    "small_profile_reads_non_ascii_body_in_bounded_utf8_chunks",
+    "credential_expiring_while_waiting_for_operation_lock_admits_nothing",
+    "owner_route_checks_role_csrf_and_known_task_identity",
+    "node_poll_requires_read_capability_but_known_delivery_ack_can_finish",
+    "inbox_and_body_refuse_expiry_during_database_read_lock_wait"
+  ],
+  "acceptance_evidence": {
+    "identity_and_scope": "Exact typed task/session recipients, derived owner/session sender, current authority locks, explicit capability/refusal, scope and generation tests.",
+    "durability_and_replay": "PostgreSQL mailbox cursor heads, immutable global message ID, per-actor operation receipt; byte conflicts, concurrent sends and reconnection evidence.",
+    "delivery_dispositions": "Node pending/received_by_node/handed_to_harness/delivery_unknown/stale rows separated from agent received/read receipts; terminal state replay and changed-state conflicts tested.",
+    "successor_safety": "Task mailbox survives attempts; exact session mailbox never retargets. Prior unresolved/unknown/handed delivery blocks automatic successor injection, while fresh queued task mail remains eligible.",
+    "bounded_payloads": "16KiB UTF-8 bodies, 32-message agent inbox, profile-budget trimming and omitted-body descriptor, current-authority UTF-8 chunk retrieval; 16-message node batches.",
+    "wait_seam": "Scoped immutable thread ID plus exclusive mailbox cursor available to future AQ-25 source adapter; no wait registration or wake is implemented."
+  },
+  "limits": [
+    "Initial target task identity must match an already trusted provisioned launch binding; pre-first-launch project/task targeting awaits AQ-19.",
+    "Central supervisor permit/authority adapter belongs to AQ-17; owners are the current central senders.",
+    "WRK-09/WRK-14 implement real harness injection and worker journal behavior; this server records node claims, not independent physical delivery proof.",
+    "Unknown and unresolved prior-attempt deliveries are held from automatic injection; administrative reconciliation and retention policy are future explicit services.",
+    "No human notifications, external transport or actual model/harness qualification; AQ-24/INT-03 remain separate."
+  ],
+  "review_revisions": [
+    "New node polls require explicit profile message.read; existing admitted delivery acknowledgements do not grant new reads and may finish with current attempt authority.",
+    "Inbox and body reads recheck credential expiry after database work; tests hold a PostgreSQL relation lock, expire the fake clock and verify no content returns.",
+    "Omitted-body descriptors name message_body and include the exact authorized initial body_request; generated shape and fixture cover the recovery envelope.",
+    "Known node delivery acknowledgement after expiry/revocation remains a future scoped recovery path; unresolved intent stays held from automatic successor delivery."
+  ],
+  "source_revision": "8cbaba1729f48b10847cfe7aefc1cfcb10d63e46"
+}

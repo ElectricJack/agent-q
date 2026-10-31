@@ -775,7 +775,7 @@
       "repo": "agent-q",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "AQ-06"
       ],
@@ -999,7 +999,8 @@
       "acceptance": [
         "Mock configuration tests run without live credentials; exact adapter/CLI versions and required/optional capabilities are recorded. No harness-specific copy of shared role instructions is required.",
         "Real Codex CLI compatibility proves launch, terminal-ready tmux hosting, stop with guardian evidence, scoped AQ reads and confined source edits. Live reattachment stays explicitly unsupported unless separately qualified; no token appears in prompts/argv/logs.",
-        "Publish session source identities and parser/usage capability fixtures for WRK-15; INT-03 qualifies the extended transcript/accounting matrix without claiming it from launch/terminal evidence alone."
+        "Publish session source identities and parser/usage capability fixtures for WRK-15; INT-03 qualifies the extended transcript/accounting matrix without claiming it from launch/terminal evidence alone.",
+        "Integrate the public profiled tmux host with separately typed worker journal/process evidence and any required versioned migration; never coerce new host stop proof into the legacy guardian record. Qualify retention and recovery before advertising profiled launches."
       ],
       "out_of_scope": [
         "Closing all-harness product acceptance (WRK-11/12/13 and INT-02 own it)",
@@ -1246,7 +1247,7 @@
       "repo": "agent-q",
       "milestone": "M5",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "AQ-03",
         "API-01"
@@ -1267,7 +1268,10 @@
         "Task mailboxes and exclusive thread cursors can feed verified waits; session-addressed mail never silently retargets a successor. Logical message acceptance is separate from notification transport delivery."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-11.md",
+        "../implementation/AQ-11.json"
+      ]
     },
     {
       "id": "WRK-09",

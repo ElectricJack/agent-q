@@ -1,0 +1,19 @@
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.55s
+     Running tests/messaging.rs (agent-q/target/debug/deps/messaging-7e6ffba4486f67c3)
+
+running 11 tests
+test credential_expiring_while_waiting_for_operation_lock_admits_nothing ... ok
+test node_poll_requires_read_capability_but_known_delivery_ack_can_finish ... ok
+test bounded_inputs_auth_capabilities_and_online_expiry_cancellation ... ok
+test small_profile_reads_non_ascii_body_in_bounded_utf8_chunks ... ok
+test durable_identity_scope_cursors_receipts_and_restart ... ok
+test concurrent_sends_have_gapless_durable_mailbox_order ... ok
+test owner_route_checks_role_csrf_and_known_task_identity ... ok
+test successor_reads_task_mail_but_cannot_consume_predecessor_session_mail ... ok
+test node_delivery_replay_unknown_stale_and_harness_handoff_are_distinct ... ok
+test cancellation_and_revocation_serialize_before_new_admission ... ok
+test inbox_and_body_refuse_expiry_during_database_read_lock_wait ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.11s
+

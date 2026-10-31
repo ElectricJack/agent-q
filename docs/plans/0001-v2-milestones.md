@@ -38,7 +38,6 @@ Read the mapped source and regression cases before implementing an affected task
 
 | Task | Owner | Deliverable |
 | --- | --- | --- |
-| [AQ-07](#aq-07) | agent-q | Implement durable graph mutation delivery and recovery |
 | [WRK-07](#wrk-07) | aq-worker | Implement resumable artifact handoff and retention release |
 | [CON-03](#con-03) | aq-worker | Publish session observation and continuation contracts |
 | [PB-02](#pb-02) | aq-playbooks | Establish the playbook storage and scheduling operating envelope |
@@ -122,7 +121,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [GIT-01](#git-01): Qualify and package an immutable Git integration candidate | aq-git | [AUD-00](#aud-00) | complete |
 | [API-01](#api-01): Publish scoped agent API contracts | agent-q | [AQ-02](#aq-02), [GRAPH-01](#graph-01) | complete |
 | [AQ-06](#aq-06): Implement session credentials and scoped graph reads | agent-q | [API-01](#api-01), [AQ-03](#aq-03) | complete |
-| [AQ-07](#aq-07): Implement durable graph mutation delivery and recovery | agent-q | [AQ-06](#aq-06) | planned |
+| [AQ-07](#aq-07): Implement durable graph mutation delivery and recovery | agent-q | [AQ-06](#aq-06) | in_progress |
 | [AQ-08](#aq-08): Schedule real graph candidates with explicit eligibility | agent-q | [AQ-04](#aq-04), [AQ-07](#aq-07), [GATE-03](#gate-03), [AQ-19](#aq-19), [AQ-20](#aq-20) | planned |
 | [WRK-05](#wrk-05): Provision the AQ agent client and bounded context cache | aq-worker | [WRK-04](#wrk-04), [AQ-06](#aq-06), [CON-02](#con-02), [AQ-18](#aq-18) | planned |
 | [WRK-06](#wrk-06): Integrate local aq-git workspaces and storage admission | aq-worker | [WRK-04](#wrk-04), [GIT-01](#git-01) | complete |
@@ -142,7 +141,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | Task | Owner | Hard prerequisites | Status |
 | --- | --- | --- | --- |
 | [PB-01](#pb-01): Qualify the existing playbook implementation as a library candidate | aq-playbooks | [AUD-00](#aud-00) | complete |
-| [AQ-11](#aq-11): Implement durable supervisor and agent messaging | agent-q | [AQ-03](#aq-03), [API-01](#api-01) | in_progress |
+| [AQ-11](#aq-11): Implement durable supervisor and agent messaging | agent-q | [AQ-03](#aq-03), [API-01](#api-01) | complete |
 | [WRK-09](#wrk-09): Deliver messages through the real harness safely | aq-worker | [WRK-08](#wrk-08), [AQ-11](#aq-11) | planned |
 | [AQ-17](#aq-17): Host bounded supervisor sessions centrally | agent-q | [AQ-11](#aq-11), [AQ-06](#aq-06), [AQ-18](#aq-18), [AQ-20](#aq-20), [WRK-08](#wrk-08), [WRK-10](#wrk-10) | planned |
 | [AQ-12](#aq-12): Embed the qualified playbook runner with bounded execution | agent-q | [PB-01](#pb-01), [AQ-07](#aq-07) | planned |
@@ -608,7 +607,7 @@ Evidence: [m4-foundations.md](../implementation/m4-foundations.md), [m4-qualific
 
 **Implement durable graph mutation delivery and recovery**
 
-Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [AQ-06](#aq-06).
 
@@ -727,6 +726,7 @@ Acceptance:
 - Mock configuration tests run without live credentials; exact adapter/CLI versions and required/optional capabilities are recorded. No harness-specific copy of shared role instructions is required.
 - Real Codex CLI compatibility proves launch, terminal-ready tmux hosting, stop with guardian evidence, scoped AQ reads and confined source edits. Live reattachment stays explicitly unsupported unless separately qualified; no token appears in prompts/argv/logs.
 - Publish session source identities and parser/usage capability fixtures for WRK-15; INT-03 qualifies the extended transcript/accounting matrix without claiming it from launch/terminal evidence alone.
+- Integrate the public profiled tmux host with separately typed worker journal/process evidence and any required versioned migration; never coerce new host stop proof into the legacy guardian record. Qualify retention and recovery before advertising profiled launches.
 
 Requirement links: W1, W6, W11, W17, W18, P2, P4, P5, P8, H1, H2, H3, H4.
 
@@ -873,7 +873,7 @@ Requirement links: E3, D4, D5, D6, W7, W18, W19, W20, X4, X10, X12, P2, P4, P5, 
 
 **Implement durable supervisor and agent messaging**
 
-Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: in_progress.
+Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: complete.
 
 Hard prerequisites: [AQ-03](#aq-03), [API-01](#api-01).
 
@@ -886,6 +886,8 @@ Acceptance:
 - Task mailboxes and exclusive thread cursors can feed verified waits; session-addressed mail never silently retargets a successor. Logical message acceptance is separate from notification transport delivery.
 
 Requirement links: D2, D9, W1, W9, X13, N1, C4.
+
+Evidence: [AQ-11.md](../implementation/AQ-11.md), [AQ-11.json](../implementation/AQ-11.json).
 
 ### WRK-09
 
