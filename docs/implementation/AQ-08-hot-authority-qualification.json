@@ -1,0 +1,54 @@
+{
+  "source_revision": "c5e96df938eb02cf6af5005e6ece80490547ac39",
+  "scope": "Immutable hot authority checkpoint; actual worker/start/material/release producers excluded",
+  "source_hash_method": "SHA256 of exact git show source:path, not live source after later merge",
+  "source_sha256": {
+    "Cargo.lock": "9ff82bf33b47c11d7eaa86ff812c7839947dfb0409f4df4f360f3ee5cee4577f",
+    "Cargo.toml": "6cb760fc13a632b1a08a6a38ae355a07b5a3b65ac7f17c6e3955532967d5fe64",
+    "Dockerfile": "f8f2543c36182d1f82a06680188685a469ff75671e78b83be9ede5ebd94ce514",
+    "crates/aq-admission/Cargo.toml": "9114640570ece859e07d6f480966531174056512c06a6c5b5a972302b9561062",
+    "crates/aq-server/Cargo.toml": "839578fa7fc879ef3ee0832f81f4213343c2028bbf8cb34e2612b1836992a132",
+    "crates/aq-server/migrations/0013_profiled_hot_authority.sql": "2de40704ae7de694c0f29ea7606b48f0cd97bb44fd40bad4a199f99d47be9c0c",
+    "crates/aq-server/src/execution/authority.rs": "c3fd35f1fd777d8248ca27c3673a63cc479aba1f31fb2c5d8873950bda081749",
+    "crates/aq-server/src/execution/authority/cache.rs": "0987d3bc4480ebb47b27879e78a7107a2809a1beeafba37e8d9ddc95c29a6099",
+    "crates/aq-server/src/execution/authority/hot.rs": "81b90ee48132307b60f8f060b7c3ed14c58f7f62bea131948ef2c14cf7bda96e",
+    "crates/aq-server/src/lib.rs": "ba6053381e15820d51de255e3b5f2775ed42a73a39caa7a907f4a425dd673238",
+    "crates/aq-server/src/store.rs": "ee49b100b2b6d62c8c9f0a4625d3615b420de7d79088e5f9d9b97b07ff6e5fdf",
+    "crates/aq-server/tests/common/profiled.rs": "bb7ba9680b3ef5293e3a269037cde3aecbcc18836b02f87b40524048e26566bf",
+    "crates/aq-server/tests/profiled_hot.rs": "61c2cabe79bcd4c258600b5e55a2a38d90fcfc6f5abcd26740b61141ba5e4af9",
+    "crates/aq-server/tests/session_inspection.rs": "f7624f52585d18f0e56287982a3a66662707ed490c556b235e770fd4f018c4e6",
+    "docs/implementation/AQ-08-hot-authority.md": "e49634bf31a0548ca11fc6bed5fc64c5d395412323d34cdd86ad84cbdc02ecdb"
+  },
+  "retained_logs_sha256": {
+    "aq08-hot-clean-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "aq08-hot-clean-clippy.log": "05fa64a5fa3227ff9db66c85269d0862898b34354c5530e48f6bcd52f359411b",
+    "aq08-hot-clean-tests.log": "f2c14f5d530e830cc8afc980fcb9bcfa7d4e88e157ffa1bfd7bfb1ffd9b4b0b6"
+  },
+  "qualification": {
+    "server_passed": 252,
+    "declared_ignored": 4,
+    "strict_all_target_clippy": "passed",
+    "format": "passed"
+  },
+  "worktree": "/tmp/aq08-hot-clean-c5e96df",
+  "commands": [
+    "CARGO_TARGET_DIR=/tmp/aq08-bridge-qualification-target CARGO_INCREMENTAL=0 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres cargo test -p aq-server --locked --offline",
+    "CARGO_TARGET_DIR=/tmp/aq08-bridge-qualification-target CARGO_INCREMENTAL=0 cargo clippy -p aq-server --all-targets --locked --offline -- -D warnings",
+    "cargo fmt --package aq-server --check"
+  ],
+  "claims": [
+    "Current authority loaded from compact adopted hot row; unadopted/legacy compatibility preserved.",
+    "Per-Store immutable facts cache fetches only sealed identity/digest columns on hit, with fresh mutable authority and claim.",
+    "Monotonic terminal/known-stop/revocation, immutable owner/grant identity, verified-release completeness and non-reacquisition gates.",
+    "Fresh holds_task denies active authority even after explicit fixture-only trigger bypass to resurrect Granted.",
+    "Source and graph adapters, shared fixture, migration12 inspection regressions pass."
+  ],
+  "limitations": [
+    "No actual offer/material/grant/start/release producer installed or qualified at this checkpoint.",
+    "Verified release SQL record still requires actual internal owner verification of qualified host/source/effect receipts; fixture records are not physical proof.",
+    "Never-granted offline-offer closure needs distinct additive central provenance, not fabricated guardian stop.",
+    "Granted does not infer physical Running; terminal/source registration requires genuine qualified host-start evidence.",
+    "Cache16MiB is declared logical accounting, not measured heap or RSS; transient clones/allocator overhead are extra.",
+    "No paid provider/model calls made."
+  ]
+}

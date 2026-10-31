@@ -1,0 +1,20 @@
+    Checking sha1_smol v1.0.1
+    Checking uuid v1.29.0
+    Checking schemars v1.2.3
+    Checking sqlx-core v0.8.6
+    Checking aq-release v0.1.0 (/tmp/aq08-hot-clean-c5e96df/crates/aq-release)
+    Checking aq-protocol v0.1.0 (/tmp/aq08-hot-clean-c5e96df/vendor/aq-protocol-0.1.0)
+    Checking aq-agent-api v0.1.0 (/tmp/aq08-hot-clean-c5e96df/crates/aq-agent-api)
+    Checking aq-session-protocol v0.1.0 (/tmp/aq08-hot-clean-c5e96df/vendor/aq-session-protocol-0.1.0)
+    Checking aq-worker-protocol v0.2.0 (/tmp/aq08-hot-clean-c5e96df/vendor/aq-worker-protocol-0.2.0)
+    Checking aq-lifecycle-protocol v0.1.0 (/tmp/aq08-hot-clean-c5e96df/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking aq-session-api v0.1.0 (/tmp/aq08-hot-clean-c5e96df/crates/aq-session-api)
+    Checking sqlx-postgres v0.8.6
+    Checking aq-profiles v0.1.0 (/tmp/aq08-hot-clean-c5e96df/crates/aq-profiles)
+    Checking aq-lifecycle-api v0.1.0 (/tmp/aq08-hot-clean-c5e96df/crates/aq-lifecycle-api)
+    Checking aq-admission v0.1.2 (/tmp/aq08-hot-clean-c5e96df/crates/aq-admission)
+    Checking aq-selection v0.1.1 (/tmp/aq08-hot-clean-c5e96df/crates/aq-selection)
+    Checking sqlx v0.8.6
+    Checking aq-notifications v0.1.0 (/tmp/aq08-hot-clean-c5e96df/crates/aq-notifications)
+    Checking aq-server v0.1.0 (/tmp/aq08-hot-clean-c5e96df/crates/aq-server)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 16.12s

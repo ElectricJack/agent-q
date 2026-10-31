@@ -1,0 +1,15 @@
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.14s
+     Running tests/profiled_authority.rs (target/debug/deps/profiled_authority-5697a811bc42c978)
+
+running 7 tests
+test common_task_claim_and_legacy_decoders_cannot_cross_profiled_kind ... ok
+test authority_expiry_is_sampled_after_an_observed_node_lock_wait ... ok
+test shared_view_fences_exact_seal_identity_live_time_and_revision_semantics ... ok
+test actual_profiled_source_adapter_accepts_scoped_late_retention_and_refuses_foreign_spec ... ok
+test migration_freezes_common_identity_profiled_boot_generation_deadline_and_immutable_seal ... ok
+test actual_profiled_graph_adapter_issues_exact_api01_binding_and_revokes_on_current_authority ... ok
+test database_derives_revisions_on_noop_and_bounds_uncompressed_state_and_material_verifier ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.90s
+

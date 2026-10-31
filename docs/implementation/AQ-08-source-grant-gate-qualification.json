@@ -1,0 +1,17 @@
+{
+  "source_revision": "500fb45b9d17b2d9eadc8c2277cc84398d4e22e3",
+  "scope": "Issued-grant prerequisite for profiled checkpoint source mutations, separate followup to c5e96df",
+  "source_sha256": {
+    "crates/aq-server/src/source_retention.rs": "50b19f8b1dac6250f2af66fc30afdc0d482ff01f38748a0032a3576b39351e04",
+    "crates/aq-server/tests/profiled_authority.rs": "47ac686d0af40a74904fdd5683a70235cb29fe150f804722eb51d4bbac69fca7"
+  },
+  "log_sha256": "99eec0df8482eb4f7e27c9e30818d605b9e04c1ae3906cccd32dcf167014d3bd",
+  "command": "DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres cargo test -p aq-server --test profiled_authority --offline",
+  "passed": 7,
+  "tests": "Actual scoped HTTP begin403 before grant; actual expired grant permits late transfer/replay; foreign spec refuses. Other six authority regressions retained.",
+  "limitations": [
+    "Main-tree focused followup qualification, not the detached c5 run.",
+    "No physical source import/provider qualification or grant producer inferred.",
+    "No legacy source/protocol bytes changed."
+  ]
+}
