@@ -16,7 +16,7 @@ use serde_json::{Value, json};
 use sqlx::{PgPool, Postgres, Row, Transaction};
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 use uuid::Uuid;
-const SOURCE: &str = "48f19b80fc0734c403ef04e7181d570b9fe675597f35caf08f0b94571ca8cc70";
+const SOURCE: &str = "bd1246e8e972ee1627e94598945f398812c89044106b463151a696511412ca39";
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Namespace {
@@ -1113,10 +1113,15 @@ impl Service {
             return Err(Error::Forbidden);
         }
         if let Some(cancel)=sqlx::query_scalar::<_,String>("SELECT request_digest FROM playbook_cancellations WHERE namespace_id=$1 AND generation=$2 AND intent_id=$3").bind(self.namespace.namespace_id).bind(self.namespace.generation).bind(&intent.id).fetch_optional(&mut *tx).await? {
-            if cancel!=identity {return Err(Error::Conflict);}return Ok(DecisionResult::Cancelled);
+            if cancel!=identity {return Err(Error::Conflict);}
+            Self::owner(&mut tx,self.namespace.owner_user_id).await?;
+            tx.commit().await?;
+            return Ok(DecisionResult::Cancelled);
         }
         if let Some(row)=sqlx::query("SELECT request_digest,operation_id,receipt FROM playbook_effects WHERE namespace_id=$1 AND generation=$2 AND intent_id=$3").bind(self.namespace.namespace_id).bind(self.namespace.generation).bind(&intent.id).fetch_optional(&mut *tx).await? {
             if row.get::<String,_>("request_digest")!=identity || row.get::<Uuid,_>("operation_id")!=request.operation_id || row.get::<Value,_>("receipt")!=json!({"handle":request.decision_id.to_string(),"subject":request.subject}) {return Err(Error::Conflict);}
+            Self::owner(&mut tx,self.namespace.owner_user_id).await?;
+            tx.commit().await?;
             return Ok(DecisionResult::Accepted {handle:request.decision_id.to_string()});
         }
         // SAME transaction: current namespace/grant, human owner question and

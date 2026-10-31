@@ -1,10 +1,11 @@
 # AQ playbook owner foundation
 
-An internal, unmounted embedding of the exact aq-playbooks source pinned in
-`vendor/aq-playbooks-source.json`. No domain commands or events are registered.
+An internal embedding of the exact aq-playbooks source pinned in
+`vendor/aq-playbooks-source-0.1.2.json`. By default, no domain commands or events
+are registered. Explicit AQ adapters remain the embedding owner's responsibility.
 The CLI and synthetic host are not dependencies. There is no automatic driver,
 production registration, worker launch, supervisor, notification dispatcher or
-public API in this crate.
+public HTTP API in this crate.
 
 `Owner::start` creates one dedicated synchronous OS thread. Its factory creates
 storage/connections and performs migrations on that thread. PostgreSQL owns its
@@ -65,10 +66,21 @@ names and reconcilable effects; installation/restart rejects changed or unknown
 contracts. This is not a wire-supplied authority permit. The concrete AQ service
 adapter lives in aq-server and currently registers only message.send.
 
-This version consumes the separately qualified exact a463e59 source publication
+The0.1.1 version consumed the separately qualified exact a463e59 source publication
 (runner/Postgres0.1.1, unchanged model0.1.0); the original42/0.1.0 vendor source
 remains retained unchanged. `AdmitOnce` uses immutable engine receipts, while
 historical Admission lookup cannot create a run or renew authority. Explicit
 Reconcile and Cancel Host modes separate lookup/stop from fresh dispatch. Public
 inspection uses the existing bounded sanitized projection. Event acceptance,
 fanout and run progress remain separate operations and acknowledgements.
+
+## Confirmed admission recovery (0.1.2)
+
+This package definition consumes the separately versioned exact d3bd349 source
+archive (runner/Postgres0.1.2, unchanged model/compiler0.1.0). The old host1.1
+source and engine archives remain immutable. Confirmed Unknown→Accepted resumes
+the same blocked invoke before final completion; cancellation and authority
+checks remain separate. No automatic repair of old already-stranded1.1 states or
+online mixed-version namespace adoption is qualified. AQ uses a deliberately new
+namespace/source pin for this runtime; existing origins are not restamped. This
+is a correctness fix, not PB04 performance closure.

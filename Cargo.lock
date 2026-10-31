@@ -217,7 +217,7 @@ dependencies = [
 
 [[package]]
 name = "aq-playbook-host"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "aq-playbooks-model",
  "aq-playbooks-postgres",
@@ -256,7 +256,7 @@ dependencies = [
 
 [[package]]
 name = "aq-playbooks-postgres"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "aq-playbooks-model",
  "aq-playbooks-runner",
@@ -270,7 +270,7 @@ dependencies = [
 
 [[package]]
 name = "aq-playbooks-runner"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "aq-playbooks-model",
  "serde",
