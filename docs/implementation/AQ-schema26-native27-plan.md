@@ -1,0 +1,11 @@
+# Ordered review26 and native definition27 boundary
+
+This slice registers the existing review-owner migration26 followed by the native definition migration27. It preserves migrations1–25. Migration27 includes the coordinated compiler-owned `startup` artifact role (Context and Definition); it is not a permission to create arbitrary owner kinds. The new format is27, with Docker and readable-format metadata updated together.
+
+The normal migrator remains one transaction under its existing advisory lock. Any failure in26 or27 rolls both back. A database newer than the supported profile is refused before writes. After the ordered SQL completes, migration records and the final state-format metadata must agree; stale or missing final metadata is refused rather than silently repaired. A test-only profile selector invokes this same implementation with the actual SQL prefix1–25, avoiding a fabricated old database created by changing only its version label.
+
+Schema installation does not activate optional playbook/review runtime owners. Their explicit production configuration, immutable profile/source pins and startup readiness checks are a separate slice. The combined native source retains current dashboard/human routes and the frozen Accept-to-Preparation behavior. Prepare-to-Grant, Renew, Reconcile and live harness adoption remain unimplemented by this checkpoint.
+
+Upgrade qualification covers a fresh database, populated25-to27 preservation, idempotent reopen, transactional failure at27, older-profile refusal, and a real PostgreSQL custom-format backup restored into a separate disposable25 database. Downgrade requires restoring the pre-upgrade backup; there is no reverse SQL migration. The older-profile test exercises the production migrator guard with the older SQL profile, not a separately executed old server binary. The archive restore exercises PostgreSQL tools, not deployment of an updater executable.
+
+All PostgreSQL fixtures use newly created disposable databases on the pinned local test container. No existing application database or optional runtime owner is activated. Performance/capacity, actual Git/provider execution, live credentials, production migration and deployment are outside this qualification.
