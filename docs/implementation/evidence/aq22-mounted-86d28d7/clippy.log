@@ -1,0 +1,36 @@
+    Checking tracing v0.1.44
+    Checking aq-session-protocol v0.1.0 (/tmp/aq22-mounted-clean/vendor/aq-session-protocol-0.1.0)
+    Checking aq-release v0.1.0 (/tmp/aq22-mounted-clean/crates/aq-release)
+    Checking aq-agent-api v0.1.0 (/tmp/aq22-mounted-clean/crates/aq-agent-api)
+    Checking aq-worker-protocol v0.2.0 (/tmp/aq22-mounted-clean/vendor/aq-worker-protocol-0.2.0)
+    Checking aq-protocol v0.1.0 (/tmp/aq22-mounted-clean/vendor/aq-protocol-0.1.0)
+    Checking ed25519 v2.2.3
+    Checking filetime v0.2.29
+    Checking curve25519-dalek v4.1.3
+    Checking tar v0.4.46
+    Checking tower v0.5.3
+    Checking hyper-util v0.1.21
+    Checking tracing-subscriber v0.3.23
+    Checking axum-core v0.5.6
+    Checking sqlx-core v0.8.6
+    Checking tower-http v0.6.11
+    Checking ed25519-dalek v2.2.0
+    Checking aq-updater v0.1.0 (/tmp/aq22-mounted-clean/crates/aq-updater)
+    Checking aq-lifecycle-protocol v0.1.0 (/tmp/aq22-mounted-clean/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking aq-session-api v0.1.0 (/tmp/aq22-mounted-clean/crates/aq-session-api)
+    Checking hyper-rustls v0.27.10
+    Checking axum v0.8.9
+    Checking reqwest v0.12.28
+    Checking sqlx-postgres v0.8.6
+    Checking aq-profiles v0.1.0 (/tmp/aq22-mounted-clean/crates/aq-profiles)
+    Checking aq-human-http v0.1.0 (/tmp/aq22-mounted-clean/crates/aq-human-http)
+    Checking aq-lifecycle-api v0.1.0 (/tmp/aq22-mounted-clean/crates/aq-lifecycle-api)
+    Checking aq-admission v0.1.2 (/tmp/aq22-mounted-clean/crates/aq-admission)
+    Checking aq-accounting v0.1.0 (/tmp/aq22-mounted-clean/crates/aq-accounting)
+    Checking aq-selection v0.1.1 (/tmp/aq22-mounted-clean/crates/aq-selection)
+    Checking sqlx v0.8.6
+    Checking aq-notifications v0.1.0 (/tmp/aq22-mounted-clean/crates/aq-notifications)
+    Checking aq-observation-api v0.1.0 (/tmp/aq22-mounted-clean/crates/aq-observation-api)
+    Checking aq-server v0.1.0 (/tmp/aq22-mounted-clean/crates/aq-server)
+    Checking aq-notify v0.1.0 (/tmp/aq22-mounted-clean/crates/aq-notify)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 16.58s
