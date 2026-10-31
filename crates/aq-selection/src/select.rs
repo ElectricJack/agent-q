@@ -269,6 +269,34 @@ pub fn select(
     catalog: &aq_profiles::ValidatedCatalog,
     input: &SelectionInputs,
 ) -> Result<SelectionOutcome> {
+    for composition in &input.compositions {
+        composition.composition.validate_native_v2().map_err(|_| {
+            SelectionError::Invalid("native selection requires schema2 composition".into())
+        })?;
+    }
+    select_internal(catalog, input)
+}
+/// Historical schema1 inspection/replay compatibility only. Never use this
+/// entrypoint for a new native admission or offer fence.
+pub fn select_legacy_for_inspection(
+    catalog: &aq_profiles::ValidatedCatalog,
+    input: &SelectionInputs,
+) -> Result<SelectionOutcome> {
+    ensure(
+        input.compositions.iter().all(|c| {
+            c.composition.schema_version == 1
+                && c.composition.graph_access_policy_digest.is_none()
+                && c.composition.graph_access_policy_kind.is_none()
+                && c.composition.requested_permissions.is_none()
+        }),
+        "legacy composition shape",
+    )?;
+    select_internal(catalog, input)
+}
+fn select_internal(
+    catalog: &aq_profiles::ValidatedCatalog,
+    input: &SelectionInputs,
+) -> Result<SelectionOutcome> {
     validate(catalog, input)?;
     let definitions = &catalog.artifact().catalog;
     let agent = definitions

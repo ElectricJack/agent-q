@@ -463,10 +463,14 @@ fn source_sequence_precedes_wall_clock_when_history_contains_clock_correction() 
 fn installed_only_v010_snapshots_and_decisions_roundtrip_byte_semantics_unchanged() {
     let golden: serde_json::Value =
         serde_json::from_str(include_str!("fixtures/installed-selection-v0.1.0.json")).unwrap();
-    let (catalog, _) = fixture();
+    let catalog = aq_profiles::ValidatedCatalog::from_artifact(include_bytes!(
+        "fixtures/installed-catalog-v0.1.0.json"
+    ))
+    .unwrap();
     let input: SelectionInputs = serde_json::from_value(golden["inputs"].clone()).unwrap();
     assert_eq!(serde_json::to_value(&input).unwrap(), golden["inputs"]);
-    let outcome = select(&catalog, &input).unwrap();
+    assert!(select(&catalog, &input).is_err());
+    let outcome = select_legacy_for_inspection(&catalog, &input).unwrap();
     assert_eq!(serde_json::to_value(outcome).unwrap(), golden["outcome"]);
 }
 fn prepared_credentials(input: &mut SelectionInputs) {
@@ -554,4 +558,158 @@ fn arbitrary_node_delivery_claims_cannot_manufacture_keys_owner_identity_or_curr
         binding.preparation.as_mut().unwrap().expires_at_ms = input.now_ms;
     }
     assert!(select(&catalog, &input).unwrap().resolved.is_none());
+}
+
+#[test]
+fn two_models_on_one_harness_share_acyclic_policy_but_resolve_distinct_actual_profiles() {
+    use aq_profiles::{GraphRetryBudget, ResolvedGraphModel};
+    let (catalog, mut input) = fixture();
+    let composition = input.compositions[0].composition.clone();
+    assert_eq!(composition.schema_version, 2);
+    let serialized = serde_json::to_value(&composition).unwrap();
+    assert!(serialized.get("graph_access_profile_digest").is_none());
+    assert!(serialized.get("graph_access_policy_digest").is_some());
+    let policy = graph_policy(&composition);
+    composition.validate_graph_policy(&policy).unwrap();
+    let first = select(&catalog, &input).unwrap().resolved.unwrap();
+    input.observations[0].state = Availability::QuotaUnavailable;
+    let second = select(&catalog, &input).unwrap().resolved.unwrap();
+    assert_eq!(first.choice.harness, second.choice.harness);
+    assert_ne!(first.choice.model, second.choice.model);
+    assert_eq!(
+        first.choice.composition_digest,
+        second.choice.composition_digest
+    );
+    let retry = GraphRetryBudget {
+        max_attempts: 3,
+        max_elapsed_ms: 60000,
+        initial_delay_ms: 100,
+        max_delay_ms: 1000,
+    };
+    let resolve = |selection: &ResolvedSelection| {
+        policy
+            .resolve_profile(
+                &ResolvedGraphModel {
+                    provider: selection.choice.provider.clone(),
+                    model: selection.choice.model.clone(),
+                    native_reasoning: selection.choice.native_reasoning.clone(),
+                    reasoning_configuration_reference: selection
+                        .choice
+                        .reasoning_configuration_reference
+                        .clone(),
+                },
+                &graph_context(),
+                "implementer",
+                &retry,
+            )
+            .unwrap()
+    };
+    let first_profile = resolve(&first);
+    let second_profile = resolve(&second);
+    assert_eq!(first_profile["model"]["provider"], first.choice.provider);
+    assert_eq!(second_profile["model"]["model"], second.choice.model);
+    assert_ne!(first_profile["profile_id"], second_profile["profile_id"]);
+    assert_ne!(
+        digest(&first_profile).unwrap(),
+        digest(&second_profile).unwrap()
+    );
+    assert_eq!(
+        first_profile["instructions_digest"],
+        second_profile["instructions_digest"]
+    );
+    assert_eq!(
+        first_profile["tool_policy_digest"],
+        second_profile["tool_policy_digest"]
+    );
+    assert_eq!(
+        first_profile["read_scope"]["record_ids"],
+        serde_json::json!(policy.scope.record_ids)
+    );
+    let mut changed = graph_context();
+    changed["nodes"][0]["body"] = serde_json::json!("changed");
+    assert!(policy.validate_context(&changed).is_err());
+    let mut changed_policy = policy.clone();
+    changed_policy.instructions_digest = "f".repeat(64);
+    assert!(composition.validate_graph_policy(&changed_policy).is_err());
+    let mut changed_composition = composition;
+    changed_composition.graph_access_profile_digest = "a".repeat(64);
+    assert!(changed_composition.validate_native_v2().is_err());
+}
+
+#[test]
+fn graph_policy_refuses_uncovered_mixed_context_and_wrong_owner_scope_before_selection() {
+    use aq_profiles::{GraphAccessScope, compile_draft};
+    let (catalog, input) = fixture();
+    let mut context = graph_context();
+    let mut knowledge = context["nodes"][0].clone();
+    knowledge["id"] = serde_json::json!(Uuid::from_u128(9));
+    knowledge["kind"] = serde_json::json!("knowledge");
+    knowledge["task_state"] = serde_json::Value::Null;
+    context["nodes"].as_array_mut().unwrap().push(knowledge);
+    let scope = GraphAccessScope {
+        repository_id: Uuid::from_u128(41),
+        workspace_id: Uuid::from_u128(2),
+        task_id: Uuid::from_u128(3),
+        record_ids: vec![Uuid::from_u128(3), Uuid::from_u128(9)],
+        edge_types: vec![],
+    };
+    let draft = compile_draft(&catalog, &compile_request(&catalog))
+        .unwrap()
+        .composition
+        .unwrap();
+    let sealed = draft.seal(scope.clone(), &context).unwrap();
+    sealed
+        .graph_access_policy
+        .validate_context(&context)
+        .unwrap();
+    for missing in ["task.read", "knowledge.read"] {
+        let mut denied = sealed.graph_access_policy.clone();
+        denied
+            .effective_permissions
+            .retain(|p| p.operation != missing);
+        assert!(denied.validate_context(&context).is_err(), "{missing}");
+    }
+    let mut wrong = sealed.graph_access_policy.clone();
+    wrong.effective_permissions[0].scope_reference = format!("project:{}", Uuid::from_u128(8888));
+    assert!(wrong.validate_context(&context).is_err());
+    let mut alias = sealed.graph_access_policy.clone();
+    alias.effective_permissions[0].scope_reference = "project:example".into();
+    assert!(alias.validate_context(&context).is_err());
+    let mut wrong_repository = sealed.graph_access_policy;
+    wrong_repository.scope.repository_id = Uuid::from_u128(8888);
+    assert!(wrong_repository.validate_context(&context).is_err());
+    let mut request = compile_request(&catalog);
+    request
+        .available_tools
+        .retain(|tool| tool != "knowledge.read");
+    let task_only = compile_draft(&catalog, &request)
+        .unwrap()
+        .composition
+        .unwrap();
+    assert!(task_only.seal(scope, &context).is_err());
+    assert_eq!(input.compositions[0].composition.schema_version, 2);
+}
+
+#[test]
+fn native_policy_binding_does_not_allow_rehashed_instruction_or_permission_forgery() {
+    let (catalog, mut input) = fixture();
+    let prepared = &mut input.compositions[0];
+    prepared
+        .composition
+        .instruction_order
+        .iter_mut()
+        .find(|i| i.source.identity.starts_with("module:"))
+        .unwrap()
+        .text
+        .push_str(" unauthorized instruction");
+    prepared.digest = digest(&prepared.composition).unwrap();
+    assert!(select(&catalog, &input).is_err());
+    let (_, mut input) = fixture();
+    input.compositions[0].composition.requested_permissions = Some(vec![]);
+    input.compositions[0].digest = digest(&input.compositions[0].composition).unwrap();
+    assert!(select(&catalog, &input).is_err());
+    let (_, mut input) = fixture();
+    input.compositions[0].composition.graph_access_policy_kind = None;
+    input.compositions[0].digest = digest(&input.compositions[0].composition).unwrap();
+    assert!(select(&catalog, &input).is_err());
 }

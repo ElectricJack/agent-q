@@ -1603,7 +1603,12 @@
       ],
       "evidence": [
         "../../../aq-worker/docs/implementation/WRK-15-component.md",
-        "../../../aq-worker/docs/implementation/WRK-15-component.json"
+        "../../../aq-worker/docs/implementation/WRK-15-component.json",
+        "../../../aq-worker/docs/implementation/WRK-15-delta.md",
+        "../../../aq-worker/docs/implementation/WRK-15-local-intent.md",
+        "../../../aq-worker/docs/implementation/WRK-15-http-owner.md",
+        "../../../aq-worker/docs/implementation/WRK-15-integration.md",
+        "../../../aq-worker/docs/implementation/WRK-15-integration.json"
       ]
     },
     {
@@ -1642,7 +1647,8 @@
         "../implementation/AQ-22-transport-ownership.md",
         "../implementation/AQ-22-transport-qualification.json",
         "../implementation/AQ-08-AQ-22-state17-qualification.json",
-        "../implementation/AQ-08-AQ-21-state19-qualification.json"
+        "../implementation/AQ-08-AQ-21-state19-qualification.json",
+        "../implementation/AQ-22-owner-state19-qualification.json"
       ]
     },
     {

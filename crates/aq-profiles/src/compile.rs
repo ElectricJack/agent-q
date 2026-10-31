@@ -68,7 +68,15 @@ pub struct FrozenComposition {
     pub project_binding_id: uuid::Uuid,
     pub project_revision: u64,
     pub task_context_revision: String,
+    /// Legacy schema1 only; never serialized in native schema2.
+    #[serde(default, skip_serializing_if = "String::is_empty")]
     pub graph_access_profile_digest: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub graph_access_policy_digest: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub graph_access_policy_kind: Option<GraphAccessPolicyKind>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub requested_permissions: Option<Vec<Permission>>,
     pub harness: String,
     pub environment: String,
     pub instruction_order: Vec<Instruction>,
@@ -130,6 +138,31 @@ pub fn compile(
     request: &CompileRequest,
     graph_access_profile_digest: &str,
 ) -> Result<Compilation> {
+    match compile_internal(catalog, request, Some(graph_access_profile_digest))? {
+        CompileOutput::Legacy(value) => Ok(*value),
+        _ => unreachable!(),
+    }
+}
+/// Compile model-independent instructions and permissions before graph policy
+/// sealing. No profile digest or placeholder model is needed to make a draft.
+pub fn compile_draft(
+    catalog: &ValidatedCatalog,
+    request: &CompileRequest,
+) -> Result<CompilationDraft> {
+    match compile_internal(catalog, request, None)? {
+        CompileOutput::Draft(value) => Ok(*value),
+        _ => unreachable!(),
+    }
+}
+enum CompileOutput {
+    Legacy(Box<Compilation>),
+    Draft(Box<CompilationDraft>),
+}
+fn compile_internal(
+    catalog: &ValidatedCatalog,
+    request: &CompileRequest,
+    graph_access_profile_digest: Option<&str>,
+) -> Result<CompileOutput> {
     ensure(
         request.profile.catalog_digest == catalog.digest(),
         "request catalog digest mismatch",
@@ -492,6 +525,35 @@ pub fn compile(
             text: c.text,
         })
         .collect();
+    let Some(graph_access_profile_digest) = graph_access_profile_digest else {
+        let composition = blocking.is_empty().then(|| CompositionDraft {
+            catalog_digest: catalog.digest().into(),
+            agent_profile: role_source,
+            intelligence_profile: catalog
+                .source("intelligence", &agent.intelligence)
+                .expect("validated catalog"),
+            execution_profile: catalog
+                .source("execution", &agent.execution)
+                .expect("validated catalog"),
+            project_binding_id: request.profile.project_binding_id,
+            project_revision: request.profile.expected_project_revision,
+            task_context_revision: request.profile.task_context_revision.clone(),
+            harness: request.harness.clone(),
+            environment: request.environment.clone(),
+            instruction_order: instructions,
+            requested_permissions: requested,
+            effective_permissions: effective,
+            context_limit_bytes: limit,
+            overrides,
+            omissions,
+        });
+        return Ok(CompileOutput::Draft(Box::new(CompilationDraft {
+            catalog_valid: true,
+            composition_valid: blocking.is_empty(),
+            blocking_reasons: blocking,
+            composition,
+        })));
+    };
     let explanation = ProfileExplanation {
         schema_version: 1,
         request: request.profile.clone(),
@@ -555,6 +617,9 @@ pub fn compile(
         project_revision: request.profile.expected_project_revision,
         task_context_revision: request.profile.task_context_revision.clone(),
         graph_access_profile_digest: graph_access_profile_digest.into(),
+        graph_access_policy_digest: None,
+        graph_access_policy_kind: None,
+        requested_permissions: None,
         harness: request.harness.clone(),
         environment: request.environment.clone(),
         instruction_order: instructions,
@@ -564,7 +629,7 @@ pub fn compile(
         omissions,
     });
     let composition_digest = composition.as_ref().map(digest).transpose()?;
-    Ok(Compilation {
+    Ok(CompileOutput::Legacy(Box::new(Compilation {
         catalog_valid: true,
         composition_valid: blocking.is_empty(),
         selection_pending: true,
@@ -572,5 +637,5 @@ pub fn compile(
         composition_digest,
         composition,
         explanation,
-    })
+    })))
 }

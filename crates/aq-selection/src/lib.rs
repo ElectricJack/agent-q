@@ -9,7 +9,7 @@ mod select;
 mod validate;
 pub use aq_session_protocol::{ArtifactRef, Digest, Scope, Text, Validate};
 pub use domain::*;
-pub use select::select;
+pub use select::{select, select_legacy_for_inspection};
 use serde::Serialize;
 #[derive(Debug, thiserror::Error)]
 pub enum SelectionError {
