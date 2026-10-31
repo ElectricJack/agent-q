@@ -8,6 +8,8 @@ The initial deployment targets a Bluehost self-managed VPS with Docker Compose a
 
 The foundation has passed local qualification. This repository now owns durable execution authority and consumes an independently packaged Rust worker. The first execution slice runs a deterministic fixture agent with replay, cancellation and recovery checks; production graph scheduling, real agent harnesses and policy workflows remain later milestones. See the [implementation evidence](docs/implementation/execution-authority.md) and current [milestone status](docs/plans/0001-v2-milestones.md).
 
+The worker recovery implementation uses a Linux guardian with independent expiry and conservative recovery when process ownership is uncertain. See [recovery authority](docs/implementation/recovery-authority.md). The separately tested [scoped agent graph contract](protocol/agent-access/v1/README.md) defines the next integration boundary; its production gateway and client remain to be implemented.
+
 The standalone task and knowledge service is **aq-graph**, maintained in its own repository. Its [draft specification](../aq-graph/docs/specs/0001-aq-graph.md) covers the Rust service and CLI, PostgreSQL storage, selective history, and concurrent access. This relative link assumes the repositories are checked out side by side. Agent Q will consume its versioned API; this component does not expand the infrastructure phase.
 
 ## Architecture and component specifications

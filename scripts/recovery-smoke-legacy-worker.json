@@ -1,0 +1,17 @@
+{
+  "role": "Historical worker0.1.0 downgrade-refusal fixture only; never a current integration candidate",
+  "archive": "recovery-smoke-legacy-worker.tar.gz",
+  "candidate": {
+    "candidate_format": 1,
+    "source_repository": "aq-worker",
+    "source_revision": "cf87edffa3384a08f5bb0319b4f92ffc2a26b145",
+    "version": "0.1.0",
+    "archive": "aq-worker-source.tar.gz",
+    "archive_sha256": "6f54954b2ab38e9625fd5680fa70c63f512bf7e5ef74ec19d815e562fe176e15",
+    "lockfile_sha256": "be5c1196b5e029a7913cca2b801654df4e53cb59418f48834f8472e6adcfecad",
+    "foundation_protocol": 1,
+    "execution_protocol": 2,
+    "worker_journal_format": 1,
+    "distribution": "Immutable local integration source candidate; not a published or hosted release. Builds require no sibling source checkout."
+  }
+}

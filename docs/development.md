@@ -111,6 +111,27 @@ durable accepted result, replays the report, and restarts the daemon. Synthetic
 assignment creation is development-only. This fixture does not certify graph
 completion, real model harnesses, hosted access or host-power-loss recovery.
 
+```sh
+scripts/recovery-smoke
+```
+
+The 20-case recovery matrix builds the pinned worker and a separate daemon image
+with `recovery-test-support`. It injects launch-boundary crashes, transport loss,
+expiry, cancellation races, database lock waits and bulk saturation through
+observable barriers. A historical worker also attempts to read journal format 2.
+`AQ_RECOVERY_EVIDENCE_DIR` selects retained evidence; owned containers and volumes
+are removed. The production daemon image excludes these clock/load controls.
+This qualifies the cooperative Linux guardian profile for runtime-process
+restart. Guardian loss retains uncertainty; whole-container reattachment and
+physical suspend/power-loss remain separate work.
+
+Run the additional daemon regressions with
+`cargo test --workspace --features recovery-test-support --locked` against the
+disposable test database. The [agent graph contract](../protocol/agent-access/v1/README.md)
+has a separate offline conformance suite with pinned developer dependencies.
+CI runs the contract suite and container recovery matrix as separate jobs, and
+keeps the ordinary daemon tests alongside the recovery-feature regressions.
+
 ## Update lifecycle suite
 
 ```sh

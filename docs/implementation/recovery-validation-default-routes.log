@@ -1,0 +1,9 @@
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.83s
+     Running tests/execution.rs (target/debug/deps/execution-b131f357b05910f0)
+
+running 1 test
+test execution_http_authenticates_node_binding_and_keeps_routes_separate ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 21 filtered out; finished in 0.49s
+

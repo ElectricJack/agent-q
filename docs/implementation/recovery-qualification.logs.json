@@ -1,0 +1,7 @@
+{
+  "path": "recovery-qualification.logs.tar.gz",
+  "sha256": "92ee66cefcff93f40aca650ea445005843332b46db3cfa3dd7fb1c9b4a82a1fd",
+  "size_bytes": 660291,
+  "entry_count": 1171,
+  "private_payload_scan": "no credential config/token/key files or actual aqn_ credentials"
+}

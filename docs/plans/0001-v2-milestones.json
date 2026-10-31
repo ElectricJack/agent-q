@@ -608,7 +608,7 @@
       "repo": "aq-worker",
       "milestone": "M3",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "WRK-03"
       ],
@@ -630,8 +630,16 @@
         "Inject crashes before/after spawn and restart with surviving descendants; uncertain writers keep reservations/workspaces protected.",
         "Expiry/revocation stops execution; reattachment requires renewed authority; new execution uses a new attempt/session."
       ],
-      "out_of_scope": [],
-      "evidence": []
+      "out_of_scope": [
+        "Live reattachment, whole-container/PID-namespace recovery without durable stop evidence, external-service writers and hostile process/file manipulation.",
+        "Physical suspend/power-loss and real harness/source retention qualification remain later integration/target-host work."
+      ],
+      "evidence": [
+        "../implementation/recovery-qualification.md",
+        "../implementation/recovery-qualification.json",
+        "../implementation/recovery-matrix.json",
+        "../implementation/recovery-validation.json"
+      ]
     },
     {
       "id": "GATE-03",
@@ -639,7 +647,7 @@
       "repo": "agent-q",
       "milestone": "M3",
       "kind": "gate",
-      "status": "planned",
+      "status": "complete",
       "depends_on": [
         "GATE-02",
         "AQ-05",
@@ -665,8 +673,16 @@
         "X1-X3 and X5-X9 pass with explicit uncertainty; no duplicate settlement or unsafe reuse.",
         "Control requests retain capacity under synthetic transfer load; injected failures are repeatable without wall-clock sleep races."
       ],
-      "out_of_scope": [],
-      "evidence": []
+      "out_of_scope": [
+        "Qualification is the cooperative Linux guardian synthetic execution profile with runtime-process restart; guardian loss retains uncertainty.",
+        "Real graph/Git delivery, production harnesses, physical suspend/power loss and fleet capacity remain M4-M6 gates."
+      ],
+      "evidence": [
+        "../implementation/recovery-qualification.md",
+        "../implementation/recovery-qualification.json",
+        "../implementation/recovery-matrix.json",
+        "../implementation/recovery-validation.json"
+      ]
     },
     {
       "id": "API-01",
@@ -674,7 +690,7 @@
       "repo": "agent-q",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "complete",
       "depends_on": [
         "AQ-02",
         "GRAPH-01"
@@ -694,7 +710,11 @@
         "No raw arbitrary graph proxy or worker graph credential is required; public contract supports independently generated clients."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/API-01.md",
+        "../implementation/API-01.json",
+        "../implementation/recovery-validation.json"
+      ]
     },
     {
       "id": "AQ-06",

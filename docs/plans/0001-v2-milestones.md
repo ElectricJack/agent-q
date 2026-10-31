@@ -27,8 +27,10 @@ The original planning baseline completed AUD-00; current statuses below record s
 
 | Task | Owner | Deliverable |
 | --- | --- | --- |
-| [API-01](#api-01) | agent-q | Publish scoped agent API contracts |
+| [AQ-06](#aq-06) | agent-q | Implement session credentials and scoped graph reads |
+| [WRK-06](#wrk-06) | aq-worker | Integrate local aq-git workspaces and storage admission |
 | [AQ-09](#aq-09) | agent-q | Implement authenticated source transfer and central retention |
+| [AQ-11](#aq-11) | agent-q | Implement durable supervisor and agent messaging |
 | [PB-02](#pb-02) | aq-playbooks | Establish the playbook storage and scheduling operating envelope |
 | [REL-01](#rel-01) | agent-q | Version the composite product manifest and component inventory |
 
@@ -98,8 +100,8 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | Task | Owner | Hard prerequisites | Status |
 | --- | --- | --- | --- |
 | [AQ-05](#aq-05): Implement cancellation, reconciliation and bounded retry policy | agent-q | [AQ-03](#aq-03) | complete |
-| [WRK-04](#wrk-04): Prove process ownership, expiry and restart recovery | aq-worker | [WRK-03](#wrk-03) | in_progress |
-| [GATE-03](#gate-03): Accept distributed recovery and cancellation | agent-q | [GATE-02](#gate-02), [AQ-05](#aq-05), [WRK-04](#wrk-04) | planned |
+| [WRK-04](#wrk-04): Prove process ownership, expiry and restart recovery | aq-worker | [WRK-03](#wrk-03) | complete |
+| [GATE-03](#gate-03): Accept distributed recovery and cancellation | agent-q | [GATE-02](#gate-02), [AQ-05](#aq-05), [WRK-04](#wrk-04) | complete |
 
 ### M4 overview
 
@@ -107,7 +109,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | --- | --- | --- | --- |
 | [GRAPH-01](#graph-01): Qualify an immutable graph integration candidate | aq-graph | [AUD-00](#aud-00) | complete |
 | [GIT-01](#git-01): Qualify and package an immutable Git integration candidate | aq-git | [AUD-00](#aud-00) | complete |
-| [API-01](#api-01): Publish scoped agent API contracts | agent-q | [AQ-02](#aq-02), [GRAPH-01](#graph-01) | planned |
+| [API-01](#api-01): Publish scoped agent API contracts | agent-q | [AQ-02](#aq-02), [GRAPH-01](#graph-01) | complete |
 | [AQ-06](#aq-06): Implement session credentials and scoped graph reads | agent-q | [API-01](#api-01), [AQ-03](#aq-03) | planned |
 | [AQ-07](#aq-07): Implement durable graph mutation delivery and recovery | agent-q | [AQ-06](#aq-06) | planned |
 | [AQ-08](#aq-08): Schedule real graph candidates with explicit eligibility | agent-q | [AQ-04](#aq-04), [AQ-07](#aq-07), [GATE-03](#gate-03) | planned |
@@ -492,7 +494,7 @@ Evidence: [execution-authority.md](../implementation/execution-authority.md), [e
 
 **Prove process ownership, expiry and restart recovery**
 
-Owner: `aq-worker`. Milestone: M3. Kind: implementation. Status: in_progress.
+Owner: `aq-worker`. Milestone: M3. Kind: implementation. Status: complete.
 
 Hard prerequisites: [WRK-03](#wrk-03).
 
@@ -505,11 +507,15 @@ Acceptance:
 
 Requirement links: W8, W9, W10, W11, W14, W17, X3, X4, X5, X9, X11.
 
+Outside this task: Live reattachment, whole-container/PID-namespace recovery without durable stop evidence, external-service writers and hostile process/file manipulation.; Physical suspend/power-loss and real harness/source retention qualification remain later integration/target-host work..
+
+Evidence: [recovery-qualification.md](../implementation/recovery-qualification.md), [recovery-qualification.json](../implementation/recovery-qualification.json), [recovery-matrix.json](../implementation/recovery-matrix.json), [recovery-validation.json](../implementation/recovery-validation.json).
+
 ### GATE-03
 
 **Accept distributed recovery and cancellation**
 
-Owner: `agent-q`. Milestone: M3. Kind: gate. Status: planned.
+Owner: `agent-q`. Milestone: M3. Kind: gate. Status: complete.
 
 Hard prerequisites: [GATE-02](#gate-02), [AQ-05](#aq-05), [WRK-04](#wrk-04).
 
@@ -522,11 +528,15 @@ Acceptance:
 
 Requirement links: E3, D3, D7, W17, X1, X2, X3, X5, X6, X7, X8, X9, X14.
 
+Outside this task: Qualification is the cooperative Linux guardian synthetic execution profile with runtime-process restart; guardian loss retains uncertainty.; Real graph/Git delivery, production harnesses, physical suspend/power loss and fleet capacity remain M4-M6 gates..
+
+Evidence: [recovery-qualification.md](../implementation/recovery-qualification.md), [recovery-qualification.json](../implementation/recovery-qualification.json), [recovery-matrix.json](../implementation/recovery-matrix.json), [recovery-validation.json](../implementation/recovery-validation.json).
+
 ### API-01
 
 **Publish scoped agent API contracts**
 
-Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: complete.
 
 Hard prerequisites: [AQ-02](#aq-02), [GRAPH-01](#graph-01).
 
@@ -538,6 +548,8 @@ Acceptance:
 - No raw arbitrary graph proxy or worker graph credential is required; public contract supports independently generated clients.
 
 Requirement links: D4, D5, D6, D9, W18, W19, W20.
+
+Evidence: [API-01.md](../implementation/API-01.md), [API-01.json](../implementation/API-01.json), [recovery-validation.json](../implementation/recovery-validation.json).
 
 ### AQ-06
 

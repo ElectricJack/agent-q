@@ -1,0 +1,44 @@
+{
+  "format_version": 1,
+  "daemon_source_revision": "1fa3c40dc1f753ae7a3985c7a169ae2ec867086d",
+  "workspace_test_count": 242,
+  "agent_contract_test_count": 30,
+  "checks": [
+    {
+      "check": "workspace",
+      "path": "recovery-validation-workspace.log",
+      "sha256": "d621cd42b719fff55799f501c480b96caac150c8564550b5ff694196fb58ec2d",
+      "passed": true
+    },
+    {
+      "check": "clippy",
+      "path": "recovery-validation-clippy.log",
+      "sha256": "75a6e9bfd2befffdf267d9fbc146bce839b1a44a51d3de744ed9ab23c0398728",
+      "passed": true
+    },
+    {
+      "check": "default-routes",
+      "path": "recovery-validation-default-routes.log",
+      "sha256": "402075df4320f9a0941bd7525f489c88c8af7f9e00d602e30de57eb3709a373d",
+      "passed": true
+    },
+    {
+      "check": "agent-contract",
+      "path": "recovery-validation-agent-contract.log",
+      "sha256": "0c97df8c07b99cdd4b957c6e23da3a95e949f937e48a585659d471402f3dd36a",
+      "passed": true
+    }
+  ],
+  "commands": [
+    "DATABASE_URL=<isolated PostgreSQL> cargo test --workspace --features recovery-test-support --locked",
+    "cargo clippy -p aq-server --all-targets --features recovery-test-support --locked -- -D warnings",
+    "DATABASE_URL=<isolated PostgreSQL> cargo test -p aq-server --features test-support --test execution execution_http_authenticates_node_binding_and_keeps_routes_separate --locked",
+    "python3 protocol/agent-access/v1/generate.py --check",
+    "python3 -m unittest discover -s protocol/agent-access/v1 -p test_conformance.py -v"
+  ],
+  "scope": "Local PostgreSQL and contract qualification; final image failure matrix is separate.",
+  "ci_configuration": {
+    "path": ".github/workflows/ci.yml",
+    "validation": "YAML parsed; invokes the locally qualified commands in separate contract/recovery jobs. Hosted CI has not been run in this session."
+  }
+}

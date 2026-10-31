@@ -1,0 +1,212 @@
+{
+  "matrix_format": 1,
+  "status": "accepted bounded local profile; see recovery-qualification.md/.json",
+  "requirements": [
+    "X1",
+    "X2",
+    "X3",
+    "X5",
+    "X6",
+    "X7",
+    "X8",
+    "X9",
+    "X14"
+  ],
+  "containment_profile": "linux-subreaper-guardian-v1; same live guardian kernel waitpid ECHILD or durable never-Start proof; guardian loss remains held/uncertain; stop-and-preserve only, no live reattach",
+  "clock_scope": "Explicit feature-gated development fixture clock injection; kernel suspend and host power loss remain distinct evidence.",
+  "cases": [
+    {
+      "id": "crash-grant-durable",
+      "requirements": [
+        "X3",
+        "X9"
+      ],
+      "injection": "Pause at durable grant-durable checkpoint, SIGKILL only recorded worker PID, restart same journal with surviving guardian/PID namespace.",
+      "required_outcome": "Same launch identity; kernel guardian stop proof or ordered durable nonstart proof; otherwise explicit uncertainty and protected resources, no blind relaunch.",
+      "status": "passed"
+    },
+    {
+      "id": "crash-launch-intent-durable",
+      "requirements": [
+        "X3",
+        "X9"
+      ],
+      "injection": "Pause at durable launch-intent-durable checkpoint, SIGKILL only recorded worker PID, restart same journal with surviving guardian/PID namespace.",
+      "required_outcome": "Same launch identity; kernel guardian stop proof or ordered durable nonstart proof; otherwise explicit uncertainty and protected resources, no blind relaunch.",
+      "status": "passed"
+    },
+    {
+      "id": "crash-guardian-spawned",
+      "requirements": [
+        "X3",
+        "X9"
+      ],
+      "injection": "Pause at durable guardian-spawned checkpoint, SIGKILL only recorded worker PID, restart same journal with surviving guardian/PID namespace.",
+      "required_outcome": "Same launch identity; kernel guardian stop proof or ordered durable nonstart proof; otherwise explicit uncertainty and protected resources, no blind relaunch.",
+      "status": "passed"
+    },
+    {
+      "id": "crash-guardian-identity-durable",
+      "requirements": [
+        "X3",
+        "X9"
+      ],
+      "injection": "Pause at durable guardian-identity-durable checkpoint, SIGKILL only recorded worker PID, restart same journal with surviving guardian/PID namespace.",
+      "required_outcome": "Same launch identity; kernel guardian stop proof or ordered durable nonstart proof; otherwise explicit uncertainty and protected resources, no blind relaunch.",
+      "status": "passed"
+    },
+    {
+      "id": "crash-start-intent-durable",
+      "requirements": [
+        "X3",
+        "X9"
+      ],
+      "injection": "Pause at durable start-intent-durable checkpoint, SIGKILL only recorded worker PID, restart same journal with surviving guardian/PID namespace.",
+      "required_outcome": "Same launch identity; kernel guardian stop proof or ordered durable nonstart proof; otherwise explicit uncertainty and protected resources, no blind relaunch.",
+      "status": "passed"
+    },
+    {
+      "id": "crash-start-sent-before-receipt",
+      "requirements": [
+        "X3",
+        "X9"
+      ],
+      "injection": "Pause at durable start-sent-before-receipt checkpoint, SIGKILL only recorded worker PID, restart same journal with surviving guardian/PID namespace.",
+      "required_outcome": "Same launch identity; kernel guardian stop proof or ordered durable nonstart proof; otherwise explicit uncertainty and protected resources, no blind relaunch.",
+      "status": "passed"
+    },
+    {
+      "id": "crash-start-receipt-durable",
+      "requirements": [
+        "X3",
+        "X9"
+      ],
+      "injection": "Pause at durable start-receipt-durable checkpoint, SIGKILL only recorded worker PID, restart same journal with surviving guardian/PID namespace.",
+      "required_outcome": "Same launch identity; kernel guardian stop proof or ordered durable nonstart proof; otherwise explicit uncertainty and protected resources, no blind relaunch.",
+      "status": "passed"
+    },
+    {
+      "id": "crash-report-durable",
+      "requirements": [
+        "X3",
+        "X9"
+      ],
+      "injection": "Pause at durable report-durable checkpoint, SIGKILL only recorded worker PID, restart same journal with surviving guardian/PID namespace.",
+      "required_outcome": "Same launch identity; kernel guardian stop proof or ordered durable nonstart proof; otherwise explicit uncertainty and protected resources, no blind relaunch.",
+      "status": "passed"
+    },
+    {
+      "id": "lost-acceptance",
+      "requirements": [
+        "X1"
+      ],
+      "injection": "Commit an acceptance upstream, close its proxy connection before replying, then retry identical bytes.",
+      "required_outcome": "One grant, one launch identity, unchanged operation/body hash.",
+      "status": "passed"
+    },
+    {
+      "id": "late-grant",
+      "requirements": [
+        "X2"
+      ],
+      "injection": "Hold committed acceptance response at proxy barrier; advance local fixture clock past reservation deadline; release response.",
+      "required_outcome": "No process launch; terminal expired reservation remains accounted until explicit recovery.",
+      "status": "passed"
+    },
+    {
+      "id": "worker-restart",
+      "requirements": [
+        "X9"
+      ],
+      "injection": "Kill only worker PID in a live container, leaving guardian/escaped-session descendants; restart same durable state.",
+      "required_outcome": "Stop-and-preserve under supported guardian profile; no generic reattach, no unsafe resource reuse.",
+      "status": "passed"
+    },
+    {
+      "id": "guardian-loss",
+      "requirements": [
+        "X3",
+        "X9"
+      ],
+      "injection": "Kill guardian as well as worker while descendant evidence remains uncertain.",
+      "required_outcome": "Uncertainty and reservations persist across restart; no synthetic stopped proof or replacement.",
+      "status": "passed"
+    },
+    {
+      "id": "partition-expiry",
+      "requirements": [
+        "X5"
+      ],
+      "injection": "Partition proxy control paths, advance worker/daemon fixture clocks beyond grant, observe guardian stop proof.",
+      "required_outcome": "Expired authority cannot renew or mutate; retained result is recoverable; no overlapping successor.",
+      "status": "passed"
+    },
+    {
+      "id": "cancel-first",
+      "requirements": [
+        "X6"
+      ],
+      "injection": "Hold immutable final report before upstream commit; commit cancellation; release report.",
+      "required_outcome": "Retained-cancelled disposition, immutable bytes and no accepted success.",
+      "status": "passed"
+    },
+    {
+      "id": "result-first",
+      "requirements": [
+        "X6"
+      ],
+      "injection": "Hold result response after upstream commit; cancel; release/replay report.",
+      "required_outcome": "Original accepted disposition remains stable; cancellation cannot erase committed result.",
+      "status": "passed"
+    },
+    {
+      "id": "old-result-after-replacement",
+      "requirements": [
+        "X7"
+      ],
+      "injection": "Finish/retain old attempt, create explicit new attempt/session, replay old report.",
+      "required_outcome": "Old report remains tied to old attempt; current attempt unchanged and no duplicate outcome.",
+      "status": "passed"
+    },
+    {
+      "id": "daemon-restart",
+      "requirements": [
+        "X8"
+      ],
+      "injection": "Restart daemon with committed offer/grant/directive/report receipt at deterministic proxy boundaries.",
+      "required_outcome": "Original persisted identities/dispositions; no lease extension or duplicate dispatch.",
+      "status": "passed"
+    },
+    {
+      "id": "control-under-bulk",
+      "requirements": [
+        "X14"
+      ],
+      "injection": "Fill bounded synthetic bulk admission, issue renew/poll/cancel concurrently, release load through test control.",
+      "required_outcome": "Control meets declared local budgets, no false expiry; overload refusals are explicit and separately counted.",
+      "status": "passed"
+    },
+    {
+      "id": "old-binary-journal2-refusal",
+      "requirements": [
+        "X3",
+        "X9"
+      ],
+      "injection": "Copy only actual guardian journal2 into fresh volume and invoke immutable qualified cf87edf worker0.1.0.",
+      "required_outcome": "Refuse unsupported schema/version before contacting daemon or launching; journal bytes unchanged.",
+      "status": "passed"
+    },
+    {
+      "id": "renew-expires-while-db-locked",
+      "requirements": [
+        "X5",
+        "X8"
+      ],
+      "injection": "Hold actual node row lock, send realHTTP renew, observe SQL Lock waiter, advance clock past grant before releasinglock.",
+      "required_outcome": "Renew refuses expired authority using admission time afterlocks; durable deadline and grant sequence unchanged; guardian stops writers.",
+      "status": "passed"
+    }
+  ],
+  "case_count": 20,
+  "evidence": "recovery-qualification.json"
+}
