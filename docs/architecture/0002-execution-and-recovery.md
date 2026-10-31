@@ -1,8 +1,10 @@
 # Agent execution and recovery across AQ and workers
 
-**Status:** Design baseline; execution extensions are not Phase 1 functionality
+**Status:** Required shared contract; foundations are implemented, native-agent integration remains in progress.
 
 **Date:** 2026-10-30
+
+**Reconciled:** 2026-10-31, against daemon state format20 and the overnight component checkpoints.
 
 The daemon decides which execution is authorized. A worker manages local processes and reports observations. Neither a heartbeat timeout nor an agent success message proves that execution stopped, source was retained, or a task is complete. This document is the canonical shared lifecycle contract; the [daemon](../specs/0002-execution-and-agent-access.md) and [worker](../../../aq-worker/docs/specs/0002-execution-and-agent-access.md) specifications define the implementation responsibilities.
 
@@ -31,17 +33,58 @@ A daemon status view combines authority with the most recent worker observation 
 
 ## 3. Assignment handshake
 
-1. AQ persists an expiring offer with node/boot binding, resolved-spec digest and central scheduling reservation. An offer is not permission to launch.
-2. The worker validates the offer and durably reserves current local capacity. Its acceptance names the offer, stable acceptance ID and reservation identity/deadline.
-3. AQ serializes acceptance against expiry/cancellation and persists the grant before responding. Duplicate acceptance returns the same committed grant or its current expired/revoked disposition.
-4. The worker verifies the response matches its still-live reservation, incarnation, generation and spec. It durably records authority and launch intent before starting an agent.
-5. Preparation and execution report sequenced observations. The worker renews authority independently of large transfers.
+Native profiled execution separates no-launch preparation from execution authority:
 
-Reservation expiry is terminal for that reservation. A delayed response cannot resurrect it; the worker reports non-start and reconciles the central grant. If a response is lost, no execution starts merely because the worker sent an acceptance. The daemon must resolve the existing offer before issuing another conflicting grant.
+1. AQ validates the current registered runtime/incarnation and project policy,
+   resolves authorized graph/source inputs and profile/intelligence selection,
+   and retains the exact nonsecret input artifacts through their owning services.
+   A digest or source observation alone does not establish retention.
+2. AQ commits an expiring offer with the exact node/boot, attempt/session,
+   immutable launch binding and shared task claim before exposing it to polling.
+   An offer is not permission to launch.
+3. The worker validates the offer and durably reserves local capacity without
+   launching. Its acceptance identifies that reservation, original journal
+   evidence and proposed logical launch owner. AQ serializes acceptance against
+   expiry, cancellation, current incarnation/configuration and conflicting work.
+4. Acceptance commits an immutable PreparationPlan and admitted private-material
+   lease records, then returns that original plan. It does not issue a grant.
+   The worker fetches assigned retained inputs, prepares the exact workspace and
+   installs private material under the qualified adapter. It returns bounded
+   receipts tied to the same binding, owner and journal generation. Preparation
+   receipt delivery and material availability are not execution authority.
+5. AQ verifies the owning-domain preparation evidence and rechecks current
+   eligibility, retention, policy/credential revisions, cancellation and deadlines
+   after relevant lock waits. It commits a grant before returning authorization.
+   Missing or changed evidence refuses rather than manufacturing a receipt.
+6. The worker checks the still-live reservation, preparation, exact grant and
+   incarnation. It durably records the grant/launch intent before invoking the
+   guarded tmux host. Only the actual verified host observation can establish
+   Running through Started reporting; grant issuance alone leaves it unknown.
+7. Renewal, cancellation and recovery use independent control capacity. Exact
+   retries recover the original operation outcome without refreshing its expiry,
+   repeating a physical launch or implying the old grant is currently active.
+
+The previously qualified deterministic-fixture protocol remains versioned and
+unchanged. Its acceptance/grant shortcut is not the native preparation protocol;
+new native producers cannot encode a real agent as a fixture execution merely to
+reuse that shortcut. AQ owns the current native transport envelopes while frozen
+shared identity and launch contracts retain their original canonical bytes.
+
+Reservation expiry is terminal for that reservation. Delayed plans, material or
+grant responses cannot resurrect it. The worker reports its actual non-start or
+uncertain-launch disposition and reconciles the existing operation. A central
+NeverGranted closure proves that no grant was issued; it does not assert physical
+stop and cannot override uncertain external effects. Releasing a granted claim
+requires independently verified stop, retention and effect disposition.
 
 ## 4. Lifecycle and observed outcome
 
-Worker phases are `reserved`, `authorized`, `preparing`, `running`, `stopping`, `collecting`, `reporting`, `acknowledged`, and `retired`; offers can be declined or expire before authorization. Process outcome, stop certainty, source retention, report disposition and task policy state are separate fields.
+For native execution, the logical order is offered/reserved, preparing, granted,
+running, stopping, collecting/reporting, acknowledged and retired. These labels
+explain the protocol; they do not replace a component's versioned state enum.
+Preparation precedes execution authority. Offers may be declined or expire
+without launch. Process outcome, stop certainty, source retention, report
+disposition and task policy state are separate fields.
 
 An agent may claim success while the runtime reports `stop_uncertain`. Such an observation cannot release a workspace or permit a checkpoint requiring stopped writers. A confirmed stopped agent may free an execution slot while its pending result still occupies protected disk and transfer capacity. An acknowledged rejected result may still contain retained useful work.
 
@@ -131,3 +174,13 @@ Current [schema-8 graph evidence](../../../aq-graph/docs/performance/schema8-loa
 ## 11. Implementation and verification boundaries
 
 The worker uses a fake coordinator, fake clock and deterministic harness for core crash/replay tests. AQ uses simulated workers and a fake graph adapter for pure state-machine tests, then real PostgreSQL/aq-graph for delivery and concurrency tests. Published protocol fixtures bind both implementations. Real process-tree, tmux, container and harness compatibility checks remain separate required adapter evidence. See the [ecosystem design](0001-ecosystem-and-releases.md) for release and test ownership.
+
+## Current implementation and next acceptance boundary
+
+The [2026-10-31 checkpoint](../plans/2026-10-31-overnight-checkpoint.md) records
+qualified foundation/recovery, shared authority, graph access, source handoff,
+profile selection, native registration, Started reporting, and assigned material/
+artifact delivery components. The complete native assignment producer, worker
+consumer/harness adapter and result-settlement path still require implementation
+and assembled qualification. The [three-area completion map](../plans/0002-execution-sessions-policy-completion.md)
+identifies that work. No component receipt or test count closes GATE-04 by itself.

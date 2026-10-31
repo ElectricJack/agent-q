@@ -1,8 +1,10 @@
 # Session operations, durable waits and human notification delivery
 
-**Status:** Required v2 design; implementation and qualification remain planned.
+**Status:** Required v2 design; observation/accounting and notification components exist. Native integration, stall policy and waits/continuations remain incomplete.
 
 **Date:** 2026-10-30
+
+**Reconciled:** 2026-10-31, with current component evidence and explicit remaining scope.
 
 This extends [profiles and tmux terminals](0003-agent-profiles-harnesses-and-terminals.md)
 and [execution recovery](0002-execution-and-recovery.md). Live terminals alone do
@@ -430,3 +432,27 @@ These inform semantics, not v2 implementation dependencies or a full v1 port.
 ## Revision-pinned implementation evidence
 
 The [bounded v1 reference inventory](../research/2026-10-30-v1-implementation-reference-map.md) records implementation symbols, selected test obligations and per-file hashes at revision `9a9b8e8ef992d1ff699755a9383ed3c91e2844ea`. It distinguishes preserved behavior from remote-authority and retention adaptations. This evidence informs the owning v2 tasks; replacement coverage and product qualification remain pending.
+
+## Current implementation boundary (2026-10-31)
+
+CON-03 contracts, the central observation owner/accounting ledger and notification
+dispatcher have retained component evidence. Worker normalizers, transport
+ownership and the bounded store are independently tested. The format5 store
+reserves logical control capacity without deleting history; physical-full
+progress and in-place migration remain unqualified. It is not yet adopted by
+the production worker. Selected native source/parser qualification, raw content
+retention and rate-card/lineage-budget integration remain open.
+
+AQ-24's transport implementation does not establish actual external destination
+delivery, authenticated human decisions or complete escalation/digest workflows.
+Those need their own configured integration evidence. The central supervisor,
+real harness nudge, persisted stall ladder and production playbook adapters also
+remain open. No synthetic host can be registered as a production adapter merely
+because it passes runner tests.
+
+The [current completion scope](../plans/0002-execution-sessions-policy-completion.md)
+prioritizes real execution, session operations and supervisor/policy integration.
+AQ-25/26 and WRK-16 hibernation remain separate work. Missing wait support must
+remain explicit in intermediate capabilities; it cannot be treated as an empty
+wait set authorizing destructive recovery. AQ-27's wait-source portions, GATE-05
+and INT-03 retain all their original continuation prerequisites.

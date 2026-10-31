@@ -1,8 +1,10 @@
 # Agent Q ecosystem and releases
 
-**Status:** Design baseline; implementation is staged after the foundation
+**Status:** Required ecosystem design; foundation/component integration exists, while native workflows and assembled product acceptance remain open.
 
 **Date:** 2026-10-30
+
+**Reconciled:** 2026-10-31; the [implementation graph](../plans/0001-v2-milestones.md) and [checkpoint](../plans/2026-10-31-overnight-checkpoint.md) record actual coverage.
 
 Agent Q v2 is a product assembled from independently developed and tested components. The `agent-q` repository owns the overall architecture, central daemon, integration adapters, installation, and product releases. Component repositories own their implementations and public contracts. A separate repository does not imply a separate deployed service.
 

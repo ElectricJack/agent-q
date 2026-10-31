@@ -1,6 +1,6 @@
 # Daemon execution coordination and remote agent access
 
-**Status:** Design baseline for implementation after Phase 1
+**Status:** Current implementation contract; foundations and scoped services exist, native execution/result integration remains open.
 
 **Date:** 2026-10-30
 
@@ -60,6 +60,24 @@ A graph edit and execution admission cannot share an atomic transaction. Record 
 Authenticate node credentials before inspecting assignment payloads. Enforce active incarnation, endpoint scope, negotiated protocol, bounded payload size and monotonically valid generations. A cloned identity cannot register two active runtimes without an explicit replacement/recovery decision.
 
 Persist the offer before publishing it through polling. Acceptance serializes against offer expiry, node restrictions, cancellation and any conflicting current assignment. The recorded result binds the exact request digest; reusing an ID with different inputs fails. Only a committed grant can authorize execution.
+
+For native profiled execution, acceptance records the no-launch reservation and
+original PreparationPlan, including the exact admitted private-material leases.
+The plan authorizes only scoped preparation. Grant issuance is a subsequent
+transaction after verified source/material/journal receipts and current
+eligibility checks. Keep the qualified fixture protocol unchanged rather than
+using its acceptance/grant shortcut for a real harness. The updated
+[shared handshake](../architecture/0002-execution-and-recovery.md#3-assignment-handshake)
+defines the native ordering.
+
+Current native authority comes from the adopted compact hot row; immutable launch
+and selection rows remain sealed. Consumers use the common AuthorityView and
+recheck authority after relevant waits. Producer-generated artifact links define
+the assigned artifact allowlist, so the producer must validate typed semantics,
+project scope and nonsecret content before linking. Inline retention verifies
+bytes/receipt integrity, not arbitrary content classification. Provider secrets
+use the separate private-material owner; Git bundle retention uses aq-git.
+
 
 Progress writes are idempotent by attempt, generation and sequence. Older observations remain historical and cannot regress the current projection. Directive acknowledgements cannot skip undelivered gaps; polling supports bounded ordered replay. Acknowledging receipt is distinct from confirming a directive's physical effect.
 

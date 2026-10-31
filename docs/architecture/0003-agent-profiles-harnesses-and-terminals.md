@@ -1,8 +1,10 @@
 # Agent profiles, intelligence, tmux hosting and remote terminals
 
-**Status:** Accepted design direction; implementation is planned, not shipped.
+**Status:** Required design; profile/host/relay components are implemented and qualified within recorded scopes. Native harness and full terminal integration remain open.
 
 **Date:** 2026-10-30
+
+**Reconciled:** 2026-10-31; see the current implementation boundary below.
 
 This is the canonical cross-component design for composing agent functionality,
 selecting intelligence and execution settings, hosting every agent harness in
@@ -142,6 +144,26 @@ context. Text cannot redefine the structured authorization calculation. Shared
 rules should be referenced once; project/task content is never treated as a
 trusted configuration source.
 
+### 2.2.1 Acyclic policy and resolved access identity
+
+Composition must not depend on a resolved graph access profile that itself
+contains the model selected from that composition. Native composition schema2
+therefore binds a typed preselection graph policy. Its inputs are the authorized
+context projection, exact project/repository/task revisions, ordered instructions
+and requested/effective permissions. Compile the instruction/permission draft,
+seal that policy and composition, select the concrete model/harness, then derive
+the actual API-01 resolved access profile and final launch manifest.
+
+The resolved profile binds the genuine selected model and final scoped context;
+its digest remains in the launch manifest and GraphBinding. No placeholder model,
+whole-composition digest cycle or guessed graph profile is allowed. Task records
+and knowledge records each require their corresponding permissions, including
+pinned context. Policy scope uses canonical project/repository identities. A
+source write grant is distinct from graph mutation permission. Frozen schema1
+inspection/replay remains compatible but cannot authorize new native selection.
+The [qualified contract correction](../implementation/AQ-08-acyclic-graph-policy.md)
+defines the exact versioned artifacts and derivation.
+
 ### 2.3 Context delivery and explainability
 
 Each instruction/reference declares startup-required or on-demand delivery.
@@ -151,6 +173,13 @@ qualified tokenizer exists. If required content does not fit, fail resolution
 with the offending sources. Remove optional context only in a declared order and
 report omissions, source revisions and incomplete coverage. On-demand retrieval
 uses current scoped agent authorization; possession of a pack is not a grant.
+
+Required context planning also needs explicit model capacity and token-counting
+or qualified conservative-bound evidence for the selected configuration. A byte
+limit is not a tokenizer or model window. Missing counts/capacity stay unknown;
+zero and an invented model window cannot satisfy a required planning bound.
+Synthetic qualification facts must be labelled and cannot make a real harness
+configuration eligible.
 
 `aq profile validate`, `aq profile explain` and profile inspection API operations
 are explicit deliverables of AQ-18. They show the flattened module order,
@@ -320,6 +349,13 @@ until the controller explicitly resolves the uncertainty using a fresh view.
 Reacquiring control cannot replay earlier commands. Resize is an idempotent,
 sequence-ordered setting and has a separate safe retry rule.
 
+The current stage1 host's Applied receipt proves bounded tmux command acceptance
+on the verified pane. It does not prove that the harness consumed the bytes,
+that the model understood them, or that a PTY/rendering barrier completed. Any
+stronger acknowledgement requires a separately qualified adapter contract.
+Until a fresh-view resolution is implemented and qualified, Unknown remains
+blocking even after controller takeover.
+
 Queued input expires promptly and is not replayed after an offline reconnect.
 Input cannot renew execution, revive a cancelled attempt, change profile grants,
 approve an AQ domain decision, or replace typed cancellation. Terminal Ctrl-C is
@@ -445,3 +481,17 @@ not itself establish the ownership or replay guarantees above.
 ## Revision-pinned implementation evidence
 
 The [bounded v1 reference inventory](../research/2026-10-30-v1-implementation-reference-map.md) records implementation symbols, selected test obligations and per-file hashes at revision `9a9b8e8ef992d1ff699755a9383ed3c91e2844ea`. It distinguishes preserved behavior from remote-authority and retention adaptations. This evidence informs the owning v2 tasks; replacement coverage and product qualification remain pending.
+
+## Current implementation boundary (2026-10-31)
+
+AQ-18/19/20 provide versioned composition, project bindings and deterministic
+selection, including the schema2 correction above. The guarded tmux host and
+AQ terminal relay have independent retained qualification. WRK-14 stage1 adds
+verified input/resize/fencing and outbound metadata transport; it does not
+provide full renderer snapshots, live output or runtime adoption. The first
+real harness, central supervisor integration, complete output path and browser/
+four-harness qualification remain open. See the
+[completion map](../plans/0002-execution-sessions-policy-completion.md) and
+[worker integration evidence](../../../aq-worker/docs/implementation/WRK-14-integration.md).
+The bounded operating profile remains an acceptance target, not a measured
+product-capacity claim.
