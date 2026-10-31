@@ -41,10 +41,12 @@ fn policy() -> Policy {
         parsers: vec![
             ParserAuthority {
                 parser: artifact("parser-1"),
+                category_claim: artifact("categories"),
                 priority: 1,
             },
             ParserAuthority {
                 parser: artifact("parser-2"),
+                category_claim: artifact("categories"),
                 priority: 2,
             },
         ],
@@ -616,4 +618,37 @@ fn canonical_fact_pricing_requires_its_pinned_card_and_category_semantics() {
     let mut wrong = card;
     wrong.layout.policy = artifact("other-categories");
     assert!(wrong.estimate_fact(&fact).is_err());
+}
+
+#[test]
+fn parser_artifact_category_claims_map_to_stable_owner_layout_during_reparse() {
+    let mut p = policy();
+    p.parsers[0].category_claim = artifact("parser-1");
+    p.parsers[1].category_claim = artifact("parser-2");
+    let mut r = record();
+    usage(&mut r).category_semantics = CategorySemantics::MayOverlap {
+        policy: artifact("parser-1"),
+    };
+    let r = reseal(r);
+    let a = appended(decide(&r, context(&r, &p, None)).unwrap());
+    let mut corrected = r;
+    corrected.body.provenance.parser = artifact("parser-2");
+    usage(&mut corrected).category_semantics = CategorySemantics::MayOverlap {
+        policy: artifact("parser-2"),
+    };
+    usage(&mut corrected).counters.input = known(90);
+    usage(&mut corrected).correction_of = Some(a.event.clone());
+    let corrected = reseal(corrected);
+    let mut c = context(&corrected, &p, Some(&a));
+    c.correction_target = Some(&a);
+    let b = appended(decide(&corrected, c).unwrap());
+    assert_eq!(a.key, b.key);
+    assert_eq!(a.layout, b.layout);
+    assert_eq!(b.contribution.input, known(90));
+    let mut false_claim = corrected;
+    usage(&mut false_claim).category_semantics = CategorySemantics::MayOverlap {
+        policy: artifact("parser-1"),
+    };
+    let false_claim = reseal(false_claim);
+    assert!(decide(&false_claim, context(&false_claim, &p, Some(&b))).is_err());
 }

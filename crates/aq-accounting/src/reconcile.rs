@@ -6,6 +6,7 @@ use wire::{CategorySemantics, CounterBasis, ObservationKind, Validate};
 #[serde(deny_unknown_fields)]
 pub struct ParserAuthority {
     pub parser: wire::ArtifactRef,
+    pub category_claim: wire::ArtifactRef,
     pub priority: u8,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -30,6 +31,7 @@ impl Policy {
         }
         for (i, p) in self.parsers.iter().enumerate() {
             wire::artifact(&p.parser)?;
+            wire::artifact(&p.category_claim)?;
             if p.priority == 0 || self.parsers[..i].iter().any(|old| old.parser == p.parser) {
                 return Err(Error::Invalid);
             }
@@ -64,6 +66,7 @@ pub struct Fact {
     pub source: wire::Digest,
     pub priority: u8,
     pub policy: wire::ArtifactRef,
+    pub layout: Layout,
     pub pricing_reference: Option<wire::ArtifactRef>,
     pub usage: wire::Usage,
     pub baseline: Option<Baseline>,
@@ -80,6 +83,7 @@ impl Fact {
             &self.source,
             self.priority,
             &self.policy,
+            &self.layout,
             &self.pricing_reference,
             &self.usage,
             &self.baseline,
@@ -91,9 +95,11 @@ impl Fact {
         self.event.validate()?;
         self.usage.validate()?;
         wire::artifact(&self.policy)?;
+        self.layout.check_counters(&self.usage.counters)?;
+        self.layout.check_counters(&self.contribution)?;
         if self.lineage.is_nil()
             || self.priority == 0
-            || self.semantic_digest != semantic(&self.usage)?
+            || self.semantic_digest != semantic(&self.usage, &self.layout)?
             || self.fact_digest != self.digest()?
         {
             return Err(Error::Invalid);
@@ -157,7 +163,7 @@ pub enum Decision {
         reason: UnresolvedReason,
     },
 }
-fn semantic(usage: &wire::Usage) -> Result<wire::Digest> {
+fn semantic(usage: &wire::Usage, layout: &Layout) -> Result<wire::Digest> {
     // Cost is a separately verified owner claim. An untrusted reported invoice
     // cannot change accounting by varying the transcript's cost field.
     crate::hash(&(
@@ -165,7 +171,7 @@ fn semantic(usage: &wire::Usage) -> Result<wire::Digest> {
         &usage.call.model,
         &usage.basis,
         &usage.counters,
-        &usage.category_semantics,
+        layout,
         &usage.completeness,
     ))
 }
@@ -212,16 +218,16 @@ pub fn decide(record: &wire::ObservationRecord, context: Context<'_>) -> Result<
         CategorySemantics::DeclaredDisjoint { policy }
         | CategorySemantics::MayOverlap { policy } => policy,
     };
-    if category_policy != &context.policy.layout.policy {
-        return Err(Error::Unsupported);
-    }
-    let priority = context
+    let parser = context
         .policy
         .parsers
         .iter()
         .find(|p| p.parser == record.body.provenance.parser)
-        .ok_or(Error::Unsupported)?
-        .priority;
+        .ok_or(Error::Unsupported)?;
+    if category_policy != &parser.category_claim {
+        return Err(Error::Unsupported);
+    }
+    let priority = parser.priority;
     if matches!(
         usage.category_semantics,
         CategorySemantics::DeclaredDisjoint { .. }
@@ -238,7 +244,7 @@ pub fn decide(record: &wire::ObservationRecord, context: Context<'_>) -> Result<
         record.body.provenance.source_generation,
         &record.body.provenance.native_session_key,
     ))?;
-    let semantic_digest = semantic(usage)?;
+    let semantic_digest = semantic(usage, &context.policy.layout)?;
     if let Some(current) = context.current {
         current.validate()?;
         if current.key != key {
@@ -277,7 +283,7 @@ pub fn decide(record: &wire::ObservationRecord, context: Context<'_>) -> Result<
                 unresolved(UnresolvedReason::ForeignLineageCorrection)
             };
         }
-        if current.usage.category_semantics != usage.category_semantics {
+        if current.layout != context.policy.layout {
             return unresolved(UnresolvedReason::AttributionChanged);
         }
         if priority < current.priority {
@@ -347,6 +353,7 @@ pub fn decide(record: &wire::ObservationRecord, context: Context<'_>) -> Result<
         source,
         priority,
         policy: context.policy.reference.clone(),
+        layout: context.policy.layout.clone(),
         pricing_reference,
         usage: (**usage).clone(),
         baseline,

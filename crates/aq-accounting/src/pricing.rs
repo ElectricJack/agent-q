@@ -147,12 +147,7 @@ impl RateCard {
     /// layout merely because the model display string matches.
     pub fn estimate_fact(&self, fact: &crate::reconcile::Fact) -> Result<Pricing> {
         fact.validate()?;
-        let policy = match &fact.usage.category_semantics {
-            wire::CategorySemantics::DeclaredDisjoint { policy }
-            | wire::CategorySemantics::MayOverlap { policy } => policy,
-        };
-        if fact.pricing_reference.as_ref() != Some(&self.reference) || policy != &self.layout.policy
-        {
+        if fact.pricing_reference.as_ref() != Some(&self.reference) || fact.layout != self.layout {
             return Err(Error::Unsupported);
         }
         self.estimate(
