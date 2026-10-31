@@ -1,5 +1,6 @@
 //! Pure preparation contracts. Validation never establishes authorization,
 //! retention, secret ownership, a capacity reservation, or an execution grant.
+pub mod execution_spec;
 mod placement;
 pub mod transport;
 use aq_session_protocol::Validate;

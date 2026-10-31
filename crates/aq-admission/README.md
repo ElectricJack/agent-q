@@ -76,3 +76,21 @@ under frozen namespace `43c0fccf-eb6e-5357-949c-0bc68fbf51ea` with raw 48 networ
 UUID bytes project, workspace, task. Independent Python vectors are packaged in
 `artifacts/task-lineage-v1.json`. Server task aggregate identity owns the mapping;
 a worker-supplied lineage never resets retry/time/cost accounting.
+
+The additive 0.1.2 `execution_spec` publication defines the actual worker's
+secret-free `ProfiledExecutionSpec` artifact. The producer writes its canonical
+bytes and seals that digest in ProfiledOffer. It records the exact lifecycle
+binding, graph CAS version and independent content revision, source admission,
+source/outcome/API01 graph-profile refs, task observation and required startup
+task context, and sealed selection digest. Its manifest comparison checks all
+shared bindings and the digest without a self-reference or manifest digest
+cycle. The task observation and context remain retained Context artifacts, and
+the spec is a retained Composition artifact. Every byte transfer still requires
+actual descriptor byte/digest verification and exact authenticated attempt scope.
+
+`execution-spec.schema.json`/`execution-spec.fixture.json` are separate from both
+prior publications; examples are synthetic conformance data. The spec decoder
+caps the artifact at 256 KiB and rejects duplicate/unknown fields. Graph
+`task.version` is the shared manifest's `task_revision` (the admission CAS fence);
+`task.content_revision` remains independently frozen. Central execution requires
+its distinct future authority adapter and is refused by this worker spec.
