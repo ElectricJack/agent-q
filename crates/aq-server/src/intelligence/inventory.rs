@@ -23,7 +23,8 @@ pub(super) async fn report(
     headers: HeaderMap,
     Json(request): Json<InventoryReport>,
 ) -> Result<Json<Value>> {
-    let node = crate::worker_api::authenticate(&state, &headers).await?;
+    let auth = crate::worker_api::authenticate_context(&state, &headers).await?;
+    let node = auth.node();
     if request.operation_id.is_nil()
         || request.boot_id.is_nil()
         || request.sequence == 0
@@ -35,15 +36,88 @@ pub(super) async fn report(
         return Err(bad("invalid inventory identity/bounds"));
     }
     let payload = aq_selection::digest(&request).map_err(|_| bad("inventory digest"))?;
+    // Observe private material outside SQL locks. Only a server-configured
+    // delivery adapter on the exact admitted native runtime is considered.
+    let candidate: Option<crate::profiled_execution::registration::NativeRegistration> =
+        sqlx::query_scalar::<_, Option<Value>>(
+            "SELECT state->'native' FROM execution_nodes WHERE node_id=$1",
+        )
+        .bind(node.id)
+        .fetch_optional(&state.store.pool)
+        .await
+        .map_err(db)?
+        .flatten()
+        .and_then(|v| serde_json::from_value(v).ok());
+    let delivery = candidate
+        .as_ref()
+        .filter(|c| {
+            c.request.identity.node_id == node.id && c.request.identity.boot_id == request.boot_id
+        })
+        .and_then(|c| {
+            state
+                .config
+                .profiled_execution
+                .as_deref()?
+                .qualified(&c.request)
+                .ok()?
+                .material_delivery
+                .clone()
+        });
+    let observed = now(&state)?;
+    let observed_expires = observed
+        .checked_add(request.ttl_ms)
+        .ok_or_else(|| bad("inventory expiry overflow"))?;
+    let preparations = if let Some(delivery) = delivery.clone() {
+        use std::sync::{Arc, OnceLock};
+        static READS: OnceLock<Arc<tokio::sync::Semaphore>> = OnceLock::new();
+        let permit = READS
+            .get_or_init(|| Arc::new(tokio::sync::Semaphore::new(4)))
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| conflict("material observation capacity exhausted"))?;
+        let registry = loaded(&state)?.clone();
+        let node_id = node.id;
+        let boot = request.boot_id;
+        tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            tokio::task::spawn_blocking(move || {
+                let _permit = permit;
+                crate::profiled_execution::material::provisioning_bindings(
+                    &registry,
+                    node_id,
+                    boot,
+                    &delivery,
+                    observed,
+                    observed_expires,
+                )
+            }),
+        )
+        .await
+        .map_err(|_| conflict("material observation timed out"))?
+        .map_err(|_| AppError::Internal)?
+    } else {
+        vec![]
+    };
     let mut tx = state.store.pool.begin().await.map_err(db)?;
-    let revoked: Option<bool> =
-        sqlx::query_scalar("SELECT revoked_at IS NOT NULL FROM nodes WHERE id=$1 FOR UPDATE")
-            .bind(node.id)
-            .fetch_optional(&mut *tx)
-            .await
-            .map_err(db)?;
-    if revoked != Some(false) {
-        return Err(AppError::CredentialRevoked);
+    crate::worker_api::lock_current_node(&mut tx, &auth).await?;
+    if delivery.is_some() {
+        let actual = crate::profiled_execution::registration::current_runtime_locked(
+            &state,
+            &mut tx,
+            node.id,
+            request.boot_id,
+        )
+        .await?;
+        if candidate.as_ref().is_none_or(|c| {
+            c.request.runtime != actual.runtime || c.qualification != actual.qualification
+        }) {
+            return Err(conflict(
+                "native runtime changed during material observation",
+            ));
+        }
+        if now(&state)? >= observed_expires {
+            return Err(conflict("material observation expired"));
+        }
     }
     let current: Value =
         sqlx::query_scalar("SELECT state FROM execution_nodes WHERE node_id=$1 FOR SHARE")
@@ -81,7 +155,17 @@ pub(super) async fn report(
         .checked_add(1)
         .filter(|v| *v <= i64::MAX as u64)
         .ok_or(AppError::Internal)?;
-    let time = now(&state)?;
+    let current_time = now(&state)?;
+    if delivery.is_some() && (current_time < observed || current_time >= observed_expires) {
+        return Err(conflict(
+            "material observation expired or clock moved backward",
+        ));
+    }
+    let time = if delivery.is_some() {
+        observed
+    } else {
+        current_time
+    };
     let expires = time
         .checked_add(request.ttl_ms)
         .ok_or_else(|| bad("inventory expiry overflow"))?;
@@ -123,6 +207,11 @@ pub(super) async fn report(
                 "credential not authorized for node".into(),
             ));
         }
+        if presence.available && configured.delivery_mode.is_some() {
+            return Err(bad(
+                "server material installation requires an exact verified delivery receipt",
+            ));
+        }
         credential_bindings.push(CredentialBinding {
             credential_revision: presence.credential_revision,
             credential_profile: presence.profile,
@@ -132,8 +221,20 @@ pub(super) async fn report(
             expires_at_ms: expires,
         });
     }
+    for preparation in preparations {
+        if let Some(binding) = credential_bindings.iter_mut().find(|c| {
+            c.credential_profile == preparation.credential_profile
+                && c.credential_revision == preparation.credential_revision
+        }) {
+            if !binding.available {
+                *binding = preparation;
+            }
+        } else {
+            credential_bindings.push(preparation);
+        }
+    }
     let snapshot = CapabilitySnapshot {
-        material_delivery: None,
+        material_delivery: delivery.clone(),
         target: ExecutionTarget::Worker {
             node_id: node.id,
             boot_id: request.boot_id,
@@ -146,6 +247,15 @@ pub(super) async fn report(
     };
     let value = serde_json::to_value(snapshot).map_err(|_| AppError::Internal)?;
     registry::machine_quota(&mut tx, node.id, &value).await?;
+    if delivery.is_some() {
+        let current_time = now(&state)?;
+        if current_time < observed || current_time >= observed_expires {
+            return Err(conflict(
+                "material observation expired or clock moved backward",
+            ));
+        }
+    }
+
     sqlx::query("INSERT INTO intelligence_node_snapshots(node_id,boot_id,sequence,revision,snapshot) VALUES($1,$2,$3,$4,$5) ON CONFLICT(node_id) DO UPDATE SET boot_id=excluded.boot_id,sequence=excluded.sequence,revision=excluded.revision,snapshot=excluded.snapshot").bind(node.id).bind(request.boot_id).bind(request.sequence as i64).bind(revision as i64).bind(&value).execute(&mut *tx).await.map_err(db)?;
     sqlx::query("INSERT INTO execution_receipts(node_id,operation_id,kind,payload_digest,response) VALUES($1,$2,'intelligence_inventory',$3,$4)").bind(node.id).bind(request.operation_id).bind(payload.as_str()).bind(&value).execute(&mut *tx).await.map_err(db)?;
     tx.commit().await.map_err(db)?;
