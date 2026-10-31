@@ -39,8 +39,6 @@ Read the mapped source and regression cases before implementing an affected task
 | Task | Owner | Deliverable |
 | --- | --- | --- |
 | [WRK-08](#wrk-08) | aq-worker | Qualify Codex CLI as the first real tmux harness |
-| [AQ-10](#aq-10) | agent-q | Apply evidence-based result disposition and graph completion |
-| [AQ-12](#aq-12) | agent-q | Embed the qualified playbook runner with bounded execution |
 | [WRK-16](#wrk-16) | aq-worker | Implement safe suspension, checkpoint handoff and continuation bootstrap |
 | [REL-01](#rel-01) | agent-q | Version the composite product manifest and component inventory |
 | [WRK-11](#wrk-11) | aq-worker | Qualify the Claude Code harness adapter |
@@ -131,7 +129,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [AQ-09](#aq-09): Implement authenticated source transfer and central retention | agent-q | [AQ-03](#aq-03), [GIT-01](#git-01) | complete |
 | [WRK-07](#wrk-07): Implement resumable artifact handoff and retention release | aq-worker | [WRK-06](#wrk-06), [AQ-09](#aq-09) | complete |
 | [WRK-08](#wrk-08): Qualify Codex CLI as the first real tmux harness | aq-worker | [WRK-05](#wrk-05), [WRK-06](#wrk-06), [GATE-03](#gate-03), [CON-02](#con-02), [WRK-10](#wrk-10), [AQ-20](#aq-20) | planned |
-| [AQ-10](#aq-10): Apply evidence-based result disposition and graph completion | agent-q | [AQ-05](#aq-05), [AQ-07](#aq-07), [AQ-09](#aq-09) | planned |
+| [AQ-10](#aq-10): Apply evidence-based result disposition and graph completion | agent-q | [AQ-05](#aq-05), [AQ-07](#aq-07), [AQ-09](#aq-09) | in_progress |
 | [CON-02](#con-02): Publish profile launch, harness capability and terminal contracts | aq-worker | [CON-01](#con-01), [API-01](#api-01) | complete |
 | [AQ-18](#aq-18): Build the compositional profile catalog, compiler and explanation CLI | agent-q | [CON-02](#con-02) | complete |
 | [AQ-19](#aq-19): Implement project execution bindings and policy administration | agent-q | [AQ-18](#aq-18), [AQ-03](#aq-03) | complete |
@@ -147,7 +145,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [AQ-11](#aq-11): Implement durable supervisor and agent messaging | agent-q | [AQ-03](#aq-03), [API-01](#api-01) | complete |
 | [WRK-09](#wrk-09): Deliver messages through the real harness safely | aq-worker | [WRK-08](#wrk-08), [AQ-11](#aq-11) | planned |
 | [AQ-17](#aq-17): Host bounded supervisor sessions centrally | agent-q | [AQ-11](#aq-11), [AQ-06](#aq-06), [AQ-18](#aq-18), [AQ-20](#aq-20), [WRK-08](#wrk-08), [WRK-10](#wrk-10) | planned |
-| [AQ-12](#aq-12): Embed the qualified playbook runner with bounded execution | agent-q | [PB-01](#pb-01), [AQ-07](#aq-07) | planned |
+| [AQ-12](#aq-12): Embed the qualified playbook runner with bounded execution | agent-q | [PB-01](#pb-01), [AQ-07](#aq-07) | in_progress |
 | [AQ-13](#aq-13): Implement core work, context and operation host adapters | agent-q | [AQ-12](#aq-12), [AQ-08](#aq-08), [AQ-05](#aq-05), [AQ-11](#aq-11), [AQ-20](#aq-20) | planned |
 | [AQ-14](#aq-14): Implement judgment, decision and check host adapters | agent-q | [AQ-13](#aq-13), [AQ-10](#aq-10), [AQ-17](#aq-17), [WRK-09](#wrk-09) | planned |
 | [AQ-15](#aq-15): Implement candidate preparation and guarded publication policy | agent-q | [AQ-14](#aq-14), [AQ-09](#aq-09), [GIT-01](#git-01) | planned |
@@ -645,7 +643,7 @@ Acceptance:
 
 Requirement links: D1, D6, D9, W3, W4, W5, W13, P2, P4, P5, P6, P7.
 
-Evidence: [AQ-08-stage1.md](../implementation/AQ-08-stage1.md), [AQ-08-stage1.json](../implementation/AQ-08-stage1.json), [AQ-08-contract-0.1.1.json](../implementation/AQ-08-contract-0.1.1.json), [AQ-08-execution-spec-0.1.2.json](../implementation/AQ-08-execution-spec-0.1.2.json), [AQ-08-hot-authority-qualification.json](../implementation/AQ-08-hot-authority-qualification.json), [AQ-08-source-grant-gate-qualification.json](../implementation/AQ-08-source-grant-gate-qualification.json), [AQ-08-never-granted-closure.md](../implementation/AQ-08-never-granted-closure.md), [AQ-08-policy-principals.md](../implementation/AQ-08-policy-principals.md), [AQ-08-policy-install-qualification.json](../implementation/AQ-08-policy-install-qualification.json), [AQ-08-AQ-22-state17-qualification.json](../implementation/AQ-08-AQ-22-state17-qualification.json), [AQ-08-started-owner.md](../implementation/AQ-08-started-owner.md), [AQ-08-started-contract-0.1.3.json](../implementation/AQ-08-started-contract-0.1.3.json), [AQ-08-AQ-21-state19-qualification.json](../implementation/AQ-08-AQ-21-state19-qualification.json), [AQ-08-provider-material-owner.md](../implementation/AQ-08-provider-material-owner.md), [AQ-08-source-observation.md](../implementation/AQ-08-source-observation.md), [AQ-08-material-delivery.md](../implementation/AQ-08-material-delivery.md), [AQ-08-material-delivery-qualification.json](../implementation/AQ-08-material-delivery-qualification.json), [AQ-08-acyclic-graph-policy-qualification.json](../implementation/AQ-08-acyclic-graph-policy-qualification.json), [AQ-08-inline-artifacts.md](../implementation/AQ-08-inline-artifacts.md), [AQ-08-inline-artifacts-qualification.json](../implementation/AQ-08-inline-artifacts-qualification.json), [AQ-08-artifact-phases-qualification.md](../implementation/AQ-08-artifact-phases-qualification.md), [AQ-08-artifact-phases-qualification.json](../implementation/AQ-08-artifact-phases-qualification.json).
+Evidence: [AQ-08-stage1.md](../implementation/AQ-08-stage1.md), [AQ-08-stage1.json](../implementation/AQ-08-stage1.json), [AQ-08-contract-0.1.1.json](../implementation/AQ-08-contract-0.1.1.json), [AQ-08-execution-spec-0.1.2.json](../implementation/AQ-08-execution-spec-0.1.2.json), [AQ-08-hot-authority-qualification.json](../implementation/AQ-08-hot-authority-qualification.json), [AQ-08-source-grant-gate-qualification.json](../implementation/AQ-08-source-grant-gate-qualification.json), [AQ-08-never-granted-closure.md](../implementation/AQ-08-never-granted-closure.md), [AQ-08-policy-principals.md](../implementation/AQ-08-policy-principals.md), [AQ-08-policy-install-qualification.json](../implementation/AQ-08-policy-install-qualification.json), [AQ-08-AQ-22-state17-qualification.json](../implementation/AQ-08-AQ-22-state17-qualification.json), [AQ-08-started-owner.md](../implementation/AQ-08-started-owner.md), [AQ-08-started-contract-0.1.3.json](../implementation/AQ-08-started-contract-0.1.3.json), [AQ-08-AQ-21-state19-qualification.json](../implementation/AQ-08-AQ-21-state19-qualification.json), [AQ-08-provider-material-owner.md](../implementation/AQ-08-provider-material-owner.md), [AQ-08-source-observation.md](../implementation/AQ-08-source-observation.md), [AQ-08-material-delivery.md](../implementation/AQ-08-material-delivery.md), [AQ-08-material-delivery-qualification.json](../implementation/AQ-08-material-delivery-qualification.json), [AQ-08-acyclic-graph-policy-qualification.json](../implementation/AQ-08-acyclic-graph-policy-qualification.json), [AQ-08-inline-artifacts.md](../implementation/AQ-08-inline-artifacts.md), [AQ-08-inline-artifacts-qualification.json](../implementation/AQ-08-inline-artifacts-qualification.json), [AQ-08-artifact-phases-qualification.md](../implementation/AQ-08-artifact-phases-qualification.md), [AQ-08-artifact-phases-qualification.json](../implementation/AQ-08-artifact-phases-qualification.json), [AQ-08-native-completion-plan.md](../implementation/AQ-08-native-completion-plan.md).
 
 ### WRK-05
 
@@ -749,7 +747,7 @@ Outside this task: Closing all-harness product acceptance (WRK-11/12/13 and INT-
 
 **Apply evidence-based result disposition and graph completion**
 
-Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [AQ-05](#aq-05), [AQ-07](#aq-07), [AQ-09](#aq-09).
 
@@ -761,6 +759,8 @@ Acceptance:
 - Graph completion remains pending until confirmed; crash/replay emits one logical completion event.
 
 Requirement links: D3, D5, D6, D9, X6, X7, X10, X12.
+
+Evidence: [AQ-10-result-settlement-plan.md](../implementation/AQ-10-result-settlement-plan.md).
 
 ### CON-02
 
@@ -950,11 +950,13 @@ Requirement links: D4, W1, X11, X13, P2, P4, P5, H1, H3, H4, C6, S1, S2.
 
 Outside this task: General supervisor autonomy or all v1 profiles.
 
+Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md).
+
 ### AQ-12
 
 **Embed the qualified playbook runner with bounded execution**
 
-Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [PB-01](#pb-01), [AQ-07](#aq-07).
 
@@ -966,6 +968,8 @@ Acceptance:
 - A blocked storage/host operation cannot stall lease renewal or cancellation; synthetic host commands are not registered as production adapters.
 
 Requirement links: E1, D2, D6, D7, X8, X14.
+
+Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md).
 
 ### AQ-13
 
@@ -986,6 +990,8 @@ Acceptance:
 
 Requirement links: D2, D4, D5, D6, W10, X6, X10, P3, P5, P6, P7, C6, N1.
 
+Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md).
+
 ### AQ-14
 
 **Implement judgment, decision and check host adapters**
@@ -1002,6 +1008,8 @@ Acceptance:
 - Async acceptance, completion, cancellation and late outcomes remain distinct and replayable.
 
 Requirement links: D2, D3, D6, W1, X6, X7.
+
+Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md).
 
 ### AQ-15
 
@@ -1022,6 +1030,8 @@ Requirement links: E3, D3, D6, W7, X7.
 
 Outside this task: Publishing user production branches during qualification.
 
+Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md).
+
 ### AQ-16
 
 **Implement findings reconciliation and durable calendar/report coordination**
@@ -1039,6 +1049,8 @@ Acceptance:
 - AQ-27 connects findings/digest notification intents to actual human transport; this service remains the sole episode/suppression and report-window owner.
 
 Requirement links: D2, D6, D9, W1, X6, X13, N3.
+
+Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md).
 
 ### CON-03
 
@@ -1526,7 +1538,7 @@ Requirement links: R1, R2, R3, R4, R5, R6, H3, H4, W2, W9.
 
 Outside this task: Provider-specific transcript parsing, full-duplex worker server-push transport.
 
-Evidence: [WRK-14-stage1.md](../../../aq-worker/docs/implementation/WRK-14-stage1.md), [WRK-14-integration.md](../../../aq-worker/docs/implementation/WRK-14-integration.md), [WRK-14-integration.json](../../../aq-worker/docs/implementation/WRK-14-integration.json).
+Evidence: [WRK-14-stage1.md](../../../aq-worker/docs/implementation/WRK-14-stage1.md), [WRK-14-integration.md](../../../aq-worker/docs/implementation/WRK-14-integration.md), [WRK-14-integration.json](../../../aq-worker/docs/implementation/WRK-14-integration.json), [WRK-14-output-plan.md](../../../aq-worker/docs/implementation/WRK-14-output-plan.md).
 
 ### UI-03
 

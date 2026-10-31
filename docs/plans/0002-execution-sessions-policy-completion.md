@@ -147,3 +147,20 @@ batch cannot close those broader tasks by omitting the dependencies. Retain
 separate evidence for completed notification/digest work. Live-provider and
 external-destination qualification must record actual configured targets and
 results; fake peers cannot substitute for those product claims.
+
+## Reconciled designs and active implementation plans
+
+On2026-10-31 the shared ecosystem/execution/profile/session designs and worker
+framework/execution specifications were reconciled with current components.
+Native acceptance now explicitly returns preparation authority before a separate
+grant; schema2 composition precedes final selected-model access-profile derivation.
+Historical checkpoint prose is identified rather than treated as current status.
+
+Concrete current plans are now retained for the
+[native producer](../implementation/AQ-08-native-completion-plan.md),
+[stopped evidence/result settlement](../implementation/AQ-10-result-settlement-plan.md),
+[terminal output](../../../aq-worker/docs/implementation/WRK-14-output-plan.md) and
+[embedded policy/supervisors](../implementation/AQ-12-through-17-plan.md).
+The playbook host integration boundary now names actual existing AQ owners.
+These plans identify staged implementation and remaining acceptance requirements;
+their publication alone does not complete the corresponding milestone.

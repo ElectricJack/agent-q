@@ -856,7 +856,8 @@
         "../implementation/AQ-08-inline-artifacts.md",
         "../implementation/AQ-08-inline-artifacts-qualification.json",
         "../implementation/AQ-08-artifact-phases-qualification.md",
-        "../implementation/AQ-08-artifact-phases-qualification.json"
+        "../implementation/AQ-08-artifact-phases-qualification.json",
+        "../implementation/AQ-08-native-completion-plan.md"
       ]
     },
     {
@@ -1046,7 +1047,7 @@
       "repo": "agent-q",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "AQ-05",
         "AQ-07",
@@ -1068,7 +1069,9 @@
         "Graph completion remains pending until confirmed; crash/replay emits one logical completion event."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-10-result-settlement-plan.md"
+      ]
     },
     {
       "id": "CON-02",
@@ -1392,7 +1395,9 @@
       "out_of_scope": [
         "General supervisor autonomy or all v1 profiles"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-12-through-17-plan.md"
+      ]
     },
     {
       "id": "AQ-12",
@@ -1400,7 +1405,7 @@
       "repo": "agent-q",
       "milestone": "M5",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "PB-01",
         "AQ-07"
@@ -1419,7 +1424,9 @@
         "A blocked storage/host operation cannot stall lease renewal or cancellation; synthetic host commands are not registered as production adapters."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-12-through-17-plan.md"
+      ]
     },
     {
       "id": "AQ-13",
@@ -1458,7 +1465,9 @@
         "Host context/event extension points admit only finite schemas; session suspension APIs are not arbitrary work.change or operation-name escape hatches."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-12-through-17-plan.md"
+      ]
     },
     {
       "id": "AQ-14",
@@ -1487,7 +1496,9 @@
         "Async acceptance, completion, cancellation and late outcomes remain distinct and replayable."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-12-through-17-plan.md"
+      ]
     },
     {
       "id": "AQ-15",
@@ -1516,7 +1527,9 @@
       "out_of_scope": [
         "Publishing user production branches during qualification"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-12-through-17-plan.md"
+      ]
     },
     {
       "id": "AQ-16",
@@ -1545,7 +1558,9 @@
         "AQ-27 connects findings/digest notification intents to actual human transport; this service remains the sole episode/suppression and report-window owner."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-12-through-17-plan.md"
+      ]
     },
     {
       "id": "CON-03",
@@ -2378,7 +2393,8 @@
       "evidence": [
         "../../../aq-worker/docs/implementation/WRK-14-stage1.md",
         "../../../aq-worker/docs/implementation/WRK-14-integration.md",
-        "../../../aq-worker/docs/implementation/WRK-14-integration.json"
+        "../../../aq-worker/docs/implementation/WRK-14-integration.json",
+        "../../../aq-worker/docs/implementation/WRK-14-output-plan.md"
       ]
     },
     {
