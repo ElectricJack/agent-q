@@ -220,7 +220,7 @@ async fn resolve_with_principal(
     }
     let mut tx = state.store.pool.begin().await.map_err(db)?;
     // Metadata publication uses the project/node/catalog fence, then registry.
-    fence_snapshot(state, &mut tx, &decision).await?;
+    fence_snapshot(state, &mut tx, &decision, false).await?;
     sqlx::query("SELECT pg_advisory_xact_lock(712010)")
         .execute(&mut *tx)
         .await
@@ -263,6 +263,78 @@ pub async fn fence_for_offer(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     decision: &Decision,
 ) -> Result<()> {
+    fence_retained_decision(state, tx, decision, false).await
+}
+/// Only the current locked, never-granted native reservation may be discounted
+/// when comparing its original pre-offer decision. No durable count is changed.
+pub(crate) async fn fence_for_preparation(
+    state: &AppState,
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    decision: &Decision,
+    binding: &aq_session_protocol::LaunchBinding,
+) -> Result<()> {
+    use crate::execution::{
+        authority::{self, Kind, Policy},
+        profiled::Status,
+    };
+    let view = authority::load_locked(state, tx, &binding.session, Policy::IdentityOnly).await?;
+    let selection = decision
+        .outcome
+        .resolved
+        .as_ref()
+        .ok_or_else(|| conflict("missing reserved selection"))?;
+    if view.kind != Kind::ProfiledV1
+        || !view.holds_task
+        || view.revoked
+        || view.stopped
+        || view.cancellation_id.is_some()
+        || !matches!(view.status, Status::Offered | Status::Preparing)
+        || view.grant_id.is_some()
+        || view.offer_id != binding.offer_id
+        || view.execution_spec_digest != binding.execution_spec_digest.as_str()
+        || view.launch_manifest_digest.as_ref() != Some(&binding.launch_manifest_digest)
+        || view.project_id != selection.lineage.project_id
+        || view.task_id != selection.lineage.task_id
+        || view.selection_digest.as_ref()
+            != Some(&digest(selection).map_err(|_| AppError::Internal)?)
+    {
+        return Err(conflict("not the exact owned ungranted reservation"));
+    }
+    let link: Option<Uuid> = sqlx::query_scalar(
+        "SELECT decision_id FROM profiled_launches WHERE attempt_id=$1 FOR SHARE",
+    )
+    .bind(binding.attempt_id)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(db)?;
+    if link != Some(decision.decision_id) {
+        return Err(conflict("reservation decision mismatch"));
+    }
+    // Actual hot state is required: compatibility fixture grants cannot acquire
+    // this capability by projecting grant=None from historical JSON.
+    let hot: Option<Value> = sqlx::query_scalar(
+        "SELECT state FROM profiled_authority_hot WHERE attempt_id=$1 FOR UPDATE",
+    )
+    .bind(binding.attempt_id)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(db)?;
+    let hot: crate::execution::authority::hot::HotState =
+        serde_json::from_value(hot.ok_or_else(|| conflict("native reservation missing"))?)
+            .map_err(|_| AppError::Internal)?;
+    hot.validate_against(binding)
+        .map_err(|_| conflict("invalid native reservation"))?;
+    if hot.grant.is_some() || !matches!(hot.status, Status::Offered | Status::Preparing) {
+        return Err(conflict("reservation has issued authority"));
+    }
+    fence_retained_decision(state, tx, decision, true).await
+}
+async fn fence_retained_decision(
+    state: &AppState,
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    decision: &Decision,
+    owned_ungranted: bool,
+) -> Result<()> {
     let stored: Value = sqlx::query_scalar(
         "SELECT decision FROM intelligence_decisions WHERE decision_id=$1 FOR SHARE",
     )
@@ -290,7 +362,7 @@ pub async fn fence_for_offer(
     if decision.outcome.resolved.is_none() {
         return Err(conflict("decision has no eligible selection"));
     }
-    fence_snapshot(state, tx, decision).await?;
+    fence_snapshot(state, tx, decision, owned_ungranted).await?;
     principal::fence(state, tx, decision).await?;
     check_time(state, decision)
 }
@@ -298,6 +370,7 @@ async fn fence_snapshot(
     state: &AppState,
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     decision: &Decision,
+    owned_ungranted: bool,
 ) -> Result<()> {
     crate::project_bindings::fence_for_offer(state, tx, &decision.project).await?;
     registry::check_current(state, tx).await?;
@@ -352,12 +425,22 @@ async fn fence_snapshot(
     {
         return Err(conflict("relevant availability changed"));
     }
-    let counts = crate::profiled_execution::no_grant::attempt_counts_locked(
+    let mut counts = crate::profiled_execution::no_grant::attempt_counts_locked(
         tx,
         decision.inputs.project.lineage.task_id,
     )
     .await?
     .check_retry_bound()?;
+    if owned_ungranted {
+        counts.started = counts
+            .started
+            .checked_sub(1)
+            .ok_or_else(|| conflict("reserved attempt count mismatch"))?;
+        counts.history = counts
+            .history
+            .checked_sub(1)
+            .ok_or_else(|| conflict("reserved history count mismatch"))?;
+    }
     if counts.started != decision.inputs.budget.attempts_started
         || counts.budget_revision() != decision.inputs.budget.revision
     {

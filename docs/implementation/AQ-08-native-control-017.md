@@ -1,10 +1,11 @@
 # Native worker control replies: admission0.1.7 candidate
 
-Status: design candidate before implementation/publication. Frozen0.1.6 and its
-archive remain unchanged. This document specifies the missing native control
-replies; it does not claim poll/accept/prepare/grant/renew handlers are installed.
-The source022 checkpoint owns only source preparation. Migration025 is reserved
-for the actual producer's required storage and typed inline Source observation.
+Status: 0.1.7 is frozen and independently archive-qualified (see
+[native completion plan](AQ-08-native-completion-plan.md)). Frozen 0.1.6
+and its archive remain unchanged. The current preparation checkpoint mounts
+Accept→Preparation only; poll/offer production, Prepare→Grant, renewal and
+reconciliation remain incomplete. Source025 owns actual inline Source observation
+and current-auth source reads. Definition027 is an unregistered component until026.
 
 ## Ownership and routes
 
