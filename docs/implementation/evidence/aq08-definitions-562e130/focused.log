@@ -1,0 +1,48 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-native-producer/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.23s
+     Running tests/native_definitions.rs (/home/jkern/dev/agent-q/target/debug/deps/native_definitions-9544e40acf15f4d7)
+
+running 3 tests
+test exact_bytes_kind_identity_bounds_and_configuration_roundtrip ... ok
+test real_receipts_missing_bodies_and_immutable_definition_versions ... ok
+test concurrent_changed_definitions_cannot_claim_same_identity_version ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+     Running tests/native_registration.rs (/home/jkern/dev/agent-q/target/debug/deps/native_registration-ee9ec9cc3daeca31)
+
+running 4 tests
+test native_semantics_ignore_only_operation_id_not_runtime_or_capability_change ... ok
+test startup_installs_policy_anchor_and_refuses_stale_configuration ... ok
+test configured_allowlist_does_not_synthesize_registration_and_admitted_identity_is_exact ... ok
+test native_writer_replays_without_reinstall_and_fences_held_claims_and_credentials ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.72s
+
+     Running tests/profiled_config.rs (/home/jkern/dev/agent-q/target/debug/deps/profiled_config-f8d5e4df4c012099)
+
+running 2 tests
+test configuration_and_runtime_claims_refuse_duplicates_unsafe_refs_and_unqualified_artifacts ... ok
+test policy_artifact_binds_global_qualification_and_exact_source_without_user_actor ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/project_bindings.rs (/home/jkern/dev/agent-q/target/debug/deps/project_bindings-57f4640e686ce611)
+
+running 13 tests
+test catalog_activation_blocks_future_eligibility_and_keeps_frozen_project_revision ... ok
+test committed_binding_installs_pending_policy_and_historical_ack_survives_retirement ... ok
+test empty_policy_configuration_still_retains_global_revision_owner ... ok
+test absent_stale_forbidden_and_offline_components_refuse_and_disable_stays_available ... ok
+test exact_replay_survives_group_configuration_changes_but_new_mutations_do_not ... ok
+test final_local_fence_rechecks_node_revocation_after_lock_wait ... ok
+test intelligence_decision_is_immutable_and_final_fence_rechecks_scoped_facts ... ok
+test observation_expiring_during_mutation_lock_wait_never_commits_fresh_validation ... ok
+test owner_scope_node_restrictions_and_mutation_unknown_fields_are_enforced ... ok
+test selected_real_public_repository_and_graph_workspace_bind ... ignored, requires immutable selected aq-git and aq-graph components via scripts/test-project-bindings.py
+test policy_install_is_atomic_retains_tombstones_and_refuses_configuration_rollback ... ok
+test project_policy_decisions_have_no_human_actor_and_recheck_installed_policy ... ok
+test revisioned_binding_replay_history_and_retained_snapshot_survive_updates ... ok
+
+test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 8.74s
+

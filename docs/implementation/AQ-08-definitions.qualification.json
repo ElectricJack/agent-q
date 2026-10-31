@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "source_commit": "562e130351e308fd6e6215ba7bfd43f304b9b410",
+  "source_sha256": {
+    "crates/aq-server/migrations/0027_native_definition_identities.sql": "02aa60ce3159a3d1447cb903e4cdd759c2b46caf6f846db5eea38ed2edf85bb6",
+    "crates/aq-server/src/profiled_execution.rs": "b603d3c31adb345bafa389267f3a9742780dee56b9602d90b59001a38f009fb1",
+    "crates/aq-server/src/profiled_execution/config.rs": "a5d34fa599940f4257b51dcf07b392eb84589c3d5b81d9a0538fe6556d28408f",
+    "crates/aq-server/src/profiled_execution/definitions.rs": "66e52692494774595c1a6ba86f604368a1bcad87548a83996a08694577e5357c",
+    "crates/aq-server/src/profiled_execution/policies.rs": "dbacc73aaa325fc86bd4c58f89b348aaab0e2a8d717299607f29e9a2d4f0b143",
+    "crates/aq-server/tests/common/native_started.rs": "f9a5372c64710cc48d081b62bb534ea5860149dc10d05c31d5b11ae0f2c20139",
+    "crates/aq-server/tests/common/source_exports.rs": "aa5f8e80a6bd3db45f307aabf68e2cfd24ba1b4d02e1af7b50bc0f748d472f08",
+    "crates/aq-server/tests/native_definitions.rs": "0738c39fc589189cdb531b02c5e4a925ce3ffeb9305b78c0f16f6b461fa8d67e",
+    "crates/aq-server/tests/native_inventory.rs": "12c45654338689027d8511b9d51255dcf9c1947f0306e9d112986fe856dd620f",
+    "crates/aq-server/tests/native_registration.rs": "b006eec96a364b544c56bc73faeb640824a29b1bf9a304230a5e15c94fb51cb4",
+    "crates/aq-server/tests/profiled_artifact_phases.rs": "45a235d96b6e57618b84636b24565d90b54d9b905bc58abd55607e8e83ec2b8c",
+    "crates/aq-server/tests/profiled_artifacts.rs": "83249801aafda8097ff65c1503c0a8045f17951ea4a97da04bc7992877e15a68",
+    "crates/aq-server/tests/profiled_config.rs": "84e93e408511440a6853f6ab0388b4199bce4518e57889b3e7f0cd04542e3266",
+    "crates/aq-server/tests/profiled_context.rs": "6f13b00019b07d8cf8bdc7a3011b68bc5c70611b8bd4d856c37352b2a0f6dbec",
+    "crates/aq-server/tests/profiled_material.rs": "8bee52d4438acbe3fd432a15f5801d39c07338bb416670a2e7ea6b75189fd173",
+    "crates/aq-server/tests/profiled_source.rs": "05261fc113937de28ac7b4c7d4cae1f4950258d0e912345f1bff8e3203685fd9",
+    "crates/aq-server/tests/project_bindings.rs": "d6b3342d66899e314b6a5194fa9e07afd07e37934f4b95d4f15347da3d0b70cc",
+    "docs/implementation/AQ-08-native-completion-plan.md": "ef0f869de6887bd171125cb22b212f572ffd57e5546404053db17c6e5b353b94"
+  },
+  "logs": {
+    "docs/implementation/evidence/aq08-definitions-562e130/focused.log": {
+      "sha256": "b0de8ba036e6c0a31f152973ded42f075c85d10eaddd97c2e2d9b5be42e2d18b",
+      "bytes": 3047
+    },
+    "docs/implementation/evidence/aq08-definitions-562e130/clippy.log": {
+      "sha256": "8c19a19d358d867a46017ea77758033a95c80012506b7f5d4d7f15847d7c551b",
+      "bytes": 148
+    },
+    "docs/implementation/evidence/aq08-definitions-562e130/format.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "results": {
+    "new_definition_owner_tests": 3,
+    "native_registration": 4,
+    "profiled_configuration": 2,
+    "project_binding_principal_installer": 12,
+    "failed": 0,
+    "declared_real_peer_ignore": 1,
+    "strict_server_all_target_all_feature_clippy": "pass",
+    "format": "pass"
+  },
+  "commands": [
+    "RUST_TEST_THREADS=4 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-server --test native_definitions --test profiled_config --test project_bindings --test native_registration --locked --offline",
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo clippy -p aq-server --all-targets --all-features --locked --offline -- -D warnings",
+    "cargo fmt --package aq-server --check"
+  ],
+  "limitations": [
+    "027 explicitly applied in definition component tests; unregistered until026, not an ordered migration chain qualification.",
+    "Public synthetic definition bytes test ownership/digests only; no real CLI/model/counting/credential/environment qualification.",
+    "Producer offer/accept/prepare/grant/renew orchestration remains incomplete.",
+    "Per-artifact retention is durable, not atomic multi-artifact catalog activation; failures may leave bounded charged retained bodies.",
+    "Final offer/grant must fence the same compact configuration anchor after external work and waits."
+  ]
+}
