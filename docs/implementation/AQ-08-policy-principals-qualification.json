@@ -1,0 +1,31 @@
+{
+  "source_revision": "ee223dab4f721cbc2c29b55d7522926f35f9f4eb",
+  "qualification": {
+    "project_resolver_postgres_passed": 9,
+    "declared_real_peer_ignored": 1,
+    "all_target_all_feature_clippy": "passed",
+    "workspace_format": "passed"
+  },
+  "worktree": "/tmp/aq17-clean",
+  "shared_build_cache": "/tmp/aq22-observations/target",
+  "source_sha256": {
+    "crates/aq-server/migrations/0017_policy_decision_principals.sql": "2733cc9bad30b9cb77a4964a15810ba04e40e3535ab37b3f2587f090233c3d95",
+    "crates/aq-server/src/intelligence.rs": "c7d5ddd9c486a3474a203a609bf17a327efebebf3bdc31a0e4ca58dab0a69907",
+    "crates/aq-server/src/intelligence/principal.rs": "300d7365f76190789a83a74c68aac31ec9a2ed7c64b9ab867541aab21e2f2cc1",
+    "crates/aq-server/src/intelligence/resolver.rs": "bcb10ab6c951412a5fa68dfa9da6c4c6ebfcb4c32f1a418eb1c38d88db765e59",
+    "crates/aq-server/src/profiled_execution/config.rs": "50e2737cb0a7bc2ba9cae7edcd2c005cfb872707070da4be8e32300194ea6ecf",
+    "crates/aq-server/tests/project_bindings.rs": "8c9181b16de01d748b7b7d0ee7b1b128d86ac7c8c73455546341ce325489182d",
+    "docs/implementation/AQ-08-policy-principals.md": "a4bf433db56df133533f8fb26f7275b143cbba321ac0b090ef2356746b2042e8"
+  },
+  "logs_sha256": {
+    "docs/implementation/evidence/aq08-policy-ee223da/tests.log": "0ad0e9fb34f02d3abd3bbd2b5bba01e3fe10b619d5d6c1f688c3a03b8e593936",
+    "docs/implementation/evidence/aq08-policy-ee223da/clippy.log": "d9d8b76d194b90a4ae3532dfd0772a1f8ba94da95dcba572129add537c304c79",
+    "docs/implementation/evidence/aq08-policy-ee223da/format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "limitations": [
+    "Migration017 is explicitly installed in tests, pending ordered015/016/017 runtime registration.",
+    "Tests use actual AQ project/resolver services and designated fake graph/git/provider facts, not live model calls.",
+    "Source-policy installation/tombstones and NeverGranted budget/own-reservation fencing remain separately owned AQ08 work.",
+    "Decision JSON is unchanged; scope/replay authority is separate immutable metadata."
+  ]
+}
