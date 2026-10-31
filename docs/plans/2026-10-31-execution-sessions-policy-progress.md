@@ -31,6 +31,23 @@ Implemented components in that checkpoint:
   A blocked backend does not block actual daemon renew/cancel HTTP. No production
   commands or startup mount are implied by this foundation.
 
+Subsequent component checkpoints (not a rerun of the717-test assembled source):
+
+- [Admission0.1.6](../implementation/aq-admission-0.1.6-qualification.md) has43
+  passing repository tests and43 passing independent extracted-package tests,
+  with strict lint and formatting. It adds one unambiguous final startup payload
+  descriptor and a Recorded-only result acknowledgment; native consumption and
+  database result recording remain separate implementation work.
+- [Pre-offer Git I/O](../implementation/AQ-08-preoffer-io-qualification.json) has7
+  passing focused tests, including an actual export/retry/fresh-retention test
+  against retained aq-git/Git binaries. Fixed bounded chunk reads reopen members
+  without following symlinks. Durable quota/finalization and native authenticated
+  download routes must adopt this helper before claiming a complete producer.
+- Upstream keyed playbook admission is retained in aq-playbooks sourcea463e59:
+  atomic run/receipt creation and protection against old writers. Its exact
+  archive has158 all-feature test executions and strict lint/format checks.
+  Central bridge and command adapter adoption are still in progress.
+
 Continuing work:
 
 - Native preparation/offer/grant assembly and actual worker consumer. Pre-offer Git
@@ -41,9 +58,11 @@ Continuing work:
 - Bounded terminal tail qualification, followed by renderer/full baseline and
   snapshot/live barriers. Negative candidate14354e7 confirmed that a sole SIGSTOPped
   tmux control observer can block the harness write despite pause-after. Input was
-  Applied and the guardian remained Running. A guardian-owned reader lease with
-  bounded drain heartbeats is now the correction design; no tail acceptance claim
-  is made until independent cutoff/progress and regression tests pass.
+  Applied and the guardian remained Running. The guardian-owned reader lease candidatecfe2c33 now passes303 normal tests
+  (36 ignored) and29 actual-host tests, including independent cutoff and continued
+  harness progress. Its dense-packet tail regression remains negative at that
+  checkpoint. A subsequent bounded incremental parser is being qualified; full
+  rendering/baseline and adoption remain open.
 - Keyed playbook admission and actual AQ adapters. Upstream adds atomic run/receipt
   creation and an old-writer fence; central durable bridge adoption is separate.
   PB04's25ms latency target remains unmet and is not relaxed.

@@ -859,7 +859,10 @@
         "../implementation/AQ-08-artifact-phases-qualification.json",
         "../implementation/AQ-08-native-completion-plan.md",
         "../implementation/evidence/aq08-context-5510d3d/qualification.json",
-        "../implementation/evidence/aq08-startup-c3f49fd/qualification.json"
+        "../implementation/evidence/aq08-startup-c3f49fd/qualification.json",
+        "../implementation/aq-admission-0.1.6-qualification.md",
+        "../implementation/AQ-08-preoffer-source-export.md",
+        "../implementation/AQ-08-preoffer-io-qualification.json"
       ]
     },
     {
@@ -1074,7 +1077,8 @@
       "evidence": [
         "../implementation/AQ-10-result-settlement-plan.md",
         "../implementation/AQ-10-stopped-owner-qualification.md",
-        "../implementation/AQ-10-outcome-contract-qualification.md"
+        "../implementation/AQ-10-outcome-contract-qualification.md",
+        "../implementation/aq-admission-0.1.6-qualification.md"
       ]
     },
     {
