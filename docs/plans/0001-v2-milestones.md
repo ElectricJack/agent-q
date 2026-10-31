@@ -184,8 +184,8 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [UI-04](#ui-04): Expose session health, accounting, waits and notification delivery | aq-dashboard | [UI-01](#ui-01), [CON-03](#con-03) | planned |
 | [INT-03](#int-03): Qualify session operations, external delivery and cross-node hibernation | agent-q | [GATE-05](#gate-05), [INT-02](#int-02), [AQ-22](#aq-22), [AQ-23](#aq-23), [AQ-24](#aq-24), [AQ-25](#aq-25), [AQ-26](#aq-26), [AQ-27](#aq-27), [WRK-15](#wrk-15), [WRK-16](#wrk-16), [UI-04](#ui-04) | planned |
 | [GATE-06](#gate-06): Accept a usable, measured and upgradeable AQ product candidate | agent-q | [GATE-05](#gate-05), [REL-02](#rel-02), [REL-03](#rel-03), [PERF-01](#perf-01), [OPS-01](#ops-01), [INT-02](#int-02), [INT-03](#int-03) | planned |
-| [PB-03](#pb-03): Remove redundant immutable-artifact work from playbook storage commits | aq-playbooks | [PB-02](#pb-02) | in_progress |
-| [PB-04](#pb-04): Bound playbook transition persistence costs as history grows | aq-playbooks | [PB-03](#pb-03) | planned |
+| [PB-03](#pb-03): Remove redundant immutable-artifact work from playbook storage commits | aq-playbooks | [PB-02](#pb-02) | complete |
+| [PB-04](#pb-04): Bound playbook transition persistence costs as history grows | aq-playbooks | [PB-03](#pb-03) | in_progress |
 
 ## Task contracts
 
@@ -1609,7 +1609,7 @@ Requirement links: E1, E2, E3, E4, E5, E6, E7, E8, U7, U8, P1, P3, P5, P6, P7, H
 
 **Remove redundant immutable-artifact work from playbook storage commits**
 
-Owner: `aq-playbooks`. Milestone: M6. Kind: implementation. Status: in_progress.
+Owner: `aq-playbooks`. Milestone: M6. Kind: implementation. Status: complete.
 
 Hard prerequisites: [PB-02](#pb-02).
 
@@ -1624,11 +1624,13 @@ Requirement links: E8, D7.
 
 Outside this task: New external caches/services, weaker integrity/retention checks, widening limits to pass benchmarks.
 
+Evidence: [PB-03.md](../../../aq-playbooks/docs/implementation/PB-03.md), [PB-03.json](../../../aq-playbooks/docs/implementation/PB-03.json).
+
 ### PB-04
 
 **Bound playbook transition persistence costs as history grows**
 
-Owner: `aq-playbooks`. Milestone: M6. Kind: implementation. Status: planned.
+Owner: `aq-playbooks`. Milestone: M6. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [PB-03](#pb-03).
 

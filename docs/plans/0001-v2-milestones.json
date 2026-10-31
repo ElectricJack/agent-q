@@ -2561,7 +2561,7 @@
       "repo": "aq-playbooks",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "PB-02"
       ],
@@ -2577,7 +2577,10 @@
       "out_of_scope": [
         "New external caches/services, weaker integrity/retention checks, widening limits to pass benchmarks"
       ],
-      "evidence": []
+      "evidence": [
+        "../../../aq-playbooks/docs/implementation/PB-03.md",
+        "../../../aq-playbooks/docs/implementation/PB-03.json"
+      ]
     },
     {
       "id": "PB-04",
@@ -2585,7 +2588,7 @@
       "repo": "aq-playbooks",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "PB-03"
       ],
