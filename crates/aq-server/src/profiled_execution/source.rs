@@ -206,6 +206,7 @@ pub async fn observe(
 }
 fn hex40(s: &str) -> bool {
     s.len() == 40
+        && s.bytes().any(|b| b != b'0')
         && s.bytes()
             .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
 }

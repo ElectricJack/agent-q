@@ -22,6 +22,17 @@ async fn actual_source_owner_retains_typed_bytes_without_relabeling_context_prop
     let row=sqlx::query("SELECT artifact_id,body,descriptor FROM admission_artifacts WHERE descriptor->'artifact'=$1 AND owner_kind='source_retention'").bind(serde_json::to_value(&request.source_observation).unwrap()).fetch_one(&pool).await.unwrap();
     let bytes: Vec<u8> = row.get("body");
     let body: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let mut invalid = body.clone();
+    invalid["evidence"]["commit_inspection"]["tree"]["hex"] = "0".repeat(40).into();
+    assert!(
+        source::validate_body(
+            &serde_json::to_vec(&invalid).unwrap(),
+            request.project_id,
+            NOW
+        )
+        .is_err(),
+        "Git's null tree ID cannot be source admission evidence"
+    );
     let observation = source::Observation {
         admission: serde_json::from_value(body["admission"].clone()).unwrap(),
         retention_handle: request.source_retention_handle,
