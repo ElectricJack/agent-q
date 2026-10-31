@@ -1,0 +1,356 @@
+{
+  "format_version": 1,
+  "packages": {
+    "aq-playbook-host": "0.1.1",
+    "aq-playbooks-model": "0.1.0",
+    "aq-playbooks-postgres": "0.1.1",
+    "aq-playbooks-runner": "0.1.1"
+  },
+  "registry": {
+    "commands": {
+      "message.send": {
+        "asynchronous": null,
+        "cancellation": true,
+        "capabilities": [
+          "message.send"
+        ],
+        "deadline_ms": 5000,
+        "effect": "mutation",
+        "input": {
+          "properties": {
+            "body": {
+              "max_length": 16384,
+              "type": "string",
+              "values": []
+            },
+            "recipient": {
+              "type": "union",
+              "variants": [
+                {
+                  "properties": {
+                    "kind": {
+                      "max_length": 16,
+                      "type": "string",
+                      "values": [
+                        "task"
+                      ]
+                    },
+                    "project_id": {
+                      "max_length": 36,
+                      "type": "string",
+                      "values": []
+                    },
+                    "task_id": {
+                      "max_length": 36,
+                      "type": "string",
+                      "values": []
+                    },
+                    "workspace_id": {
+                      "max_length": 36,
+                      "type": "string",
+                      "values": []
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "project_id",
+                    "task_id",
+                    "workspace_id"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "properties": {
+                    "attempt_id": {
+                      "max_length": 36,
+                      "type": "string",
+                      "values": []
+                    },
+                    "generation": {
+                      "maximum": 9223372036854775807,
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "kind": {
+                      "max_length": 16,
+                      "type": "string",
+                      "values": [
+                        "session"
+                      ]
+                    },
+                    "project_id": {
+                      "max_length": 36,
+                      "type": "string",
+                      "values": []
+                    },
+                    "session_id": {
+                      "max_length": 36,
+                      "type": "string",
+                      "values": []
+                    },
+                    "task_id": {
+                      "max_length": 36,
+                      "type": "string",
+                      "values": []
+                    },
+                    "workspace_id": {
+                      "max_length": 36,
+                      "type": "string",
+                      "values": []
+                    }
+                  },
+                  "required": [
+                    "attempt_id",
+                    "generation",
+                    "kind",
+                    "project_id",
+                    "session_id",
+                    "task_id",
+                    "workspace_id"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "thread_id": {
+              "max_length": 36,
+              "type": "string",
+              "values": []
+            }
+          },
+          "required": [
+            "body",
+            "recipient",
+            "thread_id"
+          ],
+          "type": "object"
+        },
+        "max_payload_bytes": 65536,
+        "name": "message.send",
+        "outcomes": {
+          "queued": {
+            "properties": {
+              "api_version": {
+                "maximum": 1,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "cursor": {
+                "max_length": 32,
+                "type": "string",
+                "values": []
+              },
+              "disposition": {
+                "max_length": 64,
+                "type": "string",
+                "values": [
+                  "queued"
+                ]
+              },
+              "harness_delivery": {
+                "max_length": 64,
+                "type": "string",
+                "values": [
+                  "not_attempted"
+                ]
+              },
+              "message_id": {
+                "max_length": 36,
+                "type": "string",
+                "values": []
+              },
+              "node_delivery": {
+                "max_length": 64,
+                "type": "string",
+                "values": [
+                  "not_attempted"
+                ]
+              },
+              "notification_delivery": {
+                "max_length": 64,
+                "type": "string",
+                "values": [
+                  "not_attempted"
+                ]
+              },
+              "operation_id": {
+                "max_length": 36,
+                "type": "string",
+                "values": []
+              },
+              "recipient": {
+                "type": "union",
+                "variants": [
+                  {
+                    "properties": {
+                      "kind": {
+                        "max_length": 16,
+                        "type": "string",
+                        "values": [
+                          "task"
+                        ]
+                      },
+                      "project_id": {
+                        "max_length": 36,
+                        "type": "string",
+                        "values": []
+                      },
+                      "task_id": {
+                        "max_length": 36,
+                        "type": "string",
+                        "values": []
+                      },
+                      "workspace_id": {
+                        "max_length": 36,
+                        "type": "string",
+                        "values": []
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "project_id",
+                      "task_id",
+                      "workspace_id"
+                    ],
+                    "type": "object"
+                  },
+                  {
+                    "properties": {
+                      "attempt_id": {
+                        "max_length": 36,
+                        "type": "string",
+                        "values": []
+                      },
+                      "generation": {
+                        "maximum": 9223372036854775807,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "kind": {
+                        "max_length": 16,
+                        "type": "string",
+                        "values": [
+                          "session"
+                        ]
+                      },
+                      "project_id": {
+                        "max_length": 36,
+                        "type": "string",
+                        "values": []
+                      },
+                      "session_id": {
+                        "max_length": 36,
+                        "type": "string",
+                        "values": []
+                      },
+                      "task_id": {
+                        "max_length": 36,
+                        "type": "string",
+                        "values": []
+                      },
+                      "workspace_id": {
+                        "max_length": 36,
+                        "type": "string",
+                        "values": []
+                      }
+                    },
+                    "required": [
+                      "attempt_id",
+                      "generation",
+                      "kind",
+                      "project_id",
+                      "session_id",
+                      "task_id",
+                      "workspace_id"
+                    ],
+                    "type": "object"
+                  }
+                ]
+              },
+              "thread_id": {
+                "max_length": 36,
+                "type": "string",
+                "values": []
+              }
+            },
+            "required": [
+              "api_version",
+              "cursor",
+              "disposition",
+              "harness_delivery",
+              "message_id",
+              "node_delivery",
+              "notification_delivery",
+              "operation_id",
+              "recipient",
+              "thread_id"
+            ],
+            "type": "object"
+          }
+        },
+        "public_result_fields": [
+          "disposition",
+          "message_id"
+        ],
+        "recovery": "reconcilable",
+        "scopes": [
+          "project"
+        ],
+        "sensitive_input_fields": [
+          "body"
+        ],
+        "sensitive_output_fields": [],
+        "version": "1"
+      }
+    },
+    "events": {
+      "aq.operation.updated": {
+        "correlation_fields": [
+          "operation"
+        ],
+        "max_payload_bytes": 1024,
+        "name": "aq.operation.updated",
+        "payload": {
+          "properties": {
+            "disposition": {
+              "max_length": 16,
+              "type": "string",
+              "values": [
+                "queued"
+              ]
+            },
+            "message_id": {
+              "max_length": 36,
+              "type": "string",
+              "values": []
+            },
+            "operation_id": {
+              "max_length": 36,
+              "type": "string",
+              "values": []
+            }
+          },
+          "required": [
+            "disposition",
+            "message_id",
+            "operation_id"
+          ],
+          "type": "object"
+        },
+        "retention_ms": 86400000,
+        "revision_field": null,
+        "scopes": [
+          "project"
+        ],
+        "sensitive_payload_fields": [],
+        "subject_field": "task",
+        "trusted_producers": [
+          "aq.host.bridge@1"
+        ],
+        "version": "1"
+      }
+    }
+  },
+  "source_archive_sha256": "48f19b80fc0734c403ef04e7181d570b9fe675597f35caf08f0b94571ca8cc70",
+  "source_revision": "a463e5918f914c8365a04dfe1b6778831cfebb95"
+}

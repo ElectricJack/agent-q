@@ -123,3 +123,23 @@ Tests must cover current owner/grant scope, expiry after a lock wait, revocation
 changed-key conflicts, expected revisions, quota concurrency, cancellation race,
 mailbox/outbox atomic rollback and engine-commit/AQ-ACK loss/restart. Actual HTTP
 listener isolation remains required. PB04's25ms budget remains open independently.
+
+
+## Runtime adoption fencing
+
+Capture the namespace's current central runtime revision before attempting
+engine ownership. After actual engine acquisition, the host-factory callback
+receives its acquired namespace/incarnation and atomically adopts it only at
+that exact central expected revision. Increment the central revision and retain
+the runtime ID. A delayed old initializer retries only its original expected
+revision/ID and cannot overwrite a newer adopter. Ready is not returned before
+this adoption is durable. A failed/unknown adoption does not automatically
+invent a newer expected revision or start a replacement owner.
+
+Every new effect locks namespace then grant then current user role then the
+existing mailbox operation/recipient rows, checking the exact active runtime
+ID. New adoption locks the same namespace row. An old in-flight effect therefore
+commits before adoption, or observes the new runtime and refuses; no authority
+transaction spans external I/O. Historical reconciliation does not reacquire a
+new write permit. The engine's lock alone is not claimed to stop an already
+running external Host call after a database connection loss.

@@ -2,9 +2,9 @@
 use super::*;
 use axum::routing::post;
 
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
-enum Recipient {
+pub(crate) enum Recipient {
     Task {
         workspace_id: Uuid,
         project_id: Uuid,
@@ -61,12 +61,12 @@ impl Recipient {
 }
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct Send {
-    operation_id: Uuid,
-    message_id: Uuid,
-    thread_id: Uuid,
-    recipient: Recipient,
-    body: String,
+pub(crate) struct Send {
+    pub(crate) operation_id: Uuid,
+    pub(crate) message_id: Uuid,
+    pub(crate) thread_id: Uuid,
+    pub(crate) recipient: Recipient,
+    pub(crate) body: String,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -265,6 +265,39 @@ async fn send(
     let response = json!({"api_version":1,"operation_id":request.operation_id,"message_id":request.message_id,"recipient":request.recipient,"thread_id":request.thread_id,"cursor":cursor.to_string(),"disposition":"queued","node_delivery":"not_attempted","harness_delivery":"not_attempted","notification_delivery":"not_attempted"});
     receipt(tx, &actor, request.operation_id, &payload, &response).await?;
     Ok(response)
+}
+/// Crate-internal service seam for an already scoped, derived owner principal.
+/// The caller's transaction owns the current grant and domain outbox boundary.
+/// Recheck the user role under lock; no workflow-supplied sender is accepted.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum OwnerSendError {
+    Invalid,
+    NotFound,
+    Conflict,
+    Unknown,
+}
+pub(crate) async fn owner_send_in_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    request: Send,
+    owner_id: Uuid,
+    at: u64,
+) -> std::result::Result<Value, OwnerSendError> {
+    let role: Option<String> = sqlx::query_scalar("SELECT role FROM users WHERE id=$1 FOR SHARE")
+        .bind(owner_id)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(|_| OwnerSendError::Unknown)?;
+    if role.as_deref() != Some("owner") {
+        return Err(OwnerSendError::NotFound);
+    }
+    send(tx, request, json!({"kind":"owner","user_id":owner_id}), at)
+        .await
+        .map_err(|error| match error.0 {
+            "invalid_request" => OwnerSendError::Invalid,
+            "not_found" | "stale_generation" => OwnerSendError::NotFound,
+            "id_conflict" => OwnerSendError::Conflict,
+            _ => OwnerSendError::Unknown,
+        })
 }
 async fn owner_send(
     State(state): State<AppState>,

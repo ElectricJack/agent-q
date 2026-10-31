@@ -9,6 +9,7 @@ pub mod identity;
 pub mod intelligence;
 pub mod notifications;
 pub mod observations;
+pub mod playbooks;
 pub mod profile_catalog;
 pub mod profiled_execution;
 pub mod project_bindings;
@@ -139,7 +140,17 @@ async fn method_not_allowed() -> Response {
 /// an unmatched path therefore gets 403 `csrf_rejected` unless it carries
 /// the CSRF header.
 pub fn build_admin_router(state: AppState) -> Router {
+    build_admin_router_with_playbooks(state, None)
+}
+/// Explicit optional runtime injection. Default construction mounts no playbook
+/// routes; injected routes share existing owner auth/CSRF/maintenance layers.
+pub fn build_admin_router_with_playbooks(
+    state: AppState,
+    playbooks: Option<Arc<playbooks::driver::Driver>>,
+) -> Router {
+    let policy_routes = playbooks.map(playbooks::api::routes).unwrap_or_default();
     Router::new()
+        .merge(policy_routes)
         .merge(admin_api::admin_routes())
         .merge(notifications::api::routes(state.clone()))
         .merge(observations::api::admin_routes(state.clone()))

@@ -71,7 +71,8 @@ pub async fn admin_maintenance_gate(
     let read_only = matches!(*req.method(), Method::GET | Method::HEAD | Method::OPTIONS);
     let cancelling = req.method() == Method::POST
         && (crate::admission::execution_cancel_path(req.uri().path())
-            || crate::admission::agent_revoke_path(req.uri().path()));
+            || crate::admission::agent_revoke_path(req.uri().path())
+            || crate::playbooks::api::cancellation_path(req.uri().path()));
     if !read_only && !cancelling && under_maintenance(&state) {
         return maintenance_error();
     }

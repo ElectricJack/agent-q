@@ -1,0 +1,17 @@
+{
+  "api_version": 1,
+  "operation_id": "00000000-0000-4000-8000-000000000005",
+  "message_id": "00000000-0000-4000-8000-000000000006",
+  "recipient": {
+    "kind": "task",
+    "workspace_id": "00000000-0000-4000-8000-000000000001",
+    "project_id": "00000000-0000-4000-8000-000000000002",
+    "task_id": "00000000-0000-4000-8000-000000000003"
+  },
+  "thread_id": "00000000-0000-4000-8000-000000000004",
+  "cursor": "1",
+  "disposition": "queued",
+  "node_delivery": "not_attempted",
+  "harness_delivery": "not_attempted",
+  "notification_delivery": "not_attempted"
+}
