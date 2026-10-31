@@ -2,7 +2,7 @@
 
 Scheduled selection needs a daemon-owned authority identity. It must not borrow
 the user who last edited a project, invent a user UUID, or require an operator
-session to remain logged in. This staged migration017 adds a separate principal
+session to remain logged in. Migration017 adds a separate principal
 beside the existing immutable decision artifact. Decision JSON and its digest
 remain unchanged.
 
@@ -40,22 +40,23 @@ principal or an impersonation switch.
 The adapter retains the existing global decision bounds (1024 entries and64 MiB
 of decision bodies). Additional principal metadata is bounded per row to a
 2 KiB artifact plus fixed scalar fields; this is not a physical disk bound.
-The finite never-granted-offer budget and own-reservation eligibility fence are
-separate migration015 work. This checkpoint must preserve those changes when
-integrated.
+The integrated resolver preserves migration015's finite never-granted-offer
+budget and all-offer history revision. Native admission still owns any
+reservation-specific eligibility checks.
 
 Qualification uses the actual project-binding and selection services with fake
 authoritative external peers. It covers current-policy installation, immutable
 service provenance with no human actor, independent replay namespaces, changed
 payloads, current human-role revocation, policy disablement and an observed SQL
-policy-lock wait crossing the decision deadline. Migration017 is explicitly
-installed by these tests until ordered registration follows015 and016.
+policy-lock wait crossing the decision deadline. The original isolated
+qualification explicitly installed017; integrated tests now use the normal
+ordered migration chain.
 
 ## Source-policy installation follow-up
 
 `profiled_execution::policies::install` is a daemon-owner service, with no public
-HTTP route or actor argument. It runs before dispatch and when configured
-projects acquire their real project binding. It computes the full configuration
+HTTP route or actor argument. The runtime owner must invoke it before dispatch
+and when configured projects acquire their real project binding. It computes the full configuration
 digest once, installs bound policies, and reports unbound projects as ineligible.
 It creates no project, workspace or human identity.
 
@@ -76,3 +77,12 @@ policies, install a higher explicit revision with an empty projects list. Remove
 projects retain disabled records and their prior source identity. This service
 must be invoked by the runtime owner before dispatch; the final resolver fence
 still verifies current configured and installed policy on every admission.
+
+## Ordered integration
+
+Migration017 is now registered after015/016 and advances the runtime state format
+to17. Resolver fixtures use the normal migration chain. Selection retains the
+NeverGranted started-count exclusion, all-offer history revision and finite retry
+bound introduced by015, together with the fresh principal fence and post-lock
+expiry check. The policy installer remains an internal service awaiting native
+startup/dispatch and project-binding wiring.

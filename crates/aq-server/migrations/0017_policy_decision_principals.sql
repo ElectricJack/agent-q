@@ -24,4 +24,4 @@ ALTER TABLE intelligence_decisions
 CREATE UNIQUE INDEX intelligence_policy_operation ON intelligence_decisions(authority_project_id,authority_policy_digest,operation_id)
  WHERE authority_kind='project_policy';
 -- Existing immutable decision trigger also protects the principal columns.
--- Ordered registration advances state_format_version after015/016 are present.
+UPDATE meta SET value='17' WHERE key='state_format_version';

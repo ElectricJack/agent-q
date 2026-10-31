@@ -200,6 +200,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         16,
         include_str!("../migrations/0016_observation_transport.sql"),
     ),
+    (
+        17,
+        include_str!("../migrations/0017_policy_decision_principals.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
