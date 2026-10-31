@@ -1082,7 +1082,7 @@ Requirement links: S2, S3, S5, H4.
 
 Outside this task: Guessing tokens from terminal characters or owning central cost rates/budgets.
 
-Evidence: [WRK-15-component.md](../../../aq-worker/docs/implementation/WRK-15-component.md), [WRK-15-component.json](../../../aq-worker/docs/implementation/WRK-15-component.json), [WRK-15-delta.md](../../../aq-worker/docs/implementation/WRK-15-delta.md), [WRK-15-local-intent.md](../../../aq-worker/docs/implementation/WRK-15-local-intent.md), [WRK-15-http-owner.md](../../../aq-worker/docs/implementation/WRK-15-http-owner.md), [WRK-15-integration.md](../../../aq-worker/docs/implementation/WRK-15-integration.md), [WRK-15-integration.json](../../../aq-worker/docs/implementation/WRK-15-integration.json).
+Evidence: [WRK-15-component.md](../../../aq-worker/docs/implementation/WRK-15-component.md), [WRK-15-component.json](../../../aq-worker/docs/implementation/WRK-15-component.json), [WRK-15-delta.md](../../../aq-worker/docs/implementation/WRK-15-delta.md), [WRK-15-local-intent.md](../../../aq-worker/docs/implementation/WRK-15-local-intent.md), [WRK-15-http-owner.md](../../../aq-worker/docs/implementation/WRK-15-http-owner.md), [WRK-15-integration.md](../../../aq-worker/docs/implementation/WRK-15-integration.md), [WRK-15-integration.json](../../../aq-worker/docs/implementation/WRK-15-integration.json), [WRK-15-reserved-control.md](../../../aq-worker/docs/implementation/WRK-15-reserved-control.md), [WRK-15-reserved-control.json](../../../aq-worker/docs/implementation/WRK-15-reserved-control.json), [WRK-15-reserve-integration.md](../../../aq-worker/docs/implementation/WRK-15-reserve-integration.md), [WRK-15-reserve-integration.json](../../../aq-worker/docs/implementation/WRK-15-reserve-integration.json).
 
 ### AQ-22
 

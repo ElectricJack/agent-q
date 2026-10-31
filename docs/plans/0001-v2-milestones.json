@@ -1613,7 +1613,11 @@
         "../../../aq-worker/docs/implementation/WRK-15-local-intent.md",
         "../../../aq-worker/docs/implementation/WRK-15-http-owner.md",
         "../../../aq-worker/docs/implementation/WRK-15-integration.md",
-        "../../../aq-worker/docs/implementation/WRK-15-integration.json"
+        "../../../aq-worker/docs/implementation/WRK-15-integration.json",
+        "../../../aq-worker/docs/implementation/WRK-15-reserved-control.md",
+        "../../../aq-worker/docs/implementation/WRK-15-reserved-control.json",
+        "../../../aq-worker/docs/implementation/WRK-15-reserve-integration.md",
+        "../../../aq-worker/docs/implementation/WRK-15-reserve-integration.json"
       ]
     },
     {

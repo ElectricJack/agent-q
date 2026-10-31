@@ -40,7 +40,7 @@ Relevant evidence:
 - [Terminal relay integration](../implementation/AQ-21-relay-integration-qualification.json).
 - [Observation ownership against the state19 daemon](../implementation/AQ-22-owner-state19-qualification.json).
 
-## Worker checkpoint and outstanding capacity fix
+## Worker checkpoint and capacity correction
 
 The combined worker integration at `f36534f` passed 288 workspace tests with
 29 declared optional tests ignored. Strict workspace lint and formatting passed;
@@ -64,11 +64,22 @@ qualification; synthetic normalizer fixtures are not native harness evidence.
 
 A default-limit headroom probe found a real defect in experimental store 0.0.4:
 ordinary retained history could consume space needed for a gap or a new-boot
-fence. The original failing store and replay evidence are retained. A new format
-is under qualification, reserving metadata, delivery and control capacity inside
-the existing 16 MiB logical / 64 MiB physical configuration. It must refuse older
-stores without rewriting or silently reseeding them. Until that checkpoint is
-qualified and integrated, the 0.0.4 capacity limitation remains unresolved.
+fence. The original failing store and replay evidence are retained. The format5 correction is now qualified and integrated at worker checkpoint
+`d165837`. It reserves metadata, delivery and control capacity inside the existing
+16 MiB logical / 64 MiB physical configuration. The exact extracted0.0.5 package
+passed 117 regular tests and two explicit headroom tests, strict lint, formatting
+and source-drift checks. At the unchanged default limits it filled ordinary
+history, recorded one loss gap and 15 live-source boot gaps, preserved retained
+history and completed 64 boot transitions without duplicate source events.
+The old-format store refused with its data and intent bytes unchanged.
+
+The final combined worker source `946e13f` passed 294 workspace tests with 29
+declared optional ignores, strict lint and formatting. Main build/source files
+match that tested revision. See the
+[component correction](../../../aq-worker/docs/implementation/WRK-15-reserved-control.md)
+and [combined qualification](../../../aq-worker/docs/implementation/WRK-15-reserve-integration.md).
+Physical-cap/ENOSPC progress and in-place format migration remain unqualified;
+production runtime adoption remains off.
 
 ## Test turnaround
 
@@ -79,21 +90,22 @@ test-process durations, not independently measured total wall time.
 | Suite/source | Passing / ignored | Test execution | Compilation | Approximate combined |
 | --- | --- | --- | --- | --- |
 | Daemon `ce1214f` | 678 / 6 | 96.14 s | 82 s | 3 min |
-| Worker integration `f36534f` | 288 / 29 | 138.47 s | 29.05 s | 2 min 50 s |
+| Final worker integration `946e13f` | 294 / 29 | 142.94 s | 20.11 s | 2 min 45 s |
 
-Daemon strict lint took 22.43 seconds. Cold builds, extracted-package tests,
+Daemon strict lint took 22.43 seconds; the final worker lint took 7.20 seconds.
+The focused eight-test artifact check took about three seconds of test execution.
+Cold builds, extracted-package tests,
 explicit tmux qualification, extended fault campaigns and capacity probes are
 additional work. Normal workspace suites intentionally leave opt-in external or
 host-specific tests ignored; selected local tests have separately retained runs.
 
 ## Next implementation sequence
 
-1. Finish the reserved-capacity correction and current integration evidence.
-2. Complete the native launch producer/consumer path with actual authorized graph
+1. Complete the native launch producer/consumer path with actual authorized graph
    context, retained inputs, real preparation receipts and current grant checks.
-3. Qualify the first native harness and demonstrate the real-agent milestone,
+2. Qualify the first native harness and demonstrate the real-agent milestone,
    including cancellation, restart and evidence-based completion.
-4. Extend terminal output/viewing and native observation delivery, then build
+3. Extend terminal output/viewing and native observation delivery, then build
    stall handling, verified waits, suspension and continuation on those proven
    lifecycle boundaries.
 
@@ -102,5 +114,6 @@ Playbook persistence experiments reduced query work but did not meet the existin
 was adopted as a production performance improvement. Dashboard integration and
 multi-harness product qualification also remain planned.
 
-This checkpoint consists of local source commits and retained qualification
-artifacts. It is not a deployed or published release.
+The overnight batch is complete: current changes and qualification evidence are
+committed locally, and the task graph is updated. This checkpoint is not a
+deployed or published release; the broader v2 milestones above remain open.
