@@ -1594,7 +1594,7 @@
       "repo": "agent-q",
       "milestone": "M5",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "CON-03",
         "AQ-03",
@@ -1615,7 +1615,9 @@
       "out_of_scope": [
         "Inferring semantic progress from token count or retaining unlimited transcripts"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-22-plan.md"
+      ]
     },
     {
       "id": "AQ-23",
@@ -1653,7 +1655,7 @@
       "repo": "agent-q",
       "milestone": "M5",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "AQ-11",
         "CON-03"
@@ -1672,7 +1674,11 @@
       "out_of_scope": [
         "Slack/email adapters, inbound Discord conversations or exactly-once claims without provider guarantees"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-24.md",
+        "../implementation/AQ-24.json",
+        "../implementation/AQ-24-plan.md"
+      ]
     },
     {
       "id": "AQ-25",

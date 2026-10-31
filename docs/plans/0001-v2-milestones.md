@@ -41,7 +41,6 @@ Read the mapped source and regression cases before implementing an affected task
 | [WRK-08](#wrk-08) | aq-worker | Qualify Codex CLI as the first real tmux harness |
 | [AQ-10](#aq-10) | agent-q | Apply evidence-based result disposition and graph completion |
 | [AQ-12](#aq-12) | agent-q | Embed the qualified playbook runner with bounded execution |
-| [AQ-22](#aq-22) | agent-q | Implement session observations, transcript inspection and usage accounting |
 | [WRK-16](#wrk-16) | aq-worker | Implement safe suspension, checkpoint handoff and continuation bootstrap |
 | [REL-01](#rel-01) | agent-q | Version the composite product manifest and component inventory |
 | [WRK-11](#wrk-11) | aq-worker | Qualify the Claude Code harness adapter |
@@ -156,9 +155,9 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [AQ-16](#aq-16): Implement findings reconciliation and durable calendar/report coordination | agent-q | [AQ-13](#aq-13), [AQ-14](#aq-14) | planned |
 | [CON-03](#con-03): Publish session observation and continuation contracts | aq-worker | [CON-02](#con-02) | complete |
 | [WRK-15](#wrk-15): Implement harness transcript readers and durable observation delivery | aq-worker | [CON-03](#con-03), [WRK-10](#wrk-10) | in_progress |
-| [AQ-22](#aq-22): Implement session observations, transcript inspection and usage accounting | agent-q | [CON-03](#con-03), [AQ-03](#aq-03), [AQ-20](#aq-20) | planned |
+| [AQ-22](#aq-22): Implement session observations, transcript inspection and usage accounting | agent-q | [CON-03](#con-03), [AQ-03](#aq-03), [AQ-20](#aq-20) | in_progress |
 | [AQ-23](#aq-23): Implement the evidence-based session stall ladder | agent-q | [AQ-22](#aq-22), [AQ-11](#aq-11), [WRK-09](#wrk-09), [AQ-05](#aq-05) | planned |
-| [AQ-24](#aq-24): Implement durable external notification delivery with Discord | agent-q | [AQ-11](#aq-11), [CON-03](#con-03) | in_progress |
+| [AQ-24](#aq-24): Implement durable external notification delivery with Discord | agent-q | [AQ-11](#aq-11), [CON-03](#con-03) | complete |
 | [AQ-25](#aq-25): Implement verified agent waits and source subscriptions | agent-q | [CON-03](#con-03), [AQ-07](#aq-07), [AQ-11](#aq-11), [AQ-08](#aq-08) | planned |
 | [WRK-16](#wrk-16): Implement safe suspension, checkpoint handoff and continuation bootstrap | aq-worker | [CON-03](#con-03), [WRK-07](#wrk-07), [WRK-10](#wrk-10), [WRK-05](#wrk-05) | planned |
 | [AQ-26](#aq-26): Implement durable hibernation and continuation wake scheduling | agent-q | [AQ-25](#aq-25), [AQ-08](#aq-08), [AQ-09](#aq-09), [AQ-10](#aq-10), [AQ-22](#aq-22) | planned |
@@ -1088,7 +1087,7 @@ Outside this task: Guessing tokens from terminal characters or owning central co
 
 **Implement session observations, transcript inspection and usage accounting**
 
-Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [CON-03](#con-03), [AQ-03](#aq-03), [AQ-20](#aq-20).
 
@@ -1103,6 +1102,8 @@ Acceptance:
 Requirement links: S1, S2, S3, S5.
 
 Outside this task: Inferring semantic progress from token count or retaining unlimited transcripts.
+
+Evidence: [AQ-22-plan.md](../implementation/AQ-22-plan.md).
 
 ### AQ-23
 
@@ -1128,7 +1129,7 @@ Outside this task: Arbitrary session operations in ordinary playbooks or blanket
 
 **Implement durable external notification delivery with Discord**
 
-Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: in_progress.
+Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: complete.
 
 Hard prerequisites: [AQ-11](#aq-11), [CON-03](#con-03).
 
@@ -1143,6 +1144,8 @@ Acceptance:
 Requirement links: N1, N2, N4.
 
 Outside this task: Slack/email adapters, inbound Discord conversations or exactly-once claims without provider guarantees.
+
+Evidence: [AQ-24.md](../implementation/AQ-24.md), [AQ-24.json](../implementation/AQ-24.json), [AQ-24-plan.md](../implementation/AQ-24-plan.md).
 
 ### AQ-25
 
