@@ -613,10 +613,9 @@ async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_
         peer,
         _directory,
         ..
-    } = review_env(1).await;
+    } = review_env(2).await;
     let pool = &f.db.pool().await;
     let auth = context(&f).await;
-    peer.await.unwrap();
     let request = aq_review_protocol::DecisionRequest {
         schema_version: 1,
         operation_id: Uuid::new_v4(),
@@ -824,6 +823,34 @@ async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_
             .await
             .is_err()
     );
+    // Refresh only through another actual current public-owner read. Hold the
+    // budget row until this proof expires; admission samples expiry after wait.
+    let fresh = service.prepare(report.report_id, operation).await.unwrap();
+    peer.await.unwrap();
+    let mut late = request.clone();
+    late.operation_id = Uuid::new_v4();
+    late.decision_id = Uuid::new_v4();
+    late.expires_at_ms = NOW + 90000;
+    let mut lock = pool.begin().await.unwrap();
+    sqlx::query("SELECT singleton FROM review_owner_budget WHERE singleton FOR UPDATE")
+        .execute(&mut *lock)
+        .await
+        .unwrap();
+    let xid: String = sqlx::query_scalar("SELECT txid_current()::text")
+        .fetch_one(&mut *lock)
+        .await
+        .unwrap();
+    let expiry = async {
+        wait_review_xid(pool, &xid).await;
+        f.time.store((NOW + 60002) as i64, Ordering::SeqCst);
+        lock.commit().await.unwrap();
+    };
+    let (refused, _) = tokio::join!(service.admit(f.actor, &fresh, &late), expiry);
+    assert!(matches!(
+        refused,
+        Err(aq_server::error::AppError::UpdatesUnavailable(_))
+    ));
+    service.admit(f.actor, &prepared, &request).await.unwrap(); // historical only
     let mut correction = report.clone();
     correction.report_id = Uuid::new_v4();
     correction.operation_id = Uuid::new_v4();
@@ -974,11 +1001,55 @@ async fn review_env(peer_count: usize) -> ReviewEnv {
     tx.rollback().await.unwrap();
     // Candidate026 component only; ordinary state24 remains unchanged. This
     // fixture uses a synthetic public Git peer, not real Git qualification.
-    let schema = include_str!("../migrations/0026_review_owners.sql").replace(
-        "UPDATE meta SET value='26' WHERE key='state_format_version';",
-        "",
-    );
-    sqlx::raw_sql(&schema).execute(pool).await.unwrap();
+    let installed: bool =
+        sqlx::query_scalar("SELECT to_regclass('public.review_owner_budget') IS NOT NULL")
+            .fetch_one(pool)
+            .await
+            .unwrap();
+    if aq_server::STATE_FORMAT_VERSION >= 26 {
+        assert!(installed, "ordered026 must install review owner tables");
+    } else {
+        assert!(
+            !installed,
+            "unexpected candidate026 table before explicit install"
+        );
+        let before: String =
+            sqlx::query_scalar("SELECT value FROM meta WHERE key='state_format_version'")
+                .fetch_one(pool)
+                .await
+                .unwrap();
+        let schema = include_str!("../migrations/0026_review_owners.sql").replace(
+            "UPDATE meta SET value='26' WHERE key='state_format_version';",
+            "",
+        );
+        sqlx::raw_sql(&schema).execute(pool).await.unwrap();
+        assert_eq!(
+            sqlx::query_scalar::<_, String>(
+                "SELECT value FROM meta WHERE key='state_format_version'"
+            )
+            .fetch_one(pool)
+            .await
+            .unwrap(),
+            before
+        );
+    }
+    for table in [
+        "review_owner_budget",
+        "review_lineage_budget",
+        "review_subjects",
+        "human_decision_requests",
+        "human_decision_finality",
+        "review_owner_outbox",
+    ] {
+        let present: bool = sqlx::query_scalar("SELECT to_regclass($1) IS NOT NULL")
+            .bind(format!("public.{table}"))
+            .fetch_one(pool)
+            .await
+            .unwrap();
+        assert!(present, "required026 table {table}");
+    }
+    let column:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM information_schema.columns WHERE table_schema='public' AND table_name='playbook_namespaces' AND column_name='catalog_profile')").fetch_one(pool).await.unwrap();
+    assert!(column, "required026 catalog_profile missing");
     use std::os::unix::fs::PermissionsExt;
     let directory = tempfile::tempdir().unwrap();
     let socket = directory.path().join("git.sock");
@@ -1165,6 +1236,33 @@ async fn protected_engine_question_waits_for_real_owner_and_exact_completion_eve
         ..
     } = review_env(3).await;
     let pool = f.db.pool().await;
+    // New runtime deliberately refuses old source-origin namespaces without
+    // rewriting them; no in-place/mixed-version upgrade is claimed.
+    let legacy = Namespace {
+        namespace_id: Uuid::new_v4(),
+        generation: 1,
+        name: "legacy-mail-v11".into(),
+        workspace_id: f.selection.lineage.workspace_id,
+        project_id: f.selection.lineage.project_id,
+        owner_user_id: f.actor,
+    };
+    let legacy_source = "48f19b80fc0734c403ef04e7181d570b9fe675597f35caf08f0b94571ca8cc70";
+    sqlx::query("INSERT INTO playbook_namespaces(namespace_id,generation,name,workspace_id,project_id,owner_user_id,catalog_digest,source_digest) VALUES($1,1,$2,$3,$4,$5,$6,$7)").bind(legacy.namespace_id).bind(&legacy.name).bind(legacy.workspace_id).bind(legacy.project_id).bind(f.actor).bind(aq_server::playbooks::domain::digest(&aq_server::playbooks::domain::registry()).unwrap()).bind(legacy_source).execute(&pool).await.unwrap();
+    let refused = Service::new(&f.state, legacy.clone(), keys.clone())
+        .await
+        .unwrap();
+    assert!(refused.initialize(f.actor).await.is_err());
+    assert!(refused.runtime_revision().await.is_err());
+    assert_eq!(
+        sqlx::query_scalar::<_, String>(
+            "SELECT source_digest FROM playbook_namespaces WHERE namespace_id=$1"
+        )
+        .bind(legacy.namespace_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap(),
+        legacy_source
+    );
     let namespace = Namespace {
         namespace_id: Uuid::new_v4(),
         generation: 1,
@@ -1332,7 +1430,9 @@ async fn protected_engine_question_waits_for_real_owner_and_exact_completion_eve
     // Revoke before delivery: retained completion still reconciles, but cannot
     // grant new business authority or a second question.
     service.revoke(f.actor, grant).await.unwrap();
-    assert_eq!(driver.test_collect_decision_events().await.unwrap(), 2);
+    // Cancellation was copied by its earlier quantum; only the newly answered
+    // question remains for this exact copy/engine-ACK loss boundary.
+    assert_eq!(driver.test_collect_decision_events().await.unwrap(), 1);
     let event_first = driver.test_commit_event_without_aq_ack().await.unwrap();
     assert!(!event_first.duplicate);
     let event_replay = driver.test_commit_event_without_aq_ack().await.unwrap();
