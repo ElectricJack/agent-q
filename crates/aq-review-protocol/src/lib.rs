@@ -33,6 +33,20 @@ fn artifact(value: &ArtifactRef) -> Result<()> {
         .map_err(|_| Invalid("artifact version"))
 }
 pub fn canonical_bytes(value: &impl Serialize) -> Result<Vec<u8>> {
+    struct Count(usize);
+    impl std::io::Write for Count {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            if bytes.len() > self.0 {
+                return Err(std::io::Error::other("review byte bound"));
+            }
+            self.0 -= bytes.len();
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    serde_json::to_writer(Count(MAX_BYTES), value).map_err(|_| Invalid("canonical byte bound"))?;
     let mut value = serde_json::to_value(value).map_err(|_| Invalid("encoding"))?;
     value.sort_all_objects();
     let bytes = serde_json::to_vec(&value).map_err(|_| Invalid("encoding"))?;
@@ -46,7 +60,7 @@ pub fn decode<T: serde::de::DeserializeOwned>(bytes: &[u8]) -> Result<T> {
     require(bytes.len() <= MAX_BYTES, "input byte bound")?;
     serde_json::from_slice(bytes).map_err(|_| Invalid("JSON"))
 }
-macro_rules! record {($name:ident {$($field:ident:$ty:ty),* $(,)?})=>{#[derive(Debug,Clone,Serialize,Deserialize,JsonSchema,PartialEq,Eq)] #[serde(deny_unknown_fields)] pub struct $name {$(pub $field:$ty),*}}}
+macro_rules! record {($name:ident {$($(#[$meta:meta])* $field:ident:$ty:ty),* $(,)?})=>{#[derive(Debug,Clone,Serialize,Deserialize,JsonSchema,PartialEq,Eq)] #[serde(deny_unknown_fields)] pub struct $name {$($(#[$meta])* pub $field:$ty),*}}}
 record!(TaskRevision {
     workspace_id: Uuid,
     task_id: Uuid,
@@ -69,6 +83,7 @@ pub enum ObjectFormat {
 }
 record!(ObjectId {
     format: ObjectFormat,
+    #[schemars(length(min = 40, max = 64))]
     hex: String
 });
 impl ObjectId {
@@ -124,7 +139,7 @@ impl SourcePin {
         Ok(())
     }
 }
-record!(ReviewSubject {schema_version:u32,project_id:Uuid,original_project_revision:u64,task:TaskRevision,binding:LaunchBinding,execution_spec:ArtifactRef,expected_outcome:ArtifactRef,task_observation:ArtifactRef,task_context:ArtifactRef,validation_policy:ArtifactRef,result:ResultPin,source:SourcePin,criteria:Vec<Text>});
+record!(ReviewSubject {schema_version:u32,project_id:Uuid,original_project_revision:u64,task:TaskRevision,binding:LaunchBinding,execution_spec:ArtifactRef,expected_outcome:ArtifactRef,task_observation:ArtifactRef,task_context:ArtifactRef,validation_policy:ArtifactRef,result:ResultPin,source:SourcePin,#[schemars(length(min=1,max=32))] criteria:Vec<Text>});
 impl ReviewSubject {
     pub fn validate(&self) -> Result<()> {
         require(self.schema_version == SCHEMA_VERSION, "subject schema")?;
@@ -152,6 +167,11 @@ impl ReviewSubject {
         ] {
             artifact(a)?;
         }
+        require(
+            self.execution_spec.id.as_str() == "aq.profiled-execution-spec"
+                && self.execution_spec.version.as_str() == "1",
+            "execution spec reference",
+        )?;
         require(
             self.execution_spec.digest == self.binding.execution_spec_digest,
             "execution spec digest",
@@ -256,7 +276,7 @@ pub enum DecisionFinality {
         choice: Choice,
         comment_digest: Option<Digest>,
     },
-    Expired,
+    Expired {},
     Cancelled {
         operation_id: Uuid,
     },
@@ -295,7 +315,7 @@ impl DecisionReceipt {
                 id(*operation_id)?;
             }
             DecisionFinality::Cancelled { operation_id } => id(*operation_id)?,
-            DecisionFinality::Expired => {}
+            DecisionFinality::Expired {} => {}
         }
         canonical_bytes(self)?;
         Ok(())
@@ -321,7 +341,7 @@ impl DecisionReceipt {
                 "answer after deadline",
             )?;
         }
-        if matches!(self.finality, DecisionFinality::Expired) {
+        if matches!(self.finality, DecisionFinality::Expired {}) {
             require(
                 self.recorded_at_ms >= request.expires_at_ms,
                 "expiry before deadline",
@@ -357,19 +377,22 @@ pub enum CheckDisposition {
 pub enum ExecutorEvidence {
     InProcessReadOnly {
         definition: ArtifactRef,
+        #[schemars(length(min = 1, max = 64))]
         checked_artifacts: Vec<ArtifactRef>,
         result_artifact: ArtifactRef,
     },
     StoppedProcess {
         definition: ArtifactRef,
-        binding: LaunchBinding,
+        binding: Box<LaunchBinding>,
         started_receipt: ArtifactRef,
         stopped_receipt: ArtifactRef,
+        #[schemars(length(max = 16))]
         result_artifacts: Vec<ArtifactRef>,
         exit_code: i32,
     },
     Incomplete {
         definition: ArtifactRef,
+        #[schemars(length(max = 16))]
         evidence: Vec<ArtifactRef>,
     },
 }
@@ -471,6 +494,14 @@ impl CheckReceipt {
         }
         canonical_bytes(self)?;
         Ok(())
+    }
+    pub fn validate_for_subject(&self, subject: &ReviewSubject) -> Result<()> {
+        self.validate()?;
+        subject.validate()?;
+        require(
+            self.subject == subject.artifact()?,
+            "check differs from exact subject",
+        )
     }
     pub fn artifact(&self) -> Result<ArtifactRef> {
         self.validate()?;

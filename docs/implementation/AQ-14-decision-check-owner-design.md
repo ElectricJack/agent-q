@@ -59,8 +59,9 @@ receipt kind, never coerced into a human approval.
 Public resolve accepts only decision ID, expected pending decision version,
 operation ID, choice and bounded optional comment. Actor identity comes from
 current authenticated RequireOwner, never JSON, node/session credentials or a
-message sender field. Lock decision then eligible/current user/project-policy
-rows consistently, recheck expiry and current eligible owner after waits, and
+message sender field. Use the documented budget → common node/attempt → result head/source → subject
+→ decision → current user/project-policy lock order. Preliminary immutable
+identity reads take no decision lock. Recheck expiry and current eligible owner after waits, and
 CAS pending version1 to a final version2. A policy-revision/eligibility change
 requires a new deliberate decision admission; do not silently restamp an old
 answer. If a current result-head check is available under the B1 owner's lock,
