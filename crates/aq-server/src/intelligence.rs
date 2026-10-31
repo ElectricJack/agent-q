@@ -3,6 +3,7 @@
 pub mod config;
 mod feedback;
 mod inventory;
+mod principal;
 mod registry;
 pub mod resolver;
 pub fn worker_routes() -> Router<AppState> {

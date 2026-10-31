@@ -682,16 +682,27 @@ async fn exact_replay_survives_group_configuration_changes_but_new_mutations_do_
     );
 }
 
-// AQ-20 composes the already-qualified project seam with synthetic selection
-// facts. No provider or worker execution is started by this test.
-#[tokio::test]
-async fn intelligence_decision_is_immutable_and_final_fence_rechecks_scoped_facts() {
+struct SelectionFixture {
+    env: Env,
+    input: aq_selection::SelectionInputs,
+    frozen: aq_server::project_bindings::domain::FrozenProjectBinding,
+    actor: Uuid,
+    lineage: aq_selection::TaskLineage,
+    manual: Value,
+    unrelated: aq_selection::AuthorizedCredential,
+    time: u64,
+    operation: Uuid,
+}
+async fn selection_fixture() -> SelectionFixture {
     use aq_selection::*;
-    use aq_server::intelligence::{
-        config::{CredentialConfig, IntelligenceConfig},
-        resolver::{self, ResolveRequest},
-    };
+    use aq_server::intelligence::config::{CredentialConfig, IntelligenceConfig};
     let mut env = setup(false).await;
+    sqlx::raw_sql(include_str!(
+        "../migrations/0017_policy_decision_principals.sql"
+    ))
+    .execute(&env.pool)
+    .await
+    .unwrap();
     let fixture: Value = serde_json::from_str(include_str!("fixtures/selection.json")).unwrap();
     let mut input: SelectionInputs = serde_json::from_value(fixture["inputs"].clone()).unwrap();
     let activation=call(&env.app,"/api/profiles/catalogs/activate",Some(json!({"operation_id":Uuid::new_v4(),"expected_revision":1,"artifact_json":fixture["catalog_artifact_json"]})),"owner@localhost").await;
@@ -821,6 +832,35 @@ async fn intelligence_decision_is_immutable_and_final_fence_rechecks_scoped_fact
             .unwrap(),
         task_id: Uuid::new_v4(),
     };
+    SelectionFixture {
+        env,
+        input,
+        frozen,
+        actor,
+        lineage,
+        manual,
+        unrelated,
+        time,
+        operation,
+    }
+}
+
+// AQ-20 composes the already-qualified project seam with synthetic selection
+// facts. No provider or worker execution is started by this test.
+#[tokio::test]
+async fn intelligence_decision_is_immutable_and_final_fence_rechecks_scoped_facts() {
+    use aq_server::intelligence::resolver::{self, ResolveRequest};
+    let SelectionFixture {
+        env,
+        input,
+        frozen,
+        actor,
+        lineage,
+        manual,
+        unrelated,
+        time,
+        operation,
+    } = selection_fixture().await;
     let req = ResolveRequest {
         operation_id: operation,
         lineage: lineage.clone(),
@@ -974,4 +1014,199 @@ async fn intelligence_decision_is_immutable_and_final_fence_rechecks_scoped_fact
             .await
             .is_err()
     );
+}
+
+#[tokio::test]
+async fn project_policy_decisions_have_no_human_actor_and_recheck_installed_policy() {
+    use aq_server::{
+        intelligence::resolver::{self, ResolveRequest},
+        profiled_execution::config::{ProfiledConfig, ProjectPolicy},
+    };
+    let SelectionFixture {
+        mut env,
+        input,
+        frozen,
+        actor,
+        lineage,
+        operation,
+        ..
+    } = selection_fixture().await;
+    let request = || ResolveRequest {
+        operation_id: operation,
+        lineage: lineage.clone(),
+        project: frozen.clone(),
+        compositions: input.compositions.clone(),
+    };
+    assert!(
+        resolver::resolve_for_project_policy(&env.state, request())
+            .await
+            .is_err()
+    );
+    let policy = ProfiledConfig {
+        revision: 1,
+        qualified_runtimes: vec![],
+        projects: vec![ProjectPolicy {
+            project_id: lineage.project_id,
+            enabled: true,
+            priority: 0,
+            source: aq_admission::SourceSelection::Immutable {
+                object: aq_admission::ObjectId {
+                    format: aq_admission::ObjectFormat::Sha1,
+                    hex: "1".repeat(40),
+                },
+            },
+            retention_handle: Uuid::new_v4(),
+        }],
+    };
+    let record = policy.project_policy_record(lineage.project_id).unwrap();
+    let reference = record.artifact().unwrap();
+    let mut config = (*env.state.config).clone();
+    config.profiled_execution = Some(Arc::new(policy.clone()));
+    env.state.config = Arc::new(config);
+    assert!(
+        resolver::resolve_for_project_policy(&env.state, request())
+            .await
+            .is_err(),
+        "configured alone is not installed policy"
+    );
+    // Synthetic startup-owner installation, separately from resolver authority.
+    sqlx::query("INSERT INTO admission_source_policies(project_id,revision,policy_digest,policy) VALUES($1,$2,$3,$4)").bind(lineage.project_id).bind(record.revision as i64).bind(reference.digest.as_str()).bind(json!(record)).execute(&env.pool).await.unwrap();
+    let human = resolver::resolve_trusted(&env.state, actor, request())
+        .await
+        .unwrap();
+    let decision = resolver::resolve_for_project_policy(&env.state, request())
+        .await
+        .unwrap();
+    assert!(decision.outcome.resolved.is_some());
+    assert_ne!(human.decision_id, decision.decision_id);
+    let row:(Option<Uuid>,String,Option<Uuid>,Option<Value>,Option<i64>)=sqlx::query_as("SELECT actor_id,authority_kind,authority_project_id,authority_policy_ref,authority_policy_revision FROM intelligence_decisions WHERE decision_id=$1").bind(decision.decision_id).fetch_one(&env.pool).await.unwrap();
+    assert_eq!(
+        row,
+        (
+            None,
+            "project_policy".into(),
+            Some(lineage.project_id),
+            Some(json!(reference)),
+            Some(1)
+        )
+    );
+    let replay = resolver::resolve_for_project_policy(&env.state, request())
+        .await
+        .unwrap();
+    assert_eq!(replay.decision_id, decision.decision_id);
+    let mut changed = request();
+    changed.compositions.clear();
+    assert!(
+        resolver::resolve_for_project_policy(&env.state, changed)
+            .await
+            .is_err()
+    );
+    let fence = |state: AppState, decision: resolver::Decision| {
+        let pool = env.pool.clone();
+        async move {
+            let mut tx = pool.begin().await.unwrap();
+            sqlx::query("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+                .execute(&mut *tx)
+                .await
+                .unwrap();
+            let result = resolver::fence_for_offer(&state, &mut tx, &decision).await;
+            tx.rollback().await.unwrap();
+            result
+        }
+    };
+    fence(env.state.clone(), decision.clone()).await.unwrap();
+    // The policy lock is acquired after the selection/project fence; expiry
+    // still has to be checked after this last authorization wait.
+    let mut held = env.pool.begin().await.unwrap();
+    sqlx::query("SELECT project_id FROM admission_source_policies WHERE project_id=$1 FOR UPDATE")
+        .bind(lineage.project_id)
+        .execute(&mut *held)
+        .await
+        .unwrap();
+    let (pid_tx, pid_rx) = tokio::sync::oneshot::channel();
+    let pool = env.pool.clone();
+    let state = env.state.clone();
+    let captured = decision.clone();
+    let waiting = tokio::spawn(async move {
+        let mut tx = pool.begin().await.unwrap();
+        sqlx::query("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+        let pid: i32 = sqlx::query_scalar("SELECT pg_backend_pid()")
+            .fetch_one(&mut *tx)
+            .await
+            .unwrap();
+        pid_tx.send(pid).unwrap();
+        let result = resolver::fence_for_offer(&state, &mut tx, &captured).await;
+        tx.rollback().await.unwrap();
+        result
+    });
+    let pid = pid_rx.await.unwrap();
+    let observer = env._db.pool().await;
+    let mut blocked = false;
+    for _ in 0..100 {
+        blocked = sqlx::query_scalar(
+            "SELECT COALESCE(wait_event_type='Lock',false) FROM pg_stat_activity WHERE pid=$1",
+        )
+        .bind(pid)
+        .fetch_one(&observer)
+        .await
+        .unwrap();
+        if blocked {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+    }
+    assert!(
+        blocked,
+        "policy fence must actually wait for the locked policy"
+    );
+    let current_time = env.time.load(Ordering::SeqCst);
+    env.time.store(current_time + 2001, Ordering::SeqCst);
+    held.rollback().await.unwrap();
+    assert!(format!("{:?}", waiting.await.unwrap().unwrap_err()).contains("expired"));
+    env.time.store(current_time, Ordering::SeqCst);
+    // Current human-role revocation affects the human namespace only.
+    sqlx::query("UPDATE users SET role='viewer' WHERE id=$1")
+        .bind(actor)
+        .execute(&env.pool)
+        .await
+        .unwrap();
+    assert!(
+        resolver::resolve_trusted(&env.state, actor, request())
+            .await
+            .is_err()
+    );
+    assert!(fence(env.state.clone(), human.clone()).await.is_err());
+    fence(env.state.clone(), decision.clone()).await.unwrap();
+    // A future installed policy defeats both stale daemon state and old decisions.
+    let mut newer = policy.clone();
+    newer.revision = 2;
+    newer.projects[0].enabled = false;
+    let disabled = newer.project_policy_record(lineage.project_id).unwrap();
+    let disabled_ref = disabled.artifact().unwrap();
+    sqlx::query("UPDATE admission_source_policies SET revision=$2,policy_digest=$3,policy=$4 WHERE project_id=$1").bind(lineage.project_id).bind(2i64).bind(disabled_ref.digest.as_str()).bind(json!(disabled)).execute(&env.pool).await.unwrap();
+    assert!(
+        resolver::resolve_for_project_policy(&env.state, request())
+            .await
+            .is_err()
+    );
+    assert!(fence(env.state.clone(), decision.clone()).await.is_err());
+    let mut config = (*env.state.config).clone();
+    config.profiled_execution = Some(Arc::new(newer));
+    env.state.config = Arc::new(config);
+    assert!(
+        resolver::resolve_for_project_policy(&env.state, request())
+            .await
+            .is_err()
+    );
+    let retained: Value =
+        sqlx::query_scalar("SELECT decision FROM intelligence_decisions WHERE decision_id=$1")
+            .bind(decision.decision_id)
+            .fetch_one(&env.pool)
+            .await
+            .unwrap();
+    assert_eq!(retained, json!(decision));
+    assert!(sqlx::query("UPDATE intelligence_decisions SET authority_kind='human_owner',actor_id=$2 WHERE decision_id=$1").bind(decision.decision_id).bind(actor).execute(&env.pool).await.is_err());
 }

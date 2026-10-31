@@ -63,8 +63,23 @@ pub async fn resolve_trusted(
     actor: Uuid,
     request: ResolveRequest,
 ) -> Result<Decision> {
-    if actor.is_nil()
-        || request.operation_id.is_nil()
+    resolve_with_principal(state, principal::Principal::human(actor)?, request).await
+}
+/// Scheduled selection derives its principal only from this daemon's configured
+/// project policy. No user identity or worker-selected policy enters this path.
+pub async fn resolve_for_project_policy(
+    state: &AppState,
+    request: ResolveRequest,
+) -> Result<Decision> {
+    let subject = principal::Principal::configured(state, request.lineage.project_id)?;
+    resolve_with_principal(state, subject, request).await
+}
+async fn resolve_with_principal(
+    state: &AppState,
+    subject: principal::Principal,
+    request: ResolveRequest,
+) -> Result<Decision> {
+    if request.operation_id.is_nil()
         || request.lineage.task_id.is_nil()
         || request.lineage.project_id != request.project.project.binding.project_id
         || request.lineage.workspace_id != request.project.project.binding.graph_workspace_id
@@ -72,10 +87,15 @@ pub async fn resolve_trusted(
         return Err(bad("trusted resolver subject mismatch"));
     }
     let payload = digest(&request).map_err(|_| bad("resolver digest"))?;
-    if let Some(row)=sqlx::query("SELECT payload_digest,decision FROM intelligence_decisions WHERE actor_id=$1 AND operation_id=$2").bind(actor).bind(request.operation_id).fetch_optional(&state.store.pool).await.map_err(db)? {
-        if row.get::<String,_>("payload_digest")!=payload.as_str(){return Err(conflict("resolution operation ID conflict"));}
-        return serde_json::from_value(row.get("decision")).map_err(|_|AppError::Internal);
+    let mut early = state.store.pool.begin().await.map_err(db)?;
+    subject.authorize(state, &mut early).await?;
+    if let Some(decision) = subject
+        .lookup(&mut early, request.operation_id, &payload)
+        .await?
+    {
+        return Ok(decision);
     }
+    early.rollback().await.map_err(db)?;
     let loaded = loaded(state)?;
     let node_id = request.project.node_id;
     let node: Value =
@@ -205,9 +225,12 @@ pub async fn resolve_trusted(
         .execute(&mut *tx)
         .await
         .map_err(db)?;
-    if let Some(row)=sqlx::query("SELECT payload_digest,decision FROM intelligence_decisions WHERE actor_id=$1 AND operation_id=$2").bind(actor).bind(request.operation_id).fetch_optional(&mut *tx).await.map_err(db)? {
-        if row.get::<String,_>("payload_digest")!=payload.as_str(){return Err(conflict("resolution operation ID conflict"));}
-        return serde_json::from_value(row.get("decision")).map_err(|_|AppError::Internal);
+    subject.authorize(state, &mut tx).await?;
+    if let Some(decision) = subject
+        .lookup(&mut tx, request.operation_id, &payload)
+        .await?
+    {
+        return Ok(decision);
     }
     let row=sqlx::query("SELECT count(*) AS entries,COALESCE(sum(pg_column_size(decision)),0)::BIGINT AS bytes FROM intelligence_decisions").fetch_one(&mut *tx).await.map_err(db)?;
     let incoming: i64 = sqlx::query_scalar("SELECT pg_column_size($1::jsonb)::BIGINT")
@@ -223,7 +246,9 @@ pub async fn resolve_trusted(
     {
         return Err(conflict("decision artifact retention limit"));
     }
-    sqlx::query("INSERT INTO intelligence_decisions(decision_id,actor_id,operation_id,payload_digest,decision) VALUES($1,$2,$3,$4,$5)").bind(decision.decision_id).bind(actor).bind(request.operation_id).bind(payload.as_str()).bind(encoded).execute(&mut *tx).await.map_err(db)?;
+    subject
+        .insert(&mut tx, request.operation_id, &payload, &decision, encoded)
+        .await?;
     check_time(state, &decision)?;
     tx.commit().await.map_err(db)?;
     Ok(decision)
@@ -265,7 +290,9 @@ pub async fn fence_for_offer(
     if decision.outcome.resolved.is_none() {
         return Err(conflict("decision has no eligible selection"));
     }
-    fence_snapshot(state, tx, decision).await
+    fence_snapshot(state, tx, decision).await?;
+    principal::fence(state, tx, decision).await?;
+    check_time(state, decision)
 }
 async fn fence_snapshot(
     state: &AppState,
