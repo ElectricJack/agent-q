@@ -330,3 +330,57 @@ serialized under the existing inline-artifact quota lock. It is unregistered
 until human026 is present; explicit027 component tests are not ordered migration
 qualification. Final producer offer/grant transactions must fence the same
 current configuration after external work and waits.
+
+## Actual acceptance/preparation owner
+
+The next checkpoint mounts raw `transport::Accept` at
+`POST /v1/worker/profiled/accept` on the machine listener with a 64KiB body ceiling
+and one nonnil `aq-delivery-nonce` per physical send. It returns the frozen 0.1.7
+`ControlReply::Preparation` envelope. This is preparation permission only, never
+an execution grant, GraphActive credential or Running observation.
+
+Acceptance consumes an existing exact sealed native offer and an actual retained
+selector Decision. The service requires operator-qualified and registered
+artifact/material/durable-journal features and qualified capabilities covering the
+manifest/harness requirements. Extra known worker capability claims do not
+manufacture qualification. A bounded private-file read and fresh retained-export
+inspection run outside SQL locks. Current machine credentials, native boot/runtime
+and installed global configuration, exact held attempt/hot identity, current
+project/catalog/registry/node/availability/budget facts and project-policy
+principal are fenced again before commit.
+
+Final transactions are SERIALIZABLE. Lock order is current node → installed
+configuration → exact attempt/hot/sealed records → project → catalog → registry
+and inventory/availability/policy → preparation quota → lease/mapping → Reserved
+journal → original receipt. Existing acquisition routines may recheck already-held
+locks; no external I/O runs inside the transaction. The original decision's
+pre-offer counts discount exactly one DB-verified current ungranted Offered or
+Preparing reservation. Actual durable history/generation is unchanged. Prior
+Started/Granted/legacy/closed history and finite NeverGranted retries remain
+charged; issued grants cannot use this preparation fence.
+
+Preparing, the single admitted lease/mapping, exact original PreparationPlan and
+Reserved launch-owner journal commit atomically. A failed journal/storage write
+rolls everything back. Initial scope is server-material preparation only, with
+lease expiry equal to the plan deadline and capped by the original offer,
+selection and reported remaining reservation interval. Existing delivery never
+extends that deadline. Exact original-ID replay returns the immutable plan with a
+fresh nonce-bound shrinking clock and current SQL-derived revisions; expired or
+changed authority refuses. Concurrent serialization/capacity failures require
+explicit original-ID reconciliation, with no hidden HTTP retry or new operation.
+
+New preparations are bounded to 4096 retained leases globally / 256 per node,
+64MiB globally / 4MiB per node of conservative uncompressed lease/accept-response
+charges, and 8KiB lease / 16KiB response frames. These are logical storage limits,
+not measured PostgreSQL or RSS ceilings. Quota checks include incoming bytes.
+Missing definition027 protection keeps the separate definition retention helper
+closed until that schema is installed.
+
+Component tests use an actual resolver/policy/registry/file owner and exact scoped
+public Git/Graph peers, with explicitly synthetic sealed offers and qualification
+facts. The test-only fixture cannot substitute for the missing real offer
+assembler or a real model/harness/counting qualification. No process is started,
+provider called, source/effect receipt invented, grant issued or task completed.
+Next required code remains actual ready-task → authorized projection/composition
+→ selection → retained artifacts/source → atomic offer publication, then
+Prepare→Grant, Renew and Reconcile handlers plus the worker/host vertical gate.

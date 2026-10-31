@@ -1,11 +1,13 @@
 # Native worker control replies: admission0.1.7
 
-Status: pure contract implemented and locally published as an exact retained
-archive; [standalone qualification](aq-admission-0.1.7-qualification.md) passes53
-tests, strict lint and formatting. Frozen0.1.6 and its archive remain unchanged.
-Actual poll/accept/prepare/grant/renew producer handlers remain in progress.
-The source022 checkpoint owns only source preparation. Migration025 is reserved
-for the actual producer's required storage and typed inline Source observation.
+Status: 0.1.7 is frozen and independently archive-qualified;
+[standalone qualification](aq-admission-0.1.7-qualification.md) passes53 tests,
+strict lint and formatting. Frozen0.1.6 and its archive remain unchanged.
+The current preparation checkpoint mounts Accept→Preparation only; poll/offer
+production, Prepare→Grant, renewal and reconciliation remain incomplete.
+Source025 owns actual inline Source observation and current-auth source reads.
+Definition027 is an unregistered component until ordered026 integration.
+
 
 ## Ownership and routes
 

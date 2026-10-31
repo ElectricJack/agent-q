@@ -31,7 +31,7 @@ pub fn artifact(id: &str, bytes: &[u8]) -> ArtifactRef {
     }
 }
 pub struct Fixture {
-    pub db: TestDb,
+    pub db: Arc<TestDb>,
     pub state: AppState,
     pub node: NodeIdentity,
     pub profiled: ProfiledState,
@@ -42,7 +42,7 @@ pub struct Fixture {
     pub time: Arc<AtomicI64>,
 }
 pub async fn fixture() -> Fixture {
-    let db = TestDb::create().await;
+    let db = Arc::new(TestDb::create().await);
     let store = db.store().await;
     let actual = Utc.timestamp_millis_opt(NOW as i64).unwrap();
     let owner = store
@@ -119,6 +119,54 @@ pub async fn fixture() -> Fixture {
         .unwrap()
         .resolved
         .unwrap();
+    let state_projection = state_from_selection(&selected, &identity);
+    let cfg: Config = toml::from_str(
+        r#"format_version=1
+environment="development"
+[server]
+admin_bind="127.0.0.1:0"
+worker_bind="127.0.0.1:0"
+public_origin="http://127.0.0.1:8080"
+[auth]
+mode="dev"
+dev_email="owner@localhost"
+[bootstrap]
+owner_email="owner@localhost"
+enabled=true
+"#,
+    )
+    .unwrap();
+    let time = Arc::new(AtomicI64::new(NOW as i64));
+    let clock = time.clone();
+    let state = AppState {
+        store,
+        identity: verifier_from_config(&cfg.auth, reqwest::Client::new()),
+        config: Arc::new(cfg),
+        clock: Arc::new(move || {
+            Utc.timestamp_millis_opt(clock.load(Ordering::SeqCst))
+                .unwrap()
+        }),
+        agent_access: None,
+        source_retention: None,
+    };
+    Fixture {
+        db,
+        state,
+        node: identity,
+        profiled: state_projection,
+        selection: selected,
+        decision: Uuid::new_v4(),
+        actor: owner.id,
+        credential,
+        time,
+    }
+}
+/// Synthetic full authority shape from an actual selected value. This helper
+/// supplies no public graph/source owner qualification by itself.
+pub fn state_from_selection(
+    selected: &aq_selection::ResolvedSelection,
+    identity: &NodeIdentity,
+) -> ProfiledState {
     let shared: Value = serde_json::from_str(include_str!(
         "../../../../vendor/aq-session-protocol-0.1.0/artifacts/fixtures.json"
     ))
@@ -134,7 +182,7 @@ pub async fn fixture() -> Fixture {
     )
     .unwrap();
     let session = SessionIdentity::Remote {
-        node_id: node.id,
+        node_id: identity.node_id,
         boot_id: identity.boot_id,
         attempt_id: Uuid::new_v4(),
         assignment_generation: 1,
@@ -212,70 +260,57 @@ pub async fn fixture() -> Fixture {
         effects: Effects::Unknown,
     };
     state_projection.validate().unwrap();
-    let cfg: Config = toml::from_str(
-        r#"format_version=1
-environment="development"
-[server]
-admin_bind="127.0.0.1:0"
-worker_bind="127.0.0.1:0"
-public_origin="http://127.0.0.1:8080"
-[auth]
-mode="dev"
-dev_email="owner@localhost"
-[bootstrap]
-owner_email="owner@localhost"
-enabled=true
-"#,
-    )
-    .unwrap();
-    let time = Arc::new(AtomicI64::new(NOW as i64));
-    let clock = time.clone();
-    let state = AppState {
-        store,
-        identity: verifier_from_config(&cfg.auth, reqwest::Client::new()),
-        config: Arc::new(cfg),
-        clock: Arc::new(move || {
-            Utc.timestamp_millis_opt(clock.load(Ordering::SeqCst))
-                .unwrap()
-        }),
-        agent_access: None,
-        source_retention: None,
-    };
-    Fixture {
-        db,
-        state,
-        node: identity,
-        profiled: state_projection,
-        selection: selected,
-        decision: Uuid::new_v4(),
-        actor: owner.id,
-        credential,
-        time,
-    }
+    state_projection
 }
 pub async fn insert(f: &Fixture) -> Uuid {
     let spec = json!({"schema_version":1,"kind":"synthetic_profiled_authority_fixture","task_id":f.selection.lineage.task_id});
-    insert_spec(f, spec, false).await
+    insert_spec(f, spec, false, false).await
 }
 pub async fn insert_typed(
     f: &Fixture,
     spec: &aq_admission::execution_spec::ProfiledExecutionSpec,
 ) -> Uuid {
     spec.validate_against(&f.profiled.offer).unwrap();
-    insert_spec(f, json!(spec), false).await
+    insert_spec(f, json!(spec), false, false).await
 }
 pub async fn insert_sibling(f: &Fixture) -> Uuid {
     let spec = json!({"schema_version":1,"kind":"synthetic_profiled_authority_fixture","task_id":f.selection.lineage.task_id});
-    insert_spec(f, spec, true).await
+    insert_spec(f, spec, true, false).await
 }
-async fn insert_spec(f: &Fixture, spec: Value, reuse_project: bool) -> Uuid {
+pub async fn insert_with_retained_decision(
+    f: &Fixture,
+    spec: &aq_admission::execution_spec::ProfiledExecutionSpec,
+) -> Uuid {
+    spec.validate_against(&f.profiled.offer).unwrap();
+    let old: Value =
+        sqlx::query_scalar("SELECT decision FROM intelligence_decisions WHERE decision_id=$1")
+            .bind(f.decision)
+            .fetch_one(&f.db.pool().await)
+            .await
+            .unwrap();
+    assert_eq!(old["outcome"]["resolved"], json!(f.selection));
+    insert_spec(f, json!(spec), false, true).await
+}
+async fn insert_spec(
+    f: &Fixture,
+    spec: Value,
+    reuse_project: bool,
+    retained_decision: bool,
+) -> Uuid {
+    let now = if retained_decision {
+        f.time.load(Ordering::SeqCst) as u64
+    } else {
+        NOW
+    };
     let pool = f.db.pool().await;
     let p = &f.profiled;
     let binding = &p.offer.binding;
     let SessionIdentity::Remote { session_id, .. } = binding.session else {
         unreachable!()
     };
-    sqlx::query("INSERT INTO intelligence_decisions(decision_id,actor_id,operation_id,payload_digest,decision) VALUES($1,$2,$3,$4,$5)").bind(f.decision).bind(f.actor).bind(Uuid::new_v4()).bind(Digest::of(b"synthetic-request").as_str()).bind(json!({"outcome":{"resolved":f.selection}})).execute(&pool).await.unwrap();
+    if !retained_decision {
+        sqlx::query("INSERT INTO intelligence_decisions(decision_id,actor_id,operation_id,payload_digest,decision) VALUES($1,$2,$3,$4,$5)").bind(f.decision).bind(f.actor).bind(Uuid::new_v4()).bind(Digest::of(b"synthetic-request").as_str()).bind(json!({"outcome":{"resolved":f.selection}})).execute(&pool).await.unwrap();
+    }
     sqlx::query("INSERT INTO execution_attempts(attempt_id,task_id,node_id,offer_id,session_id,kind,state,execution_deadline_ms) VALUES($1,$2,$3,$4,$5,'profiled_v1',$6,$7)").bind(binding.attempt_id).bind(f.selection.lineage.task_id).bind(f.node.node_id).bind(binding.offer_id).bind(session_id).bind(json!(p)).bind(p.execution_deadline_ms.map(|v|v as i64)).execute(&pool).await.unwrap();
     // A real admission stores real owner observations. These synthetic table rows
     // exercise the same concrete decoder and manifest/selection digest checks.
@@ -291,8 +326,8 @@ async fn insert_spec(f: &Fixture, spec: Value, reuse_project: bool) -> Uuid {
         repository: aq_server::project_bindings::domain::ExternalStatus::Verified,
         graph: aq_server::project_bindings::domain::ExternalStatus::Verified,
         repository_generation: Some(1),
-        observed_at_ms: NOW,
-        expires_at_ms: NOW + 30_000,
+        observed_at_ms: now,
+        expires_at_ms: now + 30_000,
     };
     if reuse_project {
         let existing: Value = sqlx::query_scalar(
@@ -307,32 +342,38 @@ async fn insert_spec(f: &Fixture, spec: Value, reuse_project: bool) -> Uuid {
             "sibling fixture must reuse the exact sealed project"
         );
     } else {
-        sqlx::query("INSERT INTO project_execution_bindings(project_id,revision,binding,validated_at_ms,binding_observation) VALUES($1,1,$2,$3,$4) ON CONFLICT(project_id) DO NOTHING").bind(f.selection.lineage.project_id).bind(project).bind(NOW as i64).bind(json!(observed)).execute(&pool).await.unwrap();
+        sqlx::query("INSERT INTO project_execution_bindings(project_id,revision,binding,validated_at_ms,binding_observation) VALUES($1,1,$2,$3,$4) ON CONFLICT(project_id) DO NOTHING").bind(f.selection.lineage.project_id).bind(project).bind(now as i64).bind(json!(observed)).execute(&pool).await.unwrap();
     }
-    let observation = aq_admission::SourceAdmission {
-        schema_version: 1,
-        project_id: f.selection.lineage.project_id,
-        project_revision: 1,
-        repository_id: p.source.repository_id,
-        repository_binding_generation: 1,
-        policy: artifact("synthetic-source-policy", b"immutable-base-policy"),
-        selection: aq_admission::SourceSelection::Immutable {
-            object: aq_admission::ObjectId {
+    let observation = if retained_decision {
+        serde_json::from_value::<aq_admission::execution_spec::ProfiledExecutionSpec>(spec.clone())
+            .unwrap()
+            .source
+    } else {
+        aq_admission::SourceAdmission {
+            schema_version: 1,
+            project_id: f.selection.lineage.project_id,
+            project_revision: 1,
+            repository_id: p.source.repository_id,
+            repository_binding_generation: 1,
+            policy: artifact("synthetic-source-policy", b"immutable-base-policy"),
+            selection: aq_admission::SourceSelection::Immutable {
+                object: aq_admission::ObjectId {
+                    format: aq_admission::ObjectFormat::Sha1,
+                    hex: p.source.base.hex.clone(),
+                },
+            },
+            resolved_object: aq_admission::ObjectId {
                 format: aq_admission::ObjectFormat::Sha1,
                 hex: p.source.base.hex.clone(),
             },
-        },
-        resolved_object: aq_admission::ObjectId {
-            format: aq_admission::ObjectFormat::Sha1,
-            hex: p.source.base.hex.clone(),
-        },
-        observed_at_ms: NOW,
-        expires_at_ms: NOW + 30_000,
+            observed_at_ms: now,
+            expires_at_ms: now + 30_000,
+        }
     };
     observation.validate().unwrap();
     let source_observation = Uuid::new_v4();
-    sqlx::query("INSERT INTO admission_source_observations(observation_id,project_id,source_policy_revision,observation,observed_at_ms,expires_at_ms) VALUES($1,$2,1,$3,$4,$5)").bind(source_observation).bind(f.selection.lineage.project_id).bind(json!(observation)).bind(NOW as i64).bind((NOW+30_000) as i64).execute(&pool).await.unwrap();
-    sqlx::query("INSERT INTO profiled_launches(attempt_id,decision_id,source_observation_id,launch_binding,launch_manifest,manifest_digest,execution_spec,execution_spec_digest,graph_task_observation,source_binding,offer_expires_at_ms) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)").bind(binding.attempt_id).bind(f.decision).bind(source_observation).bind(json!(binding)).bind(json!(p.offer.manifest)).bind(binding.launch_manifest_digest.as_str()).bind(spec).bind(binding.execution_spec_digest.as_str()).bind(json!({"kind":"synthetic-readiness-observation","task_id":f.selection.lineage.task_id,"version":1,"content_revision":1,"observed_at_ms":NOW,"expires_at_ms":NOW+30_000})).bind(json!(p.source)).bind((NOW+30_000) as i64).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO admission_source_observations(observation_id,project_id,source_policy_revision,observation,observed_at_ms,expires_at_ms) VALUES($1,$2,1,$3,$4,$5)").bind(source_observation).bind(f.selection.lineage.project_id).bind(json!(observation)).bind(now as i64).bind((now+30_000) as i64).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO profiled_launches(attempt_id,decision_id,source_observation_id,launch_binding,launch_manifest,manifest_digest,execution_spec,execution_spec_digest,graph_task_observation,source_binding,offer_expires_at_ms) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)").bind(binding.attempt_id).bind(f.decision).bind(source_observation).bind(json!(binding)).bind(json!(p.offer.manifest)).bind(binding.launch_manifest_digest.as_str()).bind(spec).bind(binding.execution_spec_digest.as_str()).bind(json!({"kind":"synthetic-readiness-observation","task_id":f.selection.lineage.task_id,"version":1,"content_revision":1,"observed_at_ms":now,"expires_at_ms":now+30_000})).bind(json!(p.source)).bind((now+30_000) as i64).execute(&pool).await.unwrap();
     sqlx::query("INSERT INTO intelligence_attempt_selections(attempt_id,selection_digest,selection) VALUES($1,$2,$3)").bind(binding.attempt_id).bind(aq_selection::digest(&f.selection).unwrap().as_str()).bind(json!(f.selection)).execute(&pool).await.unwrap();
     binding.attempt_id
 }
