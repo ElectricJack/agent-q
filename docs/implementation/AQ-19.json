@@ -1,0 +1,110 @@
+{
+  "task": "AQ-19",
+  "status": "qualified project binding and worker policy implementation; concrete selection and profiled offer admission remain separate",
+  "source_revision": "c4d36fd547123450e5be6cd42d3003417c0b66b8",
+  "state_format": 8,
+  "files": {
+    "Cargo.lock": "368028dc6e372e977342d9ecec631ed89045ae96a54b55f018922b6529313433",
+    "Cargo.toml": "5dba8ddc6d8181213ab4ffb940ab03e889be97626ce3fffffdea3996d3b8a219",
+    "Dockerfile": "7798caf5eec087f74b5b144b0196eb20ce55c3406eb85f113b895ac5b0e4fb23",
+    "crates/aq-server/Cargo.toml": "c17352cc30f0e274d39b7207172ff55eae738d63b00f2ee7519674130d8aad8e",
+    "crates/aq-server/migrations/0008_project_bindings.sql": "dab779e5f1bd7d88694695981691753d91b4a3ce600f6feb31c29c3ef0c96043",
+    "crates/aq-server/src/agent_access.rs": "cd30f589a11d9c94715b1f0da65016b6f4d075754ebedd001bc9114ccab02abf",
+    "crates/aq-server/src/config.rs": "3ad26468b917e17c7dc2e929c607d1acda925700735b5a4f1ede3d6355822135",
+    "crates/aq-server/src/lib.rs": "cbd76387a909f4bfbef4a15efa8505340c27196f0af5c04fd5d5a04c94cdbd76",
+    "crates/aq-server/src/project_bindings.rs": "6841d7ec7c6c92181888569bb7a12c5c4e7a79383ee05214a05d797a05fd1471",
+    "crates/aq-server/src/project_bindings/domain.rs": "42a020c7fe122e65658a1332041781d73eca5d795da85e82fc6d11b826c72d61",
+    "crates/aq-server/src/project_bindings/external.rs": "46202e9b51c267f2e5ba6baa54e6867d1358c17b3617a1c4c3ef84a501a75a02",
+    "crates/aq-server/src/source_retention.rs": "8cce1e006af8cefa88547591750f25dd44ae0e3ccd65cc48475fbf2492577c66",
+    "crates/aq-server/src/store.rs": "fec25986029aac54473acbc5e92949ff62bcb57e04e1ece7868e2e499ba8907d",
+    "crates/aq-server/tests/project_bindings.rs": "542c1b1569f0edbea0a69db31663830debc6108c651258d4b5d82a9b2ea6a42f",
+    "docs/specs/0003-project-execution-bindings.md": "e5222faace2f960afd9f171acae8c5ae8ce5576d57021af071e09d374d1caea9",
+    "protocol/agent-access/v1/upstream/manifest.json": "cd3a73a4fbc4003afb4dc0c58de9947dfd63b1059ecbebc9594b9943468cc1e5",
+    "scripts/Dockerfile.aq-git": "0da8f99ca02e171b9a5532fe8924d26850dbf5f26547d306c11410272cea6b86",
+    "scripts/test-project-bindings.py": "b3eb95104a45d4f162206f2a8592432bf363280e7caa3f14c2705576d05c6195",
+    "vendor/git-candidate.json": "e2fec237ee0fffce45edd4c7b8f788a5cfb775ca33f8a423261689b39d2e0d31"
+  },
+  "environment": {
+    "checkout": "clean detached worktree at source_revision; source hashes from git show, never live working-tree files",
+    "build_directory": "isolated /tmp/aq18-qualification-target",
+    "database": "Disposable PostgreSQL 17; each test owns a separate database",
+    "provider_calls": false,
+    "operator_resources_used": false,
+    "actual_components": {
+      "aq_git": {
+        "version": "0.1.0",
+        "source_revision": "f3660a89cbeac0e068105af2926dfdcb06a1daad",
+        "image": "aq-m4-git-candidate:bookworm",
+        "image_id": "sha256:ad68eec4eb7208bac9314a01d02694c4e422df8aebd24a7afd5c674389f15f01"
+      },
+      "aq_graph": {
+        "api_version": 1,
+        "source_revision": "225329cd6acf5a775fd2a0b016dd1c45fb16c79b",
+        "image_id": "sha256:807beba98dcd20b0ae335f09cae8c06ecb182a352ee78de278cb47fccb2ee3be"
+      }
+    }
+  },
+  "checks": [
+    {
+      "command": "CARGO_TARGET_DIR=/tmp/aq18-qualification-target CARGO_INCREMENTAL=0 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres cargo test -p aq-server --locked --offline",
+      "result": "212 server tests passed; three declared real-component tests ignored in routine suite; includes five pure project/parser tests, seven PostgreSQL/fake-peer project tests and 14 migration/store tests",
+      "log": "tests"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=/tmp/aq18-qualification-target CARGO_INCREMENTAL=0 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres python3 scripts/test-project-bindings.py",
+      "result": "one explicit actual public aq-git/aq-graph project-binding qualification passed; synthetic repository/workspace only; selected images checked and all fixture resources removed",
+      "log": "components"
+    },
+    {
+      "command": "CARGO_TARGET_DIR=/tmp/aq18-qualification-target CARGO_INCREMENTAL=0 cargo clippy -p aq-server --all-targets --locked --offline -- -D warnings",
+      "result": "passed",
+      "log": "clippy"
+    },
+    {
+      "command": "cargo fmt --package aq-server --check",
+      "result": "passed",
+      "log": "format"
+    }
+  ],
+  "logs": {
+    "tests": {
+      "path": "docs/implementation/AQ-19-tests.log",
+      "sha256": "c534f414e6b54d219153d268b04aa55a1b7a8c3d4021f7d1c0cd21b2112dd73e"
+    },
+    "components": {
+      "path": "docs/implementation/AQ-19-components.log",
+      "sha256": "3cdcc3bc7cf9a3040d214b84632f7c7776e6de6f1e4b57b08d1fa050fa7dfad0"
+    },
+    "clippy": {
+      "path": "docs/implementation/AQ-19-clippy.log",
+      "sha256": "5f75be1ebce34e6db7f12e5ee1157fc94819bb17dc193ab07aa86ad115756342"
+    },
+    "format": {
+      "path": "docs/implementation/AQ-19-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "acceptance_evidence": {
+    "public_bindings": "Actual retained aq-git repo.register/repo.show expected-generation exchange and workspace-scoped graph API1 read through existing configured adapters. No private component state, caller URLs, paths or credential values are accepted. Stale generation update refuses and preserves prior project revision.",
+    "revision_and_replay": "Owner/CAS mutations, actor-scoped durable operation receipts, immutable revision history, exact retries after group config changes, changed-payload conflicts, and current config validation for new mutations.",
+    "authority_and_scope": "Viewer and unknown field/group refusals; configured operator group membership, exact node/profile/environment restrictions, revoked/offline node denial; no worker-self-asserted group authority.",
+    "freshness_and_fencing": "Subject-bound external observations retain actual observation time and source identity. Mutation lock-wait expiry rolls back. Final read-only local fence rechecks node revocation after lock waits in node/project/catalog order. Future AQ08 offer consumers must use the same fence inside their actual offer transaction and retain locks through insertion.",
+    "immutability": "Frozen project snapshots and historical revisions survive project edits and profile catalog activation unchanged; future eligibility blocks changed project/catalog revisions.",
+    "availability": "Absent/stale/forbidden/unavailable/unsupported external observations prevent eligibility; disable remains available during external outages. No provider observations are probed by these routes."
+  },
+  "limits": [
+    "Eligibility is project worker policy, never a provider/model selection or execution grant; AQ20/AQ08 must bind the actual assignment, context retention and authority before a profiled offer.",
+    "AQ17 central supervisors require distinct central authority and cannot fabricate worker node IDs; ProjectRecord policy/ceilings remain independent reusable facts.",
+    "No clone/init/GitHub onboarding, copied graph task lifecycle, per-project worktree slots or private Git registry edits are introduced.",
+    "Policy/context references do not imply content retrieval or permissions; consumers still fetch scoped exact revisions and apply all ceilings.",
+    "Configured graph credential and aq-git socket are reused behind fixed logical adapter references; this increment adds no editable credential registry.",
+    "History and receipts are retained under declared quotas rather than silently pruned; quota exhaustion refuses new policy writes."
+  ],
+  "review_revisions": [
+    "Exact put retry is resolved before current worker-group validation while current owner authentication remains mandatory.",
+    "External observation expiry is rechecked after transaction lock waits and before commit; observation time is never reset to commit time.",
+    "Final local admission seam locks node, project and catalog in canonical order and compares group configuration digest.",
+    "Routine project fixture tests serialize to avoid accidentally exercising the deliberately fail-fast process-global external verification pool."
+  ],
+  "qualification_note": "Only the root clean detached source-revision runs and isolated-target logs are retained here. Earlier temporary-copy preflights are not release qualification. Other live CON03/AQ20 files are excluded from this git-show inventory."
+}

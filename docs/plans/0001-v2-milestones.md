@@ -39,7 +39,6 @@ Read the mapped source and regression cases before implementing an affected task
 | Task | Owner | Deliverable |
 | --- | --- | --- |
 | [WRK-05](#wrk-05) | aq-worker | Provision the AQ agent client and bounded context cache |
-| [WRK-07](#wrk-07) | aq-worker | Implement resumable artifact handoff and retention release |
 | [AQ-10](#aq-10) | agent-q | Apply evidence-based result disposition and graph completion |
 | [AQ-12](#aq-12) | agent-q | Embed the qualified playbook runner with bounded execution |
 | [REL-01](#rel-01) | agent-q | Version the composite product manifest and component inventory |
@@ -128,13 +127,13 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [WRK-05](#wrk-05): Provision the AQ agent client and bounded context cache | aq-worker | [WRK-04](#wrk-04), [AQ-06](#aq-06), [CON-02](#con-02), [AQ-18](#aq-18) | planned |
 | [WRK-06](#wrk-06): Integrate local aq-git workspaces and storage admission | aq-worker | [WRK-04](#wrk-04), [GIT-01](#git-01) | complete |
 | [AQ-09](#aq-09): Implement authenticated source transfer and central retention | agent-q | [AQ-03](#aq-03), [GIT-01](#git-01) | complete |
-| [WRK-07](#wrk-07): Implement resumable artifact handoff and retention release | aq-worker | [WRK-06](#wrk-06), [AQ-09](#aq-09) | planned |
+| [WRK-07](#wrk-07): Implement resumable artifact handoff and retention release | aq-worker | [WRK-06](#wrk-06), [AQ-09](#aq-09) | in_progress |
 | [WRK-08](#wrk-08): Qualify Codex CLI as the first real tmux harness | aq-worker | [WRK-05](#wrk-05), [WRK-06](#wrk-06), [GATE-03](#gate-03), [CON-02](#con-02), [WRK-10](#wrk-10), [AQ-20](#aq-20) | planned |
 | [AQ-10](#aq-10): Apply evidence-based result disposition and graph completion | agent-q | [AQ-05](#aq-05), [AQ-07](#aq-07), [AQ-09](#aq-09) | planned |
 | [CON-02](#con-02): Publish profile launch, harness capability and terminal contracts | aq-worker | [CON-01](#con-01), [API-01](#api-01) | complete |
 | [AQ-18](#aq-18): Build the compositional profile catalog, compiler and explanation CLI | agent-q | [CON-02](#con-02) | complete |
-| [AQ-19](#aq-19): Implement project execution bindings and policy administration | agent-q | [AQ-18](#aq-18), [AQ-03](#aq-03) | in_progress |
-| [AQ-20](#aq-20): Resolve intelligence and execution choices with bounded provider availability | agent-q | [AQ-18](#aq-18), [AQ-19](#aq-19), [AQ-03](#aq-03) | planned |
+| [AQ-19](#aq-19): Implement project execution bindings and policy administration | agent-q | [AQ-18](#aq-18), [AQ-03](#aq-03) | complete |
+| [AQ-20](#aq-20): Resolve intelligence and execution choices with bounded provider availability | agent-q | [AQ-18](#aq-18), [AQ-19](#aq-19), [AQ-03](#aq-03) | in_progress |
 | [WRK-10](#wrk-10): Implement the guarded tmux session host and reusable adapter interface | aq-worker | [CON-02](#con-02), [WRK-04](#wrk-04) | complete |
 | [GATE-04](#gate-04): Demonstrate a real agent with retained source and graph outcome | agent-q | [GATE-03](#gate-03), [AQ-08](#aq-08), [AQ-10](#aq-10), [WRK-07](#wrk-07), [WRK-08](#wrk-08) | planned |
 
@@ -704,7 +703,7 @@ Evidence: [m4-foundations.md](../implementation/m4-foundations.md), [m4-qualific
 
 **Implement resumable artifact handoff and retention release**
 
-Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: planned.
+Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [WRK-06](#wrk-06), [AQ-09](#aq-09).
 
@@ -803,7 +802,7 @@ Evidence: [AQ-18.md](../implementation/AQ-18.md), [AQ-18.json](../implementation
 
 **Implement project execution bindings and policy administration**
 
-Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: in_progress.
+Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: complete.
 
 Hard prerequisites: [AQ-18](#aq-18), [AQ-03](#aq-03).
 
@@ -818,11 +817,13 @@ Requirement links: P4, P6, D1, W4.
 
 Outside this task: Clone/init/create-GitHub onboarding wizard, copying graph records, per-project preallocated worktree slots.
 
+Evidence: [AQ-19.md](../implementation/AQ-19.md), [AQ-19.json](../implementation/AQ-19.json).
+
 ### AQ-20
 
 **Resolve intelligence and execution choices with bounded provider availability**
 
-Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [AQ-18](#aq-18), [AQ-19](#aq-19), [AQ-03](#aq-03).
 

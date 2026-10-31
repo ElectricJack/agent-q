@@ -945,7 +945,7 @@
       "repo": "aq-worker",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "WRK-06",
         "AQ-09"
@@ -1118,7 +1118,7 @@
       "repo": "agent-q",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "AQ-18",
         "AQ-03"
@@ -1137,7 +1137,10 @@
       "out_of_scope": [
         "Clone/init/create-GitHub onboarding wizard, copying graph records, per-project preallocated worktree slots"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-19.md",
+        "../implementation/AQ-19.json"
+      ]
     },
     {
       "id": "AQ-20",
@@ -1145,7 +1148,7 @@
       "repo": "agent-q",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "AQ-18",
         "AQ-19",
