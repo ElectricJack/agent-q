@@ -253,7 +253,7 @@ pub async fn reserve(
     {
         return Err(unavailable());
     }
-    let observation_id:Uuid=sqlx::query_scalar("SELECT artifact_id FROM admission_artifacts WHERE owner_key=$1 AND owner_kind='source_retention' AND descriptor->'artifact'=$2 ORDER BY artifact_id LIMIT 1").bind(request.project_id.to_string()).bind(serde_json::to_value(&request.source_observation).map_err(|_|unavailable())?).fetch_optional(&mut *tx).await.map_err(database)?.ok_or_else(unavailable)?;
+    let observation_id:Uuid=sqlx::query_scalar("SELECT artifact_id FROM admission_artifacts WHERE owner_key=$1 AND owner_kind='source_retention' AND descriptor->>'kind'='context' AND descriptor->'artifact'=$2 ORDER BY artifact_id LIMIT 1").bind(request.project_id.to_string()).bind(serde_json::to_value(&request.source_observation).map_err(|_|unavailable())?).fetch_optional(&mut *tx).await.map_err(database)?.ok_or_else(unavailable)?;
     let retained = super::artifacts::load_locked(&mut tx, observation_id).await?;
     if retained.project_id != request.project_id
         || retained.owner != super::artifacts::OwnerKind::SourceRetention

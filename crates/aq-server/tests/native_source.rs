@@ -28,7 +28,7 @@ async fn actual_source_owner_retains_typed_bytes_without_relabeling_context_prop
         artifact: request.source_observation.clone(),
         bytes,
     };
-    let operation = Uuid::new_v4();
+    let operation = Uuid::from_u128(1);
     let retained = source::retain_admission(&f.state, operation, &observation, NOW + 600000)
         .await
         .unwrap();
@@ -48,6 +48,15 @@ async fn actual_source_owner_retains_typed_bytes_without_relabeling_context_prop
             .await
             .unwrap();
     assert_eq!(old["kind"], "context");
+    assert!(
+        matches!(
+            source_exports::reserve(&f.state, request.clone())
+                .await
+                .unwrap(),
+            Reservation::Pending(_)
+        ),
+        "a lower-ID Source receipt must not shadow the original Context proposal"
+    );
     f.time
         .store((NOW + 30_001) as i64, std::sync::atomic::Ordering::SeqCst);
     assert_eq!(
