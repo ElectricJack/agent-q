@@ -343,4 +343,4 @@ pub async fn reserve(
 }
 
 mod completion;
-pub use completion::{finalize, link_locked};
+pub use completion::{LinkedExport, finalize, link_locked, load_linked_locked};

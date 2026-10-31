@@ -184,3 +184,72 @@ pub async fn link_locked(
     }
     Ok(manifest)
 }
+
+/// Immutable stored facts only, never cached/current execution authorization.
+pub struct LinkedExport {
+    token: ReservedExport,
+    fact: VerifiedExport,
+    manifest: TransferManifest,
+}
+impl LinkedExport {
+    pub fn token(&self) -> &ReservedExport {
+        &self.token
+    }
+    pub fn fact(&self) -> &VerifiedExport {
+        &self.fact
+    }
+    pub fn manifest(&self) -> &TransferManifest {
+        &self.manifest
+    }
+}
+pub async fn load_linked_locked(
+    tx: &mut Transaction<'_, Postgres>,
+    attempt: Uuid,
+) -> Result<LinkedExport, AppError> {
+    let row=sqlx::query("SELECT e.request_bytes,e.request_digest,e.reserved_bytes,e.state,e.verified_bytes,e.verified_digest,b.manifest,b.profiled_export_operation_id FROM profiled_launch_source_exports x JOIN profiled_source_exports e USING(operation_id) JOIN source_bases b ON b.attempt_id=x.attempt_id AND b.profiled_export_operation_id=e.operation_id WHERE x.attempt_id=$1 FOR SHARE OF e,b").bind(attempt).fetch_optional(&mut **tx).await.map_err(database)?.ok_or_else(unavailable)?;
+    let request_bytes: Vec<u8> = row.get("request_bytes");
+    let request: super::Request =
+        serde_json::from_slice(&request_bytes).map_err(|_| unavailable())?;
+    request.validate().map_err(|_| unavailable())?;
+    let digest = request.digest().map_err(|_| unavailable())?;
+    if canonical(&request)? != request_bytes
+        || digest.as_str() != row.get::<String, _>("request_digest")
+        || row.get::<String, _>("state") != "verified"
+    {
+        return Err(unavailable());
+    }
+    let token = ReservedExport {
+        request,
+        request_digest: digest,
+        reserved_bytes: row.get::<i64, _>("reserved_bytes") as u64,
+    };
+    let bytes: Vec<u8> = row
+        .get::<Option<Vec<u8>>, _>("verified_bytes")
+        .ok_or_else(unavailable)?;
+    if Some(Digest::of(&bytes).as_str())
+        != row.get::<Option<String>, _>("verified_digest").as_deref()
+    {
+        return Err(unavailable());
+    }
+    let fact = VerifiedExport::decode_stored(&token, &bytes)?;
+    let manifest: TransferManifest = serde_json::from_value(
+        row.get::<Option<serde_json::Value>, _>("manifest")
+            .ok_or_else(unavailable)?,
+    )
+    .map_err(|_| unavailable())?;
+    manifest.validate().map_err(|_| unavailable())?;
+    if manifest.attempt.attempt_id != attempt
+        || manifest.artifact_id != token.request().operation_id
+        || manifest.manifest_digest != fact.manifest_digest().as_str()
+        || manifest.bundle_digest.as_deref() != Some(fact.bundle_digest().as_str())
+        || manifest.bundle_bytes != fact.bundle_bytes()
+        || manifest.manifest_bytes != fact.manifest_bytes().len() as u64
+    {
+        return Err(unavailable());
+    }
+    Ok(LinkedExport {
+        token,
+        fact,
+        manifest,
+    })
+}

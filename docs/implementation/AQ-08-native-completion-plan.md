@@ -244,9 +244,58 @@ receipt never supplies fresh execution permission. See the [native control reply
 specification](AQ-08-native-control-017.md) for fresh per-transmission delivery,
 replay/current-state separation and finite page bounds.
 
-The final producer still needs a typed inline Source-role observation owner:
-existing frozen NativeOffer validation requires Source for manifest.source,
-whereas the current proposal receipt is Context. Migration025 will add the
-bounded actual Source owner without relabeling a Context receipt or editing020.
-The large retained Git bundle stays separate. No server placeholder converts a
-proposal, unknown token count or missing owner into a runnable manifest.
+Migration025 adds the typed inline Source-role observation owner required by
+frozen NativeOffer validation. It retains the actual canonical public Git
+observation under `aq.source-admission-observation/{digest}@1`, validates exact
+project/repository/generation/base and original retention evidence, and checks
+freshness after owner locks before a new receipt. Exact historical replay keeps
+the original receipt. Existing Context proposal receipts remain Context;020 and
+published contracts stay unchanged. The large retained Git bundle stays separate.
+No placeholder converts missing owners or unknown token facts into a manifest.
+
+## Native source retrieval checkpoint (025)
+
+Current-credential worker reads use `aq-source-api-version: 1`:
+
+- `GET /v1/worker/profiled/source/{attempt}` returns the exact immutable
+  `TransferManifest`; its transfer/artifact ID equals the original export
+  operation ID.
+- `GET /v1/worker/profiled/source/{attempt}/{manifest|bundle}?offset=N&limit=L`
+  returns at most 262144 bytes, `application/octet-stream`, `no-store`, an exact
+  `aq-source-offset`, and base64url-unpadded `aq-source-transfer` JSON (<=4096
+  encoded bytes). Unknown fields/member names and invalid ranges refuse.
+- Failures use bounded 0.1.7 `ControlReply::Failure`; version1 headers identify
+  this source API independently of the frozen admission transport.
+
+The first status result must be journaled by the consumer. Later status/chunk
+metadata must compare equal; the consumer verifies the full pinned manifest and
+bundle digests before hydration. Final source reads recheck current machine
+credentials, registered runtime/global configuration, held exact native
+assignment, project revision/repository generation/node eligibility, cancellation
+and phase expiry after external Git/file I/O. Offered uses the original offer
+expiry; Preparing requires its actual original accepted PreparationPlan and
+owner; Granted uses the current grant and immutable hard deadline. No read grants
+execution, renews retention, creates a journal or supplies an installation receipt.
+Files are opened through the bounded nofollow source owner. Git retention checks
+and chunk reads occur outside SQL locks; fresh final authority checks prevent an
+in-flight credential rotation from authorizing the response.
+
+The first producer mode reserves two of Prepare's 128 receipt slots: at most 126
+inline artifacts plus `aq.source-manifest/{export_operation_id}@1` and
+`aq.source-bundle/{export_operation_id}@1`. Each receipt binds exact verified
+bytes/digest; initial mode requires a positive retained bundle. Generic zero-byte
+bundles have no bundle digest and cannot be represented as a positive-byte
+ArtifactReceipt. No source receipt authorizes launch by itself.
+
+A framework restart creates a new logical boot. Initial recovery never accepts,
+prepares or renews an old boot's live authority. It preserves original owner
+journals and may report historical Started/Stopped/results under current machine
+credentials, then waits for genuine settlement/release before new-boot
+registration. Ever-granted/noStarted remains held until a separately qualified
+no-start recovery owner exists.
+
+This checkpoint does not provide the scheduler/offer/accept/prepare/grant/renew
+producer. Those handlers must compose these real owners, count every final startup
+byte using qualified facts, and preserve the acyclic schema2 policy/selection
+order. Production harness eligibility remains closed without real definition,
+model-capacity/counting and adapter qualification bodies.

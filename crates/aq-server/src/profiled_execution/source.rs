@@ -331,3 +331,6 @@ mod tests {
         assert!(verify_retention(&incomplete, handle, repository, 2, &object).is_err());
     }
 }
+
+mod ownership;
+pub use ownership::{retain_admission, validate_body, validate_stored_body};
