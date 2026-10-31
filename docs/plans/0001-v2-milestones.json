@@ -2369,7 +2369,11 @@
       "out_of_scope": [
         "Provider-specific transcript parsing, full-duplex worker server-push transport"
       ],
-      "evidence": []
+      "evidence": [
+        "../../../aq-worker/docs/implementation/WRK-14-stage1.md",
+        "../../../aq-worker/docs/implementation/WRK-14-integration.md",
+        "../../../aq-worker/docs/implementation/WRK-14-integration.json"
+      ]
     },
     {
       "id": "UI-03",

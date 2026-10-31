@@ -1526,6 +1526,8 @@ Requirement links: R1, R2, R3, R4, R5, R6, H3, H4, W2, W9.
 
 Outside this task: Provider-specific transcript parsing, full-duplex worker server-push transport.
 
+Evidence: [WRK-14-stage1.md](../../../aq-worker/docs/implementation/WRK-14-stage1.md), [WRK-14-integration.md](../../../aq-worker/docs/implementation/WRK-14-integration.md), [WRK-14-integration.json](../../../aq-worker/docs/implementation/WRK-14-integration.json).
+
 ### UI-03
 
 **Build profile/session inspection and terminal watch/control**
