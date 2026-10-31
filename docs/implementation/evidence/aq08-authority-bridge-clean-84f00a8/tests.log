@@ -1,0 +1,620 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling serde_core v1.0.229
+   Compiling libc v0.2.191
+   Compiling cfg-if v1.0.5
+   Compiling serde v1.0.229
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling version_check v0.9.5
+   Compiling subtle v2.6.1
+   Compiling const-oid v0.9.6
+   Compiling typenum v1.20.1
+   Compiling pin-project-lite v0.2.17
+   Compiling zmij v1.0.23
+   Compiling autocfg v1.5.1
+   Compiling stable_deref_trait v1.2.1
+   Compiling libm v0.2.16
+   Compiling bytes v1.12.1
+   Compiling once_cell v1.21.4
+   Compiling serde_json v1.0.154
+   Compiling getrandom v0.4.3
+   Compiling futures-core v0.3.34
+   Compiling zeroize v1.9.1
+   Compiling parking_lot_core v0.9.12
+   Compiling scopeguard v1.2.0
+   Compiling shlex v2.0.1
+   Compiling find-msvc-tools v0.1.15
+   Compiling thiserror v2.0.21
+   Compiling log v0.4.34
+   Compiling litemap v0.8.3
+   Compiling lock_api v0.4.14
+   Compiling tracing-core v0.1.36
+   Compiling utf_types v1.0.0
+   Compiling writeable v0.6.4
+   Compiling futures-sink v0.3.34
+   Compiling cpufeatures v0.2.17
+   Compiling generic-array v0.14.7
+   Compiling cc v1.10.0
+   Compiling icu_properties_data v2.4.0
+   Compiling icu_normalizer_data v2.4.0
+   Compiling percent-encoding v2.3.2
+   Compiling rustls-pki-types v1.15.1
+   Compiling untrusted v0.9.0
+   Compiling slab v0.4.12
+   Compiling equivalent v1.0.3
+   Compiling futures-io v0.3.34
+   Compiling futures-task v0.3.34
+   Compiling zerocopy v0.8.63
+   Compiling bitflags v2.13.2
+   Compiling num-traits v0.2.19
+   Compiling ref-cast v1.0.27
+   Compiling utf8_iter v1.1.0
+   Compiling form_urlencoded v1.2.2
+   Compiling rustls v0.23.46
+   Compiling futures-util v0.3.34
+   Compiling hashbrown v0.17.1
+   Compiling http v1.5.0
+   Compiling iana-time-zone v0.1.65
+   Compiling tower-service v0.3.3
+   Compiling dyn-clone v1.0.20
+   Compiling httparse v1.10.1
+   Compiling webpki-roots v1.0.11
+   Compiling futures-channel v0.3.34
+   Compiling base64 v0.22.1
+   Compiling crossbeam-utils v0.8.23
+   Compiling try-lock v0.2.5
+   Compiling utf8parse v0.2.2
+   Compiling aho-corasick v1.1.5
+   Compiling sync_wrapper v1.0.2
+   Compiling tower-layer v0.3.3
+   Compiling want v0.3.2
+   Compiling anstyle-parse v1.0.0
+   Compiling spin v0.9.9
+   Compiling atomic-waker v1.1.2
+   Compiling colorchoice v1.0.5
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling httpdate v1.0.3
+   Compiling anstyle v1.0.14
+   Compiling cfg_aliases v0.2.2
+   Compiling syn v3.0.9
+   Compiling syn v2.0.119
+   Compiling anstyle-query v1.1.5
+   Compiling allocator-api2 v0.2.21
+   Compiling regex-syntax v0.8.11
+   Compiling foldhash v0.1.5
+   Compiling nix v0.29.0
+   Compiling lazy_static v1.5.1
+   Compiling ipnet v2.12.2
+   Compiling heck v0.5.0
+   Compiling indexmap v2.14.2
+   Compiling anstream v1.0.0
+   Compiling winnow v0.7.15
+   Compiling strsim v0.11.1
+   Compiling num-conv v0.2.2
+   Compiling tinyvec v1.13.3
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling http-body v1.1.0
+   Compiling hashbrown v0.15.5
+   Compiling digest v0.10.7
+   Compiling clap_lex v1.1.1
+   Compiling time-core v0.1.9
+   Compiling base64ct v1.8.3
+   Compiling parking v2.2.1
+   Compiling crc-catalog v2.5.0
+   Compiling base64 v0.23.1
+   Compiling toml_write v0.1.2
+   Compiling sha2 v0.10.9
+   Compiling crc v3.4.0
+   Compiling hmac v0.12.1
+   Compiling event-listener v5.4.2
+   Compiling unicode-normalization v0.1.26
+   Compiling clap_builder v4.6.7
+   Compiling time-macros v0.2.32
+   Compiling crossbeam-queue v0.3.14
+   Compiling pem-rfc7468 v0.7.0
+   Compiling http-body-util v0.1.5
+   Compiling webpki-roots v0.26.11
+   Compiling unicode-properties v0.1.4
+   Compiling ryu v1.0.23
+   Compiling unicode-bidi v0.3.18
+   Compiling deranged v0.5.9
+   Compiling num-integer v0.1.47
+   Compiling hashlink v0.10.0
+   Compiling powerfmt v0.2.1
+   Compiling der v0.7.10
+   Compiling getrandom v0.2.17
+   Compiling errno v0.3.14
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.4
+   Compiling ring v0.17.14
+   Compiling num-bigint v0.4.8
+   Compiling rand_core v0.6.4
+   Compiling stringprep v0.1.5
+   Compiling signal-hook-registry v1.4.8
+   Compiling atoi v2.0.0
+   Compiling hkdf v0.12.4
+   Compiling md-5 v0.10.6
+   Compiling mime v0.3.17
+   Compiling whoami v1.6.1
+   Compiling hex v0.4.3
+   Compiling byteorder v1.5.0
+   Compiling home v0.5.12
+   Compiling dotenvy v0.15.7
+   Compiling anyhow v1.0.104
+   Compiling uuid v1.29.0
+   Compiling regex-automata v0.4.18
+   Compiling semver v1.0.28
+   Compiling serde_path_to_error v0.1.20
+   Compiling sharded-slab v0.1.7
+   Compiling pem v3.0.6
+   Compiling tracing-log v0.2.0
+   Compiling thread_local v1.1.10
+   Compiling matchit v0.8.4
+   Compiling rustix v1.1.6
+   Compiling num-bigint-dig v0.8.6
+   Compiling nu-ansi-term v0.50.3
+   Compiling spki v0.7.3
+   Compiling num-iter v0.1.46
+   Compiling time v0.3.55
+   Compiling linux-raw-sys v0.12.1
+   Compiling signature v2.2.0
+   Compiling fastrand v2.5.0
+   Compiling pkcs8 v0.10.2
+   Compiling pkcs1 v0.7.5
+   Compiling ppv-lite86 v0.2.21
+   Compiling tracing-attributes v0.1.31
+   Compiling synstructure v0.14.0
+   Compiling serde_derive_internals v0.30.0
+   Compiling rand_chacha v0.3.1
+   Compiling rand v0.8.8
+   Compiling serde_derive v1.0.229
+   Compiling zerofrom-derive v0.1.8
+   Compiling yoke-derive v0.8.4
+   Compiling zerovec-derive v0.11.7
+   Compiling displaydoc v0.2.7
+   Compiling tokio-macros v2.7.2
+   Compiling thiserror-impl v2.0.21
+   Compiling ref-cast-impl v1.0.27
+   Compiling clap_derive v4.6.7
+   Compiling async-trait v0.1.92
+   Compiling schemars_derive v1.2.3
+   Compiling tempfile v3.27.0
+   Compiling tracing v0.1.44
+   Compiling matchers v0.2.0
+   Compiling regex v1.13.1
+   Compiling axum-core v0.5.6
+   Compiling zerofrom v0.1.8
+   Compiling yoke v0.8.4
+   Compiling simple_asn1 v0.6.4
+   Compiling zerovec v0.11.9
+   Compiling zerotrie v0.2.5
+   Compiling rustls-webpki v0.103.16
+   Compiling clap v4.6.7
+   Compiling tinystr v0.8.5
+   Compiling potential_utf v0.1.6
+   Compiling icu_collections v2.4.0
+   Compiling icu_locale_core v2.4.0
+   Compiling icu_provider v2.4.0
+   Compiling icu_properties v2.4.0
+   Compiling smallvec v1.16.4
+   Compiling schemars v1.2.3
+   Compiling chrono v0.4.45
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling either v1.19.0
+   Compiling serde_urlencoded v0.7.1
+   Compiling jsonwebtoken v9.3.1
+   Compiling toml_edit v0.22.27
+   Compiling icu_normalizer v2.4.0
+   Compiling tracing-subscriber v0.3.23
+   Compiling parking_lot v0.12.5
+   Compiling tokio v1.54.1
+   Compiling futures-intrusive v0.5.0
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq08-bridge-clean-84f00a8/vendor/aq-session-protocol-0.1.0)
+   Compiling aq-worker-protocol v0.2.0 (/tmp/aq08-bridge-clean-84f00a8/vendor/aq-worker-protocol-0.2.0)
+   Compiling rsa v0.9.10
+   Compiling idna_adapter v1.2.2
+   Compiling aq-agent-api v0.1.0 (/tmp/aq08-bridge-clean-84f00a8/crates/aq-agent-api)
+   Compiling aq-protocol v0.1.0 (/tmp/aq08-bridge-clean-84f00a8/vendor/aq-protocol-0.1.0)
+   Compiling aq-release v0.1.0 (/tmp/aq08-bridge-clean-84f00a8/crates/aq-release)
+   Compiling idna v1.1.0
+   Compiling url v2.5.8
+   Compiling toml v0.8.23
+   Compiling aq-session-api v0.1.0 (/tmp/aq08-bridge-clean-84f00a8/crates/aq-session-api)
+   Compiling aq-admission v0.1.0 (/tmp/aq08-bridge-clean-84f00a8/crates/aq-admission)
+   Compiling aq-profiles v0.1.0 (/tmp/aq08-bridge-clean-84f00a8/crates/aq-profiles)
+   Compiling aq-selection v0.1.0 (/tmp/aq08-bridge-clean-84f00a8/crates/aq-selection)
+   Compiling hyper v1.12.0
+   Compiling tokio-stream v0.1.19
+   Compiling tower v0.5.3
+   Compiling tokio-rustls v0.26.6
+   Compiling sqlx-core v0.8.6
+   Compiling tower-http v0.6.11
+   Compiling hyper-util v0.1.21
+   Compiling sqlx-postgres v0.8.6
+   Compiling hyper-rustls v0.27.10
+   Compiling axum v0.8.9
+   Compiling reqwest v0.12.28
+   Compiling sqlx v0.8.6
+   Compiling aq-server v0.1.0 (/tmp/aq08-bridge-clean-84f00a8/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 57.06s
+     Running unittests src/lib.rs (/tmp/aq08-bridge-qualification-target/debug/deps/aq_server-b44a4a55116f3913)
+
+running 26 tests
+test agent_access::mutations::tests::retained_admission_count_and_byte_boundaries_are_exact ... ok
+test agent_access::tests::strict_json_rejects_duplicate_and_fractional_values ... ok
+test config::tests::other_deployments_accept_dev_vault ... ok
+test config::tests::production_deployment_accepts_production_vault ... ok
+test config::tests::production_deployment_rejects_dev_auth_in_production_env ... ok
+test config::tests::production_deployment_rejects_dev_vault ... ok
+test config::tests::production_deployment_rejects_development_env_with_access_auth ... ok
+test agent_access::graph::tests::http_adapter_never_exposes_graph_errors_or_follows_redirects ... ok
+test project_bindings::domain::tests::external_absence_staleness_forbidden_and_cross_identity_never_admit ... ok
+test agent_access::tests::query_digest_omits_cursor_but_binds_authority ... ok
+test agent_access::graph::tests::http_adapter_refuses_missing_or_changed_response_version ... ok
+test project_bindings::domain::tests::operator_groups_and_environment_profile_ceilings_fail_closed ... ok
+test project_bindings::domain::tests::request_fields_cannot_install_urls_credentials_or_worker_claimed_groups ... ok
+test project_bindings::domain::tests::pure_gate_freezes_exact_revision_and_never_rewrites_old_snapshots ... ok
+test project_bindings::external::tests::repository_reply_rejects_duplicate_subject_and_envelope_fields ... ok
+test store::tests::state_format_is_the_latest_migration ... ok
+test updates::tests::unreadable_marker_dir_counts_as_maintenance ... ok
+test updates::tests::stamped_binary_refuses_other_revision ... ok
+test updates::tests::unstamped_binary_accepts_any_revision ... ok
+test agent_access::graph::tests::edge_projection_requires_both_endpoints_and_allowed_type ... ok
+test agent_access::graph::tests::projection_removes_metadata_and_enforces_workspace ... ok
+test agent_access::tests::canonical_digest_matches_published_profile_and_context ... ok
+test agent_access::tests::context_and_issuance_budgets_include_profile_binding_and_credentials ... ok
+test agent_access::mutations::tests::oversized_postadmission_status_reports_unknown_with_existing_identity ... ok
+test agent_access::mutations::dispatch::tests::native_draft_defaults_preserve_exact_plan_but_extra_meaning_is_refused ... ok
+test agent_access::tests::contract_enforces_unknown_fields_uuid_integer_and_conditional_rules ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/main.rs (/tmp/aq08-bridge-qualification-target/debug/deps/aq_server-2a91904c37f097af)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/agent_access.rs (/tmp/aq08-bridge-qualification-target/debug/deps/agent_access-38dcd7e8560795b1)
+
+running 1 test
+test issuance_rotation_revocation_and_locked_authority_are_online ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.77s
+
+     Running tests/authz.rs (/tmp/aq08-bridge-qualification-target/debug/deps/authz-342340792619c3ee)
+
+running 13 tests
+test concurrent_first_logins_bootstrap_owner ... ok
+test unauthenticated_without_token ... ok
+test viewer_cannot_call_owner_route ... ok
+test mutation_with_header_and_matching_origin_allowed ... ok
+test configured_email_bootstraps_owner ... ok
+test mutation_with_foreign_origin_rejected ... ok
+test invited_viewer_binds_on_first_login ... ok
+test first_visitor_is_not_owner ... ok
+test no_cors_headers_emitted ... ok
+test bootstrap_happens_once ... ok
+test mutation_without_csrf_header_rejected ... ok
+test concurrent_first_logins_invited_viewer ... ok
+test bootstrap_disabled_blocks_owner_creation ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.78s
+
+     Running tests/cli.rs (/tmp/aq08-bridge-qualification-target/debug/deps/cli-b1241f980f6ea92a)
+
+running 4 tests
+test serve_without_database_url_exits_2 ... ok
+test production_deployment_refuses_dev_vault_before_database ... ok
+test healthcheck_uses_vault_admin_port ... ok
+test admin_and_worker_listen_on_separate_ports ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+
+     Running tests/config.rs (/tmp/aq08-bridge-qualification-target/debug/deps/config-13af9ca0ba3cd729)
+
+running 13 tests
+test loads_example_vault ... ok
+test bootstrap_enabled_requires_email ... ok
+test loads_minimal_valid_config_with_defaults ... ok
+test missing_file_names_path ... ok
+test rejects_dev_auth_in_production ... ok
+test rejects_future_format_version ... ok
+test rejects_missing_required_key ... ok
+test rejects_non_https_origin_in_production ... ok
+test rejects_non_https_team_domain ... ok
+test rejects_unknown_key ... ok
+test rejects_offline_not_greater_than_heartbeat ... ok
+test rejects_zero_durations ... ok
+test updates_section_is_optional_strict_and_absolute ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/enrollment.rs (/tmp/aq08-bridge-qualification-target/debug/deps/enrollment-eebed2cd2e06e747)
+
+running 15 tests
+test never_seen_worker_is_offline ... ok
+test revoked_status_wins ... ok
+test worker_status_offline_after_60s ... ok
+test me_reports_dev_auth_mode ... ok
+test every_mutation_requires_csrf_header_via_admin_routes ... ok
+test owner_manages_users ... ok
+test user_creation_validates_input ... ok
+test me_reports_email_role_and_auth_mode ... ok
+test viewer_cannot_create_enrollment_via_direct_api ... ok
+test viewer_cannot_manage_users ... ok
+test status_reports_update_unavailable ... ok
+test workers_list_and_revoke ... ok
+test owner_creates_enrollment_code ... ok
+test revoke_unknown_is_404_and_malformed_is_not_500 ... ok
+test viewer_cannot_revoke ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.14s
+
+     Running tests/execution.rs (/tmp/aq08-bridge-qualification-target/debug/deps/execution-58c8e10159ba561c)
+
+running 27 tests
+test explicit_recovery_permits_only_exact_boot_after_all_writers_stop ... ok
+test accepted_result_cannot_be_retroactively_cancelled ... ok
+test recovery_inventory_cannot_omit_a_writer_or_race_a_new_acceptance ... ok
+test conflicting_task_claims_on_different_nodes_share_one_central_fence ... ok
+test boot_replacement_requires_stop_and_old_results_never_settle_new_authority ... ok
+test reconciliation_does_not_extend_grants_or_take_over_old_incarnations ... ok
+test legacy_report_history_prevents_nonstart_release_after_projection_downgrade ... ok
+test renewal_replay_preserves_expiry_and_rejects_stale_sequence ... ok
+test source_nonstart_exception_requires_no_prior_execution_evidence ... ok
+test cancelled_unaccepted_offer_never_queues_an_unknown_process_directive ... ok
+test expired_execution_remains_held_until_stopped_and_reported ... ok
+test acceptance_replay_is_durable_and_does_not_extend_authority ... ok
+test decline_racing_acceptance_either_fences_launch_or_requires_result ... ok
+test observation_replay_cannot_regress_or_resurrect_stopped_processes ... ok
+test cancellation_wins_before_result_and_retains_late_output ... ok
+test released_report_correction_cannot_reacquire_a_successors_task_claim ... ok
+test concurrent_claims_for_one_task_leave_one_unsettled_attempt ... ok
+test no_start_decline_can_reconcile_terminal_unaccepted_old_boot_offers ... ok
+test expired_unaccepted_offer_and_explicit_decline_release_task_claim ... ok
+test execution_http_authenticates_node_binding_and_keeps_routes_separate ... ok
+test corrected_reports_preserve_original_immutable_body_and_admission ... ok
+test fixture_assignment_requires_owner_dev_mode_and_sealed_inputs ... ok
+test launch_uncertain_evidence_cannot_be_downgraded_to_nonstart_release ... ok
+test repeated_cancellations_coalesce_one_worker_directive ... ok
+test unresolved_external_operations_prevent_replacement_even_after_stop ... ok
+test source_results_require_owned_retained_receipts_and_cannot_erase_launch_evidence ... ok
+test source_pending_operations_hold_claim_even_if_report_omits_them ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.33s
+
+     Running tests/graph_mutations.rs (/tmp/aq08-bridge-qualification-target/debug/deps/graph_mutations-fca59fa9b0ad9236)
+
+running 13 tests
+test actual_qualified_graph_delivery_recovers_lost_receipt_without_duplicate_history ... ignored, requires scripts/test-agent-mutations.py isolated pinned graph image and ordinary credential
+test future_guard_versions_and_concurrent_protection_changes_cannot_authorize_a_write ... ok
+test admitted_dispatch_does_not_hold_authority_locks_and_cannot_be_cancelled_as_unsent ... ok
+test retained_budget_refuses_new_intents_but_preserves_exact_replay ... ok
+test queued_admission_cancellation_wins_before_first_dispatch ... ok
+test permissions_protected_authors_and_capabilities_refuse_before_admission ... ok
+test local_receipt_commit_failure_keeps_unknown_and_recovery_publishes_once ... ok
+test retry_budget_and_changed_service_mapping_hold_unknown_without_new_dispatch ... ok
+test recovery_cursor_freezes_membership_and_serializes_its_finite_quota ... ok
+test relationship_guard_same_batch_and_findings_created_scope ... ok
+test response_loss_recovery_after_expiry_and_revocation_replays_exact_intent ... ok
+test confirmed_outbox_replay_byte_conflict_and_truthful_version_conflict ... ok
+test structural_proposals_need_explicit_edge_scopes_and_never_apply ... ok
+
+test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.25s
+
+     Running tests/health.rs (/tmp/aq08-bridge-qualification-target/debug/deps/health-42b674b4991cdb92)
+
+running 1 test
+test version_info_reports_protocol_range ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/identity.rs (/tmp/aq08-bridge-qualification-target/debug/deps/identity-dfeaaf4b4b35fe61)
+
+running 13 tests
+test dev_identity_uses_override_header ... ok
+test ignores_email_header_without_jwt ... ok
+test rejects_hs256_token ... ok
+test hs256_rejected_before_any_jwks_fetch ... ok
+test unreachable_jwks_is_keys_unavailable ... ok
+test rejects_missing_email_claim ... ok
+test rejects_expired_beyond_leeway ... ok
+test rejects_wrong_issuer ... ok
+test accepts_within_clock_skew_leeway ... ok
+test rejects_wrong_audience ... ok
+test accepts_valid_token ... ok
+test refetches_jwks_on_unknown_kid_once ... ok
+test stalled_jwks_endpoint_times_out_as_keys_unavailable ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.37s
+
+     Running tests/intelligence.rs (/tmp/aq08-bridge-qualification-target/debug/deps/intelligence-258fa0f59661177c)
+
+running 3 tests
+test credential_loading_is_private_bounded_regular_and_never_claims_missing_keys ... ok
+test manual_observation_has_authenticated_provenance_exact_replay_and_expiry_tombstones ... ok
+test installed_inventory_is_current_boot_bound_does_not_authorize_keys_and_legacy_feedback_refuses ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.36s
+
+     Running tests/messaging.rs (/tmp/aq08-bridge-qualification-target/debug/deps/messaging-bdae46c2e923423f)
+
+running 11 tests
+test durable_identity_scope_cursors_receipts_and_restart ... ok
+test small_profile_reads_non_ascii_body_in_bounded_utf8_chunks ... ok
+test bounded_inputs_auth_capabilities_and_online_expiry_cancellation ... ok
+test concurrent_sends_have_gapless_durable_mailbox_order ... ok
+test node_poll_requires_read_capability_but_known_delivery_ack_can_finish ... ok
+test successor_reads_task_mail_but_cannot_consume_predecessor_session_mail ... ok
+test credential_expiring_while_waiting_for_operation_lock_admits_nothing ... ok
+test owner_route_checks_role_csrf_and_known_task_identity ... ok
+test node_delivery_replay_unknown_stale_and_harness_handoff_are_distinct ... ok
+test cancellation_and_revocation_serialize_before_new_admission ... ok
+test inbox_and_body_refuse_expiry_during_database_read_lock_wait ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.21s
+
+     Running tests/profile_catalog.rs (/tmp/aq08-bridge-qualification-target/debug/deps/profile_catalog-aa52f3eef731fa28)
+
+running 4 tests
+test catalogs_require_owner_and_csrf_and_reject_bad_ids ... ok
+test concurrent_activation_has_one_revision_winner ... ok
+test invalid_edits_preserve_last_good_and_rollback_retains_exact_artifacts ... ok
+test exact_retry_survives_reactivation_and_changed_payload_conflicts ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
+
+     Running tests/profile_inspection.rs (/tmp/aq08-bridge-qualification-target/debug/deps/profile_inspection-e860c7b5bfb5e178)
+
+running 2 tests
+test malformed_inspection_and_unknown_scope_fields_refuse ... ok
+test owner_inspection_is_typed_scoped_and_never_activates_or_resolves_models ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+
+     Running tests/profiled_authority.rs (/tmp/aq08-bridge-qualification-target/debug/deps/profiled_authority-9304d5332d177d14)
+
+running 7 tests
+test common_task_claim_and_legacy_decoders_cannot_cross_profiled_kind ... ok
+test actual_profiled_graph_adapter_issues_exact_api01_binding_and_revokes_on_current_authority ... ok
+test shared_view_fences_exact_seal_identity_live_time_and_revision_semantics ... ok
+test authority_expiry_is_sampled_after_an_observed_node_lock_wait ... ok
+test actual_profiled_source_adapter_accepts_scoped_late_retention_and_refuses_foreign_spec ... ok
+test migration_freezes_common_identity_profiled_boot_generation_deadline_and_immutable_seal ... ok
+test database_derives_revisions_on_noop_and_bounds_uncompressed_state_and_material_verifier ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.73s
+
+     Running tests/project_bindings.rs (/tmp/aq08-bridge-qualification-target/debug/deps/project_bindings-ebe2b71097b6aea6)
+
+running 9 tests
+test selected_real_public_repository_and_graph_workspace_bind ... ignored, requires immutable selected aq-git and aq-graph components via scripts/test-project-bindings.py
+test intelligence_decision_is_immutable_and_final_fence_rechecks_scoped_facts ... ok
+test final_local_fence_rechecks_node_revocation_after_lock_wait ... ok
+test catalog_activation_blocks_future_eligibility_and_keeps_frozen_project_revision ... ok
+test absent_stale_forbidden_and_offline_components_refuse_and_disable_stays_available ... ok
+test exact_replay_survives_group_configuration_changes_but_new_mutations_do_not ... ok
+test observation_expiring_during_mutation_lock_wait_never_commits_fresh_validation ... ok
+test owner_scope_node_restrictions_and_mutation_unknown_fields_are_enforced ... ok
+test revisioned_binding_replay_history_and_retained_snapshot_survive_updates ... ok
+
+test result: ok. 8 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 3.22s
+
+     Running tests/readiness.rs (/tmp/aq08-bridge-qualification-target/debug/deps/readiness-587e474d8193d843)
+
+running 4 tests
+test readyz_reports_database_error ... ok
+test readyz_answers_loopback_over_real_listener ... ok
+test readyz_loopback_only ... ok
+test ping_times_out_instead_of_hanging ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.34s
+
+     Running tests/scheduling_reads.rs (/tmp/aq08-bridge-qualification-target/debug/deps/scheduling_reads-470ec8ae6edcede3)
+
+running 4 tests
+test invalid_inputs_do_not_contact_graph_or_choose_other_routes ... ok
+test actual_fixed_public_routes_preserve_exact_revision_raw_artifact_and_partial_coverage ... ok
+test context_bounds_and_edge_pin_association_follow_the_actual_request ... ok
+test foreign_stale_malformed_duplicate_wrong_version_and_oversize_refuse ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/source_retention.rs (/tmp/aq08-bridge-qualification-target/debug/deps/source_retention-ba637cd3c240f57a)
+
+running 9 tests
+test selected_real_aq_git_import_survives_worker_volume_loss_and_base_download_is_scoped ... ignored, qualification requires immutable aq-git and bookworm Git2.56.0 binaries
+test runtime_rejects_symlink_before_changing_target_permissions ... ok
+test invalid_pre_dispatch_manifest_is_rejected_without_leaking_quota ... ok
+test slow_import_does_not_hold_attempt_or_node_locks_and_control_status_progresses ... ok
+test late_attempt_retains_only_verified_receipt_and_releases_transport_budget ... ok
+test released_attempt_refuses_new_intents_but_preserves_owned_transfer_recovery ... ok
+test exact_replay_offsets_scope_and_upload_is_not_retention ... ok
+test stale_upload_cleanup_and_limits_preserve_unknown_imports ... ok
+test pending_import_retries_same_operation_and_rejects_incompatible_receipt ... ok
+
+test result: ok. 8 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.52s
+
+     Running tests/store.rs (/tmp/aq08-bridge-qualification-target/debug/deps/store-85bdcb8b2d8b2bcf)
+
+running 14 tests
+test tokens_have_prefixes_and_are_unique ... ok
+test verifier_is_deterministic_and_hex64 ... ok
+test concurrent_redeem_yields_one_node ... ok
+test bootstrap_owner_only_once ... ok
+test email_unique_case_insensitive ... ok
+test migrations_are_idempotent ... ok
+test enrollment_code_expires ... ok
+test node_lifecycle ... ok
+test refuses_newer_state_format ... ok
+test refuses_unknown_future_migration ... ok
+test reconnect_preserves_state ... ok
+test invited_user_binds_once ... ok
+test enrollment_code_single_use ... ok
+test exact_schema_two_upgrades_preserving_node_and_result_receipt ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+     Running tests/updates.rs (/tmp/aq08-bridge-qualification-target/debug/deps/updates-bd8d5f0b460fd9ac)
+
+running 22 tests
+test manifest_rejects_version_mismatch ... ok
+test manifest_rejects_unpinned_image ... ok
+test manifest_subcommand_uses_binary_constants ... ok
+test manifest_stdout_is_exact_under_trace_logging ... ok
+test maintenance_allows_probe ... ok
+test viewer_reads_update_status ... ok
+test owner_request_writes_spool_file ... ok
+test maintenance_allows_heartbeat ... ok
+test maintenance_blocks_admin_mutations_and_enroll ... ok
+test status_maps_update_states ... ok
+test request_body_rejects_image_field ... ok
+test viewer_cannot_request_update ... ok
+test invalid_version_rejected ... ok
+test request_rejected_while_in_progress ... ok
+test second_request_rejected_while_one_is_queued ... ok
+test missing_status_file_reads_unavailable ... ok
+test dotfile_in_requests_does_not_block ... ok
+test updates_unavailable_without_spool_config ... ok
+test unknown_state_blocks_request ... ok
+test prerelease_and_build_versions_rejected ... ok
+test owner_request_without_version_omits_it ... ok
+test no_spool_config_means_nothing_gated ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.80s
+
+     Running tests/worker_api.rs (/tmp/aq08-bridge-qualification-target/debug/deps/worker_api-16144ffee7e7c2f2)
+
+running 15 tests
+test healthz_on_both_and_hardening_headers ... ok
+test admin_listener_has_no_worker_routes ... ok
+test unknown_code_gives_same_response_as_used ... ok
+test unknown_credential_rejected ... ok
+test unsupported_protocol_gets_426_diagnostic ... ok
+test probe_echoes_nonce ... ok
+test worker_listener_has_no_admin_routes ... ok
+test enroll_validates_input ... ok
+test heartbeat_updates_last_seen ... ok
+test enroll_with_valid_code_returns_credential ... ok
+test heartbeat_checks_protocol_before_credential ... ok
+test reused_code_fails ... ok
+test revoked_credential_rejected_with_reason ... ok
+test oversized_body_rejected ... ok
+test expired_code_fails ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.53s
+
+   Doc-tests aq_server
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
