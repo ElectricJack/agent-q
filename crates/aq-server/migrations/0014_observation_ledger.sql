@@ -38,7 +38,9 @@ CREATE INDEX observation_lineage_events ON observation_events(lineage_id,node_id
 CREATE INDEX observation_attempt_events ON observation_events(attempt_id,node_id,sequence);
 CREATE TABLE observation_call_heads (
  call_key TEXT PRIMARY KEY CHECK(length(call_key)=64),
- fact JSONB CHECK(octet_length(fact::text) <= 98304)
+ fact JSONB CHECK(octet_length(fact::text) <= 98304),
+ owner_attempt_id UUID REFERENCES execution_attempts(attempt_id),
+ CHECK((fact IS NULL) = (owner_attempt_id IS NULL))
 );
 CREATE TABLE observation_facts (
  event_id UUID PRIMARY KEY REFERENCES observation_events(event_id),
@@ -51,6 +53,20 @@ CREATE TABLE observation_projections (
  last_recorded_at_ms BIGINT NOT NULL DEFAULT 0 CHECK(last_recorded_at_ms>=0),
  projection JSONB NOT NULL CHECK(octet_length(projection::text)<=4096)
 );
+CREATE TABLE observation_attempt_projections (
+ attempt_id UUID PRIMARY KEY REFERENCES execution_attempts(attempt_id),
+ revision BIGINT NOT NULL DEFAULT 0 CHECK(revision>=0),
+ last_recorded_at_ms BIGINT NOT NULL DEFAULT 0 CHECK(last_recorded_at_ms>=0),
+ projection JSONB NOT NULL CHECK(octet_length(projection::text)<=4096)
+);
+CREATE FUNCTION observation_call_owner_guard() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+ IF OLD.owner_attempt_id IS NOT NULL AND NEW.owner_attempt_id IS DISTINCT FROM OLD.owner_attempt_id
+ THEN RAISE EXCEPTION 'canonical call ownership is immutable'; END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER observation_call_owner_immutable BEFORE UPDATE ON observation_call_heads
+ FOR EACH ROW EXECUTE FUNCTION observation_call_owner_guard();
 CREATE FUNCTION refuse_observation_history_mutation() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN RAISE EXCEPTION 'observation history is immutable'; END $$;
 CREATE TRIGGER observation_source_immutable BEFORE UPDATE OR DELETE ON observation_sources

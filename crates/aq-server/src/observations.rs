@@ -15,6 +15,7 @@ use sqlx::{Postgres, Row, Transaction};
 use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
 pub mod api;
+pub mod inspection;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -276,6 +277,13 @@ pub async fn ingest(
             );
         }
     }
+    let current_attempts: BTreeSet<_> = batch
+        .events
+        .iter()
+        .map(|e| e.body.binding.attempt_id)
+        .collect();
+    let mut affected_attempts = current_attempts.clone();
+    let mut updated_attempts = current_attempts.clone();
     for key in &keys {
         sqlx::query(
             "INSERT INTO observation_call_heads(call_key) VALUES($1) ON CONFLICT DO NOTHING",
@@ -283,10 +291,15 @@ pub async fn ingest(
         .bind(key)
         .execute(&mut *tx)
         .await?;
-        sqlx::query("SELECT call_key FROM observation_call_heads WHERE call_key=$1 FOR UPDATE")
-            .bind(key)
-            .fetch_one(&mut *tx)
-            .await?;
+        let owner: Option<Uuid> = sqlx::query_scalar(
+            "SELECT owner_attempt_id FROM observation_call_heads WHERE call_key=$1 FOR UPDATE",
+        )
+        .bind(key)
+        .fetch_one(&mut *tx)
+        .await?;
+        if let Some(owner) = owner {
+            affected_attempts.insert(owner);
+        }
     }
     let lineages: BTreeSet<_> = batch
         .events
@@ -304,6 +317,19 @@ pub async fn ingest(
         .await?;
         projections.insert(lineage, parse::<Projection>(p)?);
     }
+    let mut attempt_projections = BTreeMap::new();
+    for attempt in affected_attempts {
+        if current_attempts.contains(&attempt) {
+            sqlx::query("INSERT INTO observation_attempt_projections(attempt_id,projection) VALUES($1,$2) ON CONFLICT DO NOTHING").bind(attempt).bind(value(&Projection::default())?).execute(&mut *tx).await?;
+        }
+        let projection: Value = sqlx::query_scalar(
+            "SELECT projection FROM observation_attempt_projections WHERE attempt_id=$1 FOR UPDATE",
+        )
+        .bind(attempt)
+        .fetch_one(&mut *tx)
+        .await?;
+        attempt_projections.insert(attempt, parse::<Projection>(projection)?);
+    }
     let recorded_at = (state.clock)().timestamp_millis();
     if recorded_at <= 0 {
         return Err(Error::Invalid);
@@ -320,11 +346,12 @@ pub async fn ingest(
             .ok_or(Error::Invalid)?;
         let decision = if let ObservationKind::Usage { usage } = &event.body.kind {
             let key = reconcile::key(event, &source.policy).map_err(|_| Error::Invalid)?;
-            let current: Option<Value> =
-                sqlx::query_scalar("SELECT fact FROM observation_call_heads WHERE call_key=$1")
-                    .bind(key.as_str())
-                    .fetch_one(&mut *tx)
-                    .await?;
+            let (current, owner): (Option<Value>, Option<Uuid>) = sqlx::query_as(
+                "SELECT fact,owner_attempt_id FROM observation_call_heads WHERE call_key=$1",
+            )
+            .bind(key.as_str())
+            .fetch_one(&mut *tx)
+            .await?;
             let current = current.map(parse::<Fact>).transpose()?;
             let target = if let Some(reference) = &usage.correction_of {
                 let v: Option<Value> = sqlx::query_scalar(
@@ -368,9 +395,16 @@ pub async fn ingest(
                     *projection = projection
                         .replace_fact(current.as_ref(), fact)
                         .map_err(|_| Error::Capacity)?;
-                    sqlx::query("UPDATE observation_call_heads SET fact=$2 WHERE call_key=$1")
+                    let owner = owner.unwrap_or(event.body.binding.attempt_id);
+                    updated_attempts.insert(owner);
+                    let owned = attempt_projections.get_mut(&owner).ok_or(Error::Invalid)?;
+                    *owned = owned
+                        .replace_fact(current.as_ref(), fact)
+                        .map_err(|_| Error::Capacity)?;
+                    sqlx::query("UPDATE observation_call_heads SET fact=$2,owner_attempt_id=$3 WHERE call_key=$1")
                         .bind(key.as_str())
                         .bind(value(fact)?)
+                        .bind(owner)
                         .execute(&mut *tx)
                         .await?;
                     appended = Some((key, fact.clone()));
@@ -379,7 +413,14 @@ pub async fn ingest(
                     projection.unresolved_events = projection
                         .unresolved_events
                         .checked_add(1)
-                        .ok_or(Error::Capacity)?
+                        .ok_or(Error::Capacity)?;
+                    let owned = attempt_projections
+                        .get_mut(&event.body.binding.attempt_id)
+                        .ok_or(Error::Invalid)?;
+                    owned.unresolved_events = owned
+                        .unresolved_events
+                        .checked_add(1)
+                        .ok_or(Error::Capacity)?;
                 }
                 Decision::NoCharge { .. } => {}
             }
@@ -387,6 +428,13 @@ pub async fn ingest(
         } else {
             if matches!(event.body.kind, ObservationKind::Gap { .. }) {
                 projection.unresolved_events = projection
+                    .unresolved_events
+                    .checked_add(1)
+                    .ok_or(Error::Capacity)?;
+                let owned = attempt_projections
+                    .get_mut(&event.body.binding.attempt_id)
+                    .ok_or(Error::Invalid)?;
+                owned.unresolved_events = owned
                     .unresolved_events
                     .checked_add(1)
                     .ok_or(Error::Capacity)?;
@@ -427,7 +475,7 @@ pub async fn ingest(
             serde_json::to_vec(&receipt)
                 .map_err(|_| Error::Invalid)?
                 .len() as i64
-                + 4096 * projections.len() as i64,
+                + 4096 * (projections.len() + attempt_projections.len()) as i64,
         )
         .ok_or(Error::Capacity)?;
     if row
@@ -441,6 +489,13 @@ pub async fn ingest(
     for (lineage, projection) in projections {
         projection.validate().map_err(|_| Error::Invalid)?;
         sqlx::query("UPDATE observation_projections SET revision=revision+1,projection=$2,last_recorded_at_ms=GREATEST(last_recorded_at_ms,$3) WHERE lineage_id=$1").bind(lineage).bind(value(&projection)?).bind(recorded_at).execute(&mut *tx).await?;
+    }
+    for (attempt, projection) in attempt_projections {
+        if !updated_attempts.contains(&attempt) {
+            continue;
+        }
+        projection.validate().map_err(|_| Error::Invalid)?;
+        sqlx::query("UPDATE observation_attempt_projections SET revision=revision+1,projection=$2,last_recorded_at_ms=GREATEST(last_recorded_at_ms,$3) WHERE attempt_id=$1").bind(attempt).bind(value(&projection)?).bind(recorded_at).execute(&mut *tx).await?;
     }
     sqlx::query("INSERT INTO observation_packets(node_id,message_id,body_digest,receipt) VALUES($1,$2,$3,$4)").bind(authenticated_node).bind(packet.body.message_id).bind(packet.body_digest.as_str()).bind(value(&receipt)?).execute(&mut *tx).await?;
     sqlx::query("UPDATE observation_nodes SET through_sequence=$2,retained_bytes=retained_bytes+$3,event_count=event_count+$4 WHERE node_id=$1").bind(authenticated_node).bind(integer(batch.last_sequence)?).bind(retained).bind(batch.events.len() as i64).execute(&mut *tx).await?;

@@ -22,6 +22,7 @@ pub struct Admission {
     bulk: Semaphore,
     notification: Semaphore,
     observation: Semaphore,
+    observation_read: Semaphore,
 }
 impl Default for Admission {
     fn default() -> Self {
@@ -31,6 +32,7 @@ impl Default for Admission {
             bulk: Semaphore::new(BULK_LIMIT),
             notification: Semaphore::new(4),
             observation: Semaphore::new(2),
+            observation_read: Semaphore::new(2),
         }
     }
 }
@@ -41,6 +43,7 @@ pub enum Class {
     Bulk,
     Notification,
     Observation,
+    ObservationRead,
 }
 pub(crate) fn execution_cancel_path(path: &str) -> bool {
     path.strip_prefix("/api/execution/attempts/")
@@ -53,6 +56,9 @@ pub(crate) fn agent_revoke_path(path: &str) -> bool {
         .is_some_and(|id| uuid::Uuid::parse_str(id).is_ok())
 }
 pub fn classify(path: &str) -> Class {
+    if path.starts_with("/api/observations/") {
+        return Class::ObservationRead;
+    }
     if path == "/v1/worker/observations/batch" {
         return Class::Observation;
     }
@@ -145,6 +151,7 @@ pub async fn gate(
         Class::Bulk => (&admission.bulk, Duration::from_secs(30)),
         Class::Notification => (&admission.notification, Duration::from_secs(10)),
         Class::Observation => (&admission.observation, Duration::from_secs(8)),
+        Class::ObservationRead => (&admission.observation_read, Duration::from_secs(8)),
     };
     let Ok(_permit) = slots.try_acquire() else {
         return busy(

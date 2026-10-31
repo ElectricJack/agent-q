@@ -103,7 +103,11 @@ impl Projection {
     pub fn counters(&self) -> Result<wire::Counters> {
         self.validate()?;
         let counter = |i: usize| {
-            if self.canonical_calls == 0 {
+            if self.unresolved_events > 0 {
+                wire::Counter::Unknown {
+                    reason: wire::UnknownReason::Incomplete,
+                }
+            } else if self.canonical_calls == 0 {
                 wire::Counter::Unknown {
                     reason: wire::UnknownReason::NotReported,
                 }

@@ -463,3 +463,263 @@ async fn worker_route_requires_node_credentials_and_rejects_wrong_packet_scope()
     assert_eq!(counts(&f).await, (1, 1));
     drop(f);
 }
+
+async fn successor(f: &mut Fixture, previous: &OwnerSource) -> OwnerSource {
+    use aq_server::execution::profiled::{Effects, Retention};
+    use aq_session_protocol::canonical_digest;
+    let old = f.profiled.clone();
+    let old_attempt = old.offer.binding.attempt_id;
+    let mut finished = old.clone();
+    finished.status = Status::Finished;
+    finished.stop = Stop::Stopped {
+        receipt: artifact("synthetic-stop", b"test-only"),
+    };
+    finished.retention = Retention::Retained {
+        receipt: artifact("synthetic-retained-source", b"test-only"),
+    };
+    finished.effects = Effects::Quiescent {
+        receipt: artifact("synthetic-effects", b"test-only"),
+    };
+    finished.validate().unwrap();
+    let pool = f.db.pool().await;
+    sqlx::query("UPDATE execution_attempts SET state=$2,holds_task=false WHERE attempt_id=$1")
+        .bind(old_attempt)
+        .bind(json!(finished))
+        .execute(&pool)
+        .await
+        .unwrap();
+    let mut next = old;
+    let attempt = Uuid::new_v4();
+    let session = Uuid::new_v4();
+    let offer = Uuid::new_v4();
+    next.offer.binding.attempt_id = attempt;
+    next.offer.binding.offer_id = offer;
+    if let SessionIdentity::Remote {
+        attempt_id,
+        session_id,
+        ..
+    } = &mut next.offer.binding.session
+    {
+        *attempt_id = attempt;
+        *session_id = session;
+    }
+    next.offer.manifest.bindings.session = next.offer.binding.session.clone();
+    next.offer.manifest.bindings.attempt_id = attempt;
+    next.offer.binding.launch_manifest_digest = canonical_digest(&next.offer.manifest).unwrap();
+    next.grant = Some(ProfiledGrant {
+        binding: next.offer.binding.clone(),
+        grant_id: Uuid::new_v4(),
+        expires_at_ms: NOW + 5000,
+    });
+    next.validate().unwrap();
+    sqlx::query("INSERT INTO execution_attempts(attempt_id,task_id,node_id,offer_id,session_id,kind,state,execution_deadline_ms) VALUES($1,$2,$3,$4,$5,'profiled_v1',$6,$7)").bind(attempt).bind(previous.binding.task_id).bind(f.node.node_id).bind(offer).bind(session).bind(json!(next)).bind(next.execution_deadline_ms.unwrap() as i64).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO profiled_launches(attempt_id,decision_id,source_observation_id,launch_binding,launch_manifest,manifest_digest,execution_spec,execution_spec_digest,graph_task_observation,source_binding,offer_expires_at_ms) SELECT $2,decision_id,source_observation_id,$3,$4,$5,execution_spec,execution_spec_digest,graph_task_observation,source_binding,offer_expires_at_ms FROM profiled_launches WHERE attempt_id=$1").bind(old_attempt).bind(attempt).bind(json!(next.offer.binding)).bind(json!(next.offer.manifest)).bind(next.offer.binding.launch_manifest_digest.as_str()).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO intelligence_attempt_selections(attempt_id,selection_digest,selection) SELECT $2,selection_digest,selection FROM intelligence_attempt_selections WHERE attempt_id=$1").bind(old_attempt).bind(attempt).execute(&pool).await.unwrap();
+    let mut source = previous.clone();
+    source.binding = aq_admission::transport::lifecycle_binding(&next.offer).unwrap();
+    source.source_id = Uuid::new_v4();
+    f.profiled = next;
+    observations::register_source(&f.state, &source)
+        .await
+        .unwrap();
+    source
+}
+
+#[tokio::test]
+async fn successor_correction_preserves_original_attempt_ownership() {
+    let (mut f, first_source) = setup().await;
+    let original = event(&first_source, 1, 10);
+    observations::ingest(
+        &f.state,
+        f.node.node_id,
+        &packet(&f, vec![original.clone()]),
+    )
+    .await
+    .unwrap();
+    let next_source = successor(&mut f, &first_source).await;
+    let mut corrected = event(&next_source, 2, 7).body;
+    if let ObservationKind::Usage { usage } = &mut corrected.kind {
+        usage.correction_of = Some(EventRef {
+            event_id: original.event_id,
+            digest: original.body_digest,
+        });
+    }
+    observations::ingest(
+        &f.state,
+        f.node.node_id,
+        &packet(
+            &f,
+            vec![ObservationRecord::seal(Uuid::new_v4(), corrected).unwrap()],
+        ),
+    )
+    .await
+    .unwrap();
+    let pool = f.db.pool().await;
+    let read = |attempt| {
+        let pool = pool.clone();
+        async move {
+            let v: Value = sqlx::query_scalar(
+                "SELECT projection FROM observation_attempt_projections WHERE attempt_id=$1",
+            )
+            .bind(attempt)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+            serde_json::from_value::<Projection>(v).unwrap()
+        }
+    };
+    let original = read(first_source.binding.attempt_id).await;
+    let successor = read(next_source.binding.attempt_id).await;
+    assert_eq!(original.canonical_calls, 1);
+    assert_eq!(original.known_subtotals[0], 7);
+    assert_eq!(successor.canonical_calls, 0);
+    let original_view =
+        observations::inspection::usage(&f.state, f.actor, first_source.binding.attempt_id)
+            .await
+            .unwrap();
+    let successor_view =
+        observations::inspection::usage(&f.state, f.actor, next_source.binding.attempt_id)
+            .await
+            .unwrap();
+    assert_eq!(original_view.known_category_subtotals[0], 7);
+    assert_eq!(successor_view.canonical_calls, 0);
+    assert_eq!(successor_view.known_category_subtotals, [0; 5]);
+    assert_eq!(projection(&f, &first_source).await.known_subtotals[0], 7);
+    assert!(
+        sqlx::query("UPDATE observation_call_heads SET owner_attempt_id=$1")
+            .bind(next_source.binding.attempt_id)
+            .execute(&pool)
+            .await
+            .is_err()
+    );
+    drop(f);
+}
+
+#[tokio::test]
+async fn inspection_uses_exact_acl_and_stable_bounded_snapshot_pages() {
+    use std::sync::atomic::Ordering;
+    let (f, s) = setup().await;
+    let pool = f.db.pool().await;
+    let distinct = |seq: u64| {
+        let mut body = event(&s, seq, seq * 10).body;
+        if let ObservationKind::Usage { usage } = &mut body.kind {
+            usage.call.native_call_id = text(&format!("native-{seq}"));
+        }
+        ObservationRecord::seal(Uuid::new_v4(), body).unwrap()
+    };
+    observations::ingest(
+        &f.state,
+        f.node.node_id,
+        &packet(&f, vec![distinct(1), distinct(2)]),
+    )
+    .await
+    .unwrap();
+    let first =
+        observations::inspection::events(&f.state, f.actor, s.binding.attempt_id, 0, None, 1)
+            .await
+            .unwrap();
+    first.validate().unwrap();
+    assert_eq!(first.through_sequence, 2);
+    assert_eq!(first.next_after, Some(1));
+    assert!(!first.complete_for_snapshot);
+    observations::ingest(&f.state, f.node.node_id, &packet(&f, vec![distinct(3)]))
+        .await
+        .unwrap();
+    let second =
+        observations::inspection::events(&f.state, f.actor, s.binding.attempt_id, 1, Some(2), 1)
+            .await
+            .unwrap();
+    assert_eq!(second.events.len(), 1);
+    assert_eq!(second.events[0].record.body.sequence, 2);
+    assert!(second.complete_for_snapshot);
+    let latest =
+        observations::inspection::events(&f.state, f.actor, s.binding.attempt_id, 2, None, 16)
+            .await
+            .unwrap();
+    assert_eq!(latest.events.len(), 1);
+    assert_eq!(latest.events[0].record.body.sequence, 3);
+    assert!(
+        observations::inspection::events(&f.state, f.actor, s.binding.attempt_id, 4, None, 16)
+            .await
+            .is_err()
+    );
+    assert!(
+        observations::inspection::events(&f.state, f.actor, s.binding.attempt_id, 0, None, 17)
+            .await
+            .is_err()
+    );
+    let viewer = Uuid::new_v4();
+    sqlx::query("INSERT INTO users(id,email,role,created_at,issuer,subject) VALUES($1,'observer@fixture.test','viewer',now(),'dev','observer@fixture.test')").bind(viewer).execute(&pool).await.unwrap();
+    assert!(
+        observations::inspection::usage(&f.state, viewer, s.binding.attempt_id)
+            .await
+            .is_err()
+    );
+    let key = aq_server::session_access::session_key(&s.binding.session).unwrap();
+    sqlx::query("INSERT INTO session_inspection_acl(session_key,session_identity,principal_id,revision,can_inspect,expires_at_ms) VALUES($1,$2,$3,1,true,$4)").bind(&key).bind(json!(s.binding.session)).bind(viewer).bind((NOW+10)as i64).execute(&pool).await.unwrap();
+    let view = observations::inspection::usage(&f.state, viewer, s.binding.attempt_id)
+        .await
+        .unwrap();
+    view.validate().unwrap();
+    assert_eq!(view.canonical_calls, 3);
+    assert_eq!(view.known_category_subtotals[0], 60);
+    assert!(matches!(
+        view.usage.completeness,
+        aq_lifecycle_api::AccountingCompleteness::Incomplete { .. }
+    ));
+    let human = observations::api::admin_routes(f.state.clone()).with_state(f.state.clone());
+    let request = |tail: &str| {
+        Request::builder()
+            .uri(format!(
+                "/api/observations/sessions/{}/{tail}",
+                s.binding.attempt_id
+            ))
+            .header("x-aq-dev-email", "observer@fixture.test")
+            .body(Body::empty())
+            .unwrap()
+    };
+    let response = human.clone().oneshot(request("usage")).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.headers()["cache-control"], "no-store");
+    let bytes = axum::body::to_bytes(response.into_body(), 16384)
+        .await
+        .unwrap();
+    aq_observation_api::decode_usage(&bytes).unwrap();
+    let response = human
+        .clone()
+        .oneshot(request("events?limit=1"))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let bytes = axum::body::to_bytes(response.into_body(), 262144)
+        .await
+        .unwrap();
+    aq_observation_api::decode_events(&bytes).unwrap();
+    f.time.store((NOW + 11) as i64, Ordering::SeqCst);
+    assert!(
+        observations::inspection::usage(&f.state, viewer, s.binding.attempt_id)
+            .await
+            .is_err()
+    );
+    assert_eq!(
+        human
+            .clone()
+            .oneshot(request("usage"))
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::FORBIDDEN
+    );
+    assert!(
+        observations::inspection::usage(&f.state, f.actor, s.binding.attempt_id)
+            .await
+            .is_ok()
+    );
+    sqlx::query("UPDATE session_inspection_acl SET revision=revision+1,can_inspect=false WHERE session_key=$1 AND principal_id=$2").bind(key).bind(viewer).execute(&pool).await.unwrap();
+    f.time.store(NOW as i64, Ordering::SeqCst);
+    assert_eq!(
+        human.oneshot(request("usage")).await.unwrap().status(),
+        StatusCode::FORBIDDEN
+    );
+    drop(f);
+}

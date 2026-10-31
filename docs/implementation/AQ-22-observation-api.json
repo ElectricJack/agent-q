@@ -1,0 +1,32 @@
+{
+  "source_revision": "55c5fdba630528617652ecfc60a581355b0d3462",
+  "archive": "/tmp/aq22-api-package-target/package/aq-observation-api-0.1.0.crate",
+  "archive_sha256": "a75113cc20a3bbf1fd38cce66959dbf254b4d5dc1920c39fec06ab8f4b5d1bf7",
+  "dependencies": {
+    "/tmp/con03-api-clean-target/package/aq-lifecycle-api-0.1.0.crate": "9b4471764943ac31ecc1c8ee600190ce6ce4df485d7708abda64aba7db1b46a5",
+    "/tmp/con03-producer-target/package/aq-lifecycle-protocol-0.1.0.crate": "945b03a99701035eb7cf6679bd9baa9ad2b50a7cb6329b9ca8de2cf8bd58b92b",
+    "/home/jkern/dev/.aq-qualification/session-host-2026-10-31/aq-session-protocol-0.1.0.crate": "479778d8ea76f0605b9a20460e0bd3fda73b699337b1e80783ada0d291a68090"
+  },
+  "clean_status": "",
+  "standalone_root": "/tmp/aq22-api-extracted",
+  "tests_passed": 4,
+  "strict_all_target_clippy": true,
+  "format": true,
+  "source_sha256": {
+    "crates/aq-observation-api/Cargo.toml": "82ec0ca73df0b49e0401f2c86cf07e30dffc816c6e201d03be5d33582f369a71",
+    "crates/aq-observation-api/README.md": "fff348f17ec34458a58cc166cdbfe5c0a726233020039d13a334733ffe9d75f5",
+    "crates/aq-observation-api/artifacts/events.schema.json": "86ebd46536f54e42628925b4a23041444f0537c23f06fd2936c26630ff39ecdf",
+    "crates/aq-observation-api/artifacts/examples.json": "c8f23db8fb690a6b594d9d8dc97a39586e25385f859420e2159587e6dfb5f25f",
+    "crates/aq-observation-api/artifacts/usage.schema.json": "38673e7c2bb1b6acaf9a2da533663597e25c2c826fdb68124a6b14bca726c3b5",
+    "crates/aq-observation-api/examples/export.rs": "378d35bdd451486d594a02aa8f09ea2a19c8521546b75f3000b3e409f55dc951",
+    "crates/aq-observation-api/src/lib.rs": "4c25eef6ed3c1554f57af473f4300afa74188570595033b3e888de88725f4948",
+    "crates/aq-observation-api/tests/views.rs": "acec65c47ccfa1f009f2ca49d133dddbb6bd5d4df639c6d6b39bc33e8da648ef"
+  },
+  "retained_sha256": {
+    "docs/implementation/evidence/aq22-api-55c5fdb/aq22-api-package.log": "3fb5fcd7c1c112dd45dea4586688ca5dd521fd63e2e85a7a19953e2ca501004c",
+    "docs/implementation/evidence/aq22-api-55c5fdb/aq22-api-standalone-tests.log": "1e6fb7e860eac8f848e2b79f5c7e2cb17b6a3a606adca06ebc657f4ba75084a6",
+    "docs/implementation/evidence/aq22-api-55c5fdb/aq22-api-standalone-clippy.log": "e9b8c2cae797bc64e150892ca311c9ab13793b09bf4af0c42ba5729eb03f77ea",
+    "docs/implementation/evidence/aq22-api-55c5fdb/aq22-api-standalone-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/implementation/evidence/aq22-api-55c5fdb/aq-observation-api-0.1.0.crate": "a75113cc20a3bbf1fd38cce66959dbf254b4d5dc1920c39fec06ab8f4b5d1bf7"
+  }
+}
