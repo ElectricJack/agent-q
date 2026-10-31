@@ -743,7 +743,7 @@ Requirement links: W1, W6, W11, W17, W18, P2, P4, P5, P8, H1, H2, H3, H4.
 
 Outside this task: Closing all-harness product acceptance (WRK-11/12/13 and INT-02 own it); Claiming hostile-code isolation or live reattachment from tmux persistence.
 
-Evidence: [WRK-08-native-runtime-plan.md](../../../aq-worker/docs/implementation/WRK-08-native-runtime-plan.md), [WRK-08-host-union-qualification.md](../../../aq-worker/docs/implementation/WRK-08-host-union-qualification.md), [WRK-08-startup-consumer-qualification.json](../../../aq-worker/docs/implementation/WRK-08-startup-consumer-qualification.json).
+Evidence: [WRK-08-native-runtime-plan.md](../../../aq-worker/docs/implementation/WRK-08-native-runtime-plan.md), [WRK-08-host-union-qualification.md](../../../aq-worker/docs/implementation/WRK-08-host-union-qualification.md), [WRK-08-startup-consumer-qualification.json](../../../aq-worker/docs/implementation/WRK-08-startup-consumer-qualification.json), [WRK-08-native-http-qualification.json](../../../aq-worker/docs/implementation/WRK-08-native-http-qualification.json), [WRK-08-codex-adapter-plan.md](../../../aq-worker/docs/implementation/WRK-08-codex-adapter-plan.md).
 
 ### AQ-10
 

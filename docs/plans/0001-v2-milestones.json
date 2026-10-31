@@ -1049,7 +1049,9 @@
       "evidence": [
         "../../../aq-worker/docs/implementation/WRK-08-native-runtime-plan.md",
         "../../../aq-worker/docs/implementation/WRK-08-host-union-qualification.md",
-        "../../../aq-worker/docs/implementation/WRK-08-startup-consumer-qualification.json"
+        "../../../aq-worker/docs/implementation/WRK-08-startup-consumer-qualification.json",
+        "../../../aq-worker/docs/implementation/WRK-08-native-http-qualification.json",
+        "../../../aq-worker/docs/implementation/WRK-08-codex-adapter-plan.md"
       ]
     },
     {

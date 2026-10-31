@@ -58,7 +58,13 @@ Additional components now included in the state24 assembled source:
 
 Continuing work:
 
-- Native preparation/offer/grant assembly and actual worker consumer. Pre-offer Git
+- Native preparation/offer/grant assembly and actual worker consumer. The worker
+  now verifies actual inline artifact/startup bytes and consumes the existing
+  native reporting/download HTTP endpoints (12 focused tests, strict lint/fmt).
+  Durable native journal, installation and runnable control integration remain.
+  The pinned Codex CLI interface inspection is non-authorizing; standalone
+  guardian-owned executor and provider/model compatibility still need qualification.
+   Pre-offer Git
   export must precede attempt/spec-bound transport wrapping. Final rendered startup
   bytes must be pinned and counted exactly, without duplicate context delivery.
 - Independent result eligibility evaluation and actual source/effect
@@ -71,8 +77,9 @@ Continuing work:
   harness progress. Its dense-packet tail regression remains negative at that
   checkpoint. The subsequent bounded incremental parser passes30 actual host and3
   actual bridge tests. Earlier unchanged crash-fixture marker timeouts remain
-  recorded as unresolved negatives. Root is qualifying its union with the explicit
-  final-startup-payload API; full rendering/baseline and runtime adoption remain open.
+  recorded as unresolved negatives. The combined host source3825480 passes307 normal tests,39 ignored,32 actual host
+  and3 actual bridge tests, with strict lint/formatting. Full rendering/baseline
+  and native runtime adoption remain open.
 - Broader AQ playbook adapters and actual default host startup. Exact human review
   subjects and executed check ownership are the next separate design/implementation
   slice; a human answer is not a result eligibility or completion receipt.
