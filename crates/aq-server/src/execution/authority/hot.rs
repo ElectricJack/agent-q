@@ -205,6 +205,7 @@ pub fn project(
         execution_deadline_ms: state.execution_deadline_ms,
         execution_spec_digest: key.execution_spec_digest.clone(),
         launch_manifest_digest: Some(key.launch_manifest_digest.clone()),
+        terminal_policy: Some(facts.terminal_policy),
         selection_digest: Some(key.selection_digest.clone()),
         cancellation_id: state.cancellation_id,
         revoked: node_revoked || state.revoked,
@@ -319,6 +320,9 @@ pub(super) async fn load_adopted_locked(
             project_id: verified.project_id,
             task_id: verified.task_id,
             graph,
+            terminal_policy: verified
+                .terminal_policy
+                .ok_or(AuthorityError::InvalidState)?,
             source: verified.source.ok_or(AuthorityError::InvalidState)?,
         };
         if let Some(state) = state {

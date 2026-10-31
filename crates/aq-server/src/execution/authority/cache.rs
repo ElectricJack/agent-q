@@ -21,6 +21,7 @@ pub struct Facts {
     pub project_id: Uuid,
     pub task_id: Uuid,
     pub graph: GraphBinding,
+    pub terminal_policy: aq_session_protocol::TerminalPolicy,
     pub source: SourceBinding,
 }
 /// FIFO keeps both retention work and accounted bytes bounded. Oversized facts
