@@ -1,0 +1,35 @@
+    Checking crypto-common v0.1.7
+    Checking inout v0.1.4
+    Checking opaque-debug v0.3.1
+    Checking aq-protocol v0.1.0 (/tmp/aq15-clean-10d4afd/vendor/aq-protocol-0.1.0)
+    Checking aq-release v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-release)
+    Checking digest v0.10.7
+    Checking cipher v0.4.4
+    Checking universal-hash v0.5.1
+    Checking aead v0.5.2
+    Checking poly1305 v0.8.0
+    Checking chacha20 v0.9.1
+    Checking sha2 v0.10.9
+    Checking hmac v0.12.1
+    Checking md-5 v0.10.6
+    Checking signature v2.2.0
+    Checking rsa v0.9.10
+    Checking hkdf v0.12.4
+    Checking chacha20poly1305 v0.10.1
+    Checking aq-session-protocol v0.1.0 (/tmp/aq15-clean-10d4afd/vendor/aq-session-protocol-0.1.0)
+    Checking sqlx-core v0.8.6
+    Checking aq-worker-protocol v0.2.0 (/tmp/aq15-clean-10d4afd/vendor/aq-worker-protocol-0.2.0)
+    Checking aq-agent-api v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-agent-api)
+    Checking aq-lifecycle-protocol v0.1.0 (/tmp/aq15-clean-10d4afd/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking aq-session-api v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-session-api)
+    Checking sqlx-postgres v0.8.6
+    Checking aq-profiles v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-profiles)
+    Checking aq-lifecycle-api v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-lifecycle-api)
+    Checking aq-admission v0.1.2 (/tmp/aq15-clean-10d4afd/crates/aq-admission)
+    Checking aq-accounting v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-accounting)
+    Checking aq-selection v0.1.1 (/tmp/aq15-clean-10d4afd/crates/aq-selection)
+    Checking sqlx v0.8.6
+    Checking aq-notifications v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-notifications)
+    Checking aq-observation-api v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-observation-api)
+    Checking aq-server v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-server)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 23.44s
