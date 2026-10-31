@@ -862,7 +862,9 @@
         "../implementation/evidence/aq08-startup-c3f49fd/qualification.json",
         "../implementation/aq-admission-0.1.6-qualification.md",
         "../implementation/AQ-08-preoffer-source-export.md",
-        "../implementation/AQ-08-preoffer-io-qualification.json"
+        "../implementation/AQ-08-preoffer-io-qualification.json",
+        "../implementation/AQ-08-native-control-017.md",
+        "../implementation/AQ-08-native-storage-022.md"
       ]
     },
     {
@@ -1009,7 +1011,7 @@
       "repo": "aq-worker",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "WRK-05",
         "WRK-06",
@@ -1044,7 +1046,11 @@
         "Closing all-harness product acceptance (WRK-11/12/13 and INT-02 own it)",
         "Claiming hostile-code isolation or live reattachment from tmux persistence"
       ],
-      "evidence": []
+      "evidence": [
+        "../../../aq-worker/docs/implementation/WRK-08-native-runtime-plan.md",
+        "../../../aq-worker/docs/implementation/WRK-08-host-union-qualification.md",
+        "../../../aq-worker/docs/implementation/WRK-08-startup-consumer-qualification.json"
+      ]
     },
     {
       "id": "AQ-10",
@@ -1078,7 +1084,9 @@
         "../implementation/AQ-10-result-settlement-plan.md",
         "../implementation/AQ-10-stopped-owner-qualification.md",
         "../implementation/AQ-10-outcome-contract-qualification.md",
-        "../implementation/aq-admission-0.1.6-qualification.md"
+        "../implementation/aq-admission-0.1.6-qualification.md",
+        "../implementation/AQ-10-result-ledger-qualification.md",
+        "../implementation/three-area-state24-qualification.json"
       ]
     },
     {
@@ -1476,7 +1484,8 @@
       "out_of_scope": [],
       "evidence": [
         "../implementation/AQ-12-through-17-plan.md",
-        "../implementation/AQ-13-durable-bridge-design.md"
+        "../implementation/AQ-13-durable-bridge-design.md",
+        "../implementation/AQ-13-first-bridge.md"
       ]
     },
     {
@@ -1485,7 +1494,7 @@
       "repo": "agent-q",
       "milestone": "M5",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "AQ-13",
         "AQ-10",
@@ -1507,7 +1516,8 @@
       ],
       "out_of_scope": [],
       "evidence": [
-        "../implementation/AQ-12-through-17-plan.md"
+        "../implementation/AQ-12-through-17-plan.md",
+        "../implementation/AQ-14-decision-check-owner-design.md"
       ]
     },
     {
@@ -2405,7 +2415,10 @@
         "../../../aq-worker/docs/implementation/WRK-14-integration.md",
         "../../../aq-worker/docs/implementation/WRK-14-integration.json",
         "../../../aq-worker/docs/implementation/WRK-14-output-plan.md",
-        "../../../aq-worker/docs/implementation/WRK-14-reader-lease-plan.md"
+        "../../../aq-worker/docs/implementation/WRK-14-reader-lease-plan.md",
+        "../../../aq-worker/docs/implementation/WRK-14-dense-output.md",
+        "../../../aq-worker/docs/implementation/WRK-14-renderer-baseline-plan.md",
+        "../../../aq-worker/docs/implementation/WRK-08-host-union-qualification.md"
       ]
     },
     {
@@ -2725,7 +2738,7 @@
     },
     {
       "source": "2026-10-31-execution-sessions-policy-progress.md",
-      "summary": "Current three-area design/implementation reconciliation, state21 integration717tests, actual stopped owner and pinned outcome/startup boundaries, playbook durable admission, and confirmed terminal observer backpressure with independent reader-lease correction. Product acceptance gates remain open."
+      "summary": "Three-area design/implementation reconciliation: ordered state24 integration764tests, exact native startup contract and worker host consumer, durable source export/result recording/first playbook message bridge, independent terminal reader expiry and dense output decoding. Native control delivery, renderer baseline and exact human review/check ownership continue; product gates remain open."
     }
   ],
   "implementation_reference_maps": [
