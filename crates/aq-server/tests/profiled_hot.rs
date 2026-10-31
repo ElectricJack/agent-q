@@ -121,6 +121,7 @@ async fn immutable_cache_is_exact_keyed_count_and_byte_bounded() {
         project_id: f.profiled.offer.manifest.bindings.project_id,
         task_id: f.profiled.offer.manifest.bindings.task_id,
         graph: f.profiled.graph.clone(),
+        terminal_policy: f.profiled.offer.manifest.terminal.clone(),
         source: f.profiled.source.clone(),
     };
     let mut key = Key {
@@ -205,6 +206,7 @@ async fn immutable_cache_hit_never_caches_renewal_revocation_or_expiry() {
         project_id: f.profiled.offer.manifest.bindings.project_id,
         task_id: f.profiled.offer.manifest.bindings.task_id,
         graph: f.profiled.graph.clone(),
+        terminal_policy: f.profiled.offer.manifest.terminal.clone(),
         source: f.profiled.source.clone(),
     };
     let mut cache = VerifiedCache::default();
@@ -260,7 +262,14 @@ async fn actual_common_loader_reads_hot_renewal_revocation_and_compatibility_fal
     use aq_session_protocol::ProfiledGrant;
     use common::profiled::{NOW, artifact};
     use uuid::Uuid;
-    let f = fixture().await;
+    let mut f = fixture().await;
+    f.profiled.offer.manifest.terminal.input_enabled = false;
+    f.profiled.offer.manifest.terminal.max_input_bytes = 64;
+    f.profiled.offer.manifest.terminal.max_pending_input_bytes = 128;
+    f.profiled.offer.manifest.terminal.max_frame_bytes = 256;
+    f.profiled.offer.manifest.terminal.replay_bytes = 1024;
+    f.profiled.offer.binding.launch_manifest_digest =
+        aq_session_protocol::canonical_digest(&f.profiled.offer.manifest).unwrap();
     let attempt = insert(&f).await;
     let pool = f.db.pool().await;
     let mut tx = pool.begin().await.unwrap();
@@ -313,6 +322,10 @@ async fn actual_common_loader_reads_hot_renewal_revocation_and_compatibility_fal
     .unwrap();
     tx.rollback().await.unwrap();
     assert_eq!(first.grant_expires_at_ms, NOW + 1000);
+    assert_eq!(
+        first.terminal_policy.as_ref(),
+        Some(&f.profiled.offer.manifest.terminal)
+    );
     assert_eq!(f.state.store.profiled_cache_stats().unwrap().3, 1);
     hot.grant.as_mut().unwrap().expires_at_ms = NOW + 2000;
     sqlx::query("UPDATE profiled_authority_hot SET state=$2 WHERE attempt_id=$1")
@@ -332,6 +345,7 @@ async fn actual_common_loader_reads_hot_renewal_revocation_and_compatibility_fal
     .unwrap();
     tx.rollback().await.unwrap();
     assert_eq!(renewed.grant_expires_at_ms, NOW + 2000);
+    assert_eq!(renewed.terminal_policy, first.terminal_policy);
     assert_eq!(renewed.authority_revision, first.authority_revision);
     assert!(renewed.grant_revision > first.grant_revision);
     assert_eq!(f.state.store.profiled_cache_stats().unwrap().2, 1);

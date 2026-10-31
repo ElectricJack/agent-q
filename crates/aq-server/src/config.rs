@@ -19,6 +19,12 @@ pub struct Config {
         deserialize_with = "crate::intelligence::config::deserialize_registry"
     )]
     pub intelligence: Option<std::sync::Arc<crate::intelligence::config::LoadedRegistry>>,
+    #[serde(
+        default,
+        deserialize_with = "crate::profiled_execution::config::deserialize"
+    )]
+    pub profiled_execution:
+        Option<std::sync::Arc<crate::profiled_execution::config::ProfiledConfig>>,
     pub format_version: u32,
     pub environment: Environment,
     pub server: ServerConfig,
@@ -275,6 +281,7 @@ mod tests {
     fn cfg(env: Environment, dev: bool) -> Config {
         Config {
             notifications: None,
+            profiled_execution: None,
             format_version: 1,
             environment: env,
             server: ServerConfig {

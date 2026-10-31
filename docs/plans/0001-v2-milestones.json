@@ -836,7 +836,11 @@
       "out_of_scope": [],
       "evidence": [
         "../implementation/AQ-08-stage1.md",
-        "../implementation/AQ-08-stage1.json"
+        "../implementation/AQ-08-stage1.json",
+        "../implementation/AQ-08-contract-0.1.1.json",
+        "../implementation/AQ-08-execution-spec-0.1.2.json",
+        "../implementation/AQ-08-hot-authority-qualification.json",
+        "../implementation/AQ-08-source-grant-gate-qualification.json"
       ]
     },
     {
@@ -1586,7 +1590,10 @@
       "out_of_scope": [
         "Guessing tokens from terminal characters or owning central cost rates/budgets"
       ],
-      "evidence": []
+      "evidence": [
+        "../../../aq-worker/docs/implementation/WRK-15-component.md",
+        "../../../aq-worker/docs/implementation/WRK-15-component.json"
+      ]
     },
     {
       "id": "AQ-22",
@@ -1616,7 +1623,11 @@
         "Inferring semantic progress from token count or retaining unlimited transcripts"
       ],
       "evidence": [
-        "../implementation/AQ-22-plan.md"
+        "../implementation/AQ-22-plan.md",
+        "../implementation/AQ-22-ledger.md",
+        "../implementation/AQ-22-inspection.md",
+        "../implementation/AQ-22-observation-api.json",
+        "../implementation/AQ-22-mounted-qualification.json"
       ]
     },
     {
@@ -2187,7 +2198,10 @@
       "out_of_scope": [
         "Browser rendering, literal terminal input as domain approval, unbounded transcript retention"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-21-migration12.md",
+        "../implementation/AQ-21-migration12.json"
+      ]
     },
     {
       "id": "WRK-11",
