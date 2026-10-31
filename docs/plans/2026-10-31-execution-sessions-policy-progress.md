@@ -64,26 +64,27 @@ Continuing work:
   Durable native journal, installation and runnable control integration remain.
   The pinned Codex CLI interface inspection is non-authorizing; standalone
   guardian-owned executor and provider/model compatibility still need qualification.
-   Pre-offer Git
-  export must precede attempt/spec-bound transport wrapping. Final rendered startup
+  Pre-offer Git export must precede attempt/spec-bound transport wrapping. Final rendered startup
   bytes must be pinned and counted exactly, without duplicate context delivery.
 - Independent result eligibility evaluation and actual source/effect
   settlement before claim release or expected-version graph completion.
 - Bounded terminal tail qualification, followed by renderer/full baseline and
   snapshot/live barriers. Negative candidate14354e7 confirmed that a sole SIGSTOPped
   tmux control observer can block the harness write despite pause-after. Input was
-  Applied and the guardian remained Running. The guardian-owned reader lease candidatecfe2c33 now passes303 normal tests
-  (36 ignored) and29 actual-host tests, including independent cutoff and continued
+  Applied and the guardian remained Running. The guardian-owned reader lease
+  candidate `cfe2c33` passes 303 normal tests
+  (36 ignored) and 29 actual-host tests, including independent cutoff and continued
   harness progress. Its dense-packet tail regression remains negative at that
   checkpoint. The subsequent bounded incremental parser passes30 actual host and3
   actual bridge tests. Earlier unchanged crash-fixture marker timeouts remain
-  recorded as unresolved negatives. The combined host source3825480 passes307 normal tests,39 ignored,32 actual host
-  and3 actual bridge tests, with strict lint/formatting. Full rendering/baseline
+  recorded as unresolved negatives. The combined host source `3825480` passes
+  307 normal tests, 39 ignored, 32 actual host
+  and 3 actual bridge tests, with strict lint/formatting. Full rendering/baseline
   and native runtime adoption remain open.
 - Broader AQ playbook adapters and actual default host startup. Exact human review
   subjects and executed check ownership are the next separate design/implementation
   slice; a human answer is not a result eligibility or completion receipt.
-  PB04's25ms latency target remains unmet and is not relaxed.
+  PB04's 25ms latency target remains unmet and is not relaxed.
 
 No live-provider qualification, deployment, external human notification or push
 was performed. GATE-04/GATE-05 and broader v2 acceptance remain open.
