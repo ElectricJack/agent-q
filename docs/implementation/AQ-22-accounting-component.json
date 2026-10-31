@@ -1,0 +1,39 @@
+{
+  "task": "AQ-22",
+  "status": "component_checkpoint_only",
+  "source_commit": "c29fd9918da91cee7d559f2f63f3149fbd1f0a12",
+  "tests": {
+    "passed": 17,
+    "failed": 0,
+    "ignored": 0
+  },
+  "strict_all_targets_clippy": "passed",
+  "logs": {
+    "tests": {
+      "path": "docs/implementation/evidence/aq22-accounting-c29fd99/tests.log",
+      "sha256": "39b17dd3ae95e9f79bc734f98e181af9752e3f137d1d3b98b4eeaf7cceb4c020"
+    },
+    "clippy": {
+      "path": "docs/implementation/evidence/aq22-accounting-c29fd99/clippy.log",
+      "sha256": "943b5bb304a094e98c221cccd5b96360d8bc22eeaf1472d7400bcf491f3dbb00"
+    }
+  },
+  "source_sha256": {
+    "Cargo.lock": "394116dfb35f5dcd1ab8e102a2a4a47573662929e0451b12e72d04dc83cf4b28",
+    "Cargo.toml": "8f15920d199ef11e2d102e7fe798e06a7d2c5e4abf567a9994e7e4384c772343",
+    "crates/aq-accounting/Cargo.toml": "0a49f4c64bfaf895e82e400ffbb716cfc1a4d626dc408cd1550382d1bd16a739",
+    "crates/aq-accounting/README.md": "f3789172eb5e8f3dace07d7a272b2e36c770c77de144fbd0eebfb5589dee5cc3",
+    "crates/aq-accounting/src/lib.rs": "1643d4482d94fd45e5dd122ce7a256f8ef73e95eb40080fe71622c3f1768a0d1",
+    "crates/aq-accounting/src/pricing.rs": "4d031c01a983bb66cb97881a5617b6d296114e8e9befa76923bbe84777942dd5",
+    "crates/aq-accounting/src/projection.rs": "8df2ca19bfac14437a3ff66d253b3a3ee46d6c0f6f400ff3a4ab77c564de0492",
+    "crates/aq-accounting/src/reconcile.rs": "fa580630d392db52790abf029956c55b842a0a55919c0fbf2e9b76085d94f3fb",
+    "crates/aq-accounting/tests/accounting.rs": "3f1be77a077d6fdf6c3d5690d102d69f42a1a54d79b80405721fed087aa32c5c"
+  },
+  "remaining": [
+    "Authenticated source/lineage registration and node-wide batch ingress",
+    "Atomic PostgreSQL event, call-head, correction and projection owner",
+    "Bounded retained raw/text artifact transfer and expiry/erasure",
+    "Current human inspection ACL and CLI/API",
+    "Actual lineage budget owner adapter and selected harness accounting qualification"
+  ]
+}
