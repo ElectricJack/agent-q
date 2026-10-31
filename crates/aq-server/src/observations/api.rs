@@ -16,6 +16,51 @@ pub fn routes(mut state: AppState) -> Router<AppState> {
         .layer(DefaultBodyLimit::max(MAX_BATCH_BYTES))
         .with_state(state)
 }
+/// Staged until ordered migration016 is installed. This route supplies transport
+/// ownership only, not source catalog enrollment or execution authority.
+pub fn transport_routes(mut state: AppState) -> Router<AppState> {
+    state.store = state.store.observation_view();
+    Router::new()
+        .route(
+            "/v1/worker/observations/transport",
+            post(transport_mutation).get(transport_status),
+        )
+        .layer(DefaultBodyLimit::max(aq_observation_admission::MAX_BYTES))
+        .with_state(state)
+}
+async fn transport_mutation(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    ApiJson(request): ApiJson<aq_observation_admission::Request>,
+) -> std::result::Result<
+    (
+        [(header::HeaderName, &'static str); 1],
+        Json<aq_observation_admission::Reply>,
+    ),
+    AppError,
+> {
+    let node = crate::worker_api::authenticate(&state, &headers).await?;
+    Ok((
+        [(header::CACHE_CONTROL, "no-store")],
+        Json(transport::mutate(&state, node.id, &request).await?),
+    ))
+}
+async fn transport_status(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> std::result::Result<
+    (
+        [(header::HeaderName, &'static str); 1],
+        Json<aq_observation_admission::Status>,
+    ),
+    AppError,
+> {
+    let node = crate::worker_api::authenticate(&state, &headers).await?;
+    Ok((
+        [(header::CACHE_CONTROL, "no-store")],
+        Json(transport::status(&state, node.id).await?),
+    ))
+}
 pub fn admin_routes(mut state: AppState) -> Router<AppState> {
     state.store = state.store.observation_view();
     Router::new()

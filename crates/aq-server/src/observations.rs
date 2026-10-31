@@ -16,6 +16,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
 pub mod api;
 pub mod inspection;
+pub mod transport;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
