@@ -85,13 +85,6 @@ fn exact_bytes_kind_identity_bounds_and_configuration_roundtrip() {
 async fn real_receipts_missing_bodies_and_immutable_definition_versions() {
     let mut f = fixture().await;
     let pool = f.db.pool().await;
-    // Draft027 explicitly applied: not ordered-chain qualification before026.
-    sqlx::raw_sql(include_str!(
-        "../migrations/0027_native_definition_identities.sql"
-    ))
-    .execute(&pool)
-    .await
-    .unwrap();
     let one = definition("synthetic-definition", "public synthetic adapter evidence");
     let mut config = (*f.state.config).clone();
     config.profiled_execution = Some(std::sync::Arc::new(ProfiledConfig {
@@ -103,6 +96,20 @@ async fn real_receipts_missing_bodies_and_immutable_definition_versions() {
     }));
     f.state.config = std::sync::Arc::new(config);
     let project = Uuid::new_v4();
+    assert!(
+        definitions::retain_required(&f.state, project, &[one.artifact().clone()], NOW + 60000)
+            .await
+            .is_err(),
+        "uninstalled identity guard cannot authorize new definition ownership"
+    );
+    // Draft027 explicitly applied: not ordered-chain qualification before026.
+    sqlx::raw_sql(include_str!(
+        "../migrations/0027_native_definition_identities.sql"
+    ))
+    .execute(&pool)
+    .await
+    .unwrap();
+
     assert!(
         definitions::retain_required(
             &f.state,
