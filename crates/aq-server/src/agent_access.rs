@@ -18,7 +18,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use sha2::{Digest, Sha256};
 use sqlx::{Postgres, Row, Transaction};
 use std::{path::PathBuf, time::Duration};
 use uuid::Uuid;
@@ -236,22 +235,10 @@ fn bearer(headers: &HeaderMap) -> Result<&str> {
         .ok_or(Error("unauthorized"))
 }
 fn canonical(value: &Value) -> Result<Vec<u8>> {
-    fn integers(v: &Value) -> bool {
-        match v {
-            Value::Number(n) => n.is_i64() || n.is_u64(),
-            Value::Array(a) => a.iter().all(integers),
-            Value::Object(o) => o.values().all(integers),
-            _ => true,
-        }
-    }
-    if !integers(value) {
-        return Err(Error("invalid_request"));
-    }
-    // serde_json's default Map is a BTreeMap: recursive sorted keys, compact UTF-8.
-    Ok(serde_json::to_vec(value)?)
+    aq_agent_api::canonical(value).map_err(|_| Error("invalid_request"))
 }
 fn digest(value: &Value) -> Result<String> {
-    Ok(hex::encode(Sha256::digest(canonical(value)?)))
+    aq_agent_api::digest(value).map_err(|_| Error("invalid_request"))
 }
 fn secret() -> String {
     use base64::Engine;
