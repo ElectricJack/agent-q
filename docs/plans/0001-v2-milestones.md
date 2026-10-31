@@ -38,7 +38,6 @@ Read the mapped source and regression cases before implementing an affected task
 
 | Task | Owner | Deliverable |
 | --- | --- | --- |
-| [AQ-08](#aq-08) | agent-q | Schedule real graph candidates with explicit eligibility |
 | [AQ-10](#aq-10) | agent-q | Apply evidence-based result disposition and graph completion |
 | [AQ-12](#aq-12) | agent-q | Embed the qualified playbook runner with bounded execution |
 | [WRK-15](#wrk-15) | aq-worker | Implement harness transcript readers and durable observation delivery |
@@ -126,7 +125,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [API-01](#api-01): Publish scoped agent API contracts | agent-q | [AQ-02](#aq-02), [GRAPH-01](#graph-01) | complete |
 | [AQ-06](#aq-06): Implement session credentials and scoped graph reads | agent-q | [API-01](#api-01), [AQ-03](#aq-03) | complete |
 | [AQ-07](#aq-07): Implement durable graph mutation delivery and recovery | agent-q | [AQ-06](#aq-06) | complete |
-| [AQ-08](#aq-08): Schedule real graph candidates with explicit eligibility | agent-q | [AQ-04](#aq-04), [AQ-07](#aq-07), [GATE-03](#gate-03), [AQ-19](#aq-19), [AQ-20](#aq-20) | planned |
+| [AQ-08](#aq-08): Schedule real graph candidates with explicit eligibility | agent-q | [AQ-04](#aq-04), [AQ-07](#aq-07), [GATE-03](#gate-03), [AQ-19](#aq-19), [AQ-20](#aq-20) | in_progress |
 | [WRK-05](#wrk-05): Provision the AQ agent client and bounded context cache | aq-worker | [WRK-04](#wrk-04), [AQ-06](#aq-06), [CON-02](#con-02), [AQ-18](#aq-18) | in_progress |
 | [WRK-06](#wrk-06): Integrate local aq-git workspaces and storage admission | aq-worker | [WRK-04](#wrk-04), [GIT-01](#git-01) | complete |
 | [AQ-09](#aq-09): Implement authenticated source transfer and central retention | agent-q | [AQ-03](#aq-03), [GIT-01](#git-01) | complete |
@@ -632,7 +631,7 @@ Evidence: [AQ-07.md](../implementation/AQ-07.md), [AQ-07.json](../implementation
 
 **Schedule real graph candidates with explicit eligibility**
 
-Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [AQ-04](#aq-04), [AQ-07](#aq-07), [GATE-03](#gate-03), [AQ-19](#aq-19), [AQ-20](#aq-20).
 
