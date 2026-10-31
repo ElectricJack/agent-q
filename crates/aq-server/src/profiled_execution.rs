@@ -4,3 +4,5 @@
 pub mod config;
 pub mod no_grant;
 pub mod policies;
+
+pub mod registration;
