@@ -141,6 +141,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-session-api"
+version = "0.1.0"
+dependencies = [
+ "aq-session-protocol",
+ "schemars",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "aq-session-protocol"
+version = "0.1.0"
+dependencies = [
+ "schemars",
+ "serde",
+ "serde_json",
+ "sha2",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
 name = "aq-updater"
 version = "0.1.0"
 dependencies = [

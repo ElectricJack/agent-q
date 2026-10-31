@@ -33,6 +33,8 @@ jobs:
         run: cargo fmt --all --check
       - name: Verify the pinned standalone worker and public contracts
         run: python3 scripts/check-worker-candidate.py --official
+      - name: Verify the pinned independent session contract
+        run: python3 scripts/check-session-contract.py
       - name: Verify pinned aq-git sources and Docker build stages
         run: python3 scripts/check-git-candidate.py --official
       - name: cargo clippy (default features)

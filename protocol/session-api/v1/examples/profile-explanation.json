@@ -1,0 +1,84 @@
+{
+  "contract": "profile_explanation",
+  "body": {
+    "schema_version": 1,
+    "request": {
+      "catalog_digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "agent_profile": "implementer@1",
+      "project_binding_id": "11111111-1111-4111-8111-111111111111",
+      "expected_project_revision": 2,
+      "task_context_revision": "task:3"
+    },
+    "valid": true,
+    "agent_profile": {
+      "identity": "engineering@1",
+      "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "revision": "1"
+    },
+    "execution_profile": {
+      "identity": "engineering@1",
+      "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "revision": "1"
+    },
+    "graph_access_profile_digest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "flattened_modules": [
+      {
+        "identity": "engineering@1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "revision": "1"
+      }
+    ],
+    "requested_permissions": [
+      {
+        "operation": "source.read",
+        "scope_reference": "repository:1"
+      }
+    ],
+    "effective_permissions": [
+      {
+        "operation": "source.read",
+        "scope_reference": "repository:1"
+      }
+    ],
+    "denied_requirements": [],
+    "omissions": [],
+    "reference_material": [
+      {
+        "identity": "engineering@1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "revision": "1"
+      }
+    ],
+    "required_bytes": 100,
+    "optional_bytes": 0,
+    "estimated_tokens": null,
+    "tokenizer_version": null,
+    "selection": {
+      "intelligence_profile": {
+        "identity": "engineering@1",
+        "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "revision": "1"
+      },
+      "selected_candidate_id": "first",
+      "snapshot_digest": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "decision_trace": [
+        "ordered candidate 0 eligible; unknown availability explicitly permitted"
+      ],
+      "candidates": [
+        {
+          "candidate_id": "first",
+          "provider": "fixture",
+          "model": "fixture-model",
+          "harness": "fixture-harness",
+          "reasoning_configuration_reference": "tested:1",
+          "eligibility": "eligible",
+          "reason_codes": [
+            "unknown_allowed"
+          ],
+          "observations": []
+        }
+      ]
+    },
+    "overrides": []
+  }
+}

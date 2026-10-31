@@ -1,0 +1,50 @@
+{
+  "source_repository": "aq-worker",
+  "source_revision": "7617866dd8beeb759aa6eadd7e9229d352c1c344",
+  "package": "aq-session-protocol",
+  "version": "0.1.0",
+  "archive": "aq-session-protocol-0.1.0.crate",
+  "archive_sha256": "479778d8ea76f0605b9a20460e0bd3fda73b699337b1e80783ada0d291a68090",
+  "files": [
+    {
+      "path": ".cargo_vcs_info.json",
+      "sha256": "811343d11ae685d566fb21a924d0ec3fdcae60e305f6abf09cf049b061360e30"
+    },
+    {
+      "path": "Cargo.lock",
+      "sha256": "9ec38bd3a72d3d3692231e1ffd6f8d31e1621da9bf3b693c9a4a8da0ed06c592"
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "e9a26d13041e5f9e85d3dd85e12f4f1ddb1f3ad79cbf940d1469f7c530a8805c"
+    },
+    {
+      "path": "Cargo.toml.orig",
+      "sha256": "be2332fe376fe4fdb1e4b7589dcdc3a58b053f6665373ee050f7cbde2f1dcfbc"
+    },
+    {
+      "path": "README.md",
+      "sha256": "250d6f654175d798d0e0712ffaab2bccb1d014e4b83246b756aa635b3bd59bb7"
+    },
+    {
+      "path": "artifacts/contract.schema.json",
+      "sha256": "344661b098e6d8cbf6a5451fc975aba2a5e06f1641c3d1f5e3d5458151f9c500"
+    },
+    {
+      "path": "artifacts/fixtures.json",
+      "sha256": "cf24fc767dbbdc437d211b4b59d60f699c2248cbd65b9f078fb88f2818161609"
+    },
+    {
+      "path": "examples/export.rs",
+      "sha256": "b90a4f0cd3d5d3930349b264bdde6875afb805ab842a24f34347c87936031cb6"
+    },
+    {
+      "path": "src/lib.rs",
+      "sha256": "667c73b2055d65b11f10e47229cb7ebdf998040fddf9d0dd7ecb226ca5833200"
+    },
+    {
+      "path": "tests/conformance.rs",
+      "sha256": "027627bea220e4d99abc78bab019ebefc71d05cb9c05fff5d663a1ff59e10b22"
+    }
+  ]
+}
