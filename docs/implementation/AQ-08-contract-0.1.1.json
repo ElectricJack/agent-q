@@ -1,0 +1,58 @@
+{
+  "source_revision": "9a4c1c7a66314a7fe23a0ff2185551cc256c1a80",
+  "source_hash_method": "SHA256 of git show SOURCE:path; never live working-tree bytes",
+  "source_sha256": {
+    "Cargo.lock": "5d6486f9ee3ba1f40e437d9fc70d8b840da60c290f82696b800aa401bae27280",
+    "crates/aq-admission/Cargo.toml": "5cbcc393ddffe99ba846edb87ade2bed6753acd398d206b0408faac456ac10d4",
+    "crates/aq-admission/README.md": "fbac6691d4d465b0038a4065399f2a80ab0699019dc7e7d075215600847c02cf",
+    "crates/aq-admission/artifacts/contract.schema.json": "1a5637238c16ec1345f40232a732ae391143d518a320f6823da94241c9c6f988",
+    "crates/aq-admission/artifacts/fixtures.json": "53217ced2c2d36e8f03542298212275327b3741eabe848a8fec236464a857a24",
+    "crates/aq-admission/artifacts/task-lineage-v1.json": "2ecd6d94254fd73b39156a437beaffe37627a7799087833d8481836fe1f983c0",
+    "crates/aq-admission/artifacts/transport.fixtures.json": "6d59a63df2b21ee5e836d65e91f009de92cf0fab20aeaa3e433e2a1e6ab297a3",
+    "crates/aq-admission/artifacts/transport.schema.json": "3c160f996a27b2f7ebc21f8015122c932e301bed37377b119392f34195a70d83",
+    "crates/aq-admission/examples/export_transport.rs": "28cb7f24c915c3c9fc4a26b4109a6b6cd5bb7a603c9f7893915cc617b8f75d9e",
+    "crates/aq-admission/src/lib.rs": "24c20ae580e0fcbdb5d2e6caff61297b766349e2c53ce43e733d204f44d97c0d",
+    "crates/aq-admission/src/transport.rs": "4f19c6c0bb728e781fb6349c4a994e28c31b0ff665fe11628c70169df9ceea50",
+    "crates/aq-admission/tests/task_lineage.rs": "11d64917ee5721094b04c68932a716e4e78ddbdbe1ec49fbcd80c1dd2bbda986",
+    "crates/aq-admission/tests/transport.rs": "db24d558462763267f1da6dca5d6ba28995d8fe0305cdd2959d911bac23e155c",
+    "crates/aq-selection/Cargo.toml": "29143062bc44a0ca5a26e3896716cd18e17f49ca9e12b3e553d4262509598bc2",
+    "crates/aq-selection/src/domain.rs": "0c1bc685d3a0a69231ca86b257266d705b216f31e8a3799fb126b415c5ea72f3",
+    "crates/aq-selection/src/select.rs": "d830bee64aeb45b897704e3d14429b1075a6c93f14688448f4892d7a1db01466",
+    "crates/aq-selection/src/validate.rs": "77cf5d30de72625d30434460810fd229368e9a8f00d818f0c8c7df1c7230a081",
+    "crates/aq-selection/tests/common/mod.rs": "ac14d959c24446e546450313d842b86c7b0ea17e7e8810592d0423188c9cbf81",
+    "crates/aq-selection/tests/fixtures/installed-selection-v0.1.0.json": "94c0b3d6f2f6bf92c7328cbe0d4de87cbb6d97579eb279195389252c7b851237",
+    "crates/aq-selection/tests/selection.rs": "948f88c551d8ffb7a36e7f4d4a88d2a3c33932aa8ad4a85bd4f85b0aa869ed1a",
+    "crates/aq-server/Cargo.toml": "81fa7fee3aeaf17bc03657364c11d2ccac387ef7f0f09b7c61dbc37181444084",
+    "crates/aq-server/src/intelligence/inventory.rs": "5350ad2613a17a9ac7d1910a9edf4e684d02012bcbc47d906a1234b6b4447ad4",
+    "crates/aq-server/tests/intelligence.rs": "c95c7d2ff3d3aa9f0c12351cc80384b80bfbcbdbe8f670e5a60562f0efa5f161"
+  },
+  "retained_files_sha256": {
+    "aq08-admission011-clean-package.log": "1413fb81e33f2d3541287979e07ffa9991ed4529061f3276a21cc4462bb7ca51",
+    "aq08-contract011-clean-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "aq08-admission011-clean-archive-tests.log": "bd5b1bc2cfed1964aa36c02ce3a1e4f2c5605b175ef20d8f899b5a2906f96053",
+    "aq08-contract011-clean-tests.log": "1d86c1f44fbbe9438036d36d7347ceb8d6cd034cae3ad4bc4d972bcac750bd53",
+    "aq08-contract011-clean-clippy.log": "d56937092e0633453a34a4358818a5c8a7b594c832e1e094476f9baf5498051e",
+    "aq-admission-0.1.1.crate": "ff4ec1ba208bab1461e0e85dbd1291fe17778a4741fc6b1e1c622753132aed55"
+  },
+  "scope": "Pure admission0.1.1 and selection0.1.1 checkpoint, not runtime admission qualification",
+  "tests": {
+    "admission": 18,
+    "selection": 20,
+    "standalone_admission_archive": 18
+  },
+  "worktree": "/tmp/aq08-contract-clean-9a4c1c7",
+  "commands": [
+    "CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-admission -p aq-selection --locked --offline",
+    "CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo clippy -p aq-admission -p aq-selection --all-targets --locked --offline -- -D warnings",
+    "cargo fmt --package aq-admission --package aq-selection --check",
+    "cargo package -p aq-admission --no-verify --offline --config patch.crates-io.aq-session-protocol.path=vendor/aq-session-protocol-0.1.0 --config patch.crates-io.aq-lifecycle-protocol.path=vendor/aq-lifecycle-protocol-0.1.0",
+    "cargo test --manifest-path /tmp/aq-admission011-clean-archive/aq-admission-0.1.1/Cargo.toml --locked --offline (same pinned-package patches with absolute paths)"
+  ],
+  "limitations": [
+    "No new handler installed; no real worker grant, provider delivery or physical-stop verification qualified.",
+    "Cold provisioning metadata is not installed credential presence or a usable grant.",
+    "StopJournalLedger is digest/replay conformance, not an independent remote process observer.",
+    "First transport profile caps frame1MiB/offers8/materials16/artifacts128 and may refuse larger shared-public envelopes.",
+    "No paid provider/model calls or external secret service used."
+  ]
+}
