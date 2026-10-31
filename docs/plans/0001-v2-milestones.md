@@ -1653,7 +1653,7 @@ Requirement links: E8, D7.
 
 Outside this task: A second editable workflow-state store, arbitrary eviction of unresolved work, a 500-agent claim from component microbenchmarks.
 
-Evidence: [PB-04.stage-a.md](../../../aq-playbooks/docs/implementation/PB-04.stage-a.md), [PB-04.stage-a.json](../../../aq-playbooks/docs/implementation/PB-04.stage-a.json), [PB-04.proposal.md](../../../aq-playbooks/docs/implementation/PB-04.proposal.md).
+Evidence: [PB-04.stage-a.md](../../../aq-playbooks/docs/implementation/PB-04.stage-a.md), [PB-04.stage-a.json](../../../aq-playbooks/docs/implementation/PB-04.stage-a.json), [PB-04.proposal.md](../../../aq-playbooks/docs/implementation/PB-04.proposal.md), [PB-04.prototype.md](../../../aq-playbooks/docs/implementation/PB-04.prototype.md), [PB-04.prototype.json](../../../aq-playbooks/docs/implementation/PB-04.prototype.json).
 
 ## Validation and updates
 

@@ -2617,7 +2617,9 @@
       "evidence": [
         "../../../aq-playbooks/docs/implementation/PB-04.stage-a.md",
         "../../../aq-playbooks/docs/implementation/PB-04.stage-a.json",
-        "../../../aq-playbooks/docs/implementation/PB-04.proposal.md"
+        "../../../aq-playbooks/docs/implementation/PB-04.proposal.md",
+        "../../../aq-playbooks/docs/implementation/PB-04.prototype.md",
+        "../../../aq-playbooks/docs/implementation/PB-04.prototype.json"
       ]
     }
   ],
