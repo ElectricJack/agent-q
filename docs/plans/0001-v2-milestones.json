@@ -834,7 +834,10 @@
         "Schedule only against a current explicit project binding and sealed profile/intelligence selection; unsupported or changed inputs refuse without silently selecting a weaker configuration."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-08-stage1.md",
+        "../implementation/AQ-08-stage1.json"
+      ]
     },
     {
       "id": "WRK-05",
@@ -842,7 +845,7 @@
       "repo": "aq-worker",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "WRK-04",
         "AQ-06",
@@ -866,7 +869,10 @@
         "Provision the digest-bound composed startup/reference context and scoped AQ tool adapter; required context cannot be silently truncated and an access profile cannot be confused with an execution profile."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../../../aq-worker/docs/implementation/WRK-05.md",
+        "../../../aq-worker/docs/implementation/WRK-05.json"
+      ]
     },
     {
       "id": "WRK-06",
@@ -1647,7 +1653,7 @@
       "repo": "agent-q",
       "milestone": "M5",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "AQ-11",
         "CON-03"
