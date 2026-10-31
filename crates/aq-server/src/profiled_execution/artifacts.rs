@@ -14,6 +14,7 @@ pub enum OwnerKind {
     Selection,
     Outcome,
     SourceRetention,
+    Startup,
 }
 impl OwnerKind {
     fn name(self) -> &'static str {
@@ -24,6 +25,7 @@ impl OwnerKind {
             Self::Selection => "selection",
             Self::Outcome => "outcome",
             Self::SourceRetention => "source_retention",
+            Self::Startup => "startup",
         }
     }
     fn accepts(self, kind: ArtifactKind) -> bool {
@@ -37,6 +39,8 @@ impl OwnerKind {
                 | (Self::Outcome, ArtifactKind::Outcome)
                 | (Self::SourceRetention, ArtifactKind::Context)
                 | (Self::SourceRetention, ArtifactKind::Source)
+                | (Self::Startup, ArtifactKind::Context)
+                | (Self::Startup, ArtifactKind::Definition)
         )
     }
 }
