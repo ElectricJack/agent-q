@@ -15,6 +15,7 @@ pub mod profiled_execution;
 pub mod project_bindings;
 pub mod protected_storage;
 pub mod readiness;
+pub mod reviews;
 pub mod session_access;
 pub mod source_retention;
 pub mod store;
@@ -148,9 +149,20 @@ pub fn build_admin_router_with_playbooks(
     state: AppState,
     playbooks: Option<Arc<playbooks::driver::Driver>>,
 ) -> Router {
+    build_admin_router_with_policy_owners(state, playbooks, None)
+}
+/// Explicit configured owner injection; default constructors mount no review
+/// endpoints. All injected owners share existing auth/CSRF/maintenance layers.
+pub fn build_admin_router_with_policy_owners(
+    state: AppState,
+    playbooks: Option<Arc<playbooks::driver::Driver>>,
+    reviews: Option<Arc<reviews::Service>>,
+) -> Router {
     let policy_routes = playbooks.map(playbooks::api::routes).unwrap_or_default();
+    let review_routes = reviews.map(reviews::admin_routes).unwrap_or_default();
     Router::new()
         .merge(policy_routes)
+        .merge(review_routes)
         .merge(admin_api::admin_routes())
         .merge(notifications::api::routes(state.clone()))
         .merge(observations::api::admin_routes(state.clone()))

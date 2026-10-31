@@ -349,6 +349,7 @@ dependencies = [
  "aq-profiles",
  "aq-protocol",
  "aq-release",
+ "aq-review-protocol",
  "aq-selection",
  "aq-server",
  "aq-session-api",

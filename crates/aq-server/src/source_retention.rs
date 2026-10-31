@@ -1029,3 +1029,105 @@ async fn discard_transport(rt: &Runtime, id: Uuid, artifact: Uuid) -> Result<()>
 }
 
 pub mod profiled_base;
+
+/// Actual source-owner acknowledgement retained after the public Git import.
+/// This records historical retention, not current physical availability or B2
+/// eligibility. Caller holds common node/attempt locks before this transfer row.
+pub struct RecordedSourceConfirmation {
+    pub manifest: TransferManifest,
+    pub receipt: CentralRetentionReceipt,
+    pub acknowledgement: Value,
+}
+/// Resolve an actual import operation, never a worker's unverified receipt ID.
+/// No current machine credential is needed to read this historical owner record.
+pub async fn load_confirmed_locked(
+    tx: &mut Transaction<'_, Postgres>,
+    operation: Uuid,
+    recorded: &crate::profiled_execution::results::RecordedResult,
+) -> Result<RecordedSourceConfirmation> {
+    if !recorded.report.source_receipt_ids.contains(&operation) {
+        return Err(conflict(
+            "source receipt is not pinned by the recorded result",
+        ));
+    }
+    let row = sqlx::query("SELECT transfer_id,node_id,attempt_id,repository_id,artifact_id,manifest,state,receipt,central_receipt FROM source_transfers WHERE import_operation_id=$1 FOR SHARE")
+        .bind(operation).fetch_optional(&mut **tx).await.map_err(internal)?
+        .ok_or_else(|| conflict("source owner acknowledgement is unavailable"))?;
+    if row.get::<String, _>("state") != "retained" {
+        return Err(conflict("source owner acknowledgement is not retained"));
+    }
+    let manifest: TransferManifest =
+        serde_json::from_value(row.get("manifest")).map_err(internal)?;
+    manifest.validate().map_err(internal)?;
+    let receipt: CentralRetentionReceipt =
+        serde_json::from_value(row.get("receipt")).map_err(internal)?;
+    receipt.validate().map_err(internal)?;
+    let acknowledgement: Value = row.get("central_receipt");
+    let spec = &recorded.spec;
+    let binding = &recorded.report.binding;
+    // Recheck the same public acknowledgement relationships as finalize(). The
+    // projection alone cannot substitute for the retained Git-owner evidence.
+    let aq_session_protocol::SessionIdentity::Remote {
+        node_id,
+        session_id,
+        ..
+    } = binding.session
+    else {
+        return Err(AppError::Internal);
+    };
+    if row.get::<Uuid, _>("node_id") != node_id {
+        return Err(AppError::Internal);
+    }
+    if manifest.source.base.hex.bytes().all(|b| b == b'0')
+        || manifest.checkpoint.hex.bytes().all(|b| b == b'0')
+        || manifest.role != aq_worker_protocol::SourceRole::Checkpoint
+        || row.get::<Uuid, _>("attempt_id") != binding.attempt_id
+        || manifest.attempt.attempt_id != binding.attempt_id
+        || manifest.attempt.session_id != session_id
+        || manifest.attempt.generation != binding.assignment_generation
+        || manifest.resolved_spec_digest != binding.execution_spec_digest.as_str()
+        || manifest.source.repository_id != spec.source.repository_id
+        || manifest.source.binding_generation != spec.source.repository_binding_generation
+        || manifest.source.base.hex != spec.source.resolved_object.hex
+        || !matches!(
+            (
+                &manifest.source.base.algorithm,
+                &spec.source.resolved_object.format
+            ),
+            (
+                aq_worker_protocol::ObjectAlgorithm::Sha1,
+                aq_admission::ObjectFormat::Sha1
+            )
+        )
+        || row.get::<Uuid, _>("repository_id") != manifest.source.repository_id
+        || row.get::<Uuid, _>("transfer_id") != manifest.transfer_id
+        || row.get::<Uuid, _>("artifact_id") != manifest.artifact_id
+        || receipt.receipt_id != operation
+        || receipt.transfer_id != manifest.transfer_id
+        || receipt.repository_id != manifest.source.repository_id
+        || receipt.binding_generation != manifest.source.binding_generation
+        || receipt.retention_handle != manifest.artifact_id
+        || receipt.source != manifest.checkpoint
+        || acknowledgement["repository_id"] != receipt.repository_id.to_string()
+        || acknowledgement["binding_generation"] != receipt.binding_generation
+        || acknowledgement["transfer_id"] != manifest.artifact_id.to_string()
+        || acknowledgement["retention_handle"] != manifest.artifact_id.to_string()
+        || acknowledgement["manifest_digest"] != receipt.manifest_digest
+        || acknowledgement["source"] != serde_json::to_value(&receipt.source).map_err(internal)?
+        || acknowledgement["retention_state"] != "active"
+        || acknowledgement["historical"] != false
+        || acknowledgement["receiver_installation_id"]
+            .as_str()
+            .and_then(|v| Uuid::parse_str(v).ok())
+            .is_none_or(|v| v.is_nil())
+    {
+        return Err(AppError::Internal);
+    }
+    Ok(RecordedSourceConfirmation {
+        manifest,
+        receipt,
+        acknowledgement,
+    })
+}
+
+pub mod result_retention;

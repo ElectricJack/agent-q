@@ -600,3 +600,404 @@ async fn internal_owner_read_rejects_receipt_outcome_and_stored_spec_corruption(
             .is_err()
     );
 }
+
+#[tokio::test]
+async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_binding() {
+    let (mut f, _, mut report) = prepare(true, true).await;
+    let operation = Uuid::new_v4();
+    report.source_receipt_ids.push(operation);
+    let auth = context(&f).await;
+    results::record(&f.state, &auth, &report).await.unwrap();
+    let pool = &f.db.pool().await;
+    let mut tx = pool.begin().await.unwrap();
+    let actual = results::load_locked(&f.state, &mut tx, report.report_id)
+        .await
+        .unwrap();
+    assert!(
+        aq_server::source_retention::load_confirmed_locked(&mut tx, operation, &actual)
+            .await
+            .is_err()
+    );
+    tx.rollback().await.unwrap();
+    // Synthetic SQL owner row tests validation only; this does not qualify a
+    // native Git transfer or fabricate public Git retention evidence.
+    let transfer_id = Uuid::new_v4();
+    let artifact_id = Uuid::new_v4();
+    let mut manifest = aq_worker_protocol::TransferManifest {
+        transfer_id,
+        role: aq_worker_protocol::SourceRole::Checkpoint,
+        checkpoint: f.profiled.source.base.clone(),
+        attempt: aq_worker_protocol::AttemptRef {
+            attempt_id: report.binding.attempt_id,
+            session_id: match report.binding.session {
+                aq_session_protocol::SessionIdentity::Remote { session_id, .. } => session_id,
+                _ => unreachable!(),
+            },
+            generation: report.binding.assignment_generation,
+        },
+        resolved_spec_digest: report.binding.execution_spec_digest.as_str().into(),
+        source: f.profiled.source.clone(),
+        artifact_id,
+        manifest_digest: "a".repeat(64),
+        bundle_digest: None,
+        manifest_bytes: 1,
+        bundle_bytes: 0,
+    };
+    // An otherwise valid legacy/fake session cannot be coerced into the native
+    // result's exact session identity simply by copying its receipt UUID.
+    manifest.attempt.session_id = Uuid::new_v4();
+    let receipt = aq_worker_protocol::CentralRetentionReceipt {
+        receipt_id: operation,
+        transfer_id,
+        repository_id: manifest.source.repository_id,
+        binding_generation: manifest.source.binding_generation,
+        source: manifest.checkpoint.clone(),
+        retention_handle: artifact_id,
+        manifest_digest: "b".repeat(64),
+    };
+    let raw = json!({"repository_id":receipt.repository_id,"binding_generation":receipt.binding_generation,"transfer_id":artifact_id,"retention_handle":artifact_id,"manifest_digest":receipt.manifest_digest,"source":receipt.source,"retention_state":"active","historical":false,"receiver_installation_id":Uuid::new_v4()});
+    sqlx::query("INSERT INTO source_transfers(transfer_id,attempt_id,node_id,repository_id,artifact_id,import_operation_id,manifest,state,receipt,central_receipt) VALUES($1,$2,$3,$4,$5,$6,$7,'retained',$8,$9)")
+        .bind(transfer_id).bind(manifest.attempt.attempt_id).bind(f.node.node_id)
+        .bind(manifest.source.repository_id).bind(artifact_id).bind(operation)
+        .bind(json!(manifest)).bind(json!(receipt)).bind(raw).execute(pool).await.unwrap();
+    let mut tx = pool.begin().await.unwrap();
+    let actual = results::load_locked(&f.state, &mut tx, report.report_id)
+        .await
+        .unwrap();
+    assert!(
+        aq_server::source_retention::load_confirmed_locked(&mut tx, operation, &actual)
+            .await
+            .is_err()
+    );
+    tx.rollback().await.unwrap();
+    manifest.attempt.session_id = match report.binding.session {
+        aq_session_protocol::SessionIdentity::Remote { session_id, .. } => session_id,
+        _ => unreachable!(),
+    };
+    sqlx::query("UPDATE source_transfers SET manifest=$2 WHERE transfer_id=$1")
+        .bind(transfer_id)
+        .bind(json!(manifest))
+        .execute(pool)
+        .await
+        .unwrap();
+    let mut tx = pool.begin().await.unwrap();
+    let actual = results::load_locked(&f.state, &mut tx, report.report_id)
+        .await
+        .unwrap();
+    let historical =
+        aq_server::source_retention::load_confirmed_locked(&mut tx, operation, &actual)
+            .await
+            .unwrap();
+    assert_eq!(historical.receipt.receipt_id, operation);
+    tx.rollback().await.unwrap();
+    // Candidate026 component only; ordinary state24 remains unchanged. This
+    // fixture uses a synthetic public Git peer, not real Git qualification.
+    let schema = include_str!("../migrations/0026_review_owners.sql").replace(
+        "UPDATE meta SET value='26' WHERE key='state_format_version';",
+        "",
+    );
+    sqlx::raw_sql(&schema).execute(pool).await.unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    let directory = tempfile::tempdir().unwrap();
+    let socket = directory.path().join("git.sock");
+    let listener = tokio::net::UnixListener::bind(&socket).unwrap();
+    let inspection = json!({"version":1,"id":artifact_id,"repository_id":manifest.source.repository_id,"binding_generation":manifest.source.binding_generation,"generation":1,"state":"active","resource":"transfer","release_operation":null,"release_reason":null,"refs":[{"name":format!("refs/aq-git/transfers/{artifact_id}"),"oid":receipt.source.hex}]});
+    let peer = tokio::spawn(async move {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
+        let (socket, _) = listener.accept().await.unwrap();
+        let mut reader = tokio::io::BufReader::new(socket);
+        let mut line = String::new();
+        reader.read_line(&mut line).await.unwrap();
+        let request: serde_json::Value = serde_json::from_str(&line).unwrap();
+        assert_eq!(request["operation"], "retention.inspect");
+        assert_eq!(request["params"]["handle_id"], artifact_id.to_string());
+        let reply = json!({"protocol_version":1,"request_id":request["request_id"],"ok":true,"result":inspection});
+        let mut bytes = serde_json::to_vec(&reply).unwrap();
+        bytes.push(b'\n');
+        reader.get_mut().write_all(&bytes).await.unwrap();
+    });
+    f.state.source_retention = Some(Arc::new(
+        aq_server::source_retention::Runtime::new(
+            aq_server::source_retention::SourceRetentionConfig {
+                staging_root: directory.path().join("staging"),
+                git_root: directory.path().join("git"),
+                git_socket: socket,
+                max_staging_bytes: 1048576,
+                max_bundle_bytes: 1048576,
+                bulk_concurrency: 1,
+                incomplete_ttl_secs: 60,
+            },
+        )
+        .unwrap(),
+    ));
+    let key = directory.path().join("key");
+    std::fs::write(&key, [9_u8; 32]).unwrap();
+    std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o600)).unwrap();
+    let keys = aq_server::protected_storage::Keyring::load(
+        &aq_server::protected_storage::ProtectionConfig {
+            active_key_id: "test".into(),
+            keys: vec![aq_server::protected_storage::KeyFile {
+                id: "test".into(),
+                file: key,
+            }],
+        },
+    )
+    .unwrap();
+    let service = aq_server::reviews::Service::new(f.state.clone(), Arc::new(keys));
+    let prepared = service.prepare(report.report_id, operation).await.unwrap();
+    peer.await.unwrap();
+    let request = aq_review_protocol::DecisionRequest {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        decision_id: Uuid::new_v4(),
+        subject: prepared.subject().artifact().unwrap(),
+        eligible_owners: vec![f.actor],
+        eligibility_project_revision: 1,
+        review_policy: prepared.subject().validation_policy.clone(),
+        expires_at_ms: NOW + 30000,
+    };
+    service.admit(f.actor, &prepared, &request).await.unwrap();
+    service.admit(f.actor, &prepared, &request).await.unwrap();
+    let mut changed = request.clone();
+    changed.expires_at_ms += 1;
+    assert!(service.admit(f.actor, &prepared, &changed).await.is_err());
+    let answer = aq_review_protocol::ResolveRequest {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        decision_id: request.decision_id,
+        expected_decision_revision: 1,
+        choice: aq_review_protocol::Choice::Approve,
+        comment: Some("Synthetic component review".into()),
+    };
+    let mut pending = Vec::new();
+    for _ in 0..5 {
+        let mut next = request.clone();
+        next.operation_id = Uuid::new_v4();
+        next.decision_id = Uuid::new_v4();
+        service.admit(f.actor, &prepared, &next).await.unwrap();
+        pending.push(next);
+    }
+    let cancellation = Uuid::new_v4();
+    let cancelled = service
+        .cancel(f.actor, cancellation, pending[0].decision_id, 1)
+        .await
+        .unwrap();
+    assert!(matches!(
+        cancelled.finality,
+        aq_review_protocol::DecisionFinality::Cancelled { .. }
+    ));
+    assert_eq!(
+        json!(
+            service
+                .cancel(f.actor, cancellation, pending[0].decision_id, 1)
+                .await
+                .unwrap()
+        ),
+        json!(cancelled)
+    );
+    let mut cancelled_answer = answer.clone();
+    cancelled_answer.operation_id = Uuid::new_v4();
+    cancelled_answer.decision_id = pending[0].decision_id;
+    assert!(service.resolve(f.actor, &cancelled_answer).await.is_err());
+    let mut one = answer.clone();
+    one.operation_id = Uuid::new_v4();
+    one.decision_id = pending[1].decision_id;
+    let mut two = one.clone();
+    two.operation_id = Uuid::new_v4();
+    two.choice = aq_review_protocol::Choice::Reject;
+    let competing = tokio::join!(
+        service.resolve(f.actor, &one),
+        service.resolve(f.actor, &two)
+    );
+    assert_ne!(competing.0.is_ok(), competing.1.is_ok());
+    // An outbox write failure rolls back finality and pending-state CAS; retry
+    // uses the same retained answer ID, not a second human decision.
+    sqlx::raw_sql("CREATE FUNCTION fail_review_outbox() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic write failure'; END $$; CREATE TRIGGER fail_review_outbox BEFORE INSERT ON review_owner_outbox FOR EACH ROW EXECUTE FUNCTION fail_review_outbox();").execute(pool).await.unwrap();
+    assert!(service.resolve(f.actor, &answer).await.is_err());
+    let state: String =
+        sqlx::query_scalar("SELECT state FROM human_decision_requests WHERE decision_id=$1")
+            .bind(request.decision_id)
+            .fetch_one(pool)
+            .await
+            .unwrap();
+    assert_eq!(state, "pending");
+    let receipts: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM human_decision_finality WHERE decision_id=$1")
+            .bind(request.decision_id)
+            .fetch_one(pool)
+            .await
+            .unwrap();
+    assert_eq!(receipts, 0);
+    sqlx::raw_sql("DROP TRIGGER fail_review_outbox ON review_owner_outbox; DROP FUNCTION fail_review_outbox();").execute(pool).await.unwrap();
+    let finality = service.resolve(f.actor, &answer).await.unwrap();
+    assert_eq!(
+        json!(service.resolve(f.actor, &answer).await.unwrap()),
+        json!(finality)
+    );
+    // Optional real admin router uses current owner identity and the existing
+    // CSRF guard; the default builder does not mount these routes.
+    use tower::ServiceExt;
+    let app = aq_server::build_admin_router_with_policy_owners(
+        f.state.clone(),
+        None,
+        Some(Arc::new(service.clone())),
+    );
+    let path = format!("/api/reviews/decisions/{}", request.decision_id);
+    let get = axum::http::Request::builder()
+        .uri(&path)
+        .body(axum::body::Body::empty())
+        .unwrap();
+    assert_eq!(app.clone().oneshot(get).await.unwrap().status(), 200);
+    let get = axum::http::Request::builder()
+        .uri(&path)
+        .body(axum::body::Body::empty())
+        .unwrap();
+    assert_eq!(
+        aq_server::build_admin_router(f.state.clone())
+            .oneshot(get)
+            .await
+            .unwrap()
+            .status(),
+        404
+    );
+    let post = axum::http::Request::builder()
+        .method("POST")
+        .uri(format!("{path}/resolve"))
+        .header("content-type", "application/json")
+        .body(axum::body::Body::from(serde_json::to_vec(&answer).unwrap()))
+        .unwrap();
+    assert_eq!(app.clone().oneshot(post).await.unwrap().status(), 403);
+    let mut smuggled = json!(answer);
+    smuggled["owner_user_id"] = json!(f.actor);
+    let post = axum::http::Request::builder()
+        .method("POST")
+        .uri(format!("{path}/resolve"))
+        .header("content-type", "application/json")
+        .header("x-aq-request", "1")
+        .body(axum::body::Body::from(
+            serde_json::to_vec(&smuggled).unwrap(),
+        ))
+        .unwrap();
+    assert_eq!(app.clone().oneshot(post).await.unwrap().status(), 400);
+    let mut changed = answer.clone();
+    changed.choice = aq_review_protocol::Choice::Reject;
+    assert!(service.resolve(f.actor, &changed).await.is_err());
+    let outbox: i64 = sqlx::query_scalar("SELECT count(*) FROM review_owner_outbox")
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    assert_eq!(outbox, 3);
+    // Observe a real role-row lock wait before demotion. Authenticated input
+    // from before the wait cannot authorize a later answer after revocation.
+    let mut blocked = answer.clone();
+    blocked.operation_id = Uuid::new_v4();
+    blocked.decision_id = pending[2].decision_id;
+    let mut lock = pool.begin().await.unwrap();
+    sqlx::query("SELECT id FROM users WHERE id=$1 FOR UPDATE")
+        .bind(f.actor)
+        .execute(&mut *lock)
+        .await
+        .unwrap();
+    let xid: String = sqlx::query_scalar("SELECT txid_current()::text")
+        .fetch_one(&mut *lock)
+        .await
+        .unwrap();
+    let clone = service.clone();
+    let actor = f.actor;
+    let call = tokio::spawn(async move { clone.resolve(actor, &blocked).await });
+    wait_review_xid(pool, &xid).await;
+    sqlx::query("UPDATE users SET role='viewer' WHERE id=$1")
+        .bind(f.actor)
+        .execute(&mut *lock)
+        .await
+        .unwrap();
+    lock.commit().await.unwrap();
+    assert!(call.await.unwrap().is_err());
+    sqlx::query("UPDATE users SET role='owner' WHERE id=$1")
+        .bind(f.actor)
+        .execute(pool)
+        .await
+        .unwrap();
+    // Expiry is sampled after the lock wait, never at handler admission.
+    let mut blocked = answer.clone();
+    blocked.operation_id = Uuid::new_v4();
+    blocked.decision_id = pending[3].decision_id;
+    let mut lock = pool.begin().await.unwrap();
+    sqlx::query("SELECT id FROM users WHERE id=$1 FOR UPDATE")
+        .bind(f.actor)
+        .execute(&mut *lock)
+        .await
+        .unwrap();
+    let xid: String = sqlx::query_scalar("SELECT txid_current()::text")
+        .fetch_one(&mut *lock)
+        .await
+        .unwrap();
+    let clone = service.clone();
+    let call = tokio::spawn(async move { clone.resolve(actor, &blocked).await });
+    wait_review_xid(pool, &xid).await;
+    f.time.store((NOW + 30001) as i64, Ordering::SeqCst);
+    lock.commit().await.unwrap();
+    assert!(call.await.unwrap().is_err());
+    let expired = service.expire(pending[3].decision_id).await.unwrap();
+    assert!(matches!(
+        expired.finality,
+        aq_review_protocol::DecisionFinality::Expired {}
+    ));
+    assert_eq!(
+        json!(service.expire(pending[3].decision_id).await.unwrap()),
+        json!(expired)
+    );
+    assert!(
+        service
+            .cancel(f.actor, Uuid::new_v4(), pending[4].decision_id, 1)
+            .await
+            .is_err()
+    );
+    let mut correction = report.clone();
+    correction.report_id = Uuid::new_v4();
+    correction.operation_id = Uuid::new_v4();
+    correction.supersedes = Some(report.report_id);
+    let race = tokio::time::timeout(std::time::Duration::from_secs(5), async {
+        tokio::join!(
+            results::record(&f.state, &auth, &correction),
+            service.resolve(f.actor, &answer)
+        )
+    })
+    .await
+    .expect("replay/correction must not deadlock");
+    race.0.unwrap();
+    assert_eq!(json!(race.1.unwrap()), json!(finality));
+    sqlx::query("UPDATE source_transfers SET central_receipt=jsonb_set(central_receipt,'{source,hex}',to_jsonb($2::text)) WHERE transfer_id=$1")
+        .bind(transfer_id).bind("c".repeat(40)).execute(pool).await.unwrap();
+    let mut tx = pool.begin().await.unwrap();
+    let actual = results::load_locked(&f.state, &mut tx, report.report_id)
+        .await
+        .unwrap();
+    assert!(
+        aq_server::source_retention::load_confirmed_locked(&mut tx, operation, &actual)
+            .await
+            .is_err()
+    );
+    tx.rollback().await.unwrap();
+}
+
+async fn wait_review_xid(pool: &sqlx::PgPool, xid: &str) {
+    let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(1);
+    loop {
+        let waiting: bool = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM pg_locks WHERE transactionid::text=$1 AND NOT granted)",
+        )
+        .bind(xid)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+        if waiting {
+            return;
+        }
+        assert!(
+            tokio::time::Instant::now() < deadline,
+            "review did not reach expected row lock"
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    }
+}
