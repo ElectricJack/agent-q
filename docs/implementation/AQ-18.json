@@ -1,0 +1,99 @@
+{
+  "task": "AQ-18",
+  "status": "qualified implementation; model selection and real launches remain separate",
+  "source_revision": "61af1ffb453a460554e8ce20c5b36d25b6952417",
+  "state_format": 6,
+  "files": {
+    "Cargo.lock": "368028dc6e372e977342d9ecec631ed89045ae96a54b55f018922b6529313433",
+    "Cargo.toml": "5dba8ddc6d8181213ab4ffb940ab03e889be97626ce3fffffdea3996d3b8a219",
+    "Dockerfile": "cad76d263956ea46611a6f8ea46ccef95b926f1466cc813c1d3e673c583cb0da",
+    "crates/aq-profiles/Cargo.toml": "e91cdea449379d701d6e4e2820afd3740698d3e463680c294956d259c30f613c",
+    "crates/aq-profiles/README.md": "d981a9f392b8dde6b047a5ea3798a4421a28437cb53b1025af2f8174c922ae8e",
+    "crates/aq-profiles/examples/catalog/catalog.toml": "f30b98e9caa2981f940306a5dfe25e33ec8293b53ae019343cfdd478f575bfc3",
+    "crates/aq-profiles/examples/catalog/instructions/aq-knowledge.md": "5297d1161dbc57f39bb1f296a5e8367b0b855fb9304d6007aaa2da5545d07cbd",
+    "crates/aq-profiles/examples/catalog/instructions/aq-work.md": "61b85820494fd0d16b954741fe4e915381a658d42c5941ee60a19f6a60de146a",
+    "crates/aq-profiles/examples/catalog/instructions/dependency-wait.md": "35f5f75fffd5d9b5b7c5e0ebebb6a11a5bbe87460b7e9d5072cbff7355c4d700",
+    "crates/aq-profiles/examples/catalog/instructions/engineering.md": "4f69c6e50e42ebf94e057907881d730de63bb879ac94a1986809773b7d3c2432",
+    "crates/aq-profiles/examples/catalog/instructions/reporting.md": "378e9f6271b2625a974cd082f6997c6edbeee9729aada820f04935df69ddee70",
+    "crates/aq-profiles/examples/catalog/instructions/source-editing.md": "1b680d33fa8a7c79d0d65f5ccc3c6748be1ef76bb4594a9f57ae7af399b8bba5",
+    "crates/aq-profiles/examples/export.rs": "def4afacd4e7b7f558c8bab5a2ac503e0e5cff2bab684eaf4c7360f3a2e821ff",
+    "crates/aq-profiles/src/catalog.rs": "4ce26df4a4963fc9e2e1f751f0ccf9ac96fc3e906b9cc4b951853797fc0b77e1",
+    "crates/aq-profiles/src/compile.rs": "9c57f8a2692f1ae3d25c11196e0479c83b3ddc1081d8832ca6df89626e8e1806",
+    "crates/aq-profiles/src/lib.rs": "92e800f2517ce86f019aad20a1d4fe92be5c9aadf6a8614cb2182a95b21127a8",
+    "crates/aq-profiles/src/main.rs": "e83c04e4ce6bb41a28e7328389f170f7a1d743d89224baa15731da55b3de362a",
+    "crates/aq-profiles/src/registry.rs": "8573c9970de9dc38c419b7dda43cfc23462e3db7ef4506ff78ad20774525d57b",
+    "crates/aq-profiles/tests/cli.rs": "6279e54c07efc9bbeab533f1f7807577a7f91295b0bfaaadb880a94daedd20a7",
+    "crates/aq-profiles/tests/common/mod.rs": "664e65859fd73d16bf906aa14fc0ecfe175033e420012cd6aba0b7c2b9f79c6c",
+    "crates/aq-profiles/tests/compiler.rs": "2a09a1d8ef0484a1c687fc43c6d0f87d98da923b17d910bd95dd222e72b2afe1",
+    "crates/aq-profiles/tests/golden/implementer.json": "ff968a7adaf638bdc1bee3b8ee7bf1b5e44a0055a7d3125abe23edb95503d61f",
+    "crates/aq-profiles/tests/registry.rs": "7c7a05dcc621aa68fd2ca632fb3f153281828844b4ef8bb8ddbb542474bd4cc5",
+    "crates/aq-server/Cargo.toml": "c17352cc30f0e274d39b7207172ff55eae738d63b00f2ee7519674130d8aad8e",
+    "crates/aq-server/migrations/0006_profile_catalog.sql": "69873c07fd6f0436cf1b9fc6c66fc62b75c94c8ee79133169eee889e2e3b84c6",
+    "crates/aq-server/src/lib.rs": "ebb87677c6299bac37d9c2d826a6d337816f93cb4933f1ce49427627048c0b7b",
+    "crates/aq-server/src/profile_catalog.rs": "e79b9bb32c0d06effa763eae560d47a8641c59a6b45b18f9049ef0ae035cf086",
+    "crates/aq-server/src/profile_catalog/inspection.rs": "1685f65e8adb75e838d74bd2242640b9540e09a7a1593387c69911da8e238b85",
+    "crates/aq-server/src/store.rs": "e8a5b099420abedc8bfda9f56bd49bd89ed3838b1304e401db59bbb7b175af86",
+    "crates/aq-server/tests/profile_catalog.rs": "c1c536f70f9dbf96a9cd04af2ab5e5614717123ddc019ae69327647fc68c3472",
+    "crates/aq-server/tests/profile_inspection.rs": "61a35695d81a1df37784c07a28c1efb341b6b232795c149d0a80f612f5169ca4",
+    "crates/aq-server/tests/store.rs": "a02c49f7bf5a8827c9dbb5386dd79e7df696a3672d2b1d49cd8b77b381501e41",
+    "docs/operations/profile-catalogs.md": "1a2b6992935e072d22b424b7c8bcdbf8b6c45be69b88d773c7c87ef73de3fdad"
+  },
+  "environment": {
+    "checkout": "clean detached worktree at source_revision",
+    "build_directory": "isolated /tmp/aq18-qualification-target",
+    "database": "Disposable PostgreSQL 17 from scripts/test-db; per-test isolated databases",
+    "provider_calls": false,
+    "external_notifications": false
+  },
+  "checks": [
+    {
+      "command": "cargo test -p aq-profiles -p aq-server --offline",
+      "result": "206 passed; 1 pre-existing explicit real aq-git qualification test ignored; includes 21 database-free profile tests, four activation tests and two owner inspection tests",
+      "log": "tests"
+    },
+    {
+      "command": "cargo clippy -p aq-profiles -p aq-server --all-targets --offline -- -D warnings",
+      "result": "passed",
+      "log": "clippy"
+    },
+    {
+      "command": "cargo fmt --package aq-profiles --package aq-server --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 scripts/check-session-contract.py",
+      "result": "passed; unchanged pinned aq-session-protocol 0.1.0"
+    }
+  ],
+  "logs": {
+    "tests": {
+      "path": "docs/implementation/AQ-18-tests.log",
+      "sha256": "63f8a5f0a0ee13b9bf1dd88414851693f8981d2d609409ee71d819be3633f2b3"
+    },
+    "clippy": {
+      "path": "docs/implementation/AQ-18-clippy.log",
+      "sha256": "39ec66fc039f5819b34986d6c7e5e721c2a92342a7c401ce150e498e2e2e1424"
+    }
+  },
+  "acceptance_evidence": {
+    "composition": "Golden immutable composition, stable digest/order, identity deduplication, cycles/version conflict, dependency closure and required-adapter refusal, explicit narrowing override, permission intersections, optional omission removing dependent capabilities and effective operations.",
+    "bounded_local_inputs": "Descriptor-relative no-follow regular-file reads with cap-plus-one bounds; real CLI subprocess tests include FIFO refusal.",
+    "activation": "Owner/CSRF router with PostgreSQL: concurrent CAS, immutable identity conflicts, exact retry and changed-payload conflict, malformed edit preserving last good, rollback and retained exact old artifacts.",
+    "inspection": "Typed explicit-snapshot API and CLI; provenance/omissions, no authority admission, no model selection; viewer/unknown principal/unknown field refusals.",
+    "reuse": "Four recipes use six shared instruction identities; optional dependency-wait pack remains ineligible without M5 adapter.",
+    "retention": "Core exact-reference retain/release interface and rollback tests; central adapter preserves every published artifact with bounded quota and no deletion route."
+  },
+  "limits": [
+    "FrozenComposition is not a runnable LaunchManifest; AQ-19/AQ-20 must resolve current project/provider authority and seal concrete launch choices.",
+    "Caller-supplied inspection snapshots grant no permissions. CON-02 context-resolving v1 profile API handlers remain dependent on AQ-19/AQ-20.",
+    "No real harness/provider qualification, token estimate or hard spending enforcement is claimed.",
+    "Central artifact adapter refuses quota exhaustion and offers no pruning API; attempt integration must retain the exact frozen digest.",
+    "Editable catalog remains configuration-vault TOML/Markdown; central storage is immutable artifacts and activation authority."
+  ],
+  "review_revisions": [
+    "Required dependency closure cannot be omitted or deferred; optional dependency loss removes its dependents and operations.",
+    "Filesystem reads reject FIFOs/devices/symlink traversal and remain bounded during file growth.",
+    "Exact activation retry returns its original receipt after later activations; changed artifact string whitespace conflicts."
+  ],
+  "qualification_note": "An initial clean-source run shared a Cargo target directory with active state-format-7 development and encountered an overwritten server binary in the manifest subprocess test. Qualification was repeated successfully using an isolated target directory; only the isolated passing run is recorded in the log."
+}

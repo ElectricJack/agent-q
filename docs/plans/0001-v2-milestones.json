@@ -1079,7 +1079,7 @@
       "repo": "agent-q",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "CON-02"
       ],
@@ -1104,7 +1104,10 @@
       "out_of_scope": [
         "A second editable profile database, deep inheritance, runtime LLM composition, arbitrary executable pack hooks"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-18.md",
+        "../implementation/AQ-18.json"
+      ]
     },
     {
       "id": "AQ-19",
@@ -1112,7 +1115,7 @@
       "repo": "agent-q",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "AQ-18",
         "AQ-03"

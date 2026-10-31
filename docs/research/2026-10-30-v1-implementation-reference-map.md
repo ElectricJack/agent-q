@@ -19,6 +19,15 @@ The [machine-readable inventory](2026-10-30-v1-implementation-reference-map.json
 
 Preserve behavior and useful fixtures; adapt remote ownership and explicit retained-artifact receipts. Replace single-host database, vault, workspace and daemon integration. Omit a wholesale port and new runtime dependencies. V1 terminal/composer heuristics are evidence for qualified configurations, not a universal readiness guarantee. The referenced stall-watch tests establish diagnostics only; ladder replacement and quarantine need additional evidence.
 
-Each listed test module is hashed in full, but only bounded excerpts from the first eight test bodies were selected for this bounded pass. Exact selected names are in JSON. Coverage remains `pending_v2_implementation_and_qualification` for every row. Read additional adapters and fault tests when the corresponding task starts, then record v2 tests and immutable artifacts. INT-03 must separately qualify real harnesses, terminal input, configured notification delivery and cross-node continuation recovery.
+Each listed test module is hashed in full, but only bounded excerpts from the first eight test bodies were selected for this bounded pass. Exact selected names are in JSON. The original inventory established no passing v2 coverage. Subsequent implementation evidence is linked below; other rows remain pending. Read additional adapters and fault tests when the corresponding task starts, then record v2 tests and immutable artifacts. INT-03 must separately qualify real harnesses, terminal input, configured notification delivery and cross-node continuation recovery.
 
-No daemon, database, provider or external-notification actions were performed.
+No daemon, database, provider or external-notification actions were performed during the original reference inventory.
+
+## Subsequent v2 qualification
+
+[AQ-18](../implementation/AQ-18.md) qualifies compositional profiles, immutable
+activation and exact retention interfaces at revision `61af1ff`. It adapts the
+last-good catalog and explicit identity obligations using central revisioned
+activation rather than a single-host activation file. AQ-20 intelligence/provider
+selection remains pending; this does not claim replacement coverage for every
+listed v1 profile test.

@@ -120,7 +120,7 @@
   "entries": [
     {
       "rationale": "Class/provider slices derive eligible rungs; missing provider slices yield no rung and seeding preserves operator files. Registry preserves last good entries on parse failure. V2 must freeze resolved revisions per launch and use per-node readiness instead of treating one host activation file as fleet authority.",
-      "coverage": "pending_v2_implementation_and_qualification",
+      "coverage": "AQ-18 composition and activation qualified; AQ-20 intelligence selection pending",
       "evidence_limit": "Selected implementation bodies and bounded excerpts from selected test bodies inspected; this is not a full module audit. Test symbols locate obligations, not proof of executed or replacement coverage. Tests were read, not executed.",
       "id": "profiles-and-intelligence",
       "tasks": [
@@ -291,6 +291,10 @@
           "sha256": "f3cd11564cde8194c6963e58f9a9e339efa4d54eba27d6cd800d4261bd6233ef",
           "git_blob": "d0ebb81e781290a82df20a7eabd491bf015c9133"
         }
+      ],
+      "v2_evidence": [
+        "../implementation/AQ-18.md",
+        "../implementation/AQ-18.json"
       ]
     },
     {
