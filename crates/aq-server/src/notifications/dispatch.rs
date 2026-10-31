@@ -12,7 +12,7 @@ async fn dispatcher(tx: &mut Transaction<'_, Postgres>, id: Uuid) -> Result<()> 
             .fetch_one(&mut **tx)
             .await?;
     if current != Some(id) {
-        return Err(Error::Conflict);
+        return Err(Error::DispatcherFenced);
     }
     Ok(())
 }

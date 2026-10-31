@@ -18,6 +18,8 @@ pub enum Error {
     Forbidden,
     #[error("notification_conflict")]
     Conflict,
+    #[error("notification_dispatcher_fenced")]
+    DispatcherFenced,
     #[error("notification_capacity_exhausted")]
     Overloaded,
     #[error("notification_storage_unavailable")]
@@ -51,7 +53,7 @@ impl IntoResponse for Error {
             Self::Invalid => StatusCode::BAD_REQUEST,
             Self::NotFound => StatusCode::NOT_FOUND,
             Self::Forbidden => StatusCode::FORBIDDEN,
-            Self::Conflict => StatusCode::CONFLICT,
+            Self::Conflict | Self::DispatcherFenced => StatusCode::CONFLICT,
             Self::Overloaded => StatusCode::TOO_MANY_REQUESTS,
             Self::Unavailable => StatusCode::SERVICE_UNAVAILABLE,
         };

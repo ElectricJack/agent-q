@@ -1,4 +1,4 @@
-//! AQ24 draft schema against isolated PostgreSQL; no external HTTP destinations.
+//! AQ24 registered migration against isolated PostgreSQL and fake HTTP peers.
 use aq_lifecycle_api::Scope;
 use aq_notifications::{RetryPolicy, Route};
 use aq_server::{
@@ -29,10 +29,6 @@ impl Env {
         let db = TestDb::create().await;
         let store = db.store().await;
         let pool = db.pool().await;
-        sqlx::raw_sql(include_str!("../src/notifications/schema.sql"))
-            .execute(&pool)
-            .await
-            .unwrap();
         let owner = store
             .bootstrap_owner(
                 "notify-owner@localhost",
@@ -382,7 +378,10 @@ async fn interrupted_dispatch_is_unknown_after_takeover_and_explicit_retry_is_id
     let second = Uuid::new_v4();
     e.service.install(second).await.unwrap();
     let client = aq_notifications::discord::Discord::new().unwrap();
-    assert_eq!(e.service.tick(first, &client).await, Err(Error::Conflict));
+    assert_eq!(
+        e.service.tick(first, &client).await,
+        Err(Error::DispatcherFenced)
+    );
     assert!(!e.service.tick(second, &client).await.unwrap());
     e.time.store(21001, Ordering::SeqCst);
     assert!(!e.service.tick(second, &client).await.unwrap());
@@ -675,4 +674,94 @@ async fn missing_routes_work_with_development_http_origin() {
         e.service.enqueue(e.owner, e.message()).await.unwrap()["external_state"],
         "no_external_route"
     );
+}
+
+#[tokio::test]
+async fn actual_server_startup_dispatches_and_shutdown_leaves_no_repeating_sender() {
+    let peer = Peer::new(vec![(200, r#"{"id":"222","webhook_id":"42"}"#)]).await;
+    let mut e = Env::new(false).await;
+    peer.configure(&mut e).await;
+    let message = routed(&e, false).await;
+    let mut state = e.state().await;
+    let mut config = (*state.config).clone();
+    config.notifications = e.service.configuration.clone();
+    state.config = Arc::new(config);
+    let admin = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let worker = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let (stop, wait) = tokio::sync::oneshot::channel();
+    let server = tokio::spawn(aq_server::run_with_listeners(state, admin, worker, async {
+        let _ = wait.await;
+    }));
+    tokio::time::timeout(std::time::Duration::from_secs(3), async {
+        loop {
+            let view = e.service.inspect(e.recipient, message).await.unwrap();
+            if view["deliveries"][0]["status"]["kind"] == "accepted_by_transport" {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+    })
+    .await
+    .unwrap();
+    stop.send(()).unwrap();
+    tokio::time::timeout(std::time::Duration::from_secs(2), server)
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+    assert_eq!(peer.calls.load(Ordering::SeqCst), 1);
+}
+#[tokio::test]
+async fn late_provider_acceptance_cannot_be_written_by_a_fenced_dispatcher() {
+    use axum::{Router, routing::post};
+    let seen = Arc::new(tokio::sync::Notify::new());
+    let release = Arc::new(tokio::sync::Notify::new());
+    let a = seen.clone();
+    let b = release.clone();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!(
+        "http://{}/api/v10/webhooks/42/fixture_token_1234567890",
+        listener.local_addr().unwrap()
+    );
+    let app = Router::new().route(
+        "/api/v10/webhooks/{id}/{token}",
+        post(move || {
+            let a = a.clone();
+            let b = b.clone();
+            async move {
+                a.notify_one();
+                b.notified().await;
+                axum::Json(json!({"id":"333","webhook_id":"42"}))
+            }
+        }),
+    );
+    let peer = tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+    let mut e = Env::new(false).await;
+    e.service.configuration = Some(Arc::new(Loaded::fixture(2, "discord-test", 2, &url)));
+    let first = Uuid::new_v4();
+    e.service.install(first).await.unwrap();
+    let message = routed(&e, false).await;
+    let service = e.service.clone();
+    let task = tokio::spawn(async move {
+        service
+            .tick(first, &aq_notifications::discord::Discord::new().unwrap())
+            .await
+    });
+    tokio::time::timeout(std::time::Duration::from_secs(3), seen.notified())
+        .await
+        .unwrap();
+    let second = Uuid::new_v4();
+    e.service.install(second).await.unwrap();
+    release.notify_one();
+    assert_eq!(task.await.unwrap(), Err(Error::DispatcherFenced));
+    let view = e.service.inspect(e.recipient, message).await.unwrap();
+    assert_eq!(view["deliveries"][0]["status"]["kind"], "dispatching");
+    e.time.store(21001, Ordering::SeqCst);
+    e.service
+        .tick(second, &aq_notifications::discord::Discord::new().unwrap())
+        .await
+        .unwrap();
+    let view = e.service.inspect(e.recipient, message).await.unwrap();
+    assert_eq!(view["deliveries"][0]["status"]["kind"], "delivery_unknown");
+    peer.abort();
 }

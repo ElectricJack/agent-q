@@ -1,14 +1,16 @@
-//! Bounded background loop. Runtime integration begins after migration 012.
+//! Bounded background loop on the dedicated notification pool.
 use super::{Result, api::service};
 use crate::AppState;
 use std::time::Duration;
 use uuid::Uuid;
 /// The shutdown branch cancels outstanding HTTP futures. Their committed
 /// dispatch records remain uncertain and recover only after lease expiry.
-pub async fn run(state: AppState, mut shutdown: tokio::sync::watch::Receiver<bool>) -> Result<()> {
+pub async fn run(
+    state: AppState,
+    id: Uuid,
+    mut shutdown: tokio::sync::watch::Receiver<bool>,
+) -> Result<()> {
     let service = service(&state);
-    let id = Uuid::new_v4();
-    service.install(id).await?;
     let client = std::sync::Arc::new(aq_notifications::discord::Discord::new()?);
     let mut work = tokio::task::JoinSet::new();
     let mut interval = tokio::time::interval(Duration::from_millis(250));
@@ -30,7 +32,7 @@ pub async fn run(state: AppState, mut shutdown: tokio::sync::watch::Receiver<boo
             Some(result)=work.join_next(),if !work.is_empty()=>{
                 // Never print transport errors or secret URLs. A fenced old
                 // runtime exits; storage errors leave durable state for recovery.
-                if matches!(result,Ok(Err(super::Error::Conflict))){break;}
+                if matches!(result,Ok(Err(super::Error::DispatcherFenced))){break;}
                 if !matches!(result,Ok(Ok(_))) && last_warning.elapsed()>=Duration::from_secs(30){last_warning=std::time::Instant::now();tracing::warn!("notification dispatch deferred; inspect retained delivery state");}
             }
         }

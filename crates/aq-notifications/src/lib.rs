@@ -129,7 +129,7 @@ impl Payload {
                 && public_origin.len() <= 256,
         )?;
         let content = format!(
-            "{}\n\n{}/notifications/{}",
+            "{}\n\n{}/api/notifications/{}",
             message.summary,
             public_origin.trim_end_matches('/'),
             message.message_id

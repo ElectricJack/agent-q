@@ -1,4 +1,4 @@
--- AQ24 draft migration 0012. Not registered before 0010/0011 are integrated.
+-- AQ24 bounded central notification delivery.
 -- Notification content, routing and transport attempts have distinct owners.
 CREATE TABLE notification_budget (
  singleton BOOLEAN PRIMARY KEY CHECK(singleton),
@@ -77,4 +77,4 @@ CREATE TABLE notification_operations (
  response JSONB NOT NULL CHECK(octet_length(response::text)<=16384),
  PRIMARY KEY(actor_id,operation_id)
 );
--- UPDATE meta SET value='12' WHERE key='state_format_version';
+UPDATE meta SET value='11' WHERE key='state_format_version';
