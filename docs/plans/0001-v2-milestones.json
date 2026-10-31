@@ -2047,7 +2047,8 @@
         "../implementation/dashboard-read-1.md",
         "../implementation/dashboard-read-1-evidence.md",
         "../implementation/dashboard-read-1-evidence.json",
-        "../../protocol/dashboard-read/v1/schema.json"
+        "../../protocol/dashboard-read/v1/schema.json",
+        "../../../aq-dashboard/docs/evidence/d05-live-framework.md"
       ]
     },
     {
@@ -2079,7 +2080,8 @@
         "../implementation/UI-01-live-dashboard.md",
         "../evidence/dashboard-assets/README.md",
         "../evidence/dashboard-assets/source.json",
-        "../../../aq-dashboard/docs/evidence/d04.md"
+        "../../../aq-dashboard/docs/evidence/d04.md",
+        "../../../aq-dashboard/docs/evidence/d05-live-framework.md"
       ]
     },
     {

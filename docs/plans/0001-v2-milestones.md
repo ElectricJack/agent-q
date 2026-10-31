@@ -1328,7 +1328,7 @@ Acceptance:
 
 Requirement links: D9, U2, U3, U4, E6, P3.
 
-Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), [dashboard-read-1.md](../implementation/dashboard-read-1.md), [dashboard-read-1-evidence.md](../implementation/dashboard-read-1-evidence.md), [dashboard-read-1-evidence.json](../implementation/dashboard-read-1-evidence.json), [schema.json](../../protocol/dashboard-read/v1/schema.json).
+Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), [dashboard-read-1.md](../implementation/dashboard-read-1.md), [dashboard-read-1-evidence.md](../implementation/dashboard-read-1-evidence.md), [dashboard-read-1-evidence.json](../implementation/dashboard-read-1-evidence.json), [schema.json](../../protocol/dashboard-read/v1/schema.json), [d05-live-framework.md](../../../aq-dashboard/docs/evidence/d05-live-framework.md).
 
 ### UI-01
 
@@ -1349,7 +1349,7 @@ Requirement links: U1, U2, U3, U6.
 
 Outside this task: Separate dashboard backend; Full v1 UI parity.
 
-Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), [README.md](../evidence/dashboard-assets/README.md), [source.json](../evidence/dashboard-assets/source.json), [d04.md](../../../aq-dashboard/docs/evidence/d04.md).
+Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), [README.md](../evidence/dashboard-assets/README.md), [source.json](../evidence/dashboard-assets/source.json), [d04.md](../../../aq-dashboard/docs/evidence/d04.md), [d05-live-framework.md](../../../aq-dashboard/docs/evidence/d05-live-framework.md).
 
 ### UI-02
 
