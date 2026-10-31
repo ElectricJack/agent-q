@@ -5,11 +5,13 @@ scope. This checkpoint records continued implementation, not completion of the
 three product areas. The [completion map](0002-execution-sessions-policy-completion.md)
 and [task graph](0001-v2-milestones.md) retain the remaining acceptance gates.
 
-Daemon source `405c8b2` (state21) passes717 workspace tests with all features enabled,
-7 intentionally ignored, strict all-target/all-feature lint and formatting.
-The build took92 seconds and test-process times sum to88.12 seconds on this shared
+Daemon source `7c70651` (state24) passes764 workspace tests with all features enabled,
+8 intentionally ignored, strict all-target/all-feature lint and formatting.
+The build took98 seconds and test-process times sum to122.31 seconds on this shared
 machine; this is an observed run, not a promised CI bound. Exact source hashes and
-logs are in the [integration manifest](../implementation/three-area-integration-qualification.json).
+logs are in the [state24 integration manifest](../implementation/three-area-state24-qualification.json).
+The prior [717-test state21 checkpoint](../implementation/three-area-integration-qualification.json)
+remains retained separately. Tests use the normal ordered migrations through024.
 
 Implemented components in that checkpoint:
 
@@ -31,29 +33,35 @@ Implemented components in that checkpoint:
   A blocked backend does not block actual daemon renew/cancel HTTP. No production
   commands or startup mount are implied by this foundation.
 
-Subsequent component checkpoints (not a rerun of the717-test assembled source):
+Additional components now included in the state24 assembled source:
 
 - [Admission0.1.6](../implementation/aq-admission-0.1.6-qualification.md) has43
   passing repository tests and43 passing independent extracted-package tests,
   with strict lint and formatting. It adds one unambiguous final startup payload
-  descriptor and a Recorded-only result acknowledgment; native consumption and
-  database result recording remain separate implementation work.
+  descriptor and a Recorded-only result acknowledgment. Native consumption remains
+  in progress; the database ledger is now integrated below.
 - [Pre-offer Git I/O](../implementation/AQ-08-preoffer-io-qualification.json) has7
   passing focused tests, including an actual export/retry/fresh-retention test
   against retained aq-git/Git binaries. Fixed bounded chunk reads reopen members
-  without following symlinks. Durable quota/finalization and native authenticated
-  download routes must adopt this helper before claiming a complete producer.
+  without following symlinks. Migration022 adds durable quota reservation, verified
+  finalization and exact attempt linking. Native authenticated download and full
+  producer assembly still require integration.
 - Upstream keyed playbook admission is retained in aq-playbooks sourcea463e59:
   atomic run/receipt creation and protection against old writers. Its exact
   archive has158 all-feature test executions and strict lint/format checks.
-  Central bridge and command adapter adoption are still in progress.
+  Central adoption now includes an explicitly mounted durable first bridge,
+  actual message.send adapter, cancellation and protected outbox. Default startup
+  configuration and broader command adapters remain in progress.
+- Migration024 records immutable result reports and exact Stopped/outcome bindings,
+  bounded correction heads and replay receipts. The ledger does not accept results,
+  release holds, settle source/effects or complete graph tasks.
 
 Continuing work:
 
 - Native preparation/offer/grant assembly and actual worker consumer. Pre-offer Git
   export must precede attempt/spec-bound transport wrapping. Final rendered startup
   bytes must be pinned and counted exactly, without duplicate context delivery.
-- Result recording, independent eligibility evaluation and actual source/effect
+- Independent result eligibility evaluation and actual source/effect
   settlement before claim release or expected-version graph completion.
 - Bounded terminal tail qualification, followed by renderer/full baseline and
   snapshot/live barriers. Negative candidate14354e7 confirmed that a sole SIGSTOPped
@@ -61,10 +69,13 @@ Continuing work:
   Applied and the guardian remained Running. The guardian-owned reader lease candidatecfe2c33 now passes303 normal tests
   (36 ignored) and29 actual-host tests, including independent cutoff and continued
   harness progress. Its dense-packet tail regression remains negative at that
-  checkpoint. A subsequent bounded incremental parser is being qualified; full
-  rendering/baseline and adoption remain open.
-- Keyed playbook admission and actual AQ adapters. Upstream adds atomic run/receipt
-  creation and an old-writer fence; central durable bridge adoption is separate.
+  checkpoint. The subsequent bounded incremental parser passes30 actual host and3
+  actual bridge tests. Earlier unchanged crash-fixture marker timeouts remain
+  recorded as unresolved negatives. Root is qualifying its union with the explicit
+  final-startup-payload API; full rendering/baseline and runtime adoption remain open.
+- Broader AQ playbook adapters and actual default host startup. Exact human review
+  subjects and executed check ownership are the next separate design/implementation
+  slice; a human answer is not a result eligibility or completion receipt.
   PB04's25ms latency target remains unmet and is not relaxed.
 
 No live-provider qualification, deployment, external human notification or push
