@@ -14,6 +14,7 @@ pub enum Status {
     Finished,
     Declined,
     Unknown,
+    NeverGranted,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
@@ -68,6 +69,9 @@ fn reference(value: &ArtifactRef) -> Result<(), &'static str> {
 }
 impl ProfiledState {
     pub fn validate(&self) -> Result<(), &'static str> {
+        if self.status == Status::NeverGranted {
+            return Err("never-granted closure requires adopted central owner proof");
+        }
         if self.schema_version != 1 {
             return Err("profiled state version");
         }

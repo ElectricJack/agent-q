@@ -290,7 +290,7 @@ async fn insert_spec(f: &Fixture, spec: Value) -> Uuid {
         observed_at_ms: NOW,
         expires_at_ms: NOW + 30_000,
     };
-    sqlx::query("INSERT INTO project_execution_bindings(project_id,revision,binding,validated_at_ms,binding_observation) VALUES($1,1,$2,$3,$4)").bind(f.selection.lineage.project_id).bind(project).bind(NOW as i64).bind(json!(observed)).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO project_execution_bindings(project_id,revision,binding,validated_at_ms,binding_observation) VALUES($1,1,$2,$3,$4) ON CONFLICT(project_id) DO NOTHING").bind(f.selection.lineage.project_id).bind(project).bind(NOW as i64).bind(json!(observed)).execute(&pool).await.unwrap();
     let observation = aq_admission::SourceAdmission {
         schema_version: 1,
         project_id: f.selection.lineage.project_id,
