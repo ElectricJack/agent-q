@@ -74,3 +74,5 @@ BEGIN
 END $$;
 CREATE TRIGGER admission_artifact_link_insert BEFORE INSERT ON profiled_launch_artifacts
  FOR EACH ROW EXECUTE FUNCTION admission_artifact_link_guard();
+
+UPDATE meta SET value='20' WHERE key='state_format_version';
