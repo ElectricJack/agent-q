@@ -476,7 +476,7 @@ async fn node_authority(
         return Err(Error("unauthorized"));
     }
     let a = lock_attempt(state, tx, attempt.attempt_id, node.id).await?;
-    if a.offer.identity != *identity || a.offer.attempt != *attempt {
+    if a.identity != *identity || a.attempt != *attempt {
         return Err(Error("stale_generation"));
     }
     let binding: Option<Value> = sqlx::query_scalar(

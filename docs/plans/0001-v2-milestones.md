@@ -38,11 +38,15 @@ Read the mapped source and regression cases before implementing an affected task
 
 | Task | Owner | Deliverable |
 | --- | --- | --- |
+| [WRK-08](#wrk-08) | aq-worker | Qualify Codex CLI as the first real tmux harness |
 | [AQ-10](#aq-10) | agent-q | Apply evidence-based result disposition and graph completion |
 | [AQ-12](#aq-12) | agent-q | Embed the qualified playbook runner with bounded execution |
 | [AQ-22](#aq-22) | agent-q | Implement session observations, transcript inspection and usage accounting |
-| [AQ-24](#aq-24) | agent-q | Implement durable external notification delivery with Discord |
+| [WRK-16](#wrk-16) | aq-worker | Implement safe suspension, checkpoint handoff and continuation bootstrap |
 | [REL-01](#rel-01) | agent-q | Version the composite product manifest and component inventory |
+| [WRK-11](#wrk-11) | aq-worker | Qualify the Claude Code harness adapter |
+| [WRK-12](#wrk-12) | aq-worker | Qualify the Gemini CLI harness adapter |
+| [WRK-13](#wrk-13) | aq-worker | Qualify the OpenCode harness adapter |
 | [WRK-14](#wrk-14) | aq-worker | Implement the bounded outbound terminal bridge |
 
 The daemon authority track can start after BASE-01 and CON-01. The worker runtime track follows connector extraction. Graph, Git and playbook qualification are independent early tracks; they are not artificial prerequisites for fake-agent execution. Dashboard work waits for a versioned inspection/action API, but does not wait for production deployment.
@@ -124,7 +128,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [AQ-06](#aq-06): Implement session credentials and scoped graph reads | agent-q | [API-01](#api-01), [AQ-03](#aq-03) | complete |
 | [AQ-07](#aq-07): Implement durable graph mutation delivery and recovery | agent-q | [AQ-06](#aq-06) | complete |
 | [AQ-08](#aq-08): Schedule real graph candidates with explicit eligibility | agent-q | [AQ-04](#aq-04), [AQ-07](#aq-07), [GATE-03](#gate-03), [AQ-19](#aq-19), [AQ-20](#aq-20) | in_progress |
-| [WRK-05](#wrk-05): Provision the AQ agent client and bounded context cache | aq-worker | [WRK-04](#wrk-04), [AQ-06](#aq-06), [CON-02](#con-02), [AQ-18](#aq-18) | in_progress |
+| [WRK-05](#wrk-05): Provision the AQ agent client and bounded context cache | aq-worker | [WRK-04](#wrk-04), [AQ-06](#aq-06), [CON-02](#con-02), [AQ-18](#aq-18) | complete |
 | [WRK-06](#wrk-06): Integrate local aq-git workspaces and storage admission | aq-worker | [WRK-04](#wrk-04), [GIT-01](#git-01) | complete |
 | [AQ-09](#aq-09): Implement authenticated source transfer and central retention | agent-q | [AQ-03](#aq-03), [GIT-01](#git-01) | complete |
 | [WRK-07](#wrk-07): Implement resumable artifact handoff and retention release | aq-worker | [WRK-06](#wrk-06), [AQ-09](#aq-09) | complete |
@@ -154,7 +158,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [WRK-15](#wrk-15): Implement harness transcript readers and durable observation delivery | aq-worker | [CON-03](#con-03), [WRK-10](#wrk-10) | in_progress |
 | [AQ-22](#aq-22): Implement session observations, transcript inspection and usage accounting | agent-q | [CON-03](#con-03), [AQ-03](#aq-03), [AQ-20](#aq-20) | planned |
 | [AQ-23](#aq-23): Implement the evidence-based session stall ladder | agent-q | [AQ-22](#aq-22), [AQ-11](#aq-11), [WRK-09](#wrk-09), [AQ-05](#aq-05) | planned |
-| [AQ-24](#aq-24): Implement durable external notification delivery with Discord | agent-q | [AQ-11](#aq-11), [CON-03](#con-03) | planned |
+| [AQ-24](#aq-24): Implement durable external notification delivery with Discord | agent-q | [AQ-11](#aq-11), [CON-03](#con-03) | in_progress |
 | [AQ-25](#aq-25): Implement verified agent waits and source subscriptions | agent-q | [CON-03](#con-03), [AQ-07](#aq-07), [AQ-11](#aq-11), [AQ-08](#aq-08) | planned |
 | [WRK-16](#wrk-16): Implement safe suspension, checkpoint handoff and continuation bootstrap | aq-worker | [CON-03](#con-03), [WRK-07](#wrk-07), [WRK-10](#wrk-10), [WRK-05](#wrk-05) | planned |
 | [AQ-26](#aq-26): Implement durable hibernation and continuation wake scheduling | agent-q | [AQ-25](#aq-25), [AQ-08](#aq-08), [AQ-09](#aq-09), [AQ-10](#aq-10), [AQ-22](#aq-22) | planned |
@@ -643,11 +647,13 @@ Acceptance:
 
 Requirement links: D1, D6, D9, W3, W4, W5, W13, P2, P4, P5, P6, P7.
 
+Evidence: [AQ-08-stage1.md](../implementation/AQ-08-stage1.md), [AQ-08-stage1.json](../implementation/AQ-08-stage1.json).
+
 ### WRK-05
 
 **Provision the AQ agent client and bounded context cache**
 
-Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: in_progress.
+Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: complete.
 
 Hard prerequisites: [WRK-04](#wrk-04), [AQ-06](#aq-06), [CON-02](#con-02), [AQ-18](#aq-18).
 
@@ -660,6 +666,8 @@ Acceptance:
 - Provision the digest-bound composed startup/reference context and scoped AQ tool adapter; required context cannot be silently truncated and an access profile cannot be confused with an execution profile.
 
 Requirement links: W18, W19, W20, X10, X11, P2, P4, P8.
+
+Evidence: [WRK-05.md](../../../aq-worker/docs/implementation/WRK-05.md), [WRK-05.json](../../../aq-worker/docs/implementation/WRK-05.json).
 
 ### WRK-06
 
@@ -1120,7 +1128,7 @@ Outside this task: Arbitrary session operations in ordinary playbooks or blanket
 
 **Implement durable external notification delivery with Discord**
 
-Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [AQ-11](#aq-11), [CON-03](#con-03).
 

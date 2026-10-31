@@ -1,0 +1,88 @@
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.87s
+     Running tests/agent_access.rs (target/debug/deps/agent_access-dc466a87362a9ce6)
+
+running 1 test
+test issuance_rotation_revocation_and_locked_authority_are_online ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.75s
+
+     Running tests/execution.rs (target/debug/deps/execution-b468eeee62fbad55)
+
+running 27 tests
+test accepted_result_cannot_be_retroactively_cancelled ... ok
+test expired_unaccepted_offer_and_explicit_decline_release_task_claim ... ok
+test renewal_replay_preserves_expiry_and_rejects_stale_sequence ... ok
+test decline_racing_acceptance_either_fences_launch_or_requires_result ... ok
+test source_nonstart_exception_requires_no_prior_execution_evidence ... ok
+test observation_replay_cannot_regress_or_resurrect_stopped_processes ... ok
+test no_start_decline_can_reconcile_terminal_unaccepted_old_boot_offers ... ok
+test fixture_assignment_requires_owner_dev_mode_and_sealed_inputs ... ok
+test acceptance_replay_is_durable_and_does_not_extend_authority ... ok
+test conflicting_task_claims_on_different_nodes_share_one_central_fence ... ok
+test expired_execution_remains_held_until_stopped_and_reported ... ok
+test launch_uncertain_evidence_cannot_be_downgraded_to_nonstart_release ... ok
+test execution_http_authenticates_node_binding_and_keeps_routes_separate ... ok
+test explicit_recovery_permits_only_exact_boot_after_all_writers_stop ... ok
+test boot_replacement_requires_stop_and_old_results_never_settle_new_authority ... ok
+test recovery_inventory_cannot_omit_a_writer_or_race_a_new_acceptance ... ok
+test cancellation_wins_before_result_and_retains_late_output ... ok
+test concurrent_claims_for_one_task_leave_one_unsettled_attempt ... ok
+test reconciliation_does_not_extend_grants_or_take_over_old_incarnations ... ok
+test cancelled_unaccepted_offer_never_queues_an_unknown_process_directive ... ok
+test legacy_report_history_prevents_nonstart_release_after_projection_downgrade ... ok
+test corrected_reports_preserve_original_immutable_body_and_admission ... ok
+test released_report_correction_cannot_reacquire_a_successors_task_claim ... ok
+test repeated_cancellations_coalesce_one_worker_directive ... ok
+test unresolved_external_operations_prevent_replacement_even_after_stop ... ok
+test source_pending_operations_hold_claim_even_if_report_omits_them ... ok
+test source_results_require_owned_retained_receipts_and_cannot_erase_launch_evidence ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.39s
+
+     Running tests/intelligence.rs (target/debug/deps/intelligence-610f78df3d6624a5)
+
+running 3 tests
+test credential_loading_is_private_bounded_regular_and_never_claims_missing_keys ... ok
+test manual_observation_has_authenticated_provenance_exact_replay_and_expiry_tombstones ... ok
+test installed_inventory_is_current_boot_bound_does_not_authorize_keys_and_legacy_feedback_refuses ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+     Running tests/profiled_authority.rs (target/debug/deps/profiled_authority-fddef4fe72de01bb)
+
+running 6 tests
+test common_task_claim_and_legacy_decoders_cannot_cross_profiled_kind ... ok
+test actual_profiled_source_adapter_accepts_scoped_late_retention_and_refuses_foreign_spec ... ok
+test actual_profiled_graph_adapter_issues_exact_api01_binding_and_revokes_on_current_authority ... ok
+test migration_freezes_common_identity_profiled_boot_generation_deadline_and_immutable_seal ... ok
+test authority_expiry_is_sampled_after_an_observed_node_lock_wait ... ok
+test shared_view_fences_exact_seal_identity_live_time_and_revision_semantics ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.54s
+
+     Running tests/scheduling_reads.rs (target/debug/deps/scheduling_reads-db10cbef471371bc)
+
+running 4 tests
+test invalid_inputs_do_not_contact_graph_or_choose_other_routes ... ok
+test actual_fixed_public_routes_preserve_exact_revision_raw_artifact_and_partial_coverage ... ok
+test context_bounds_and_edge_pin_association_follow_the_actual_request ... ok
+test foreign_stale_malformed_duplicate_wrong_version_and_oversize_refuse ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/source_retention.rs (target/debug/deps/source_retention-f3df1157c0b892ae)
+
+running 9 tests
+test selected_real_aq_git_import_survives_worker_volume_loss_and_base_download_is_scoped ... ignored, qualification requires immutable aq-git and bookworm Git2.56.0 binaries
+test runtime_rejects_symlink_before_changing_target_permissions ... ok
+test invalid_pre_dispatch_manifest_is_rejected_without_leaking_quota ... ok
+test stale_upload_cleanup_and_limits_preserve_unknown_imports ... ok
+test pending_import_retries_same_operation_and_rejects_incompatible_receipt ... ok
+test released_attempt_refuses_new_intents_but_preserves_owned_transfer_recovery ... ok
+test slow_import_does_not_hold_attempt_or_node_locks_and_control_status_progresses ... ok
+test exact_replay_offsets_scope_and_upload_is_not_retention ... ok
+test late_attempt_retains_only_verified_receipt_and_releases_transport_budget ... ok
+
+test result: ok. 8 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.55s
+

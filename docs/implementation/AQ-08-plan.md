@@ -29,7 +29,10 @@ Add `agent_access/scheduling.rs`, using the existing server-owned configured gra
 client and pinned API1 header. Expose narrow fixed `/ready` and root `/context`
 readers with UUIDs, bounded limits/depth/bytes and opaque bounded cursors only; no
 caller URL/token. Validate retained upstream shapes, exact workspace/root identity,
-positive CAS/content revisions, item counts and truncation. Pages are not a
+positive CAS/content revisions, request-bound root+node and 4*limit edge counts,
+unique edge identities and endpoint/pinned-revision association. Pins are bounded
+by two per returned edge, rather than a fixed 200-record cap. Preserve exact raw
+response bytes for retained graph context digests. Pages are not a
 whole-workspace snapshot. Preserve partial/truncated/unknown coverage and refuse
 it where required startup context or readiness proof needs completeness. There
 are no new installed scheduler/lease/lifecycle routes in this stage.

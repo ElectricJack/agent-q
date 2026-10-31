@@ -1,0 +1,31 @@
+{
+  "status": "checkpoint_only",
+  "full_suite_scope": "226 passed, 3 ignored before final conservative fixes; focused suite and seven profiled authority tests after fixes",
+  "limitations": [
+    "No profiled offer, grant, material or lifecycle HTTP routes yet",
+    "Receipt references alone are not proof permitting claim release",
+    "AQ-08 remains in progress"
+  ],
+  "logs": {
+    "all-tests": {
+      "path": "docs/implementation/evidence/aq08-authority-bridge-2026-10-31/all-tests.log",
+      "sha256": "228009b8b2dfa0511b272073cc24907b547dc19b6ab3cdf514c00b92c6ada363"
+    },
+    "focused": {
+      "path": "docs/implementation/evidence/aq08-authority-bridge-2026-10-31/focused.log",
+      "sha256": "39a3f670b070227da34f9a06ae43f2e83a41612b12eca52315c958af6bb66c9a"
+    },
+    "profiled": {
+      "path": "docs/implementation/evidence/aq08-authority-bridge-2026-10-31/profiled.log",
+      "sha256": "a959107a8acb7e4731b49353f065702826cfba5d68952f2c51435b52d001a43f"
+    },
+    "clippy": {
+      "path": "docs/implementation/evidence/aq08-authority-bridge-2026-10-31/clippy.log",
+      "sha256": "4d6c4cf744a76dded3968160154d64bb53256401343bc5c9f01ceeca82c63ff9"
+    },
+    "format": {
+      "path": "docs/implementation/evidence/aq08-authority-bridge-2026-10-31/format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  }
+}

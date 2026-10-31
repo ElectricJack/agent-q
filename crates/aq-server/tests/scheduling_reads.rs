@@ -59,12 +59,48 @@ async fn graph(State(peer): State<Peer>, uri: Uri, headers: HeaderMap) -> Respon
         );
         assert_eq!(query["depth"], "1");
         assert_eq!(query["direction"], "both");
-        assert_eq!(query["limit"], "8");
-        assert_eq!(query["max_bytes"], "4096");
+        assert!(["8", "2"].contains(&query["limit"].as_str()));
+        assert!(["4096", "16384"].contains(&query["max_bytes"].as_str()));
         json!({"node":root,"nodes":[],"edges":[],"pinned_revisions":[],"truncated":mode==3})
     };
     if mode == 9 {
         value["nodes"] = json!([node(id(99))]);
+    }
+    if (12..=17).contains(&mode) {
+        let mut neighbor = node(id(1));
+        neighbor["id"] = json!(id(3));
+        let edge = json!({"id":id(4),"workspace_id":id(1),"source":id(2),"target":id(3),"edge_type":"blocks","source_revision":null,"target_revision":null,"version":1,"deleted":false,"created_at":"2026-01-01T00:00:00Z","description":null});
+        value["nodes"] = json!([neighbor.clone()]);
+        value["edges"] = json!([edge.clone()]);
+        if mode == 12 {
+            let mut second = neighbor.clone();
+            second["id"] = json!(id(5));
+            value["nodes"] = json!([neighbor.clone(), second]);
+        }
+        if mode == 13 {
+            value["edges"] = json!(
+                (0..9)
+                    .map(|n| {
+                        let mut e = edge.clone();
+                        e["id"] = json!(id(100 + n));
+                        e
+                    })
+                    .collect::<Vec<_>>()
+            );
+        }
+        if mode == 14 {
+            value["edges"] = json!([edge.clone(), edge]);
+        }
+        if mode == 15 {
+            value["nodes"] = json!([]);
+        }
+        if mode == 16 {
+            value["edges"][0]["target_revision"] = 1.into();
+        }
+        if mode == 17 {
+            value["edges"][0]["target_revision"] = 1.into();
+            value["pinned_revisions"] = json!([neighbor]);
+        }
     }
     let raw = if mode == 6 {
         value
@@ -246,4 +282,30 @@ async fn invalid_inputs_do_not_contact_graph_or_choose_other_routes() {
             .is_err()
     );
     assert_eq!(f.peer.calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn context_bounds_and_edge_pin_association_follow_the_actual_request() {
+    let f = fixture().await;
+    for mode in 12..=16 {
+        f.peer.mode.store(mode, Ordering::SeqCst);
+        assert_eq!(
+            f.runtime
+                .scheduling_context(&expected(), 1, 2, 16384)
+                .await
+                .unwrap_err(),
+            Error::InvalidResponse,
+            "mode {mode}"
+        );
+    }
+    f.peer.mode.store(17, Ordering::SeqCst);
+    let context = f
+        .runtime
+        .scheduling_context(&expected(), 1, 2, 16384)
+        .await
+        .unwrap();
+    assert_eq!(
+        context.context["pinned_revisions"][0]["id"],
+        id(3).to_string()
+    );
 }

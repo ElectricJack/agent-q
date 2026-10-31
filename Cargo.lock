@@ -237,6 +237,7 @@ dependencies = [
  "aq-release",
  "aq-selection",
  "aq-server",
+ "aq-session-protocol",
  "aq-worker-protocol",
  "async-trait",
  "axum",

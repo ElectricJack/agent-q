@@ -200,43 +200,31 @@ async fn authority(
     tx: &mut Transaction<'_, Postgres>,
     node: Uuid,
     attempt: Uuid,
-) -> Result<crate::execution::AttemptState> {
-    let revoked: Option<bool> =
-        sqlx::query_scalar("SELECT revoked_at IS NOT NULL FROM nodes WHERE id=$1 FOR UPDATE")
-            .bind(node)
-            .fetch_optional(&mut **tx)
-            .await
-            .map_err(internal)?;
-    if revoked != Some(false) {
-        return Err(AppError::CredentialRevoked);
-    }
-    let body: Option<String> = sqlx::query_scalar(
-        "SELECT state::text FROM execution_attempts WHERE attempt_id=$1 AND node_id=$2 FOR UPDATE",
-    )
-    .bind(attempt)
-    .bind(node)
-    .fetch_optional(&mut **tx)
-    .await
-    .map_err(internal)?;
-    serde_json::from_str(
-        &body.ok_or_else(|| AppError::Forbidden("attempt is not owned by this node".into()))?,
-    )
-    .map_err(internal)
+) -> Result<crate::execution::authority::AuthorityView> {
+    use crate::execution::authority::{AuthorityError, load_source_locked};
+    load_source_locked(tx, node, attempt)
+        .await
+        .map_err(|e| match e {
+            AuthorityError::NotFound | AuthorityError::Identity => {
+                AppError::Forbidden("attempt is not owned by this node".into())
+            }
+            other => other.into(),
+        })
 }
-fn binding(a: &crate::execution::AttemptState) -> Result<&SourceBinding> {
-    a.offer
-        .spec
-        .bindings
+fn binding(a: &crate::execution::authority::AuthorityView) -> Result<&SourceBinding> {
+    a.source
         .as_ref()
-        .and_then(|b| b.source.as_ref())
         .ok_or_else(|| AppError::Forbidden("attempt has no source binding".into()))
 }
-fn check_manifest(a: &crate::execution::AttemptState, m: &TransferManifest) -> Result<()> {
+fn check_manifest(
+    a: &crate::execution::authority::AuthorityView,
+    m: &TransferManifest,
+) -> Result<()> {
     m.validate().map_err(|_| bad("invalid transfer manifest"))?;
     if m.role != aq_worker_protocol::SourceRole::Checkpoint
         || &m.source != binding(a)?
-        || m.resolved_spec_digest != a.offer.spec.resolved_spec_digest
-        || m.attempt != a.offer.attempt
+        || m.resolved_spec_digest != a.execution_spec_digest
+        || m.attempt != a.attempt
     {
         return Err(AppError::Forbidden(
             "frozen source assignment mismatch".into(),
@@ -244,6 +232,7 @@ fn check_manifest(a: &crate::execution::AttemptState, m: &TransferManifest) -> R
     }
     Ok(())
 }
+
 struct Transfer {
     manifest: TransferManifest,
     op: Uuid,
@@ -331,7 +320,7 @@ async fn begin(
     }
     // Historical retries retain their response, but a released attempt cannot
     // acquire a new source-transfer intent or task claim.
-    if a.disposition.as_ref().is_some_and(|d| d.retention_release) {
+    if a.retention_released {
         return Err(conflict("attempt retention has already been released"));
     }
     if r.manifest.bundle_bytes > rt.config.max_bundle_bytes {
@@ -878,8 +867,8 @@ async fn provision_base(
         transfer_id: r.operation_id,
         role: aq_worker_protocol::SourceRole::Base,
         checkpoint: b.base.clone(),
-        attempt: a.offer.attempt,
-        resolved_spec_digest: a.offer.spec.resolved_spec_digest,
+        attempt: a.attempt,
+        resolved_spec_digest: a.execution_spec_digest,
         source: b,
         artifact_id: r.operation_id,
         manifest_digest: digest(&bytes),
@@ -955,8 +944,8 @@ async fn load_base(
     )
     .map_err(internal)?;
     if binding(&a)? != &m.source
-        || m.attempt != a.offer.attempt
-        || m.resolved_spec_digest != a.offer.spec.resolved_spec_digest
+        || m.attempt != a.attempt
+        || m.resolved_spec_digest != a.execution_spec_digest
         || m.role != aq_worker_protocol::SourceRole::Base
     {
         return Err(AppError::Forbidden("base assignment mismatch".into()));

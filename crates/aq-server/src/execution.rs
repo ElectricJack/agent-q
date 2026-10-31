@@ -9,6 +9,8 @@ use uuid::Uuid;
 use crate::store::Store;
 
 pub mod api;
+pub mod authority;
+pub mod profiled;
 #[cfg(feature = "recovery-test-support")]
 pub mod testing;
 
@@ -137,7 +139,7 @@ fn observation_may_have_started(observation: &Observation) -> bool {
 }
 async fn load_attempt(tx: &mut Transaction<'_, Postgres>, id: Uuid) -> Result<AttemptState> {
     let body: String = sqlx::query_scalar(
-        "SELECT state::text FROM execution_attempts WHERE attempt_id=$1 FOR UPDATE",
+        "SELECT state::text FROM execution_attempts WHERE attempt_id=$1 AND kind='legacy_fixture' FOR UPDATE",
     )
     .bind(id)
     .fetch_optional(&mut **tx)
@@ -192,7 +194,7 @@ async fn save_attempt(tx: &mut Transaction<'_, Postgres>, state: &AttemptState) 
         }
         _ => true,
     };
-    sqlx::query("UPDATE execution_attempts SET state=$2::jsonb, holds_task=$3 WHERE attempt_id=$1")
+    sqlx::query("UPDATE execution_attempts SET state=$2::jsonb, holds_task=$3 WHERE attempt_id=$1 AND kind='legacy_fixture'")
         .bind(state.offer.attempt.attempt_id)
         .bind(encode(state)?)
         .bind(holds)
@@ -299,14 +301,20 @@ async fn record<T: Serialize>(
 // All checks run under the node row lock. A recovery request cannot hide a
 // writer by omitting it from the local inventory, and expiry is not stop proof.
 async fn replacement_safe(tx: &mut Transaction<'_, Postgres>, node: Uuid) -> Result<bool> {
-    let unsafe_writer: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM execution_attempts WHERE node_id=$1 AND holds_task AND state->>'status'<>'offered' AND NOT (state->>'stopped')::boolean)",
-    ).bind(node).fetch_one(&mut **tx).await?;
-    Ok(!unsafe_writer)
+    // Bootstrap cannot establish profiled stop/source/effect ownership from a
+    // receipt reference alone. Keep the node fenced until full verified release
+    // clears every common claim; do not load unbounded launch manifests here.
+    let held_profiled:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM execution_attempts WHERE node_id=$1 AND kind='profiled_v1' AND holds_task)").bind(node).fetch_one(&mut **tx).await?;
+    if held_profiled {
+        return Ok(false);
+    }
+    let unsafe_legacy:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM execution_attempts WHERE node_id=$1 AND kind='legacy_fixture' AND holds_task AND state->>'status'<>'offered' AND NOT (state->>'stopped')::boolean)").bind(node).fetch_one(&mut **tx).await?;
+    Ok(!unsafe_legacy)
 }
+
 async fn retire_unaccepted(tx: &mut Transaction<'_, Postgres>, node: Uuid) -> Result<()> {
     let rows: Vec<String> = sqlx::query_scalar(
-        "SELECT state::text FROM execution_attempts WHERE node_id=$1 AND state->>'status'='offered' FOR UPDATE",
+        "SELECT state::text FROM execution_attempts WHERE node_id=$1 AND kind='legacy_fixture' AND state->>'status'='offered' FOR UPDATE",
     ).bind(node).fetch_all(&mut **tx).await?;
     for row in rows {
         let mut state: AttemptState = serde_json::from_str(&row)?;
@@ -436,7 +444,7 @@ impl Store {
             ));
         }
         let existing: Option<String> =
-            sqlx::query_scalar("SELECT state::text FROM execution_attempts WHERE attempt_id=$1")
+            sqlx::query_scalar("SELECT state::text FROM execution_attempts WHERE attempt_id=$1 AND kind='legacy_fixture'")
                 .bind(offer.attempt.attempt_id)
                 .fetch_optional(&mut *tx)
                 .await?;
@@ -486,7 +494,7 @@ impl Store {
         let mut tx = self.pool.begin().await?;
         lock_node(&mut tx, request.identity.node_id).await?;
         active(&mut tx, &request.identity).await?;
-        let rows: Vec<String> = sqlx::query_scalar("SELECT state::text FROM execution_attempts WHERE node_id=$1 AND state->>'status'='offered' ORDER BY attempt_id LIMIT $2")
+        let rows: Vec<String> = sqlx::query_scalar("SELECT state::text FROM execution_attempts WHERE node_id=$1 AND kind='legacy_fixture' AND state->>'status'='offered' ORDER BY attempt_id LIMIT $2")
             .bind(request.identity.node_id).bind(i64::from(request.max_items)).fetch_all(&mut *tx).await?;
         let mut offers = Vec::new();
         let mut available = request.available.clone();
@@ -1109,7 +1117,7 @@ impl Store {
         let mut attempts = Vec::new();
         for local in &request.attempts[offset..end] {
             let body: Option<String> = sqlx::query_scalar(
-                "SELECT state::text FROM execution_attempts WHERE attempt_id=$1 AND node_id=$2",
+                "SELECT state::text FROM execution_attempts WHERE attempt_id=$1 AND node_id=$2 AND kind='legacy_fixture'",
             )
             .bind(local.attempt.attempt_id)
             .bind(request.identity.node_id)
@@ -1176,8 +1184,14 @@ impl Store {
         validate(request)?;
         let mut tx = self.pool.begin().await?;
         lock_node(&mut tx, request.identity.node_id).await?;
+        if !replacement_safe(&mut tx, request.identity.node_id).await? {
+            return Err(refuse(
+                ErrorCode::CapacityUnavailable,
+                "old execution writers are not confirmed stopped",
+            ));
+        }
         let rows: Vec<String> = sqlx::query_scalar(
-            "SELECT state::text FROM execution_attempts WHERE node_id=$1 AND holds_task FOR UPDATE",
+            "SELECT state::text FROM execution_attempts WHERE node_id=$1 AND kind='legacy_fixture' AND holds_task FOR UPDATE",
         )
         .bind(request.identity.node_id)
         .fetch_all(&mut *tx)
