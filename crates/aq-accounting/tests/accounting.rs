@@ -43,11 +43,13 @@ fn policy() -> Policy {
                 parser: artifact("parser-1"),
                 category_claim: artifact("categories"),
                 priority: 1,
+                complete_accounting_evidence: Some(artifact("synthetic-qualification")),
             },
             ParserAuthority {
                 parser: artifact("parser-2"),
                 category_claim: artifact("categories"),
                 priority: 2,
+                complete_accounting_evidence: Some(artifact("synthetic-qualification")),
             },
         ],
     }
@@ -651,4 +653,83 @@ fn parser_artifact_category_claims_map_to_stable_owner_layout_during_reparse() {
     };
     let false_claim = reseal(false_claim);
     assert!(decide(&false_claim, context(&false_claim, &p, Some(&b))).is_err());
+}
+
+#[test]
+fn partial_source_stays_unknown_until_exact_complete_correction() {
+    let p = policy();
+    let card = rate();
+    let mut r = record();
+    usage(&mut r).completeness = Completeness::Partial {
+        reason: UnknownReason::Incomplete,
+    };
+    let r = reseal(r);
+    let mut c = context(&r, &p, None);
+    c.pricing_reference = Some(&card.reference);
+    let a = appended(decide(&r, c).unwrap());
+    let projection = projection::Projection::default()
+        .replace_fact(None, &a)
+        .unwrap();
+    assert_eq!(projection.incomplete_calls, 1);
+    assert_eq!(projection.known_subtotals[0], 100);
+    assert!(matches!(
+        projection.counters().unwrap().input,
+        Counter::Unknown {
+            reason: UnknownReason::Incomplete
+        }
+    ));
+    assert!(!projection.all_categories_represented().unwrap());
+    let pricing = card.estimate_fact(&a).unwrap();
+    assert!(pricing.source_incomplete);
+    assert!(matches!(pricing.cost, Cost::Unknown { .. }));
+    assert!(matches!(
+        pricing.known_lower_bound,
+        Cost::NonInvoiceEstimate { .. }
+    ));
+    let mut corrected = r;
+    usage(&mut corrected).completeness = Completeness::ReportedComplete;
+    usage(&mut corrected).correction_of = Some(a.event.clone());
+    let corrected = reseal(corrected);
+    let mut c = context(&corrected, &p, Some(&a));
+    c.correction_target = Some(&a);
+    let b = appended(decide(&corrected, c).unwrap());
+    let projection = projection.replace_fact(Some(&a), &b).unwrap();
+    assert_eq!(projection.incomplete_calls, 0);
+    assert_eq!(projection.canonical_calls, 1);
+    assert_eq!(projection.known_subtotals[0], 100);
+    assert!(projection.all_categories_represented().unwrap());
+    assert!(!card.estimate_fact(&b).unwrap().source_incomplete);
+}
+
+#[test]
+fn worker_complete_claim_requires_owner_parser_qualification() {
+    let mut p = policy();
+    p.parsers[0].complete_accounting_evidence = None;
+    let card = rate();
+    let r = record();
+    let mut c = context(&r, &p, None);
+    c.pricing_reference = Some(&card.reference);
+    let a = appended(decide(&r, c).unwrap());
+    assert!(matches!(
+        a.usage.completeness,
+        Completeness::ReportedComplete
+    ));
+    let projection = projection::Projection::default()
+        .replace_fact(None, &a)
+        .unwrap();
+    assert_eq!(projection.incomplete_calls, 1);
+    assert!(!projection.all_categories_represented().unwrap());
+    assert!(card.estimate_fact(&a).unwrap().source_incomplete);
+    p.parsers[0].complete_accounting_evidence =
+        Some(artifact("synthetic-selected-version-qualification"));
+    let mut corrected = r;
+    usage(&mut corrected).correction_of = Some(a.event.clone());
+    let corrected = reseal(corrected);
+    let mut c = context(&corrected, &p, Some(&a));
+    c.correction_target = Some(&a);
+    let b = appended(decide(&corrected, c).unwrap());
+    let projection = projection.replace_fact(Some(&a), &b).unwrap();
+    assert_eq!(projection.canonical_calls, 1);
+    assert_eq!(projection.incomplete_calls, 0);
+    assert_eq!(projection.known_subtotals[0], 100);
 }

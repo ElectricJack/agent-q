@@ -8,6 +8,8 @@ pub struct ParserAuthority {
     pub parser: wire::ArtifactRef,
     pub category_claim: wire::ArtifactRef,
     pub priority: u8,
+    /// Owner-verified selected-version qualification, never a worker capability claim.
+    pub complete_accounting_evidence: Option<wire::ArtifactRef>,
 }
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -32,6 +34,9 @@ impl Policy {
         for (i, p) in self.parsers.iter().enumerate() {
             wire::artifact(&p.parser)?;
             wire::artifact(&p.category_claim)?;
+            if let Some(evidence) = &p.complete_accounting_evidence {
+                wire::artifact(evidence)?;
+            }
             if p.priority == 0 || self.parsers[..i].iter().any(|old| old.parser == p.parser) {
                 return Err(Error::Invalid);
             }
@@ -65,6 +70,7 @@ pub struct Fact {
     pub event: wire::EventRef,
     pub source: wire::Digest,
     pub priority: u8,
+    pub complete_accounting_evidence: Option<wire::ArtifactRef>,
     pub policy: wire::ArtifactRef,
     pub layout: Layout,
     pub pricing_reference: Option<wire::ArtifactRef>,
@@ -82,6 +88,7 @@ impl Fact {
             &self.event,
             &self.source,
             self.priority,
+            &self.complete_accounting_evidence,
             &self.policy,
             &self.layout,
             &self.pricing_reference,
@@ -99,13 +106,21 @@ impl Fact {
         self.layout.check_counters(&self.contribution)?;
         if self.lineage.is_nil()
             || self.priority == 0
-            || self.semantic_digest != semantic(&self.usage, &self.layout)?
+            || self.semantic_digest
+                != semantic(
+                    &self.usage,
+                    &self.layout,
+                    &self.complete_accounting_evidence,
+                )?
             || self.fact_digest != self.digest()?
         {
             return Err(Error::Invalid);
         }
         if let Some(rate) = &self.pricing_reference {
             wire::artifact(rate)?;
+        }
+        if let Some(evidence) = &self.complete_accounting_evidence {
+            wire::artifact(evidence)?;
         }
         match (&self.usage.basis, &self.baseline) {
             (CounterBasis::PerCall, None) => {
@@ -163,7 +178,11 @@ pub enum Decision {
         reason: UnresolvedReason,
     },
 }
-fn semantic(usage: &wire::Usage, layout: &Layout) -> Result<wire::Digest> {
+fn semantic(
+    usage: &wire::Usage,
+    layout: &Layout,
+    qualification: &Option<wire::ArtifactRef>,
+) -> Result<wire::Digest> {
     // Cost is a separately verified owner claim. An untrusted reported invoice
     // cannot change accounting by varying the transcript's cost field.
     crate::hash(&(
@@ -173,6 +192,7 @@ fn semantic(usage: &wire::Usage, layout: &Layout) -> Result<wire::Digest> {
         &usage.counters,
         layout,
         &usage.completeness,
+        qualification,
     ))
 }
 pub fn key(record: &wire::ObservationRecord, policy: &Policy) -> Result<wire::Digest> {
@@ -244,7 +264,11 @@ pub fn decide(record: &wire::ObservationRecord, context: Context<'_>) -> Result<
         record.body.provenance.source_generation,
         &record.body.provenance.native_session_key,
     ))?;
-    let semantic_digest = semantic(usage, &context.policy.layout)?;
+    let semantic_digest = semantic(
+        usage,
+        &context.policy.layout,
+        &parser.complete_accounting_evidence,
+    )?;
     if let Some(current) = context.current {
         current.validate()?;
         if current.key != key {
@@ -352,6 +376,7 @@ pub fn decide(record: &wire::ObservationRecord, context: Context<'_>) -> Result<
         },
         source,
         priority,
+        complete_accounting_evidence: parser.complete_accounting_evidence.clone(),
         policy: context.policy.reference.clone(),
         layout: context.policy.layout.clone(),
         pricing_reference,

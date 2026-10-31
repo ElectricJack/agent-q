@@ -26,6 +26,7 @@ pub struct Pricing {
     /// Explicit non-invoice lower bound, never a complete budget assertion.
     pub known_lower_bound: Cost,
     pub missing_categories: Vec<Category>,
+    pub source_incomplete: bool,
 }
 impl RateCard {
     pub fn validate(&self) -> Result<()> {
@@ -137,6 +138,7 @@ impl RateCard {
             },
             known_lower_bound: estimate,
             missing_categories: missing.into_iter().collect(),
+            source_incomplete: false,
         })
     }
 }
@@ -150,10 +152,22 @@ impl RateCard {
         if fact.pricing_reference.as_ref() != Some(&self.reference) || fact.layout != self.layout {
             return Err(Error::Unsupported);
         }
-        self.estimate(
+        let mut pricing = self.estimate(
             &fact.usage.call.provider,
             &fact.usage.call.model,
             &fact.contribution,
-        )
+        )?;
+        if fact.complete_accounting_evidence.is_none()
+            || !matches!(
+                fact.usage.completeness,
+                wire::Completeness::ReportedComplete
+            )
+        {
+            pricing.source_incomplete = true;
+            pricing.cost = Cost::Unknown {
+                reason: UnknownReason::Incomplete,
+            };
+        }
+        Ok(pricing)
     }
 }

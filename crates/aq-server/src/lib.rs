@@ -8,6 +8,7 @@ pub mod execution;
 pub mod identity;
 pub mod intelligence;
 pub mod notifications;
+pub mod observations;
 pub mod profile_catalog;
 pub mod project_bindings;
 pub mod readiness;

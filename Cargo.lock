@@ -240,6 +240,7 @@ name = "aq-server"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "aq-accounting",
  "aq-admission",
  "aq-agent-api",
  "aq-lifecycle-api",

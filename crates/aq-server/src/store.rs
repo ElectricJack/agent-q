@@ -252,12 +252,19 @@ pub struct Store {
     pub(crate) pool: PgPool,
     control_pool: PgPool,
     pub(crate) notification_pool: PgPool,
+    pub(crate) observation_pool: PgPool,
     pub(crate) admission: std::sync::Arc<crate::admission::Admission>,
     #[cfg(feature = "recovery-test-support")]
     pub(crate) recovery_test: std::sync::Arc<crate::execution::testing::Controls>,
 }
 
 impl Store {
+    pub(crate) fn observation_view(&self) -> Self {
+        Self {
+            pool: self.observation_pool.clone(),
+            ..self.clone()
+        }
+    }
     /// A view over the same database with reserved control connections. Private
     /// route wiring selects this; credentials cannot choose their own class.
     pub(crate) fn notification_view(&self) -> Self {
@@ -288,6 +295,7 @@ impl Store {
         self.pool.close().await;
         self.control_pool.close().await;
         self.notification_pool.close().await;
+        self.observation_pool.close().await;
     }
 
     pub async fn connect(database_url: &str) -> Result<Store> {
@@ -324,7 +332,23 @@ impl Store {
                 })
             })
             .connect_lazy_with(pool.connect_options().as_ref().clone());
+        let observation_pool = PgPoolOptions::new()
+            .max_connections(4)
+            .acquire_timeout(Duration::from_secs(2))
+            .after_connect(|connection, _| {
+                Box::pin(async move {
+                    sqlx::query("SET statement_timeout='3s'")
+                        .execute(&mut *connection)
+                        .await?;
+                    sqlx::query("SET lock_timeout='2s'")
+                        .execute(&mut *connection)
+                        .await?;
+                    Ok(())
+                })
+            })
+            .connect_lazy_with(pool.connect_options().as_ref().clone());
         Ok(Store {
+            observation_pool,
             notification_pool,
             pool,
             control_pool,

@@ -8,19 +8,56 @@ pub struct Projection {
     pub canonical_calls: u64,
     pub known_subtotals: [u64; 5],
     pub unknown_contributions: [u64; 5],
+    pub incomplete_calls: u64,
     pub unresolved_events: u64,
 }
 impl Projection {
     pub fn validate(&self) -> Result<()> {
-        if self
-            .unknown_contributions
-            .iter()
-            .any(|n| *n > self.canonical_calls)
+        if self.incomplete_calls > self.canonical_calls
+            || self
+                .unknown_contributions
+                .iter()
+                .any(|n| *n > self.canonical_calls)
             || (self.canonical_calls == 0 && self.known_subtotals.iter().any(|n| *n != 0))
         {
             return Err(Error::Invalid);
         }
         Ok(())
+    }
+    /// Replace a canonical fact and its completeness together. Category presence
+    /// alone cannot turn a parser's partial report into complete accounting.
+    pub fn replace_fact(
+        &self,
+        old: Option<&crate::reconcile::Fact>,
+        new: &crate::reconcile::Fact,
+    ) -> Result<Self> {
+        new.validate()?;
+        if let Some(old) = old {
+            old.validate()?;
+            if old.key != new.key || old.lineage != new.lineage {
+                return Err(Error::Conflict);
+            }
+        }
+        let mut next = self.replace(old.map(|v| &v.contribution), &new.contribution)?;
+        if old.is_some_and(|v| {
+            v.complete_accounting_evidence.is_none()
+                || !matches!(v.usage.completeness, wire::Completeness::ReportedComplete)
+        }) {
+            next.incomplete_calls = next
+                .incomplete_calls
+                .checked_sub(1)
+                .ok_or(Error::Conflict)?;
+        }
+        if new.complete_accounting_evidence.is_none()
+            || !matches!(new.usage.completeness, wire::Completeness::ReportedComplete)
+        {
+            next.incomplete_calls = next
+                .incomplete_calls
+                .checked_add(1)
+                .ok_or(Error::Overflow)?;
+        }
+        next.validate()?;
+        Ok(next)
     }
     /// Proposed replacement only. The adapter must CAS the exact canonical head
     /// plus this projection in the same transaction as the append-only fact.
@@ -70,7 +107,10 @@ impl Projection {
                 wire::Counter::Unknown {
                     reason: wire::UnknownReason::NotReported,
                 }
-            } else if self.unknown_contributions[i] > 0 || self.unresolved_events > 0 {
+            } else if self.unknown_contributions[i] > 0
+                || self.unresolved_events > 0
+                || self.incomplete_calls > 0
+            {
                 wire::Counter::Unknown {
                     reason: wire::UnknownReason::Incomplete,
                 }
@@ -92,6 +132,7 @@ impl Projection {
         self.validate()?;
         Ok(self.canonical_calls > 0
             && self.unresolved_events == 0
+            && self.incomplete_calls == 0
             && self.unknown_contributions == [0; 5])
     }
 }
