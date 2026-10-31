@@ -16,6 +16,11 @@ range transfer. The independent review found no blocker in that scope. The
 records 678 passing workspace tests, six declared optional ignores, strict lint
 and formatting at source `ce1214f`. Main's build and source files were compared
 with that tested revision after merging; they match exactly.
+A subsequent test-only checkpoint adds four Preparing/Granted HTTP tests. All
+eight artifact-owner/phase tests passed, with strict target lint and formatting;
+no production changes were required. This supplements the full workspace run
+rather than claiming a new full-suite total. See the
+[phase qualification](../implementation/AQ-08-artifact-phases-qualification.md).
 
 The daemon also contains current native runtime registration, durable Started
 reporting, private provider-material delivery and the acyclic profile/selection
