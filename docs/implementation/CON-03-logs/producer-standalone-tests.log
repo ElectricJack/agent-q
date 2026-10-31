@@ -1,0 +1,65 @@
+     Locking 43 packages to latest Rust 1.96.1 compatible versions
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling serde_core v1.0.229
+   Compiling typenum v1.20.1
+   Compiling zmij v1.0.23
+   Compiling ref-cast v1.0.27
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.154
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling thiserror v2.0.21
+   Compiling cfg-if v1.0.5
+   Compiling cpufeatures v0.2.17
+   Compiling dyn-clone v1.0.20
+   Compiling generic-array v0.14.7
+   Compiling syn v3.0.9
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling uuid v1.29.0
+   Compiling serde_derive_internals v0.30.0
+   Compiling ref-cast-impl v1.0.27
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.21
+   Compiling schemars_derive v1.2.3
+   Compiling schemars v1.2.3
+   Compiling aq-session-protocol v0.1.0 (/tmp/con03-clean-standalone-d83dc15l/aq-session-protocol-0.1.0)
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/con03-clean-standalone-d83dc15l/aq-lifecycle-protocol-0.1.0)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.87s
+     Running unittests src/lib.rs (/tmp/con03-clean-target/debug/deps/aq_lifecycle_protocol-28a9f62ea5e50785)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/conformance.rs (/tmp/con03-clean-target/debug/deps/conformance-9b8129baaffba5c1)
+
+running 14 tests
+test available_raw_bytes_must_agree_with_the_declared_source_span ... ok
+test missing_raw_source_is_a_gap_and_never_a_fabricated_digest ... ok
+test unknown_zero_cumulative_generations_corrections_and_non_invoice_cost_remain_distinct ... ok
+test checkpoint_is_a_claim_not_stop_proof_or_task_settlement ... ok
+test compute_release_disk_release_and_retained_suspension_are_independent ... ok
+test central_binding_needs_no_fake_worker_identity ... ok
+test schema_publishes_finite_batch_and_reference_bounds ... ok
+test finite_utf8_batches_strict_fields_and_integer_units_refuse ... ok
+test fresh_cross_node_continuation_and_exact_bootstrap_ack_are_fenced ... ok
+test old_session_capabilities_and_unknown_required_versions_refuse ... ok
+test mismatched_node_boot_attempt_generation_and_atomic_batch_failure_refuse ... ok
+test packet_and_source_event_digest_conflicts_are_not_accepted_as_retries ... ok
+test acknowledgment_schema_and_exact_cursor_pairing_are_independent_of_task_outcome ... ok
+test public_artifacts_drift_and_all_packets_roundtrip ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+   Doc-tests aq_lifecycle_protocol
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,32 @@
+   Compiling aq-lifecycle-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-lifecycle-api)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.07s
+     Running unittests src/lib.rs (target/debug/deps/aq_lifecycle_api-ae23f5a087cae136)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/conformance.rs (target/debug/deps/conformance-c2c1d1b0a469bd46)
+
+running 12 tests
+test refuses_self_wait_and_duplicate_predicates ... ok
+test no_ack_without_current_admitted_attachment ... ok
+test transport_acceptance_does_not_answer_human_question ... ok
+test capability_and_node_refusals ... ok
+test invalid_source_digest_cannot_change_predicate ... ok
+test any_uses_declared_order_and_immutable_outcome ... ok
+test exact_successor_ack_interoperates_with_public_attachment ... ok
+test strict_decoding_and_envelope_bounds ... ok
+test pending_any_cannot_become_failure ... ok
+test rejects_wrong_source_owner ... ok
+test exact_replay_age_and_changed_payload ... ok
+test fixtures_and_schema_drift ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests aq_lifecycle_api
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

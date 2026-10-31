@@ -1,0 +1,111 @@
+{
+  "task": "CON-03",
+  "producer": {
+    "source_repository": "aq-worker",
+    "source_revision": "88c11d273bc710c9d55a1322cf05735ef4ad982c",
+    "archive_sha256": "945b03a99701035eb7cf6679bd9baa9ad2b50a7cb6329b9ca8de2cf8bd58b92b",
+    "standalone_tests_passed": 14
+  },
+  "consumer": {
+    "package": "aq-lifecycle-api",
+    "version": "0.1.0",
+    "source_revision": "f64142f790854a087fd9fa3f3b41f8d8c89ac793",
+    "qualification": "clean normalized archive; extracted public-package-only tests/clippy/drift passed",
+    "tests_passed": 12,
+    "strict_clippy": "passed",
+    "candidate_standalone_tests_passed": 12,
+    "archive_sha256": "9b4471764943ac31ecc1c8ee600190ce6ce4df485d7708abda64aba7db1b46a5",
+    "standalone_tests_passed": 12
+  },
+  "runtime_claims": false,
+  "logs": [
+    {
+      "path": "docs/implementation/CON-03-logs/consumer-candidate-standalone-tests.log",
+      "sha256": "189f0f801a15819840e0cae310d9fc1e3e30535e3b6ad3e9d411af935ca21c8b"
+    },
+    {
+      "path": "docs/implementation/CON-03-logs/consumer-clean-clippy.log",
+      "sha256": "9529d6f5aae31be04771dd95f92bd916ecfd4d7dfe4cd90ea9c9a9930f051208"
+    },
+    {
+      "path": "docs/implementation/CON-03-logs/consumer-clean-drift.log",
+      "sha256": "240021673fa10908faaa11a17764fbe2688541e39eeca2e2a1a8b2d5f41b72ed"
+    },
+    {
+      "path": "docs/implementation/CON-03-logs/consumer-clean-package.log",
+      "sha256": "bbb6a6a73f7ebab3fa1affb38424e61251d24f68643ecd18fd070c12579197ca"
+    },
+    {
+      "path": "docs/implementation/CON-03-logs/consumer-clean-tests.log",
+      "sha256": "6eb66a969c67f49ba9202ad2e4c6f26b666920bee2b0dfebdd759cf50d546b42"
+    },
+    {
+      "path": "docs/implementation/CON-03-logs/consumer-clippy.log",
+      "sha256": "8dfe67424ab7a1a21036c6947b9725d34b2c5a5dd9a274b7a6f1584ce9339401"
+    },
+    {
+      "path": "docs/implementation/CON-03-logs/consumer-tests.log",
+      "sha256": "74c69e1506fa2404ca1fcd1d27bf35696530c844fcfe9a990e555cf6d2a1d9de"
+    },
+    {
+      "path": "docs/implementation/CON-03-logs/producer-standalone-tests.log",
+      "sha256": "8ea94cc1883e81c8504ebb5bcf43c81841b4eb6db25acca97d32a68c02e0ba3c"
+    }
+  ],
+  "source_files": [
+    {
+      "repository": "aq-worker",
+      "revision": "88c11d273bc710c9d55a1322cf05735ef4ad982c",
+      "path": "crates/aq-lifecycle-protocol/src/lib.rs",
+      "sha256": "4fdb4defeb8627e2e72f7ec344e783acfcfba7a1643f844ac97429efa46bc551"
+    },
+    {
+      "repository": "aq-worker",
+      "revision": "88c11d273bc710c9d55a1322cf05735ef4ad982c",
+      "path": "crates/aq-lifecycle-protocol/src/observation.rs",
+      "sha256": "79bfd104779f83d5fc803232e424aea0e8554b51d24c9cc8c24d058c616d63e6"
+    },
+    {
+      "repository": "aq-worker",
+      "revision": "88c11d273bc710c9d55a1322cf05735ef4ad982c",
+      "path": "crates/aq-lifecycle-protocol/src/continuation.rs",
+      "sha256": "fc684fd801d58d3c19579d5644f8ae6af1c151586a11fa8a19b200b01c5c6364"
+    },
+    {
+      "repository": "aq-worker",
+      "revision": "88c11d273bc710c9d55a1322cf05735ef4ad982c",
+      "path": "crates/aq-lifecycle-protocol/src/peer.rs",
+      "sha256": "b33a555c66ef656d1109d7048dd33b05d26135e5d2aa13140bd18fa5dc70b6fe"
+    },
+    {
+      "repository": "agent-q",
+      "revision": "f64142f790854a087fd9fa3f3b41f8d8c89ac793",
+      "path": "crates/aq-lifecycle-api/src/lib.rs",
+      "sha256": "a501d1f57880a582e425fd314980856da03bf7af56484d9966f4dac66c484167"
+    },
+    {
+      "repository": "agent-q",
+      "revision": "f64142f790854a087fd9fa3f3b41f8d8c89ac793",
+      "path": "crates/aq-lifecycle-api/src/waits.rs",
+      "sha256": "2148f676712715cf6415b9faef975c4ce3563a91038992b1b7ed07961a14593e"
+    },
+    {
+      "repository": "agent-q",
+      "revision": "f64142f790854a087fd9fa3f3b41f8d8c89ac793",
+      "path": "crates/aq-lifecycle-api/src/inspection.rs",
+      "sha256": "c2774bdecefb43e16eb4d4daafdca871c7b81eb471decc347f11c4fa5a9d8ea8"
+    },
+    {
+      "repository": "agent-q",
+      "revision": "f64142f790854a087fd9fa3f3b41f8d8c89ac793",
+      "path": "crates/aq-lifecycle-api/src/peer.rs",
+      "sha256": "2c1597225aa7edf2432f53a7c85068a106ad6c15bd5baf57be5cb85c54bd78c6"
+    },
+    {
+      "repository": "agent-q",
+      "revision": "f64142f790854a087fd9fa3f3b41f8d8c89ac793",
+      "path": "crates/aq-lifecycle-api/tests/conformance.rs",
+      "sha256": "084ca58a8e7e2faa065b47bbfcdc0f90624330f07e78df7acfbff107a023c371"
+    }
+  ]
+}

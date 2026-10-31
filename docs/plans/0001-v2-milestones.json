@@ -1521,7 +1521,7 @@
       "repo": "aq-worker",
       "milestone": "M5",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "CON-02"
       ],
@@ -1543,7 +1543,10 @@
       "out_of_scope": [
         "Implementing transcript readers, source verifiers, notification transport or workflow policy"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/CON-03.md",
+        "../implementation/CON-03.json"
+      ]
     },
     {
       "id": "WRK-15",

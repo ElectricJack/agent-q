@@ -40,6 +40,8 @@ Read the mapped source and regression cases before implementing an affected task
 | --- | --- | --- |
 | [AQ-10](#aq-10) | agent-q | Apply evidence-based result disposition and graph completion |
 | [AQ-12](#aq-12) | agent-q | Embed the qualified playbook runner with bounded execution |
+| [WRK-15](#wrk-15) | aq-worker | Implement harness transcript readers and durable observation delivery |
+| [AQ-24](#aq-24) | agent-q | Implement durable external notification delivery with Discord |
 | [REL-01](#rel-01) | agent-q | Version the composite product manifest and component inventory |
 | [AQ-21](#aq-21) | agent-q | Implement authorized terminal relay and controller leasing |
 | [WRK-14](#wrk-14) | aq-worker | Implement the bounded outbound terminal bridge |
@@ -149,7 +151,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [AQ-14](#aq-14): Implement judgment, decision and check host adapters | agent-q | [AQ-13](#aq-13), [AQ-10](#aq-10), [AQ-17](#aq-17), [WRK-09](#wrk-09) | planned |
 | [AQ-15](#aq-15): Implement candidate preparation and guarded publication policy | agent-q | [AQ-14](#aq-14), [AQ-09](#aq-09), [GIT-01](#git-01) | planned |
 | [AQ-16](#aq-16): Implement findings reconciliation and durable calendar/report coordination | agent-q | [AQ-13](#aq-13), [AQ-14](#aq-14) | planned |
-| [CON-03](#con-03): Publish session observation and continuation contracts | aq-worker | [CON-02](#con-02) | in_progress |
+| [CON-03](#con-03): Publish session observation and continuation contracts | aq-worker | [CON-02](#con-02) | complete |
 | [WRK-15](#wrk-15): Implement harness transcript readers and durable observation delivery | aq-worker | [CON-03](#con-03), [WRK-10](#wrk-10) | planned |
 | [AQ-22](#aq-22): Implement session observations, transcript inspection and usage accounting | agent-q | [CON-03](#con-03), [AQ-03](#aq-03), [AQ-20](#aq-20) | planned |
 | [AQ-23](#aq-23): Implement the evidence-based session stall ladder | agent-q | [AQ-22](#aq-22), [AQ-11](#aq-11), [WRK-09](#wrk-09), [AQ-05](#aq-05) | planned |
@@ -1033,7 +1035,7 @@ Requirement links: D2, D6, D9, W1, X6, X13, N3.
 
 **Publish session observation and continuation contracts**
 
-Owner: `aq-worker`. Milestone: M5. Kind: implementation. Status: in_progress.
+Owner: `aq-worker`. Milestone: M5. Kind: implementation. Status: complete.
 
 Hard prerequisites: [CON-02](#con-02).
 
@@ -1048,6 +1050,8 @@ Acceptance:
 Requirement links: S2, S3, C1, C2, C3, C4, C6.
 
 Outside this task: Implementing transcript readers, source verifiers, notification transport or workflow policy.
+
+Evidence: [CON-03.md](../implementation/CON-03.md), [CON-03.json](../implementation/CON-03.json).
 
 ### WRK-15
 

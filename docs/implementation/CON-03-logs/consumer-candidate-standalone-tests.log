@@ -1,0 +1,35 @@
+     Locking 44 packages to latest Rust 1.96.1 compatible versions
+   Compiling aq-session-protocol v0.1.0 (/tmp/con03-api-final-candidate-bqwuswjg/aq-session-protocol-0.1.0)
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/con03-api-final-candidate-bqwuswjg/aq-lifecycle-protocol-0.1.0)
+   Compiling aq-lifecycle-api v0.1.0 (/tmp/con03-api-final-candidate-bqwuswjg/aq-lifecycle-api-0.1.0)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.43s
+     Running unittests src/lib.rs (/tmp/con03-api-standalone-target/debug/deps/aq_lifecycle_api-d172113e9e8a7c1a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/conformance.rs (/tmp/con03-api-standalone-target/debug/deps/conformance-003fe44c3c003fef)
+
+running 12 tests
+test refuses_self_wait_and_duplicate_predicates ... ok
+test transport_acceptance_does_not_answer_human_question ... ok
+test no_ack_without_current_admitted_attachment ... ok
+test capability_and_node_refusals ... ok
+test any_uses_declared_order_and_immutable_outcome ... ok
+test strict_decoding_and_envelope_bounds ... ok
+test invalid_source_digest_cannot_change_predicate ... ok
+test pending_any_cannot_become_failure ... ok
+test exact_successor_ack_interoperates_with_public_attachment ... ok
+test rejects_wrong_source_owner ... ok
+test exact_replay_age_and_changed_payload ... ok
+test fixtures_and_schema_drift ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests aq_lifecycle_api
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

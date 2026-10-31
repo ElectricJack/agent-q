@@ -1,0 +1,5 @@
+warning: manifest has no license, license-file, documentation, homepage or repository
+  |
+  = note: see https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info
+   Packaging aq-lifecycle-api v0.1.0 (/tmp/con03-api-clean/crates/aq-lifecycle-api)
+    Packaged 15 files, 165.7KiB (24.5KiB compressed)
