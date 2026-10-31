@@ -178,6 +178,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         9,
         include_str!("../migrations/0009_intelligence_selection.sql"),
     ),
+    (
+        10,
+        include_str!("../migrations/0010_profiled_authority.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.

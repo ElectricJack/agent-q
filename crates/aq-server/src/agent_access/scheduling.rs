@@ -260,57 +260,92 @@ impl Runtime {
         {
             return Err(SchedulingReadError::StaleTask);
         }
-        for key in ["nodes", "pinned_revisions"] {
-            let nodes = value[key]
-                .as_array()
-                .ok_or(SchedulingReadError::InvalidResponse)?;
-            if nodes.len() > 200 {
-                return Err(SchedulingReadError::InvalidResponse);
-            }
-            let mut seen = std::collections::BTreeSet::new();
-            for node in nodes {
-                if node["workspace_id"] != expected.workspace_id.to_string()
-                    || node["id"]
-                        .as_str()
-                        .and_then(|s| Uuid::parse_str(s).ok())
-                        .is_none_or(|id| id.is_nil())
+        let nodes = value["nodes"]
+            .as_array()
+            .ok_or(SchedulingReadError::InvalidResponse)?;
+        let edges = value["edges"]
+            .as_array()
+            .ok_or(SchedulingReadError::InvalidResponse)?;
+        let pins = value["pinned_revisions"]
+            .as_array()
+            .ok_or(SchedulingReadError::InvalidResponse)?;
+        if nodes
+            .len()
+            .checked_add(1)
+            .is_none_or(|n| n > limit as usize)
+            || edges.len() > 4 * limit as usize
+            || pins.len() > 2 * edges.len()
+        {
+            return Err(SchedulingReadError::InvalidResponse);
+        }
+        let mut node_ids = std::collections::BTreeSet::from([expected.task_id]);
+        let mut actual_pins = std::collections::BTreeSet::new();
+        for (key, records) in [("nodes", nodes), ("pinned_revisions", pins)] {
+            for record in records {
+                let record_id = record["id"]
+                    .as_str()
+                    .and_then(|s| Uuid::parse_str(s).ok())
+                    .filter(|id| !id.is_nil())
+                    .ok_or(SchedulingReadError::InvalidResponse)?;
+                if record["workspace_id"] != expected.workspace_id.to_string()
                     || ["version", "content_revision"].iter().any(|key| {
-                        node[key]
+                        record[key]
                             .as_u64()
                             .is_none_or(|v| v == 0 || v > i64::MAX as u64)
                     })
-                    || !seen.insert((
-                        node["id"].clone().to_string(),
-                        node["content_revision"].clone().to_string(),
-                    ))
                 {
+                    return Err(SchedulingReadError::InvalidResponse);
+                }
+                if key == "nodes" {
+                    if !node_ids.insert(record_id) {
+                        return Err(SchedulingReadError::InvalidResponse);
+                    }
+                } else if !actual_pins.insert((
+                    record_id,
+                    record["content_revision"]
+                        .as_u64()
+                        .ok_or(SchedulingReadError::InvalidResponse)?,
+                )) {
                     return Err(SchedulingReadError::InvalidResponse);
                 }
             }
         }
-        let edges = value["edges"]
-            .as_array()
-            .ok_or(SchedulingReadError::InvalidResponse)?;
-        if edges.len() > 4096
-            || edges.iter().any(|e| {
-                e["workspace_id"] != expected.workspace_id.to_string()
-                    || ["id", "source", "target"].iter().any(|key| {
-                        e[key]
-                            .as_str()
-                            .and_then(|s| Uuid::parse_str(s).ok())
-                            .is_none_or(|id| id.is_nil())
-                    })
-                    || e["version"]
+        let mut edge_ids = std::collections::BTreeSet::new();
+        let mut expected_pins = std::collections::BTreeSet::new();
+        for edge in edges {
+            let edge_id = edge["id"]
+                .as_str()
+                .and_then(|s| Uuid::parse_str(s).ok())
+                .filter(|id| !id.is_nil())
+                .ok_or(SchedulingReadError::InvalidResponse)?;
+            if !edge_ids.insert(edge_id)
+                || edge["workspace_id"] != expected.workspace_id.to_string()
+                || edge["deleted"] != false
+                || edge["version"]
+                    .as_u64()
+                    .is_none_or(|v| v == 0 || v > i64::MAX as u64)
+            {
+                return Err(SchedulingReadError::InvalidResponse);
+            }
+            for (endpoint, pin) in [("source", "source_revision"), ("target", "target_revision")] {
+                let endpoint = edge[endpoint]
+                    .as_str()
+                    .and_then(|s| Uuid::parse_str(s).ok())
+                    .filter(|id| !id.is_nil())
+                    .ok_or(SchedulingReadError::InvalidResponse)?;
+                if !node_ids.contains(&endpoint) {
+                    return Err(SchedulingReadError::InvalidResponse);
+                }
+                if !edge[pin].is_null() {
+                    let revision = edge[pin]
                         .as_u64()
-                        .is_none_or(|v| v == 0 || v > i64::MAX as u64)
-                    || ["source_revision", "target_revision"].iter().any(|key| {
-                        !e[key].is_null()
-                            && e[key]
-                                .as_u64()
-                                .is_none_or(|v| v == 0 || v > i64::MAX as u64)
-                    })
-            })
-        {
+                        .filter(|v| *v > 0 && *v <= i64::MAX as u64)
+                        .ok_or(SchedulingReadError::InvalidResponse)?;
+                    expected_pins.insert((endpoint, revision));
+                }
+            }
+        }
+        if actual_pins != expected_pins {
             return Err(SchedulingReadError::InvalidResponse);
         }
         let digest = stamp.response_digest.clone();

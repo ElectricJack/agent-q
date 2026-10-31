@@ -41,6 +41,24 @@ pub(super) async fn report(
         if row.get::<String,_>("kind")!="intelligence_failure" || row.get::<String,_>("payload_digest")!=payload.as_str(){return Err(conflict("failure operation ID conflict"));}
         return Ok(Json(row.get("response")));
     }
+    let attempt = crate::execution::authority::load_attempt_locked(
+        &state,
+        &mut tx,
+        node.id,
+        request.attempt_id,
+        crate::execution::authority::Policy::GraphActive,
+    )
+    .await
+    .map_err(|_| {
+        conflict(
+            "attempt has no actual sealed profiled authority; legacy fixture feedback is refused",
+        )
+    })?;
+    if attempt.kind != crate::execution::authority::Kind::ProfiledV1 {
+        return Err(conflict(
+            "attempt has no actual sealed profiled selection; legacy fixture feedback is refused",
+        ));
+    }
     let sealed: Value = sqlx::query_scalar(
         "SELECT selection FROM intelligence_attempt_selections WHERE attempt_id=$1 FOR SHARE",
     )
@@ -55,26 +73,15 @@ pub(super) async fn report(
     })?;
     let sealed: ResolvedSelection =
         serde_json::from_value(sealed).map_err(|_| AppError::Internal)?;
-    let attempt: Value = sqlx::query_scalar(
-        "SELECT state FROM execution_attempts WHERE attempt_id=$1 AND node_id=$2 FOR SHARE",
-    )
-    .bind(request.attempt_id)
-    .bind(node.id)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(db)?
-    .ok_or_else(|| conflict("failure attempt absent"))?;
-    let attempt: crate::execution::AttemptState =
-        serde_json::from_value(attempt).map_err(|_| AppError::Internal)?;
     let revision = registry::check_current(&state, &mut tx)
         .await?
         .checked_add(1)
         .filter(|r| *r <= i64::MAX as u64)
         .ok_or(AppError::Internal)?;
     let time = now(&state)?;
-    if attempt.status != crate::execution::AuthorityStatus::Granted
+    if attempt.status != crate::execution::profiled::Status::Granted
         || time >= attempt.grant_expires_at_ms
-        || attempt.offer.identity.boot_id != request.boot_id
+        || attempt.identity.boot_id != request.boot_id
     {
         return Err(conflict(
             "failure attempt is not currently granted to this boot",

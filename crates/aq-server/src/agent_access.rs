@@ -7,7 +7,7 @@ pub mod scheduling;
 use crate::{
     AppState,
     authz::RequireOwner,
-    execution::{AttemptState, AuthorityStatus},
+    execution::authority::{AuthorityError, AuthorityView, Policy},
 };
 use aq_worker_protocol::{AttemptRef, NodeIdentity};
 use axum::{
@@ -354,39 +354,19 @@ async fn lock_attempt(
     tx: &mut Transaction<'_, Postgres>,
     attempt: Uuid,
     node: Uuid,
-) -> Result<AttemptState> {
-    let revoked: Option<bool> =
-        sqlx::query_scalar("SELECT revoked_at IS NOT NULL FROM nodes WHERE id=$1 FOR UPDATE")
-            .bind(node)
-            .fetch_optional(&mut **tx)
-            .await?;
-    if revoked != Some(false) {
-        return Err(Error("session_revoked"));
-    }
-    let body: Option<String> = sqlx::query_scalar(
-        "SELECT state::text FROM execution_attempts WHERE attempt_id=$1 AND node_id=$2 FOR UPDATE",
-    )
-    .bind(attempt)
-    .bind(node)
-    .fetch_optional(&mut **tx)
-    .await?;
-    let a: AttemptState = serde_json::from_str(&body.ok_or(Error("unauthorized"))?)?;
-    let registered: Option<Value> =
-        sqlx::query_scalar("SELECT state->'identity' FROM execution_nodes WHERE node_id=$1")
-            .bind(node)
-            .fetch_optional(&mut **tx)
-            .await?;
-    if registered != Some(serde_json::to_value(&a.offer.identity)?) {
-        return Err(Error("stale_generation"));
-    }
-    if a.status != AuthorityStatus::Granted || a.stopped || a.cancellation_id.is_some() {
-        return Err(Error("session_revoked"));
-    }
-    if a.grant_expires_at_ms <= now(state) {
-        return Err(Error("session_expired"));
-    }
-    Ok(a)
+) -> Result<AuthorityView> {
+    crate::execution::authority::load_attempt_locked(state, tx, node, attempt, Policy::GraphActive)
+        .await
+        .map_err(|error| match error {
+            AuthorityError::NotFound | AuthorityError::Identity => Error("unauthorized"),
+            AuthorityError::Revoked => Error("session_revoked"),
+            AuthorityError::Expired => Error("session_expired"),
+            AuthorityError::StaleBoot => Error("stale_generation"),
+            AuthorityError::Unsupported => Error("scope_denied"),
+            AuthorityError::InvalidState | AuthorityError::Database(_) => Error("internal"),
+        })
 }
+
 async fn provision(
     State(state): State<AppState>,
     RequireOwner(_): RequireOwner,
@@ -406,8 +386,10 @@ async fn provision(
             .ok_or(Error("not_found"))?;
     let mut tx = state.store.pool.begin().await?;
     let a = lock_attempt(&state, &mut tx, request.attempt_id, node).await?;
-    let spec = serde_json::to_value(&a.offer.spec)?;
-    let graph = &spec["bindings"]["graph"];
+    if a.kind != crate::execution::authority::Kind::LegacyFixture {
+        return Err(Error("scope_denied"));
+    }
+    let graph = serde_json::to_value(&a.graph)?;
     if graph.is_null()
         || graph["profile_id"] != request.profile["profile_id"]
         || graph["profile_revision"] != request.profile["revision"]
@@ -416,7 +398,7 @@ async fn provision(
     {
         return Err(Error("scope_denied"));
     }
-    let binding = json!({"task_id":a.task_id,"attempt_id":a.offer.attempt.attempt_id,"session_id":a.offer.attempt.session_id,"generation":a.offer.attempt.generation,"node_id":node,"boot_id":a.offer.identity.boot_id,"project_id":a.offer.spec.project_id,"workspace_id":graph["workspace_id"],"resolved_spec_digest":a.offer.spec.resolved_spec_digest,"profile_digest":graph["profile_digest"],"context_digest":graph["context_digest"]});
+    let binding = json!({"task_id":a.task_id,"attempt_id":a.attempt.attempt_id,"session_id":a.attempt.session_id,"generation":a.attempt.generation,"node_id":node,"boot_id":a.identity.boot_id,"project_id":a.project_id,"workspace_id":graph["workspace_id"],"resolved_spec_digest":a.execution_spec_digest,"profile_digest":graph["profile_digest"],"context_digest":graph["context_digest"]});
     if !contract::valid("Binding", &binding) {
         return Err(Error("invalid_request"));
     }
@@ -497,7 +479,7 @@ async fn issue(
     }
     let mut tx = state.store.pool.begin().await?;
     let a = lock_attempt(&state, &mut tx, request.attempt.attempt_id, node.id).await?;
-    if a.offer.identity != request.identity || a.offer.attempt != request.attempt {
+    if a.identity != request.identity || a.attempt != request.attempt {
         return Err(Error("stale_generation"));
     }
     let row=sqlx::query("SELECT binding,profile,context,revoked,credential_version,authority_revision FROM agent_launch_bindings WHERE attempt_id=$1 FOR UPDATE").bind(request.attempt.attempt_id).fetch_optional(&mut *tx).await?.ok_or(Error("scope_denied"))?;
@@ -573,9 +555,9 @@ async fn authenticate_locked(
         revision: row.get("authority_revision"),
         expires,
     };
-    if p.binding["generation"] != a.offer.attempt.generation
-        || p.binding["session_id"] != a.offer.attempt.session_id.to_string()
-        || p.binding["boot_id"] != a.offer.identity.boot_id.to_string()
+    if p.binding["generation"] != a.attempt.generation
+        || p.binding["session_id"] != a.attempt.session_id.to_string()
+        || p.binding["boot_id"] != a.identity.boot_id.to_string()
     {
         return Err(Error("stale_generation"));
     }

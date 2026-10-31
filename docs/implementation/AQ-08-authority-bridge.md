@@ -1,10 +1,12 @@
 # AQ-08 authority bridge review draft
 
-Review only: no migration is installed, no state discriminator is added, and no
-runtime lifecycle route is enabled by this document. Stage 1 pure contracts and
-read-only public graph readers are independent. Root approval of this exact
-bridge precedes migration/runtime edits. AQ21 has confirmed the terminal view and
-lock-order needs below; it has its own isolated contract branch.
+Root approved this bridge after stage 1 (`3520832`). Migration 0010 and the
+kind-dispatched view are now implemented as a qualification checkpoint. No real
+profiled grant/lifecycle routes are enabled. AQ21 consumes the same locked view
+from its isolated branch and reserves migration 0011; AQ24 reserves 0012. The
+actual SQL is [0010_profiled_authority.sql](../../crates/aq-server/migrations/0010_profiled_authority.sql).
+The proposal below records the reviewed design; the linked migration is the exact
+implementation authority. Overall AQ-08 scheduling/sealing remains in progress.
 
 ## Common identity, separate state decoders
 
@@ -21,7 +23,11 @@ classified observations, verified stop/retention/effect references and result
 reconciliation. No caller-provided boolean establishes stop or retention. The
 common `holds_task` projection becomes false only after kind-specific verified
 nonstart/stop plus required retention and unresolved-effect checks. Expiry never
-clears it. The same unique index prevents mixed-kind double admission.
+clears it. The same unique index prevents mixed-kind double admission. Stored common state
+is capped at 4 MiB of uncompressed JSON text. Revisions are always derived from
+OLD values plus detected state changes; supplied revision writes are ignored and
+no-op/exact replay cannot advance or decrease them. Common reads project only the
+resolved selection from retained decisions, excluding startup input bodies.
 
 `execution_attempts` central ownership is not a second graph task-state owner.
 It records authorization and retained attempt evidence, not task readiness,
@@ -52,20 +58,20 @@ CREATE TABLE admission_source_policies (
  project_id UUID PRIMARY KEY REFERENCES project_execution_bindings(project_id),
  revision BIGINT NOT NULL CHECK(revision>0),
  policy_digest TEXT NOT NULL CHECK(policy_digest ~ '^[0-9a-f]{64}$'),
- policy JSONB NOT NULL CHECK(pg_column_size(policy)<=65536)
+ policy JSONB NOT NULL CHECK(octet_length(policy::text)<=65536)
 );
 CREATE TABLE admission_source_observations (
  observation_id UUID PRIMARY KEY,
  project_id UUID NOT NULL REFERENCES project_execution_bindings(project_id),
  source_policy_revision BIGINT NOT NULL CHECK(source_policy_revision>0),
- observation JSONB NOT NULL CHECK(pg_column_size(observation)<=65536),
+ observation JSONB NOT NULL CHECK(octet_length(observation::text)<=65536),
  observed_at_ms BIGINT NOT NULL CHECK(observed_at_ms>0),
  expires_at_ms BIGINT NOT NULL CHECK(expires_at_ms>observed_at_ms)
 );
 
 CREATE TABLE admission_artifacts (
  artifact_id UUID PRIMARY KEY,
- descriptor JSONB NOT NULL CHECK(pg_column_size(descriptor)<=65536),
+ descriptor JSONB NOT NULL CHECK(octet_length(descriptor::text)<=65536),
  content_digest TEXT NOT NULL CHECK(content_digest ~ '^[0-9a-f]{64}$'),
  byte_length BIGINT NOT NULL CHECK(byte_length>0 AND byte_length<=1073741824),
  owner_kind TEXT NOT NULL CHECK(owner_kind IN
@@ -91,8 +97,8 @@ CREATE TABLE admission_material_leases (
  credential_identity TEXT NOT NULL CHECK(octet_length(credential_identity) BETWEEN 1 AND 512),
  credential_revision BIGINT NOT NULL CHECK(credential_revision>0),
  purpose TEXT NOT NULL CHECK(octet_length(purpose) BETWEEN 1 AND 512),
- lease JSONB NOT NULL CHECK(pg_column_size(lease)<=65536),
- verifier TEXT NOT NULL UNIQUE,
+ lease JSONB NOT NULL CHECK(octet_length(lease::text)<=65536),
+ verifier TEXT NOT NULL UNIQUE CHECK(octet_length(verifier)=64 AND verifier ~ '^[0-9a-f]{64}$'),
  state TEXT NOT NULL CHECK(state IN ('pending','admitted','revoked','expired')),
  issued_at_ms BIGINT NOT NULL CHECK(issued_at_ms>0),
  expires_at_ms BIGINT NOT NULL CHECK(expires_at_ms>issued_at_ms
@@ -107,20 +113,20 @@ CREATE TABLE admission_material_receipts (
  lease_id UUID PRIMARY KEY REFERENCES admission_material_leases(lease_id),
  operation_id UUID NOT NULL,
  receipt_digest TEXT NOT NULL CHECK(receipt_digest ~ '^[0-9a-f]{64}$'),
- receipt JSONB NOT NULL CHECK(pg_column_size(receipt)<=65536)
+ receipt JSONB NOT NULL CHECK(octet_length(receipt::text)<=65536)
 );
 
 CREATE TABLE profiled_launches (
  attempt_id UUID PRIMARY KEY REFERENCES execution_attempts(attempt_id),
  decision_id UUID NOT NULL REFERENCES intelligence_decisions(decision_id),
  source_observation_id UUID NOT NULL REFERENCES admission_source_observations(observation_id),
- launch_binding JSONB NOT NULL CHECK(pg_column_size(launch_binding)<=65536),
- launch_manifest JSONB NOT NULL CHECK(pg_column_size(launch_manifest)<=2097152),
+ launch_binding JSONB NOT NULL CHECK(octet_length(launch_binding::text)<=65536),
+ launch_manifest JSONB NOT NULL CHECK(octet_length(launch_manifest::text)<=2097152),
  manifest_digest TEXT NOT NULL CHECK(manifest_digest ~ '^[0-9a-f]{64}$'),
- execution_spec JSONB NOT NULL CHECK(pg_column_size(execution_spec)<=2097152),
+ execution_spec JSONB NOT NULL CHECK(octet_length(execution_spec::text)<=2097152),
  execution_spec_digest TEXT NOT NULL CHECK(execution_spec_digest ~ '^[0-9a-f]{64}$'),
- graph_task_observation JSONB NOT NULL CHECK(pg_column_size(graph_task_observation)<=1048576),
- source_binding JSONB NOT NULL CHECK(pg_column_size(source_binding)<=65536),
+ graph_task_observation JSONB NOT NULL CHECK(octet_length(graph_task_observation::text)<=1048576),
+ source_binding JSONB NOT NULL CHECK(octet_length(source_binding::text)<=65536),
  offer_expires_at_ms BIGINT NOT NULL CHECK(offer_expires_at_ms>0)
 );
 CREATE TABLE profiled_launch_artifacts (
@@ -139,13 +145,13 @@ CREATE TABLE profiled_execution_receipts (
  kind TEXT NOT NULL CHECK(kind IN
   ('accept','prepare','renew','observation','stop','result','reconcile','cancel')),
  request_digest TEXT NOT NULL CHECK(request_digest ~ '^[0-9a-f]{64}$'),
- response JSONB NOT NULL CHECK(pg_column_size(response)<=262144),
+ response JSONB NOT NULL CHECK(octet_length(response::text)<=262144),
  PRIMARY KEY(node_id,operation_id)
 );
 CREATE TABLE scheduler_projects (
  project_id UUID PRIMARY KEY REFERENCES project_execution_bindings(project_id),
  policy_revision BIGINT NOT NULL CHECK(policy_revision>0),
- policy JSONB NOT NULL CHECK(pg_column_size(policy)<=65536),
+ policy JSONB NOT NULL CHECK(octet_length(policy::text)<=65536),
  next_graph_cursor TEXT CHECK(octet_length(next_graph_cursor)<=4096)
 );
 CREATE TABLE scheduler_cursor (
@@ -171,6 +177,10 @@ requires this link and current offered/preparing/granted authority. No pending
 lease can create an execution claim or grant. Expired pending rows retain stable
 operation receipts; a new lease uses a new operation ID. Rotation/revocation is
 checked again before delivery and grant.
+
+Raw uncompressed JSON text lengths and bytea lengths bound storage; no quota
+uses compressed `pg_column_size` as a proxy for canonical raw content. Material
+verifiers are constrained to exactly 64 lowercase hexadecimal bytes.
 
 The existing `intelligence_attempt_selections` and `agent_launch_bindings` FK
 rows are inserted in the same admitted-offer transaction, not populated by an
@@ -218,7 +228,9 @@ revision; graph credential revocation does not silently redefine terminal ACLs.
 A profiled execution hard deadline is fixed at its actual first grant from
 qualified wall/lineage budgets and cannot extend. Pregrant deadline is absent.
 Legacy state has no invented hard deadline or manifest/selection: absent fields
-remain absent. It is not eligible for profiled terminal/material behavior merely
+remain absent. The implementation preserves typed profiled stop/retention/effect
+projections separately from legacy flags; they are not verified by shape alone.
+TerminalActive additionally refuses unknown profiled host stop/running evidence. It is not eligible for profiled terminal/material behavior merely
 because its legacy grant exists. Expiry/status are sampled again after lock waits.
 `stop`, `retention` and `effects` only reflect actual verified owning-domain
 receipts; no caller assertion or time elapse upgrades them.
@@ -234,7 +246,10 @@ boolean shared by every consumer.
 
 Line references describe the reviewed source baseline; re-run rg before edits.
 Every direct legacy parse must be gated by kind, or replaced with the common
-view. Cross-kind node recovery must never ignore a profiled writer.
+view. Cross-kind node recovery must never ignore a profiled writer. The initial
+checkpoint refuses incarnation replacement while ANY profiled claim is held;
+a typed receipt reference alone is not owner verification. This uses bounded
+EXISTS queries rather than loading all held launch manifests.
 
 | Existing location | Required bridge |
 | --- | --- |
