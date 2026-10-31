@@ -1,0 +1,62 @@
+     Locking 43 packages to latest Rust 1.96.1 compatible versions
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling version_check v0.9.5
+   Compiling serde_core v1.0.229
+   Compiling typenum v1.20.1
+   Compiling zmij v1.0.23
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.154
+   Compiling ref-cast v1.0.27
+   Compiling thiserror v2.0.21
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling cpufeatures v0.2.17
+   Compiling dyn-clone v1.0.20
+   Compiling cfg-if v1.0.5
+   Compiling generic-array v0.14.7
+   Compiling syn v3.0.9
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling serde_derive_internals v0.30.0
+   Compiling uuid v1.29.0
+   Compiling serde_derive v1.0.229
+   Compiling ref-cast-impl v1.0.27
+   Compiling thiserror-impl v2.0.21
+   Compiling schemars_derive v1.2.3
+   Compiling schemars v1.2.3
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq14-protocol-standalone/vendor/aq-session-protocol-0.1.0)
+   Compiling aq-review-protocol v0.1.0 (/tmp/aq14-protocol-standalone/crates/aq-review-protocol)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.30s
+     Running unittests src/lib.rs (/tmp/aq14-protocol-standalone-target/debug/deps/aq_review_protocol-94aeeedd37b67cc9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/conformance.rs (/tmp/aq14-protocol-standalone-target/debug/deps/conformance-e3974fde81e647a5)
+
+running 11 tests
+test check_identity_cannot_merge_two_revisions_of_the_same_artifact_slot ... ok
+test incomplete_or_wrong_validator_evidence_cannot_be_passed ... ok
+test passed_process_needs_zero_exit_and_exact_binding_shape ... ok
+test machine_or_expired_variants_cannot_smuggle_a_human_owner_or_approval ... ok
+test binding_and_reference_contradictions_refuse_before_any_authority_claim ... ok
+test result_record_v1_remains_a_recording_ack_not_human_approval ... ok
+test answers_pin_original_eligible_set_and_deadline_without_granting_current_role ... ok
+test source_requires_canonical_object_identity_and_explicit_owner_references ... ok
+test subject_and_answer_bounds_are_bytes_and_distinct_identities ... ok
+test generated_schemas_and_synthetic_fixture_bytes_do_not_drift ... ok
+test every_changed_task_source_report_and_policy_pin_changes_the_exact_subject ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+   Doc-tests aq_review_protocol
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
