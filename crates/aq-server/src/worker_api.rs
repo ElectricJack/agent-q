@@ -52,8 +52,35 @@ fn bad(msg: &str) -> AppError {
     AppError::BadRequest(msg.to_string())
 }
 
-/// Resolves the bearer credential to a live (not revoked) node.
-pub(crate) async fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Node, AppError> {
+/// Opaque server authentication evidence, never deserialized from a request.
+/// A snapshot alone is insufficient after a wait: call `lock_current_node` in
+/// the transaction that authorizes effects, before acquiring attempt locks.
+#[derive(Clone)]
+pub struct AuthenticatedNode {
+    node: Node,
+    verifier: zeroize::Zeroizing<String>,
+}
+impl AuthenticatedNode {
+    pub fn id(&self) -> uuid::Uuid {
+        self.node.id
+    }
+    pub fn node(&self) -> &Node {
+        &self.node
+    }
+}
+impl std::fmt::Debug for AuthenticatedNode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuthenticatedNode")
+            .field("id", &self.node.id)
+            .finish_non_exhaustive()
+    }
+}
+/// Authenticate the bearer once without retaining its raw bytes. Consumers must
+/// recheck this verifier under the current node lock after file/RPC/poll waits.
+pub async fn authenticate_context(
+    state: &AppState,
+    headers: &HeaderMap,
+) -> Result<AuthenticatedNode, AppError> {
     let invalid = || AppError::InvalidCredential("missing or invalid worker credential".into());
     let token = headers
         .get(header::AUTHORIZATION)
@@ -61,15 +88,38 @@ pub(crate) async fn authenticate(state: &AppState, headers: &HeaderMap) -> Resul
         .and_then(|v| v.strip_prefix("Bearer "))
         .filter(|t| t.starts_with("aqn_"))
         .ok_or_else(invalid)?;
+    let verifier = zeroize::Zeroizing::new(verifier(token));
     let node = state
         .store
-        .find_node_by_credential(&verifier(token))
+        .find_node_by_credential(&verifier)
         .await?
         .ok_or_else(invalid)?;
     if node.revoked_at.is_some() {
         return Err(AppError::CredentialRevoked);
     }
-    Ok(node)
+    Ok(AuthenticatedNode { node, verifier })
+}
+/// Lock and recheck the exact credential and current revocation. Caller-owned
+/// service/owner locks precede this node lock; attempt/session locks follow it.
+/// A rotated/deleted/revoked credential is refused even if the initial lookup
+/// succeeded. No authority is extended, renewed or installed by this check.
+pub async fn lock_current_node(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    context: &AuthenticatedNode,
+) -> Result<uuid::Uuid, AppError> {
+    let current: Option<uuid::Uuid> = sqlx::query_scalar(
+        "SELECT id FROM nodes WHERE id=$1 AND revoked_at IS NULL AND credential_hash=$2 FOR UPDATE",
+    )
+    .bind(context.node.id)
+    .bind(context.verifier.as_str())
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(|_| AppError::Internal)?;
+    current.ok_or(AppError::CredentialRevoked)
+}
+/// Existing callers keep the Node snapshot API and its authentication behavior.
+pub(crate) async fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Node, AppError> {
+    Ok(authenticate_context(state, headers).await?.node)
 }
 
 async fn enroll(
