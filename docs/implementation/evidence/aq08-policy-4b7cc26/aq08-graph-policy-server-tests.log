@@ -1,0 +1,59 @@
+   Compiling aq-selection v0.1.2 (/home/jkern/dev/agent-q/crates/aq-selection)
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.47s
+     Running tests/profiled_authority.rs (target/debug/deps/profiled_authority-1a4d0082dd78b20b)
+
+running 7 tests
+test common_task_claim_and_legacy_decoders_cannot_cross_profiled_kind ... ok
+test authority_expiry_is_sampled_after_an_observed_node_lock_wait ... ok
+test actual_profiled_source_adapter_accepts_scoped_late_retention_and_refuses_foreign_spec ... ok
+test actual_profiled_graph_adapter_issues_exact_api01_binding_and_revokes_on_current_authority ... ok
+test migration_freezes_common_identity_profiled_boot_generation_deadline_and_immutable_seal ... ok
+test shared_view_fences_exact_seal_identity_live_time_and_revision_semantics ... ok
+test database_derives_revisions_on_noop_and_bounds_uncompressed_state_and_material_verifier ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.25s
+
+     Running tests/profiled_material.rs (target/debug/deps/profiled_material-400f8376f7e3b6b5)
+
+running 6 tests
+test missing_changed_and_revoked_material_never_falls_back_to_installed_credentials ... ok
+test private_delivery_retimes_original_expiry_without_grant_or_secret_receipt ... ok
+test actual_lease_lock_wait_charges_remaining_preparation_ttl ... ok
+test credential_rotation_during_observed_node_wait_denies_material ... ok
+test scope_current_registry_preparation_and_listener_boundaries_are_required ... ok
+test revoked_preparation_and_missing_plan_refuse_even_when_lease_remains_admitted ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.71s
+
+     Running tests/profiled_started.rs (target/debug/deps/profiled_started-a69262a5b5aa1117)
+
+running 6 tests
+test journal_heads_preserve_exact_phase_scope_and_require_original_start_record ... ok
+test grant_expiring_while_waiting_for_owner_lock_cannot_become_running ... ok
+test original_started_is_atomic_and_historical_replay_never_revives_stopped_host ... ok
+test receipt_journal_and_running_rollback_together_and_rotated_auth_cannot_replay ... ok
+test worker_http_start_report_uses_current_node_auth_and_returns_only_historical_ack ... ok
+test missing_prepared_head_foreign_owner_and_unregistered_allowlist_never_make_running ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.55s
+
+     Running tests/project_bindings.rs (target/debug/deps/project_bindings-71be010e9ba4c221)
+
+running 13 tests
+test committed_binding_installs_pending_policy_and_historical_ack_survives_retirement ... ok
+test absent_stale_forbidden_and_offline_components_refuse_and_disable_stays_available ... ok
+test catalog_activation_blocks_future_eligibility_and_keeps_frozen_project_revision ... ok
+test empty_policy_configuration_still_retains_global_revision_owner ... ok
+test exact_replay_survives_group_configuration_changes_but_new_mutations_do_not ... ok
+test final_local_fence_rechecks_node_revocation_after_lock_wait ... ok
+test intelligence_decision_is_immutable_and_final_fence_rechecks_scoped_facts ... ok
+test observation_expiring_during_mutation_lock_wait_never_commits_fresh_validation ... ok
+test owner_scope_node_restrictions_and_mutation_unknown_fields_are_enforced ... ok
+test selected_real_public_repository_and_graph_workspace_bind ... ignored, requires immutable selected aq-git and aq-graph components via scripts/test-project-bindings.py
+test policy_install_is_atomic_retains_tombstones_and_refuses_configuration_rollback ... ok
+test project_policy_decisions_have_no_human_actor_and_recheck_installed_policy ... ok
+test revisioned_binding_replay_history_and_retained_snapshot_survive_updates ... ok
+
+test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.72s
+

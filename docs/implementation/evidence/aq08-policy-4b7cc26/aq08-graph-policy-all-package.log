@@ -1,0 +1,33 @@
+warning: manifest has no license, license-file, documentation, homepage or repository
+  |
+  = note: see https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info
+   Packaging aq-agent-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-agent-api)
+warning: patch `aq-profiles v0.1.1 (/home/jkern/dev/agent-q/crates/aq-profiles)` was not used in the crate graph
+warning: patch `aq-session-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-session-api)` was not used in the crate graph
+warning: patch `aq-session-protocol v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-session-protocol-0.1.0)` was not used in the crate graph
+help: Check that the patched package version and available features are compatible
+      with the dependency requirements. If the patch has a different version from
+      what is locked in the Cargo.lock file, run `cargo update` to use the new
+      version. This may also occur with an optional dependency that is not enabled.
+    Packaged 15 files, 414.9KiB (31.3KiB compressed)
+warning: manifest has no description, license, license-file, documentation, homepage or repository
+  |
+  = note: see https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info
+   Packaging aq-session-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-session-api)
+warning: patch `aq-agent-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-agent-api)` was not used in the crate graph
+warning: patch `aq-profiles v0.1.1 (/home/jkern/dev/agent-q/crates/aq-profiles)` was not used in the crate graph
+help: Check that the patched package version and available features are compatible
+      with the dependency requirements. If the patch has a different version from
+      what is locked in the Cargo.lock file, run `cargo update` to use the new
+      version. This may also occur with an optional dependency that is not enabled.
+    Packaged 7 files, 42.0KiB (10.4KiB compressed)
+warning: manifest has no description, license, license-file, documentation, homepage or repository
+  |
+  = note: see https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info
+   Packaging aq-profiles v0.1.1 (/home/jkern/dev/agent-q/crates/aq-profiles)
+    Packaged 26 files, 150.1KiB (36.3KiB compressed)
+warning: manifest has no description, license, license-file, documentation, homepage or repository
+  |
+  = note: see https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info
+   Packaging aq-selection v0.1.2 (/home/jkern/dev/agent-q/crates/aq-selection)
+    Packaged 17 files, 162.4KiB (33.3KiB compressed)

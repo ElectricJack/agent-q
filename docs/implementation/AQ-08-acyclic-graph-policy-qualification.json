@@ -1,0 +1,129 @@
+{
+  "source_revision": "4b7cc262bed8840a12b531d7e239b1f9379d8943",
+  "scope": "Acyclic graph-policy contract correction; no native grant producer or real provider/model/tokenizer qualification",
+  "source_hash_method": "SHA256 of exact git show source_revision:path",
+  "source_sha256": {
+    "Cargo.lock": "5fb200f9681f3af5119af4073f4df4a5e8c449efcaaeedd6805aef0573cf78fb",
+    "crates/aq-profiles/Cargo.toml": "7d1f57130ce63d53a15d1447993f41621dfb58971e927b8caa8e5cbe117a31cf",
+    "crates/aq-profiles/src/compile.rs": "379f629b618243e324b5b34414bb816f71577809b1c6e9ff445b0663c5fec31b",
+    "crates/aq-profiles/src/graph_policy.rs": "9000832533f19dd6d128f40e5eb7f3a8ef352f65c68e595ac761aac8f2ad0eb1",
+    "crates/aq-profiles/src/lib.rs": "c275ecace385d6b48f77b049bcf780f159757783c2184ae8494228a3efdf1193",
+    "crates/aq-selection/Cargo.toml": "20beeb9fec71fb2e67b876eb0ad4c58095364d34aa3224c8c972da0e03dd67ef",
+    "crates/aq-selection/examples/export-v2-fixture.rs": "89f2b6b5f7077fe68bb41c7d47239b0801599cd39b5df39c2b0ddbca956c922c",
+    "crates/aq-selection/src/lib.rs": "3b2f39cdc9e888ac479b5de2ef4b69cc76a7e0a2e89cb77ed9bae0f4d6a86788",
+    "crates/aq-selection/src/select.rs": "c32e3bf894c5fa3a92e326a45c5bb46aaddb8d47fe541467d546927208c596bd",
+    "crates/aq-selection/src/validate.rs": "5e8da6a52ca979098a317af9b76c21ca8449cade373744fc463e5d04f453d697",
+    "crates/aq-selection/tests/common/mod.rs": "989124ff7f2d0a128eb9396d955b2d73c4df2bcfe9efd6f48b6d83a2087d4596",
+    "crates/aq-selection/tests/fixtures/installed-catalog-v0.1.0.json": "e253885470b428d1c612a86cb85f943a3cc713967165c5472f47629b6974683b",
+    "crates/aq-selection/tests/selection.rs": "7841f38c838acabe47bdb47302bac0269919d3499dc3bd8f55bba9f7ecfee43f",
+    "crates/aq-server/Cargo.toml": "d577967770a18f927cc22273a473d0698d5e145175e0fe1d4d1dd2c999bd185d",
+    "crates/aq-server/tests/common/profiled.rs": "74a65088c2d104da9cbf6d38760a5a2f7363dfebc9b25bcceaf5e23a00718e2e",
+    "crates/aq-server/tests/fixtures/selection-v2.json": "e51c800c0ca88bd1dd070429573264a6291488124c268a61f3bff2f22d979ad1",
+    "crates/aq-server/tests/project_bindings.rs": "ff671dd57884af024cc8b666f5a6b4684e0a4086f6ae59b5ea0f57dbcf4396e6",
+    "docs/implementation/AQ-08-acyclic-graph-policy.md": "3b5079840d1ecae6001f857935fc636ab4f0df417fe043d89fd716a6f13bdcf0"
+  },
+  "unchanged_v1_goldens_sha256": {
+    "crates/aq-server/tests/fixtures/selection.json": "1afb38480b464c64497b12c32237462ed86bb00ee62056cbba44a7defa22ff3f",
+    "crates/aq-selection/tests/fixtures/installed-selection-v0.1.0.json": "94c0b3d6f2f6bf92c7328cbe0d4de87cbb6d97579eb279195389252c7b851237",
+    "crates/aq-selection/tests/fixtures/pre-selection-policy-catalog.json": "0c8a041de2e1af9e6937cd0c87cefed8a0c82d6e592d986c7d0ab3dfc817d6f2"
+  },
+  "new_archive_source_inventory": {
+    "aq-profiles": {
+      "archive_sha256": "f971d04a9127b359811304a5dd9065645ab4f19403714a3232a02e075ba30cf0",
+      "source_payload_sha256": {
+        "Cargo.toml": "7d1f57130ce63d53a15d1447993f41621dfb58971e927b8caa8e5cbe117a31cf",
+        "README.md": "d981a9f392b8dde6b047a5ea3798a4421a28437cb53b1025af2f8174c922ae8e",
+        "examples/catalog/catalog.toml": "f30b98e9caa2981f940306a5dfe25e33ec8293b53ae019343cfdd478f575bfc3",
+        "examples/catalog/instructions/aq-knowledge.md": "5297d1161dbc57f39bb1f296a5e8367b0b855fb9304d6007aaa2da5545d07cbd",
+        "examples/catalog/instructions/aq-work.md": "61b85820494fd0d16b954741fe4e915381a658d42c5941ee60a19f6a60de146a",
+        "examples/catalog/instructions/dependency-wait.md": "35f5f75fffd5d9b5b7c5e0ebebb6a11a5bbe87460b7e9d5072cbff7355c4d700",
+        "examples/catalog/instructions/engineering.md": "4f69c6e50e42ebf94e057907881d730de63bb879ac94a1986809773b7d3c2432",
+        "examples/catalog/instructions/reporting.md": "378e9f6271b2625a974cd082f6997c6edbeee9729aada820f04935df69ddee70",
+        "examples/catalog/instructions/source-editing.md": "1b680d33fa8a7c79d0d65f5ccc3c6748be1ef76bb4594a9f57ae7af399b8bba5",
+        "examples/export.rs": "def4afacd4e7b7f558c8bab5a2ac503e0e5cff2bab684eaf4c7360f3a2e821ff",
+        "src/catalog.rs": "d55cc1a51c1c1dd478b10be72645a695f6fdded2cb685d3c4d8abb3df5dab20c",
+        "src/compile.rs": "379f629b618243e324b5b34414bb816f71577809b1c6e9ff445b0663c5fec31b",
+        "src/graph_policy.rs": "9000832533f19dd6d128f40e5eb7f3a8ef352f65c68e595ac761aac8f2ad0eb1",
+        "src/lib.rs": "c275ecace385d6b48f77b049bcf780f159757783c2184ae8494228a3efdf1193",
+        "src/main.rs": "e83c04e4ce6bb41a28e7328389f170f7a1d743d89224baa15731da55b3de362a",
+        "src/registry.rs": "8573c9970de9dc38c419b7dda43cfc23462e3db7ef4506ff78ad20774525d57b",
+        "src/selection_policy.rs": "3569ef76d86782e28969e754c2a605ac3f11429b9f7b639c05e091e7fcbe9cfc",
+        "tests/cli.rs": "6279e54c07efc9bbeab533f1f7807577a7f91295b0bfaaadb880a94daedd20a7",
+        "tests/common/mod.rs": "664e65859fd73d16bf906aa14fc0ecfe175033e420012cd6aba0b7c2b9f79c6c",
+        "tests/compiler.rs": "2a09a1d8ef0484a1c687fc43c6d0f87d98da923b17d910bd95dd222e72b2afe1",
+        "tests/golden/implementer.json": "ff968a7adaf638bdc1bee3b8ee7bf1b5e44a0055a7d3125abe23edb95503d61f",
+        "tests/golden/pre-selection-policy-catalog.json": "0c8a041de2e1af9e6937cd0c87cefed8a0c82d6e592d986c7d0ab3dfc817d6f2",
+        "tests/registry.rs": "b33f65f3120dca6c8af09e83ab215330cfb0a96adc8c0dcef4a2139b2b03cf7c"
+      }
+    },
+    "aq-selection": {
+      "archive_sha256": "50b5243d38290f9da0bbb8e537d2939551c7639c7492fcf630fba43f6c88bdbe",
+      "source_payload_sha256": {
+        "Cargo.toml": "20beeb9fec71fb2e67b876eb0ad4c58095364d34aa3224c8c972da0e03dd67ef",
+        "README.md": "0501d720b6aace9583a32887bc3f41d410bf39a1d8605d9751730b9f5bca79d0",
+        "examples/export-v2-fixture.rs": "89f2b6b5f7077fe68bb41c7d47239b0801599cd39b5df39c2b0ddbca956c922c",
+        "src/domain.rs": "0c1bc685d3a0a69231ca86b257266d705b216f31e8a3799fb126b415c5ea72f3",
+        "src/explanation.rs": "403636f493bebb8b20c5d55a12c24dec6af160ea7b71b758ecc4d67da5fe99c8",
+        "src/feedback.rs": "dbc46daba9034d6f1aab8706b9aaa61ae63864e128ea3baa1520cbb1dfaacc48",
+        "src/lib.rs": "3b2f39cdc9e888ac479b5de2ef4b69cc76a7e0a2e89cb77ed9bae0f4d6a86788",
+        "src/select.rs": "c32e3bf894c5fa3a92e326a45c5bb46aaddb8d47fe541467d546927208c596bd",
+        "src/validate.rs": "5e8da6a52ca979098a317af9b76c21ca8449cade373744fc463e5d04f453d697",
+        "tests/common/mod.rs": "989124ff7f2d0a128eb9396d955b2d73c4df2bcfe9efd6f48b6d83a2087d4596",
+        "tests/fixtures/installed-catalog-v0.1.0.json": "e253885470b428d1c612a86cb85f943a3cc713967165c5472f47629b6974683b",
+        "tests/fixtures/installed-selection-v0.1.0.json": "94c0b3d6f2f6bf92c7328cbe0d4de87cbb6d97579eb279195389252c7b851237",
+        "tests/fixtures/pre-selection-policy-catalog.json": "0c8a041de2e1af9e6937cd0c87cefed8a0c82d6e592d986c7d0ab3dfc817d6f2",
+        "tests/selection.rs": "7841f38c838acabe47bdb47302bac0269919d3499dc3bd8f55bba9f7ecfee43f"
+      }
+    }
+  },
+  "archives_sha256": {
+    "aq-profiles-0.1.1.crate": "f971d04a9127b359811304a5dd9065645ab4f19403714a3232a02e075ba30cf0",
+    "aq-selection-0.1.2.crate": "50b5243d38290f9da0bbb8e537d2939551c7639c7492fcf630fba43f6c88bdbe",
+    "aq-agent-api-0.1.0.crate": "59925d45196e14c18674375c3064fede5181f1ff42f285e3f81c02efbce36733",
+    "aq-session-api-0.1.0.crate": "b9b8c743f806ef76d29d55a64dad2036f29d5acb40ec8156ead6130231f9e4cc",
+    "aq-session-protocol-0.1.0.crate": "479778d8ea76f0605b9a20460e0bd3fda73b699337b1e80783ada0d291a68090"
+  },
+  "retained_logs_sha256": {
+    "aq08-graph-policy-clean-workspace-tests.log": "3bbf254d36edcd8a08fd506db9d53fb94196bf94bbf32bea28fdf63fbc0df452",
+    "aq08-graph-policy-clean-workspace-clippy.log": "4886f6d5812cd52b1fe89e8d68e2e3d50f3822858cdef51ba9bf6fb870e10c02",
+    "aq08-graph-policy-clean-workspace-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "aq08-graph-policy-tests.log": "409f69401a5f7c1b72ccda08b83a6d61ae4483814a72b9a397bacc839438b0b3",
+    "aq08-graph-policy-server-tests.log": "333f0c5f436223d15453849a99ffc4b84a9fd46f0826430402101d7a325c2ce3",
+    "aq08-graph-policy-clippy.log": "d222f04bf6be05d258b16fc681ae3984425239055f204c20fcff2e69b0434fad",
+    "aq08-graph-policy-all-package.log": "3a5f65a688235c7ba1eda1a463eadfeec6a718f9086e0a3083e08a24245d60f1",
+    "aq08-graph-policy-extracted-tests.log": "f076a568388b47cfacd00ff9f4c10fb540a9d467353c1b164297cba4ac289d54",
+    "aq08-graph-policy-extracted-clippy-format.log": "1191cea04fbb91e73fa7eda5e20509195c747296e991c779a5dcccacf7694706",
+    "aq08-graph-policy-retained-package-proof.log": "9bcb0688ffacc733f9ca660b64f14aa4008ca4f901c2d4552921c746f6ccfa76"
+  },
+  "clean_worktree": "/tmp/aq08-policy-clean-4b7cc26",
+  "commands": {
+    "workspace_tests": "DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres RUST_TEST_THREADS=4 CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target CARGO_INCREMENTAL=0 cargo test --workspace --all-features --locked --offline",
+    "workspace_clippy": "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target CARGO_INCREMENTAL=0 cargo clippy --workspace --all-targets --all-features --locked --offline -- -D warnings",
+    "workspace_format": "cargo fmt --all --check",
+    "extracted": "CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target python3 scripts/test-profile-selection-packages.py"
+  },
+  "results": {
+    "workspace_passed": 674,
+    "workspace_failed": 0,
+    "workspace_declared_ignored": 6,
+    "pure_profiles_passed": 22,
+    "pure_selection_passed": 23,
+    "focused_server_passed": 31,
+    "focused_server_declared_ignored": 1,
+    "standalone_profiles_passed": 22,
+    "standalone_selection_passed": 23,
+    "strict_workspace_and_extracted_clippy": "passed",
+    "workspace_and_extracted_format": "passed"
+  },
+  "limitations": [
+    "No production native harness/provider/window/tokenizer is qualified by this checkpoint.",
+    "Numeric token counts/capacity must come from qualified evidence; unknown is not zero.",
+    "Initial canonical-scope native policy supports task/knowledge reads over exact context records; generic aliases and graph mutations refuse.",
+    "Package archives retain Cargo-generated metadata/locks; every source/test/example/Cargo.toml.orig payload was compared byte-for-byte with frozen git-show source.",
+    "Ordinary offline cargo package without a local public dependency patch map correctly refuses unpublished AQ crate registry resolution. No crates.io publication or remote dependency availability is claimed.",
+    "Source artifact retention, material delivery, actual native offers/grants and worker launch remain separately gated owners."
+  ],
+  "qualification_helper_sha256": {
+    "scripts/test-profile-selection-packages.py": "f516536423572b89e567edd85ffee56f0dace8fd98d7a863296f74b1678997c9"
+  }
+}

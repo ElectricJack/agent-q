@@ -1,0 +1,101 @@
+   Compiling aq-selection v0.1.2 (/home/jkern/dev/agent-q/crates/aq-selection)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.61s
+     Running unittests src/lib.rs (target/debug/deps/aq_profiles-9937bf6ef9b829dd)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/aq-aa6862f8ec500274)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli.rs (target/debug/deps/cli-e28a95215e58245e)
+
+running 3 tests
+test request_fifo_refuses_without_waiting_for_a_writer ... ok
+test canonical_artifact_export_is_not_an_activation ... ok
+test requested_aq_profile_commands_work_without_db_and_separate_selection_pending ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/compiler.rs (target/debug/deps/compiler-afec71b499bc1631)
+
+running 11 tests
+test explicit_narrowing_override_is_explained_and_cannot_broaden ... ok
+test untrusted_content_never_changes_structured_grants_and_provenance_is_checked ... ok
+test cycles_missing_refs_conflicting_versions_and_protected_overrides_refuse ... ok
+test golden_composition_is_deterministic_and_shared_rules_appear_once ... ok
+test required_context_overflow_refuses_optional_context_drops_in_declared_order ... ok
+test adding_candidates_does_not_duplicate_role_or_module_text ... ok
+test adapters_and_optional_wait_pack_never_claim_working_support ... ok
+test each_permission_ceiling_and_required_tool_support_is_enforced ... ok
+test required_dependents_transitively_require_optional_dependencies ... ok
+test optional_dependency_failure_and_budget_omission_remove_dependents_and_grants ... ok
+test roles_and_harnesses_reuse_module_identity_without_prompt_copies ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/registry.rs (target/debug/deps/registry-e1a9a9aa38e9dd43)
+
+running 8 tests
+test fifo_and_nonregular_catalog_inputs_refuse_without_blocking ... ok
+test pre_selection_policy_artifact_roundtrips_identically_and_policy_edits_need_new_identity ... ok
+test duplicate_artifact_maps_and_mutation_fields_are_not_canonicalized_away ... ok
+test artifact_identity_hashes_cannot_be_forged ... ok
+test atomic_revision_activation_keeps_last_good_and_rejects_changed_identity ... ok
+test oversized_catalog_and_deep_graphs_refuse_before_activation ... ok
+test catalog_loader_refuses_paths_hooks_symlinks_and_partial_edits ... ok
+test retained_attempts_keep_exact_catalog_across_activation_and_rollback ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (target/debug/deps/aq_selection-e4bf70925fece4cb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/selection.rs (target/debug/deps/selection-9d25cb3e2dc5a4f6)
+
+running 23 tests
+test installed_only_v010_snapshots_and_decisions_roundtrip_byte_semantics_unchanged ... ok
+test project_environment_allowlist_cannot_be_widened_by_installed_qualified_adapter ... ok
+test cold_node_selects_only_explicit_owned_preparation_and_preserves_material_provenance ... ok
+test source_sequence_precedes_wall_clock_when_history_contains_clock_correction ... ok
+test independent_matching_source_cannot_clear_another_sources_live_restriction ... ok
+test graph_policy_refuses_uncovered_mixed_context_and_wrong_owner_scope_before_selection ... ok
+test classified_worker_failure_is_bound_to_exact_sealed_choice_and_current_boot ... ok
+test worker_failure_cannot_claim_account_wide_availability_or_survive_boot_reuse ... ok
+test stable_order_chooses_exact_native_configuration_without_equating_reasoning_controls ... ok
+test fallback_unsupported_is_explicit_and_provider_specific_reasoning_remains_native ... ok
+test unknown_availability_can_only_allow_bounded_attempt_with_present_credentials ... ok
+test arbitrary_node_delivery_claims_cannot_manufacture_keys_owner_identity_or_current_boot ... ok
+test lineage_retry_cost_and_replacement_budgets_cannot_reset_on_fallback ... ok
+test explicit_fallback_and_cooldown_do_not_implicitly_downgrade ... ok
+test unknown_cost_never_bypasses_known_exhaustion_or_incompatible_currency ... ok
+test ledger_unknown_is_not_zero_and_hard_cost_requires_qualified_provider_and_adapter ... ok
+test missing_policy_old_catalog_is_explicitly_ineligible_and_snapshots_are_bound ... ok
+test two_models_on_one_harness_share_acyclic_policy_but_resolve_distinct_actual_profiles ... ok
+test published_human_selection_preserves_exact_provenance_and_refuses_changed_decisions ... ok
+test installed_credential_and_central_authorization_are_independent ... ok
+test observations_scope_account_endpoint_model_node_and_credential_revision_exactly ... ok
+test native_policy_binding_does_not_allow_rehashed_instruction_or_permission_forgery ... ok
+test stale_node_and_unsupported_native_settings_never_become_unknown_availability_attempts ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+   Doc-tests aq_profiles
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aq_selection
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

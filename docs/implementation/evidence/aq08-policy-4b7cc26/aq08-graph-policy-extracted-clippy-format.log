@@ -1,0 +1,13 @@
+COMMAND ['cargo', 'clippy', '--manifest-path', '/tmp/aq08-graph-policy-extracted-oainpc2o/aq-profiles-0.1.1/Cargo.toml', '--all-targets', '--all-features', '--locked', '--offline', '--', '-D', 'warnings']
+    Checking chrono v0.4.45
+    Checking aq-session-protocol v0.1.0 (/tmp/aq08-graph-policy-extracted-oainpc2o/aq-session-protocol-0.1.0)
+    Checking aq-agent-api v0.1.0 (/tmp/aq08-graph-policy-extracted-oainpc2o/aq-agent-api-0.1.0)
+    Checking aq-session-api v0.1.0 (/tmp/aq08-graph-policy-extracted-oainpc2o/aq-session-api-0.1.0)
+    Checking aq-profiles v0.1.1 (/tmp/aq08-graph-policy-extracted-oainpc2o/aq-profiles-0.1.1)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.72s
+COMMAND ['cargo', 'fmt', '--manifest-path', '/tmp/aq08-graph-policy-extracted-oainpc2o/aq-profiles-0.1.1/Cargo.toml', '--check']
+COMMAND ['cargo', 'clippy', '--manifest-path', '/tmp/aq08-graph-policy-extracted-oainpc2o/aq-selection-0.1.2/Cargo.toml', '--all-targets', '--all-features', '--locked', '--offline', '--', '-D', 'warnings']
+    Checking aq-profiles v0.1.1 (/tmp/aq08-graph-policy-extracted-oainpc2o/aq-profiles-0.1.1)
+    Checking aq-selection v0.1.2 (/tmp/aq08-graph-policy-extracted-oainpc2o/aq-selection-0.1.2)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1.93s
+COMMAND ['cargo', 'fmt', '--manifest-path', '/tmp/aq08-graph-policy-extracted-oainpc2o/aq-selection-0.1.2/Cargo.toml', '--check']
