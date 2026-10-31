@@ -494,3 +494,109 @@ async fn result_http_uses_current_machine_auth_and_bounded_work_admission() {
         aq_server::admission::Class::General
     );
 }
+
+#[tokio::test]
+async fn internal_owner_read_is_historical_exact_and_marks_a_superseded_head_without_eligibility() {
+    let (mut f, _started, report) = prepare(true, true).await;
+    let auth = context(&f).await;
+    let original = results::record(&f.state, &auth, &report).await.unwrap();
+    let mut correction = report.clone();
+    correction.report_id = Uuid::new_v4();
+    correction.operation_id = Uuid::new_v4();
+    correction.supersedes = Some(report.report_id);
+    correction.conclusion = Label::new("retained correction, not eligibility").unwrap();
+    results::record(&f.state, &auth, &correction).await.unwrap();
+    let pool = f.db.pool().await;
+    sqlx::query("UPDATE nodes SET revoked_at=clock_timestamp() WHERE id=$1")
+        .bind(f.node.node_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let mut cfg = (*f.state.config).clone();
+    cfg.profiled_execution = None;
+    f.state.config = Arc::new(cfg);
+    f.time.store((NOW + 1_000_000) as i64, Ordering::SeqCst);
+    let old = results::test_load_retained(&f.state, report.report_id)
+        .await
+        .unwrap();
+    assert_eq!(old["is_current_report_head"], false);
+    assert_eq!(old["head_report_id"], json!(correction.report_id));
+    assert_eq!(old["receipt"], json!(original));
+    assert_eq!(
+        old["spec"]["task"]["content_revision"],
+        old["outcome"]["task"]["content_revision"]
+    );
+    assert!(old.get("eligible").is_none());
+    let current = results::test_load_retained(&f.state, correction.report_id)
+        .await
+        .unwrap();
+    assert_eq!(current["is_current_report_head"], true);
+    assert_eq!(current["report"]["binding"], json!(report.binding));
+}
+#[tokio::test]
+async fn internal_owner_read_rejects_a_changed_report_even_with_recomputed_stored_digest() {
+    let (f, _, report) = prepare(true, true).await;
+    let auth = context(&f).await;
+    results::record(&f.state, &auth, &report).await.unwrap();
+    let pool = f.db.pool().await;
+    // Deliberate operator corruption fixture bypasses immutable UPDATE guard,
+    // retaining the CHECK digest so the reader must verify the receipt linkage.
+    sqlx::query("ALTER TABLE profiled_result_reports DISABLE TRIGGER USER")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let mut changed = report.clone();
+    changed.conclusion = Label::new("tampered report body").unwrap();
+    let mut value = json!(changed);
+    value.sort_all_objects();
+    let bytes = serde_json::to_vec(&value).unwrap();
+    sqlx::query("UPDATE profiled_result_reports SET report_bytes=$2,report_digest=encode(sha256($2::bytea),'hex') WHERE report_id=$1").bind(report.report_id).bind(bytes).execute(&pool).await.unwrap();
+    assert!(
+        results::test_load_retained(&f.state, report.report_id)
+            .await
+            .is_err()
+    );
+}
+#[tokio::test]
+async fn internal_owner_read_rejects_receipt_outcome_and_stored_spec_corruption() {
+    let (f, _, report) = prepare(true, true).await;
+    let auth = context(&f).await;
+    let receipt = results::record(&f.state, &auth, &report).await.unwrap();
+    let pool = f.db.pool().await;
+    sqlx::query("ALTER TABLE profiled_result_reports DISABLE TRIGGER USER")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let mut bad = json!(receipt);
+    bad["expected_outcome"]["digest"] = json!(Digest::of(b"wrong outcome owner"));
+    bad.sort_all_objects();
+    sqlx::query("UPDATE profiled_result_reports SET receipt_bytes=$2 WHERE report_id=$1")
+        .bind(report.report_id)
+        .bind(serde_json::to_vec(&bad).unwrap())
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(
+        results::test_load_retained(&f.state, report.report_id)
+            .await
+            .is_err()
+    );
+    let mut good = json!(receipt);
+    good.sort_all_objects();
+    sqlx::query("UPDATE profiled_result_reports SET receipt_bytes=$2 WHERE report_id=$1")
+        .bind(report.report_id)
+        .bind(serde_json::to_vec(&good).unwrap())
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("ALTER TABLE profiled_launches DISABLE TRIGGER USER")
+        .execute(&pool)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE profiled_launches SET execution_spec=jsonb_set(execution_spec,'{task,content_revision}','9999') WHERE attempt_id=$1").bind(report.binding.attempt_id).execute(&pool).await.unwrap();
+    assert!(
+        results::test_load_retained(&f.state, report.report_id)
+            .await
+            .is_err()
+    );
+}
