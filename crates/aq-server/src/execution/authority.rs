@@ -1,5 +1,7 @@
 //! Kind-dispatched common authority reads. Current eligibility is sampled AFTER
 //! node/attempt locks. Consumers still own independent graph/source/terminal ACLs.
+pub mod cache;
+pub mod hot;
 use super::{
     AttemptState, AuthorityStatus,
     profiled::{ProfiledState, Status},
@@ -73,6 +75,7 @@ pub struct AuthorityView {
     pub authority_revision: u64,
     pub grant_revision: u64,
     pub status: Status,
+    pub holds_task: bool,
     pub grant_id: Option<Uuid>,
     pub grant_expires_at_ms: u64,
     pub execution_deadline_ms: Option<u64>,
@@ -100,7 +103,8 @@ impl AuthorityView {
         }
     }
     pub fn active_at(&self, now: u64) -> Result<()> {
-        if self.revoked
+        if !self.holds_task
+            || self.revoked
             || self.cancellation_id.is_some()
             || self.stopped
             || self.status != Status::Granted
@@ -156,6 +160,9 @@ pub async fn load_attempt_locked(
     attempt: Uuid,
     policy: Policy,
 ) -> Result<AuthorityView> {
+    if let Some(view) = hot::load_adopted_locked(Some(state), tx, node, attempt, policy).await? {
+        return Ok(view);
+    }
     load_record_locked(tx, node, attempt, policy, || {
         (state.clock)().timestamp_millis().max(0) as u64
     })
@@ -166,6 +173,11 @@ pub async fn load_source_locked(
     node: Uuid,
     attempt: Uuid,
 ) -> Result<AuthorityView> {
+    if let Some(view) =
+        hot::load_adopted_locked(None, tx, node, attempt, Policy::SourceRetention).await?
+    {
+        return Ok(view);
+    }
     load_record_locked(tx, node, attempt, Policy::SourceRetention, || 0).await
 }
 async fn load_record_locked(
@@ -225,6 +237,7 @@ async fn load_record_locked(
             record_revision: 0,
             authority_revision: 0,
             grant_revision: 0,
+            holds_task: row.get("holds_task"),
             status: match value.status {
                 AuthorityStatus::Offered => Status::Offered,
                 AuthorityStatus::Granted => Status::Granted,
@@ -251,112 +264,15 @@ async fn load_record_locked(
                 .is_some_and(|d| d.retention_release),
         }
     } else if kind == "profiled_v1" {
-        let value: ProfiledState =
-            serde_json::from_value(body).map_err(|_| AuthorityError::InvalidState)?;
-        value.validate().map_err(|_| AuthorityError::InvalidState)?;
-        let immutable=sqlx::query("SELECT l.launch_binding,l.launch_manifest,l.source_binding,l.manifest_digest,l.execution_spec_digest,l.execution_spec,s.selection_digest,s.selection,d.decision#>'{outcome,resolved}' AS admitted_selection FROM profiled_launches l JOIN intelligence_attempt_selections s ON s.attempt_id=l.attempt_id JOIN intelligence_decisions d ON d.decision_id=l.decision_id WHERE l.attempt_id=$1 FOR SHARE OF l,s,d").bind(attempt).fetch_optional(&mut **tx).await?.ok_or(AuthorityError::InvalidState)?;
-        if immutable.get::<Value, _>("launch_binding")
-            != serde_json::to_value(&value.offer.binding)
-                .map_err(|_| AuthorityError::InvalidState)?
-            || immutable.get::<Value, _>("launch_manifest")
-                != serde_json::to_value(&value.offer.manifest)
-                    .map_err(|_| AuthorityError::InvalidState)?
-            || immutable.get::<Value, _>("source_binding")
-                != serde_json::to_value(&value.source).map_err(|_| AuthorityError::InvalidState)?
-            || immutable.get::<String, _>("manifest_digest")
-                != value.offer.binding.launch_manifest_digest.as_str()
-            || immutable.get::<String, _>("execution_spec_digest")
-                != value.offer.binding.execution_spec_digest.as_str()
-        {
-            return Err(AuthorityError::InvalidState);
-        }
-        let selected: aq_selection::ResolvedSelection =
-            serde_json::from_value(immutable.get("selection"))
-                .map_err(|_| AuthorityError::InvalidState)?;
-        let selection_digest =
-            aq_selection::digest(&selected).map_err(|_| AuthorityError::InvalidState)?;
-        let spec: Value = immutable.get("execution_spec");
-        let admitted_selection: Value = immutable.get("admitted_selection");
-        let selected_node = match &value.offer.binding.session {
-            SessionIdentity::Remote {
-                node_id, boot_id, ..
-            } => aq_selection::ExecutionTarget::Worker {
-                node_id: *node_id,
-                boot_id: *boot_id,
-            },
-            _ => return Err(AuthorityError::Unsupported),
-        };
-        let choice = &selected.choice;
-        let manifest = &value.offer.manifest;
-        if admitted_selection
-            != serde_json::to_value(&selected).map_err(|_| AuthorityError::InvalidState)?
-            || selected.catalog_digest != manifest.catalog.digest
-            || selected.project_revision != manifest.bindings.project_revision
-            || immutable.get::<String, _>("selection_digest") != selection_digest.as_str()
-            || aq_selection::digest(&spec).map_err(|_| AuthorityError::InvalidState)?
-                != value.offer.binding.execution_spec_digest
-            || selected.lineage.task_id != manifest.bindings.task_id
-            || selected.lineage.workspace_id != manifest.bindings.graph_id
-            || selected.lineage.project_id != manifest.bindings.project_id
-            || selected.target != selected_node
-            || choice.provider != manifest.model.provider.as_str()
-            || choice.model != manifest.model.model.as_str()
-            || choice.native_reasoning != manifest.model.reasoning.as_str()
-            || choice.max_output_tokens != manifest.model.max_output_tokens
-            || choice.harness != manifest.harness.harness.as_str()
-            || choice.cli_version != manifest.harness.cli_version.as_str()
-            || choice.adapter != manifest.harness.adapter
-            || choice.environment != manifest.harness.environment
-            || choice.resources.memory_bytes != manifest.resources.memory_bytes
-            || choice.resources.cpu_millis != manifest.resources.cpu_millis
-            || choice.resources.process_limit != manifest.resources.process_limit
-            || choice.resources.wall_time_ms != manifest.resources.wall_time_ms
-            || manifest.credentials.is_empty()
-            || manifest
-                .credentials
-                .iter()
-                .any(|c| c.credential_profile != choice.credential_profile)
-        {
-            return Err(AuthorityError::InvalidState);
-        }
-        let release_ready = value.release_ready();
-        let session = value.offer.binding.session.clone();
-        let (identity, attempt) = remote(&session)?;
-        let deadline = row
-            .get::<Option<i64>, _>("execution_deadline_ms")
-            .map(|v| v as u64);
-        if deadline != value.execution_deadline_ms {
-            return Err(AuthorityError::InvalidState);
-        }
-        AuthorityView {
-            kind: Kind::ProfiledV1,
-            session,
-            identity,
+        load_profiled_compat(
+            tx,
+            body,
             attempt,
-            offer_id: value.offer.binding.offer_id,
-            project_id: value.offer.manifest.bindings.project_id,
-            task_id: value.offer.manifest.bindings.task_id,
-            graph: Some(value.graph),
-            source: Some(value.source),
-            record_revision: 0,
-            authority_revision: 0,
-            grant_revision: 0,
-            status: value.status,
-            grant_id: value.grant.as_ref().map(|g| g.grant_id),
-            grant_expires_at_ms: value.grant.as_ref().map(|g| g.expires_at_ms).unwrap_or(0),
-            execution_deadline_ms: deadline,
-            execution_spec_digest: value.offer.binding.execution_spec_digest.as_str().into(),
-            launch_manifest_digest: Some(value.offer.binding.launch_manifest_digest),
-            selection_digest: Some(selection_digest),
-            cancellation_id: value.cancellation_id,
-            revoked: revoked || value.revoked,
-            stopped: value.stop.known_stopped(),
-            stop: Some(value.stop),
-            retention: Some(value.retention),
-            effects: Some(value.effects),
-            release_ready,
-            retention_released: release_ready,
-        }
+            row.get("execution_deadline_ms"),
+            row.get("holds_task"),
+            revoked,
+        )
+        .await?
     } else {
         return Err(AuthorityError::Unsupported);
     };
@@ -392,4 +308,139 @@ async fn load_record_locked(
         return Err(AuthorityError::Unsupported);
     }
     Ok(view)
+}
+
+/// Full immutable verification retained for compatibility and cache cold misses.
+async fn load_profiled_compat(
+    tx: &mut Transaction<'_, Postgres>,
+    body: Value,
+    attempt: Uuid,
+    execution_deadline_ms: Option<i64>,
+    holds_task: bool,
+    revoked: bool,
+) -> Result<AuthorityView> {
+    let value: ProfiledState =
+        serde_json::from_value(body).map_err(|_| AuthorityError::InvalidState)?;
+    value.validate().map_err(|_| AuthorityError::InvalidState)?;
+    let immutable=sqlx::query("SELECT l.launch_binding,l.launch_manifest,l.source_binding,l.manifest_digest,l.execution_spec_digest,l.execution_spec,s.selection_digest,s.selection,d.decision#>'{outcome,resolved}' AS admitted_selection FROM profiled_launches l JOIN intelligence_attempt_selections s ON s.attempt_id=l.attempt_id JOIN intelligence_decisions d ON d.decision_id=l.decision_id WHERE l.attempt_id=$1 FOR SHARE OF l,s,d").bind(attempt).fetch_optional(&mut **tx).await?.ok_or(AuthorityError::InvalidState)?;
+    if immutable.get::<Value, _>("launch_binding")
+        != serde_json::to_value(&value.offer.binding).map_err(|_| AuthorityError::InvalidState)?
+        || immutable.get::<Value, _>("launch_manifest")
+            != serde_json::to_value(&value.offer.manifest)
+                .map_err(|_| AuthorityError::InvalidState)?
+        || immutable.get::<Value, _>("source_binding")
+            != serde_json::to_value(&value.source).map_err(|_| AuthorityError::InvalidState)?
+        || immutable.get::<String, _>("manifest_digest")
+            != value.offer.binding.launch_manifest_digest.as_str()
+        || immutable.get::<String, _>("execution_spec_digest")
+            != value.offer.binding.execution_spec_digest.as_str()
+    {
+        return Err(AuthorityError::InvalidState);
+    }
+    let selected: aq_selection::ResolvedSelection =
+        serde_json::from_value(immutable.get("selection"))
+            .map_err(|_| AuthorityError::InvalidState)?;
+    let selection_digest =
+        aq_selection::digest(&selected).map_err(|_| AuthorityError::InvalidState)?;
+    let spec: Value = immutable.get("execution_spec");
+    let admitted_selection: Value = immutable.get("admitted_selection");
+    if spec.get("kind").and_then(Value::as_str) != Some("synthetic_profiled_authority_fixture") {
+        let typed: aq_admission::execution_spec::ProfiledExecutionSpec =
+            serde_json::from_value(spec.clone()).map_err(|_| AuthorityError::InvalidState)?;
+        typed
+            .validate_against(&value.offer)
+            .map_err(|_| AuthorityError::InvalidState)?;
+        let format = match value.source.base.algorithm {
+            aq_worker_protocol::ObjectAlgorithm::Sha1 => aq_admission::ObjectFormat::Sha1,
+        };
+        if typed.selection_digest != selection_digest
+            || value.offer.manifest.selection_explanation.digest != selection_digest
+            || typed.source.repository_id != value.source.repository_id
+            || typed.source.repository_binding_generation != value.source.binding_generation
+            || typed.source.resolved_object.format != format
+            || typed.source.resolved_object.hex != value.source.base.hex
+            || typed.task_observation.digest.as_str() != value.graph.context_digest
+        {
+            return Err(AuthorityError::InvalidState);
+        }
+    }
+    let selected_node = match &value.offer.binding.session {
+        SessionIdentity::Remote {
+            node_id, boot_id, ..
+        } => aq_selection::ExecutionTarget::Worker {
+            node_id: *node_id,
+            boot_id: *boot_id,
+        },
+        _ => return Err(AuthorityError::Unsupported),
+    };
+    let choice = &selected.choice;
+    let manifest = &value.offer.manifest;
+    if admitted_selection
+        != serde_json::to_value(&selected).map_err(|_| AuthorityError::InvalidState)?
+        || selected.catalog_digest != manifest.catalog.digest
+        || selected.project_revision != manifest.bindings.project_revision
+        || immutable.get::<String, _>("selection_digest") != selection_digest.as_str()
+        || aq_selection::digest(&spec).map_err(|_| AuthorityError::InvalidState)?
+            != value.offer.binding.execution_spec_digest
+        || selected.lineage.task_id != manifest.bindings.task_id
+        || selected.lineage.workspace_id != manifest.bindings.graph_id
+        || selected.lineage.project_id != manifest.bindings.project_id
+        || selected.target != selected_node
+        || choice.provider != manifest.model.provider.as_str()
+        || choice.model != manifest.model.model.as_str()
+        || choice.native_reasoning != manifest.model.reasoning.as_str()
+        || choice.max_output_tokens != manifest.model.max_output_tokens
+        || choice.harness != manifest.harness.harness.as_str()
+        || choice.cli_version != manifest.harness.cli_version.as_str()
+        || choice.adapter != manifest.harness.adapter
+        || choice.environment != manifest.harness.environment
+        || choice.resources.memory_bytes != manifest.resources.memory_bytes
+        || choice.resources.cpu_millis != manifest.resources.cpu_millis
+        || choice.resources.process_limit != manifest.resources.process_limit
+        || choice.resources.wall_time_ms != manifest.resources.wall_time_ms
+        || manifest.credentials.is_empty()
+        || manifest
+            .credentials
+            .iter()
+            .any(|c| c.credential_profile != choice.credential_profile)
+    {
+        return Err(AuthorityError::InvalidState);
+    }
+    let release_ready = value.release_ready();
+    let session = value.offer.binding.session.clone();
+    let (identity, attempt) = remote(&session)?;
+    let deadline = execution_deadline_ms.map(|v| v as u64);
+    if deadline != value.execution_deadline_ms {
+        return Err(AuthorityError::InvalidState);
+    }
+    Ok(AuthorityView {
+        kind: Kind::ProfiledV1,
+        session,
+        identity,
+        attempt,
+        offer_id: value.offer.binding.offer_id,
+        project_id: value.offer.manifest.bindings.project_id,
+        task_id: value.offer.manifest.bindings.task_id,
+        graph: Some(value.graph),
+        source: Some(value.source),
+        record_revision: 0,
+        authority_revision: 0,
+        grant_revision: 0,
+        status: value.status,
+        holds_task,
+        grant_id: value.grant.as_ref().map(|g| g.grant_id),
+        grant_expires_at_ms: value.grant.as_ref().map(|g| g.expires_at_ms).unwrap_or(0),
+        execution_deadline_ms: deadline,
+        execution_spec_digest: value.offer.binding.execution_spec_digest.as_str().into(),
+        launch_manifest_digest: Some(value.offer.binding.launch_manifest_digest),
+        selection_digest: Some(selection_digest),
+        cancellation_id: value.cancellation_id,
+        revoked: revoked || value.revoked,
+        stopped: value.stop.known_stopped(),
+        stop: Some(value.stop),
+        retention: Some(value.retention),
+        effects: Some(value.effects),
+        release_ready,
+        retention_released: release_ready,
+    })
 }

@@ -55,13 +55,16 @@ async fn migration012_registers_only_schema_and_exact_state_format() {
             .fetch_one(&pool)
             .await
             .unwrap();
-    assert_eq!(version, "12");
+    assert_eq!(version, aq_server::STATE_FORMAT_VERSION.to_string());
     let migrations: Vec<i32> =
         sqlx::query_scalar("SELECT version FROM schema_migrations ORDER BY version")
             .fetch_all(&pool)
             .await
             .unwrap();
-    assert_eq!(migrations, (1..=12).collect::<Vec<_>>());
+    assert_eq!(
+        migrations,
+        (1..=aq_server::STATE_FORMAT_VERSION as i32).collect::<Vec<_>>()
+    );
     for table in [
         "session_inspection_acl",
         "terminal_control_acl",
