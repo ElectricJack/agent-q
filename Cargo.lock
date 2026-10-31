@@ -235,6 +235,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-playbooks-compiler"
+version = "0.1.0"
+dependencies = [
+ "aq-playbooks-model",
+ "serde",
+ "serde_json",
+ "thiserror",
+]
+
+[[package]]
 name = "aq-playbooks-model"
 version = "0.1.0"
 dependencies = [
@@ -346,6 +356,7 @@ dependencies = [
  "aq-observation-admission",
  "aq-observation-api",
  "aq-playbook-host",
+ "aq-playbooks-compiler",
  "aq-profiles",
  "aq-protocol",
  "aq-release",

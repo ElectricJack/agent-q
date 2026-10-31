@@ -603,148 +603,19 @@ async fn internal_owner_read_rejects_receipt_outcome_and_stored_spec_corruption(
 
 #[tokio::test]
 async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_binding() {
-    let (mut f, _, mut report) = prepare(true, true).await;
-    let operation = Uuid::new_v4();
-    report.source_receipt_ids.push(operation);
-    let auth = context(&f).await;
-    results::record(&f.state, &auth, &report).await.unwrap();
+    let ReviewEnv {
+        f,
+        report,
+        operation,
+        transfer_id,
+        service,
+        prepared,
+        peer,
+        _directory,
+        ..
+    } = review_env(1).await;
     let pool = &f.db.pool().await;
-    let mut tx = pool.begin().await.unwrap();
-    let actual = results::load_locked(&f.state, &mut tx, report.report_id)
-        .await
-        .unwrap();
-    assert!(
-        aq_server::source_retention::load_confirmed_locked(&mut tx, operation, &actual)
-            .await
-            .is_err()
-    );
-    tx.rollback().await.unwrap();
-    // Synthetic SQL owner row tests validation only; this does not qualify a
-    // native Git transfer or fabricate public Git retention evidence.
-    let transfer_id = Uuid::new_v4();
-    let artifact_id = Uuid::new_v4();
-    let mut manifest = aq_worker_protocol::TransferManifest {
-        transfer_id,
-        role: aq_worker_protocol::SourceRole::Checkpoint,
-        checkpoint: f.profiled.source.base.clone(),
-        attempt: aq_worker_protocol::AttemptRef {
-            attempt_id: report.binding.attempt_id,
-            session_id: match report.binding.session {
-                aq_session_protocol::SessionIdentity::Remote { session_id, .. } => session_id,
-                _ => unreachable!(),
-            },
-            generation: report.binding.assignment_generation,
-        },
-        resolved_spec_digest: report.binding.execution_spec_digest.as_str().into(),
-        source: f.profiled.source.clone(),
-        artifact_id,
-        manifest_digest: "a".repeat(64),
-        bundle_digest: None,
-        manifest_bytes: 1,
-        bundle_bytes: 0,
-    };
-    // An otherwise valid legacy/fake session cannot be coerced into the native
-    // result's exact session identity simply by copying its receipt UUID.
-    manifest.attempt.session_id = Uuid::new_v4();
-    let receipt = aq_worker_protocol::CentralRetentionReceipt {
-        receipt_id: operation,
-        transfer_id,
-        repository_id: manifest.source.repository_id,
-        binding_generation: manifest.source.binding_generation,
-        source: manifest.checkpoint.clone(),
-        retention_handle: artifact_id,
-        manifest_digest: "b".repeat(64),
-    };
-    let raw = json!({"repository_id":receipt.repository_id,"binding_generation":receipt.binding_generation,"transfer_id":artifact_id,"retention_handle":artifact_id,"manifest_digest":receipt.manifest_digest,"source":receipt.source,"retention_state":"active","historical":false,"receiver_installation_id":Uuid::new_v4()});
-    sqlx::query("INSERT INTO source_transfers(transfer_id,attempt_id,node_id,repository_id,artifact_id,import_operation_id,manifest,state,receipt,central_receipt) VALUES($1,$2,$3,$4,$5,$6,$7,'retained',$8,$9)")
-        .bind(transfer_id).bind(manifest.attempt.attempt_id).bind(f.node.node_id)
-        .bind(manifest.source.repository_id).bind(artifact_id).bind(operation)
-        .bind(json!(manifest)).bind(json!(receipt)).bind(raw).execute(pool).await.unwrap();
-    let mut tx = pool.begin().await.unwrap();
-    let actual = results::load_locked(&f.state, &mut tx, report.report_id)
-        .await
-        .unwrap();
-    assert!(
-        aq_server::source_retention::load_confirmed_locked(&mut tx, operation, &actual)
-            .await
-            .is_err()
-    );
-    tx.rollback().await.unwrap();
-    manifest.attempt.session_id = match report.binding.session {
-        aq_session_protocol::SessionIdentity::Remote { session_id, .. } => session_id,
-        _ => unreachable!(),
-    };
-    sqlx::query("UPDATE source_transfers SET manifest=$2 WHERE transfer_id=$1")
-        .bind(transfer_id)
-        .bind(json!(manifest))
-        .execute(pool)
-        .await
-        .unwrap();
-    let mut tx = pool.begin().await.unwrap();
-    let actual = results::load_locked(&f.state, &mut tx, report.report_id)
-        .await
-        .unwrap();
-    let historical =
-        aq_server::source_retention::load_confirmed_locked(&mut tx, operation, &actual)
-            .await
-            .unwrap();
-    assert_eq!(historical.receipt.receipt_id, operation);
-    tx.rollback().await.unwrap();
-    // Candidate026 component only; ordinary state24 remains unchanged. This
-    // fixture uses a synthetic public Git peer, not real Git qualification.
-    let schema = include_str!("../migrations/0026_review_owners.sql").replace(
-        "UPDATE meta SET value='26' WHERE key='state_format_version';",
-        "",
-    );
-    sqlx::raw_sql(&schema).execute(pool).await.unwrap();
-    use std::os::unix::fs::PermissionsExt;
-    let directory = tempfile::tempdir().unwrap();
-    let socket = directory.path().join("git.sock");
-    let listener = tokio::net::UnixListener::bind(&socket).unwrap();
-    let inspection = json!({"version":1,"id":artifact_id,"repository_id":manifest.source.repository_id,"binding_generation":manifest.source.binding_generation,"generation":1,"state":"active","resource":"transfer","release_operation":null,"release_reason":null,"refs":[{"name":format!("refs/aq-git/transfers/{artifact_id}"),"oid":receipt.source.hex}]});
-    let peer = tokio::spawn(async move {
-        use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
-        let (socket, _) = listener.accept().await.unwrap();
-        let mut reader = tokio::io::BufReader::new(socket);
-        let mut line = String::new();
-        reader.read_line(&mut line).await.unwrap();
-        let request: serde_json::Value = serde_json::from_str(&line).unwrap();
-        assert_eq!(request["operation"], "retention.inspect");
-        assert_eq!(request["params"]["handle_id"], artifact_id.to_string());
-        let reply = json!({"protocol_version":1,"request_id":request["request_id"],"ok":true,"result":inspection});
-        let mut bytes = serde_json::to_vec(&reply).unwrap();
-        bytes.push(b'\n');
-        reader.get_mut().write_all(&bytes).await.unwrap();
-    });
-    f.state.source_retention = Some(Arc::new(
-        aq_server::source_retention::Runtime::new(
-            aq_server::source_retention::SourceRetentionConfig {
-                staging_root: directory.path().join("staging"),
-                git_root: directory.path().join("git"),
-                git_socket: socket,
-                max_staging_bytes: 1048576,
-                max_bundle_bytes: 1048576,
-                bulk_concurrency: 1,
-                incomplete_ttl_secs: 60,
-            },
-        )
-        .unwrap(),
-    ));
-    let key = directory.path().join("key");
-    std::fs::write(&key, [9_u8; 32]).unwrap();
-    std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o600)).unwrap();
-    let keys = aq_server::protected_storage::Keyring::load(
-        &aq_server::protected_storage::ProtectionConfig {
-            active_key_id: "test".into(),
-            keys: vec![aq_server::protected_storage::KeyFile {
-                id: "test".into(),
-                file: key,
-            }],
-        },
-    )
-    .unwrap();
-    let service = aq_server::reviews::Service::new(f.state.clone(), Arc::new(keys));
-    let prepared = service.prepare(report.report_id, operation).await.unwrap();
+    let auth = context(&f).await;
     peer.await.unwrap();
     let request = aq_review_protocol::DecisionRequest {
         schema_version: 1,
@@ -999,5 +870,550 @@ async fn wait_review_xid(pool: &sqlx::PgPool, xid: &str) {
             "review did not reach expected row lock"
         );
         tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+    }
+}
+
+struct ReviewEnv {
+    f: Fixture,
+    report: ResultReport,
+    operation: Uuid,
+    transfer_id: Uuid,
+    service: aq_server::reviews::Service,
+    prepared: aq_server::reviews::PreparedReview,
+    keys: Arc<aq_server::protected_storage::Keyring>,
+    _directory: tempfile::TempDir,
+    peer: tokio::task::JoinHandle<()>,
+}
+async fn review_env(peer_count: usize) -> ReviewEnv {
+    let (mut f, _, mut report) = prepare(true, true).await;
+    let operation = Uuid::new_v4();
+    report.source_receipt_ids.push(operation);
+    let auth = context(&f).await;
+    results::record(&f.state, &auth, &report).await.unwrap();
+    let pool = &f.db.pool().await;
+    let mut tx = pool.begin().await.unwrap();
+    let actual = results::load_locked(&f.state, &mut tx, report.report_id)
+        .await
+        .unwrap();
+    assert!(
+        aq_server::source_retention::load_confirmed_locked(&mut tx, operation, &actual)
+            .await
+            .is_err()
+    );
+    tx.rollback().await.unwrap();
+    // Synthetic SQL owner row tests validation only; this does not qualify a
+    // native Git transfer or fabricate public Git retention evidence.
+    let transfer_id = Uuid::new_v4();
+    let artifact_id = Uuid::new_v4();
+    let mut manifest = aq_worker_protocol::TransferManifest {
+        transfer_id,
+        role: aq_worker_protocol::SourceRole::Checkpoint,
+        checkpoint: f.profiled.source.base.clone(),
+        attempt: aq_worker_protocol::AttemptRef {
+            attempt_id: report.binding.attempt_id,
+            session_id: match report.binding.session {
+                aq_session_protocol::SessionIdentity::Remote { session_id, .. } => session_id,
+                _ => unreachable!(),
+            },
+            generation: report.binding.assignment_generation,
+        },
+        resolved_spec_digest: report.binding.execution_spec_digest.as_str().into(),
+        source: f.profiled.source.clone(),
+        artifact_id,
+        manifest_digest: "a".repeat(64),
+        bundle_digest: None,
+        manifest_bytes: 1,
+        bundle_bytes: 0,
+    };
+    // An otherwise valid legacy/fake session cannot be coerced into the native
+    // result's exact session identity simply by copying its receipt UUID.
+    manifest.attempt.session_id = Uuid::new_v4();
+    let receipt = aq_worker_protocol::CentralRetentionReceipt {
+        receipt_id: operation,
+        transfer_id,
+        repository_id: manifest.source.repository_id,
+        binding_generation: manifest.source.binding_generation,
+        source: manifest.checkpoint.clone(),
+        retention_handle: artifact_id,
+        manifest_digest: "b".repeat(64),
+    };
+    let raw = json!({"repository_id":receipt.repository_id,"binding_generation":receipt.binding_generation,"transfer_id":artifact_id,"retention_handle":artifact_id,"manifest_digest":receipt.manifest_digest,"source":receipt.source,"retention_state":"active","historical":false,"receiver_installation_id":Uuid::new_v4()});
+    sqlx::query("INSERT INTO source_transfers(transfer_id,attempt_id,node_id,repository_id,artifact_id,import_operation_id,manifest,state,receipt,central_receipt) VALUES($1,$2,$3,$4,$5,$6,$7,'retained',$8,$9)")
+        .bind(transfer_id).bind(manifest.attempt.attempt_id).bind(f.node.node_id)
+        .bind(manifest.source.repository_id).bind(artifact_id).bind(operation)
+        .bind(json!(manifest)).bind(json!(receipt)).bind(raw).execute(pool).await.unwrap();
+    let mut tx = pool.begin().await.unwrap();
+    let actual = results::load_locked(&f.state, &mut tx, report.report_id)
+        .await
+        .unwrap();
+    assert!(
+        aq_server::source_retention::load_confirmed_locked(&mut tx, operation, &actual)
+            .await
+            .is_err()
+    );
+    tx.rollback().await.unwrap();
+    manifest.attempt.session_id = match report.binding.session {
+        aq_session_protocol::SessionIdentity::Remote { session_id, .. } => session_id,
+        _ => unreachable!(),
+    };
+    sqlx::query("UPDATE source_transfers SET manifest=$2 WHERE transfer_id=$1")
+        .bind(transfer_id)
+        .bind(json!(manifest))
+        .execute(pool)
+        .await
+        .unwrap();
+    let mut tx = pool.begin().await.unwrap();
+    let actual = results::load_locked(&f.state, &mut tx, report.report_id)
+        .await
+        .unwrap();
+    let historical =
+        aq_server::source_retention::load_confirmed_locked(&mut tx, operation, &actual)
+            .await
+            .unwrap();
+    assert_eq!(historical.receipt.receipt_id, operation);
+    tx.rollback().await.unwrap();
+    // Candidate026 component only; ordinary state24 remains unchanged. This
+    // fixture uses a synthetic public Git peer, not real Git qualification.
+    let schema = include_str!("../migrations/0026_review_owners.sql").replace(
+        "UPDATE meta SET value='26' WHERE key='state_format_version';",
+        "",
+    );
+    sqlx::raw_sql(&schema).execute(pool).await.unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    let directory = tempfile::tempdir().unwrap();
+    let socket = directory.path().join("git.sock");
+    let listener = tokio::net::UnixListener::bind(&socket).unwrap();
+    let inspection = json!({"version":1,"id":artifact_id,"repository_id":manifest.source.repository_id,"binding_generation":manifest.source.binding_generation,"generation":1,"state":"active","resource":"transfer","release_operation":null,"release_reason":null,"refs":[{"name":format!("refs/aq-git/transfers/{artifact_id}"),"oid":receipt.source.hex}]});
+    let peer = tokio::spawn(async move {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
+        for _ in 0..peer_count {
+            let (socket, _) = listener.accept().await.unwrap();
+            let mut reader = tokio::io::BufReader::new(socket);
+            let mut line = String::new();
+            reader.read_line(&mut line).await.unwrap();
+            let request: serde_json::Value = serde_json::from_str(&line).unwrap();
+            assert_eq!(request["operation"], "retention.inspect");
+            assert_eq!(request["params"]["handle_id"], artifact_id.to_string());
+            let reply = json!({"protocol_version":1,"request_id":request["request_id"],"ok":true,"result":inspection});
+            let mut bytes = serde_json::to_vec(&reply).unwrap();
+            bytes.push(b'\n');
+            reader.get_mut().write_all(&bytes).await.unwrap();
+        }
+    });
+    f.state.source_retention = Some(Arc::new(
+        aq_server::source_retention::Runtime::new(
+            aq_server::source_retention::SourceRetentionConfig {
+                staging_root: directory.path().join("staging"),
+                git_root: directory.path().join("git"),
+                git_socket: socket,
+                max_staging_bytes: 1048576,
+                max_bundle_bytes: 1048576,
+                bulk_concurrency: 1,
+                incomplete_ttl_secs: 60,
+            },
+        )
+        .unwrap(),
+    ));
+    let key = directory.path().join("key");
+    std::fs::write(&key, [9_u8; 32]).unwrap();
+    std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o600)).unwrap();
+    let keys = aq_server::protected_storage::Keyring::load(
+        &aq_server::protected_storage::ProtectionConfig {
+            active_key_id: "test".into(),
+            keys: vec![aq_server::protected_storage::KeyFile {
+                id: "test".into(),
+                file: key,
+            }],
+        },
+    )
+    .unwrap();
+    let keys = Arc::new(keys);
+    let service = aq_server::reviews::Service::new(f.state.clone(), keys.clone());
+    let prepared = service.prepare(report.report_id, operation).await.unwrap();
+    ReviewEnv {
+        f,
+        report,
+        operation,
+        transfer_id,
+        service,
+        prepared,
+        keys,
+        _directory: directory,
+        peer,
+    }
+}
+
+fn review_policy_artifact(input: serde_json::Value) -> aq_playbook_host::model::Artifact {
+    use aq_playbook_host::model::*;
+    use std::collections::{BTreeMap, BTreeSet};
+    let command = aq_server::playbooks::review_domain::decision_contract();
+    let header = SourceHeader {
+        format_version: 1,
+        id: "human-review".into(),
+        scope: "project".into(),
+        interfaces: BTreeSet::from(["main".into()]),
+        definitions: BTreeSet::new(),
+    };
+    let ret = |outcome: &str| Step {
+        op: Operation::Return {
+            outcome: outcome.into(),
+            output: Expr::literal(json!(null)),
+        },
+        edges: BTreeMap::new(),
+        on_error: None,
+    };
+    let mut edges = BTreeMap::from([
+        ("accepted".into(), "wait".into()),
+        ("approved".into(), "approved".into()),
+    ]);
+    for outcome in ["rejected", "expired", "cancelled"] {
+        edges.insert(outcome.into(), "rejected".into());
+    }
+    let playbook = Playbook {
+        id: header.id.clone(),
+        purpose: "synthetic protected-engine human-owner integration, no settlement".into(),
+        scope: "project".into(),
+        entries: BTreeMap::from([(
+            "main".into(),
+            EntryPoint {
+                input: Schema::Null,
+                outcomes: BTreeMap::from([
+                    ("approved".into(), Schema::Null),
+                    ("rejected".into(), Schema::Null),
+                ]),
+                start: "ask".into(),
+            },
+        )]),
+        steps: BTreeMap::from([
+            (
+                "ask".into(),
+                Step {
+                    op: Operation::Invoke {
+                        command: ContractRef {
+                            name: command.name.clone(),
+                            fingerprint: command.fingerprint().unwrap(),
+                        },
+                        input: Expr::literal(input),
+                        bind: "question".into(),
+                        retry: None,
+                    },
+                    edges,
+                    on_error: Some("rejected".into()),
+                },
+            ),
+            (
+                "wait".into(),
+                Step {
+                    op: Operation::Join {
+                        member_keys: vec![],
+                        members: vec![Expr::reference("question")],
+                        mode: JoinMode::All,
+                        accepted_outcomes: BTreeSet::from(["approved".into()]),
+                        deadline_ms: 20000,
+                        remaining: RemainingPolicy::Cancel,
+                        bind: "answer".into(),
+                    },
+                    edges: BTreeMap::from([
+                        ("completed".into(), "approved".into()),
+                        ("no_match".into(), "rejected".into()),
+                        ("timeout".into(), "rejected".into()),
+                    ]),
+                    on_error: Some("rejected".into()),
+                },
+            ),
+            ("approved".into(), ret("approved")),
+            ("rejected".into(), ret("rejected")),
+        ]),
+        triggers: vec![],
+        limits: Limits::default(),
+        required_capabilities: BTreeSet::from(["decision.request".into()]),
+    };
+    aq_playbooks_compiler::compile(&aq_playbooks_compiler::CompileInput {
+        source: format!(
+            "---aq-playbook\n{}\n---\nSynthetic human-owner integration.\n",
+            serde_json::to_string(&header).unwrap()
+        ),
+        proposal: aq_playbooks_compiler::Proposal {
+            playbook,
+            source_map: BTreeMap::new(),
+            questions: vec![],
+            unsupported_features: vec![],
+        },
+        registry: aq_server::playbooks::review_domain::CatalogProfile::HumanReview2.registry(),
+        dependencies: BTreeMap::new(),
+        definitions: BTreeMap::new(),
+        compiler: aq_playbooks_compiler::COMPILER_VERSION.into(),
+    })
+    .expect("real compiler must validate the exact async owner catalog")
+}
+#[tokio::test]
+async fn protected_engine_question_waits_for_real_owner_and_exact_completion_event() {
+    use aq_server::playbooks::{
+        domain::{GrantScope, Recipient},
+        driver::Driver,
+        service::{Namespace, PrepareRequest, Service},
+    };
+    use std::collections::BTreeSet;
+    let ReviewEnv {
+        f,
+        report,
+        operation,
+        prepared,
+        keys,
+        peer,
+        _directory,
+        ..
+    } = review_env(3).await;
+    let pool = f.db.pool().await;
+    let namespace = Namespace {
+        namespace_id: Uuid::new_v4(),
+        generation: 1,
+        name: "human-v2".into(),
+        workspace_id: f.selection.lineage.workspace_id,
+        project_id: f.selection.lineage.project_id,
+        owner_user_id: f.actor,
+    };
+    let service = Service::new_profile2(&f.state, namespace.clone(), keys)
+        .await
+        .unwrap();
+    service.initialize(f.actor).await.unwrap();
+    // Reusing the same namespace with the old catalog refuses rather than
+    // restamping catalog bytes or broadening the original owner's grant.
+    let directory = tempfile::tempdir().unwrap();
+    let key = directory.path().join("other-key");
+    std::fs::write(&key, [9u8; 32]).unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o600)).unwrap();
+    let old_keys = aq_server::protected_storage::Keyring::load(
+        &aq_server::protected_storage::ProtectionConfig {
+            active_key_id: "test".into(),
+            keys: vec![aq_server::protected_storage::KeyFile {
+                id: "test".into(),
+                file: key,
+            }],
+        },
+    )
+    .unwrap();
+    assert!(
+        Service::new(&f.state, namespace, Arc::new(old_keys))
+            .await
+            .unwrap()
+            .initialize(f.actor)
+            .await
+            .is_err()
+    );
+    let recipient = Recipient::Task {
+        workspace_id: f.selection.lineage.workspace_id,
+        project_id: f.selection.lineage.project_id,
+        task_id: f.selection.lineage.task_id,
+    };
+    let grant = Uuid::new_v4();
+    service
+        .grant(
+            f.actor,
+            grant,
+            GrantScope {
+                workspace_id: f.selection.lineage.workspace_id,
+                project_id: f.selection.lineage.project_id,
+                recipients: vec![recipient.clone()],
+                capabilities: BTreeSet::from(["decision.request".into(), "operation.get".into()]),
+            },
+            (NOW + 60000) as i64,
+        )
+        .await
+        .unwrap();
+    let mut url = reqwest::Url::parse(&std::env::var("DATABASE_URL").unwrap()).unwrap();
+    assert_eq!(url.host_str(), Some("127.0.0.1"));
+    assert_eq!(url.port(), Some(55432));
+    url.set_path(f.db.options().get_database().unwrap());
+    let url = url.to_string();
+    let driver = Driver::start(
+        service.clone(),
+        aq_playbook_host::Limits::default(),
+        review_engine_factory(url.clone()),
+    )
+    .await
+    .unwrap();
+    let input = aq_server::playbooks::review_domain::DecisionInput {
+        recipient,
+        report_id: report.report_id,
+        source_operation_id: operation,
+        expected_subject: prepared.subject().artifact().unwrap(),
+        eligible_owners: vec![f.actor],
+        eligibility_project_revision: 1,
+        expires_at_ms: NOW + 30000,
+    };
+    let artifact = review_policy_artifact(json!(input));
+    let hash = artifact.digest.clone();
+    driver.install(artifact).await.unwrap();
+    let binding = driver
+        .activate("human".into(), hash, grant, 1)
+        .await
+        .unwrap();
+    let request = PrepareRequest {
+        request_id: Uuid::new_v4(),
+        grant_id: grant,
+        grant_revision: 1,
+        binding: "human".into(),
+        expected_activation_revision: binding["revision"].as_u64().unwrap(),
+        entry: "main".into(),
+        input: json!(null),
+    };
+    service.prepare(f.actor, request.clone()).await.unwrap();
+    let admitted = driver
+        .admission(f.actor, request.request_id, false)
+        .await
+        .unwrap();
+    let run = admitted.receipt.unwrap().run_id;
+    let mut second = request.clone();
+    second.request_id = Uuid::new_v4();
+    service.prepare(f.actor, second.clone()).await.unwrap();
+    let second_run = driver
+        .admission(f.actor, second.request_id, false)
+        .await
+        .unwrap()
+        .receipt
+        .unwrap()
+        .run_id;
+    driver.test_lose_next_decision_reply();
+    driver.quantum().await.unwrap();
+    let unknown = driver.inspect_run(run.clone()).await.unwrap();
+    assert_eq!(unknown["items"][0]["status"], "blocked");
+    driver.recover().await.unwrap();
+    driver.quantum().await.unwrap();
+    let pending = driver.inspect_run(run.clone()).await.unwrap();
+    tokio::time::timeout(std::time::Duration::from_secs(2), peer)
+        .await
+        .unwrap_or_else(|e| panic!("source peer not called: {e}; run={pending}"))
+        .unwrap();
+    assert_eq!(pending["items"][0]["status"], "waiting");
+    assert_ne!(pending["items"][0]["outcome"], "approved");
+    driver.cancel_run(second_run.clone()).await.unwrap();
+    driver.quantum().await.unwrap();
+    let decision: Uuid = sqlx::query_scalar(
+        "SELECT (receipt->>'handle')::uuid FROM playbook_effects WHERE run_id=$1",
+    )
+    .bind(&run)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let cancelled: Uuid = sqlx::query_scalar(
+        "SELECT (receipt->>'handle')::uuid FROM playbook_effects WHERE run_id=$1",
+    )
+    .bind(&second_run)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let state: String =
+        sqlx::query_scalar("SELECT state FROM human_decision_requests WHERE decision_id=$1")
+            .bind(cancelled)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(state, "cancelled");
+    let answer = aq_review_protocol::ResolveRequest {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        decision_id: decision,
+        expected_decision_revision: 1,
+        choice: aq_review_protocol::Choice::Approve,
+        comment: Some("Synthetic actual owner API resolution".into()),
+    };
+    let receipt = service
+        .human_owner()
+        .unwrap()
+        .resolve(f.actor, &answer)
+        .await
+        .unwrap();
+    assert!(matches!(
+        receipt.finality,
+        aq_review_protocol::DecisionFinality::HumanAnswer { .. }
+    ));
+    // Revoke before delivery: retained completion still reconciles, but cannot
+    // grant new business authority or a second question.
+    service.revoke(f.actor, grant).await.unwrap();
+    assert_eq!(driver.test_collect_decision_events().await.unwrap(), 2);
+    let event_first = driver.test_commit_event_without_aq_ack().await.unwrap();
+    assert!(!event_first.duplicate);
+    let event_replay = driver.test_commit_event_without_aq_ack().await.unwrap();
+    assert!(event_replay.duplicate);
+    assert_eq!(event_first.key, event_replay.key);
+    for _ in 0..4 {
+        driver.quantum().await.unwrap();
+    }
+    let finished = driver.inspect_run(run).await.unwrap();
+    assert_eq!(finished["items"][0]["outcome"], "approved");
+    let questions: i64 = sqlx::query_scalar("SELECT count(*) FROM human_decision_requests")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(questions, 2);
+    let copied: bool =
+        sqlx::query_scalar("SELECT acknowledged FROM review_owner_outbox WHERE decision_id=$1")
+            .bind(decision)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert!(copied);
+    let event: serde_json::Value =
+        sqlx::query_scalar("SELECT engine_receipt FROM playbook_outbox WHERE event_id=$1")
+            .bind(decision)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    // Existing asynchronous wait completion is separate from trigger fanout;
+    // no new root admission was requested by this completion event.
+    assert_eq!(event["destinations"], 0);
+    let cancelled_run = driver.inspect_run(second_run.clone()).await.unwrap();
+    assert_eq!(cancelled_run["items"][0]["status"], "cancelled");
+    driver.stop().await.unwrap();
+    let restarted = Driver::start(
+        service.clone(),
+        aq_playbook_host::Limits::default(),
+        review_engine_factory(url),
+    )
+    .await
+    .unwrap();
+    restarted.recover().await.unwrap();
+    restarted.quantum().await.unwrap();
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM human_decision_requests")
+            .fetch_one(&pool)
+            .await
+            .unwrap(),
+        2
+    );
+    assert_eq!(
+        restarted.inspect_run(second_run).await.unwrap()["items"][0]["status"],
+        "cancelled"
+    );
+    restarted.stop().await.unwrap();
+}
+
+fn review_engine_factory(
+    url: String,
+) -> impl FnOnce() -> std::result::Result<
+    aq_playbook_host::postgres_storage::PostgresStorage,
+    aq_playbook_host::Error,
+> + Send
++ 'static {
+    move || {
+        let mut config: aq_playbook_host::postgres_client::Config =
+            url.parse().map_err(|_| aq_playbook_host::Error::Invalid)?;
+        config.connect_timeout(std::time::Duration::from_secs(2));
+        let client = config
+            .connect(aq_playbook_host::postgres_client::NoTls)
+            .map_err(|_| aq_playbook_host::Error::Unknown)?;
+        let keys = aq_playbook_host::postgres_storage::ProtectionKeyring::new(
+            "fixture",
+            std::collections::BTreeMap::from([("fixture".into(), [11u8; 32])]),
+        )
+        .unwrap();
+        aq_playbook_host::protected::storage(
+            client,
+            keys,
+            std::time::Duration::from_secs(2),
+            std::time::Duration::from_millis(100),
+        )
     }
 }

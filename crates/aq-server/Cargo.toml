@@ -55,6 +55,7 @@ test-support = ["aq-notifications/test-support"]
 recovery-test-support = ["test-support"]
 
 [dev-dependencies]
+aq-playbooks-compiler = { path = "../../vendor/aq-playbooks-a463e59/crates/aq-playbooks-compiler", version = "=0.1.0" }
 aq-server = { path = ".", features = ["test-support"] }
 http-body-util.workspace = true
 rsa.workspace = true
