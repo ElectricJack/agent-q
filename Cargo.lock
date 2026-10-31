@@ -195,6 +195,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-observation-api"
+version = "0.1.0"
+dependencies = [
+ "aq-lifecycle-api",
+ "schemars",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "aq-profiles"
 version = "0.1.0"
 dependencies = [
@@ -255,6 +265,7 @@ dependencies = [
  "aq-agent-api",
  "aq-lifecycle-api",
  "aq-notifications",
+ "aq-observation-api",
  "aq-profiles",
  "aq-protocol",
  "aq-release",
