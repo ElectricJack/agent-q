@@ -80,3 +80,12 @@ impl Drop for TestDb {
         .join();
     }
 }
+
+/// Execute an actual frozen SQL prefix through the production migration/guard
+/// implementation. This fixture does not activate a runtime or bypass checks.
+pub async fn migrate_profile(
+    pool: &PgPool,
+    supported: u32,
+) -> Result<(), crate::store::StoreError> {
+    crate::store::migrate_fixture_profile(pool, supported).await
+}

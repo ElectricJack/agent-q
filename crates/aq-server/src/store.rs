@@ -234,6 +234,19 @@ const MIGRATIONS: &[(i32, &str)] = &[
 /// Applies missing migrations in one transaction under an advisory lock.
 /// Refuses, changing nothing, when the database is from a newer server.
 async fn migrate(pool: &PgPool) -> Result<()> {
+    migrate_known(pool, MIGRATIONS, STATE_FORMAT_VERSION).await
+}
+/// Same migration/refusal implementation with an explicitly older SQL profile.
+/// Exported only through the disposable test-support boundary, never a route.
+#[cfg(any(test, feature = "test-support"))]
+pub(crate) async fn migrate_fixture_profile(pool: &PgPool, supported: u32) -> Result<()> {
+    let last = MIGRATIONS
+        .iter()
+        .position(|(n, _)| *n as u32 == supported)
+        .ok_or_else(|| StoreError::Corrupt("unknown fixture migration profile".into()))?;
+    migrate_known(pool, &MIGRATIONS[..=last], supported).await
+}
+async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32) -> Result<()> {
     let mut tx = pool.begin().await?;
     sqlx::query("SELECT pg_advisory_xact_lock(x'6167656e7471'::bigint)")
         .execute(&mut *tx)
@@ -251,11 +264,8 @@ async fn migrate(pool: &PgPool) -> Result<()> {
             let found: u32 = value
                 .parse()
                 .map_err(|_| StoreError::Corrupt(format!("state_format_version {value:?}")))?;
-            if found > STATE_FORMAT_VERSION {
-                return Err(StoreError::IncompatibleState {
-                    found,
-                    supported: STATE_FORMAT_VERSION,
-                });
+            if found > supported {
+                return Err(StoreError::IncompatibleState { found, supported });
             }
         }
     }
@@ -271,15 +281,15 @@ async fn migrate(pool: &PgPool) -> Result<()> {
     let applied: Vec<i32> = sqlx::query_scalar("SELECT version FROM schema_migrations")
         .fetch_all(&mut *tx)
         .await?;
-    let newest_known = MIGRATIONS.iter().map(|m| m.0).max().unwrap_or(0);
+    let newest_known = migrations.iter().map(|m| m.0).max().unwrap_or(0);
     if let Some(&found) = applied.iter().filter(|v| **v > newest_known).max() {
         return Err(StoreError::IncompatibleState {
             found: found as u32,
-            supported: STATE_FORMAT_VERSION,
+            supported,
         });
     }
 
-    for (version, sql) in MIGRATIONS {
+    for (version, sql) in migrations {
         if applied.contains(version) {
             continue;
         }
@@ -288,6 +298,15 @@ async fn migrate(pool: &PgPool) -> Result<()> {
             .bind(version)
             .execute(&mut *tx)
             .await?;
+    }
+    let format: Option<String> =
+        sqlx::query_scalar("SELECT value FROM meta WHERE key='state_format_version'")
+            .fetch_optional(&mut *tx)
+            .await?;
+    if format.as_deref() != Some(supported.to_string().as_str()) {
+        return Err(StoreError::Corrupt(
+            "state format metadata does not match applied migrations".into(),
+        ));
     }
     tx.commit().await?;
     Ok(())
