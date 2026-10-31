@@ -5,12 +5,7 @@ use common::profiled::{Fixture, fixture};
 use serde_json::json;
 use uuid::Uuid;
 async fn setup() -> Fixture {
-    let f = fixture().await;
-    sqlx::raw_sql(include_str!("../migrations/0016_observation_transport.sql"))
-        .execute(&f.db.pool().await)
-        .await
-        .unwrap();
-    f
+    fixture().await
 }
 fn prepare(f: &Fixture) -> Request {
     Request {
@@ -293,8 +288,7 @@ async fn http_transport_admission_uses_current_node_credentials_and_bounded_priv
     let f = setup().await;
     let r = prepare(&f);
     let bytes = serde_json::to_vec(&r).unwrap();
-    let router =
-        aq_server::observations::api::transport_routes(f.state.clone()).with_state(f.state.clone());
+    let router = aq_server::build_worker_router(f.state.clone());
     let req = |credential: &str, bytes: Vec<u8>| {
         HttpRequest::builder()
             .method("POST")

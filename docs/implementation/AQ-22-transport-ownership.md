@@ -52,9 +52,8 @@ records an explicit source gap, and drains frozen old-boot packets in order.
 
 Exact operation receipts are immutable and quota bounded. Replaying an older
 boot receipt returns the current snapshot and cannot restore old ownership.
-Revocation is checked before even an exact replay. Legacy batch ingestion is
-retained only for explicitly pre-owner test fixtures; runtime source admission
-requires an activated owner and a separately admitted source.
+Revocation is checked before even an exact replay. Source admission and batch
+ingestion require an activated owner and a separately admitted source.
 
 ## Source policy and retained replay
 
@@ -93,11 +92,13 @@ with each request/receipt SQL body bounded to4/8 KiB. That fixed metadata ceilin
 is separate from the128 MiB normalized-event quota and is not a physical-disk
 claim. Receipt insertion failure rolls back the entire state transition.
 
-Migration016 and the bootstrap/status router are staged in this checkpoint.
-Tests explicitly install the migration and construct its router. Source registration and batch ingestion now require an activated owner;
-new sources additionally match its current registered boot. Ordered registration,
-production listener mounting and the worker's durable filesystem handshake remain
-required before runtime use. This checkpoint does not silently migrate old unowned sources.
+Migration016 is registered after015 and advances the state format to16. The
+bootstrap/status router is mounted on the actual worker listener and uses the
+bounded observation admission class. Tests use normal store migration and the
+production router. Source registration and batch ingestion require an activated
+owner; new sources additionally match its current registered boot. The worker's
+durable filesystem handshake remains required before runtime use. This checkpoint
+does not silently migrate old unowned sources.
 
 HTTP ingestion, transport mutation and status now carry the shared opaque
 `worker_api::AuthenticatedNode` context into the effect transaction. The current

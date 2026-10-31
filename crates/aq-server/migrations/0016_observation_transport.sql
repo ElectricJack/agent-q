@@ -75,4 +75,4 @@ BEGIN
 END $$;
 CREATE TRIGGER observation_transport_receipt_matches_owner BEFORE INSERT ON observation_transport_receipts
  FOR EACH ROW EXECUTE FUNCTION observation_transport_receipt_guard();
--- Registered migration will advance the state format after015 is present.
+UPDATE meta SET value='16' WHERE key='state_format_version';

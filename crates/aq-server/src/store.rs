@@ -196,6 +196,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         15,
         include_str!("../migrations/0015_never_granted_closure.sql"),
     ),
+    (
+        16,
+        include_str!("../migrations/0016_observation_transport.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.

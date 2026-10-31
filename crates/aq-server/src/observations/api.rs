@@ -16,8 +16,7 @@ pub fn routes(mut state: AppState) -> Router<AppState> {
         .layer(DefaultBodyLimit::max(MAX_BATCH_BYTES))
         .with_state(state)
 }
-/// Staged until ordered migration016 is installed. This route supplies transport
-/// ownership only, not source catalog enrollment or execution authority.
+/// Transport ownership only, not source catalog enrollment or execution authority.
 pub fn transport_routes(mut state: AppState) -> Router<AppState> {
     state.store = state.store.observation_view();
     Router::new()

@@ -23,10 +23,6 @@ fn text(s: &str) -> Text {
 }
 async fn seeded(transport_active: Option<bool>) -> (Fixture, OwnerSource) {
     let mut f = fixture().await;
-    sqlx::raw_sql(include_str!("../migrations/0016_observation_transport.sql"))
-        .execute(&f.db.pool().await)
-        .await
-        .unwrap();
     if let Some(active) = transport_active {
         let request = aq_observation_admission::Request {
             version: 1,

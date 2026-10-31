@@ -59,7 +59,10 @@ pub fn classify(path: &str) -> Class {
     if path.starts_with("/api/observations/") {
         return Class::ObservationRead;
     }
-    if path == "/v1/worker/observations/batch" {
+    if matches!(
+        path,
+        "/v1/worker/observations/batch" | "/v1/worker/observations/transport"
+    ) {
         return Class::Observation;
     }
     if path == "/api/notifications" || path.starts_with("/api/notifications/") {
