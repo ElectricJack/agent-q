@@ -299,7 +299,7 @@
     },
     {
       "rationale": "Terminal input verifies instance and tmux identity; nudge serializes input, refuses recent human input, and only resubmits exact durable AQ drafts. V2 needs assignment/node/boot fencing and shared human-control arbitration at the worker; provider-specific composer probes require qualification.",
-      "coverage": "pending_v2_implementation_and_qualification",
+      "coverage": "CON-02 contract and WRK-10 local host qualified; terminal relay, harness delivery and safe nudge pending",
       "evidence_limit": "Selected implementation bodies and bounded excerpts from selected test bodies inspected; this is not a full module audit. Test symbols locate obligations, not proof of executed or replacement coverage. Tests were read, not executed.",
       "id": "terminal-identity-and-safe-nudge",
       "tasks": [
@@ -473,6 +473,10 @@
           "sha256": "c09cbd6eec160b23b5830cbcd83d78582d7a00a5f3e68df54baded2fc030494b",
           "git_blob": "f081921b4eac6d216afca0ae5a01659f7d715e77"
         }
+      ],
+      "v2_evidence": [
+        "../implementation/con02-session-contracts.md",
+        "../../../aq-worker/docs/implementation/WRK-10.md"
       ]
     },
     {

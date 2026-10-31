@@ -41,9 +41,9 @@ Read the mapped source and regression cases before implementing an affected task
 | [WRK-05](#wrk-05) | aq-worker | Provision the AQ agent client and bounded context cache |
 | [WRK-07](#wrk-07) | aq-worker | Implement resumable artifact handoff and retention release |
 | [CON-03](#con-03) | aq-worker | Publish session observation and continuation contracts |
-| [PB-02](#pb-02) | aq-playbooks | Establish the playbook storage and scheduling operating envelope |
 | [REL-01](#rel-01) | agent-q | Version the composite product manifest and component inventory |
 | [AQ-21](#aq-21) | agent-q | Implement authorized terminal relay and controller leasing |
+| [WRK-14](#wrk-14) | aq-worker | Implement the bounded outbound terminal bridge |
 
 The daemon authority track can start after BASE-01 and CON-01. The worker runtime track follows connector extraction. Graph, Git and playbook qualification are independent early tracks; they are not artificial prerequisites for fake-agent execution. Dashboard work waits for a versioned inspection/action API, but does not wait for production deployment.
 
@@ -134,7 +134,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [AQ-18](#aq-18): Build the compositional profile catalog, compiler and explanation CLI | agent-q | [CON-02](#con-02) | complete |
 | [AQ-19](#aq-19): Implement project execution bindings and policy administration | agent-q | [AQ-18](#aq-18), [AQ-03](#aq-03) | in_progress |
 | [AQ-20](#aq-20): Resolve intelligence and execution choices with bounded provider availability | agent-q | [AQ-18](#aq-18), [AQ-19](#aq-19), [AQ-03](#aq-03) | planned |
-| [WRK-10](#wrk-10): Implement the guarded tmux session host and reusable adapter interface | aq-worker | [CON-02](#con-02), [WRK-04](#wrk-04) | in_progress |
+| [WRK-10](#wrk-10): Implement the guarded tmux session host and reusable adapter interface | aq-worker | [CON-02](#con-02), [WRK-04](#wrk-04) | complete |
 | [GATE-04](#gate-04): Demonstrate a real agent with retained source and graph outcome | agent-q | [GATE-03](#gate-03), [AQ-08](#aq-08), [AQ-10](#aq-10), [WRK-07](#wrk-07), [WRK-08](#wrk-08) | planned |
 
 ### M5 overview
@@ -165,7 +165,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 
 | Task | Owner | Hard prerequisites | Status |
 | --- | --- | --- | --- |
-| [PB-02](#pb-02): Establish the playbook storage and scheduling operating envelope | aq-playbooks | [PB-01](#pb-01) | planned |
+| [PB-02](#pb-02): Establish the playbook storage and scheduling operating envelope | aq-playbooks | [PB-01](#pb-01) | in_progress |
 | [API-02](#api-02): Expose task, attempt and workflow explanation views | agent-q | [AQ-10](#aq-10), [AQ-11](#aq-11), [AQ-12](#aq-12), [AQ-18](#aq-18), [AQ-20](#aq-20) | planned |
 | [UI-01](#ui-01): Create the independent dashboard application and mock suite | aq-dashboard | [API-02](#api-02) | planned |
 | [UI-02](#ui-02): Implement pending-safe actions and browser compatibility | aq-dashboard | [UI-01](#ui-01) | planned |
@@ -838,7 +838,7 @@ Outside this task: Implicit provider/model downgrades, automatic quota-probe ada
 
 **Implement the guarded tmux session host and reusable adapter interface**
 
-Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: in_progress.
+Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: complete.
 
 Hard prerequisites: [CON-02](#con-02), [WRK-04](#wrk-04).
 
@@ -853,6 +853,8 @@ Acceptance:
 Requirement links: H1, H3, H4, W11, W14, X3, X5, R4.
 
 Outside this task: Live execution reattachment, real provider adapter qualification, terminal network relay.
+
+Evidence: [WRK-10.md](../../../aq-worker/docs/implementation/WRK-10.md), [WRK-10.json](../../../aq-worker/docs/implementation/WRK-10.json).
 
 ### GATE-04
 
@@ -1227,7 +1229,7 @@ Requirement links: E3, D2, D3, D5, D6, W1, X6, X7, X8, X10, X13, S2, S3, S4, S5,
 
 **Establish the playbook storage and scheduling operating envelope**
 
-Owner: `aq-playbooks`. Milestone: M6. Kind: qualification. Status: planned.
+Owner: `aq-playbooks`. Milestone: M6. Kind: qualification. Status: in_progress.
 
 Hard prerequisites: [PB-01](#pb-01).
 

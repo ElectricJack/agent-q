@@ -1175,7 +1175,7 @@
       "repo": "aq-worker",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "CON-02",
         "WRK-04"
@@ -1199,7 +1199,10 @@
       "out_of_scope": [
         "Live execution reattachment, real provider adapter qualification, terminal network relay"
       ],
-      "evidence": []
+      "evidence": [
+        "../../../aq-worker/docs/implementation/WRK-10.md",
+        "../../../aq-worker/docs/implementation/WRK-10.json"
+      ]
     },
     {
       "id": "GATE-04",
@@ -1844,7 +1847,7 @@
       "repo": "aq-playbooks",
       "milestone": "M6",
       "kind": "qualification",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "PB-01"
       ],

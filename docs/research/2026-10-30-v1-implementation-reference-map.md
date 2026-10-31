@@ -31,3 +31,9 @@ last-good catalog and explicit identity obligations using central revisioned
 activation rather than a single-host activation file. AQ-20 intelligence/provider
 selection remains pending; this does not claim replacement coverage for every
 listed v1 profile test.
+
+[WRK-10](../../../aq-worker/docs/implementation/WRK-10.md) qualifies the reusable
+guarded local tmux host at worker revision `d02f517`. Exact session/process
+identity, launch crashes and stopped-writer proof replace local tmux-name
+assumptions. This does not qualify provider composer probes, safe nudge or network
+terminal input; WRK-09/14 and AQ-21 still own those obligations.
