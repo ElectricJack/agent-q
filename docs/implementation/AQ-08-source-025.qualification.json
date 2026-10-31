@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "source_commit": "881ee8e352c63abd50226f03306cc0c16104c915",
+  "source_sha256": {
+    "Dockerfile": "2ade117894ecc05a7609403c2d485548e1ecfe41e7c028c543351241f88f1d3d",
+    "crates/aq-server/migrations/0025_native_source_observations.sql": "6fbb1ee724ddb9253aeb779e84f0a6953a41a9c1f23d4c2550defbd54dacc5c6",
+    "crates/aq-server/src/admission.rs": "1826bc9fdb6ed751e88cabf02f39c7c5f2cd5da7c25fd25b88bb8213dfab484b",
+    "crates/aq-server/src/lib.rs": "ff31f7e8ed7eb237a2e7275f3d72751abe2fa50a424a9ca212510bdcd10f074b",
+    "crates/aq-server/src/profiled_execution.rs": "f5af33b85805bcb3c1972b8880b05a16fb6b96d3dee990d3fc18b268c68a9658",
+    "crates/aq-server/src/profiled_execution/artifacts.rs": "9b49ee5dca389c3a5d4fe9b9d34fd11730b83b2ec7964af1ec40dd3c92c7c116",
+    "crates/aq-server/src/profiled_execution/source.rs": "d6c976b4d5f513a13f09dd53de3d15872e29fca1e46559da3867f967bae377ad",
+    "crates/aq-server/src/profiled_execution/source/ownership.rs": "0dd01b973ec9dddf30c308992ef162fc6a893cae5f16b5ece01e74854109917d",
+    "crates/aq-server/src/profiled_execution/source_api.rs": "62d526eedc1d1fdb983b734e8553ad59fd8a33d7a7a5656175fcbfbcefd7e3a5",
+    "crates/aq-server/src/profiled_execution/source_exports.rs": "6be675803f176d0ba838bb307c66dfaeaa7c40d2c8ae55ca4d2d40a005cc50e3",
+    "crates/aq-server/src/profiled_execution/source_exports/completion.rs": "0da04d4e4b5ab2c81a91e837fc30b6a24a6a5aaa0cacfa3d2ea80c25567dbc4f",
+    "crates/aq-server/src/store.rs": "370dc8a76ce5c71103b3416da6dbea9da073a668be61b51204e53598add601db",
+    "crates/aq-server/tests/common/mod.rs": "86cefbffed4b8722a2922772edff92c07a6bab32966619b7bf6991cbce386431",
+    "crates/aq-server/tests/common/source_exports.rs": "b7bd419d8443ea9292e0616a23c3d91e9765741b28c50296ef611cd7fc6b3cd0",
+    "crates/aq-server/tests/native_source.rs": "55a823e2936ec684cf2f697c19bd24da89aa0561f02e6761d4dbfe93c82e156b",
+    "crates/aq-server/tests/profiled_source_exports.rs": "0512e5592254c3397dc631dc0640a75d63b247054f5c4889bf53bf099e7dd090",
+    "docs/implementation/AQ-08-native-completion-plan.md": "835da9ff539fffacc107c98e235bbcac023844d454fae07d28d0ecae1e9e879e",
+    "docs/implementation/AQ-08-plan.md": "e5ffb142aff6fbb35cd80b12aec82ccbb0a6b4b92685c0ed30c0e3ada3561741"
+  },
+  "logs": {
+    "docs/implementation/evidence/aq08-source-025-881ee8e/focused.log": {
+      "sha256": "39bf805b2469947b1765bf9b44ee2d23fb81e982b2a1ee30a2cb9020dd93bd22",
+      "bytes": 3755
+    },
+    "docs/implementation/evidence/aq08-source-025-881ee8e/metadata.log": {
+      "sha256": "ee705736792e0214e96f1958210456e947406359ebba18b0dffd0a95d3ef9584",
+      "bytes": 430
+    },
+    "docs/implementation/evidence/aq08-source-025-881ee8e/clippy.log": {
+      "sha256": "fed66e09f37cb2861b3cf4f3cf602a1004985fb72708c0347a85452138440e4d",
+      "bytes": 147
+    },
+    "docs/implementation/evidence/aq08-source-025-881ee8e/format.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "results": {
+    "native_source": 6,
+    "source_exports": 9,
+    "legacy_source": 8,
+    "store": 14,
+    "metadata_unit": 1,
+    "failed": 0,
+    "declared_real_git_peer_ignored": 1,
+    "strict_server_all_target_all_feature_clippy": "pass",
+    "format": "pass"
+  },
+  "commands": [
+    "RUST_TEST_THREADS=4 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-server --test native_source --test profiled_source_exports --test source_retention --test store --locked --offline",
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-server --lib state_format_is_the_latest_migration --locked --offline",
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo clippy -p aq-server --all-targets --all-features --locked --offline -- -D warnings",
+    "cargo fmt --package aq-server --check"
+  ],
+  "limits": [
+    "Git retention peer and bundle bytes in native HTTP tests are explicitly synthetic; actual Git I/O helper qualification remains separate.",
+    "No complete native scheduler/offer/accept/prepare/grant/renew producer or live provider/model/counting qualification is claimed.",
+    "Source HTTP responses establish current scoped retrieval permission, never execution authority or receipt/retention renewal.",
+    "Root combined workspace integration qualification remains separate."
+  ]
+}
