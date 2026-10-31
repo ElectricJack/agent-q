@@ -65,6 +65,8 @@ struct Registered {
     worker_version: String,
     #[serde(default)]
     replacement_boot: Option<Uuid>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    native: Option<crate::profiled_execution::registration::NativeRegistration>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -125,6 +127,12 @@ async fn registration(tx: &mut Transaction<'_, Postgres>, node: Uuid) -> Result<
 }
 async fn active(tx: &mut Transaction<'_, Postgres>, identity: &NodeIdentity) -> Result<Registered> {
     let record = registration(tx, identity.node_id).await?;
+    if record.native.is_some() {
+        return Err(refuse(
+            ErrorCode::UnsupportedCapability,
+            "native runtime requires profiled execution protocol",
+        ));
+    }
     if record.identity != *identity {
         return Err(refuse(
             ErrorCode::StaleBoot,
@@ -366,6 +374,24 @@ impl Store {
                 .await?;
         if let Some(existing) = existing {
             let existing: Registered = serde_json::from_str(&existing)?;
+            if existing.native.is_some() {
+                let digest = payload_digest(request);
+                if let Some(response) = receipt(
+                    &mut tx,
+                    request.identity.node_id,
+                    request.operation_id,
+                    "register",
+                    &digest,
+                )
+                .await?
+                {
+                    return Ok(response);
+                }
+                return Err(refuse(
+                    ErrorCode::UnsupportedCapability,
+                    "legacy registration cannot replace native runtime",
+                ));
+            }
             if existing.identity != request.identity {
                 if existing.replacement_boot != Some(request.identity.boot_id)
                     || !replacement_safe(&mut tx, request.identity.node_id).await?
@@ -395,6 +421,7 @@ impl Store {
             capabilities: request.capabilities.clone(),
             worker_version: request.worker_version.clone(),
             replacement_boot: None,
+            native: None,
         };
         sqlx::query("INSERT INTO execution_nodes(node_id,state) VALUES($1,$2::jsonb) ON CONFLICT(node_id) DO UPDATE SET state=excluded.state")
             .bind(request.identity.node_id).bind(encode(&body)?).execute(&mut *tx).await?;
@@ -1100,6 +1127,12 @@ impl Store {
         let mut tx = self.pool.begin().await?;
         lock_node(&mut tx, request.identity.node_id).await?;
         let mut current = registration(&mut tx, request.identity.node_id).await?;
+        if current.native.is_some() {
+            return Err(refuse(
+                ErrorCode::UnsupportedCapability,
+                "legacy reconciliation cannot change native runtime",
+            ));
+        }
         if current.identity != request.identity {
             current.replacement_boot =
                 if replacement_safe(&mut tx, request.identity.node_id).await? {
@@ -1184,6 +1217,16 @@ impl Store {
         validate(request)?;
         let mut tx = self.pool.begin().await?;
         lock_node(&mut tx, request.identity.node_id).await?;
+        if registration(&mut tx, request.identity.node_id)
+            .await?
+            .native
+            .is_some()
+        {
+            return Err(refuse(
+                ErrorCode::UnsupportedCapability,
+                "legacy replacement cannot change native runtime",
+            ));
+        }
         if !replacement_safe(&mut tx, request.identity.node_id).await? {
             return Err(refuse(
                 ErrorCode::CapacityUnavailable,
@@ -1226,6 +1269,7 @@ impl Store {
             capabilities: request.capabilities.clone(),
             worker_version: request.worker_version.clone(),
             replacement_boot: None,
+            native: None,
         };
         sqlx::query("INSERT INTO execution_nodes(node_id,state) VALUES($1,$2::jsonb) ON CONFLICT(node_id) DO UPDATE SET state=excluded.state")
             .bind(request.identity.node_id).bind(encode(&body)?).execute(&mut *tx).await?;

@@ -1,0 +1,263 @@
+   Compiling crypto-common v0.1.7
+   Compiling inout v0.1.4
+   Compiling opaque-debug v0.3.1
+   Compiling aq-release v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-release)
+   Compiling aq-protocol v0.1.0 (/tmp/aq15-clean-10d4afd/vendor/aq-protocol-0.1.0)
+   Compiling digest v0.10.7
+   Compiling cipher v0.4.4
+   Compiling universal-hash v0.5.1
+   Compiling aead v0.5.2
+   Compiling poly1305 v0.8.0
+   Compiling sha2 v0.10.9
+   Compiling hmac v0.12.1
+   Compiling md-5 v0.10.6
+   Compiling signature v2.2.0
+   Compiling chacha20 v0.9.1
+   Compiling rsa v0.9.10
+   Compiling hkdf v0.12.4
+   Compiling chacha20poly1305 v0.10.1
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq15-clean-10d4afd/vendor/aq-session-protocol-0.1.0)
+   Compiling sqlx-core v0.8.6
+   Compiling aq-agent-api v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-agent-api)
+   Compiling aq-worker-protocol v0.2.0 (/tmp/aq15-clean-10d4afd/vendor/aq-worker-protocol-0.2.0)
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/aq15-clean-10d4afd/vendor/aq-lifecycle-protocol-0.1.0)
+   Compiling aq-session-api v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-session-api)
+   Compiling sqlx-postgres v0.8.6
+   Compiling aq-profiles v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-profiles)
+   Compiling aq-lifecycle-api v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-lifecycle-api)
+   Compiling aq-accounting v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-accounting)
+   Compiling aq-admission v0.1.2 (/tmp/aq15-clean-10d4afd/crates/aq-admission)
+   Compiling aq-selection v0.1.1 (/tmp/aq15-clean-10d4afd/crates/aq-selection)
+   Compiling sqlx v0.8.6
+   Compiling aq-notifications v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-notifications)
+   Compiling aq-observation-api v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-observation-api)
+   Compiling aq-server v0.1.0 (/tmp/aq15-clean-10d4afd/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 33s
+     Running unittests src/lib.rs (/tmp/aq08-bridge-qualification-target/debug/deps/aq_server-b316d9a428189881)
+
+running 28 tests
+test agent_access::mutations::tests::retained_admission_count_and_byte_boundaries_are_exact ... ok
+test config::tests::other_deployments_accept_dev_vault ... ok
+test agent_access::tests::strict_json_rejects_duplicate_and_fractional_values ... ok
+test config::tests::production_deployment_accepts_production_vault ... ok
+test config::tests::production_deployment_rejects_dev_auth_in_production_env ... ok
+test config::tests::production_deployment_rejects_dev_vault ... ok
+test config::tests::production_deployment_rejects_development_env_with_access_auth ... ok
+test project_bindings::domain::tests::external_absence_staleness_forbidden_and_cross_identity_never_admit ... ok
+test project_bindings::domain::tests::operator_groups_and_environment_profile_ceilings_fail_closed ... ok
+test agent_access::graph::tests::http_adapter_never_exposes_graph_errors_or_follows_redirects ... ok
+test agent_access::tests::query_digest_omits_cursor_but_binds_authority ... ok
+test project_bindings::domain::tests::request_fields_cannot_install_urls_credentials_or_worker_claimed_groups ... ok
+test project_bindings::domain::tests::pure_gate_freezes_exact_revision_and_never_rewrites_old_snapshots ... ok
+test project_bindings::external::tests::repository_reply_rejects_duplicate_subject_and_envelope_fields ... ok
+test agent_access::graph::tests::http_adapter_refuses_missing_or_changed_response_version ... ok
+test store::tests::state_format_is_the_latest_migration ... ok
+test updates::tests::stamped_binary_refuses_other_revision ... ok
+test updates::tests::unstamped_binary_accepts_any_revision ... ok
+test agent_access::graph::tests::edge_projection_requires_both_endpoints_and_allowed_type ... ok
+test agent_access::graph::tests::projection_removes_metadata_and_enforces_workspace ... ok
+test agent_access::tests::canonical_digest_matches_published_profile_and_context ... ok
+test agent_access::tests::context_and_issuance_budgets_include_profile_binding_and_credentials ... ok
+test agent_access::mutations::tests::oversized_postadmission_status_reports_unknown_with_existing_identity ... ok
+test agent_access::mutations::dispatch::tests::native_draft_defaults_preserve_exact_plan_but_extra_meaning_is_refused ... ok
+test agent_access::tests::contract_enforces_unknown_fields_uuid_integer_and_conditional_rules ... ok
+test protected_storage::tests::typed_domains_are_independent_and_aad_is_bounded ... ok
+test updates::tests::unreadable_marker_dir_counts_as_maintenance ... ok
+test notifications::config::tests::protected_configuration_refuses_unsafe_files_and_keeps_credentials_opaque ... ok
+
+test result: ok. 28 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running unittests src/main.rs (/tmp/aq08-bridge-qualification-target/debug/deps/aq_server-8e1f6c225e2c4e1c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/agent_access.rs (/tmp/aq08-bridge-qualification-target/debug/deps/agent_access-05edd6f1e3bc9bac)
+
+running 1 test
+test issuance_rotation_revocation_and_locked_authority_are_online ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.60s
+
+     Running tests/authz.rs (/tmp/aq08-bridge-qualification-target/debug/deps/authz-db67de2fcada85f9)
+
+running 13 tests
+test concurrent_first_logins_bootstrap_owner ... ok
+test mutation_without_csrf_header_rejected ... ok
+test concurrent_first_logins_invited_viewer ... ok
+test mutation_with_foreign_origin_rejected ... ok
+test bootstrap_disabled_blocks_owner_creation ... ok
+test bootstrap_happens_once ... ok
+test mutation_with_header_and_matching_origin_allowed ... ok
+test first_visitor_is_not_owner ... ok
+test configured_email_bootstraps_owner ... ok
+test unauthenticated_without_token ... ok
+test no_cors_headers_emitted ... ok
+test viewer_cannot_call_owner_route ... ok
+test invited_viewer_binds_on_first_login ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.63s
+
+     Running tests/cli.rs (/tmp/aq08-bridge-qualification-target/debug/deps/cli-53dbeae33408a25b)
+
+running 4 tests
+test production_deployment_refuses_dev_vault_before_database ... ok
+test serve_without_database_url_exits_2 ... ok
+test healthcheck_uses_vault_admin_port ... ok
+test admin_and_worker_listen_on_separate_ports ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.37s
+
+     Running tests/config.rs (/tmp/aq08-bridge-qualification-target/debug/deps/config-9ad06f8d85d708d2)
+
+running 13 tests
+test loads_example_vault ... ok
+test bootstrap_enabled_requires_email ... ok
+test loads_minimal_valid_config_with_defaults ... ok
+test missing_file_names_path ... ok
+test rejects_dev_auth_in_production ... ok
+test rejects_future_format_version ... ok
+test rejects_missing_required_key ... ok
+test rejects_non_https_origin_in_production ... ok
+test rejects_offline_not_greater_than_heartbeat ... ok
+test rejects_non_https_team_domain ... ok
+test rejects_unknown_key ... ok
+test rejects_zero_durations ... ok
+test updates_section_is_optional_strict_and_absolute ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/enrollment.rs (/tmp/aq08-bridge-qualification-target/debug/deps/enrollment-fec81359571323ad)
+
+running 15 tests
+test revoked_status_wins ... ok
+test never_seen_worker_is_offline ... ok
+test worker_status_offline_after_60s ... ok
+test me_reports_dev_auth_mode ... ok
+test me_reports_email_role_and_auth_mode ... ok
+test viewer_cannot_create_enrollment_via_direct_api ... ok
+test viewer_cannot_manage_users ... ok
+test user_creation_validates_input ... ok
+test status_reports_update_unavailable ... ok
+test owner_creates_enrollment_code ... ok
+test revoke_unknown_is_404_and_malformed_is_not_500 ... ok
+test every_mutation_requires_csrf_header_via_admin_routes ... ok
+test owner_manages_users ... ok
+test viewer_cannot_revoke ... ok
+test workers_list_and_revoke ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.44s
+
+     Running tests/execution.rs (/tmp/aq08-bridge-qualification-target/debug/deps/execution-4df76706c19d6a07)
+
+running 27 tests
+test concurrent_claims_for_one_task_leave_one_unsettled_attempt ... FAILED
+test recovery_inventory_cannot_omit_a_writer_or_race_a_new_acceptance ... FAILED
+test fixture_assignment_requires_owner_dev_mode_and_sealed_inputs ... FAILED
+test repeated_cancellations_coalesce_one_worker_directive ... FAILED
+test no_start_decline_can_reconcile_terminal_unaccepted_old_boot_offers ... FAILED
+test source_nonstart_exception_requires_no_prior_execution_evidence ... FAILED
+test conflicting_task_claims_on_different_nodes_share_one_central_fence ... FAILED
+test cancellation_wins_before_result_and_retains_late_output ... ok
+test released_report_correction_cannot_reacquire_a_successors_task_claim ... ok
+test accepted_result_cannot_be_retroactively_cancelled ... ok
+test renewal_replay_preserves_expiry_and_rejects_stale_sequence ... FAILED
+test cancelled_unaccepted_offer_never_queues_an_unknown_process_directive ... ok
+test reconciliation_does_not_extend_grants_or_take_over_old_incarnations ... ok
+test explicit_recovery_permits_only_exact_boot_after_all_writers_stop ... ok
+test observation_replay_cannot_regress_or_resurrect_stopped_processes ... ok
+test expired_execution_remains_held_until_stopped_and_reported ... ok
+test acceptance_replay_is_durable_and_does_not_extend_authority ... FAILED
+test launch_uncertain_evidence_cannot_be_downgraded_to_nonstart_release ... FAILED
+test decline_racing_acceptance_either_fences_launch_or_requires_result ... ok
+test expired_unaccepted_offer_and_explicit_decline_release_task_claim ... FAILED
+test boot_replacement_requires_stop_and_old_results_never_settle_new_authority ... FAILED
+test execution_http_authenticates_node_binding_and_keeps_routes_separate ... ok
+test legacy_report_history_prevents_nonstart_release_after_projection_downgrade ... ok
+test corrected_reports_preserve_original_immutable_body_and_admission ... ok
+test unresolved_external_operations_prevent_replacement_even_after_stop ... ok
+test source_pending_operations_hold_claim_even_if_report_omits_them ... ok
+test source_results_require_owned_retained_receipts_and_cannot_erase_launch_evidence ... ok
+
+failures:
+
+---- concurrent_claims_for_one_task_leave_one_unsettled_attempt stdout ----
+
+thread 'concurrent_claims_for_one_task_leave_one_unsettled_attempt' (3465856) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Database(Database(PgDatabaseError { severity: Error, code: "53200", message: "out of shared memory", detail: None, hint: Some("You might need to increase \"max_locks_per_transaction\"."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("lock.c"), line: Some(1020), routine: Some("LockAcquireExtended") }))
+
+---- recovery_inventory_cannot_omit_a_writer_or_race_a_new_acceptance stdout ----
+
+thread 'recovery_inventory_cannot_omit_a_writer_or_race_a_new_acceptance' (3465870) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Database(Database(PgDatabaseError { severity: Error, code: "53200", message: "out of shared memory", detail: None, hint: Some("You might need to increase \"max_locks_per_transaction\"."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("lock.c"), line: Some(1020), routine: Some("LockAcquireExtended") }))
+
+---- fixture_assignment_requires_owner_dev_mode_and_sealed_inputs stdout ----
+
+thread 'fixture_assignment_requires_owner_dev_mode_and_sealed_inputs' (3465864) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Database(Database(PgDatabaseError { severity: Error, code: "53200", message: "out of shared memory", detail: None, hint: Some("You might need to increase \"max_locks_per_transaction\"."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("lock.c"), line: Some(1020), routine: Some("LockAcquireExtended") }))
+
+---- repeated_cancellations_coalesce_one_worker_directive stdout ----
+
+thread 'repeated_cancellations_coalesce_one_worker_directive' (3465873) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Database(Database(PgDatabaseError { severity: Error, code: "53200", message: "out of shared memory", detail: None, hint: Some("You might need to increase \"max_locks_per_transaction\"."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("lock.c"), line: Some(1020), routine: Some("LockAcquireExtended") }))
+
+---- no_start_decline_can_reconcile_terminal_unaccepted_old_boot_offers stdout ----
+
+thread 'no_start_decline_can_reconcile_terminal_unaccepted_old_boot_offers' (3465867) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Database(Database(PgDatabaseError { severity: Error, code: "53200", message: "out of shared memory", detail: None, hint: Some("You might need to increase \"max_locks_per_transaction\"."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("lock.c"), line: Some(1020), routine: Some("LockAcquireExtended") }))
+
+---- source_nonstart_exception_requires_no_prior_execution_evidence stdout ----
+
+thread 'source_nonstart_exception_requires_no_prior_execution_evidence' (3465874) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Database(Database(PgDatabaseError { severity: Error, code: "53200", message: "out of shared memory", detail: None, hint: Some("You might need to increase \"max_locks_per_transaction\"."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("lock.c"), line: Some(1020), routine: Some("LockAcquireExtended") }))
+
+---- conflicting_task_claims_on_different_nodes_share_one_central_fence stdout ----
+
+thread 'conflicting_task_claims_on_different_nodes_share_one_central_fence' (3465857) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Database(Database(PgDatabaseError { severity: Error, code: "53200", message: "out of shared memory", detail: None, hint: Some("You might need to increase \"max_locks_per_transaction\"."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("lock.c"), line: Some(1020), routine: Some("LockAcquireExtended") }))
+
+---- renewal_replay_preserves_expiry_and_rejects_stale_sequence stdout ----
+
+thread 'renewal_replay_preserves_expiry_and_rejects_stale_sequence' (3465872) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Database(Database(PgDatabaseError { severity: Error, code: "53200", message: "out of shared memory", detail: None, hint: Some("You might need to increase \"max_locks_per_transaction\"."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("lock.c"), line: Some(1020), routine: Some("LockAcquireExtended") }))
+
+---- acceptance_replay_is_durable_and_does_not_extend_authority stdout ----
+
+thread 'acceptance_replay_is_durable_and_does_not_extend_authority' (3465851) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Database(Database(PgDatabaseError { severity: Error, code: "53200", message: "out of shared memory", detail: None, hint: Some("You might need to increase \"max_locks_per_transaction\"."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("lock.c"), line: Some(1020), routine: Some("LockAcquireExtended") }))
+
+---- launch_uncertain_evidence_cannot_be_downgraded_to_nonstart_release stdout ----
+
+thread 'launch_uncertain_evidence_cannot_be_downgraded_to_nonstart_release' (3465865) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Database(Database(PgDatabaseError { severity: Error, code: "53200", message: "out of shared memory", detail: None, hint: Some("You might need to increase \"max_locks_per_transaction\"."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("lock.c"), line: Some(1020), routine: Some("LockAcquireExtended") }))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- expired_unaccepted_offer_and_explicit_decline_release_task_claim stdout ----
+
+thread 'expired_unaccepted_offer_and_explicit_decline_release_task_claim' (3465862) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Database(Database(PgDatabaseError { severity: Error, code: "53200", message: "out of shared memory", detail: None, hint: Some("You might need to increase \"max_locks_per_transaction\"."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("lock.c"), line: Some(1020), routine: Some("LockAcquireExtended") }))
+
+---- boot_replacement_requires_stop_and_old_results_never_settle_new_authority stdout ----
+
+thread 'boot_replacement_requires_stop_and_old_results_never_settle_new_authority' (3465853) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Database(Database(PgDatabaseError { severity: Error, code: "53200", message: "out of shared memory", detail: None, hint: Some("You might need to increase \"max_locks_per_transaction\"."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("lock.c"), line: Some(1020), routine: Some("LockAcquireExtended") }))
+
+
+failures:
+    acceptance_replay_is_durable_and_does_not_extend_authority
+    boot_replacement_requires_stop_and_old_results_never_settle_new_authority
+    concurrent_claims_for_one_task_leave_one_unsettled_attempt
+    conflicting_task_claims_on_different_nodes_share_one_central_fence
+    expired_unaccepted_offer_and_explicit_decline_release_task_claim
+    fixture_assignment_requires_owner_dev_mode_and_sealed_inputs
+    launch_uncertain_evidence_cannot_be_downgraded_to_nonstart_release
+    no_start_decline_can_reconcile_terminal_unaccepted_old_boot_offers
+    recovery_inventory_cannot_omit_a_writer_or_race_a_new_acceptance
+    renewal_replay_preserves_expiry_and_rejects_stale_sequence
+    repeated_cancellations_coalesce_one_worker_directive
+    source_nonstart_exception_requires_no_prior_execution_evidence
+
+test result: FAILED. 15 passed; 12 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.80s
+
+error: test failed, to rerun pass `-p aq-server --test execution`

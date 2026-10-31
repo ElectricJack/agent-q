@@ -1,0 +1,60 @@
+{
+  "source_revision": "10d4afda4b0e9a22050f0310491bdda564971d2b",
+  "scope": "Never-granted closure checkpoint, not native grant/host/provider producer qualification",
+  "source_hash_method": "SHA256 of exact git show source:path",
+  "source_sha256": {
+    "Cargo.lock": "5686d76f03e7046dfd6eb2b309f9245fc63755d43edd2dd12729b566d1916f53",
+    "Cargo.toml": "cdea23103f22b716f90b7c91e5bd1aa3826c9d3fca6b74cc01f1ee55b2baf471",
+    "Dockerfile": "343969d190704d6720e50d5f65aee3ac58f93841ac9598493b7b9a62851b421b",
+    "crates/aq-server/Cargo.toml": "2e0c546a69a949ae28fa3445170fc43e99c8a0c84093b6cb25358fafd4f79f34",
+    "crates/aq-server/migrations/0015_never_granted_closure.sql": "6dbfeee6391ba650b6f2486d8ee507a32ebbc08a352c4701468255b62e0c853c",
+    "crates/aq-server/src/execution/authority/hot.rs": "75858960e3a93251bbbc9e2da11a425b6d72d3e8804122cf42a1e281e0db64ad",
+    "crates/aq-server/src/execution/profiled.rs": "c1308c8a406260dd531b5ffe10b20cc71853361a776d8d97cf67182c243be7e1",
+    "crates/aq-server/src/intelligence/resolver.rs": "354c864b6dcb98ddafffd46dea444c876a35e1c0fc7efc83b9d25b1da39b6dfc",
+    "crates/aq-server/src/lib.rs": "43a6a8dd20b310e29e2873f1a704e4b68adea4eddf0d0d0a693f4ba7f219505c",
+    "crates/aq-server/src/profiled_execution.rs": "5dadc09d8b3cf2f9eee35237ea34cbe26d6701e281d40d76240a949fc5fdee91",
+    "crates/aq-server/src/profiled_execution/no_grant.rs": "76133c8f42c31a44dec3245f3b39baea55745b4b2655e862c769ba5a099bbc1a",
+    "crates/aq-server/src/store.rs": "7cb2798fd0b4859c75c7c773dd4e59ea25654591996a119d6efdffa4291ca5dc",
+    "crates/aq-server/tests/common/profiled.rs": "73b3562b50aa741dd41a14eb5b26236c6105bb44df12047cf03416e8565c8280",
+    "crates/aq-server/tests/never_granted.rs": "8d5d5fb3e907d941c5a95c740f70ee49024e5d98d5b468143d850fe7f184e710",
+    "docs/implementation/AQ-08-never-granted-closure.md": "cedd7276839e25255c6a776d83814c52d01b38477bba2084359e6930a94fde63"
+  },
+  "retained_logs_sha256": {
+    "aq15-clean-clippy.log": "1ac9bc76bffd3442563ae62f43843513fd58843a1163c3d3c83694bf9d3eedd4",
+    "aq15-clean-tests.log": "8d485408637543e2d64184dc2f1082703ff5c93feabafc34954b3f699192f256",
+    "aq15-clean-resource-contention-tests.log": "ac92f4fafe54c3c32bcb4d3fb5c1aee9dc0cf32ae651e01efd6b2a3b41573323",
+    "aq15-clean-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "qualification": {
+    "server_passed": 273,
+    "declared_ignored": 4,
+    "strict_all_target_clippy": "passed",
+    "format": "passed",
+    "retry_test_threads": 4
+  },
+  "worktree": "/tmp/aq15-clean-10d4afd",
+  "commands": [
+    "CARGO_TARGET_DIR=/tmp/aq08-bridge-qualification-target CARGO_INCREMENTAL=0 RUST_TEST_THREADS=4 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres cargo test -p aq-server --locked --offline",
+    "CARGO_TARGET_DIR=/tmp/aq08-bridge-qualification-target CARGO_INCREMENTAL=0 cargo clippy -p aq-server --all-targets --locked --offline -- -D warnings",
+    "cargo fmt --package aq-server --check"
+  ],
+  "initial_failure": {
+    "reason": "Concurrent disposable-database migrations exhausted PostgreSQL shared lock memory;12execution-test setup failures, code53200, max_locks_per_transaction hint.",
+    "response": "Kept failed log; retried unchanged revision with RUST_TEST_THREADS=4. No product code or shared PostgreSQL configuration changed."
+  },
+  "claims": [
+    "Offline expired offer closes without inventing guardian/physical stop.",
+    "Actual current accepted PreparationPlan clock used; historical lease expiry cannot shorten it; missing/empty unsupported plan refuses.",
+    "Pending mail becomes stale; received/handed/unknown mail and actual source/effect records refuse closure.",
+    "Actual node-lock race proves issued authorization cannot be erased by never-granted expiry.",
+    "Material and graph credentials revoked; exact immutable central proof, claim release and no resurrection.",
+    "Only verified released NeverGranted rows excluded from started charging; all-offer history/generation retained, retry bound8."
+  ],
+  "limitations": [
+    "Physical stop remains Unknown; no real host/provider execution or credentials delivered in qualification.",
+    "Frozen PreparationPlan v1 requires materials: installed-only/zero-material preparation remains unsupported, not a fake valid fixture.",
+    "Pending delivery closure cap256, material history cap64, proof16KiB; larger unsupported profiles refuse.",
+    "Internal expiry service has no newly mounted native HTTP producer at this checkpoint.",
+    "No paid model/provider calls made."
+  ]
+}
