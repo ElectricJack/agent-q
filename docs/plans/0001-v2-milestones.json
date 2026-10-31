@@ -851,7 +851,10 @@
         "../implementation/AQ-08-provider-material-owner.md",
         "../implementation/AQ-08-source-observation.md",
         "../implementation/AQ-08-material-delivery.md",
-        "../implementation/AQ-08-material-delivery-qualification.json"
+        "../implementation/AQ-08-material-delivery-qualification.json",
+        "../implementation/AQ-08-acyclic-graph-policy-qualification.json",
+        "../implementation/AQ-08-inline-artifacts.md",
+        "../implementation/AQ-08-inline-artifacts-qualification.json"
       ]
     },
     {
