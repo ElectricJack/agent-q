@@ -1,5 +1,5 @@
 //! Disposable actual SQL owners; synthetic launch/host fixture, no provider run.
-//! Until022/023 integrate,024 is applied explicitly only to this test database.
+//! Ordered migrations must create the ledger in the assembled daemon.
 mod common;
 use aq_admission::{
     execution_spec::ProfiledExecutionSpec,
@@ -107,10 +107,12 @@ async fn prepare(
     outcome.validate_against(&spec).unwrap();
     let (f, start) = native_started::setup_fixture(f, true, true, Some(&spec)).await;
     let pool = f.db.pool().await;
-    sqlx::raw_sql(include_str!("../migrations/0024_profiled_results.sql"))
-        .execute(&pool)
-        .await
-        .unwrap();
+    let installed: bool =
+        sqlx::query_scalar("SELECT to_regclass('public.profiled_result_reports') IS NOT NULL")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert!(installed, "ordered migration024 must install report owner");
     if pin {
         let id = Uuid::new_v4();
         let bytes = outcome.canonical_bytes().unwrap();

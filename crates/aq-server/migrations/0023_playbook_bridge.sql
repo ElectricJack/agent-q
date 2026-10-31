@@ -1,5 +1,5 @@
 -- AQ owns bridge admission/authorization/receipts. The embedded engine owns its
--- separate aq_playbooks schema. Registration waits for ordered native0022.
+-- separate aq_playbooks schema. Registered after native0022.
 CREATE TABLE playbook_namespaces (
  namespace_id uuid PRIMARY KEY,
  generation bigint NOT NULL CHECK (generation > 0),
@@ -103,3 +103,5 @@ CREATE TABLE playbook_outbox (
 );
 CREATE INDEX playbook_admissions_pending ON playbook_admissions(namespace_id,generation,status,created_at_ms,request_id);
 CREATE INDEX playbook_outbox_pending ON playbook_outbox(namespace_id,generation,status,sequence);
+
+UPDATE meta SET value='23' WHERE key='state_format_version';

@@ -218,6 +218,8 @@ const MIGRATIONS: &[(i32, &str)] = &[
         22,
         include_str!("../migrations/0022_profiled_source_exports.sql"),
     ),
+    (23, include_str!("../migrations/0023_playbook_bridge.sql")),
+    (24, include_str!("../migrations/0024_profiled_results.sql")),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
