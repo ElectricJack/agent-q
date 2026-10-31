@@ -129,3 +129,38 @@ fn independently_hashed_published_payload_descriptor_and_schema_do_not_drift() {
     );
     assert_eq!(payload, bytes);
 }
+
+#[test]
+fn one_launch_cannot_pin_two_alternative_native_startup_descriptors() {
+    let (mut native, _) = fixture();
+    let mut alternative = native.startup.clone();
+    alternative.implicit_tokens_upper_bound += 1;
+    let reference = alternative.artifact().unwrap();
+    native
+        .offered
+        .offer
+        .manifest
+        .modules
+        .push(reference.clone());
+    native.offered.artifacts.push(RetainedArtifact {
+        artifact: reference,
+        kind: ArtifactKind::Definition,
+        bytes: aq_session_protocol::canonical_bytes(&alternative)
+            .unwrap()
+            .len() as u64,
+        retention_receipt: artifact("synthetic-receipt"),
+        retained_at_ms: 1000,
+        retain_until_ms: 2000,
+    });
+    native.offered.offer.binding.launch_manifest_digest =
+        canonical_digest(&native.offered.offer.manifest).unwrap();
+    assert_eq!(
+        native.validate().unwrap_err().0,
+        "manifest pins exactly one startup descriptor"
+    );
+    native.startup = alternative;
+    assert_eq!(
+        native.validate().unwrap_err().0,
+        "manifest pins exactly one startup descriptor"
+    );
+}

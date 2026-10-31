@@ -86,8 +86,15 @@ impl Descriptor {
         let descriptor_bytes = aq_session_protocol::canonical_bytes(self)
             .map_err(|_| Invalid("startup descriptor encoding"))?;
         require(
-            offer.manifest.modules.contains(&descriptor),
-            "manifest pins exact startup descriptor",
+            offer
+                .manifest
+                .modules
+                .iter()
+                .filter(|reference| reference.id.as_str().starts_with("aq.startup-delivery/"))
+                .count()
+                == 1
+                && offer.manifest.modules.contains(&descriptor),
+            "manifest pins exactly one startup descriptor",
         )?;
         require(
             retained.iter().any(|r| {
@@ -175,7 +182,9 @@ impl Descriptor {
         )
     }
     /// The worker fetches and verifies this one body, then supplies these exact
-    /// bytes without prefixes, suffixes, interpolation or duplicate constituents.
+    /// bytes without worker-added prefixes, suffixes, interpolation or constituents.
+    /// Slice checks prove designated input presence, not the meaning of bytes
+    /// outside the spans; all framing remains producer/renderer qualification.
     pub fn verify_payload(&self, bytes: &[u8]) -> Result<()> {
         self.validate()?;
         require(

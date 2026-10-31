@@ -178,3 +178,11 @@ current owner facts. Payload/descriptor/qualification retention, digest pins,
 ordered coverage, spans and checked budget relationships require the Rust
 validator in addition to JSON Schema. New startup fixtures/schema/Python SHA256
 vectors are published independently; frozen transport fixtures are unchanged.
+
+Exactly one descriptor in the reserved `aq.startup-delivery/` module namespace
+must be pinned, preventing one grant from selecting between two payloads. Slice
+verification proves the designated input spans are present. It does not interpret
+other payload bytes or prove their semantic nonduplication: all intervening and
+surrounding framing remains the qualified producer renderer's responsibility.
+The extra descriptor/module/retention entries count against existing finite caps;
+otherwise maximal manifests may refuse rather than exceed them.
