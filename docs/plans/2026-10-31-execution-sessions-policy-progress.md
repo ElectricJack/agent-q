@@ -5,13 +5,15 @@ scope. This checkpoint records continued implementation, not completion of the
 three product areas. The [completion map](0002-execution-sessions-policy-completion.md)
 and [task graph](0001-v2-milestones.md) retain the remaining acceptance gates.
 
-Daemon source `7c70651` (state24) passes764 workspace tests with all features enabled,
+Daemon source `c1d6597` (state24) passes778 workspace tests with all features enabled,
 8 intentionally ignored, strict all-target/all-feature lint and formatting.
-The build took98 seconds and test-process times sum to122.31 seconds on this shared
+The build took93 seconds and test-process times sum to129.93 seconds on this shared
 machine; this is an observed run, not a promised CI bound. Exact source hashes and
-logs are in the [state24 integration manifest](../implementation/three-area-state24-qualification.json).
-The prior [717-test state21 checkpoint](../implementation/three-area-integration-qualification.json)
-remains retained separately. Tests use the normal ordered migrations through024.
+logs are in the [reviewed state24 integration manifest](../implementation/three-area-reviewed-state24-qualification.json).
+This includes the historical result-owner read, credential issuance rotation-race
+fix and pure review protocol. The prior [764-test state24 checkpoint](../implementation/three-area-state24-qualification.json)
+and [717-test state21 checkpoint](../implementation/three-area-integration-qualification.json)
+remain retained separately. Tests use the normal ordered migrations through024.
 
 Implemented components in that checkpoint:
 
