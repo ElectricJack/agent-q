@@ -1,0 +1,1090 @@
+{
+  "$defs": {
+    "AccountingMark": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "observation_only",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "event": {
+              "$ref": "#/$defs/EventRef"
+            },
+            "kind": {
+              "const": "contribution_recorded",
+              "type": "string"
+            },
+            "supersedes": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EventRef"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "event"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "not_charged",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/Text"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unresolved",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/Text"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "id": {
+          "$ref": "#/$defs/Text"
+        },
+        "version": {
+          "$ref": "#/$defs/Text"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "digest"
+      ],
+      "type": "object"
+    },
+    "Binding": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt_generation": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "attempt_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "lineage_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "project_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "session": {
+          "$ref": "#/$defs/SessionIdentity"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "project_id",
+        "task_id",
+        "lineage_id",
+        "attempt_id",
+        "attempt_generation",
+        "session"
+      ],
+      "type": "object"
+    },
+    "CategorySemantics": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "declared_disjoint",
+              "type": "string"
+            },
+            "policy": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "policy"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "may_overlap",
+              "type": "string"
+            },
+            "policy": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "policy"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Completeness": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "reported_complete",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "partial",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/UnknownReason"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "gap",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/UnknownReason"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Cost": {
+      "description": "An estimate is explicitly not an invoice. Reported charges still require\nprovenance/owner verification; no wire claim authorizes double-billing.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unknown",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/UnknownReason"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "amount_microunits": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "currency": {
+              "$ref": "#/$defs/Text"
+            },
+            "kind": {
+              "const": "provider_reported",
+              "type": "string"
+            },
+            "receipt": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "amount_microunits",
+            "currency",
+            "receipt"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "allocation_policy": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "amount_microunits": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "basis": {
+              "$ref": "#/$defs/EstimateBasis"
+            },
+            "currency": {
+              "$ref": "#/$defs/Text"
+            },
+            "kind": {
+              "const": "non_invoice_estimate",
+              "type": "string"
+            },
+            "rate_card": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "amount_microunits",
+            "currency",
+            "rate_card",
+            "basis",
+            "allocation_policy"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Counter": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "known",
+              "type": "string"
+            },
+            "value": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unknown",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/UnknownReason"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "CounterBasis": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "per_call",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "counter_generation": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "counter_id": {
+              "$ref": "#/$defs/Text"
+            },
+            "kind": {
+              "const": "cumulative",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "counter_id",
+            "counter_generation"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Counters": {
+      "additionalProperties": false,
+      "properties": {
+        "cache_read": {
+          "$ref": "#/$defs/Counter"
+        },
+        "cache_write": {
+          "$ref": "#/$defs/Counter"
+        },
+        "input": {
+          "$ref": "#/$defs/Counter"
+        },
+        "output": {
+          "$ref": "#/$defs/Counter"
+        },
+        "reasoning": {
+          "$ref": "#/$defs/Counter"
+        }
+      },
+      "required": [
+        "input",
+        "output",
+        "cache_read",
+        "cache_write",
+        "reasoning"
+      ],
+      "type": "object"
+    },
+    "Digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "EstimateBasis": {
+      "enum": [
+        "token_rates",
+        "subscription_allocation",
+        "local_model_allocation"
+      ],
+      "type": "string"
+    },
+    "EventRef": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "event_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "digest"
+      ],
+      "type": "object"
+    },
+    "EventView": {
+      "additionalProperties": false,
+      "properties": {
+        "accounting": {
+          "$ref": "#/$defs/AccountingMark"
+        },
+        "record": {
+          "$ref": "#/$defs/ObservationRecord"
+        },
+        "recorded_at_ms": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "record",
+        "recorded_at_ms",
+        "accounting"
+      ],
+      "type": "object"
+    },
+    "GapReason": {
+      "enum": [
+        "source_missing",
+        "rotated",
+        "truncated",
+        "malformed",
+        "unsupported_format",
+        "spool_overflow",
+        "redacted",
+        "replay_unavailable"
+      ],
+      "type": "string"
+    },
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "binding": {
+          "$ref": "#/$defs/Binding"
+        },
+        "kind": {
+          "$ref": "#/$defs/ObservationKind"
+        },
+        "observed_at_ms": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "provenance": {
+          "$ref": "#/$defs/Provenance"
+        },
+        "sequence": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "binding",
+        "provenance",
+        "sequence",
+        "observed_at_ms",
+        "kind"
+      ],
+      "type": "object"
+    },
+    "ObservationKind": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "in_turn": {
+              "type": "boolean"
+            },
+            "kind": {
+              "const": "turn_boundary",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "in_turn"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "content": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "kind": {
+              "const": "text_reference",
+              "type": "string"
+            },
+            "role": {
+              "$ref": "#/$defs/TextRole"
+            },
+            "utf8_bytes": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "role",
+            "content",
+            "utf8_bytes"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "call_id": {
+              "$ref": "#/$defs/Text"
+            },
+            "kind": {
+              "const": "tool_started",
+              "type": "string"
+            },
+            "tool_name": {
+              "$ref": "#/$defs/Text"
+            }
+          },
+          "required": [
+            "kind",
+            "call_id",
+            "tool_name"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "call_id": {
+              "$ref": "#/$defs/Text"
+            },
+            "content": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "kind": {
+              "const": "tool_result",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "call_id",
+            "content"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "content": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "kind": {
+              "const": "question",
+              "type": "string"
+            },
+            "question_id": {
+              "$ref": "#/$defs/Text"
+            }
+          },
+          "required": [
+            "kind",
+            "question_id",
+            "content"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "code": {
+              "$ref": "#/$defs/Text"
+            },
+            "kind": {
+              "const": "provider_error",
+              "type": "string"
+            },
+            "retryable": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "kind",
+            "code",
+            "retryable"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "usage",
+              "type": "string"
+            },
+            "usage": {
+              "$ref": "#/$defs/Usage"
+            }
+          },
+          "required": [
+            "kind",
+            "usage"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "affected": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/SourceCursor"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "kind": {
+              "const": "gap",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/GapReason"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ObservationRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "$ref": "#/$defs/Observation"
+        },
+        "body_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "event_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "body",
+        "body_digest"
+      ],
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "$ref": "#/$defs/SourceCursor"
+        },
+        "native_session_key": {
+          "$ref": "#/$defs/Text"
+        },
+        "parser": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "raw_record": {
+          "$ref": "#/$defs/RawRecordEvidence"
+        },
+        "source_generation": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "source_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "source_kind": {
+          "$ref": "#/$defs/SourceKind"
+        }
+      },
+      "required": [
+        "source_id",
+        "source_generation",
+        "source_kind",
+        "native_session_key",
+        "cursor",
+        "parser",
+        "raw_record"
+      ],
+      "type": "object"
+    },
+    "ProviderCall": {
+      "additionalProperties": false,
+      "properties": {
+        "account_reference": {
+          "$ref": "#/$defs/Text"
+        },
+        "model": {
+          "$ref": "#/$defs/Text"
+        },
+        "native_call_id": {
+          "$ref": "#/$defs/Text"
+        },
+        "provider": {
+          "$ref": "#/$defs/Text"
+        }
+      },
+      "required": [
+        "provider",
+        "account_reference",
+        "model",
+        "native_call_id"
+      ],
+      "type": "object"
+    },
+    "RawRecordEvidence": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "byte_length": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "digest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "kind": {
+              "const": "available",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "digest",
+            "byte_length"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unavailable",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/GapReason"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "SessionIdentity": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "assignment_generation": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "attempt_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "boot_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "const": "remote",
+              "type": "string"
+            },
+            "node_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "session_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "node_id",
+            "boot_id",
+            "attempt_id",
+            "assignment_generation",
+            "session_id"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "authority_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "generation": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "central",
+              "type": "string"
+            },
+            "session_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "authority_id",
+            "session_id",
+            "generation"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "SourceCursor": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "end": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "bytes",
+              "type": "string"
+            },
+            "start": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "start",
+            "end"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "id": {
+              "$ref": "#/$defs/Text"
+            },
+            "kind": {
+              "const": "record",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "id"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "SourceKind": {
+      "enum": [
+        "native_transcript",
+        "structured_provider_event",
+        "retained_replay"
+      ],
+      "type": "string"
+    },
+    "Text": {
+      "description": "Nonempty UTF-8 text, at most 512 bytes; no control characters.",
+      "maxLength": 512,
+      "minLength": 1,
+      "type": "string"
+    },
+    "TextRole": {
+      "enum": [
+        "assistant",
+        "user"
+      ],
+      "type": "string"
+    },
+    "UnknownReason": {
+      "enum": [
+        "not_reported",
+        "unsupported",
+        "source_gap",
+        "not_applicable",
+        "incomplete"
+      ],
+      "type": "string"
+    },
+    "Usage": {
+      "additionalProperties": false,
+      "properties": {
+        "basis": {
+          "$ref": "#/$defs/CounterBasis"
+        },
+        "call": {
+          "$ref": "#/$defs/ProviderCall"
+        },
+        "category_semantics": {
+          "$ref": "#/$defs/CategorySemantics"
+        },
+        "completeness": {
+          "$ref": "#/$defs/Completeness"
+        },
+        "correction_of": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EventRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cost": {
+          "$ref": "#/$defs/Cost"
+        },
+        "counters": {
+          "$ref": "#/$defs/Counters"
+        }
+      },
+      "required": [
+        "call",
+        "basis",
+        "counters",
+        "category_semantics",
+        "cost",
+        "completeness"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "after_sequence": {
+      "format": "uint64",
+      "maximum": 18446744073709551615,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "binding": {
+      "$ref": "#/$defs/Binding"
+    },
+    "checked_at_ms": {
+      "format": "uint64",
+      "maximum": 18446744073709551615,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "complete_for_snapshot": {
+      "type": "boolean"
+    },
+    "events": {
+      "items": {
+        "$ref": "#/$defs/EventView"
+      },
+      "maxItems": 16,
+      "type": "array"
+    },
+    "next_after": {
+      "format": "uint64",
+      "maximum": 18446744073709551615,
+      "minimum": 0,
+      "type": [
+        "integer",
+        "null"
+      ]
+    },
+    "schema_version": {
+      "const": 1,
+      "format": "uint32",
+      "maximum": 4294967295,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "through_sequence": {
+      "format": "uint64",
+      "maximum": 18446744073709551615,
+      "minimum": 0,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "schema_version",
+    "binding",
+    "after_sequence",
+    "through_sequence",
+    "events",
+    "complete_for_snapshot",
+    "checked_at_ms"
+  ],
+  "title": "EventsPage",
+  "type": "object",
+  "x-max-wire-bytes": 262144
+}

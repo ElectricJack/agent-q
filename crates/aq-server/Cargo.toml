@@ -5,6 +5,10 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
+aq-observation-api = { path = "../aq-observation-api", version = "=0.1.0" }
+chacha20poly1305 = "0.10.1"
+zeroize = "1"
+aq-accounting = { path = "../aq-accounting", version = "=0.1.0" }
 aq-notifications = { path = "../aq-notifications", version = "=0.1.0" }
 aq-lifecycle-api = { path = "../aq-lifecycle-api", version = "=0.1.0" }
 aq-admission = { path = "../aq-admission", version = "=0.1.2" }

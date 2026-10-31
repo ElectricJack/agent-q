@@ -1,0 +1,215 @@
+{
+  "events": {
+    "schema_version": 1,
+    "binding": {
+      "attempt_generation": 4,
+      "attempt_id": "00000000-0000-0000-0000-000000000003",
+      "lineage_id": "00000000-0000-0000-0000-000000000008",
+      "project_id": "00000000-0000-0000-0000-000000000006",
+      "session": {
+        "assignment_generation": 4,
+        "attempt_id": "00000000-0000-0000-0000-000000000003",
+        "boot_id": "00000000-0000-0000-0000-000000000002",
+        "kind": "remote",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "session_id": "00000000-0000-0000-0000-000000000005"
+      },
+      "task_id": "00000000-0000-0000-0000-000000000007"
+    },
+    "after_sequence": 0,
+    "through_sequence": 1,
+    "events": [
+      {
+        "record": {
+          "body": {
+            "binding": {
+              "attempt_generation": 4,
+              "attempt_id": "00000000-0000-0000-0000-000000000003",
+              "lineage_id": "00000000-0000-0000-0000-000000000008",
+              "project_id": "00000000-0000-0000-0000-000000000006",
+              "session": {
+                "assignment_generation": 4,
+                "attempt_id": "00000000-0000-0000-0000-000000000003",
+                "boot_id": "00000000-0000-0000-0000-000000000002",
+                "kind": "remote",
+                "node_id": "00000000-0000-0000-0000-000000000001",
+                "session_id": "00000000-0000-0000-0000-000000000005"
+              },
+              "task_id": "00000000-0000-0000-0000-000000000007"
+            },
+            "kind": {
+              "kind": "usage",
+              "usage": {
+                "basis": {
+                  "counter_generation": 1,
+                  "counter_id": "conversation-total",
+                  "kind": "cumulative"
+                },
+                "call": {
+                  "account_reference": "logical-account",
+                  "model": "fixture-model",
+                  "native_call_id": "native-call-1",
+                  "provider": "synthetic"
+                },
+                "category_semantics": {
+                  "kind": "may_overlap",
+                  "policy": {
+                    "digest": "80b8b51afc5df196ae89571708edb60fc7dbf426292ff3296d36d5bade84b2d9",
+                    "id": "provider-category-semantics",
+                    "version": "1"
+                  }
+                },
+                "completeness": {
+                  "kind": "reported_complete"
+                },
+                "correction_of": null,
+                "cost": {
+                  "allocation_policy": {
+                    "digest": "435e6d6e2f9a39d16dec7b304a4a830899a57b44be6fc2ab7d2df0eb04168c5f",
+                    "id": "estimate-policy-r1",
+                    "version": "1"
+                  },
+                  "amount_microunits": 0,
+                  "basis": "token_rates",
+                  "currency": "USD",
+                  "kind": "non_invoice_estimate",
+                  "rate_card": {
+                    "digest": "39d7eef19377d071cac0dca795a7b7be487278c6ca845d29ba5af36b54eb407b",
+                    "id": "rate-card-r1",
+                    "version": "1"
+                  }
+                },
+                "counters": {
+                  "cache_read": {
+                    "kind": "unknown",
+                    "reason": "unsupported"
+                  },
+                  "cache_write": {
+                    "kind": "unknown",
+                    "reason": "unsupported"
+                  },
+                  "input": {
+                    "kind": "unknown",
+                    "reason": "not_reported"
+                  },
+                  "output": {
+                    "kind": "known",
+                    "value": 0
+                  },
+                  "reasoning": {
+                    "kind": "unknown",
+                    "reason": "not_applicable"
+                  }
+                }
+              }
+            },
+            "observed_at_ms": 1001,
+            "provenance": {
+              "cursor": {
+                "end": 20,
+                "kind": "bytes",
+                "start": 0
+              },
+              "native_session_key": "native-session-1",
+              "parser": {
+                "digest": "ec727a97ef79ffe0bb5b6022180eadcf43afe4cbf9fcfa358857cdf6f7ed92f2",
+                "id": "parser-fixture-v1",
+                "version": "1"
+              },
+              "raw_record": {
+                "byte_length": 20,
+                "digest": "0ccee546f17d1b386f3f47f5586eabfc3faee50e8f4c273810cad3ce9cf5fe87",
+                "kind": "available"
+              },
+              "source_generation": 1,
+              "source_id": "00000000-0000-0000-0000-00000000000d",
+              "source_kind": "native_transcript"
+            },
+            "sequence": 1
+          },
+          "body_digest": "036a1c7fc640f5372ecf45d6ed77cab39c39203c9be584745e6b65164abd125e",
+          "event_id": "00000000-0000-0000-0000-000000000065"
+        },
+        "recorded_at_ms": 6000,
+        "accounting": {
+          "kind": "unresolved",
+          "reason": "missing_baseline"
+        }
+      }
+    ],
+    "next_after": null,
+    "complete_for_snapshot": true,
+    "checked_at_ms": 6000
+  },
+  "usage": {
+    "schema_version": 1,
+    "binding": {
+      "attempt_generation": 4,
+      "attempt_id": "00000000-0000-0000-0000-000000000003",
+      "lineage_id": "00000000-0000-0000-0000-000000000008",
+      "project_id": "00000000-0000-0000-0000-000000000006",
+      "session": {
+        "assignment_generation": 4,
+        "attempt_id": "00000000-0000-0000-0000-000000000003",
+        "boot_id": "00000000-0000-0000-0000-000000000002",
+        "kind": "remote",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "session_id": "00000000-0000-0000-0000-000000000005"
+      },
+      "task_id": "00000000-0000-0000-0000-000000000007"
+    },
+    "revision": 1,
+    "checked_at_ms": 6000,
+    "last_recorded_at_ms": 6000,
+    "usage": {
+      "ledger_revision": {
+        "id": "synthetic-ledger",
+        "version": "1",
+        "digest": "66e8383a080eba5a302d0f7a44247fc68552ed108fe47abb6a8134d16eb44db4"
+      },
+      "counters": {
+        "input": {
+          "kind": "unknown",
+          "reason": "incomplete"
+        },
+        "output": {
+          "kind": "unknown",
+          "reason": "incomplete"
+        },
+        "cache_read": {
+          "kind": "unknown",
+          "reason": "incomplete"
+        },
+        "cache_write": {
+          "kind": "unknown",
+          "reason": "incomplete"
+        },
+        "reasoning": {
+          "kind": "unknown",
+          "reason": "incomplete"
+        }
+      },
+      "counter_generation": null,
+      "costs": [
+        {
+          "kind": "unknown",
+          "reason": "not_reported"
+        }
+      ],
+      "completeness": {
+        "kind": "incomplete",
+        "reason": "missing cumulative baseline"
+      }
+    },
+    "known_category_subtotals": [
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "canonical_calls": 0,
+    "incomplete_calls": 0,
+    "unresolved_events": 1
+  }
+}

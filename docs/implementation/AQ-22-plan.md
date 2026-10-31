@@ -40,8 +40,11 @@ arbitrary filesystem path supplied in a record. Parser policy and category
 semantics are verified artifacts; a wire reference or self-advertised capability
 alone is not proof of complete accounting.
 
-One durable node/boot transport cursor and exact event identities distinguish
-packet replay from conflicting sequence reuse. Preserve the frozen batch and
+One durable node-wide transport cursor and exact event identities distinguish
+packet replay from conflicting sequence reuse. An admitted boot transition
+with a retained spool preserves old fact bindings and the sequence. Missing
+spools require explicit source-gap recovery and retirement of old transport
+ownership; never auto-reseed or relabel historical facts. Preserve the frozen batch and
 its acknowledgment; no partial success acknowledgment can silently discard
 accounting. Known history or corrected facts may advance transport delivery
 without adding another charge. Database quota exhaustion refuses atomically;

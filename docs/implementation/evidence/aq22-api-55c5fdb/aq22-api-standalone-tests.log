@@ -1,0 +1,57 @@
+     Locking 45 packages to latest Rust 1.96.1 compatible versions
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling version_check v0.9.5
+   Compiling serde_core v1.0.229
+   Compiling typenum v1.20.1
+   Compiling zmij v1.0.23
+   Compiling ref-cast v1.0.27
+   Compiling serde v1.0.229
+   Compiling serde_json v1.0.154
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.3
+   Compiling thiserror v2.0.21
+   Compiling cfg-if v1.0.5
+   Compiling cpufeatures v0.2.17
+   Compiling dyn-clone v1.0.20
+   Compiling generic-array v0.14.7
+   Compiling syn v3.0.9
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling uuid v1.29.0
+   Compiling serde_derive_internals v0.30.0
+   Compiling ref-cast-impl v1.0.27
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.21
+   Compiling schemars_derive v1.2.3
+   Compiling schemars v1.2.3
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq22-api-extracted/aq-session-protocol-0.1.0)
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/aq22-api-extracted/aq-lifecycle-protocol-0.1.0)
+   Compiling aq-lifecycle-api v0.1.0 (/tmp/aq22-api-extracted/aq-lifecycle-api-0.1.0)
+   Compiling aq-observation-api v0.1.0 (/tmp/aq22-api-extracted/aq-observation-api-0.1.0)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10.43s
+     Running unittests src/lib.rs (/tmp/aq22-api-standalone-target/debug/deps/aq_observation_api-9df44af3eed0eb80)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/views.rs (/tmp/aq22-api-standalone-target/debug/deps/views-a287c0e30a20b396)
+
+running 4 tests
+test unknown_duplicate_fields_versions_and_oversize_are_refused ... ok
+test raw_usage_claims_do_not_become_complete_projection_or_contribution ... ok
+test exact_scope_and_continuation_are_not_caller_selected ... ok
+test published_examples_and_schemas_are_stable ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests aq_observation_api
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

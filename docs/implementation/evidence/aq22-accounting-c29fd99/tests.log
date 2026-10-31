@@ -1,0 +1,37 @@
+   Compiling aq-accounting v0.1.0 (/tmp/aq22-observations/crates/aq-accounting)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.56s
+     Running unittests src/lib.rs (target/debug/deps/aq_accounting-35f34b41dbf3685a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/accounting.rs (target/debug/deps/accounting-8a862c2efa50de83)
+
+running 17 tests
+test deterministic_pricing_uses_explicit_disjoint_billing_rules_not_all_raw_fields ... ok
+test empty_projection_and_unresolved_events_do_not_look_like_reported_zero ... ok
+test partial_pricing_exposes_lower_bound_currency_and_unknown_cost ... ok
+test pricing_rounds_once_per_contribution_and_refuses_overflow ... ok
+test reported_zero_is_distinct_from_unknown_and_overlap_is_not_double_counted ... ok
+test projection_corrects_in_place_without_resetting_other_attempts_or_unknown_categories ... ok
+test cumulative_baseline_cannot_be_borrowed_from_another_counter ... ok
+test canonical_fact_pricing_requires_its_pinned_card_and_category_semantics ... ok
+test parser_revision_and_model_attribution_are_not_new_call_identity ... ok
+test stored_fact_mutation_and_unknown_policy_are_refused ... ok
+test cumulative_usage_requires_a_verified_baseline_and_preserves_it_on_updates ... ok
+test cumulative_reset_mixed_model_and_unknown_baselines_cannot_manufacture_new_spending ... ok
+test history_import_preserves_original_lineage_and_namespace_separates_unrelated_calls ... ok
+test exact_call_replay_and_cross_source_precedence_do_not_add_two_bills ... ok
+test unknown_corrections_and_equal_precedence_conflicts_remain_incomplete ... ok
+test explicit_correction_replaces_prior_contribution_and_rejects_stale_target ... ok
+test price_reference_is_pinned_and_unverified_reported_cost_does_not_change_tokens ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aq_accounting
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
