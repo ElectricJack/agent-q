@@ -1043,7 +1043,7 @@
       "repo": "aq-worker",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "CON-01",
         "API-01"
@@ -1068,7 +1068,9 @@
       "out_of_scope": [
         "Runtime profile resolver, relay or terminal implementation"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/con02-session-contracts.md"
+      ]
     },
     {
       "id": "AQ-18",
@@ -1076,7 +1078,7 @@
       "repo": "agent-q",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "CON-02"
       ],
@@ -1169,7 +1171,7 @@
       "repo": "aq-worker",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "CON-02",
         "WRK-04"

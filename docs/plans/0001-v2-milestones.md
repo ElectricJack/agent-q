@@ -40,8 +40,10 @@ Read the mapped source and regression cases before implementing an affected task
 | --- | --- | --- |
 | [AQ-07](#aq-07) | agent-q | Implement durable graph mutation delivery and recovery |
 | [WRK-07](#wrk-07) | aq-worker | Implement resumable artifact handoff and retention release |
+| [CON-03](#con-03) | aq-worker | Publish session observation and continuation contracts |
 | [PB-02](#pb-02) | aq-playbooks | Establish the playbook storage and scheduling operating envelope |
 | [REL-01](#rel-01) | agent-q | Version the composite product manifest and component inventory |
+| [AQ-21](#aq-21) | agent-q | Implement authorized terminal relay and controller leasing |
 
 The daemon authority track can start after BASE-01 and CON-01. The worker runtime track follows connector extraction. Graph, Git and playbook qualification are independent early tracks; they are not artificial prerequisites for fake-agent execution. Dashboard work waits for a versioned inspection/action API, but does not wait for production deployment.
 
@@ -128,11 +130,11 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [WRK-07](#wrk-07): Implement resumable artifact handoff and retention release | aq-worker | [WRK-06](#wrk-06), [AQ-09](#aq-09) | planned |
 | [WRK-08](#wrk-08): Qualify Codex CLI as the first real tmux harness | aq-worker | [WRK-05](#wrk-05), [WRK-06](#wrk-06), [GATE-03](#gate-03), [CON-02](#con-02), [WRK-10](#wrk-10), [AQ-20](#aq-20) | planned |
 | [AQ-10](#aq-10): Apply evidence-based result disposition and graph completion | agent-q | [AQ-05](#aq-05), [AQ-07](#aq-07), [AQ-09](#aq-09) | planned |
-| [CON-02](#con-02): Publish profile launch, harness capability and terminal contracts | aq-worker | [CON-01](#con-01), [API-01](#api-01) | in_progress |
-| [AQ-18](#aq-18): Build the compositional profile catalog, compiler and explanation CLI | agent-q | [CON-02](#con-02) | planned |
+| [CON-02](#con-02): Publish profile launch, harness capability and terminal contracts | aq-worker | [CON-01](#con-01), [API-01](#api-01) | complete |
+| [AQ-18](#aq-18): Build the compositional profile catalog, compiler and explanation CLI | agent-q | [CON-02](#con-02) | in_progress |
 | [AQ-19](#aq-19): Implement project execution bindings and policy administration | agent-q | [AQ-18](#aq-18), [AQ-03](#aq-03) | planned |
 | [AQ-20](#aq-20): Resolve intelligence and execution choices with bounded provider availability | agent-q | [AQ-18](#aq-18), [AQ-19](#aq-19), [AQ-03](#aq-03) | planned |
-| [WRK-10](#wrk-10): Implement the guarded tmux session host and reusable adapter interface | aq-worker | [CON-02](#con-02), [WRK-04](#wrk-04) | planned |
+| [WRK-10](#wrk-10): Implement the guarded tmux session host and reusable adapter interface | aq-worker | [CON-02](#con-02), [WRK-04](#wrk-04) | in_progress |
 | [GATE-04](#gate-04): Demonstrate a real agent with retained source and graph outcome | agent-q | [GATE-03](#gate-03), [AQ-08](#aq-08), [AQ-10](#aq-10), [WRK-07](#wrk-07), [WRK-08](#wrk-08) | planned |
 
 ### M5 overview
@@ -751,7 +753,7 @@ Requirement links: D3, D5, D6, D9, X6, X7, X10, X12.
 
 **Publish profile launch, harness capability and terminal contracts**
 
-Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: in_progress.
+Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: complete.
 
 Hard prerequisites: [CON-01](#con-01), [API-01](#api-01).
 
@@ -766,11 +768,13 @@ Requirement links: P2, P4, P5, P8, H1, H4, R1, R2, R3, R4.
 
 Outside this task: Runtime profile resolver, relay or terminal implementation.
 
+Evidence: [con02-session-contracts.md](../implementation/con02-session-contracts.md).
+
 ### AQ-18
 
 **Build the compositional profile catalog, compiler and explanation CLI**
 
-Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [CON-02](#con-02).
 
@@ -831,7 +835,7 @@ Outside this task: Implicit provider/model downgrades, automatic quota-probe ada
 
 **Implement the guarded tmux session host and reusable adapter interface**
 
-Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: planned.
+Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [CON-02](#con-02), [WRK-04](#wrk-04).
 
