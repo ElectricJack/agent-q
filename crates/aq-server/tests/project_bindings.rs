@@ -1341,3 +1341,67 @@ async fn empty_policy_configuration_still_retains_global_revision_owner() {
     env.state.config = Arc::new(config);
     assert!(policies::install(&env.state).await.is_err());
 }
+
+#[tokio::test]
+async fn committed_binding_installs_pending_policy_and_historical_ack_survives_retirement() {
+    use aq_server::profiled_execution::{
+        config::{ProfiledConfig, ProjectPolicy},
+        policies,
+    };
+    let mut env = setup(false).await;
+    let configured = ProfiledConfig {
+        revision: 1,
+        qualified_runtimes: vec![],
+        projects: vec![ProjectPolicy {
+            project_id: Uuid::from_u128(1),
+            enabled: true,
+            priority: 0,
+            source: aq_admission::SourceSelection::Immutable {
+                object: aq_admission::ObjectId {
+                    format: aq_admission::ObjectFormat::Sha1,
+                    hex: "a".repeat(40),
+                },
+            },
+            retention_handle: Uuid::new_v4(),
+        }],
+    };
+    let mut cfg = (*env.state.config).clone();
+    cfg.profiled_execution = Some(Arc::new(configured));
+    env.state.config = Arc::new(cfg);
+    env.app = aq_server::build_admin_router(env.state.clone());
+    assert_eq!(policies::install(&env.state).await.unwrap().unbound, 1);
+    let request = json!({"operation_id":Uuid::new_v4(),"expected_revision":0,"binding":env.body});
+    let (status, first) = call(&env.app, &path(), Some(request.clone()), "owner@localhost").await;
+    assert_eq!(status, StatusCode::OK, "{first}");
+    let enabled: bool = sqlx::query_scalar(
+        "SELECT (policy->>'enabled')::boolean FROM admission_source_policies WHERE project_id=$1",
+    )
+    .bind(Uuid::from_u128(1))
+    .fetch_one(&env.pool)
+    .await
+    .unwrap();
+    assert!(
+        enabled,
+        "post-commit installer did not publish the previously unbound policy"
+    );
+    let mut newer = env.state.clone();
+    let mut cfg = (*newer.config).clone();
+    cfg.profiled_execution = Some(Arc::new(ProfiledConfig {
+        revision: 2,
+        qualified_runtimes: vec![],
+        projects: vec![],
+    }));
+    newer.config = Arc::new(cfg);
+    policies::install(&newer).await.unwrap();
+    let (status, retry) = call(&env.app, &path(), Some(request), "owner@localhost").await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(retry, first);
+    let enabled: bool = sqlx::query_scalar(
+        "SELECT (policy->>'enabled')::boolean FROM admission_source_policies WHERE project_id=$1",
+    )
+    .bind(Uuid::from_u128(1))
+    .fetch_one(&env.pool)
+    .await
+    .unwrap();
+    assert!(!enabled, "historical ack reinstalled a retired policy");
+}

@@ -226,6 +226,7 @@ async fn put(
         .map_err(|_| bad("invalid project mutation"))?;
     if let Some(receipt) = existing_receipt(&state, actor.id, request.operation_id, &digest).await?
     {
+        install_profiled_policies_after_commit(&state).await;
         return Ok(Json(receipt));
     }
     request
@@ -269,7 +270,7 @@ async fn put(
     if (state.clock)().timestamp_millis().max(1) as u64 >= observation.expires_at_ms {
         return Err(conflict("external validation expired before commit"));
     }
-    mutate(
+    let response = mutate(
         &state,
         actor.id,
         id,
@@ -279,8 +280,9 @@ async fn put(
         Some((catalog_revision, request.binding, observation)),
         false,
     )
-    .await
-    .map(Json)
+    .await?;
+    install_profiled_policies_after_commit(&state).await;
+    Ok(Json(response))
 }
 async fn disable(
     State(state): State<AppState>,
@@ -299,9 +301,10 @@ async fn disable(
         .map_err(|_| bad("invalid project mutation"))?;
     if let Some(receipt) = existing_receipt(&state, actor.id, request.operation_id, &digest).await?
     {
+        install_profiled_policies_after_commit(&state).await;
         return Ok(Json(receipt));
     }
-    mutate(
+    let response = mutate(
         &state,
         actor.id,
         id,
@@ -311,8 +314,21 @@ async fn disable(
         None,
         true,
     )
-    .await
-    .map(Json)
+    .await?;
+    install_profiled_policies_after_commit(&state).await;
+    Ok(Json(response))
+}
+/// The binding acknowledgment is already immutable. Installation is a separate
+/// projection, after the original transaction has released every project lock.
+/// Failure leaves scheduling ineligible without changing the accepted receipt.
+async fn install_profiled_policies_after_commit(state: &AppState) {
+    if state.config.profiled_execution.is_some()
+        && crate::profiled_execution::policies::install(state)
+            .await
+            .is_err()
+    {
+        tracing::warn!("profiled policy installation pending after binding acknowledgment");
+    }
 }
 #[allow(clippy::too_many_arguments)]
 async fn mutate(
