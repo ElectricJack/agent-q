@@ -1,0 +1,97 @@
+{
+  "source": [
+    {
+      "revision": "c3f49fde0ab4bd6801524e54262d016091e0262c",
+      "files": [
+        {
+          "path": "crates/aq-admission/README.md",
+          "sha256": "cb4eae9ed4f90b8d4020f94e38efbad946fcb7e849af5698593c2c2c6d3bdc71"
+        },
+        {
+          "path": "crates/aq-admission/artifacts/startup.fixture.json",
+          "sha256": "3c6b6c77c2e2b7ff6028f00e35d8612feb38773ec16ade3fa8ff27f0e5614a0c"
+        },
+        {
+          "path": "crates/aq-admission/artifacts/startup.python-vectors.json",
+          "sha256": "71da1c67d3e1846d47b3a28c4e00ec26d3ebdf4b8ddb290846e0c40ddd4cb4f4"
+        },
+        {
+          "path": "crates/aq-admission/artifacts/startup.schema.json",
+          "sha256": "061b93d84c72c3621a8560821c468e20438d835f62a69ada257c408839646329"
+        },
+        {
+          "path": "crates/aq-admission/examples/export_startup.rs",
+          "sha256": "f043c22d4e6f0151e397bf9cca193b64ad2e60454b3f575eb1f9bb259d40fff8"
+        },
+        {
+          "path": "crates/aq-admission/src/lib.rs",
+          "sha256": "86c975ee8bf795d676fa66fc5c5d8b64ef599b69978394df534869e6cc281c68"
+        },
+        {
+          "path": "crates/aq-admission/src/startup.rs",
+          "sha256": "3a51ee5b1ab831ec33924e6f786416311a16c2f62d9c654d294ec11689c56f7d"
+        },
+        {
+          "path": "crates/aq-admission/tests/startup.rs",
+          "sha256": "2eb71e145c5b74e2388fc7a34cba470c2f712e11f24969525225fcafa5cd7f31"
+        },
+        {
+          "path": "crates/aq-admission/tests/startup_common.rs",
+          "sha256": "d1149a9cdadbbec384aa43b727e568c8114091476c20442764d0f3ad1deea849"
+        }
+      ]
+    },
+    {
+      "revision": "3c7e7c217882d4a9eec1cda293b2d11112c64739",
+      "files": [
+        {
+          "path": "crates/aq-server/src/profiled_execution.rs",
+          "sha256": "25c8d0fdb4dbb15acd6aaa06f4b9ab18958c255b3d9cab767cb42b5f5295b4ad"
+        },
+        {
+          "path": "crates/aq-server/src/profiled_execution/source_exports.rs",
+          "sha256": "b88e249fe8bc3757a88f66a1e7338daf266c5d358c36e0e508d236089f6b243e"
+        }
+      ]
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-startup-c3f49fd/aq08-startup-tests.log",
+      "sha256": "cd6e017b7d5afe0230d5740ee21dc83ff69eb964c435091e824e39fd7a1a22f9"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-startup-c3f49fd/aq08-startup-clippy.log",
+      "sha256": "20e7ff3ad364598aa5e6475f7bc39438c122df39d50b5226c3098dbeec962f72"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-startup-c3f49fd/aq08-source-export-token-tests.log",
+      "sha256": "a210a3f2cb6a23bc66a32b031036c9d301551d8c15768278409fc76bdb91aea9"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-startup-c3f49fd/aq08-source-export-token-clippy.log",
+      "sha256": "6f1318f0036176a3bf464128a7aafd90e14c95258fb12601e81bf03994beb157"
+    }
+  ],
+  "qualification": {
+    "admission_pure_tests": 42,
+    "source_token_tests": 1,
+    "admission_all_target_strict_clippy": "pass",
+    "server_lib_all_feature_strict_clippy": "pass",
+    "format": "pass"
+  },
+  "commands": [
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-admission --locked --offline",
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo clippy -p aq-admission --all-targets --locked --offline -- -D warnings",
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-server --lib profiled_execution::source_exports --locked --offline",
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo clippy -p aq-server --lib --all-features --locked --offline -- -D warnings",
+    "cargo fmt --package aq-admission --check",
+    "cargo fmt --package aq-server --check"
+  ],
+  "limitations": [
+    "Admission0.1.6 is an unpublished combined candidate containing root result_record plus startup; no independent archive qualification claimed.",
+    "No production source export reservation service/SQL, native offer producer, worker consumer, provider call or execution gate enabled.",
+    "synthetic_reserved_export is component-test support only; production has no token constructor until durable022 reservation owner exists.",
+    "Current retained descriptor and module caps can refuse otherwise maximal manifests after startup descriptor/payload/qualification refs are added."
+  ]
+}

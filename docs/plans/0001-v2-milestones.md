@@ -27,6 +27,7 @@ The original planning baseline completed AUD-00; current statuses below record s
 
 - [0003-agent-profiles-harnesses-and-terminals.md](../architecture/0003-agent-profiles-harnesses-and-terminals.md): Required compositional agent/execution/intelligence profiles, explicit project bindings and provider selection, mandatory tmux for every real agent CLI, four qualified harnesses, and outbound-only remote terminal watch/control. M4 proves the first adapter; M6 requires all four and the browser terminal experience. Existing completed task evidence is unchanged.
 - [0004-session-operations-waits-and-notifications.md](../architecture/0004-session-operations-waits-and-notifications.md): Required session peek/attach/nudge, transcript and usage accounting, bounded stall recovery, Discord notification delivery, escalation/digest policy and verified agent suspension/hibernation with cross-node wake. M5 mechanisms and M6 product qualification are mandatory; earlier completed evidence remains unchanged.
+- [2026-10-31-execution-sessions-policy-progress.md](2026-10-31-execution-sessions-policy-progress.md): Current three-area design/implementation reconciliation, state21 integration717tests, actual stopped owner and pinned outcome/startup boundaries, playbook durable admission, and confirmed terminal observer backpressure with independent reader-lease correction. Product acceptance gates remain open.
 
 ### V1 implementation evidence
 
@@ -146,7 +147,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [WRK-09](#wrk-09): Deliver messages through the real harness safely | aq-worker | [WRK-08](#wrk-08), [AQ-11](#aq-11) | planned |
 | [AQ-17](#aq-17): Host bounded supervisor sessions centrally | agent-q | [AQ-11](#aq-11), [AQ-06](#aq-06), [AQ-18](#aq-18), [AQ-20](#aq-20), [WRK-08](#wrk-08), [WRK-10](#wrk-10) | planned |
 | [AQ-12](#aq-12): Embed the qualified playbook runner with bounded execution | agent-q | [PB-01](#pb-01), [AQ-07](#aq-07) | in_progress |
-| [AQ-13](#aq-13): Implement core work, context and operation host adapters | agent-q | [AQ-12](#aq-12), [AQ-08](#aq-08), [AQ-05](#aq-05), [AQ-11](#aq-11), [AQ-20](#aq-20) | planned |
+| [AQ-13](#aq-13): Implement core work, context and operation host adapters | agent-q | [AQ-12](#aq-12), [AQ-08](#aq-08), [AQ-05](#aq-05), [AQ-11](#aq-11), [AQ-20](#aq-20) | in_progress |
 | [AQ-14](#aq-14): Implement judgment, decision and check host adapters | agent-q | [AQ-13](#aq-13), [AQ-10](#aq-10), [AQ-17](#aq-17), [WRK-09](#wrk-09) | planned |
 | [AQ-15](#aq-15): Implement candidate preparation and guarded publication policy | agent-q | [AQ-14](#aq-14), [AQ-09](#aq-09), [GIT-01](#git-01) | planned |
 | [AQ-16](#aq-16): Implement findings reconciliation and durable calendar/report coordination | agent-q | [AQ-13](#aq-13), [AQ-14](#aq-14) | planned |
@@ -643,7 +644,7 @@ Acceptance:
 
 Requirement links: D1, D6, D9, W3, W4, W5, W13, P2, P4, P5, P6, P7.
 
-Evidence: [AQ-08-stage1.md](../implementation/AQ-08-stage1.md), [AQ-08-stage1.json](../implementation/AQ-08-stage1.json), [AQ-08-contract-0.1.1.json](../implementation/AQ-08-contract-0.1.1.json), [AQ-08-execution-spec-0.1.2.json](../implementation/AQ-08-execution-spec-0.1.2.json), [AQ-08-hot-authority-qualification.json](../implementation/AQ-08-hot-authority-qualification.json), [AQ-08-source-grant-gate-qualification.json](../implementation/AQ-08-source-grant-gate-qualification.json), [AQ-08-never-granted-closure.md](../implementation/AQ-08-never-granted-closure.md), [AQ-08-policy-principals.md](../implementation/AQ-08-policy-principals.md), [AQ-08-policy-install-qualification.json](../implementation/AQ-08-policy-install-qualification.json), [AQ-08-AQ-22-state17-qualification.json](../implementation/AQ-08-AQ-22-state17-qualification.json), [AQ-08-started-owner.md](../implementation/AQ-08-started-owner.md), [AQ-08-started-contract-0.1.3.json](../implementation/AQ-08-started-contract-0.1.3.json), [AQ-08-AQ-21-state19-qualification.json](../implementation/AQ-08-AQ-21-state19-qualification.json), [AQ-08-provider-material-owner.md](../implementation/AQ-08-provider-material-owner.md), [AQ-08-source-observation.md](../implementation/AQ-08-source-observation.md), [AQ-08-material-delivery.md](../implementation/AQ-08-material-delivery.md), [AQ-08-material-delivery-qualification.json](../implementation/AQ-08-material-delivery-qualification.json), [AQ-08-acyclic-graph-policy-qualification.json](../implementation/AQ-08-acyclic-graph-policy-qualification.json), [AQ-08-inline-artifacts.md](../implementation/AQ-08-inline-artifacts.md), [AQ-08-inline-artifacts-qualification.json](../implementation/AQ-08-inline-artifacts-qualification.json), [AQ-08-artifact-phases-qualification.md](../implementation/AQ-08-artifact-phases-qualification.md), [AQ-08-artifact-phases-qualification.json](../implementation/AQ-08-artifact-phases-qualification.json), [AQ-08-native-completion-plan.md](../implementation/AQ-08-native-completion-plan.md).
+Evidence: [AQ-08-stage1.md](../implementation/AQ-08-stage1.md), [AQ-08-stage1.json](../implementation/AQ-08-stage1.json), [AQ-08-contract-0.1.1.json](../implementation/AQ-08-contract-0.1.1.json), [AQ-08-execution-spec-0.1.2.json](../implementation/AQ-08-execution-spec-0.1.2.json), [AQ-08-hot-authority-qualification.json](../implementation/AQ-08-hot-authority-qualification.json), [AQ-08-source-grant-gate-qualification.json](../implementation/AQ-08-source-grant-gate-qualification.json), [AQ-08-never-granted-closure.md](../implementation/AQ-08-never-granted-closure.md), [AQ-08-policy-principals.md](../implementation/AQ-08-policy-principals.md), [AQ-08-policy-install-qualification.json](../implementation/AQ-08-policy-install-qualification.json), [AQ-08-AQ-22-state17-qualification.json](../implementation/AQ-08-AQ-22-state17-qualification.json), [AQ-08-started-owner.md](../implementation/AQ-08-started-owner.md), [AQ-08-started-contract-0.1.3.json](../implementation/AQ-08-started-contract-0.1.3.json), [AQ-08-AQ-21-state19-qualification.json](../implementation/AQ-08-AQ-21-state19-qualification.json), [AQ-08-provider-material-owner.md](../implementation/AQ-08-provider-material-owner.md), [AQ-08-source-observation.md](../implementation/AQ-08-source-observation.md), [AQ-08-material-delivery.md](../implementation/AQ-08-material-delivery.md), [AQ-08-material-delivery-qualification.json](../implementation/AQ-08-material-delivery-qualification.json), [AQ-08-acyclic-graph-policy-qualification.json](../implementation/AQ-08-acyclic-graph-policy-qualification.json), [AQ-08-inline-artifacts.md](../implementation/AQ-08-inline-artifacts.md), [AQ-08-inline-artifacts-qualification.json](../implementation/AQ-08-inline-artifacts-qualification.json), [AQ-08-artifact-phases-qualification.md](../implementation/AQ-08-artifact-phases-qualification.md), [AQ-08-artifact-phases-qualification.json](../implementation/AQ-08-artifact-phases-qualification.json), [AQ-08-native-completion-plan.md](../implementation/AQ-08-native-completion-plan.md), [qualification.json](../implementation/evidence/aq08-context-5510d3d/qualification.json), [qualification.json](../implementation/evidence/aq08-startup-c3f49fd/qualification.json), [aq-admission-0.1.6-qualification.md](../implementation/aq-admission-0.1.6-qualification.md), [AQ-08-preoffer-source-export.md](../implementation/AQ-08-preoffer-source-export.md), [AQ-08-preoffer-io-qualification.json](../implementation/AQ-08-preoffer-io-qualification.json).
 
 ### WRK-05
 
@@ -760,7 +761,7 @@ Acceptance:
 
 Requirement links: D3, D5, D6, D9, X6, X7, X10, X12.
 
-Evidence: [AQ-10-result-settlement-plan.md](../implementation/AQ-10-result-settlement-plan.md).
+Evidence: [AQ-10-result-settlement-plan.md](../implementation/AQ-10-result-settlement-plan.md), [AQ-10-stopped-owner-qualification.md](../implementation/AQ-10-stopped-owner-qualification.md), [AQ-10-outcome-contract-qualification.md](../implementation/AQ-10-outcome-contract-qualification.md), [aq-admission-0.1.6-qualification.md](../implementation/aq-admission-0.1.6-qualification.md).
 
 ### CON-02
 
@@ -969,13 +970,13 @@ Acceptance:
 
 Requirement links: E1, D2, D6, D7, X8, X14.
 
-Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md).
+Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md), [AQ-12.foundation.md](../implementation/AQ-12.foundation.md).
 
 ### AQ-13
 
 **Implement core work, context and operation host adapters**
 
-Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [AQ-12](#aq-12), [AQ-08](#aq-08), [AQ-05](#aq-05), [AQ-11](#aq-11), [AQ-20](#aq-20).
 
@@ -990,7 +991,7 @@ Acceptance:
 
 Requirement links: D2, D4, D5, D6, W10, X6, X10, P3, P5, P6, P7, C6, N1.
 
-Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md).
+Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md), [AQ-13-durable-bridge-design.md](../implementation/AQ-13-durable-bridge-design.md).
 
 ### AQ-14
 
@@ -1538,7 +1539,7 @@ Requirement links: R1, R2, R3, R4, R5, R6, H3, H4, W2, W9.
 
 Outside this task: Provider-specific transcript parsing, full-duplex worker server-push transport.
 
-Evidence: [WRK-14-stage1.md](../../../aq-worker/docs/implementation/WRK-14-stage1.md), [WRK-14-integration.md](../../../aq-worker/docs/implementation/WRK-14-integration.md), [WRK-14-integration.json](../../../aq-worker/docs/implementation/WRK-14-integration.json), [WRK-14-output-plan.md](../../../aq-worker/docs/implementation/WRK-14-output-plan.md).
+Evidence: [WRK-14-stage1.md](../../../aq-worker/docs/implementation/WRK-14-stage1.md), [WRK-14-integration.md](../../../aq-worker/docs/implementation/WRK-14-integration.md), [WRK-14-integration.json](../../../aq-worker/docs/implementation/WRK-14-integration.json), [WRK-14-output-plan.md](../../../aq-worker/docs/implementation/WRK-14-output-plan.md), [WRK-14-reader-lease-plan.md](../../../aq-worker/docs/implementation/WRK-14-reader-lease-plan.md).
 
 ### UI-03
 

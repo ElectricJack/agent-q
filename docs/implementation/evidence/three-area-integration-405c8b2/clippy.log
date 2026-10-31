@@ -1,0 +1,89 @@
+    Checking typenum v1.20.1
+    Checking rand_core v0.10.1
+    Checking futures-sink v0.3.34
+    Checking cmov v0.5.4
+    Checking byteorder v1.5.0
+    Checking const-oid v0.10.2
+    Checking cpufeatures v0.3.1
+    Checking siphasher v1.0.4
+    Checking fallible-iterator v0.2.0
+    Checking whoami v2.1.3
+    Checking futures-util v0.3.34
+    Checking futures-channel v0.3.34
+    Checking tokio-util v0.7.20
+    Checking getrandom v0.4.3
+    Checking chacha20 v0.10.2
+    Checking phf_shared v0.13.1
+    Checking ctutils v0.4.7
+    Checking uuid v1.29.0
+    Checking tempfile v3.27.0
+    Checking rand v0.10.3
+    Checking phf v0.13.1
+    Checking schemars v1.2.3
+    Checking aq-release v0.1.0 (/home/jkern/dev/agent-q/crates/aq-release)
+    Checking aq-protocol v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-protocol-0.1.0)
+    Checking generic-array v0.14.7
+    Checking hybrid-array v0.4.15
+    Checking crypto-common v0.1.7
+    Checking block-buffer v0.10.4
+    Checking inout v0.1.4
+    Checking block-buffer v0.12.1
+    Checking crypto-common v0.2.2
+    Checking universal-hash v0.5.1
+    Checking digest v0.10.7
+    Checking cipher v0.4.4
+    Checking aead v0.5.2
+    Checking poly1305 v0.8.0
+    Checking chacha20 v0.9.1
+    Checking sha2 v0.10.9
+    Checking signature v2.2.0
+    Checking hmac v0.12.1
+    Checking md-5 v0.10.6
+    Checking curve25519-dalek v4.1.3
+    Checking rsa v0.9.10
+    Checking ed25519 v2.2.3
+    Checking hkdf v0.12.4
+    Checking chacha20poly1305 v0.10.1
+    Checking aq-session-protocol v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-session-protocol-0.1.0)
+    Checking aq-agent-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-agent-api)
+    Checking aq-playbooks-model v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-playbooks-42f9449/crates/aq-playbooks-model)
+    Checking aq-worker-protocol v0.2.0 (/home/jkern/dev/agent-q/vendor/aq-worker-protocol-0.2.0)
+    Checking digest v0.11.3
+    Checking hmac v0.13.0
+    Checking sha2 v0.11.1
+    Checking md-5 v0.11.0
+    Checking tower v0.5.3
+    Checking hyper-util v0.1.21
+    Checking sqlx-core v0.8.6
+    Checking ed25519-dalek v2.2.0
+    Checking aq-updater v0.1.0 (/home/jkern/dev/agent-q/crates/aq-updater)
+    Checking postgres-protocol v0.6.12
+    Checking tower-http v0.6.11
+    Checking postgres-types v0.2.14
+    Checking aq-lifecycle-protocol v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking aq-session-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-session-api)
+    Checking aq-terminal-relay-protocol v0.1.0 (/home/jkern/dev/agent-q/crates/aq-terminal-relay-protocol)
+    Checking tokio-postgres v0.7.18
+    Checking aq-playbooks-runner v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-playbooks-42f9449/crates/aq-playbooks-runner)
+    Checking hyper-rustls v0.27.10
+    Checking axum v0.8.9
+    Checking reqwest v0.12.28
+    Checking aq-profiles v0.1.1 (/home/jkern/dev/agent-q/crates/aq-profiles)
+    Checking aq-terminal-relay v0.1.0 (/home/jkern/dev/agent-q/crates/aq-terminal-relay)
+    Checking sqlx-postgres v0.8.6
+    Checking aq-human-http v0.1.0 (/home/jkern/dev/agent-q/crates/aq-human-http)
+    Checking aq-admission v0.1.5 (/home/jkern/dev/agent-q/crates/aq-admission)
+    Checking aq-lifecycle-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-lifecycle-api)
+    Checking aq-observation-admission v0.1.0 (/home/jkern/dev/agent-q/crates/aq-observation-admission)
+    Checking aq-accounting v0.1.0 (/home/jkern/dev/agent-q/crates/aq-accounting)
+    Checking postgres v0.19.14
+    Checking aq-playbooks-postgres v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-playbooks-42f9449/crates/aq-playbooks-postgres)
+    Checking aq-selection v0.1.2 (/home/jkern/dev/agent-q/crates/aq-selection)
+    Checking aq-playbook-host v0.1.0 (/home/jkern/dev/agent-q/crates/aq-playbook-host)
+    Checking sqlx v0.8.6
+    Checking aq-notifications v0.1.0 (/home/jkern/dev/agent-q/crates/aq-notifications)
+    Checking aq-observation-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-observation-api)
+    Checking aq-session-cli v0.1.0 (/home/jkern/dev/agent-q/crates/aq-session-cli)
+    Checking aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Checking aq-notify v0.1.0 (/home/jkern/dev/agent-q/crates/aq-notify)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 26.56s

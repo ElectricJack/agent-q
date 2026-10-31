@@ -164,3 +164,5 @@ Concrete current plans are now retained for the
 The playbook host integration boundary now names actual existing AQ owners.
 These plans identify staged implementation and remaining acceptance requirements;
 their publication alone does not complete the corresponding milestone.
+
+Current implementation/evidence: [three-area progress checkpoint](2026-10-31-execution-sessions-policy-progress.md). This does not close the three-area product gates.
