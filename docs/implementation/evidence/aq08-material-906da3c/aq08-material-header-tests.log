@@ -1,0 +1,22 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-material-api/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 36.91s
+     Running unittests src/lib.rs (/tmp/aq22-observations/target/debug/deps/aq_server-7f13f00658ad3368)
+
+running 1 test
+test profiled_execution::material_api::tests::valid_public_metadata_can_exceed_the_explicit_http_header_profile ... FAILED
+
+failures:
+
+---- profiled_execution::material_api::tests::valid_public_metadata_can_exceed_the_explicit_http_header_profile stdout ----
+
+thread 'profiled_execution::material_api::tests::valid_public_metadata_can_exceed_the_explicit_http_header_profile' (3582911) panicked at crates/aq-server/src/profiled_execution/material_api.rs:313:89:
+called `Result::unwrap()` on an `Err` value: Error("invalid type: null, expected struct MaterialLease", line: 0, column: 0)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    profiled_execution::material_api::tests::valid_public_metadata_can_exceed_the_explicit_http_header_profile
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 32 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p aq-server --lib`

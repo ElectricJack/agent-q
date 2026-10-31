@@ -68,6 +68,9 @@ pub(crate) fn agent_revoke_path(path: &str) -> bool {
         .is_some_and(|id| uuid::Uuid::parse_str(id).is_ok())
 }
 pub fn classify(path: &str) -> Class {
+    if path == "/v1/worker/profiled/material" {
+        return Class::Bulk;
+    }
     if matches!(
         path,
         "/v1/worker/profiled/register" | "/v1/worker/profiled/started"

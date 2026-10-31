@@ -13,17 +13,16 @@ fingerprints under the same credential revision.
 
 Both startup loading and delivery open the configured file with no-follow and
 nonblocking flags, require a regular file owned by the daemon UID with no group
-or other access, and read at most65537bytes to enforce a65536byte ceiling.
+or other access, and read at most 65,537 bytes to enforce a 65,536-byte ceiling.
 Owned secret buffers are zeroized when dropped. Delivery compares the exact
 loaded fingerprint, lease digest/size, node, credential profile/revision and
 logical provider/account/endpoint. Errors contain neither paths nor secrets.
 Zeroization does not cover HTTP-stack copies or the remote receiving process.
 
-This is a private file-owner primitive, not a delivery authorization route.
-The eventual material endpoint must read outside database locks and then lock
-and recheck current machine credentials, registry revision/private fingerprint,
-exact lease and launch binding, assignment/boot and expiry before returning
-private bytes. A preparation receipt must verify delivery before any usable
+The [private preparation material endpoint](AQ-08-material-delivery.md) reads
+through this owner outside database locks, then rechecks current machine
+credentials, registry revision, exact lease and launch binding, assignment/boot
+and expiry before returning private bytes. A preparation receipt must verify delivery before any usable
 execution grant; readiness never means a key is installed. No provider network
 call is made to infer account identity or availability. Actual runtime offer,
 prepare, delivery and worker installation remain separate integration gates.

@@ -1,0 +1,48 @@
+{
+  "source_revision": "906da3c8d7e9e6f2c424665a1ee47801e52680b9",
+  "base_revision": "668279b",
+  "qualification": {
+    "actual_sql_http_tests": 11,
+    "of_which_material_endpoint": 6,
+    "header_boundary_unit_tests": 1,
+    "server_all_target_all_feature_clippy": "passed",
+    "workspace_format": "passed"
+  },
+  "commands": [
+    "DATABASE_URL=<disposable PostgreSQL> RUST_TEST_THREADS=4 cargo test -p aq-server --all-features --test profiled_material --test native_inventory --test intelligence --locked --offline",
+    "cargo test -p aq-server --lib --all-features profiled_execution::material_api::tests --locked --offline",
+    "cargo clippy -p aq-server --all-targets --all-features --locked --offline -- -D warnings",
+    "cargo fmt --all -- --check"
+  ],
+  "source_sha256": {
+    "Cargo.lock": "4dd96bca8872275b493732cf751fa3ea9367e42689a47362e499e891303b0af9",
+    "Cargo.toml": "fa248aede4117d41f97d339e2e61e47d5a0cc5bc63bbfe859a3692868ebad8c7",
+    "crates/aq-server/Cargo.toml": "8bf6beee5f40acd5bf69cd210414d58f07688f0b1495e99f08ac0e2033e4d14b",
+    "crates/aq-server/src/admission.rs": "7f3067c7d99168ae56f2c5f4dd699c2c8a75f05e8b50871cb621be6342ff5dc9",
+    "crates/aq-server/src/intelligence.rs": "ecff45f6ace4b4d17c7ae6d30cf1cc6969ed94d8c8d3776696b88708edf36f50",
+    "crates/aq-server/src/intelligence/registry.rs": "dcebf7db00dbec0944eb5979c58d283a9cc4e63e2b433601b4445e55e9465c39",
+    "crates/aq-server/src/lib.rs": "f45d82e9f1568991d75a87ececd09222573a56612e423c898361150585fc3de2",
+    "crates/aq-server/src/profiled_execution.rs": "247989cc52bc45300c289aee81615547f67e5ce05b50988f7f0d8d7fe73ef723",
+    "crates/aq-server/src/profiled_execution/material.rs": "95bec4e7a89a4bd3bf26dd94e8ba150c11e1c97268f5c60111ba4378530f51fb",
+    "crates/aq-server/src/profiled_execution/material_api.rs": "bf316ef1470bf185e78814f0cf50fdb1bc064801c1f700c294677e4c6e2695ea",
+    "crates/aq-server/src/profiled_execution/registration.rs": "7d7fc12ddcca01d84e4fb2485b6efaa081cef80bed6122e0b55dffb987a2cdd5",
+    "crates/aq-server/tests/common/profiled.rs": "b536145b1bfc4afcbea530891cc1b47f8bbbf78be7f163b8bd3cd9ccd961dcdd",
+    "crates/aq-server/tests/profiled_material.rs": "ffbcf0f0623fc833517f4b2d40d25b791a5bfec79564a903f8c386a77e271465",
+    "docs/implementation/AQ-08-material-delivery.md": "f18659b56409043a1d5bdfc79abcd2740e8e2ed64b8bdbb95c497cd37d7c2995",
+    "docs/implementation/AQ-08-provider-material-owner.md": "e161ba0e471f408b63af9dd65fcc975b64b3ac7dcc7a927464f6798f232355fe"
+  },
+  "evidence_sha256": {
+    "docs/implementation/evidence/aq08-material-906da3c/aq08-material-clippy.log": "6274bfaffaa52bf86da0c911eb7e9ac33881f0ac0697de21041778004eaa9892",
+    "docs/implementation/evidence/aq08-material-906da3c/aq08-material-final-tests.log": "aa0cdd454bb707c7aad3d487c3eb8f6bcde4cf4478b24eafc666533476433c85",
+    "docs/implementation/evidence/aq08-material-906da3c/aq08-material-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/implementation/evidence/aq08-material-906da3c/aq08-material-header-final-tests.log": "2a237b485f070e2197935d8395602f24f4ebfe237713d7e35ca644394fba8e9b",
+    "docs/implementation/evidence/aq08-material-906da3c/aq08-material-header-tests.log": "cc28fa81de5079a1a270463122735ed3f574697889e57568bfd34a81174f6e9c"
+  },
+  "qualification_kind": "Isolated source followed by commit; production code unchanged during qualification. Header-boundary unit initially read wrong fixture member and failed; corrected body lookup and exact final test passed. Failure log retained. Existing source/router integration tests unaffected by that unit-only fix. Shared build cache and disposable PostgreSQL.",
+  "limitations": [
+    "Synthetic provider material/runtime; no live model/provider call or secret used.",
+    "Native lease issuance, worker private installation and usable grant remain separate owner integrations.",
+    "Initial supported profile: one admitted model-authentication lease with exact equal preparation/lease expiry; 4096-byte encoded metadata header.",
+    "HTTP stack/kernel/client copies are not covered by reader buffer zeroization."
+  ]
+}
