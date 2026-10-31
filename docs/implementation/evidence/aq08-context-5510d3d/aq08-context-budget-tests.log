@@ -1,0 +1,17 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-native-producer/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.74s
+     Running unittests src/lib.rs (/home/jkern/dev/agent-q/target/debug/deps/aq_server-8475693733b724e6)
+
+running 9 tests
+test profiled_execution::context_projection::tests::expired_partial_forged_and_foreign_observations_refuse ... ok
+test profiled_execution::context_projection::tests::mixed_context_never_expands_task_only_or_knowledge_only_permission ... ok
+test profiled_execution::context_projection::tests::only_authorized_api01_fields_enter_startup_and_original_age_is_preserved ... ok
+test profiled_execution::context_projection::tests::scoped_edges_require_exact_authorized_endpoints_and_pinned_revisions ... ok
+test profiled_execution::context_budget::tests::optional_config_defaults_preserve_old_digest_and_facts_require_owned_runtime ... ok
+test profiled_execution::context_budget::tests::on_demand_content_is_not_claimed_as_zero_token_startup_and_tampering_refuses ... ok
+test profiled_execution::context_budget::tests::capacity_overflow_zero_unknown_and_ambiguous_definitions_refuse ... ok
+test profiled_execution::context_budget::tests::qualified_count_binds_actual_utf8_rendering_overhead_and_reserved_output ... ok
+test profiled_execution::context_budget::tests::missing_expired_or_wrong_exact_subject_never_infers_model_facts_from_bytes ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 35 filtered out; finished in 0.01s
+

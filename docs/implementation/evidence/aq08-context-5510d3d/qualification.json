@@ -1,0 +1,97 @@
+{
+  "source_revision": "5510d3d975ebf1902603d2aaf492efce99018e14",
+  "source": [
+    {
+      "path": "crates/aq-server/src/profiled_execution.rs",
+      "sha256": "5b65839659d1cc62a37bd5289d9da0e01b3de0973474c2821c3295b5f707ba3e"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/config.rs",
+      "sha256": "cefbfee6d784adb4a3d13555841441f141fbaaace43ffb79f147eee1dc68de2a"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/context_budget.rs",
+      "sha256": "a0c2cd26a912f6e3aed6b180d0d75b2a2ccfc3628dbf34722f92d74fa976e78d"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/context_projection.rs",
+      "sha256": "cb563f3b838dc5e7f242812db3ac9bbc9960d8393ea52e1278dc8c4bcb475793"
+    },
+    {
+      "path": "crates/aq-server/tests/native_inventory.rs",
+      "sha256": "a11cc3eefed37a9998f0042031dad89b98cec7432e6507a79c1cc14d8efe280c"
+    },
+    {
+      "path": "crates/aq-server/tests/native_registration.rs",
+      "sha256": "9fbc89aa64c0b58b867f31f06f879012a3ba88024a47e4053bbac0e4091675c0"
+    },
+    {
+      "path": "crates/aq-server/tests/profiled_artifact_phases.rs",
+      "sha256": "ec53c6265d2628953465f581921d01a6c4e1be3c548d7dfa4bfa7c0f9841b270"
+    },
+    {
+      "path": "crates/aq-server/tests/profiled_artifacts.rs",
+      "sha256": "256ee0bab3feea6143876f6d731f132a7de5f9a8da223a537e05f009de0f3398"
+    },
+    {
+      "path": "crates/aq-server/tests/profiled_config.rs",
+      "sha256": "0b893b3c699787d9c404bc63803a53410c8b420cf54a6af1b69fe6247fa74d05"
+    },
+    {
+      "path": "crates/aq-server/tests/profiled_context.rs",
+      "sha256": "d0bce857242517dfb6ed909229fe904bf0300e5ab933d9ffa826e861d02349c0"
+    },
+    {
+      "path": "crates/aq-server/tests/profiled_material.rs",
+      "sha256": "c00f57e518799e33a68baab830d89c27f53eaf2fe85c31fcc2a74c5f79f541b2"
+    },
+    {
+      "path": "crates/aq-server/tests/profiled_source.rs",
+      "sha256": "fd242091fb5d827c914e534c91551e3b1658950698e4a2f862cc02a3ae94a85c"
+    },
+    {
+      "path": "crates/aq-server/tests/profiled_started.rs",
+      "sha256": "d728a5ae2db15ae29b0f815058fa2d00b5200f6761b12241a80f2d71467c9d9d"
+    },
+    {
+      "path": "crates/aq-server/tests/project_bindings.rs",
+      "sha256": "974301387ccb0ba93bbf83118a0112818027e2111ba4cb44ed9befa5f9f8c473"
+    },
+    {
+      "path": "docs/implementation/AQ-08-native-completion-plan.md",
+      "sha256": "1e47f51960c961cb67e1aaf072a0f045d6f8ada7327517c1ca6437ae988f9171"
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-context-5510d3d/aq08-context-budget-tests.log",
+      "sha256": "96d0ad0502d1d47a8df66c49a3468ba1c9feb7e9b60992160afdcd4c4c19d127"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-context-5510d3d/aq08-context-config-tests.log",
+      "sha256": "d13ce46e021757e21897b40864b78a999b9332c9079be962d0f031bbd08ce451"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-context-5510d3d/aq08-context-budget-clippy.log",
+      "sha256": "f4805701b0b490920920bb82aed8752b7c2ab6e42c6c2a7f03fe16a91a3ebe61"
+    }
+  ],
+  "commands": [
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-server --lib profiled_execution::context_ --locked --offline",
+    "RUST_TEST_THREADS=4 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-server --test native_inventory --test native_registration --test profiled_config --test profiled_context --locked --offline",
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo clippy -p aq-server --all-targets --all-features --locked --offline -- -D warnings",
+    "cargo fmt --package aq-server --check",
+    "git diff --check"
+  ],
+  "results": {
+    "pure_tests": 9,
+    "targeted_tests": 8,
+    "strict_clippy": "pass",
+    "format": "pass"
+  },
+  "limitations": [
+    "Synthetic qualification facts only; no actual CLI/model tokenizer or context-window qualification.",
+    "No migration, native offer producer, grant, worker consumer, or provider invocation.",
+    "Focused checks only; combined root gate remains required after integration."
+  ]
+}

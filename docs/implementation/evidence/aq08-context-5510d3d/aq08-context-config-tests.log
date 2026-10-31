@@ -1,0 +1,34 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-native-producer/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 24.15s
+     Running tests/native_inventory.rs (/home/jkern/dev/agent-q/target/debug/deps/native_inventory-07254a8541511547)
+
+running 1 test
+test cold_native_inventory_requires_exact_qualified_delivery_and_fresh_owner_file ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+
+     Running tests/native_registration.rs (/home/jkern/dev/agent-q/target/debug/deps/native_registration-d9cd424234d3e111)
+
+running 4 tests
+test native_semantics_ignore_only_operation_id_not_runtime_or_capability_change ... ok
+test startup_installs_policy_anchor_and_refuses_stale_configuration ... ok
+test configured_allowlist_does_not_synthesize_registration_and_admitted_identity_is_exact ... ok
+test native_writer_replays_without_reinstall_and_fences_held_claims_and_credentials ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.90s
+
+     Running tests/profiled_config.rs (/home/jkern/dev/agent-q/target/debug/deps/profiled_config-0aa7b2dc94e0672b)
+
+running 2 tests
+test configuration_and_runtime_claims_refuse_duplicates_unsafe_refs_and_unqualified_artifacts ... ok
+test policy_artifact_binds_global_qualification_and_exact_source_without_user_actor ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/profiled_context.rs (/home/jkern/dev/agent-q/target/debug/deps/profiled_context-460c17119fc77b02)
+
+running 1 test
+test context_fact_changes_are_fenced_by_installed_global_revision_and_digest ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.41s
+
