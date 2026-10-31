@@ -283,7 +283,10 @@ dependencies = [
  "aq-release",
  "aq-selection",
  "aq-server",
+ "aq-session-api",
  "aq-session-protocol",
+ "aq-terminal-relay",
+ "aq-terminal-relay-protocol",
  "aq-worker-protocol",
  "async-trait",
  "axum",
@@ -327,6 +330,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-session-cli"
+version = "0.1.0"
+dependencies = [
+ "aq-human-http",
+ "aq-observation-api",
+ "aq-session-api",
+ "aq-session-protocol",
+ "aq-terminal-relay",
+ "axum",
+ "clap",
+ "nix",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
 name = "aq-session-protocol"
 version = "0.1.0"
 dependencies = [
@@ -334,6 +356,32 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
+name = "aq-terminal-relay"
+version = "0.1.0"
+dependencies = [
+ "aq-session-api",
+ "aq-session-protocol",
+ "aq-terminal-relay-protocol",
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
+name = "aq-terminal-relay-protocol"
+version = "0.1.0"
+dependencies = [
+ "aq-session-protocol",
+ "schemars",
+ "serde",
+ "serde_json",
  "thiserror",
  "uuid",
 ]

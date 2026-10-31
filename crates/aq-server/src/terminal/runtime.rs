@@ -1,0 +1,392 @@
+//! Disposable bounded replay and poll wakeups. No execution authority or SQL
+//! connections are held by these buffers or during a terminal long-poll wait.
+use crate::error::AppError;
+use aq_session_protocol::*;
+use aq_terminal_relay::{
+    Access, Ledger,
+    output::{Replay, View},
+};
+use std::{
+    collections::BTreeMap,
+    sync::{Arc, Mutex, Weak},
+};
+use tokio::sync::{Notify, OwnedSemaphorePermit, Semaphore};
+use uuid::Uuid;
+#[derive(Clone)]
+struct Rate {
+    tokens: u64,
+    remainder: u64,
+    last: u64,
+    capacity: u64,
+}
+impl Rate {
+    fn new(capacity: u64, now: u64) -> Self {
+        Self {
+            tokens: capacity,
+            remainder: 0,
+            last: now,
+            capacity,
+        }
+    }
+    fn take(&mut self, bytes: usize, now: u64) -> bool {
+        if now < self.last {
+            return false;
+        }
+        let minted = (now - self.last) as u128 * self.capacity as u128 + self.remainder as u128;
+        self.tokens = self.capacity.min(
+            self.tokens
+                .saturating_add((minted / 1000).min(u64::MAX as u128) as u64),
+        );
+        self.remainder = (minted % 1000) as u64;
+        self.last = now;
+        if bytes as u64 > self.tokens {
+            return false;
+        }
+        self.tokens -= bytes as u64;
+        true
+    }
+}
+struct Buffer {
+    terminal: TerminalIdentity,
+    node: Uuid,
+    policy: TerminalPolicy,
+    until: u64,
+    ring: Replay,
+    rate: Rate,
+}
+#[derive(Default)]
+struct Buffers {
+    items: BTreeMap<Uuid, Buffer>,
+    node_rate: BTreeMap<Uuid, Rate>,
+}
+struct PollState {
+    slot: Arc<Semaphore>,
+    wake: Notify,
+    #[cfg(feature = "test-support")]
+    waiting: std::sync::atomic::AtomicBool,
+}
+pub struct Poll {
+    state: Arc<PollState>,
+    _permit: OwnedSemaphorePermit,
+}
+impl Poll {
+    pub async fn wait(&self, hold: u32) {
+        #[cfg(feature = "test-support")]
+        self.state
+            .waiting
+            .store(true, std::sync::atomic::Ordering::Release);
+        let _ = tokio::time::timeout(
+            std::time::Duration::from_millis(hold as u64),
+            self.state.wake.notified(),
+        )
+        .await;
+        #[cfg(feature = "test-support")]
+        self.state
+            .waiting
+            .store(false, std::sync::atomic::Ordering::Release);
+    }
+}
+impl Drop for Poll {
+    fn drop(&mut self) {
+        #[cfg(feature = "test-support")]
+        self.state
+            .waiting
+            .store(false, std::sync::atomic::Ordering::Release);
+    }
+}
+#[derive(Default)]
+pub struct Runtime {
+    buffers: Mutex<Buffers>,
+    polls: Mutex<BTreeMap<Uuid, Weak<PollState>>>,
+}
+fn fail() -> AppError {
+    AppError::Internal
+}
+impl Runtime {
+    pub fn reserve(
+        &self,
+        t: &TerminalIdentity,
+        policy: &TerminalPolicy,
+        until: u64,
+        now: u64,
+    ) -> Result<(), AppError> {
+        let SessionIdentity::Remote { node_id, .. } = t.session else {
+            return Err(AppError::Conflict(
+                "central terminal authority unsupported".into(),
+            ));
+        };
+        let mut b = self.buffers.lock().map_err(|_| fail())?;
+        b.items.retain(|_, v| now < v.until);
+        let active: std::collections::BTreeSet<_> = b.items.values().map(|v| v.node).collect();
+        b.node_rate.retain(|id, _| active.contains(id));
+        if let Some(entry) = b.items.get_mut(&t.terminal_id) {
+            if entry.terminal != *t || entry.policy != *policy {
+                return Err(AppError::Conflict("terminal epoch changed".into()));
+            }
+            entry.until = entry.until.max(until);
+            return Ok(());
+        }
+        if b.items.len() >= 128 || b.items.values().filter(|v| v.node == node_id).count() >= 32 {
+            return Err(AppError::IdentityUnavailable(
+                "terminal replay capacity exhausted".into(),
+            ));
+        }
+        b.node_rate
+            .entry(node_id)
+            .or_insert_with(|| Rate::new(2097152, now));
+        b.items.insert(
+            t.terminal_id,
+            Buffer {
+                terminal: t.clone(),
+                node: node_id,
+                policy: policy.clone(),
+                until,
+                ring: Replay::new_profiled(t.clone(), policy).map_err(|_| fail())?,
+                rate: Rate::new(262144, now),
+            },
+        );
+        Ok(())
+    }
+    pub fn view(
+        &self,
+        l: &Ledger,
+        a: &Access,
+        subscription: Uuid,
+        after: u64,
+        now: u64,
+    ) -> Result<Option<View>, AppError> {
+        let b = self.buffers.lock().map_err(|_| fail())?;
+        b.items
+            .get(&l.terminal().terminal_id)
+            .map(|v| {
+                v.ring
+                    .view(l, a, subscription, after, now)
+                    .map_err(super::persistence::relay)
+            })
+            .transpose()
+    }
+    pub fn frame(
+        &self,
+        peer: &aq_terminal_relay_protocol::Peer,
+        frame: OutputFrame,
+        now: u64,
+    ) -> Result<Option<OutputGap>, AppError> {
+        let mut b = self.buffers.lock().map_err(|_| fail())?;
+        let node = b
+            .items
+            .get(&frame.terminal.terminal_id)
+            .ok_or_else(|| AppError::Conflict("watch snapshot resynchronization required".into()))?
+            .node;
+        let mut nr = b.node_rate.get(&node).cloned().ok_or_else(fail)?;
+        let entry = b
+            .items
+            .get_mut(&frame.terminal.terminal_id)
+            .ok_or_else(fail)?;
+        if entry.terminal != frame.terminal || now >= entry.until {
+            return Err(AppError::Conflict("terminal subscription expired".into()));
+        }
+        if frame.bytes.len() > entry.policy.max_frame_bytes as usize {
+            return Err(AppError::BadRequest(
+                "frame exceeds sealed terminal policy".into(),
+            ));
+        }
+        if !entry
+            .ring
+            .is_new_frame(peer, &frame)
+            .map_err(super::persistence::relay)?
+        {
+            return Ok(None);
+        }
+        let mut sr = entry.rate.clone();
+        if !sr.take(frame.bytes.len(), now) || !nr.take(frame.bytes.len(), now) {
+            let gap = OutputGap {
+                terminal: frame.terminal.clone(),
+                first_missing: frame.sequence,
+                last_missing: frame.sequence,
+            };
+            entry
+                .ring
+                .peer_gap(peer, &gap, now)
+                .map_err(super::persistence::relay)?;
+            return Ok(Some(gap));
+        }
+        entry
+            .ring
+            .frame(peer, frame, now)
+            .map_err(super::persistence::relay)?;
+        entry.rate = sr;
+        b.node_rate.insert(node, nr);
+        Ok(None)
+    }
+    pub fn snapshot(
+        &self,
+        peer: &aq_terminal_relay_protocol::Peer,
+        snapshot: Snapshot,
+        now: u64,
+    ) -> Result<(), AppError> {
+        let mut b = self.buffers.lock().map_err(|_| fail())?;
+        let node = b
+            .items
+            .get(&snapshot.terminal.terminal_id)
+            .ok_or_else(|| AppError::Conflict("watch snapshot resynchronization required".into()))?
+            .node;
+        let mut nr = b.node_rate.get(&node).cloned().ok_or_else(fail)?;
+        let entry = b
+            .items
+            .get_mut(&snapshot.terminal.terminal_id)
+            .ok_or_else(fail)?;
+        if entry.terminal != snapshot.terminal || now >= entry.until {
+            return Err(AppError::Conflict("terminal subscription expired".into()));
+        }
+        if !entry
+            .ring
+            .is_new_snapshot(peer, &snapshot)
+            .map_err(super::persistence::relay)?
+        {
+            return Ok(());
+        }
+        let mut sr = entry.rate.clone();
+        if !sr.take(snapshot.state.len(), now) || !nr.take(snapshot.state.len(), now) {
+            return Err(AppError::IdentityUnavailable(
+                "terminal snapshot output quota exhausted".into(),
+            ));
+        }
+        entry
+            .ring
+            .snapshot(peer, snapshot, now)
+            .map_err(super::persistence::relay)?;
+        entry.rate = sr;
+        b.node_rate.insert(node, nr);
+        Ok(())
+    }
+    pub fn gap(
+        &self,
+        peer: &aq_terminal_relay_protocol::Peer,
+        gap: &OutputGap,
+        now: u64,
+    ) -> Result<(), AppError> {
+        let mut b = self.buffers.lock().map_err(|_| fail())?;
+        if let Some(entry) = b.items.get_mut(&gap.terminal.terminal_id) {
+            entry
+                .ring
+                .peer_gap(peer, gap, now)
+                .map_err(super::persistence::relay)?;
+        }
+        Ok(())
+    }
+    pub fn poll(&self, node: Uuid) -> Result<Poll, AppError> {
+        let mut polls = self.polls.lock().map_err(|_| fail())?;
+        polls.retain(|_, v| v.strong_count() > 0);
+        let state = match polls.get(&node).and_then(Weak::upgrade) {
+            Some(v) => v,
+            None => {
+                if polls.len() >= 32 {
+                    return Err(AppError::IdentityUnavailable(
+                        "terminal poll capacity exhausted".into(),
+                    ));
+                }
+                let v = Arc::new(PollState {
+                    slot: Arc::new(Semaphore::new(1)),
+                    wake: Notify::new(),
+                    #[cfg(feature = "test-support")]
+                    waiting: Default::default(),
+                });
+                polls.insert(node, Arc::downgrade(&v));
+                v
+            }
+        };
+        let permit = state
+            .slot
+            .clone()
+            .try_acquire_owned()
+            .map_err(|_| AppError::Conflict("one terminal poll per node".into()))?;
+        Ok(Poll {
+            state,
+            _permit: permit,
+        })
+    }
+    #[cfg(feature = "test-support")]
+    pub fn poll_waiting_for_testing(&self, node: Uuid) -> bool {
+        self.polls
+            .lock()
+            .ok()
+            .and_then(|p| p.get(&node).and_then(Weak::upgrade))
+            .is_some_and(|p| p.waiting.load(std::sync::atomic::Ordering::Acquire))
+    }
+    pub fn wake(&self, node: Uuid) {
+        if let Ok(polls) = self.polls.lock()
+            && let Some(state) = polls.get(&node).and_then(Weak::upgrade)
+        {
+            state.wake.notify_one();
+        }
+    }
+}
+
+/// Bounded derived scheduling cursor; authoritative state is always reloaded and
+/// authenticated under the common node/attempt locks. No input is emitted here.
+pub async fn maintenance(state: &crate::AppState, after: Uuid) -> Result<Uuid, AppError> {
+    use super::persistence::*;
+    use crate::execution::authority::{self, Policy};
+    let state = state.terminal_view();
+    let config = configured(&state)?;
+    let owner = super::persistence::begin(&state).await?;
+    owner.commit().await.map_err(|_| AppError::Internal)?;
+    let bodies:Vec<String>=sqlx::query_scalar("SELECT identity::text FROM terminal_sessions WHERE terminal_id>$1 AND(runtime_id<>$2 OR pending_bytes>0) ORDER BY terminal_id LIMIT 16").bind(after).bind(config.runtime_id).fetch_all(&state.store.pool).await.map_err(|_|AppError::Internal)?;
+    if bodies.is_empty() {
+        return Ok(Uuid::nil());
+    }
+    let mut cursor = after;
+    for body in bodies {
+        let t: TerminalIdentity = serde_json::from_str(&body).map_err(|_| AppError::Internal)?;
+        cursor = t.terminal_id;
+        let result = async {
+            let mut tx = super::persistence::begin(&state).await?;
+            let view =
+                authority::load_locked(&state, &mut tx, &t.session, Policy::TerminalHistorical)
+                    .await?;
+            let loaded = load(&state, &mut tx, &t, &view).await?;
+            let recovering = loaded.runtime_id != config.runtime_id;
+            let plan = if recovering {
+                Ledger::recover(&loaded.ledger.encode().map_err(relay)?)
+            } else {
+                loaded.ledger.expire(now(&state))
+            }
+            .map_err(relay)?;
+            if recovering || plan.preview().ledger_revision != loaded.ledger.revision() {
+                let mut journal = SqlJournal {
+                    state: &state,
+                    tx: Some(tx),
+                    operation: None,
+                    peer_contact: false,
+                    recovering,
+                };
+                plan.commit_async(&mut journal).await.map_err(relay)?;
+            } else {
+                tx.commit().await.map_err(|_| AppError::Internal)?;
+            }
+            Ok::<(), AppError>(())
+        }
+        .await;
+        if result.is_err() {
+            // Fixed message only: no ciphertext, plaintext, key material or serde detail.
+            tracing::warn!(terminal_id=%t.terminal_id,"terminal maintenance refused stored state");
+        }
+    }
+    Ok(cursor)
+}
+pub async fn run(state: crate::AppState, mut stop: tokio::sync::watch::Receiver<bool>) {
+    if state.config.terminals.is_none() {
+        return;
+    }
+    let mut cursor = Uuid::nil();
+    let mut interval = tokio::time::interval(std::time::Duration::from_millis(250));
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    loop {
+        tokio::select! {
+            changed=stop.changed()=>{if changed.is_err()||*stop.borrow(){break;}},
+            _=interval.tick()=>{
+                match maintenance(&state,cursor).await {Ok(next)=>cursor=next,Err(AppError::IdentityUnavailable(_))=>break,Err(_)=>tracing::warn!("terminal maintenance unavailable")}
+            }
+        }
+    }
+}
