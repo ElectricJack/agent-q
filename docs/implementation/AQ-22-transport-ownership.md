@@ -98,3 +98,11 @@ Tests explicitly install the migration and construct its router. Source registra
 new sources additionally match its current registered boot. Ordered registration,
 production listener mounting and the worker's durable filesystem handshake remain
 required before runtime use. This checkpoint does not silently migrate old unowned sources.
+
+HTTP ingestion, transport mutation and status now carry the shared opaque
+`worker_api::AuthenticatedNode` context into the effect transaction. The current
+credential verifier and revocation are checked under the node lock before any
+attempt/source/ledger access, including an exact receipt replay. Internal trusted
+owner services retain their explicit node-identity entrypoints. This prevents a
+credential that rotated after the initial HTTP lookup from committing facts or
+activating a store.

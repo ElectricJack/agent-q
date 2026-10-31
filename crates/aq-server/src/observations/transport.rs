@@ -45,12 +45,27 @@ pub async fn mutate(
     authenticated_node: Uuid,
     request: &Request,
 ) -> Result<Reply> {
+    mutate_subject(state, NodeSubject::Trusted(authenticated_node), request).await
+}
+pub async fn mutate_authenticated(
+    state: &AppState,
+    context: &crate::worker_api::AuthenticatedNode,
+    request: &Request,
+) -> Result<Reply> {
+    mutate_subject(state, NodeSubject::Authenticated(context), request).await
+}
+async fn mutate_subject(
+    state: &AppState,
+    subject: NodeSubject<'_>,
+    request: &Request,
+) -> Result<Reply> {
+    let authenticated_node = subject.id();
     request.validate().map_err(|_| Error::Invalid)?;
     if request.node_id != authenticated_node {
         return Err(Error::Refused);
     }
     let mut tx = state.store.observation_pool.begin().await?;
-    live_node(&mut tx, authenticated_node).await?;
+    subject.lock(&mut tx).await?;
     let boot = boot(&mut tx, authenticated_node).await?;
     sqlx::query("INSERT INTO observation_nodes(node_id) VALUES($1) ON CONFLICT DO NOTHING")
         .bind(authenticated_node)
@@ -118,8 +133,18 @@ pub async fn mutate(
     Ok(changed.reply)
 }
 pub async fn status(state: &AppState, authenticated_node: Uuid) -> Result<Status> {
+    status_subject(state, NodeSubject::Trusted(authenticated_node)).await
+}
+pub async fn status_authenticated(
+    state: &AppState,
+    context: &crate::worker_api::AuthenticatedNode,
+) -> Result<Status> {
+    status_subject(state, NodeSubject::Authenticated(context)).await
+}
+async fn status_subject(state: &AppState, subject: NodeSubject<'_>) -> Result<Status> {
+    let authenticated_node = subject.id();
     let mut tx = state.store.observation_pool.begin().await?;
-    live_node(&mut tx, authenticated_node).await?;
+    subject.lock(&mut tx).await?;
     let boot = boot(&mut tx, authenticated_node).await?;
     let ledger:Option<(i64,i64,i32)>=sqlx::query_as("SELECT through_sequence,event_count,source_count FROM observation_nodes WHERE node_id=$1 FOR UPDATE").bind(authenticated_node).fetch_optional(&mut *tx).await?;
     let owner = load(&mut tx, authenticated_node).await?;

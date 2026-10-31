@@ -125,6 +125,29 @@ async fn live_node(tx: &mut Transaction<'_, Postgres>, node: Uuid) -> Result<()>
     }
     Ok(())
 }
+/// Internal owner calls may use retained node identity. HTTP paths must use the
+/// opaque authenticated variant so credential rotation is checked under locks.
+enum NodeSubject<'a> {
+    Trusted(Uuid),
+    Authenticated(&'a crate::worker_api::AuthenticatedNode),
+}
+impl NodeSubject<'_> {
+    fn id(&self) -> Uuid {
+        match self {
+            Self::Trusted(id) => *id,
+            Self::Authenticated(context) => context.id(),
+        }
+    }
+    async fn lock(&self, tx: &mut Transaction<'_, Postgres>) -> Result<()> {
+        match self {
+            Self::Trusted(id) => live_node(tx, *id).await,
+            Self::Authenticated(context) => crate::worker_api::lock_current_node(tx, context)
+                .await
+                .map(|_| ())
+                .map_err(|_| Error::Refused),
+        }
+    }
+}
 /// Source admission requires a real active profiled grant. Replays after stop
 /// may use only this retained exact authority; they cannot enroll new sources.
 pub async fn register_source(state: &AppState, source: &OwnerSource) -> Result<()> {
@@ -207,6 +230,21 @@ pub async fn ingest(
     authenticated_node: Uuid,
     packet: &Packet,
 ) -> Result<Receipt> {
+    ingest_subject(state, NodeSubject::Trusted(authenticated_node), packet).await
+}
+pub async fn ingest_authenticated(
+    state: &AppState,
+    context: &crate::worker_api::AuthenticatedNode,
+    packet: &Packet,
+) -> Result<Receipt> {
+    ingest_subject(state, NodeSubject::Authenticated(context), packet).await
+}
+async fn ingest_subject(
+    state: &AppState,
+    subject: NodeSubject<'_>,
+    packet: &Packet,
+) -> Result<Receipt> {
+    let authenticated_node = subject.id();
     packet.validate().map_err(|_| Error::Invalid)?;
     let Message::Batch(batch) = &packet.body.message else {
         return Err(Error::Refused);
@@ -215,7 +253,7 @@ pub async fn ingest(
         return Err(Error::Refused);
     }
     let mut tx = state.store.observation_pool.begin().await?;
-    live_node(&mut tx, authenticated_node).await?;
+    subject.lock(&mut tx).await?;
     // Stable ordering across all attempts, calls and aggregate rows in a batch.
     let sessions: BTreeMap<_, _> = batch
         .events

@@ -846,3 +846,49 @@ async fn source_enrollment_and_batch_ingress_require_activated_store() {
         }
     }
 }
+#[tokio::test]
+async fn admitted_http_context_cannot_write_or_replay_after_credential_rotation() {
+    let (f, source) = setup().await;
+    let mut headers = axum::http::HeaderMap::new();
+    headers.insert(
+        "authorization",
+        format!("Bearer {}", f.credential).parse().unwrap(),
+    );
+    let context = aq_server::worker_api::authenticate_context(&f.state, &headers)
+        .await
+        .unwrap();
+    let packet = packet(&f, vec![event(&source, 1, 10)]);
+    observations::ingest_authenticated(&f.state, &context, &packet)
+        .await
+        .unwrap();
+    let replacement = aq_server::tokens::new_node_credential();
+    sqlx::query("UPDATE nodes SET credential_hash=$2 WHERE id=$1")
+        .bind(f.node.node_id)
+        .bind(aq_server::tokens::verifier(&replacement))
+        .execute(&f.db.pool().await)
+        .await
+        .unwrap();
+    assert!(
+        observations::ingest_authenticated(&f.state, &context, &packet)
+            .await
+            .is_err(),
+        "even receipt replay rechecks the exact current credential"
+    );
+    assert!(
+        observations::transport::status_authenticated(&f.state, &context)
+            .await
+            .is_err()
+    );
+    assert_eq!(counts(&f).await, (1, 1));
+    headers.insert(
+        "authorization",
+        format!("Bearer {replacement}").parse().unwrap(),
+    );
+    let current = aq_server::worker_api::authenticate_context(&f.state, &headers)
+        .await
+        .unwrap();
+    observations::ingest_authenticated(&f.state, &current, &packet)
+        .await
+        .unwrap();
+    assert_eq!(counts(&f).await, (1, 1));
+}

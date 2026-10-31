@@ -39,10 +39,10 @@ async fn transport_mutation(
     ),
     AppError,
 > {
-    let node = crate::worker_api::authenticate(&state, &headers).await?;
+    let node = crate::worker_api::authenticate_context(&state, &headers).await?;
     Ok((
         [(header::CACHE_CONTROL, "no-store")],
-        Json(transport::mutate(&state, node.id, &request).await?),
+        Json(transport::mutate_authenticated(&state, &node, &request).await?),
     ))
 }
 async fn transport_status(
@@ -55,10 +55,10 @@ async fn transport_status(
     ),
     AppError,
 > {
-    let node = crate::worker_api::authenticate(&state, &headers).await?;
+    let node = crate::worker_api::authenticate_context(&state, &headers).await?;
     Ok((
         [(header::CACHE_CONTROL, "no-store")],
-        Json(transport::status(&state, node.id).await?),
+        Json(transport::status_authenticated(&state, &node).await?),
     ))
 }
 pub fn admin_routes(mut state: AppState) -> Router<AppState> {
@@ -140,7 +140,7 @@ async fn batch(
     headers: HeaderMap,
     ApiJson(packet): ApiJson<Packet>,
 ) -> std::result::Result<([(header::HeaderName, &'static str); 1], Json<Receipt>), AppError> {
-    let node = crate::worker_api::authenticate(&state, &headers).await?;
-    let receipt = ingest(&state, node.id, &packet).await?;
+    let node = crate::worker_api::authenticate_context(&state, &headers).await?;
+    let receipt = ingest_authenticated(&state, &node, &packet).await?;
     Ok(([(header::CACHE_CONTROL, "no-store")], Json(receipt)))
 }

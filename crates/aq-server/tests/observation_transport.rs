@@ -363,3 +363,50 @@ async fn http_transport_admission_uses_current_node_credentials_and_bounded_priv
     aq_observation_admission::decode_status(&body).unwrap();
     assert_eq!(rows(&f).await, (1, 1));
 }
+#[tokio::test]
+async fn stale_authenticated_context_cannot_allocate_or_activate_store() {
+    let f = setup().await;
+    let r = prepare(&f);
+    let mut headers = axum::http::HeaderMap::new();
+    headers.insert(
+        "authorization",
+        format!("Bearer {}", f.credential).parse().unwrap(),
+    );
+    let context = aq_server::worker_api::authenticate_context(&f.state, &headers)
+        .await
+        .unwrap();
+    let replacement = aq_server::tokens::new_node_credential();
+    sqlx::query("UPDATE nodes SET credential_hash=$2 WHERE id=$1")
+        .bind(f.node.node_id)
+        .bind(aq_server::tokens::verifier(&replacement))
+        .execute(&f.db.pool().await)
+        .await
+        .unwrap();
+    assert!(
+        transport::mutate_authenticated(&f.state, &context, &r)
+            .await
+            .is_err()
+    );
+    assert_eq!(rows(&f).await, (0, 0));
+    headers.insert(
+        "authorization",
+        format!("Bearer {replacement}").parse().unwrap(),
+    );
+    let current = aq_server::worker_api::authenticate_context(&f.state, &headers)
+        .await
+        .unwrap();
+    let prepared = transport::mutate_authenticated(&f.state, &current, &r)
+        .await
+        .unwrap();
+    let a = activate(&f, &prepared);
+    assert!(
+        transport::mutate_authenticated(&f.state, &context, &a)
+            .await
+            .is_err()
+    );
+    assert_eq!(rows(&f).await, (1, 1));
+    transport::mutate_authenticated(&f.state, &current, &a)
+        .await
+        .unwrap();
+    assert_eq!(rows(&f).await, (1, 2));
+}
