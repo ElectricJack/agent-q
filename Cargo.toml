@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
-members = ["crates/aq-protocol", "crates/aq-release", "crates/aq-server", "crates/aq-updater", "crates/aq-worker"]
+members = ["crates/aq-release", "crates/aq-server", "crates/aq-updater"]
+exclude = ["vendor/aq-worker-protocol-0.1.1", "vendor/aq-protocol-0.1.0"]
 
 [workspace.package]
 version = "0.1.0"
@@ -8,7 +9,8 @@ edition = "2024"
 publish = false
 
 [workspace.dependencies]
-aq-protocol = { path = "crates/aq-protocol" }
+aq-protocol = { path = "vendor/aq-protocol-0.1.0", version = "=0.1.0" }
+aq-worker-protocol = { path = "vendor/aq-worker-protocol-0.1.1", version = "=0.1.1" }
 aq-release = { path = "crates/aq-release" }
 anyhow = "1"
 async-trait = "0.1"

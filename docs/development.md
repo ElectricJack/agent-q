@@ -4,7 +4,7 @@
 
 - Rust 1.96.1 (pinned by `rust-toolchain.toml`; rustup installs it automatically).
 - Docker with the Compose plugin. Under WSL2, use Docker Desktop's WSL integration.
-- `python3` and `curl` (used by `scripts/smoke`).
+- Python 3.12 or newer, and `curl` (used by the integration/update scripts).
 
 ## Run the stack
 
@@ -43,11 +43,17 @@ With no worker config yet, it prints how to enroll:
 
 ```sh
 curl -fsS -X POST -H 'X-AQ-Request: 1' http://127.0.0.1:8080/api/enrollments
-cargo run -p aq-worker -- enroll --server http://127.0.0.1:8081 --name "$(hostname)"
+scripts/dev-worker enroll --server http://127.0.0.1:8081 --name "$(hostname)"
 ```
 
 Paste the returned `code` when prompted. Run `scripts/dev-worker` again to
 connect and heartbeat. `GET /api/workers` shows the worker as `online`.
+
+The command verifies and extracts the immutable source candidate described by
+`vendor/worker-candidate.json`, then runs its independent Cargo workspace. It
+does not read a sibling checkout. `AQ_WORKER_BIN=/absolute/path/to/aq-worker`
+explicitly selects a development executable; the command prints that override.
+Official artifact checks reject local executable/source overrides.
 
 ## Simulating another user
 
@@ -81,12 +87,29 @@ cargo fmt --check
 scripts/smoke
 ```
 
-Builds the server and worker images, starts a fresh stack under the separate
-Compose project `agent-q-smoke` (so your dev data is untouched), enrolls the
-worker image, confirms a heartbeat, restarts the server and database, confirms
-the same node heartbeats again, and tears everything down with `down -v`. It
-ends with `smoke: PASS` or names the failed step. It needs ports 8080 and 8081
-free, so stop `scripts/dev-up` first.
+Builds the daemon and pinned standalone worker from a frozen source snapshot,
+then starts a uniquely named disposable Compose project with Docker-assigned
+loopback ports. It enrolls the worker, verifies heartbeat/probe/protocol
+rejection, restarts the daemon and database, checks the same saved node identity
+reconnects, and revokes the credential. The worker must exit with code 3.
+Existing development services can remain running.
+
+`AQ_SMOKE_SERVER_IMAGE` and `AQ_SMOKE_WORKER_IMAGE` select a prebuilt pair.
+`AQ_SMOKE_OFFICIAL=1` requires both to be digest references and rejects local
+worker overrides. The worker's embedded source manifest must match the selected
+candidate. `AQ_SMOKE_EVIDENCE_DIR` selects the retained log/identity directory;
+otherwise its temporary path is printed. Disposable resources are removed.
+
+```sh
+scripts/execution-smoke
+```
+
+This uses the same assembly and additionally runs the real standalone runtime
+with a deterministic child. It cancels an offer before acquisition, executes a
+different offer, loses acceptance/report responses, checks one launch and a
+durable accepted result, replays the report, and restarts the daemon. Synthetic
+assignment creation is development-only. This fixture does not certify graph
+completion, real model harnesses, hosted access or host-power-loss recovery.
 
 ## Update lifecycle suite
 
@@ -96,21 +119,26 @@ scripts/update-lifecycle
 
 Proves the host updater against real images, a real registry, the production
 `compose.yaml` and real PostgreSQL. It builds `aq-updater` with the
-`test-verifier` feature, starts a throwaway `registry:2` (`aq-suite-registry`
-on `127.0.0.1:5000`, so port 5000 must be free), and builds and pushes server
+`test-verifier` feature in a private target directory, starts a uniquely named
+throwaway `registry:2` on a Docker-assigned loopback port, and builds and pushes server
 images for 0.1.0, 0.1.1 and a broken 0.1.2, each with a manifest signed by a
 throwaway test key and its `release` image. Under the Compose project
-`aq-suite` with a production-shaped vault it then checks, through
+a uniquely named disposable project with a production-shaped vault it checks, through
 `aq-updater status` and `aq-server readiness`: a first install, an upgrade, a
 rollback of the broken release, recovery after `kill -9` mid-update, refusal of
 a release that cannot read the installed state format, refusal of a downgrade
 requested through the spool, and that the database survives all of it.
 It also starts from a fresh host: the updater's first `run --once` creates the
 spool and a `release.env` with a placeholder image, which is what lets Compose
-start postgres before any release is installed. Everything is removed on exit.
+start postgres before any release is installed. The independently pinned worker
+candidate remains unchanged across these synthetic server versions. A future
+state-format refusal always tests the current format plus one. Disposable
+resources are removed on exit.
 It ends with `update-lifecycle: PASS` or names the failed step; on failure its
 logs are copied to a kept `${TMPDIR:-/tmp}/aq-update-lifecycle-logs.*`
-directory, whose path it prints. The first run compiles all dependencies;
+directory, whose path it prints. Public manifests, runner/image identities and
+logs are also retained on success (`AQ_UPDATE_EVIDENCE_DIR` selects the destination).
+The first run compiles all dependencies;
 later runs reuse BuildKit cache mounts.
 
 ## Releases and operations

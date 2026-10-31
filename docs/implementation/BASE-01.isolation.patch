@@ -1,0 +1,98 @@
+--- a/scripts/smoke
++++ b/scripts/smoke
+@@ -11,9 +11,9 @@
+ set -euo pipefail
+ cd "$(dirname "$0")/.."
+ 
+-PROJECT=agent-q-smoke
++PROJECT=aq-base01-xrzw4qo-smoke
+ DC=(docker compose -p "$PROJECT" -f compose.yaml -f compose.dev.yaml)
+-ADMIN=http://127.0.0.1:8080
++ADMIN=http://127.0.0.1:36165
+ STEP="start"
+ LOG_DIR=${TMPDIR:-/tmp}
+ 
+@@ -27,8 +27,8 @@
+   exit 2
+ else
+   PREBUILT=0
+-  export AQ_SERVER_IMAGE=${AQ_SERVER_IMAGE:-agent-q-server:smoke}
+-  export AQ_WORKER_IMAGE=${AQ_WORKER_IMAGE:-agent-q-worker:dev}
++  export AQ_SERVER_IMAGE=${AQ_SERVER_IMAGE:-aq-base01-xrzw4qo-server:smoke}
++  export AQ_WORKER_IMAGE=${AQ_WORKER_IMAGE:-aq-base01-xrzw4qo-worker:smoke}
+ fi
+ export AQ_VAULT_DIR="$PWD/vault.example"
+ export AQ_SECRETS_DIR="$PWD/secrets.dev"
+@@ -107,9 +107,12 @@
+   [ "$got" = "$2" ] || { echo "smoke: $1 runs $got, expected $2" >&2; return 1; }
+ }
+ 
++docker image inspect "$AQ_SERVER_IMAGE" "$AQ_WORKER_IMAGE" >"$LOG_DIR/smoke-images.json"
+ step "start stack and wait for server health"
+ "${DC[@]}" up -d --no-build --wait --wait-timeout 120 server >"$LOG_DIR/smoke-up.log" 2>&1 || {
+   tail -30 "$LOG_DIR/smoke-up.log" >&2; exit 1; }
++ADMIN=http://$("${DC[@]}" port server 8080)
++echo "smoke: assigned admin $ADMIN"
+ expect_image server "$AQ_SERVER_IMAGE"
+ poll "admin /healthz" 60 curl -fsS --max-time 3 "$ADMIN/healthz"
+ poll "in-container healthcheck" 60 \
+@@ -136,6 +139,8 @@
+ 
+ step "restart server and postgres"
+ "${DC[@]}" restart server postgres >"$LOG_DIR/smoke-restart.log" 2>&1
++ADMIN=http://$("${DC[@]}" port server 8080)
++echo "smoke: assigned admin after restart $ADMIN"
+ poll "admin /healthz after restart" 90 curl -fsS --max-time 3 "$ADMIN/healthz"
+ 
+ step "wait for a later heartbeat from the same node"
+--- a/compose.dev.yaml
++++ b/compose.dev.yaml
+@@ -26,8 +26,8 @@
+         target: /updater/status
+         read_only: true
+     ports:
+-      - '127.0.0.1:8080:8080'
+-      - '127.0.0.1:8081:8081'
++      - '127.0.0.1::8080'
++      - '127.0.0.1::8081'
+   cloudflared:
+     profiles: [tunnel]
+   # Only used by scripts/smoke: the worker image, run as a container.
+--- a/scripts/update-lifecycle
++++ b/scripts/update-lifecycle
+@@ -17,9 +17,9 @@
+ shopt -s inherit_errexit
+ 
+ REPO=$(cd "$(dirname "$0")/.." && pwd)
+-PROJECT=aq-suite
+-REGISTRY_NAME=aq-suite-registry
+-REGISTRY=127.0.0.1:5000
++PROJECT=aq-base01-xrzw4qo-update
++REGISTRY_NAME=aq-base01-xrzw4qo-registry
++REGISTRY=127.0.0.1:44583
+ # Short, so the broken release fails over quickly (production uses 120 s).
+ DEADLINE=45
+ UPDATER=$REPO/target/debug/aq-updater
+@@ -127,6 +127,11 @@
+ trap 'exit 130' INT TERM
+ 
+ teardown() {
++  mkdir -p "$BASE01_EVIDENCE/update-artifacts"
++  cp -r "$LOG_DIR/." "$BASE01_EVIDENCE/update-artifacts/" 2>/dev/null || true
++  cp "$STATE/journal.json" "$SPOOL/status/status.json" "$BASE01_EVIDENCE/update-artifacts/" 2>/dev/null || true
++  for d in "$ROOT"/release-*; do [ ! -d "$d" ] || cp -r "$d" "$BASE01_EVIDENCE/update-artifacts/"; done
++  docker image inspect "${IMAGES[@]}" >"$BASE01_EVIDENCE/update-artifacts/images.json" 2>/dev/null || true
+   dc_down
+   docker rm -fv "$REGISTRY_NAME"
+   if [ "${#IMAGES[@]}" -gt 0 ]; then docker image rm -f "${IMAGES[@]}"; fi
+@@ -367,6 +372,10 @@
+   fail "cargo build -p aq-updater failed"
+ }
+ 
++# Freeze the runner executable so later Cargo invocations cannot replace it.
++cp "$UPDATER" "$ROOT/aq-updater-fixed"
++UPDATER=$ROOT/aq-updater-fixed
++sha256sum "$UPDATER" >"$BASE01_EVIDENCE/update-runner.sha256"
+ step "start the throwaway registry on $REGISTRY"
+ docker run -d --name "$REGISTRY_NAME" -p "$REGISTRY:5000" registry:2 >>"$COMPOSE_LOG" 2>&1 ||
+   fail "cannot start $REGISTRY_NAME (is port 5000 in use?)"

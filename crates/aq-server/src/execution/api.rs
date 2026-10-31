@@ -1,0 +1,247 @@
+//! Authenticated execution extensions. Foundation v1 routes retain their shape.
+use super::{AttemptState, Error};
+use crate::{
+    AppState,
+    authz::{CurrentUser, RequireOwner},
+    config::AuthConfig,
+    error::AppError,
+};
+use aq_worker_protocol::*;
+use axum::{
+    Json, Router,
+    extract::{DefaultBodyLimit, FromRequest, Path, Request, State},
+    http::{HeaderMap, StatusCode},
+    response::{IntoResponse, Response},
+    routing::{get, post},
+};
+use serde::{Deserialize, de::DeserializeOwned};
+use uuid::Uuid;
+
+impl IntoResponse for Error {
+    fn into_response(self) -> Response {
+        let (code, message) = match self {
+            Self::Refused(code, message) => (code, message),
+            other => {
+                tracing::error!(error=%other, "execution storage failure");
+                (ErrorCode::Internal, "execution storage failure")
+            }
+        };
+        let status = match code {
+            ErrorCode::InvalidCredential | ErrorCode::CredentialRevoked => StatusCode::UNAUTHORIZED,
+            ErrorCode::UnsupportedProtocol => StatusCode::UPGRADE_REQUIRED,
+            ErrorCode::InvalidRequest | ErrorCode::UnsupportedCapability => StatusCode::BAD_REQUEST,
+            ErrorCode::NotFound => StatusCode::NOT_FOUND,
+            ErrorCode::Overloaded => StatusCode::SERVICE_UNAVAILABLE,
+            ErrorCode::Internal => StatusCode::INTERNAL_SERVER_ERROR,
+            _ => StatusCode::CONFLICT,
+        };
+        (
+            status,
+            Json(ProtocolError {
+                code,
+                message: message.into(),
+                retryable: matches!(code, ErrorCode::Overloaded | ErrorCode::Internal),
+                operation_id: None,
+            }),
+        )
+            .into_response()
+    }
+}
+
+struct ExecutionJson<T>(T);
+impl<T: DeserializeOwned> FromRequest<AppState> for ExecutionJson<T> {
+    type Rejection = Error;
+    async fn from_request(req: Request, state: &AppState) -> Result<Self, Error> {
+        Json::<T>::from_request(req, state)
+            .await
+            .map(|Json(v)| Self(v))
+            .map_err(|_| {
+                Error::Refused(
+                    ErrorCode::InvalidRequest,
+                    "invalid or oversized execution JSON",
+                )
+            })
+    }
+}
+async fn authenticate(
+    state: &AppState,
+    headers: &HeaderMap,
+    identity: &NodeIdentity,
+) -> Result<(), Error> {
+    let node = crate::worker_api::authenticate(state, headers)
+        .await
+        .map_err(|e| match e {
+            AppError::CredentialRevoked => {
+                Error::Refused(ErrorCode::CredentialRevoked, "node credential revoked")
+            }
+            AppError::Internal => Error::Refused(ErrorCode::Internal, "authentication unavailable"),
+            _ => Error::Refused(ErrorCode::InvalidCredential, "invalid node credential"),
+        })?;
+    if node.id != identity.node_id {
+        return Err(Error::Refused(
+            ErrorCode::InvalidCredential,
+            "credential does not name this node",
+        ));
+    }
+    Ok(())
+}
+fn now(state: &AppState) -> u64 {
+    (state.clock)().timestamp_millis().max(0) as u64
+}
+
+pub fn worker_routes() -> Router<AppState> {
+    Router::new()
+        .route("/v2/worker/register", post(register))
+        .route("/v2/worker/poll", post(poll))
+        .route("/v2/worker/accept", post(accept))
+        .route("/v2/worker/decline", post(decline))
+        .route("/v2/worker/renew", post(renew))
+        .route("/v2/worker/observe", post(observe))
+        .route("/v2/worker/directive-ack", post(directive_ack))
+        .route("/v2/worker/result", post(result))
+        .route("/v2/worker/reconcile", post(reconcile))
+        .route("/v2/worker/artifact-handoff", post(artifact_handoff))
+        .layer(DefaultBodyLimit::max(1024 * 1024))
+}
+pub fn admin_routes() -> Router<AppState> {
+    Router::new()
+        .route("/api/execution/fixtures", post(fixture))
+        .route("/api/execution/attempts/{id}", get(inspect))
+        .route("/api/execution/attempts/{id}/cancel", post(cancel))
+        .route(
+            "/api/execution/replace-incarnation",
+            post(replace_incarnation),
+        )
+        .layer(DefaultBodyLimit::max(1024 * 1024))
+}
+async fn register(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    ExecutionJson(request): ExecutionJson<RegisterRequest>,
+) -> Result<Json<RegisterResponse>, Error> {
+    if request.protocol_version != EXECUTION_PROTOCOL_VERSION {
+        return Err(Error::Refused(
+            ErrorCode::UnsupportedProtocol,
+            "execution protocol 2 required",
+        ));
+    }
+    authenticate(&state, &headers, &request.identity).await?;
+    Ok(Json(state.store.execution_register(&request).await?))
+}
+macro_rules! timed_handler {
+    ($name:ident, $request:ty, $response:ty, $method:ident) => {
+        async fn $name(
+            State(state): State<AppState>,
+            headers: HeaderMap,
+            ExecutionJson(request): ExecutionJson<$request>,
+        ) -> Result<Json<$response>, Error> {
+            authenticate(&state, &headers, &request.identity).await?;
+            Ok(Json(state.store.$method(&request, now(&state)).await?))
+        }
+    };
+}
+macro_rules! handler {
+    ($name:ident, $request:ty, $response:ty, $method:ident) => {
+        async fn $name(
+            State(state): State<AppState>,
+            headers: HeaderMap,
+            ExecutionJson(request): ExecutionJson<$request>,
+        ) -> Result<Json<$response>, Error> {
+            authenticate(&state, &headers, &request.identity).await?;
+            Ok(Json(state.store.$method(&request).await?))
+        }
+    };
+}
+timed_handler!(poll, PollRequest, PollResponse, execution_poll);
+timed_handler!(accept, AcceptRequest, AcceptResponse, execution_accept);
+timed_handler!(renew, RenewRequest, RenewResponse, execution_renew);
+timed_handler!(result, ResultReport, ResultResponse, execution_result);
+timed_handler!(
+    reconcile,
+    ReconcileRequest,
+    ReconcileResponse,
+    execution_reconcile
+);
+handler!(decline, DeclineRequest, Ack, execution_decline);
+handler!(observe, Observation, Ack, execution_observe);
+handler!(directive_ack, DirectiveAck, Ack, execution_directive_ack);
+
+async fn artifact_handoff(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    ExecutionJson(request): ExecutionJson<ArtifactHandoffRequest>,
+) -> Result<Json<ArtifactHandoffResponse>, Error> {
+    authenticate(&state, &headers, &request.identity).await?;
+    Err(Error::Refused(
+        ErrorCode::UnsupportedCapability,
+        "artifact transport/retention adapter not yet installed",
+    ))
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct FixtureRequest {
+    pub task_id: Uuid,
+    pub offer: Offer,
+}
+async fn fixture(
+    State(state): State<AppState>,
+    RequireOwner(_): RequireOwner,
+    ExecutionJson(request): ExecutionJson<FixtureRequest>,
+) -> Result<Json<Offer>, Error> {
+    if !matches!(state.config.auth, AuthConfig::Dev { .. }) {
+        return Err(Error::Refused(
+            ErrorCode::UnsupportedCapability,
+            "synthetic assignments are development-only",
+        ));
+    }
+    if request.offer.offer_expires_at_ms <= now(&state)
+        || request.offer.offer_expires_at_ms > now(&state).saturating_add(MAX_GRANT_MS)
+    {
+        return Err(Error::Refused(
+            ErrorCode::InvalidRequest,
+            "fixture offer expiry must be within 120 seconds",
+        ));
+    }
+    Ok(Json(
+        state
+            .store
+            .execution_offer(request.task_id, &request.offer)
+            .await?,
+    ))
+}
+async fn inspect(
+    State(state): State<AppState>,
+    CurrentUser(_): CurrentUser,
+    Path(id): Path<Uuid>,
+) -> Result<Json<AttemptState>, Error> {
+    Ok(Json(state.store.execution_get(id).await?))
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CancelRequest {
+    pub operation_id: Uuid,
+    pub reason: String,
+}
+async fn cancel(
+    State(state): State<AppState>,
+    RequireOwner(_): RequireOwner,
+    Path(id): Path<Uuid>,
+    ExecutionJson(request): ExecutionJson<CancelRequest>,
+) -> Result<Json<AttemptState>, Error> {
+    Ok(Json(
+        state
+            .store
+            .execution_cancel(id, request.operation_id, &request.reason)
+            .await?,
+    ))
+}
+async fn replace_incarnation(
+    State(state): State<AppState>,
+    RequireOwner(_): RequireOwner,
+    ExecutionJson(request): ExecutionJson<RegisterRequest>,
+) -> Result<Json<RegisterResponse>, Error> {
+    Ok(Json(
+        state.store.execution_replace_incarnation(&request).await?,
+    ))
+}

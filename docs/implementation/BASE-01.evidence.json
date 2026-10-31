@@ -1,0 +1,409 @@
+{
+  "source_revision": "eed842362f29016ee508ca200f3bb3da2473dc08",
+  "source_archive_sha256": "95a2790c8361b3084d3907604813516520c92180a620b68e1fab8556fb4a7c3a",
+  "root": "/tmp/aq-base01-eed8423-xrzw4_qo",
+  "project_prefix": "aq-base01-xrzw4qo",
+  "ports": {
+    "smoke_admin": "Docker-assigned: 63508, after restart 55112",
+    "smoke_worker": "Docker-assigned",
+    "registry": 44583
+  },
+  "environment": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+    "cargo": "cargo 1.96.1 (356927216 2026-06-26)"
+  },
+  "lockfile_sha256": "8de30ac6c3bad57cafdd97889111e4c6acdd004c46dd71b2f00da06afc20b04f",
+  "toolchain_sha256": "6791dcb04edcb490caaf08590dbe1dd9d9954b46dab2095df12dc984f704f1a8",
+  "images": {
+    "postgres": [
+      {
+        "id": "sha256:99445113a4a19e82dd3713c65bd9f6fb5bf972065ab043df8d1e1c93e957da9a",
+        "repo_tags": [
+          "postgres:17-bookworm"
+        ],
+        "repo_digests": [
+          "postgres@sha256:839fbb5a4942a7758dd93e18b42ea5649807491a0545b5eeeb8f0b8bb11857a5"
+        ],
+        "labels": {}
+      }
+    ],
+    "smoke": [
+      {
+        "id": "sha256:fee25a4384f1f627f3ed7a68b3367cd44d1959171cbb1c12e9e619dc70729e04",
+        "repo_tags": [
+          "aq-base01-xrzw4qo-server:smoke"
+        ],
+        "repo_digests": [],
+        "labels": {
+          "com.docker.compose.project": "aq-base01-xrzw4qo-smoke",
+          "com.docker.compose.service": "server",
+          "com.docker.compose.version": "5.1.1",
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "1",
+          "org.opencontainers.image.revision": "unknown",
+          "org.opencontainers.image.title": "agent-q-server",
+          "org.opencontainers.image.version": "unknown"
+        }
+      },
+      {
+        "id": "sha256:d2329f5e0449e22e3da652c3b25ef42ac7bbd894c15836b818bcd879153fd0bf",
+        "repo_tags": [
+          "aq-base01-xrzw4qo-worker:smoke"
+        ],
+        "repo_digests": [],
+        "labels": {
+          "com.docker.compose.project": "aq-base01-xrzw4qo-smoke",
+          "com.docker.compose.service": "worker",
+          "com.docker.compose.version": "5.1.1",
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "1",
+          "org.opencontainers.image.revision": "unknown",
+          "org.opencontainers.image.title": "agent-q-worker",
+          "org.opencontainers.image.version": "unknown"
+        }
+      }
+    ],
+    "update": [
+      {
+        "id": "sha256:308a8aa1dc08fe44193277c296ba23b00f94e9a16e14d7d527b88e9b07e1c8c5",
+        "repo_tags": [
+          "127.0.0.1:44583/agent-q-server:0.1.0"
+        ],
+        "repo_digests": [
+          "127.0.0.1:44583/agent-q-server@sha256:25f0e1ab989535e8652e91abeb0e7ed1e32bc9d0a8b4a57068a1cdb869791548"
+        ],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "1",
+          "org.opencontainers.image.revision": "suite-0.1.0",
+          "org.opencontainers.image.title": "agent-q-server",
+          "org.opencontainers.image.version": "0.1.0"
+        }
+      },
+      {
+        "id": "sha256:9cc4c9c2e8314f321b6e0746d8ae225de7de41062a38c20874a283b5c670478c",
+        "repo_tags": [
+          "127.0.0.1:44583/agent-q-worker:0.1.0"
+        ],
+        "repo_digests": [
+          "127.0.0.1:44583/agent-q-worker@sha256:33e1d839f2f0e32183cdbf55176496168263da2ac68105452682ec0ff8d6aead"
+        ],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "1",
+          "org.opencontainers.image.revision": "suite-0.1.0",
+          "org.opencontainers.image.title": "agent-q-worker",
+          "org.opencontainers.image.version": "0.1.0"
+        }
+      },
+      {
+        "id": "sha256:f18ed53287b659aefa3ff1ef79eea170d37e82b4fa3a0545ba49bdea65aec081",
+        "repo_tags": [
+          "127.0.0.1:44583/agent-q-release:0.1.0"
+        ],
+        "repo_digests": [
+          "127.0.0.1:44583/agent-q-release@sha256:af0ed9866fc56b8cc0b78c03a1738c96f023f21e7b07949a1a9a85bad61b14d1"
+        ],
+        "labels": {
+          "org.opencontainers.image.revision": "suite-0.1.0",
+          "org.opencontainers.image.title": "agent-q-release",
+          "org.opencontainers.image.version": "0.1.0"
+        }
+      },
+      {
+        "id": "sha256:0358f51f4c7dc72d8038b74e924f24b256c0214d10df88c909a74816bd4bd3ff",
+        "repo_tags": [
+          "127.0.0.1:44583/agent-q-server:0.1.1"
+        ],
+        "repo_digests": [
+          "127.0.0.1:44583/agent-q-server@sha256:9f29a553ec111f618742752a6a294770f9e3f344d5da0abb3b222a0acc592fdf"
+        ],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "1",
+          "org.opencontainers.image.revision": "suite-0.1.1",
+          "org.opencontainers.image.title": "agent-q-server",
+          "org.opencontainers.image.version": "0.1.1"
+        }
+      },
+      {
+        "id": "sha256:4c6a03cb55d853cde7b39001496223014e23b08f3324146679754f8e62042f7e",
+        "repo_tags": [
+          "127.0.0.1:44583/agent-q-worker:0.1.1"
+        ],
+        "repo_digests": [
+          "127.0.0.1:44583/agent-q-worker@sha256:a2b4106a94c4d4d3df4da1b371d69b1090f3e60d35212193dceddd6f47928ddd"
+        ],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "1",
+          "org.opencontainers.image.revision": "suite-0.1.1",
+          "org.opencontainers.image.title": "agent-q-worker",
+          "org.opencontainers.image.version": "0.1.1"
+        }
+      },
+      {
+        "id": "sha256:f50625765dab971347b4c793bb9e1faada21c464ebbbc6ee5fdfe1e3688b3b82",
+        "repo_tags": [
+          "127.0.0.1:44583/agent-q-release:0.1.1"
+        ],
+        "repo_digests": [
+          "127.0.0.1:44583/agent-q-release@sha256:b62e61bba7982d09a8aab6052233fc01e8dd088af64a6175fa6c8ca3bd54c595"
+        ],
+        "labels": {
+          "org.opencontainers.image.revision": "suite-0.1.1",
+          "org.opencontainers.image.title": "agent-q-release",
+          "org.opencontainers.image.version": "0.1.1"
+        }
+      },
+      {
+        "id": "sha256:7923835b4a479dc4913dd6c0bf8466780798279b27eeb76d91ddc1da6b86914f",
+        "repo_tags": [
+          "127.0.0.1:44583/agent-q-server:0.1.2-c0"
+        ],
+        "repo_digests": [],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "1",
+          "org.opencontainers.image.revision": "suite-0.1.2",
+          "org.opencontainers.image.title": "agent-q-server",
+          "org.opencontainers.image.version": "0.1.2"
+        }
+      },
+      {
+        "id": "sha256:6545e4d1b1eeef43dba90b9046dd38801f5b5f36652c45a6d45d0df15d3ae3da",
+        "repo_tags": [
+          "127.0.0.1:44583/agent-q-worker:0.1.2"
+        ],
+        "repo_digests": [
+          "127.0.0.1:44583/agent-q-worker@sha256:69295440270c04fb32aca608016d47ca15bd36d9852c0444a8f9830d058e1818"
+        ],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "1",
+          "org.opencontainers.image.revision": "suite-0.1.2",
+          "org.opencontainers.image.title": "agent-q-worker",
+          "org.opencontainers.image.version": "0.1.2"
+        }
+      },
+      {
+        "id": "sha256:11dc5156e73807f8b61e2f81f023502ea6d9b1a7751bbe4860e494b7d64789d5",
+        "repo_tags": [
+          "127.0.0.1:44583/agent-q-server:0.1.2"
+        ],
+        "repo_digests": [
+          "127.0.0.1:44583/agent-q-server@sha256:14c0638783272dcaef1a2096a2339f9f129f5dc63ffff41ec61a5a40fa1098ae"
+        ],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "1",
+          "org.opencontainers.image.revision": "suite-0.1.2",
+          "org.opencontainers.image.title": "agent-q-server",
+          "org.opencontainers.image.version": "0.1.2"
+        }
+      },
+      {
+        "id": "sha256:ca7b1bf3b48dd7bebbfcc69a66734fbc53471455718a8147eb4976c7de2d6efa",
+        "repo_tags": [
+          "127.0.0.1:44583/agent-q-release:0.1.2"
+        ],
+        "repo_digests": [
+          "127.0.0.1:44583/agent-q-release@sha256:d77ceb8033e89f07a2c6fa8b43af7f92a7764cd8dd8140a54d6515213a853d32"
+        ],
+        "labels": {
+          "org.opencontainers.image.revision": "suite-0.1.2",
+          "org.opencontainers.image.title": "agent-q-release",
+          "org.opencontainers.image.version": "0.1.2"
+        }
+      },
+      {
+        "id": "sha256:a7310dac1dd3b6bfa91305c48d478910ceb0ea01f29aecebacffe0521d6bba95",
+        "repo_tags": [
+          "127.0.0.1:44583/agent-q-release:0.1.3"
+        ],
+        "repo_digests": [
+          "127.0.0.1:44583/agent-q-release@sha256:09ca2869dceda5cdc2d02ae3c038982f230c632a4d3d96023b038b00d19df55c"
+        ],
+        "labels": {
+          "org.opencontainers.image.revision": "suite-0.1.3",
+          "org.opencontainers.image.title": "agent-q-release",
+          "org.opencontainers.image.version": "0.1.3"
+        }
+      }
+    ]
+  },
+  "postgres_container": "aq-base01-xrzw4qo-postgres",
+  "postgres_host_port": 54714,
+  "smoke_pass_node_id": "10a208fb-d244-44d8-a11e-dc7b7decf66a",
+  "sqlite_lockfile_check": {
+    "passed": true,
+    "command": "Python regex search of immutable Cargo.lock"
+  },
+  "task": "BASE-01",
+  "status": "complete",
+  "qualified_at": "2026-10-30T23:59:54.239156+00:00",
+  "checks": [
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "started_at": "2026-10-30T23:49:41.408859+00:00",
+      "finished_at": "2026-10-30T23:49:41.733088+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "workspace-tests",
+      "command": [
+        "cargo",
+        "test",
+        "--workspace",
+        "--locked"
+      ],
+      "started_at": "2026-10-30T23:49:41.733542+00:00",
+      "finished_at": "2026-10-30T23:53:31.612042+00:00",
+      "exit_code": 0,
+      "test_totals": {
+        "passed": 237,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "updater-tests",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "aq-updater",
+        "--locked",
+        "--features",
+        "test-verifier"
+      ],
+      "started_at": "2026-10-30T23:53:31.618720+00:00",
+      "finished_at": "2026-10-30T23:54:05.549817+00:00",
+      "exit_code": 0,
+      "test_totals": {
+        "passed": 137,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "started_at": "2026-10-30T23:54:05.550375+00:00",
+      "finished_at": "2026-10-30T23:54:44.805102+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "clippy-updater",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "aq-updater",
+        "--all-targets",
+        "--locked",
+        "--features",
+        "test-verifier",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "started_at": "2026-10-30T23:54:44.805467+00:00",
+      "finished_at": "2026-10-30T23:54:52.771542+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "musl-build",
+      "command": [
+        "cargo",
+        "build",
+        "--release",
+        "--locked",
+        "-p",
+        "aq-updater",
+        "--target",
+        "x86_64-unknown-linux-musl"
+      ],
+      "started_at": "2026-10-30T23:54:52.771917+00:00",
+      "finished_at": "2026-10-30T23:55:36.010178+00:00",
+      "exit_code": 0
+    },
+    {
+      "name": "fixtures",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "-p",
+        "aq-worker",
+        "-p",
+        "aq-updater",
+        "--test",
+        "base01_fixtures"
+      ],
+      "started_at": "2026-10-30T23:55:10.090425+00:00",
+      "finished_at": "2026-10-30T23:55:27.765038+00:00",
+      "exit_code": 0,
+      "test_totals": {
+        "passed": 3,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "image-smoke",
+      "command": "TMPDIR=/tmp/aq-base01-eed8423-xrzw4_qo/logs CARGO_BUILD_JOBS=4 scripts/smoke",
+      "exit_code": 0,
+      "log": "logs/smoke.log"
+    },
+    {
+      "name": "update-lifecycle",
+      "command": "BASE01_EVIDENCE=/tmp/aq-base01-eed8423-xrzw4_qo CARGO_BUILD_JOBS=4 scripts/update-lifecycle",
+      "started_at": "2026-10-30T23:56:59.150163+00:00",
+      "finished_at": "2026-10-30T23:59:54.238939+00:00",
+      "exit_code": 0,
+      "cases_passed": 7,
+      "runner_sha256": "97516d7aefd86c3333f545c8ecb0647fe3be507d89872f348e89d2096bf45fe4",
+      "log": "logs/update-lifecycle.log"
+    }
+  ],
+  "test_environment": {
+    "DATABASE_URL": "postgres://postgres:<disposable-password>@127.0.0.1:54714/postgres",
+    "CARGO_BUILD_JOBS": "4",
+    "AQ_SOURCE_REVISION": "unset"
+  },
+  "runner_sha256": "97516d7aefd86c3333f545c8ecb0647fe3be507d89872f348e89d2096bf45fe4",
+  "static_updater_sha256": "491971464932b5309a26027f6efd5ad7a482685bd6b36de50c53f74da7e70c9c",
+  "update_derivation": "0.1.0 baseline; 0.1.1/0.1.2 change workspace versions and workspace lock entries only; 0.1.2 wraps serve to use missing vault; 0.1.3 format-2 manifest intentionally references never-pushed zero digests. Test labels suite-VERSION are synthetic, tied to baseline source archive through this evidence.",
+  "limits": [
+    "Local foundation only; no hosted acceptance or product gate.",
+    "Smoke images are local build IDs with unknown source label; exact archived inputs recorded.",
+    "Update artifacts use local registry digest references and test-key signatures; not public releases.",
+    "Repeated updater test totals overlap workspace tests."
+  ],
+  "input_files": {
+    "src-0.1.2/Cargo.toml": "61c82d95409f5ba146eeb567ebf53b0221ba8aad4c30e025a711f6ac2cab54b7",
+    "src-0.1.2/Cargo.lock": "03c9b6112f347cf192cf95796103cb91aa0467392513806bef5809375b9b7089",
+    "src-0.1.2/rust-toolchain.toml": "6791dcb04edcb490caaf08590dbe1dd9d9954b46dab2095df12dc984f704f1a8",
+    "src-0.1.1/Cargo.toml": "648f3fdf3be6b2f244bd61313669751fe4b203ad7e0cb44eaf11c68561600b98",
+    "src-0.1.1/Cargo.lock": "99003710f6b4a2bb0fcd949c30d5e18152f5eb89de6e1e74275caa113af9f006",
+    "src-0.1.1/rust-toolchain.toml": "6791dcb04edcb490caaf08590dbe1dd9d9954b46dab2095df12dc984f704f1a8"
+  },
+  "fixture_files": {}
+}

@@ -1,0 +1,394 @@
+   Compiling aq-worker-protocol v0.1.1 (/home/jkern/dev/agent-q/vendor/aq-worker-protocol-0.1.1)
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 18.14s
+     Running unittests src/lib.rs (target/debug/deps/aq_release-1bf9d3a25baedaf8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/manifest.rs (target/debug/deps/manifest-cf733f7012e27069)
+
+running 17 tests
+test canonical_json_golden_bytes ... ok
+test downgrade_refused ... ok
+test canonical_json_roundtrips_byte_identical ... ok
+test digest_refs_allow_a_registry_port_but_no_tags ... ok
+test first_install_allowed ... ok
+test outside_upgrade_from_refused ... ok
+test parses_valid_manifest ... ok
+test rejects_inverted_protocol_range_and_bad_manifest_version ... ok
+test protocol_ranges_must_overlap ... ok
+test rejects_state_format_not_readable ... ok
+test rejects_tag_reference_without_digest ... ok
+test rejects_unknown_field ... ok
+test rejects_malformed_digests_for_both_images ... ok
+test restore_needed_when_state_format_changes ... ok
+test restore_uses_observed_state_format ... ok
+test same_version_refused ... ok
+test unreadable_state_refused ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/spool.rs (target/debug/deps/spool-ec6ffdb9667f0b97)
+
+running 5 tests
+test readiness_report_roundtrip ... ok
+test request_rejects_unknown_fields ... ok
+test status_json_roundtrip ... ok
+test status_tolerates_unknown_fields_and_variants ... ok
+test step_order_is_declared_order ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/aq_server-690996860d830593)
+
+running 9 tests
+test config::tests::other_deployments_accept_dev_vault ... ok
+test config::tests::production_deployment_accepts_production_vault ... ok
+test config::tests::production_deployment_rejects_dev_auth_in_production_env ... ok
+test config::tests::production_deployment_rejects_dev_vault ... ok
+test config::tests::production_deployment_rejects_development_env_with_access_auth ... ok
+test store::tests::state_format_is_the_latest_migration ... ok
+test updates::tests::unreadable_marker_dir_counts_as_maintenance ... ok
+test updates::tests::stamped_binary_refuses_other_revision ... ok
+test updates::tests::unstamped_binary_accepts_any_revision ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (target/debug/deps/aq_server-6740cc6a5251706b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/authz.rs (target/debug/deps/authz-db98045af593935a)
+
+running 13 tests
+test concurrent_first_logins_bootstrap_owner ... ok
+test concurrent_first_logins_invited_viewer ... ok
+test bootstrap_happens_once ... ok
+test bootstrap_disabled_blocks_owner_creation ... ok
+test mutation_with_foreign_origin_rejected ... ok
+test configured_email_bootstraps_owner ... ok
+test invited_viewer_binds_on_first_login ... ok
+test first_visitor_is_not_owner ... ok
+test mutation_with_header_and_matching_origin_allowed ... ok
+test unauthenticated_without_token ... ok
+test mutation_without_csrf_header_rejected ... ok
+test no_cors_headers_emitted ... ok
+test viewer_cannot_call_owner_route ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.70s
+
+     Running tests/cli.rs (target/debug/deps/cli-baf6449b1950f696)
+
+running 4 tests
+test production_deployment_refuses_dev_vault_before_database ... ok
+test serve_without_database_url_exits_2 ... ok
+test healthcheck_uses_vault_admin_port ... ok
+test admin_and_worker_listen_on_separate_ports ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.26s
+
+     Running tests/config.rs (target/debug/deps/config-f6653f87b2788110)
+
+running 13 tests
+test loads_example_vault ... ok
+test bootstrap_enabled_requires_email ... ok
+test missing_file_names_path ... ok
+test rejects_future_format_version ... ok
+test loads_minimal_valid_config_with_defaults ... ok
+test rejects_dev_auth_in_production ... ok
+test rejects_missing_required_key ... ok
+test rejects_non_https_origin_in_production ... ok
+test rejects_non_https_team_domain ... ok
+test rejects_offline_not_greater_than_heartbeat ... ok
+test rejects_unknown_key ... ok
+test rejects_zero_durations ... ok
+test updates_section_is_optional_strict_and_absolute ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/enrollment.rs (target/debug/deps/enrollment-77356be90ecce5d6)
+
+running 15 tests
+test never_seen_worker_is_offline ... ok
+test me_reports_dev_auth_mode ... ok
+test me_reports_email_role_and_auth_mode ... ok
+test owner_creates_enrollment_code ... ok
+test revoked_status_wins ... ok
+test owner_manages_users ... ok
+test every_mutation_requires_csrf_header_via_admin_routes ... ok
+test revoke_unknown_is_404_and_malformed_is_not_500 ... ok
+test user_creation_validates_input ... ok
+test status_reports_update_unavailable ... ok
+test viewer_cannot_create_enrollment_via_direct_api ... ok
+test worker_status_offline_after_60s ... ok
+test viewer_cannot_manage_users ... ok
+test workers_list_and_revoke ... ok
+test viewer_cannot_revoke ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.98s
+
+     Running tests/execution.rs (target/debug/deps/execution-d4e6921a97cef571)
+
+running 19 tests
+test cancellation_wins_before_result_and_retains_late_output ... ok
+test accepted_result_cannot_be_retroactively_cancelled ... ok
+test acceptance_replay_is_durable_and_does_not_extend_authority ... ok
+test boot_replacement_requires_stop_and_old_results_never_settle_new_authority ... ok
+test cancelled_unaccepted_offer_never_queues_an_unknown_process_directive ... ok
+test concurrent_claims_for_one_task_leave_one_unsettled_attempt ... ok
+test conflicting_task_claims_on_different_nodes_share_one_central_fence ... ok
+test corrected_reports_preserve_original_immutable_body_and_admission ... ok
+test execution_http_authenticates_node_binding_and_keeps_routes_separate ... ok
+test explicit_recovery_permits_only_exact_boot_after_all_writers_stop ... ok
+test expired_execution_remains_held_until_stopped_and_reported ... ok
+test expired_unaccepted_offer_and_explicit_decline_release_task_claim ... ok
+test fixture_assignment_requires_owner_dev_mode_and_sealed_inputs ... ok
+test observation_replay_cannot_regress_or_resurrect_stopped_processes ... ok
+test reconciliation_does_not_extend_grants_or_take_over_old_incarnations ... ok
+test recovery_inventory_cannot_omit_a_writer_or_race_a_new_acceptance ... ok
+test unresolved_external_operations_prevent_replacement_even_after_stop ... ok
+test renewal_replay_preserves_expiry_and_rejects_stale_sequence ... ok
+test repeated_cancellations_coalesce_one_worker_directive ... ok
+
+test result: ok. 19 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.34s
+
+     Running tests/health.rs (target/debug/deps/health-4e75afbbbedb91c2)
+
+running 1 test
+test version_info_reports_protocol_range ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/identity.rs (target/debug/deps/identity-f7d090521169c032)
+
+running 13 tests
+test dev_identity_uses_override_header ... ok
+test ignores_email_header_without_jwt ... ok
+test hs256_rejected_before_any_jwks_fetch ... ok
+test accepts_valid_token ... ok
+test accepts_within_clock_skew_leeway ... ok
+test rejects_hs256_token ... ok
+test rejects_expired_beyond_leeway ... ok
+test refetches_jwks_on_unknown_kid_once ... ok
+test rejects_wrong_audience ... ok
+test rejects_missing_email_claim ... ok
+test rejects_wrong_issuer ... ok
+test unreachable_jwks_is_keys_unavailable ... ok
+test stalled_jwks_endpoint_times_out_as_keys_unavailable ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.16s
+
+     Running tests/readiness.rs (target/debug/deps/readiness-7c8d9358affc8e4f)
+
+running 4 tests
+test readyz_reports_database_error ... ok
+test readyz_loopback_only ... ok
+test ping_times_out_instead_of_hanging ... ok
+test readyz_answers_loopback_over_real_listener ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s
+
+     Running tests/store.rs (target/debug/deps/store-22cb7c9fc82b91fe)
+
+running 13 tests
+test concurrent_redeem_yields_one_node ... ok
+test email_unique_case_insensitive ... ok
+test bootstrap_owner_only_once ... ok
+test enrollment_code_expires ... ok
+test invited_user_binds_once ... ok
+test enrollment_code_single_use ... ok
+test node_lifecycle ... ok
+test migrations_are_idempotent ... ok
+test tokens_have_prefixes_and_are_unique ... ok
+test verifier_is_deterministic_and_hex64 ... ok
+test refuses_unknown_future_migration ... ok
+test refuses_newer_state_format ... ok
+test reconnect_preserves_state ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.53s
+
+     Running tests/updates.rs (target/debug/deps/updates-24fecfb44aa2afb0)
+
+running 22 tests
+test maintenance_allows_heartbeat ... ok
+test dotfile_in_requests_does_not_block ... ok
+test invalid_version_rejected ... ok
+test maintenance_allows_probe ... ok
+test manifest_rejects_version_mismatch ... ok
+test manifest_rejects_unpinned_image ... ok
+test manifest_subcommand_uses_binary_constants ... ok
+test manifest_stdout_is_exact_under_trace_logging ... ok
+test missing_status_file_reads_unavailable ... ok
+test maintenance_blocks_admin_mutations_and_enroll ... ok
+test no_spool_config_means_nothing_gated ... ok
+test owner_request_without_version_omits_it ... ok
+test request_rejected_while_in_progress ... ok
+test prerelease_and_build_versions_rejected ... ok
+test request_body_rejects_image_field ... ok
+test owner_request_writes_spool_file ... ok
+test unknown_state_blocks_request ... ok
+test second_request_rejected_while_one_is_queued ... ok
+test updates_unavailable_without_spool_config ... ok
+test status_maps_update_states ... ok
+test viewer_reads_update_status ... ok
+test viewer_cannot_request_update ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.98s
+
+     Running tests/worker_api.rs (target/debug/deps/worker_api-2966069c8e9ffafd)
+
+running 15 tests
+test admin_listener_has_no_worker_routes ... ok
+test enroll_with_valid_code_returns_credential ... ok
+test expired_code_fails ... ok
+test enroll_validates_input ... ok
+test heartbeat_checks_protocol_before_credential ... ok
+test heartbeat_updates_last_seen ... ok
+test oversized_body_rejected ... ok
+test healthz_on_both_and_hardening_headers ... ok
+test probe_echoes_nonce ... ok
+test reused_code_fails ... ok
+test unknown_code_gives_same_response_as_used ... ok
+test revoked_credential_rejected_with_reason ... ok
+test worker_listener_has_no_admin_routes ... ok
+test unsupported_protocol_gets_426_diagnostic ... ok
+test unknown_credential_rejected ... ok
+
+test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.65s
+
+     Running unittests src/lib.rs (target/debug/deps/aq_updater-0d239f1bc7131cc7)
+
+running 25 tests
+test runtime::tests::compose_args_are_fixed_vectors ... ok
+test runtime::tests::compose_stderr_is_reduced_to_the_first_error_line ... ok
+test runtime::tests::docker_argvs_take_only_validated_refs ... ok
+test runtime::tests::docker_cli_writes_the_spool_of_its_state_dir ... ok
+test runtime::tests::extracts_the_named_file_from_a_docker_cp_tar ... ok
+test runtime::tests::compose_failures_do_not_leak_stderr_into_the_error ... ok
+test runtime::tests::ensure_release_env_keeps_the_image_and_fixes_the_spool ... ok
+test runtime::tests::missing_database_or_table_is_no_state_format ... ok
+test runtime::tests::ensure_release_env_bootstraps_a_fresh_host ... ok
+test runtime::tests::release_env_path_is_under_the_state_dir ... ok
+test runtime::tests::no_release_placeholder_is_a_digest_ref_on_a_reserved_host ... ok
+test runtime::tests::stderr_tail_is_bounded_and_keeps_the_end ... ok
+test runtime::tests::fetch_release_removes_the_container_even_on_error ... ok
+test spool::tests::take_requests_deletes_processed ... ok
+test spool::tests::take_requests_rejects_non_regular_files ... ok
+test verify::tests::binding_comes_from_the_manifest ... ok
+test runtime::tests::failures_name_the_command_and_keep_stderr ... ok
+test verify::tests::binding_refuses_unparsable_manifests_and_odd_revisions ... ok
+test runtime::tests::release_env_written_atomically_with_mode_0640 ... ok
+test verify::tests::cosign_argv_is_fixed ... ok
+test verify::tests::cosign_missing_binary_is_unavailable ... ok
+test spool::tests::take_requests_rejects_oversized_and_malformed ... ok
+test verify::tests::cosign_refuses_an_unparsable_manifest_before_running ... ok
+test verify::tests::cosign_nonzero_exit_is_rejected ... ok
+test verify::tests::cosign_timeout_kills_and_is_unavailable ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
+
+     Running unittests src/main.rs (target/debug/deps/aq_updater-669c81176486351d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli.rs (target/debug/deps/cli-6ff18f47f8231e8b)
+
+running 14 tests
+test install_rejects_bad_version ... ok
+test locked_commands_refuse_while_locked ... ok
+test bad_config_exits_2 ... ok
+test run_once_exits_with_a_stuck_request_entry ... ok
+test run_once_keeps_maintenance_for_needs_operator ... ok
+test status_escapes_control_characters_in_history ... ok
+test run_once_with_nothing_to_do_publishes_idle_status ... ok
+test status_prints_needs_operator_instructions ... ok
+test status_prints_raw_corrupt_journal ... ok
+test status_shows_in_progress_and_available ... ok
+test status_without_restore_hint_omits_the_flag ... ok
+test verify_manifest_cosign_unavailable_is_config_error ... ok
+test install_finishes_through_interrupts ... ok
+test restore_previous_finishes_through_interrupts ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.14s
+
+     Running tests/config.rs (target/debug/deps/config-00b7ce2fbc4b9562)
+
+running 8 tests
+test config_rejects_unknown_key ... ok
+test defaults_apply ... ok
+test rejects_a_state_dir_that_cannot_go_into_release_env ... ok
+test rejects_relative_empty_and_bad_regexp ... ok
+test test_key_verifier_kind_rejected_without_feature ... ok
+test maintenance_drain_may_be_zero ... ok
+test identity_regexp_must_be_anchored ... ok
+test rejects_out_of_range_numbers_and_names ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/engine.rs (target/debug/deps/engine-8b6d3d2e717c43f8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/journal.rs (target/debug/deps/journal-d0139b7b5e2b06ca)
+
+running 22 tests
+test bogus_step_is_corrupt ... ok
+test corrupt_journal_reported_not_guessed ... ok
+test corrupt_message_does_not_suggest_removal ... ok
+test corrupt_raw_is_capped ... ok
+test dropping_journal_releases_lock ... ok
+test first_open_is_empty_and_creates_dir ... ok
+test active_backup_is_optional_and_roundtrips ... ok
+test history_read_error_is_returned ... ok
+test invalid_manifest_in_journal_is_corrupt ... ok
+test journal_is_send_static ... ok
+test missing_format_is_corrupt ... ok
+test append_after_torn_line_is_readable ... ok
+test read_never_touches_tmp_or_creates_dir ... ok
+test file_modes_are_private ... ok
+test second_lock_fails_fast ... ok
+test record_is_atomic ... ok
+test unknown_field_is_corrupt ... ok
+test unknown_format_refused ... ok
+test record_roundtrips ... ok
+test zero_length_journal_is_corrupt ... ok
+test history_appends_and_reads_newest_first ... ok
+test torn_history_line_skipped ... ok
+
+test result: ok. 22 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/spool.rs (target/debug/deps/spool-20d1d678af47c50f)
+
+running 3 tests
+test ensure_dirs_sets_modes ... ok
+test maintenance_marker_toggles ... ok
+test publish_status_atomic ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+   Doc-tests aq_release
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aq_server
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aq_updater
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

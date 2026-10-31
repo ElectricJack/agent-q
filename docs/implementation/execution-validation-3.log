@@ -1,0 +1,5 @@
+    Checking aq-release v0.1.0 (/home/jkern/dev/agent-q/crates/aq-release)
+    Checking aq-worker-protocol v0.1.1 (/home/jkern/dev/agent-q/vendor/aq-worker-protocol-0.1.1)
+    Checking aq-updater v0.1.0 (/home/jkern/dev/agent-q/crates/aq-updater)
+    Checking aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 6.10s

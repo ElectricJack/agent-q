@@ -49,7 +49,7 @@ async fn migrations_are_idempotent() {
         .fetch_one(&pool)
         .await
         .unwrap();
-    assert_eq!(n, 1);
+    assert_eq!(n, i64::from(aq_server::STATE_FORMAT_VERSION));
 }
 
 #[tokio::test]
@@ -67,8 +67,8 @@ async fn refuses_unknown_future_migration() {
             err,
             StoreError::IncompatibleState {
                 found: 99,
-                supported: 1
-            }
+                supported
+            } if supported == aq_server::STATE_FORMAT_VERSION
         ),
         "{err:?}"
     );
@@ -76,7 +76,7 @@ async fn refuses_unknown_future_migration() {
         .fetch_one(&pool)
         .await
         .unwrap();
-    assert_eq!(n, 2);
+    assert_eq!(n, i64::from(aq_server::STATE_FORMAT_VERSION) + 1);
 }
 
 #[tokio::test]
@@ -255,7 +255,8 @@ async fn refuses_newer_state_format() {
     let db = TestDb::create().await;
     drop(db.store().await);
     let pool = db.pool().await;
-    sqlx::query("UPDATE meta SET value = '2' WHERE key = 'state_format_version'")
+    sqlx::query("UPDATE meta SET value = $1 WHERE key = 'state_format_version'")
+        .bind((aq_server::STATE_FORMAT_VERSION + 1).to_string())
         .execute(&pool)
         .await
         .unwrap();
@@ -264,9 +265,9 @@ async fn refuses_newer_state_format() {
         matches!(
             err,
             StoreError::IncompatibleState {
-                found: 2,
-                supported: 1
-            }
+                found,
+                supported
+            } if found == aq_server::STATE_FORMAT_VERSION + 1 && supported == aq_server::STATE_FORMAT_VERSION
         ),
         "{err:?}"
     );

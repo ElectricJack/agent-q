@@ -19,6 +19,10 @@ fi
 mkdir -p state.dev/updater-spool/requests state.dev/updater-spool/status
 [ "${1:-}" = "--init-only" ] && exit 0
 
+AQ_WORKER_SOURCE_REVISION=$(python3 scripts/check-worker-candidate.py --revision)
+AQ_WORKER_ARCHIVE_SHA256=$(python3 -c 'import json; print(json.load(open("vendor/worker-candidate.json"))["archive_sha256"])')
+export AQ_WORKER_SOURCE_REVISION AQ_WORKER_ARCHIVE_SHA256
+
 export AQ_SERVER_IMAGE=${AQ_SERVER_IMAGE:-agent-q-server:dev}
 export AQ_VAULT_DIR="$PWD/vault.example"
 export AQ_SECRETS_DIR="$PWD/secrets.dev"

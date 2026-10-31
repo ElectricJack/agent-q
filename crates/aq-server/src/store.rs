@@ -165,7 +165,10 @@ fn map_user_insert_err(e: sqlx::Error) -> StoreError {
     StoreError::Database(e)
 }
 
-const MIGRATIONS: &[(i32, &str)] = &[(1, include_str!("../migrations/0001_foundation.sql"))];
+const MIGRATIONS: &[(i32, &str)] = &[
+    (1, include_str!("../migrations/0001_foundation.sql")),
+    (2, include_str!("../migrations/0002_execution.sql")),
+];
 
 /// Applies missing migrations in one transaction under an advisory lock.
 /// Refuses, changing nothing, when the database is from a newer server.
@@ -231,7 +234,7 @@ async fn migrate(pool: &PgPool) -> Result<()> {
 
 #[derive(Clone)]
 pub struct Store {
-    pool: PgPool,
+    pub(crate) pool: PgPool,
 }
 
 impl Store {

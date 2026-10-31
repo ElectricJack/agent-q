@@ -17,3 +17,7 @@ secrets.dev/
 
 # Development updater spool (scripts/dev-up)
 state.dev/
+__pycache__/
+
+# Retained implementation test evidence (not runtime logs).
+!docs/implementation/execution-validation-*.log

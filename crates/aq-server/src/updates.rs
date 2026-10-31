@@ -81,7 +81,9 @@ pub async fn worker_maintenance_gate(
     req: Request,
     next: Next,
 ) -> Response {
-    if req.uri().path() == "/v1/worker/enroll" && under_maintenance(&state) {
+    if matches!(req.uri().path(), "/v1/worker/enroll" | "/v2/worker/accept")
+        && under_maintenance(&state)
+    {
         return maintenance_error();
     }
     next.run(req).await

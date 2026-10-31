@@ -35,7 +35,11 @@ services:
   worker:
     build:
       context: .
+      dockerfile: Dockerfile.worker
       target: worker
+      args:
+        AQ_SOURCE_REVISION: ${AQ_WORKER_SOURCE_REVISION:-}
+        AQ_WORKER_ARCHIVE_SHA256: ${AQ_WORKER_ARCHIVE_SHA256:-}
     image: ${AQ_WORKER_IMAGE:-agent-q-worker:dev}
     profiles: [smoke]
     networks: [edge]

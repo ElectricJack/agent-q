@@ -1,0 +1,2 @@
+# Retained patch artifacts contain significant one-space context lines.
+docs/implementation/*.patch whitespace=-blank-at-eol

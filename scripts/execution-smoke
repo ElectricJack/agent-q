@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Synthetic execution through actual daemon and standalone worker images.
+set -euo pipefail
+exec python3 "$(dirname "$0")/product-smoke.py" --execution "$@"

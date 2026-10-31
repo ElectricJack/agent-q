@@ -2,6 +2,7 @@ pub mod admin_api;
 pub mod authz;
 pub mod config;
 pub mod error;
+pub mod execution;
 pub mod identity;
 pub mod readiness;
 pub mod store;
@@ -30,9 +31,9 @@ use std::sync::Arc;
 /// every migration is a state-format change (`store` tests enforce it). The
 /// updater restores the pre-update backup on rollback only when the format
 /// changes, so a migration without a bump would strand the old release.
-pub const STATE_FORMAT_VERSION: u32 = 1;
+pub const STATE_FORMAT_VERSION: u32 = 2;
 /// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
-pub const READABLE_STATE_FORMATS: &[u32] = &[1];
+pub const READABLE_STATE_FORMATS: &[u32] = &[1, 2];
 /// Versions that may be upgraded to this release.
 pub const UPGRADE_FROM: &str = ">=0.1.0";
 
@@ -103,6 +104,7 @@ async fn method_not_allowed() -> Response {
 pub fn build_admin_router(state: AppState) -> Router {
     Router::new()
         .merge(admin_api::admin_routes())
+        .merge(execution::api::admin_routes())
         .route("/healthz", get(healthz))
         .route("/readyz", get(readiness::readyz))
         .fallback(not_found)
@@ -120,6 +122,7 @@ pub fn build_admin_router(state: AppState) -> Router {
 pub fn build_worker_router(state: AppState) -> Router {
     Router::new()
         .merge(worker_api::worker_routes())
+        .merge(execution::api::worker_routes())
         .route("/healthz", get(healthz))
         .route("/readyz", get(readiness::readyz))
         .fallback(not_found)

@@ -48,7 +48,7 @@ fn bad(msg: &str) -> AppError {
 }
 
 /// Resolves the bearer credential to a live (not revoked) node.
-async fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Node, AppError> {
+pub(crate) async fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<Node, AppError> {
     let invalid = || AppError::InvalidCredential("missing or invalid worker credential".into());
     let token = headers
         .get(header::AUTHORIZATION)

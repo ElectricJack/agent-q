@@ -56,13 +56,20 @@ jobs:
           # The image labels come from the same constants `aq-server manifest`
           # reports; the labels are checked against the manifest before signing.
           state_format=$(sed -n 's/^pub const STATE_FORMAT_VERSION: u32 = \([0-9][0-9]*\);$/\1/p' crates/aq-server/src/lib.rs)
-          protocol_max=$(sed -n 's/^pub const SUPPORTED_WORKER_PROTOCOLS: (u32, u32) = ([0-9][0-9]*, \([0-9][0-9]*\));$/\1/p' crates/aq-protocol/src/lib.rs)
+          protocol_source=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["dependencies"]["aq-protocol"]["path"] + "/src/lib.rs")')
+          protocol_max=$(sed -n 's/^pub const SUPPORTED_WORKER_PROTOCOLS: (u32, u32) = ([0-9][0-9]*, \([0-9][0-9]*\));$/\1/p' "$protocol_source")
+          worker_revision=$(python3 scripts/check-worker-candidate.py --official --revision)
+          worker_version=$(python3 -c 'import json; print(json.load(open("vendor/worker-candidate.json"))["version"])')
+          worker_archive_sha256=$(python3 -c 'import json; print(json.load(open("vendor/worker-candidate.json"))["archive_sha256"])')
           if [[ ! "$state_format" =~ ^[0-9]+$ || ! "$protocol_max" =~ ^[0-9]+$ ]]; then
             echo "::error::cannot read STATE_FORMAT_VERSION ('$state_format') or SUPPORTED_WORKER_PROTOCOLS ('$protocol_max') from the source"
             exit 1
           fi
           echo "state_format=$state_format" >>"$GITHUB_OUTPUT"
           echo "protocol_max=$protocol_max" >>"$GITHUB_OUTPUT"
+          echo "worker_revision=$worker_revision" >>"$GITHUB_OUTPUT"
+          echo "worker_version=$worker_version" >>"$GITHUB_OUTPUT"
+          echo "worker_archive_sha256=$worker_archive_sha256" >>"$GITHUB_OUTPUT"
 
       - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
@@ -97,17 +104,18 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
-          file: ./Dockerfile
+          file: ./Dockerfile.worker
           target: worker
           push: true
           provenance: false
           sbom: false
           build-args: |
-            AQ_SOURCE_REVISION=${{ github.sha }}
-            AQ_VERSION=${{ steps.version.outputs.version }}
+            AQ_SOURCE_REVISION=${{ steps.version.outputs.worker_revision }}
+            AQ_WORKER_ARCHIVE_SHA256=${{ steps.version.outputs.worker_archive_sha256 }}
+            AQ_VERSION=${{ steps.version.outputs.worker_version }}
             AQ_STATE_FORMAT=${{ steps.version.outputs.state_format }}
             AQ_PROTOCOL_MAX=${{ steps.version.outputs.protocol_max }}
-          labels: org.opencontainers.image.source=${{ env.SOURCE_URL }}
+          labels: io.agent-q.assembly-source=${{ env.SOURCE_URL }}
           tags: ${{ env.WORKER_REPO }}:${{ steps.version.outputs.version }}
 
       - name: Generate manifest.json with the server image's own binary
@@ -206,9 +214,10 @@ jobs:
       # visible to the updater or to promote.yml.
       - name: Smoke test the pushed images
         env:
+          AQ_SMOKE_OFFICIAL: '1'
           AQ_SMOKE_SERVER_IMAGE: ${{ steps.images.outputs.server }}
           AQ_SMOKE_WORKER_IMAGE: ${{ steps.images.outputs.worker }}
-        run: scripts/smoke
+        run: scripts/execution-smoke
 
       - name: Build and push the release image
         id: release_image

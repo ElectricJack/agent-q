@@ -1,0 +1,112 @@
+{
+  "date": "2026-10-30",
+  "scope": "Local extracted daemon workspace and fixture execution; no product/hosted/full recovery gate implied",
+  "base_revision": "eed842362f29016ee508ca200f3bb3da2473dc08",
+  "worker_revision": "cf87edffa3384a08f5bb0319b4f92ffc2a26b145",
+  "rust": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+  "postgres": "postgres:17-alpine, disposable local container, per-test databases",
+  "source_inventory": [
+    {
+      "path": "Cargo.toml",
+      "sha256": "5681132efa0d2dc039deac3133c831388b1e9f9d63d5ae01a1af0399600f5a02"
+    },
+    {
+      "path": "Cargo.lock",
+      "sha256": "d234ace1e965414e184d2abfcb0a045a83e167af8563354c386e0982221c2045"
+    },
+    {
+      "path": "crates/aq-server/Cargo.toml",
+      "sha256": "8f8349efab620eb60a54066d55e71534a9c718480515899e41d7f2c65c8da880"
+    },
+    {
+      "path": "crates/aq-server/src/execution.rs",
+      "sha256": "21f6fa1a0c249992c1d76bfcb3a02bd40377eb6ee3300316c6cddaed41d99d00"
+    },
+    {
+      "path": "crates/aq-server/src/execution/api.rs",
+      "sha256": "92e2d10ab862afff4312b65d2a946637a5af989e876922cb4aa9bd349892423b"
+    },
+    {
+      "path": "crates/aq-server/migrations/0002_execution.sql",
+      "sha256": "e52191473cf6eca5b5b8e81662873f25dc9eb80967e11d5a8d7b390c583e34ed"
+    },
+    {
+      "path": "crates/aq-server/tests/execution.rs",
+      "sha256": "71f30da616ed736fc8a2e90c3b24ccbb6dcc5b9e751bb7ceb1c06defc5b90ac0"
+    },
+    {
+      "path": "crates/aq-server/src/lib.rs",
+      "sha256": "bc0476cab4ea44531014f1ad8f4ddb5e5c077b20ceda0ea4bb885902538cf3ed"
+    },
+    {
+      "path": "crates/aq-server/src/store.rs",
+      "sha256": "d0875568008dde0b525423e903fb847cdc161f4dc75c59a5f2fba34ddb9ecb9b"
+    },
+    {
+      "path": "crates/aq-server/src/updates.rs",
+      "sha256": "08e770c1fe110053084b6ad15a75e141e4fe85d7517eb5ec543adc33c5009777"
+    },
+    {
+      "path": "crates/aq-server/src/worker_api.rs",
+      "sha256": "a62bc36c4c48633cfcc1f37fa4f88c8287cf4ba7ca35d2f2c3a1284c57071dd7"
+    },
+    {
+      "path": "crates/aq-server/tests/store.rs",
+      "sha256": "01a9c7ce4b9dcc6dfa6d1d0a1a88c70fcfd07735a9eefa1a7a23960e4ce87df6"
+    },
+    {
+      "path": "vendor/worker-contracts.json",
+      "sha256": "7e83dd4f315146b8b706e3d85103e3e9ff3305959d7a6c71c7a45cd8aef07210"
+    }
+  ],
+  "checks": [
+    {
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "started_at": "2026-10-31T00:09:36.384607+00:00",
+      "exit_code": 0,
+      "log": "execution-validation-1.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "command": [
+        "cargo",
+        "test",
+        "--workspace",
+        "--locked",
+        "--",
+        "--test-threads=4"
+      ],
+      "started_at": "2026-10-31T00:09:36.584687+00:00",
+      "exit_code": 0,
+      "log": "execution-validation-2.log",
+      "log_sha256": "3abc12f79ca357869268c3fca868c2d17cb59ae12cdf24b497807f4af7df12bb"
+    },
+    {
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "started_at": "2026-10-31T00:10:35.780397+00:00",
+      "exit_code": 0,
+      "log": "execution-validation-3.log",
+      "log_sha256": "e6cb8aada951eb135fdcdd0ceb162a46fb309a66e1ea58b8d09b7af35bc7be06"
+    }
+  ],
+  "test_results": {
+    "passed": 235,
+    "failed": 0,
+    "ignored": 0,
+    "execution_integration_tests": 19
+  }
+}

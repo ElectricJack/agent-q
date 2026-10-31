@@ -1,0 +1,1496 @@
+{
+  "schema_version": 1,
+  "title": "Agent Q v2 implementation milestones",
+  "date": "2026-10-30",
+  "format_note": "Repository planning format; not an AQ daemon import schema. No live tasks or issues are created by this file.",
+  "audit": "../research/2026-10-30-v2-implementation-audit.md",
+  "snapshot": "../research/2026-10-30-implementation-audit-snapshot.json",
+  "dependency_semantics": "depends_on contains hard prerequisites. Milestones group acceptance, not automatic start barriers. Ready means planned with all explicit dependencies complete; it is not permission to deploy or publish.",
+  "status_values": [
+    "planned",
+    "in_progress",
+    "complete",
+    "blocked"
+  ],
+  "definition_of_done": [
+    "Implementation and tests reviewed in the owning repository against an immutable source revision.",
+    "Acceptance evidence records exact commands, environment, artifact identity and remaining limits.",
+    "Consume public interfaces only; no sibling private state or mandatory sibling source checkout.",
+    "Update requirement evidence and dependent product pins when applicable. A passing component suite does not close a product gate."
+  ],
+  "requirement_sources": {
+    "E": [
+      "../architecture/0001-ecosystem-and-releases.md"
+    ],
+    "X": [
+      "../architecture/0002-execution-and-recovery.md"
+    ],
+    "D": [
+      "../specs/0002-execution-and-agent-access.md"
+    ],
+    "W": [
+      "../../../aq-worker/docs/specs/0001-worker-framework.md",
+      "../../../aq-worker/docs/specs/0002-execution-and-agent-access.md"
+    ],
+    "U": [
+      "../../../aq-dashboard/docs/specs/0001-dashboard.md"
+    ]
+  },
+  "milestones": [
+    {
+      "id": "M0",
+      "title": "Implementation audit and executable task plan",
+      "gate": "AUD-00",
+      "outcome": "Evidence-labelled baseline and validated dependency graph."
+    },
+    {
+      "id": "M1",
+      "title": "Execution contract and independently packaged connector",
+      "gate": "GATE-01",
+      "outcome": "Compatible foundation connector extracted and consumed as a pinned artifact; execution contract shared by both sides."
+    },
+    {
+      "id": "M2",
+      "title": "Minimal distributed fake-agent execution",
+      "gate": "GATE-02",
+      "outcome": "One daemon and worker complete a durable synthetic assignment without duplicate launch."
+    },
+    {
+      "id": "M3",
+      "title": "Recovery and cancellation proof",
+      "gate": "GATE-03",
+      "outcome": "Ambiguous launch, restart, lease expiry, cancellation and late results remain safe and explicit."
+    },
+    {
+      "id": "M4",
+      "title": "Real agent context, source handoff and graph outcome",
+      "gate": "GATE-04",
+      "outcome": "One supported harness reads scoped graph context, edits a supported repository, hands source off and records a version-checked outcome."
+    },
+    {
+      "id": "M5",
+      "title": "Policy-driven coding and operational workflows",
+      "gate": "GATE-05",
+      "outcome": "Embedded playbooks invoke real AQ adapters for coding/review/check, routing, watcher and reporting pilot flows."
+    },
+    {
+      "id": "M6",
+      "title": "Usable, measured and upgradeable product candidate",
+      "gate": "GATE-06",
+      "outcome": "Dashboard, exact-artifact assembly, upgrades, target-host recovery and a declared capacity envelope pass product acceptance."
+    }
+  ],
+  "tasks": [
+    {
+      "id": "AUD-00",
+      "title": "Record implementation audit and validate the task graph",
+      "repo": "agent-q",
+      "milestone": "M0",
+      "kind": "audit",
+      "status": "complete",
+      "depends_on": [],
+      "requirements": [
+        "E3"
+      ],
+      "scope": "Inspect local source, test definitions and existing evidence; identify missing product behavior and hard dependencies.",
+      "acceptance": [
+        "Audit distinguishes implemented, recorded validation, partial, design-only and externally unverified behavior.",
+        "Snapshot and graph are retained; all links, IDs, dependency edges, reachability and acyclicity validate."
+      ],
+      "out_of_scope": [],
+      "evidence": [
+        "../research/2026-10-30-v2-implementation-audit.md",
+        "../research/2026-10-30-implementation-audit-snapshot.json",
+        "0001-v2-milestones.json"
+      ]
+    },
+    {
+      "id": "BASE-01",
+      "title": "Qualify the existing foundation baseline",
+      "repo": "agent-q",
+      "milestone": "M1",
+      "kind": "qualification",
+      "status": "complete",
+      "depends_on": [
+        "AUD-00"
+      ],
+      "requirements": [
+        "E4",
+        "E5",
+        "D8",
+        "W16"
+      ],
+      "scope": "Select the current foundation revision and run its applicable Rust, PostgreSQL, connector and update-lifecycle checks; reconcile existing Phase 1 work before extraction.",
+      "acceptance": [
+        "Record exact revision, commands, outcomes and image identities; distinguish local evidence from hosted qualification.",
+        "Retain compatibility fixtures for enrollment, heartbeat, probe, credential revocation, persisted identity and update state formats."
+      ],
+      "out_of_scope": [
+        "Reimplementing working foundation features",
+        "Provisioning or changing a live deployment"
+      ],
+      "evidence": [
+        "../implementation/BASE-01.md"
+      ]
+    },
+    {
+      "id": "CON-01",
+      "title": "Publish the execution contract and conformance fixtures",
+      "repo": "aq-worker",
+      "milestone": "M1",
+      "kind": "implementation",
+      "status": "complete",
+      "depends_on": [
+        "AUD-00"
+      ],
+      "requirements": [
+        "E1",
+        "E4",
+        "D2",
+        "D8",
+        "W2",
+        "W9",
+        "W16",
+        "W21",
+        "X1",
+        "X2",
+        "X6"
+      ],
+      "scope": "Specify and implement wire schemas/types, explicit capability/version negotiation, replay identities, bounded exchanges, fake coordinator/worker fixtures and both-side review.",
+      "acceptance": [
+        "Fixtures cover changed-payload conflicts, grant/reservation expiry, observation sequencing, cancellation, retained-result reporting and reconciliation.",
+        "Schema/type drift checks run standalone; foundation v1 meanings remain unchanged."
+      ],
+      "out_of_scope": [],
+      "evidence": [
+        "../../../aq-worker/docs/implementation/worker-candidate.md",
+        "../implementation/execution-review.md",
+        "../../vendor/worker-contracts.json"
+      ]
+    },
+    {
+      "id": "WRK-01",
+      "title": "Extract the foundation connector into aq-worker",
+      "repo": "aq-worker",
+      "milestone": "M1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "depends_on": [
+        "BASE-01",
+        "CON-01"
+      ],
+      "requirements": [
+        "E1",
+        "E4",
+        "W12",
+        "W16",
+        "W21"
+      ],
+      "scope": "Move compatible connector behavior into a standalone Rust workspace with published wire dependencies, configuration/identity continuity, independent CI and an immutable integration image.",
+      "acceptance": [
+        "Enrollment, reconnect, heartbeat and revocation tests run without the agent-q source checkout.",
+        "Reusing an existing node configuration preserves identity; candidate artifact records exact source and dependency versions."
+      ],
+      "out_of_scope": [
+        "Launching agents during extraction",
+        "Changing foundation protocol semantics"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "AQ-01",
+      "title": "Consume the standalone connector and remove duplicate ownership",
+      "repo": "agent-q",
+      "milestone": "M1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "depends_on": [
+        "WRK-01"
+      ],
+      "requirements": [
+        "E1",
+        "E4",
+        "E7",
+        "D8",
+        "W16"
+      ],
+      "scope": "Update development, smoke and release wiring to use the pinned worker candidate and shared public wire contract; retire the duplicate production connector source after compatibility passes.",
+      "acceptance": [
+        "Existing enroll/heartbeat/restart/revoke smoke passes with the standalone artifact.",
+        "Normal AQ builds no longer require an in-tree worker implementation or sibling source path."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "INT-01",
+      "title": "Add reproducible integration assembly and explicit local overrides",
+      "repo": "agent-q",
+      "milestone": "M1",
+      "kind": "implementation",
+      "status": "in_progress",
+      "depends_on": [
+        "AQ-01"
+      ],
+      "requirements": [
+        "E1",
+        "E2",
+        "E7"
+      ],
+      "scope": "Provide a small product fixture selecting exact server/worker artifacts and contract versions, with reusable slots for later graph/Git/playbook dependencies.",
+      "acceptance": [
+        "One documented command assembles an isolated fixture without changing developer or production state.",
+        "Official candidate inputs reject floating references/local overrides; explicit development overrides identify their source."
+      ],
+      "out_of_scope": [
+        "Requiring all component source checkouts",
+        "Completing the composite updater"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "GATE-01",
+      "title": "Accept contract and connector compatibility",
+      "repo": "agent-q",
+      "milestone": "M1",
+      "kind": "gate",
+      "status": "in_progress",
+      "depends_on": [
+        "INT-01",
+        "CON-01",
+        "BASE-01"
+      ],
+      "requirements": [
+        "E1",
+        "E4",
+        "D8",
+        "W16",
+        "W21"
+      ],
+      "scope": "Run both-side contract checks and the existing foundation lifecycle using the pinned standalone worker.",
+      "acceptance": [
+        "Exact-artifact enrollment, reconnect and revocation pass; unsupported execution is declined while allowed foundation connectivity remains visible.",
+        "Publish the tested contract/candidate references for downstream tasks."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "GRAPH-01",
+      "title": "Qualify an immutable graph integration candidate",
+      "repo": "aq-graph",
+      "milestone": "M4",
+      "kind": "qualification",
+      "status": "complete",
+      "depends_on": [
+        "AUD-00"
+      ],
+      "requirements": [
+        "E1",
+        "E2",
+        "D5",
+        "D6"
+      ],
+      "scope": "Reuse the existing service; select an exact candidate, reproduce current contract/storage checks, and document receipt, principal, API and schema compatibility for AQ.",
+      "acceptance": [
+        "Retain current tests and an isolated backup/restore result for the selected artifact; do not substitute old benchmark evidence.",
+        "Consumer contract documents version conflicts, identical-key replay, credential lifecycle and receipt retention; versioned image is reproducible."
+      ],
+      "out_of_scope": [
+        "Offline replicas",
+        "V1 migration",
+        "Execution claims in aq-graph"
+      ],
+      "evidence": [
+        "../../../aq-graph/docs/implementation/GRAPH-01.md"
+      ]
+    },
+    {
+      "id": "GIT-01",
+      "title": "Qualify and package an immutable Git integration candidate",
+      "repo": "aq-git",
+      "milestone": "M4",
+      "kind": "qualification",
+      "status": "complete",
+      "depends_on": [
+        "AUD-00"
+      ],
+      "requirements": [
+        "E1",
+        "E2",
+        "W7",
+        "X12"
+      ],
+      "scope": "Preserve the current implementation, select a committed candidate, verify correctness/process handoff and package a checksummed executable with honest profile/compatibility limits.",
+      "acceptance": [
+        "Run the retained-source worker-loss scenario and current required correctness checks against the candidate.",
+        "Manifest ties binary to build/source; unsupported repository features are explicit and rejected; remaining performance, host-power-loss and hosted-transport gates remain named."
+      ],
+      "out_of_scope": [
+        "Claiming local process tests certify host power loss",
+        "Adding every unsupported Git feature"
+      ],
+      "evidence": [
+        "../../../aq-git/docs/implementation/GIT-01.md"
+      ]
+    },
+    {
+      "id": "PB-01",
+      "title": "Qualify the existing playbook implementation as a library candidate",
+      "repo": "aq-playbooks",
+      "milestone": "M5",
+      "kind": "qualification",
+      "status": "complete",
+      "depends_on": [
+        "AUD-00"
+      ],
+      "requirements": [
+        "E1",
+        "E2"
+      ],
+      "scope": "Reconcile concurrent implementation work, select the revision beyond the design-only commit, qualify library/CLI artifacts and current core/PostgreSQL/pilot evidence, and publish the Host/storage contract.",
+      "acceptance": [
+        "Database-free tests and explicitly enabled isolated PostgreSQL tests pass on the selected candidate.",
+        "Limits and evidence for synchronous storage, snapshot/index/retention behavior, exact pins, join typing, optional protection and host-only functionality are included in compatibility metadata; the old test report does not certify new code."
+      ],
+      "out_of_scope": [
+        "Rewriting the engine",
+        "Claiming fake-host pilots are AQ integration"
+      ],
+      "evidence": [
+        "../../../aq-playbooks/docs/implementation/PB-01.md"
+      ]
+    },
+    {
+      "id": "AQ-02",
+      "title": "Persist execution authority and immutable attempt inputs",
+      "repo": "agent-q",
+      "milestone": "M2",
+      "kind": "implementation",
+      "status": "complete",
+      "depends_on": [
+        "BASE-01",
+        "CON-01"
+      ],
+      "requirements": [
+        "D1",
+        "D2",
+        "W9",
+        "W10",
+        "X1",
+        "X2",
+        "X8"
+      ],
+      "scope": "Add migrations and transactional transitions for attempts, sessions, node incarnations, offers, generations, grants and resolved specification digests.",
+      "acceptance": [
+        "Concurrent claims/acceptances cannot grant conflicting authority; duplicate IDs with different bytes fail.",
+        "Restart preserves authority and deadlines; state-format/recovery rules are updated with the migration."
+      ],
+      "out_of_scope": [],
+      "evidence": [
+        "../implementation/execution-authority.md",
+        "../implementation/execution-validation.json",
+        "../implementation/execution-review.md"
+      ]
+    },
+    {
+      "id": "AQ-03",
+      "title": "Implement worker exchanges and durable result dispositions",
+      "repo": "agent-q",
+      "milestone": "M2",
+      "kind": "implementation",
+      "status": "complete",
+      "depends_on": [
+        "AQ-02"
+      ],
+      "requirements": [
+        "D1",
+        "D2",
+        "D3",
+        "D8",
+        "W2",
+        "W9",
+        "W10",
+        "X1",
+        "X2",
+        "X7"
+      ],
+      "scope": "Implement incarnation registration, bounded poll/accept/decline, renewal, sequenced progress and immutable report admission with fake-worker tests.",
+      "acceptance": [
+        "Lost acceptance/report acknowledgements return original committed dispositions without duplicate launches or outcomes.",
+        "Stale boot/generation and expired local reservation reports cannot settle a current attempt."
+      ],
+      "out_of_scope": [],
+      "evidence": [
+        "../implementation/execution-authority.md",
+        "../implementation/execution-validation.json",
+        "../implementation/execution-review.md"
+      ]
+    },
+    {
+      "id": "WRK-02",
+      "title": "Implement local journal, capacity reservation and grant admission",
+      "repo": "aq-worker",
+      "milestone": "M2",
+      "kind": "implementation",
+      "status": "in_progress",
+      "depends_on": [
+        "WRK-01"
+      ],
+      "requirements": [
+        "W3",
+        "W4",
+        "W5",
+        "W9",
+        "W15",
+        "W17",
+        "X1",
+        "X2"
+      ],
+      "scope": "Add versioned durable records, exclusive runtime ownership, bounded node-wide resource reservations and acceptance/grant validation using the fake coordinator.",
+      "acceptance": [
+        "Crash/replay and racing offers cannot over-allocate capacity; durable state survives full-disk/write-failure injection.",
+        "Late grants cannot resurrect expired reservations; no project-by-slot preallocation is introduced."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "WRK-03",
+      "title": "Launch and report one deterministic fake agent",
+      "repo": "aq-worker",
+      "milestone": "M2",
+      "kind": "implementation",
+      "status": "in_progress",
+      "depends_on": [
+        "WRK-02"
+      ],
+      "requirements": [
+        "W9",
+        "W10",
+        "W14",
+        "W17",
+        "X1",
+        "X3"
+      ],
+      "scope": "Implement a deterministic harness/execution adapter and journaled launch identity, phase observations, writer-stop proof and report retry.",
+      "acceptance": [
+        "Fixture process completes through collecting/reporting/acknowledgement with one session per attempt.",
+        "Launch-window uncertainty never causes blind relaunch; confirmed stopped writers are required before resource reuse."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "AQ-04",
+      "title": "Add test-only deterministic assignment scheduling",
+      "repo": "agent-q",
+      "milestone": "M2",
+      "kind": "implementation",
+      "status": "complete",
+      "depends_on": [
+        "AQ-03"
+      ],
+      "requirements": [
+        "D1",
+        "W4",
+        "W5",
+        "W13"
+      ],
+      "scope": "Drive the initial execution fixture from explicitly preapproved synthetic task/context inputs and deterministic compatible-node selection.",
+      "acceptance": [
+        "Fixture assignments use production authority transitions and worker local admission.",
+        "Synthetic task provider is excluded from production configuration and cannot imply graph completion."
+      ],
+      "out_of_scope": [
+        "Production graph-ready scheduling",
+        "Optimized fleet placement"
+      ],
+      "evidence": [
+        "../implementation/execution-authority.md",
+        "../implementation/execution-validation.json",
+        "../implementation/execution-review.md"
+      ]
+    },
+    {
+      "id": "GATE-02",
+      "title": "Demonstrate minimal distributed execution",
+      "repo": "agent-q",
+      "milestone": "M2",
+      "kind": "gate",
+      "status": "in_progress",
+      "depends_on": [
+        "GATE-01",
+        "AQ-04",
+        "WRK-03"
+      ],
+      "requirements": [
+        "E3",
+        "D2",
+        "W9",
+        "X1",
+        "X2"
+      ],
+      "scope": "Extend the product fixture to run the deterministic fake agent through actual daemon/worker transport and persisted state.",
+      "acceptance": [
+        "One assignment completes; repeated polls, lost acceptance response and lost report acknowledgement do not create duplicate execution.",
+        "Retain an executable demonstration with exact images, logs and correlation IDs; no model provider is required."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "AQ-05",
+      "title": "Implement cancellation, reconciliation and bounded retry policy",
+      "repo": "agent-q",
+      "milestone": "M3",
+      "kind": "implementation",
+      "status": "complete",
+      "depends_on": [
+        "AQ-03"
+      ],
+      "requirements": [
+        "D1",
+        "D2",
+        "D3",
+        "D9",
+        "W10",
+        "W17",
+        "X5",
+        "X6",
+        "X7",
+        "X8",
+        "X9"
+      ],
+      "scope": "Serialize cancellation/result eligibility, persist directives and retry lineage/budgets, reconcile old boots/grants and keep uncertain attempts visible.",
+      "acceptance": [
+        "Cancellation/completion races and late superseded reports have stable outcomes; expiry never proves physical termination.",
+        "Daemon restart replays outstanding intents without extending old grants; unsafe overlapping attempts remain held."
+      ],
+      "out_of_scope": [],
+      "evidence": [
+        "../implementation/execution-authority.md",
+        "../implementation/execution-validation.json",
+        "../implementation/execution-review.md"
+      ]
+    },
+    {
+      "id": "WRK-04",
+      "title": "Prove process ownership, expiry and restart recovery",
+      "repo": "aq-worker",
+      "milestone": "M3",
+      "kind": "implementation",
+      "status": "in_progress",
+      "depends_on": [
+        "WRK-03"
+      ],
+      "requirements": [
+        "W8",
+        "W9",
+        "W10",
+        "W11",
+        "W14",
+        "W17",
+        "X3",
+        "X4",
+        "X5",
+        "X9",
+        "X11"
+      ],
+      "scope": "Implement discoverable process ownership across parent-only crashes, suspend-aware grant deadlines, stop escalation, reattachment checks and drain recovery.",
+      "acceptance": [
+        "Inject crashes before/after spawn and restart with surviving descendants; uncertain writers keep reservations/workspaces protected.",
+        "Expiry/revocation stops execution; reattachment requires renewed authority; new execution uses a new attempt/session."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "GATE-03",
+      "title": "Accept distributed recovery and cancellation",
+      "repo": "agent-q",
+      "milestone": "M3",
+      "kind": "gate",
+      "status": "planned",
+      "depends_on": [
+        "GATE-02",
+        "AQ-05",
+        "WRK-04"
+      ],
+      "requirements": [
+        "E3",
+        "D3",
+        "D7",
+        "W17",
+        "X1",
+        "X2",
+        "X3",
+        "X5",
+        "X6",
+        "X7",
+        "X8",
+        "X9",
+        "X14"
+      ],
+      "scope": "Inject transport loss, cancellation races, daemon/worker restarts and expired authority against the real execution fixture.",
+      "acceptance": [
+        "X1-X3 and X5-X9 pass with explicit uncertainty; no duplicate settlement or unsafe reuse.",
+        "Control requests retain capacity under synthetic transfer load; injected failures are repeatable without wall-clock sleep races."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "API-01",
+      "title": "Publish scoped agent API contracts",
+      "repo": "agent-q",
+      "milestone": "M4",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "AQ-02",
+        "GRAPH-01"
+      ],
+      "requirements": [
+        "D4",
+        "D5",
+        "D6",
+        "D9",
+        "W18",
+        "W19",
+        "W20"
+      ],
+      "scope": "Define versioned graph context/search/mutation and operation-status schemas, capability scopes, provenance, expected versions, node recovery and CLI client contracts.",
+      "acceptance": [
+        "Schema fixtures cover every batch/edge/context scope and pending/conflict/confirmed distinction.",
+        "No raw arbitrary graph proxy or worker graph credential is required; public contract supports independently generated clients."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "AQ-06",
+      "title": "Implement session credentials and scoped graph reads",
+      "repo": "agent-q",
+      "milestone": "M4",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "API-01",
+        "AQ-03"
+      ],
+      "requirements": [
+        "D4",
+        "D9",
+        "W1",
+        "W18",
+        "W19",
+        "X5",
+        "X11"
+      ],
+      "scope": "Provision protected per-attempt credentials, enforce current generation/expiry/revocation, and expose bounded authorized context/search/revision reads through the graph service.",
+      "acceptance": [
+        "Search snippets, pagination, context expansion and relationship endpoints cannot leak out-of-scope data.",
+        "Cached context is revision-labelled; worker/node/graph service identities cannot be substituted for agent authority."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "AQ-07",
+      "title": "Implement durable graph mutation delivery and recovery",
+      "repo": "agent-q",
+      "milestone": "M4",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "AQ-06"
+      ],
+      "requirements": [
+        "D2",
+        "D4",
+        "D5",
+        "D6",
+        "W20",
+        "X10",
+        "X11"
+      ],
+      "scope": "Persist authorized immutable graph intent, expected versions and idempotency keys; reconcile uncertain outcomes, produce confirmed outbox events and expose bounded operation lookup.",
+      "acceptance": [
+        "Commit-before-response-loss replays the identical intent without duplicate graph history; version conflict never becomes blind overwrite.",
+        "Cancelled/expired sessions cannot admit new writes; node recovery can inspect existing attempt operations without renewed agent mutation access."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "AQ-08",
+      "title": "Schedule real graph candidates with explicit eligibility",
+      "repo": "agent-q",
+      "milestone": "M4",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "AQ-04",
+        "AQ-07",
+        "GATE-03"
+      ],
+      "requirements": [
+        "D1",
+        "D6",
+        "D9",
+        "W3",
+        "W4",
+        "W5",
+        "W13"
+      ],
+      "scope": "Replace test-only task input with bounded graph-ready/context queries and central eligibility/priority/locality decisions; preserve independent local admission.",
+      "acceptance": [
+        "Readiness alone never claims execution; admitted revisions are recorded and invalidating changes prevent stale settlement.",
+        "Multiple projects share capacity, cold eligible nodes can prepare work, and decisions/refusals expose reasons without full Git scans."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "WRK-05",
+      "title": "Provision the AQ agent client and bounded context cache",
+      "repo": "aq-worker",
+      "milestone": "M4",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "WRK-04",
+        "AQ-06"
+      ],
+      "requirements": [
+        "W18",
+        "W19",
+        "W20",
+        "X10",
+        "X11"
+      ],
+      "scope": "Package the compatible AQ client, supply protected per-session credential bindings and labelled context snapshots, and handle expired/uncertain request responses.",
+      "acceptance": [
+        "Fake AQ API tests run without the daemon or graph; session/node credential separation is preserved.",
+        "Offline proposed edits are never reported as applied; runtime can recover known or centrally listed attempt operations without renewing agent writes."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "WRK-06",
+      "title": "Integrate local aq-git workspaces and storage admission",
+      "repo": "aq-worker",
+      "milestone": "M4",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "WRK-04",
+        "GIT-01"
+      ],
+      "requirements": [
+        "W3",
+        "W6",
+        "W7",
+        "W8",
+        "W14",
+        "W15",
+        "X4"
+      ],
+      "scope": "Consume the qualified binary through its public local API for base import, on-demand workspace, checkpoint, retention and safe cache eviction.",
+      "acceptance": [
+        "All ambiguous calls reuse operation IDs; writers stop before checkpoint/retirement.",
+        "Alternating projects and disk pressure preserve active/pending data, bound caches and refuse new work when protected storage fills."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "AQ-09",
+      "title": "Implement authenticated source transfer and central retention",
+      "repo": "agent-q",
+      "milestone": "M4",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "AQ-03",
+        "GIT-01"
+      ],
+      "requirements": [
+        "D2",
+        "D3",
+        "W7",
+        "W8",
+        "W9",
+        "X7",
+        "X12"
+      ],
+      "scope": "Implement bounded attempt/repository-scoped artifact endpoints, staging, central aq-git import and retained receipts distinct from upload acknowledgements.",
+      "acceptance": [
+        "Server maps trusted assignment metadata to allowed Git operations and rejects arbitrary worker paths/URLs/commands.",
+        "Stale attempts may retain authorized recovery source but cannot restore execution authority or settle newer work."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "WRK-07",
+      "title": "Implement resumable artifact handoff and retention release",
+      "repo": "aq-worker",
+      "milestone": "M4",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "WRK-06",
+        "AQ-09"
+      ],
+      "requirements": [
+        "W7",
+        "W8",
+        "W9",
+        "W14",
+        "W15",
+        "X4",
+        "X12",
+        "X14"
+      ],
+      "scope": "Add authenticated download/upload, offsets/digests, checkpoint receipts, result attachment and safe local retirement using separate transfer budgets.",
+      "acceptance": [
+        "Restart mid-checkpoint/upload/report preserves IDs and required data; transport success is never central retention.",
+        "Central retention survives deletion of stopped worker storage; full pending-result storage blocks admission without blocking control."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "WRK-08",
+      "title": "Support one real harness with tested confinement",
+      "repo": "aq-worker",
+      "milestone": "M4",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "WRK-05",
+        "WRK-06",
+        "GATE-03"
+      ],
+      "requirements": [
+        "W1",
+        "W6",
+        "W11",
+        "W17",
+        "W18"
+      ],
+      "scope": "Select and document one CLI harness/model configuration and implement configuration, process ownership, results, default workspace confinement and explicit folder grants.",
+      "acceptance": [
+        "Real harness compatibility proves launch/stop/reattach capability and refusal of unsupported grant configurations.",
+        "Agent reads scoped context and edits only its configured writable roots in the supported cooperative model; credentials are not put in prompts/logs."
+      ],
+      "out_of_scope": [
+        "Multiple harness parity",
+        "Claiming hostile-code isolation"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "AQ-10",
+      "title": "Apply evidence-based result disposition and graph completion",
+      "repo": "agent-q",
+      "milestone": "M4",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "AQ-05",
+        "AQ-07",
+        "AQ-09"
+      ],
+      "requirements": [
+        "D3",
+        "D5",
+        "D6",
+        "D9",
+        "X6",
+        "X7",
+        "X10",
+        "X12"
+      ],
+      "scope": "Connect immutable worker reports and retained source to pinned outcome/evidence contracts and an authorized version-checked task completion operation.",
+      "acceptance": [
+        "Success text/exit status alone cannot complete a task; stale revisions or cancelled-before-acceptance attempts cannot auto-settle.",
+        "Graph completion remains pending until confirmed; crash/replay emits one logical completion event."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "GATE-04",
+      "title": "Demonstrate a real agent with retained source and graph outcome",
+      "repo": "agent-q",
+      "milestone": "M4",
+      "kind": "gate",
+      "status": "planned",
+      "depends_on": [
+        "GATE-03",
+        "AQ-08",
+        "AQ-10",
+        "WRK-07",
+        "WRK-08"
+      ],
+      "requirements": [
+        "E3",
+        "D4",
+        "D5",
+        "D6",
+        "W7",
+        "W18",
+        "W19",
+        "W20",
+        "X4",
+        "X10",
+        "X12"
+      ],
+      "scope": "Run one supported repository/task through actual agent context access, code change, source handoff, result policy and confirmed graph mutation.",
+      "acceptance": [
+        "Delete stopped worker data after central retention and show the result remains usable; inject a lost graph response.",
+        "Observe explicit authorization/version checks and retain exact source/evidence identities without a worker graph database."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "AQ-11",
+      "title": "Implement durable supervisor and agent messaging",
+      "repo": "agent-q",
+      "milestone": "M5",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "AQ-03",
+        "API-01"
+      ],
+      "requirements": [
+        "D2",
+        "D9",
+        "W1",
+        "W9",
+        "X13"
+      ],
+      "scope": "Add scoped task/session mailboxes, durable delivery IDs/cursors and acknowledgement states separate from typed cancellation directives.",
+      "acceptance": [
+        "Old-session messages cannot land in a reused slot; sender/recipient scopes are authenticated.",
+        "Replay distinguishes received, handed-to-harness, unknown and stale delivery; replies cannot impersonate another session."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "WRK-09",
+      "title": "Deliver messages through the real harness safely",
+      "repo": "aq-worker",
+      "milestone": "M5",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "WRK-08",
+        "AQ-11"
+      ],
+      "requirements": [
+        "W1",
+        "W9",
+        "W11",
+        "W17",
+        "X13",
+        "X14"
+      ],
+      "scope": "Persist mailbox receipt, integrate input at supported harness boundaries and report ambiguous injection without automatic duplicate delivery.",
+      "acceptance": [
+        "Crash between injection and acknowledgement yields explicit uncertainty unless harness IDs prove deduplication.",
+        "Cancellation and renewals remain responsive during chat/log/transfer activity."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "AQ-17",
+      "title": "Host bounded supervisor sessions centrally",
+      "repo": "agent-q",
+      "milestone": "M5",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "AQ-11",
+        "AQ-06"
+      ],
+      "requirements": [
+        "D4",
+        "W1",
+        "X11",
+        "X13"
+      ],
+      "scope": "Implement the first central supervisor/assessment execution adapter with resolved role configuration, isolated provider credentials and normal AQ message/API access.",
+      "acceptance": [
+        "Supervisor communicates with remote sessions through durable messaging without entering a worker node.",
+        "Bounded session cancellation/results and credential separation are tested; no supervisor secret is provisioned to workers."
+      ],
+      "out_of_scope": [
+        "General supervisor autonomy or all v1 profiles"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "AQ-12",
+      "title": "Embed the qualified playbook runner with bounded execution",
+      "repo": "agent-q",
+      "milestone": "M5",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "PB-01",
+        "AQ-07"
+      ],
+      "requirements": [
+        "E1",
+        "D2",
+        "D6",
+        "D7",
+        "X8",
+        "X14"
+      ],
+      "scope": "Pin runner/compiler/storage libraries, bind host authority and outbox input, and isolate synchronous storage/host work from async control handlers.",
+      "acceptance": [
+        "Exclusive ownership, startup/restart recovery, immutable artifacts and activation are integrated without reading AQ tables from the engine.",
+        "A blocked storage/host operation cannot stall lease renewal or cancellation; synthetic host commands are not registered as production adapters."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "AQ-13",
+      "title": "Implement core work, context and operation host adapters",
+      "repo": "agent-q",
+      "milestone": "M5",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "AQ-12",
+        "AQ-08",
+        "AQ-05",
+        "AQ-11"
+      ],
+      "requirements": [
+        "D2",
+        "D4",
+        "D5",
+        "D6",
+        "W10",
+        "X6",
+        "X10"
+      ],
+      "scope": "Register context.read, work.ensure, work.change, operation.get, operation.cancel and message.send against typed AQ services with durable request IDs and finite contracts.",
+      "acceptance": [
+        "Work creation and completion have distinct dispositions; retries cannot create another task/attempt or widen authority.",
+        "Host contract fixtures exercise scoped context, owned cancellation, pending effects and exact revision conflicts."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "AQ-14",
+      "title": "Implement judgment, decision and check host adapters",
+      "repo": "agent-q",
+      "milestone": "M5",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "AQ-13",
+        "AQ-10",
+        "AQ-17",
+        "WRK-09"
+      ],
+      "requirements": [
+        "D2",
+        "D3",
+        "D6",
+        "W1",
+        "X6",
+        "X7"
+      ],
+      "scope": "Implement judgment.request, decision.request and check.request with bounded central assessments, durable human decisions and actual check execution bound to exact subjects.",
+      "acceptance": [
+        "A model assessment cannot impersonate human approval; stale decisions and checks do not authorize changed source.",
+        "Async acceptance, completion, cancellation and late outcomes remain distinct and replayable."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "AQ-15",
+      "title": "Implement candidate preparation and guarded publication policy",
+      "repo": "agent-q",
+      "milestone": "M5",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "AQ-14",
+        "AQ-09",
+        "GIT-01"
+      ],
+      "requirements": [
+        "E3",
+        "D3",
+        "D6",
+        "W7",
+        "X7"
+      ],
+      "scope": "Implement candidate.prepare and candidate.publish with central aq-git, exact retained inputs, required check/review evidence and current destination preconditions.",
+      "acceptance": [
+        "Disposable-remote pilot repairs a conflict with a new candidate and new applicable evidence; publication never runs on workers.",
+        "Lost publication acknowledgement reconciles the same operation rather than pushing again; stale evidence blocks publication."
+      ],
+      "out_of_scope": [
+        "Publishing user production branches during qualification"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "AQ-16",
+      "title": "Implement findings reconciliation and durable calendar/report coordination",
+      "repo": "agent-q",
+      "milestone": "M5",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "AQ-13",
+        "AQ-14"
+      ],
+      "requirements": [
+        "D2",
+        "D6",
+        "D9",
+        "W1",
+        "X6",
+        "X13"
+      ],
+      "scope": "Implement findings.reconcile, complete scoped observation inputs, finding episodes/notification outbox, and host-owned schedule occurrence cursors for watcher/report pilots.",
+      "acceptance": [
+        "Partial scans cannot clear unseen findings; reminders and notification retries produce one logical message.",
+        "Report timeout/fallback and late author completion cannot double-send; timezone/misfire behavior is tested with frozen time."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "GATE-05",
+      "title": "Accept real policy-driven pilot workflows",
+      "repo": "agent-q",
+      "milestone": "M5",
+      "kind": "gate",
+      "status": "planned",
+      "depends_on": [
+        "GATE-04",
+        "AQ-15",
+        "AQ-16",
+        "WRK-09"
+      ],
+      "requirements": [
+        "E3",
+        "D2",
+        "D3",
+        "D5",
+        "D6",
+        "W1",
+        "X6",
+        "X7",
+        "X8",
+        "X10",
+        "X13"
+      ],
+      "scope": "Run coding/review/check/repair, routing, watcher and report pilots against real AQ adapters and the pinned runner, with deterministic substitutes only for designated external model/provider calls.",
+      "acceptance": [
+        "Exactly the agreed twelve production host commands are registered; fake-host passing tests are not substituted for adapter tests.",
+        "Crash between domain effect and runner receipt preserves child ownership, authority, deduplication and completion policy."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "PB-02",
+      "title": "Establish the playbook storage and scheduling operating envelope",
+      "repo": "aq-playbooks",
+      "milestone": "M6",
+      "kind": "qualification",
+      "status": "planned",
+      "depends_on": [
+        "PB-01"
+      ],
+      "requirements": [
+        "E8",
+        "D7"
+      ],
+      "scope": "Reconcile in-progress indexing/retention changes before assigning new work. Measure growing run/event/receipt history, pending children and concurrent admission; enforce tested namespace bounds and assess fairness/queue behavior against the intended AQ workload.",
+      "acceptance": [
+        "Retain scaling data and exact configuration, including synchronous storage costs and quotas; no unresolved work is discarded.",
+        "Publish an admissible workload envelope and fail acceptance where required budgets are not met; add scoped optimization tasks to this graph before claiming broader scale."
+      ],
+      "out_of_scope": [
+        "Treating the 100-admission microbenchmark as 500-agent product evidence",
+        "Silently widening limits after a failing benchmark"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "API-02",
+      "title": "Expose task, attempt and workflow explanation views",
+      "repo": "agent-q",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "AQ-10",
+        "AQ-11",
+        "AQ-12"
+      ],
+      "requirements": [
+        "D9",
+        "U2",
+        "U3",
+        "U4",
+        "E6"
+      ],
+      "scope": "Publish bounded browser/client contracts for tasks, attempts, workers, messages, runs and permitted actions with freshness, revision, pending-operation and reason metadata.",
+      "acceptance": [
+        "UI mocks derive from versioned schemas; authoritative state and last observations are distinct.",
+        "CLI and dashboard routes share domain operations and authorization; every pending/unknown result is representable."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "UI-01",
+      "title": "Create the independent dashboard application and mock suite",
+      "repo": "aq-dashboard",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "API-02"
+      ],
+      "requirements": [
+        "U1",
+        "U2",
+        "U3",
+        "U6"
+      ],
+      "scope": "Initialize the component repository, select a frontend framework, and implement authenticated task/attempt and worker inspection against contract-derived mocks.",
+      "acceptance": [
+        "Build/component/accessibility checks need no AQ daemon, graph or workers.",
+        "Large paginated views render stale/unknown/truncated states and untrusted content safely."
+      ],
+      "out_of_scope": [
+        "Separate dashboard backend",
+        "Full v1 UI parity"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "UI-02",
+      "title": "Implement pending-safe actions and browser compatibility",
+      "repo": "aq-dashboard",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "UI-01"
+      ],
+      "requirements": [
+        "U3",
+        "U4",
+        "U5",
+        "U6",
+        "U8"
+      ],
+      "scope": "Add one decision/cancellation/message flow through the public API, operation recovery, conflict-preserving drafts and stale-tab compatibility handling.",
+      "acceptance": [
+        "Repeated clicks and lost responses do not duplicate actions or fabricate success; authorization failures are displayed accurately.",
+        "Session changes clear protected caches, revision conflicts preserve drafts and incompatible API prompts safe reload."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "REL-01",
+      "title": "Version the composite product manifest and component inventory",
+      "repo": "agent-q",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "INT-01",
+        "GRAPH-01",
+        "GIT-01",
+        "PB-01"
+      ],
+      "requirements": [
+        "E1",
+        "E2",
+        "E4",
+        "E7"
+      ],
+      "scope": "Extend the signed release format for exact deployable images, embedded library/binary/UI inventories, API/capability windows and per-owner persistent-state compatibility.",
+      "acceptance": [
+        "Old updaters reject unsupported formats and have a documented upgrade path; version ranges do not replace exact artifact pins.",
+        "CI rejects missing/mismatched embedded inventories and local overrides; no second competing component lock authority is introduced."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "REL-02",
+      "title": "Implement multi-component update and recovery orchestration",
+      "repo": "agent-q",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "REL-01",
+        "GATE-05"
+      ],
+      "requirements": [
+        "E4",
+        "E5",
+        "W16",
+        "X8",
+        "X9"
+      ],
+      "scope": "Extend the existing updater with ordered admission/drain, per-owner migrations, readiness and resumable steps for the assembled stack.",
+      "acceptance": [
+        "Interrupt each update boundary; restore/forward-repair decisions respect actual persistent-state compatibility.",
+        "Updates protect renewal/reporting or explicitly drain first; offline older supported workers reconcile after central upgrade."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "REL-03",
+      "title": "Package and verify the dashboard in the server release",
+      "repo": "agent-q",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "REL-01",
+        "UI-02"
+      ],
+      "requirements": [
+        "E2",
+        "E6",
+        "U7",
+        "U8"
+      ],
+      "scope": "Verify the static bundle digest/provenance/API metadata, embed it in the server image, and serve same-origin authenticated application assets.",
+      "acceptance": [
+        "Exact bundle/server browser smoke covers authentication, inspection and one authorized action.",
+        "An existing tab detects changed API compatibility and refreshes matching assets without a stale success claim."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "PERF-01",
+      "title": "Run the complete product capacity and recovery profile",
+      "repo": "agent-q",
+      "milestone": "M6",
+      "kind": "qualification",
+      "status": "planned",
+      "depends_on": [
+        "GATE-05",
+        "PB-02",
+        "REL-03"
+      ],
+      "requirements": [
+        "E8",
+        "D7",
+        "W13",
+        "W15",
+        "X14",
+        "U3"
+      ],
+      "scope": "Exercise 500 simulated agents across 50 logical workers for the declared duration, graph fixture, sustained/burst rates and network conditions, with real product adapters and measured background/UI traffic.",
+      "acceptance": [
+        "Report latency, failed arrivals, pool/lock/queue waits, control safety margins, retry amplification and retained storage against shared design budgets.",
+        "Use restarts, contention, maintenance and reconnect storms; record any missed budget as a release blocker or explicitly narrower candidate scope, not a passing capacity claim."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "OPS-01",
+      "title": "Qualify the deployment target and component recovery profile",
+      "repo": "agent-q",
+      "milestone": "M6",
+      "kind": "qualification",
+      "status": "planned",
+      "depends_on": [
+        "BASE-01",
+        "REL-02",
+        "REL-03",
+        "GIT-01",
+        "GRAPH-01"
+      ],
+      "requirements": [
+        "E2",
+        "E4",
+        "E5",
+        "W6",
+        "W8",
+        "X11",
+        "X12"
+      ],
+      "scope": "On an explicitly selected disposable target, verify ingress/authentication, hosted credential paths, backup/restore, installed artifacts and the supported Git/repository/durability profile.",
+      "acceptance": [
+        "Retain actual host/resource/network/artifact evidence and restore results; local source/test reports do not stand in for deployment proof.",
+        "Before any production readiness claim, resolve required component gates, qualify any protection facility used by workflows (otherwise refuse protected values), and document remaining unsupported capabilities."
+      ],
+      "out_of_scope": [
+        "Automatic production deployment",
+        "Changing live credentials or user repositories without deployment-task authorization"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "GATE-06",
+      "title": "Accept a usable, measured and upgradeable AQ product candidate",
+      "repo": "agent-q",
+      "milestone": "M6",
+      "kind": "gate",
+      "status": "planned",
+      "depends_on": [
+        "GATE-05",
+        "REL-02",
+        "REL-03",
+        "PERF-01",
+        "OPS-01"
+      ],
+      "requirements": [
+        "E1",
+        "E2",
+        "E3",
+        "E4",
+        "E5",
+        "E6",
+        "E7",
+        "E8",
+        "U7",
+        "U8"
+      ],
+      "scope": "Evaluate exact-artifact evidence for the selected capability/profile envelope and record the candidate release decision and unresolved exclusions.",
+      "acceptance": [
+        "All required gates and supported-version checks pass, including browser action, retained source, task policy, upgrade and recovery.",
+        "Manifest, runbooks and measured capacity agree with actual artifacts; production publication/deployment is a separate explicitly scheduled action."
+      ],
+      "out_of_scope": [],
+      "evidence": []
+    }
+  ]
+}

@@ -1,0 +1,296 @@
+{
+  "captured_at": "2026-10-30T23:36:59.808238+00:00",
+  "method": "Read-only local source, test-definition and recorded-evidence audit. Runtime suites and remote release/CI status were not rerun or queried. Selected file hashes identify inspected anchors, not a complete source/build attestation. Files may be under concurrent development.",
+  "repos": [
+    {
+      "repo": "agent-q",
+      "head": "eed842362f29016ee508ca200f3bb3da2473dc08",
+      "branch": "main",
+      "has_git_repository": true,
+      "dirty_entry_count": 3,
+      "selected_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "cbf7e5d4cb3911a699ab877d73d372a74aa22dcb0a14cf973b38fc5267b06d56"
+        },
+        {
+          "path": "crates/aq-protocol/src/lib.rs",
+          "sha256": "ae06f83f6e30cd390d25a46114a79ce1740342cd7aa82ab86f8f2174a8c0c32f"
+        },
+        {
+          "path": "crates/aq-server/src/lib.rs",
+          "sha256": "585751ff534b7beb5b670ce62d40894ad78bc64942993f7cb34323149375bede"
+        },
+        {
+          "path": "crates/aq-server/src/worker_api.rs",
+          "sha256": "f066892bf6c6103c79417bd3ff96b945dfcba94b92697b55bf16afe56ecb19b4"
+        },
+        {
+          "path": "crates/aq-server/src/admin_api.rs",
+          "sha256": "bb7081f926c331574c96d2c4ead201843e06068772ff401b010fc6c4c418ddde"
+        },
+        {
+          "path": "crates/aq-server/migrations/0001_foundation.sql",
+          "sha256": "2ac1359cde1cebfbe9b94de1dc91c67d7277f04e723081ae0f98b69d93be3715"
+        },
+        {
+          "path": "crates/aq-worker/src/client.rs",
+          "sha256": "e5b3fd1da3f6833b693832f6e2f8f4afd2a2bf67ba85c0dd66a5a49fa75001a0"
+        },
+        {
+          "path": "crates/aq-worker/tests/lifecycle.rs",
+          "sha256": "fe93a67c2d99da9606ec6160d6226782c624f2dc6bc46342c9ff00344ba104d4"
+        },
+        {
+          "path": "crates/aq-release/src/manifest.rs",
+          "sha256": "3ab2237897e58c12c376f2e17ae8100eaf026764b7d3f2fec6edb96a327d8352"
+        },
+        {
+          "path": "crates/aq-updater/src/engine.rs",
+          "sha256": "0841ec62174f25d228652a2caff58c07ca9caf5973a16538bcfa0d89dcce33b9"
+        },
+        {
+          "path": ".github/workflows/ci.yml",
+          "sha256": "09c0a3d810ac82191da37c9ce0b0ae7982fe630643445ed7cbc0e7e537a7d18c"
+        },
+        {
+          "path": ".github/workflows/release.yml",
+          "sha256": "da69358e18d8a81652013071819224508b799ce3f3cabb24ad3db1195c35f9e2"
+        },
+        {
+          "path": "scripts/smoke",
+          "sha256": "351382f74a3bcecc727d5e9a2900c8585ab74a44f92f65b40b6de387b685eae4"
+        },
+        {
+          "path": "scripts/update-lifecycle",
+          "sha256": "c5a1f7687ff0bb9a4523daed6d3aaee4fc0fdfad387efaa773a875119c29c4b7"
+        }
+      ]
+    },
+    {
+      "repo": "aq-worker",
+      "head": null,
+      "branch": "main",
+      "has_git_repository": true,
+      "dirty_entry_count": 4,
+      "selected_files": [
+        {
+          "path": "README.md",
+          "sha256": "37b33ff26ae946b3b6513a756b82db515f543b7a630a3eef3dce85da86fbf987"
+        },
+        {
+          "path": "protocol/README.md",
+          "sha256": "386248d4f775f70b73b32cc4714db9b84ff1b93938ccdb623fde69aecd9f7fac"
+        },
+        {
+          "path": "docs/specs/0001-worker-framework.md",
+          "sha256": "f561d8800ca7679a8a9e8ec62073db2bdf3a08980b97dcf14fd728c1a13d25fc"
+        },
+        {
+          "path": "docs/specs/0002-execution-and-agent-access.md",
+          "sha256": "e9a041aaebaa95de765c9cf30c39a8f762ba87eeb9e9c252ff651ae60990744c"
+        }
+      ]
+    },
+    {
+      "repo": "aq-graph",
+      "head": "225329cd6acf5a775fd2a0b016dd1c45fb16c79b",
+      "branch": "main",
+      "has_git_repository": true,
+      "dirty_entry_count": 1,
+      "selected_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "bdb01f11207740b03d28aab87b06cdb5155b19887c1326d2600aad3589db39cf"
+        },
+        {
+          "path": "src/service.rs",
+          "sha256": "74818256053900c2baf06d8ffc9389eae110c1f309c05f0a7dc746ab1bcb72d2"
+        },
+        {
+          "path": "src/store.rs",
+          "sha256": "ae09f36102ddf0b14484883b3b0eb00d56e9ec8f254b2fd23145acbea70cd46d"
+        },
+        {
+          "path": "docs/openapi.json",
+          "sha256": "a06393e0557fe06bfcaf9820c073f6e3e585441282561b1e53638e80600b46bc"
+        },
+        {
+          "path": "docs/implementation-status.md",
+          "sha256": "d401f1c5e66282f3785371f60bb13efe3cd1ce133bab3a0a063fee03d1aa3c22"
+        },
+        {
+          "path": "docs/artifacts/validation/2026-10-30-schema8-checks.json",
+          "sha256": "99577592aa552d63e863276f9c5209112aa7f94282787e04da82fce1e93c03d5"
+        },
+        {
+          "path": "docs/performance/schema8-load-first/README.md",
+          "sha256": "eecd23208fd18d535656c02daded14c79a0b28aa552ba75182f86fafdb95c5de"
+        },
+        {
+          "path": "examples/agent_q_adapter.py",
+          "sha256": "0c8c6118822061e2b302ffc239eeb9c7741900db230245874ac37f250371ee17"
+        },
+        {
+          "path": ".github/workflows/release.yml",
+          "sha256": "e21f2ef790db34149314145d42a04b94c843e234ea474ac6fa5245fd085f8fa5"
+        }
+      ]
+    },
+    {
+      "repo": "aq-git",
+      "head": null,
+      "branch": "main",
+      "has_git_repository": true,
+      "dirty_entry_count": 11,
+      "selected_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "2ce13196dbecd744e44ddf50cc31eea60c09839244a7147834ac8fac5b49d5ed"
+        },
+        {
+          "path": "docs/release-status.md",
+          "sha256": "41a933b7d389012cff8a9212e39f7463804f5e4e9d82ec64b7735fecce7de124"
+        },
+        {
+          "path": "docs/aq-integration.md",
+          "sha256": "cc388211faed58c651912c15c28bf1b768de8f0f809b0a20dc308a4c6603d609"
+        },
+        {
+          "path": "crates/aq-git-cli/tests/scenario.rs",
+          "sha256": "f8f626bcbcaaa53649c0e6a752155ea4faad1effb97c777ca0e2af840b76936b"
+        },
+        {
+          "path": "scripts/check-all",
+          "sha256": "bc71d657fe6ecdd149e7a9282b5ed9459ad07e8f9c5425543013c23d44b88405"
+        },
+        {
+          "path": "scripts/release-manifest",
+          "sha256": "249769a26b96951a532069a52a3a9b7a9badd1e2d1508d3901d4a0871e2a26ac"
+        },
+        {
+          "path": ".github/workflows/check.yml",
+          "sha256": "1ea1403fe0b34ace8d25c0402492cafc26ff5e204b8cc681962e0a5fc9eca5ce"
+        }
+      ]
+    },
+    {
+      "repo": "aq-playbooks",
+      "head": "30385b7b355f277ea38ac603d0820722739b578d",
+      "branch": "main",
+      "has_git_repository": true,
+      "dirty_entry_count": 9,
+      "selected_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "564b24ab041236dc1a7ad06436c16c800e8610f94650b39d63d452e9b954a910"
+        },
+        {
+          "path": "crates/aq-playbooks-runner/src/lib.rs",
+          "sha256": "2ffd53bbfd6db169a2cd1d82a4e6ac91ff3128bc924936470d916ed15c0b8b57"
+        },
+        {
+          "path": "crates/aq-playbooks-runner/src/storage.rs",
+          "sha256": "d078676e248becea0fdf15448eb8aef7b0ad5dce523c74be3c5f2435a290c3d6"
+        },
+        {
+          "path": "crates/aq-playbooks-postgres/src/lib.rs",
+          "sha256": "27e0626209de8ffe648fa384d0b3793500d182a40fe4cdd7fe2375c5df78542c"
+        },
+        {
+          "path": "crates/aq-playbooks-cli/src/catalog.rs",
+          "sha256": "492d90a03356e1e602248e0b7dfac25533cac4bd0d496fd970ec55534d402a08"
+        },
+        {
+          "path": "crates/aq-playbooks-cli/src/fake_host.rs",
+          "sha256": "c83587e738aad6be2e8a2a545ab5b003ed314c11291be4953d6d1928bcb2f47e"
+        },
+        {
+          "path": "crates/aq-playbooks-cli/tests/host_pilots.rs",
+          "sha256": "d7863a0e771bca4892c6d657ecd560e51aaf173a6f9186f954a32dcc7d9300f3"
+        },
+        {
+          "path": "docs/specs/0002-implementation.md",
+          "sha256": "8b0f2c4206458f2fa3a45f6466296cde8d4a646f223ef11f4d3fd8e9bb7702f7"
+        },
+        {
+          "path": "docs/acceptance.md",
+          "sha256": "d9882c16ace9686055fdd4a6ac48ca3c2e7420d9b04986a5f0d47d8a823c29c5"
+        },
+        {
+          "path": "crates/aq-playbooks-postgres/README.md",
+          "sha256": "44dfb45d32660fe6985dc1c79c90780d2dcc797b965b8537bf223ccf267163f3"
+        }
+      ]
+    },
+    {
+      "repo": "aq-dashboard",
+      "head": null,
+      "branch": null,
+      "has_git_repository": false,
+      "dirty_entry_count": 0,
+      "selected_files": [
+        {
+          "path": "README.md",
+          "sha256": "722de0049335b2ffb1bc36214c81f738e5872774107e724d48d5d2f7b0f7de61"
+        },
+        {
+          "path": "docs/specs/0001-dashboard.md",
+          "sha256": "eda8c031a3a5f9b14e103016fee0d1b49d4297ef26f8832bb5ebdf60484883c4"
+        }
+      ]
+    }
+  ],
+  "followup_observation": {
+    "captured_at": "2026-10-30T23:44:30.444655+00:00",
+    "changed_anchors": [
+      {
+        "repo": "aq-git",
+        "path": "docs/release-status.md",
+        "initial_sha256": "41a933b7d389012cff8a9212e39f7463804f5e4e9d82ec64b7735fecce7de124",
+        "followup_sha256": "a61f9531cbefd8e0c259de95db36ca6fe32e06985b172905475dadc04f15f20f"
+      },
+      {
+        "repo": "aq-playbooks",
+        "path": "crates/aq-playbooks-runner/src/lib.rs",
+        "initial_sha256": "2ffd53bbfd6db169a2cd1d82a4e6ac91ff3128bc924936470d916ed15c0b8b57",
+        "followup_sha256": "b623e42b78d61c70159f7ea69c4e9e1a0f3f0b5cf446dd589c83cb9ceeef4777"
+      },
+      {
+        "repo": "aq-playbooks",
+        "path": "crates/aq-playbooks-runner/src/storage.rs",
+        "initial_sha256": "d078676e248becea0fdf15448eb8aef7b0ad5dce523c74be3c5f2435a290c3d6",
+        "followup_sha256": "4c8c2982ec5e2a6c948aadacd4bc233caaa7c3adebf24a3f3e305a72ac54282b"
+      },
+      {
+        "repo": "aq-playbooks",
+        "path": "crates/aq-playbooks-postgres/src/lib.rs",
+        "initial_sha256": "27e0626209de8ffe648fa384d0b3793500d182a40fe4cdd7fe2375c5df78542c",
+        "followup_sha256": "0c88ef7797520d51260a6320f4640362845dd136da4b0f4452e23a6347d4a980"
+      }
+    ],
+    "additional_in_progress_files": [
+      {
+        "repo": "aq-playbooks",
+        "path": "crates/aq-playbooks-postgres/migrations/0002_indexes_and_protection.sql",
+        "sha256": "2672ccf36e2f2b72d410517c857330c84e498852f3a806295e85719f6ed991c8"
+      },
+      {
+        "repo": "aq-playbooks",
+        "path": "crates/aq-playbooks-postgres/src/indexes.rs",
+        "sha256": "8b0d37ec2954a0d0fbd82ab9518ddb7052776f4d5ec1e70aaa72069511b6c657"
+      },
+      {
+        "repo": "aq-playbooks",
+        "path": "crates/aq-playbooks-postgres/src/protection.rs",
+        "sha256": "96560a8693801ecbc349ef8674f5ffbb6f9df2370880a9e1895679423ff3a782"
+      },
+      {
+        "repo": "aq-playbooks",
+        "path": "crates/aq-playbooks-postgres/src/retention.rs",
+        "sha256": "d43ad52ac0557b8e5f495a09db7cf02821ca5ba2183d544647dd09c8f0bf6c4b"
+      }
+    ],
+    "assessment": "Targeted read-only follow-up; no tests of these changes were run. New indexing/retention/protection work is under development and must be reconciled in PB-01/PB-02 before assigning overlapping work. Git report now records 84 tests rather than the initial 78. Initial hashes remain the audit baseline; this observation is not final-source certification."
+  }
+}
