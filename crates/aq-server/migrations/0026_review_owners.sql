@@ -74,4 +74,21 @@ BEGIN
 END $$;
 CREATE TRIGGER review_subject_immutable BEFORE UPDATE ON review_subjects
  FOR EACH ROW EXECUTE FUNCTION review_subject_immutable();
+ALTER TABLE playbook_outbox DROP CONSTRAINT playbook_outbox_producer_check;
+ALTER TABLE playbook_outbox ADD CHECK(producer IN ('aq.host.bridge@1','aq.human.decisions@1'));
+ALTER TABLE playbook_effects DROP CONSTRAINT playbook_effects_command_name_check;
+ALTER TABLE playbook_effects ADD CHECK(command_name IN ('message.send','decision.request'));
+ALTER TABLE playbook_effects DROP CONSTRAINT playbook_effects_status_check;
+ALTER TABLE playbook_effects ADD CHECK(status IN ('queued','refused','cancelled','accepted'));
+CREATE INDEX playbook_decision_handle ON playbook_effects(namespace_id,generation,(receipt->>'handle')) WHERE command_name='decision.request';
+ALTER TABLE playbook_namespaces ADD COLUMN catalog_profile smallint NOT NULL DEFAULT 1 CHECK(catalog_profile IN (1,2));
+CREATE FUNCTION playbook_catalog_immutable() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF ROW(NEW.namespace_id,NEW.generation,NEW.catalog_profile,NEW.catalog_digest,NEW.source_digest)
+ IS DISTINCT FROM ROW(OLD.namespace_id,OLD.generation,OLD.catalog_profile,OLD.catalog_digest,OLD.source_digest)
+ THEN RAISE EXCEPTION 'immutable playbook catalog profile'; END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER playbook_catalog_immutable BEFORE UPDATE ON playbook_namespaces
+ FOR EACH ROW EXECUTE FUNCTION playbook_catalog_immutable();
 UPDATE meta SET value='26' WHERE key='state_format_version';

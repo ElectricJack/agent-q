@@ -153,27 +153,37 @@ impl Service {
         prepared: &PreparedReview,
         request: &DecisionRequest,
     ) -> Result<()> {
+        let mut tx = self.tx().await?;
+        self.admit_in_tx(&mut tx, actor, prepared, request).await?;
+        tx.commit().await.map_err(db)
+    }
+    /// Adapter takes this before bridge namespace/grant locks. Reacquiring on
+    /// the same transaction is harmless; no permit exists outside that SQL tx.
+    pub(crate) async fn lock_budget(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
+        Self::budget(tx).await?;
+        Ok(())
+    }
+    pub(crate) async fn admit_in_tx(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        actor: Uuid,
+        prepared: &PreparedReview,
+        request: &DecisionRequest,
+    ) -> Result<()> {
         request.validate().map_err(|_| invalid())?;
         if request.subject != prepared.subject.artifact().map_err(|_| invalid())? {
             return Err(conflict());
         }
         let digest = hash(request)?;
-        let mut tx = self.tx().await?;
-        let budget = Self::budget(&mut tx).await?;
+        let budget = Self::budget(tx).await?;
         // Global budget lock serializes new admissions and duplicate IDs before
         // common authority locks. No decision row is locked before an attempt.
-        let result = crate::profiled_execution::results::load_locked(
-            &self.state,
-            &mut tx,
-            prepared.report_id,
-        )
-        .await?;
-        let source = crate::source_retention::load_confirmed_locked(
-            &mut tx,
-            prepared.source_operation,
-            &result,
-        )
-        .await?;
+        let result =
+            crate::profiled_execution::results::load_locked(&self.state, tx, prepared.report_id)
+                .await?;
+        let source =
+            crate::source_retention::load_confirmed_locked(tx, prepared.source_operation, &result)
+                .await?;
         let exact = subject(&result, &source)?;
         if exact != prepared.subject {
             return Err(conflict());
@@ -187,10 +197,10 @@ impl Service {
         let existing =
             sqlx::query("SELECT * FROM review_subjects WHERE subject_digest=$1 FOR UPDATE")
                 .bind(&subject_digest)
-                .fetch_optional(&mut *tx)
+                .fetch_optional(&mut **tx)
                 .await
                 .map_err(db)?;
-        let old=sqlx::query("SELECT * FROM human_decision_requests WHERE (requester_id=$1 AND operation_id=$2) OR decision_id=$3 FOR UPDATE").bind(actor).bind(request.operation_id).bind(request.decision_id).fetch_all(&mut *tx).await.map_err(db)?;
+        let old=sqlx::query("SELECT * FROM human_decision_requests WHERE (requester_id=$1 AND operation_id=$2) OR decision_id=$3 FOR UPDATE").bind(actor).bind(request.operation_id).bind(request.decision_id).fetch_all(&mut **tx).await.map_err(db)?;
         if !old.is_empty() {
             if old.len() != 1
                 || old[0].get::<Uuid, _>("requester_id") != actor
@@ -203,21 +213,20 @@ impl Service {
             {
                 return Err(conflict());
             }
-            Self::owner(&mut tx, actor).await?;
-            tx.commit().await.map_err(db)?;
+            Self::owner(tx, actor).await?;
             return Ok(());
         }
         if !result.is_current_report_head {
             return Err(conflict());
         }
-        Self::owner(&mut tx, actor).await?;
+        Self::owner(tx, actor).await?;
         // Stable sorted order avoids inversions when eligible sets overlap.
         let mut owners = request.eligible_owners.clone();
         owners.sort();
         for owner in owners {
-            Self::owner(&mut tx, owner).await?;
+            Self::owner(tx, owner).await?;
         }
-        self.project(&mut tx, &exact, request.eligibility_project_revision)
+        self.project(tx, &exact, request.eligibility_project_revision)
             .await?;
         prepared.retention.validate_current(&self.state, &source)?;
         if request.expires_at_ms <= now(&self.state)?
@@ -231,10 +240,10 @@ impl Service {
             .bind(exact.project_id)
             .bind(exact.task.workspace_id)
             .bind(exact.task.task_id)
-            .execute(&mut *tx)
+            .execute(&mut **tx)
             .await
             .map_err(db)?;
-        let used:i64=sqlx::query_scalar("SELECT retained_operations FROM review_lineage_budget WHERE project_id=$1 AND workspace_id=$2 AND task_id=$3 FOR UPDATE").bind(exact.project_id).bind(exact.task.workspace_id).bind(exact.task.task_id).fetch_one(&mut *tx).await.map_err(db)?;
+        let used:i64=sqlx::query_scalar("SELECT retained_operations FROM review_lineage_budget WHERE project_id=$1 AND workspace_id=$2 AND task_id=$3 FOR UPDATE").bind(exact.project_id).bind(exact.task.workspace_id).bind(exact.task.task_id).fetch_one(&mut **tx).await.map_err(db)?;
         if let Some(ref row) = existing
             && (self.decode::<ReviewSubject>("subject", &subject_digest, row)? != exact
                 || row.get::<i64, _>("decision_count") >= 16)
@@ -264,20 +273,20 @@ impl Service {
         }
         if existing.is_none() {
             let s = self.seal("subject", &subject_digest, &subject_body)?;
-            sqlx::query("INSERT INTO review_subjects(subject_digest,report_id,project_id,workspace_id,task_id,sealed_version,key_id,nonce,ciphertext) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)").bind(&subject_digest).bind(prepared.report_id).bind(exact.project_id).bind(exact.task.workspace_id).bind(exact.task.task_id).bind(s.version as i32).bind(s.key_id).bind(s.nonce).bind(s.ciphertext).execute(&mut *tx).await.map_err(db)?;
+            sqlx::query("INSERT INTO review_subjects(subject_digest,report_id,project_id,workspace_id,task_id,sealed_version,key_id,nonce,ciphertext) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)").bind(&subject_digest).bind(prepared.report_id).bind(exact.project_id).bind(exact.task.workspace_id).bind(exact.task.task_id).bind(s.version as i32).bind(s.key_id).bind(s.nonce).bind(s.ciphertext).execute(&mut **tx).await.map_err(db)?;
         }
         sqlx::query(
             "UPDATE review_subjects SET decision_count=decision_count+1 WHERE subject_digest=$1",
         )
         .bind(&subject_digest)
-        .execute(&mut *tx)
+        .execute(&mut **tx)
         .await
         .map_err(db)?;
         let s = self.seal("request", &request.decision_id.to_string(), &body)?;
-        sqlx::query("INSERT INTO human_decision_requests(decision_id,requester_id,operation_id,request_digest,subject_digest,decision_revision,state,expires_at_ms,sealed_version,key_id,nonce,ciphertext) VALUES($1,$2,$3,$4,$5,1,'pending',$6,$7,$8,$9,$10)").bind(request.decision_id).bind(actor).bind(request.operation_id).bind(digest).bind(subject_digest).bind(request.expires_at_ms as i64).bind(s.version as i32).bind(s.key_id).bind(s.nonce).bind(s.ciphertext).execute(&mut *tx).await.map_err(db)?;
-        sqlx::query("UPDATE review_lineage_budget SET retained_operations=retained_operations+1 WHERE project_id=$1 AND workspace_id=$2 AND task_id=$3").bind(exact.project_id).bind(exact.task.workspace_id).bind(exact.task.task_id).execute(&mut *tx).await.map_err(db)?;
-        sqlx::query("UPDATE review_owner_budget SET retained_operations=retained_operations+1,retained_bytes=retained_bytes+$1 WHERE singleton").bind(charge as i64).execute(&mut *tx).await.map_err(db)?;
-        tx.commit().await.map_err(db)
+        sqlx::query("INSERT INTO human_decision_requests(decision_id,requester_id,operation_id,request_digest,subject_digest,decision_revision,state,expires_at_ms,sealed_version,key_id,nonce,ciphertext) VALUES($1,$2,$3,$4,$5,1,'pending',$6,$7,$8,$9,$10)").bind(request.decision_id).bind(actor).bind(request.operation_id).bind(digest).bind(subject_digest).bind(request.expires_at_ms as i64).bind(s.version as i32).bind(s.key_id).bind(s.nonce).bind(s.ciphertext).execute(&mut **tx).await.map_err(db)?;
+        sqlx::query("UPDATE review_lineage_budget SET retained_operations=retained_operations+1 WHERE project_id=$1 AND workspace_id=$2 AND task_id=$3").bind(exact.project_id).bind(exact.task.workspace_id).bind(exact.task.task_id).execute(&mut **tx).await.map_err(db)?;
+        sqlx::query("UPDATE review_owner_budget SET retained_operations=retained_operations+1,retained_bytes=retained_bytes+$1 WHERE singleton").bind(charge as i64).execute(&mut **tx).await.map_err(db)?;
+        Ok(())
     }
     /// Authenticated human answer only. New answers check current B1 head,
     /// project revision and current eligible owner after lock waits. Exact old
@@ -420,8 +429,34 @@ impl Service {
         self.finish_unanswered(None, decision, decision, 1, true)
             .await
     }
+    pub(crate) async fn cancel_in_tx(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        actor: Uuid,
+        operation: Uuid,
+        decision: Uuid,
+    ) -> Result<DecisionReceipt> {
+        self.finish_unanswered_in_tx(tx, Some(actor), operation, decision, 1, false)
+            .await
+    }
     async fn finish_unanswered(
         &self,
+        actor: Option<Uuid>,
+        operation: Uuid,
+        decision: Uuid,
+        expected: u64,
+        expiry: bool,
+    ) -> Result<DecisionReceipt> {
+        let mut tx = self.tx().await?;
+        let receipt = self
+            .finish_unanswered_in_tx(&mut tx, actor, operation, decision, expected, expiry)
+            .await?;
+        tx.commit().await.map_err(db)?;
+        Ok(receipt)
+    }
+    async fn finish_unanswered_in_tx(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
         actor: Option<Uuid>,
         operation: Uuid,
         decision: Uuid,
@@ -434,17 +469,15 @@ impl Service {
         let digest = hash(
             &json!({"actor":actor,"operation":operation,"decision":decision,"expected":expected,"expiry":expiry}),
         )?;
-        let mut tx = self.tx().await?;
-        Self::budget(&mut tx).await?;
-        let ids=sqlx::query("SELECT s.report_id,s.subject_digest FROM human_decision_requests d JOIN review_subjects s USING(subject_digest) WHERE d.decision_id=$1").bind(decision).fetch_optional(&mut *tx).await.map_err(db)?.ok_or_else(forbidden)?;
+        Self::budget(tx).await?;
+        let ids=sqlx::query("SELECT s.report_id,s.subject_digest FROM human_decision_requests d JOIN review_subjects s USING(subject_digest) WHERE d.decision_id=$1").bind(decision).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(forbidden)?;
         let report_id: Uuid = ids.get("report_id");
         let subject_digest: String = ids.get("subject_digest");
         let result =
-            crate::profiled_execution::results::load_locked(&self.state, &mut tx, report_id)
-                .await?;
+            crate::profiled_execution::results::load_locked(&self.state, tx, report_id).await?;
         let sr = sqlx::query("SELECT * FROM review_subjects WHERE subject_digest=$1 FOR SHARE")
             .bind(&subject_digest)
-            .fetch_one(&mut *tx)
+            .fetch_one(&mut **tx)
             .await
             .map_err(db)?;
         let subject: ReviewSubject = self.decode("subject", &subject_digest, &sr)?;
@@ -462,7 +495,7 @@ impl Service {
         let row =
             sqlx::query("SELECT * FROM human_decision_requests WHERE decision_id=$1 FOR UPDATE")
                 .bind(decision)
-                .fetch_one(&mut *tx)
+                .fetch_one(&mut **tx)
                 .await
                 .map_err(db)?;
         let request: DecisionRequest = self.decode("request", &decision.to_string(), &row)?;
@@ -476,12 +509,12 @@ impl Service {
             if row.get::<Uuid, _>("requester_id") != actor {
                 return Err(forbidden());
             }
-            Self::owner(&mut tx, actor).await?;
+            Self::owner(tx, actor).await?;
         }
         if let Some(old) =
             sqlx::query("SELECT * FROM human_decision_finality WHERE decision_id=$1 FOR SHARE")
                 .bind(decision)
-                .fetch_optional(&mut *tx)
+                .fetch_optional(&mut **tx)
                 .await
                 .map_err(db)?
         {
@@ -498,7 +531,6 @@ impl Service {
             if hash(&receipt)? != old.get::<String, _>("receipt_digest") {
                 return Err(AppError::Internal);
             }
-            tx.commit().await.map_err(db)?;
             return Ok(receipt);
         }
         if row.get::<i64, _>("decision_revision") != 1 || row.get::<String, _>("state") != "pending"
@@ -532,13 +564,12 @@ impl Service {
             .map_err(|_| AppError::Internal)?;
         let receipt_digest = hash(&receipt)?;
         let s = self.seal("finality", &decision.to_string(), &encode(&receipt)?)?;
-        sqlx::query("INSERT INTO human_decision_finality(decision_id,actor_id,operation_id,request_digest,receipt_digest,sealed_version,key_id,nonce,ciphertext) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)").bind(decision).bind(actor).bind(operation).bind(digest).bind(&receipt_digest).bind(s.version as i32).bind(s.key_id).bind(s.nonce).bind(s.ciphertext).execute(&mut *tx).await.map_err(db)?;
+        sqlx::query("INSERT INTO human_decision_finality(decision_id,actor_id,operation_id,request_digest,receipt_digest,sealed_version,key_id,nonce,ciphertext) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)").bind(decision).bind(actor).bind(operation).bind(digest).bind(&receipt_digest).bind(s.version as i32).bind(s.key_id).bind(s.nonce).bind(s.ciphertext).execute(&mut **tx).await.map_err(db)?;
         let outcome = if expiry { "expired" } else { "cancelled" };
         let event = json!({"decision":decision.to_string(),"outcome":outcome,"output":{"receipt":receipt.artifact().map_err(|_|AppError::Internal)?,"subject":request.subject}});
         let s = self.seal("outbox", &decision.to_string(), &encode(&event)?)?;
-        sqlx::query("INSERT INTO review_owner_outbox(event_id,decision_id,producer,receipt_digest,sealed_version,key_id,nonce,ciphertext) VALUES($1,$1,'aq.human.decisions@1',$2,$3,$4,$5,$6)").bind(decision).bind(receipt_digest).bind(s.version as i32).bind(s.key_id).bind(s.nonce).bind(s.ciphertext).execute(&mut *tx).await.map_err(db)?;
-        sqlx::query("UPDATE human_decision_requests SET decision_revision=2,state=$2 WHERE decision_id=$1 AND decision_revision=1").bind(decision).bind(if expiry {"expired"} else {"cancelled"}).execute(&mut *tx).await.map_err(db)?;
-        tx.commit().await.map_err(db)?;
+        sqlx::query("INSERT INTO review_owner_outbox(event_id,decision_id,producer,receipt_digest,sealed_version,key_id,nonce,ciphertext) VALUES($1,$1,'aq.human.decisions@1',$2,$3,$4,$5,$6)").bind(decision).bind(receipt_digest).bind(s.version as i32).bind(s.key_id).bind(s.nonce).bind(s.ciphertext).execute(&mut **tx).await.map_err(db)?;
+        sqlx::query("UPDATE human_decision_requests SET decision_revision=2,state=$2 WHERE decision_id=$1 AND decision_revision=1").bind(decision).bind(if expiry {"expired"} else {"cancelled"}).execute(&mut **tx).await.map_err(db)?;
         Ok(receipt)
     }
     pub async fn inspect(&self, actor: Uuid, decision: Uuid) -> Result<serde_json::Value> {
@@ -607,6 +638,77 @@ impl Service {
         }
         tx.commit().await.map_err(db)?;
         Ok(view)
+    }
+    pub(crate) async fn completion_in_tx(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        decision: Uuid,
+    ) -> Result<(ReviewSubject, serde_json::Value)> {
+        let row =
+            sqlx::query("SELECT * FROM human_decision_requests WHERE decision_id=$1 FOR SHARE")
+                .bind(decision)
+                .fetch_one(&mut **tx)
+                .await
+                .map_err(db)?;
+        let request: DecisionRequest = self.decode("request", &decision.to_string(), &row)?;
+        request.validate().map_err(|_| AppError::Internal)?;
+        if request.decision_id != decision
+            || hash(&request)? != row.get::<String, _>("request_digest")
+            || row.get::<i64, _>("decision_revision") != 2
+        {
+            return Err(AppError::Internal);
+        }
+        let sr = sqlx::query("SELECT * FROM review_subjects WHERE subject_digest=$1 FOR SHARE")
+            .bind(request.subject.digest.as_str())
+            .fetch_one(&mut **tx)
+            .await
+            .map_err(db)?;
+        let subject: ReviewSubject =
+            self.decode("subject", request.subject.digest.as_str(), &sr)?;
+        if subject.artifact().map_err(|_| AppError::Internal)? != request.subject {
+            return Err(AppError::Internal);
+        }
+        let finality =
+            sqlx::query("SELECT * FROM human_decision_finality WHERE decision_id=$1 FOR SHARE")
+                .bind(decision)
+                .fetch_one(&mut **tx)
+                .await
+                .map_err(db)?;
+        let receipt: DecisionReceipt = self.decode("finality", &decision.to_string(), &finality)?;
+        receipt
+            .validate_for(&request)
+            .map_err(|_| AppError::Internal)?;
+        if hash(&receipt)? != finality.get::<String, _>("receipt_digest") {
+            return Err(AppError::Internal);
+        }
+        let outbox =
+            sqlx::query("SELECT * FROM review_owner_outbox WHERE decision_id=$1 FOR UPDATE")
+                .bind(decision)
+                .fetch_one(&mut **tx)
+                .await
+                .map_err(db)?;
+        let event: serde_json::Value = self.decode("outbox", &decision.to_string(), &outbox)?;
+        let outcome = match receipt.finality {
+            DecisionFinality::HumanAnswer {
+                choice: Choice::Approve,
+                ..
+            } => "approved",
+            DecisionFinality::HumanAnswer {
+                choice: Choice::Reject,
+                ..
+            } => "rejected",
+            DecisionFinality::Expired {} => "expired",
+            DecisionFinality::Cancelled { .. } => "cancelled",
+        };
+        if outbox.get::<Uuid, _>("event_id") != decision
+            || outbox.get::<String, _>("producer") != "aq.human.decisions@1"
+            || outbox.get::<String, _>("receipt_digest") != hash(&receipt)?
+            || event
+                != json!({"decision":decision.to_string(),"outcome":outcome,"output":{"receipt":receipt.artifact().map_err(|_|AppError::Internal)?,"subject":request.subject}})
+        {
+            return Err(AppError::Internal);
+        }
+        Ok((subject, event))
     }
     async fn project(
         &self,
