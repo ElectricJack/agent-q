@@ -309,6 +309,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-review-protocol"
+version = "0.1.0"
+dependencies = [
+ "aq-session-protocol",
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
 name = "aq-selection"
 version = "0.1.2"
 dependencies = [
