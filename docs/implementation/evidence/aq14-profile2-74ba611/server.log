@@ -1,0 +1,54 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.26s
+     Running tests/playbook_bridge.rs (target/debug/deps/playbook_bridge-bad970c77ff51178)
+
+running 11 tests
+test actual_engine_commit_lost_aq_ack_recovers_same_run_after_owner_restart_and_revocation ... ok
+test actual_http_renew_cancel_progress_while_real_mail_host_exhausts_bridge_work_permits ... ok
+test cancel_before_owner_admission_prevents_effect_and_after_queue_is_too_late ... ok
+test actual_protected_engine_host_queues_one_message_and_replays_fixed_event_outbox ... ok
+test expired_admission_page_is_held_without_starving_later_current_grant ... ok
+test expiry_after_mailbox_lock_wait_rolls_back_new_message_and_outbox ... ok
+test mailbox_and_outbox_commit_once_and_reconcile_after_revocation ... ok
+test optional_http_mount_requires_owner_csrf_and_only_finite_controls_survive_maintenance ... ok
+test protected_admission_conflicts_and_engine_receipt_ack_are_separate ... ok
+test quota_refusal_rolls_back_mailbox_and_event_but_retained_exact_replay_works ... ok
+test runtime_adoption_fences_old_sender_and_delayed_old_initializer ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.82s
+
+     Running tests/playbook_contract.rs (target/debug/deps/playbook_contract-603a76250dfcf114)
+
+running 2 tests
+test graph_read_capability_does_not_authorize_mail_and_exact_session_scope_does_not_retarget ... ok
+test registry_and_public_mailbox_dispositions_match_generated_profile ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/playbook_review_contract.rs (target/debug/deps/playbook_review_contract-111e4237d37846d8)
+
+running 4 tests
+test catalog1_bytes_and_capabilities_do_not_silently_gain_human_decision_authority ... ok
+test catalog2_snapshot_is_generated_and_operation_lookup_has_no_generic_service_or_url ... ok
+test decision_input_refuses_authority_fields_duplicate_owners_and_mismatched_subject_id ... ok
+test actual_compiler_refuses_old_catalog_and_accepts_explicit_registered_async_owner_contract ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/profiled_results.rs (target/debug/deps/profiled_results-22f8731b6e605020)
+
+running 12 tests
+test internal_owner_read_is_historical_exact_and_marks_a_superseded_head_without_eligibility ... ok
+test cancellation_is_retained_without_turning_claim_into_success ... ok
+test internal_owner_read_rejects_a_changed_report_even_with_recomputed_stored_digest ... ok
+test internal_owner_read_rejects_receipt_outcome_and_stored_spec_corruption ... ok
+test recording_retains_claims_replays_and_serializes_corrections_without_settlement ... ok
+test report_quota_preserves_exact_replay_and_immutable_heads ... ok
+test result_http_uses_current_machine_auth_and_bounded_work_admission ... ok
+test protected_engine_question_waits_for_real_owner_and_exact_completion_event ... ok
+test result_source_owner_requires_a_real_retained_transfer_and_exact_native_binding ... ok
+test rotated_credential_after_observed_lock_wait_cannot_record ... ok
+test sql_requires_exact_stopped_outcome_and_atomic_report_head ... ok
+test stopped_and_pinned_typed_outcome_are_actual_required_owners ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.23s
+

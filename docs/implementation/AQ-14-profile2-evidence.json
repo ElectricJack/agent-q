@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "task": "AQ-14",
+  "status": "in_progress; qualified human/decision adapter slice, check/native gates remain",
+  "source_revision": "74ba611dfb0c90e59b0775a6ff2f5f882dd10f60",
+  "prerequisites": [
+    "cfe9730c4df829336c4ba5a72e48d213033dcabe",
+    "63ea37d79f8203df9c0dd40072db5176037e4d67"
+  ],
+  "producer": {
+    "source_revision": "d3bd349d9293b7aee6ed434cd1927ecfb035f8e7",
+    "archive_sha256": "bd1246e8e972ee1627e94598945f398812c89044106b463151a696511412ca39",
+    "vendor_files": 248,
+    "old_vendor_files_preserved": 477
+  },
+  "host": {
+    "version": "0.1.2",
+    "source_archive": {
+      "profile": "exact full AQ Git source snapshot; selected host builds independently, no generated manifest or sibling runtime checkout",
+      "path": "/home/jkern/dev/.aq-qualification/aq14-host-74ba611/source.tar",
+      "sha256": "bc9fead6699cb0d233f16d8592e53bbc7857235c640733ef1d3a4efd1a1cad27",
+      "bytes": 69089280
+    },
+    "standalone_tests": 8,
+    "standalone_actual_postgres_tests": 1,
+    "strict_all_target_clippy": true,
+    "format": true,
+    "dependency_tree_excludes_server_and_cli": true
+  },
+  "qualification": {
+    "actual_disposable_postgres_and_contract_server_tests": 29,
+    "pure_retention_tests": 2,
+    "server_host_strict_all_target_all_feature_clippy": true,
+    "format": true,
+    "vendor_hash_check_files": 725,
+    "lost_callback_accepted_recovery": true,
+    "real_owner_answer": true,
+    "question_cancellation": true,
+    "grant_revocation_before_completion_delivery": true,
+    "event_ack_loss_and_duplicate_replay": true,
+    "restart_no_question_recreation": true,
+    "source_proof_expiry_after_observed_budget_lock_wait": true,
+    "old_namespace_origin_unchanged_refused": true
+  },
+  "gates": {
+    "candidate026_registered": false,
+    "state_format_at_source": 24,
+    "actual_selected_native_git_end_to_end": false,
+    "executed_check_owner": false,
+    "default_production_mount": false,
+    "legacy_namespace_migration_or_mixed_version": false,
+    "PB04_performance_closure": false
+  },
+  "preserved_files": [
+    "protocol/playbook-host/v1/README.md",
+    "protocol/playbook-host/v1/fixtures/message-send.json",
+    "protocol/playbook-host/v1/fixtures/queued.json",
+    "protocol/playbook-host/v1/registry.json",
+    "crates/aq-playbook-host/src/lib.rs",
+    "crates/aq-playbook-host/src/protected.rs",
+    "crates/aq-review-protocol/Cargo.toml",
+    "crates/aq-review-protocol/README.md",
+    "crates/aq-review-protocol/artifacts/check.schema.json",
+    "crates/aq-review-protocol/artifacts/decision.schema.json",
+    "crates/aq-review-protocol/artifacts/fixtures.json",
+    "crates/aq-review-protocol/artifacts/subject.schema.json",
+    "crates/aq-review-protocol/artifacts/upstream-outcome-v1.fixture.json",
+    "crates/aq-review-protocol/artifacts/upstream-result-record-v1.fixture.json",
+    "crates/aq-review-protocol/examples/export.rs",
+    "crates/aq-review-protocol/examples/support/mod.rs",
+    "crates/aq-review-protocol/scripts/check_vectors.py",
+    "crates/aq-review-protocol/src/lib.rs",
+    "crates/aq-review-protocol/tests/conformance.rs"
+  ],
+  "source_files": [
+    {
+      "path": "Cargo.toml",
+      "sha256": "42bcbada166090885b1fd7c5da190aa8022bcedf1770885b6f0c111e1f1ef6cc"
+    },
+    {
+      "path": "Cargo.lock",
+      "sha256": "7ddd967ea234dd1ba601395d1f4d768d1bf24fb886ce184777894a05fbd32c95"
+    },
+    {
+      "path": "crates/aq-playbook-host/Cargo.toml",
+      "sha256": "c05c121cb69c3c0f3b03ef342214901ae06d32fb6e4cb6a2bef763f6d7a6481d"
+    },
+    {
+      "path": "crates/aq-playbook-host/README.md",
+      "sha256": "0569418ef61be7ad646bbf9a67f8a620031b10887ffdaf78cab12b799625cbca"
+    },
+    {
+      "path": "crates/aq-playbook-host/src/lib.rs",
+      "sha256": "6c2f1666a90b2b6cfe3a6f510809877b2d231c6aa88fcf173e9bccfd5ba76a5e"
+    },
+    {
+      "path": "crates/aq-playbook-host/src/protected.rs",
+      "sha256": "46ba2c2cf922e2344e2475497395fe34846ff37021b2ed3d63e430249b2cef1a"
+    },
+    {
+      "path": "crates/aq-server/Cargo.toml",
+      "sha256": "207db877d7629a6b2eee25e549eb5e47c871b6180cbb0deb6d6f7d312d235873"
+    },
+    {
+      "path": "crates/aq-server/src/lib.rs",
+      "sha256": "4e892067504012dccd63cfa53de2764b71546dc6a3b61b1ce705767f353c24ff"
+    },
+    {
+      "path": "crates/aq-server/src/reviews.rs",
+      "sha256": "adea5390b0d1ce99158542094b688680264f9c8a019b3a69f5e17d31fc44a769"
+    },
+    {
+      "path": "crates/aq-server/src/source_retention.rs",
+      "sha256": "260b665d82fc78154f314690fbf808e8ccd2ce4b8bf24ee8456a006aa55fd220"
+    },
+    {
+      "path": "crates/aq-server/src/source_retention/result_retention.rs",
+      "sha256": "0326006ba25bab2ea469de38e171eb87ec343e581200a2edcf104b162a3cbda8"
+    },
+    {
+      "path": "crates/aq-server/migrations/0026_review_owners.sql",
+      "sha256": "1f2999baeca7caf48e23a08cb74e1970ea2c1725d15d6a88c6258b32e4ae392e"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/domain.rs",
+      "sha256": "6e19a8ecf659f9ed4b38454aa486cd5b9ad8133c1347ab983663f3f408cb4c4f"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/review_domain.rs",
+      "sha256": "12cc8c4d1c04b2dc0dbcbcc8e82c559bf71f5aa28193bec3f2a16a958afa61d0"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/driver.rs",
+      "sha256": "da120222039831301b6f5e5219d2da4c40f567902e8f7151b926a28ef45a777f"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/service.rs",
+      "sha256": "45102b4a24539f71efaae68046d4cb053faed5b3cf7005ea1c2d513b1fad60b0"
+    },
+    {
+      "path": "crates/aq-server/tests/profiled_results.rs",
+      "sha256": "5019eb77c35747a03e152057d6cd368c3bf0ed96fe044f3355e4be4b698256ef"
+    },
+    {
+      "path": "crates/aq-server/tests/playbook_bridge.rs",
+      "sha256": "05a5a3ea29a7446a279ed9a506c6764c65fa5bcd1da59545ab03e059b29b6921"
+    },
+    {
+      "path": "crates/aq-server/tests/playbook_contract.rs",
+      "sha256": "adbb7c833937a207156d3b5b6d9a77daa83c3418c0461fd9817a6a48830177e3"
+    },
+    {
+      "path": "crates/aq-server/tests/playbook_review_contract.rs",
+      "sha256": "effa45abc155ec411f373578c8663f4eb9c7646b39f70a28e99763ebabc23b25"
+    },
+    {
+      "path": "crates/aq-server/examples/playbook_review_contract.rs",
+      "sha256": "58ce3f51ef6f742c2163801c433557a8ff8651598339c92205fdee15ab507b63"
+    },
+    {
+      "path": "protocol/playbook-host/v2/registry.json",
+      "sha256": "47d83f91473e187b6d986c44be189a9e5af18e42740df74f28fd8629abf5d60a"
+    },
+    {
+      "path": "protocol/playbook-host/v2/README.md",
+      "sha256": "e02faad292be47b5868fd064d66f7e0d6e7403377480d491a31b008f2ffdb8e6"
+    },
+    {
+      "path": "vendor/aq-playbooks-source-0.1.2.json",
+      "sha256": "d4c8554298bcf37ee9a1b97a4cc8ace957d58fd22a5828f608f290735a4cbd2b"
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-74ba611/consumer-clippy.log",
+      "sha256": "ac1f68a2a70e6f0515ac128f9b29f9641117c106107a5702dd9d198cf36b8c46"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-74ba611/consumer-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-74ba611/host-dependencies.log",
+      "sha256": "96b8ab959c9b4424c43c5ce6d970f74ad97990ac3ae1f732549315974bcf6efb"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-74ba611/host-development-postgres.log",
+      "sha256": "bdaaebfa7a31bf843b80fe764dd1513ca8672b49e4dd36ac55728b610f845e54"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-74ba611/host-development.log",
+      "sha256": "d505abc67c10e4ae72511b8745d95631e864392767224e3d341a43b0ef767254"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-74ba611/host-standalone-clippy.log",
+      "sha256": "6e40942b6af83a0397c20b61a18e1a52997c9a16d7e6fca9fb4251bf236542ac"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-74ba611/host-standalone-fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-74ba611/host-standalone-postgres.log",
+      "sha256": "d48e7c70d15fadb1fd0df43ccdfb9d987b1cf2c656801b761a1c0bd79b6e5f93"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-74ba611/host-standalone.log",
+      "sha256": "fa619e4e06c604d4531513b574cdbdbd65ec5ad5227796dcf10df9f43dcb7516"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-74ba611/retention.log",
+      "sha256": "8bdaa727db77677b5e1ff30dc1f6ad8fc4eb2e395afe19c15d50bc57f3d807cf"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-74ba611/server.log",
+      "sha256": "e5fa1498950db8b0d7c3b7a6528c97275060369ee4d1c1448210d9cdcad4d866"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-74ba611/vendor-drift.log",
+      "sha256": "27b6a5af923f9ee8089cd117b0b07157724cd3a01c4f8a45b5b88057bd7c0046"
+    }
+  ]
+}

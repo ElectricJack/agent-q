@@ -1,0 +1,203 @@
+aq-playbook-host v0.1.2 (/tmp/aq14-host-standalone/crates/aq-playbook-host)
+├── aq-playbooks-model v0.1.0 (/tmp/aq14-host-standalone/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-model)
+│   ├── serde v1.0.229
+│   │   ├── serde_core v1.0.229
+│   │   └── serde_derive v1.0.229 (proc-macro)
+│   │       ├── proc-macro2 v1.0.107
+│   │       │   └── unicode-ident v1.0.27
+│   │       ├── quote v1.0.47
+│   │       │   └── proc-macro2 v1.0.107 (*)
+│   │       └── syn v3.0.9
+│   │           ├── proc-macro2 v1.0.107 (*)
+│   │           ├── quote v1.0.47 (*)
+│   │           └── unicode-ident v1.0.27
+│   ├── serde_json v1.0.154
+│   │   ├── itoa v1.0.18
+│   │   ├── memchr v2.8.3
+│   │   ├── serde_core v1.0.229
+│   │   └── zmij v1.0.23
+│   ├── sha2 v0.10.9
+│   │   ├── cfg-if v1.0.5
+│   │   ├── cpufeatures v0.2.17
+│   │   └── digest v0.10.7
+│   │       ├── block-buffer v0.10.4
+│   │       │   └── generic-array v0.14.7
+│   │       │       └── typenum v1.20.1
+│   │       │       [build-dependencies]
+│   │       │       └── version_check v0.9.5
+│   │       └── crypto-common v0.1.7
+│   │           ├── generic-array v0.14.7 (*)
+│   │           ├── rand_core v0.6.4
+│   │           │   └── getrandom v0.2.17
+│   │           │       ├── cfg-if v1.0.5
+│   │           │       └── libc v0.2.191
+│   │           └── typenum v1.20.1
+│   └── thiserror v2.0.21
+│       └── thiserror-impl v2.0.21 (proc-macro)
+│           ├── proc-macro2 v1.0.107 (*)
+│           ├── quote v1.0.47 (*)
+│           └── syn v3.0.9 (*)
+├── aq-playbooks-postgres v0.1.2 (/tmp/aq14-host-standalone/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-postgres)
+│   ├── aq-playbooks-model v0.1.0 (/tmp/aq14-host-standalone/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-model) (*)
+│   ├── aq-playbooks-runner v0.1.2 (/tmp/aq14-host-standalone/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-runner)
+│   │   ├── aq-playbooks-model v0.1.0 (/tmp/aq14-host-standalone/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-model) (*)
+│   │   ├── serde v1.0.229 (*)
+│   │   ├── serde_json v1.0.154 (*)
+│   │   ├── sha2 v0.10.9 (*)
+│   │   └── thiserror v2.0.21 (*)
+│   ├── chacha20poly1305 v0.10.1
+│   │   ├── aead v0.5.2
+│   │   │   ├── crypto-common v0.1.7 (*)
+│   │   │   └── generic-array v0.14.7 (*)
+│   │   ├── chacha20 v0.9.1
+│   │   │   ├── cfg-if v1.0.5
+│   │   │   ├── cipher v0.4.4
+│   │   │   │   ├── crypto-common v0.1.7 (*)
+│   │   │   │   ├── inout v0.1.4
+│   │   │   │   │   └── generic-array v0.14.7 (*)
+│   │   │   │   └── zeroize v1.9.1
+│   │   │   └── cpufeatures v0.2.17
+│   │   ├── cipher v0.4.4 (*)
+│   │   ├── poly1305 v0.8.0
+│   │   │   ├── cpufeatures v0.2.17
+│   │   │   ├── opaque-debug v0.3.1
+│   │   │   └── universal-hash v0.5.1
+│   │   │       ├── crypto-common v0.1.7 (*)
+│   │   │       └── subtle v2.6.1
+│   │   └── zeroize v1.9.1
+│   ├── postgres v0.19.14
+│   │   ├── bytes v1.12.1
+│   │   ├── fallible-iterator v0.2.0
+│   │   ├── futures-util v0.3.34
+│   │   │   ├── futures-core v0.3.34
+│   │   │   ├── futures-sink v0.3.34
+│   │   │   ├── futures-task v0.3.34
+│   │   │   └── pin-project-lite v0.2.17
+│   │   ├── log v0.4.34
+│   │   ├── tokio v1.54.1
+│   │   │   ├── bytes v1.12.1
+│   │   │   ├── libc v0.2.191
+│   │   │   ├── mio v1.2.4
+│   │   │   │   └── libc v0.2.191
+│   │   │   ├── parking_lot v0.12.5
+│   │   │   │   ├── lock_api v0.4.14
+│   │   │   │   │   └── scopeguard v1.2.0
+│   │   │   │   └── parking_lot_core v0.9.12
+│   │   │   │       ├── cfg-if v1.0.5
+│   │   │   │       ├── libc v0.2.191
+│   │   │   │       └── smallvec v1.16.4
+│   │   │   ├── pin-project-lite v0.2.17
+│   │   │   ├── signal-hook-registry v1.4.8
+│   │   │   │   ├── errno v0.3.14
+│   │   │   │   │   └── libc v0.2.191
+│   │   │   │   └── libc v0.2.191
+│   │   │   ├── socket2 v0.6.5
+│   │   │   │   └── libc v0.2.191
+│   │   │   └── tokio-macros v2.7.2 (proc-macro)
+│   │   │       ├── proc-macro2 v1.0.107 (*)
+│   │   │       ├── quote v1.0.47 (*)
+│   │   │       └── syn v3.0.9 (*)
+│   │   └── tokio-postgres v0.7.18
+│   │       ├── async-trait v0.1.92 (proc-macro)
+│   │       │   ├── proc-macro2 v1.0.107 (*)
+│   │       │   ├── quote v1.0.47 (*)
+│   │       │   └── syn v3.0.9 (*)
+│   │       ├── byteorder v1.5.0
+│   │       ├── bytes v1.12.1
+│   │       ├── fallible-iterator v0.2.0
+│   │       ├── futures-channel v0.3.34
+│   │       │   ├── futures-core v0.3.34
+│   │       │   └── futures-sink v0.3.34
+│   │       ├── futures-util v0.3.34 (*)
+│   │       ├── log v0.4.34
+│   │       ├── parking_lot v0.12.5 (*)
+│   │       ├── percent-encoding v2.3.2
+│   │       ├── phf v0.13.1
+│   │       │   └── phf_shared v0.13.1
+│   │       │       └── siphasher v1.0.4
+│   │       ├── pin-project-lite v0.2.17
+│   │       ├── postgres-protocol v0.6.12
+│   │       │   ├── base64 v0.22.1
+│   │       │   ├── byteorder v1.5.0
+│   │       │   ├── bytes v1.12.1
+│   │       │   ├── fallible-iterator v0.2.0
+│   │       │   ├── hmac v0.13.0
+│   │       │   │   └── digest v0.11.3
+│   │       │   │       ├── block-buffer v0.12.1
+│   │       │   │       │   └── hybrid-array v0.4.15
+│   │       │   │       │       └── typenum v1.20.1
+│   │       │   │       ├── const-oid v0.10.2
+│   │       │   │       ├── crypto-common v0.2.2
+│   │       │   │       │   └── hybrid-array v0.4.15 (*)
+│   │       │   │       └── ctutils v0.4.7
+│   │       │   │           └── cmov v0.5.4
+│   │       │   ├── md-5 v0.11.0
+│   │       │   │   ├── cfg-if v1.0.5
+│   │       │   │   └── digest v0.11.3 (*)
+│   │       │   ├── memchr v2.8.3
+│   │       │   ├── rand v0.10.3
+│   │       │   │   ├── chacha20 v0.10.2
+│   │       │   │   │   ├── cfg-if v1.0.5
+│   │       │   │   │   ├── cpufeatures v0.3.1
+│   │       │   │   │   └── rand_core v0.10.1
+│   │       │   │   ├── getrandom v0.4.3
+│   │       │   │   │   ├── cfg-if v1.0.5
+│   │       │   │   │   ├── libc v0.2.191
+│   │       │   │   │   └── rand_core v0.10.1
+│   │       │   │   └── rand_core v0.10.1
+│   │       │   ├── sha2 v0.11.1
+│   │       │   │   ├── cfg-if v1.0.5
+│   │       │   │   ├── cpufeatures v0.3.1
+│   │       │   │   └── digest v0.11.3 (*)
+│   │       │   └── stringprep v0.1.5
+│   │       │       ├── unicode-bidi v0.3.18
+│   │       │       ├── unicode-normalization v0.1.26
+│   │       │       │   └── tinyvec v1.13.3
+│   │       │       └── unicode-properties v0.1.4
+│   │       ├── postgres-types v0.2.14
+│   │       │   ├── bytes v1.12.1
+│   │       │   ├── fallible-iterator v0.2.0
+│   │       │   ├── postgres-protocol v0.6.12 (*)
+│   │       │   ├── serde_core v1.0.229
+│   │       │   └── serde_json v1.0.154 (*)
+│   │       ├── rand v0.10.3 (*)
+│   │       ├── socket2 v0.6.5 (*)
+│   │       ├── tokio v1.54.1 (*)
+│   │       ├── tokio-util v0.7.20
+│   │       │   ├── bytes v1.12.1
+│   │       │   ├── futures-core v0.3.34
+│   │       │   ├── futures-sink v0.3.34
+│   │       │   ├── libc v0.2.191
+│   │       │   ├── pin-project-lite v0.2.17
+│   │       │   └── tokio v1.54.1 (*)
+│   │       └── whoami v2.1.3
+│   │           └── libc v0.2.191
+│   ├── serde v1.0.229 (*)
+│   ├── serde_json v1.0.154 (*)
+│   ├── sha2 v0.10.9 (*)
+│   └── zeroize v1.9.1
+├── aq-playbooks-runner v0.1.2 (/tmp/aq14-host-standalone/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-runner) (*)
+├── hex v0.4.3
+├── nix v0.29.0
+│   ├── bitflags v2.13.2
+│   ├── cfg-if v1.0.5
+│   └── libc v0.2.191
+│   [build-dependencies]
+│   └── cfg_aliases v0.2.2
+├── postgres v0.19.14 (*)
+├── serde v1.0.229 (*)
+├── serde_json v1.0.154 (*)
+├── thiserror v2.0.21 (*)
+├── tokio v1.54.1 (*)
+├── uuid v1.29.0
+│   ├── getrandom v0.4.3 (*)
+│   └── serde_core v1.0.229
+└── zeroize v1.9.1
+[dev-dependencies]
+└── tempfile v3.27.0
+    ├── fastrand v2.5.0
+    ├── getrandom v0.4.3 (*)
+    ├── once_cell v1.21.4
+    └── rustix v1.1.6
+        ├── bitflags v2.13.2
+        └── linux-raw-sys v0.12.1

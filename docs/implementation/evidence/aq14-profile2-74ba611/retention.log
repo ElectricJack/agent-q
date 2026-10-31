@@ -1,0 +1,10 @@
+   Compiling aq-server v0.1.0 (/tmp/aq14-decisions/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 46.40s
+     Running unittests src/lib.rs (target/debug/deps/aq_server-8d1808697b4905a2)
+
+running 2 tests
+test source_retention::result_retention::tests::current_result_inspection_requires_exact_active_handle_and_single_source_ref ... ok
+test source_retention::result_retention::tests::observed_confirmation_digest_changes_for_exact_manifest_receipt_and_ack_bytes ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 52 filtered out; finished in 0.00s
+
