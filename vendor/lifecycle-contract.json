@@ -1,0 +1,80 @@
+{
+  "source_repository": "aq-worker",
+  "source_revision": "88c11d273bc710c9d55a1322cf05735ef4ad982c",
+  "package": "aq-lifecycle-protocol",
+  "version": "0.1.0",
+  "archive": "aq-lifecycle-protocol-0.1.0.crate",
+  "archive_sha256": "945b03a99701035eb7cf6679bd9baa9ad2b50a7cb6329b9ca8de2cf8bd58b92b",
+  "session_dependency": {
+    "package": "aq-session-protocol",
+    "version": "=0.1.0",
+    "archive_sha256": "479778d8ea76f0605b9a20460e0bd3fda73b699337b1e80783ada0d291a68090"
+  },
+  "files": [
+    {
+      "path": ".cargo_vcs_info.json",
+      "sha256": "af742eb98b4de51a0797d31b4a43c15fe89d6ae1416facef926dd384a8db8558",
+      "bytes": 122
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "7476ccd5b81b48e9ae52395da1fbddaefac0c00cb8b70de9f37a3edec5884ea4",
+      "bytes": 1220
+    },
+    {
+      "path": "Cargo.toml.orig",
+      "sha256": "733af4db7414ea65a158bd2e412b0dd708b6c3518c243149f11fe05155834d4e",
+      "bytes": 437
+    },
+    {
+      "path": "README.md",
+      "sha256": "af7f0b2a14f3bf291afdf3ade6432ec84f80a1a136141b6a99c922fcbf4943f7",
+      "bytes": 6405
+    },
+    {
+      "path": "artifacts/contract.schema.json",
+      "sha256": "d58fb4d8d273cbe70a43c3eb6ed6d4db89e6bad29b67f64d8b7fb78bc40a64ac",
+      "bytes": 43473
+    },
+    {
+      "path": "artifacts/fixtures.json",
+      "sha256": "89e9cca5547146c6cb109295274332a769309353f84369c4605dc9eab6be9dbd",
+      "bytes": 51997
+    },
+    {
+      "path": "artifacts/receipt.schema.json",
+      "sha256": "7efa25731b58f199cb75484aa888dbd6bef554f71d721d5be6a2707f05b2d3a5",
+      "bytes": 1195
+    },
+    {
+      "path": "examples/export.rs",
+      "sha256": "968f98d2ca0538b04eb8a8f2a0891121a05ac2569ac89cf1e98ac1f955d68034",
+      "bytes": 12868
+    },
+    {
+      "path": "src/continuation.rs",
+      "sha256": "fc684fd801d58d3c19579d5644f8ae6af1c151586a11fa8a19b200b01c5c6364",
+      "bytes": 12997
+    },
+    {
+      "path": "src/lib.rs",
+      "sha256": "4fdb4defeb8627e2e72f7ec344e783acfcfba7a1643f844ac97429efa46bc551",
+      "bytes": 13660
+    },
+    {
+      "path": "src/observation.rs",
+      "sha256": "79bfd104779f83d5fc803232e424aea0e8554b51d24c9cc8c24d058c616d63e6",
+      "bytes": 12009
+    },
+    {
+      "path": "src/peer.rs",
+      "sha256": "b33a555c66ef656d1109d7048dd33b05d26135e5d2aa13140bd18fa5dc70b6fe",
+      "bytes": 9081
+    },
+    {
+      "path": "tests/conformance.rs",
+      "sha256": "1597dc08fbb84f577a910cbd88e21c22866b1bc56f355403fa389b9804fa4bc3",
+      "bytes": 14981
+    }
+  ]
+}

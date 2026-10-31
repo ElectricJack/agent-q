@@ -1,0 +1,109 @@
+{
+  "admission_id": "00000000-0000-0000-0000-000000000017",
+  "continuation": {
+    "continuation_id": "00000000-0000-0000-0000-000000000015",
+    "generation": 1,
+    "wait": {
+      "generation": 1,
+      "predicate_digest": "15d75890e091a0f8a1e0006c690b23265aff16b0818be350398ea19cc5b5d866",
+      "wait_id": "00000000-0000-0000-0000-000000000014"
+    }
+  },
+  "fresh_offer_digest": "913fbb51fddd0e8982ffb6932c74a914cbc7e9e6c96c8b67b961e6339e5c61f9",
+  "held_task_message_ids": [
+    "00000000-0000-0000-0000-000000000033"
+  ],
+  "native_resume": null,
+  "outcome": {
+    "digest": "6d94bab78ea783316b3e73fcda65e36206d71853e19b7c1bd099bf0befa91d3b",
+    "outcome_id": "00000000-0000-0000-0000-000000000016",
+    "revision": 1,
+    "wait": {
+      "generation": 1,
+      "predicate_digest": "15d75890e091a0f8a1e0006c690b23265aff16b0818be350398ea19cc5b5d866",
+      "wait_id": "00000000-0000-0000-0000-000000000014"
+    }
+  },
+  "pending_operation_ids": [
+    "00000000-0000-0000-0000-000000000032"
+  ],
+  "predecessor": {
+    "attempt_generation": 4,
+    "attempt_id": "00000000-0000-0000-0000-000000000003",
+    "lineage_id": "00000000-0000-0000-0000-000000000008",
+    "project_id": "00000000-0000-0000-0000-000000000006",
+    "session": {
+      "assignment_generation": 4,
+      "attempt_id": "00000000-0000-0000-0000-000000000003",
+      "boot_id": "00000000-0000-0000-0000-000000000002",
+      "kind": "remote",
+      "node_id": "00000000-0000-0000-0000-000000000001",
+      "session_id": "00000000-0000-0000-0000-000000000005"
+    },
+    "task_id": "00000000-0000-0000-0000-000000000007"
+  },
+  "remaining": {
+    "cost": {
+      "kind": "unknown",
+      "reason": "incomplete"
+    },
+    "ledger_checkpoint": {
+      "digest": "29e069a964a635091f0c9bcfa73ee600bc42a4279bab54e37c311369ed44ff2a",
+      "id": "minimal-accounting-checkpoint",
+      "version": "1"
+    },
+    "lineage_id": "00000000-0000-0000-0000-000000000008",
+    "policy": {
+      "digest": "6da1ce44a5e2c58767875eb3846246f184cc55feea0c2c5dea0b851b00a49f2d",
+      "id": "lineage-budget-policy",
+      "version": "1"
+    },
+    "remaining_elapsed_ms": 60000,
+    "remaining_failure_retries": 2
+  },
+  "retained": [
+    {
+      "artifact": {
+        "digest": "34a36fe4e85bce3ee3d0df787228ffb4d6acffe075a91dae58c8ae35c6667f4d",
+        "id": "source-snapshot",
+        "version": "1"
+      },
+      "binding_digest": "2e91e4389927d272847ef83a5a5a05ab7ec0b8e969451d46aaf351a2f42b5374",
+      "bytes": 128,
+      "owner": "central-retention-owner",
+      "receipt_id": "00000000-0000-0000-0000-000000000028",
+      "retained_at_ms": 1500,
+      "retained_until_ms": 1000000,
+      "role": "source"
+    },
+    {
+      "artifact": {
+        "digest": "3821cdfe3b8c9e72ac40479d0943fb9c0c08e6df1e386722eff5d9f0a7877d7a",
+        "id": "checkpoint-artifact",
+        "version": "1"
+      },
+      "binding_digest": "2e91e4389927d272847ef83a5a5a05ab7ec0b8e969451d46aaf351a2f42b5374",
+      "bytes": 128,
+      "owner": "central-retention-owner",
+      "receipt_id": "00000000-0000-0000-0000-000000000029",
+      "retained_at_ms": 1500,
+      "retained_until_ms": 1000000,
+      "role": "checkpoint"
+    }
+  ],
+  "successor": {
+    "attempt_generation": 5,
+    "attempt_id": "00000000-0000-0000-0000-00000000000b",
+    "lineage_id": "00000000-0000-0000-0000-000000000008",
+    "project_id": "00000000-0000-0000-0000-000000000006",
+    "session": {
+      "assignment_generation": 5,
+      "attempt_id": "00000000-0000-0000-0000-00000000000b",
+      "boot_id": "00000000-0000-0000-0000-00000000000a",
+      "kind": "remote",
+      "node_id": "00000000-0000-0000-0000-000000000009",
+      "session_id": "00000000-0000-0000-0000-00000000000c"
+    },
+    "task_id": "00000000-0000-0000-0000-000000000007"
+  }
+}

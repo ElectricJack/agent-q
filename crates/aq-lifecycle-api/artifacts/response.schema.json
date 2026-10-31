@@ -1,0 +1,2207 @@
+{
+  "$defs": {
+    "AccountingCompleteness": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unknown",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "incomplete",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/Text"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "complete_for_policy",
+              "type": "string"
+            },
+            "policy": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "policy"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "id": {
+          "$ref": "#/$defs/Text"
+        },
+        "version": {
+          "$ref": "#/$defs/Text"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "digest"
+      ],
+      "type": "object"
+    },
+    "AuthorityView": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unknown",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expires_at_ms": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "current_reported",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "expires_at_ms"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "expired",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "revoked",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Binding": {
+      "additionalProperties": false,
+      "properties": {
+        "attempt_generation": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "attempt_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "lineage_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "project_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "session": {
+          "$ref": "#/$defs/SessionIdentity"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "project_id",
+        "task_id",
+        "lineage_id",
+        "attempt_id",
+        "attempt_generation",
+        "session"
+      ],
+      "type": "object"
+    },
+    "Condition": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "task",
+              "type": "string"
+            },
+            "requirement": {
+              "$ref": "#/$defs/TaskRequirement"
+            },
+            "revision": {
+              "$ref": "#/$defs/Text",
+              "minimum": 1
+            },
+            "task_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "task_id",
+            "revision",
+            "requirement"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "depends_on_task_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "edge_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "edge_revision": {
+              "$ref": "#/$defs/Text"
+            },
+            "from_task_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "const": "dependency",
+              "type": "string"
+            },
+            "requirement": {
+              "$ref": "#/$defs/TaskRequirement"
+            }
+          },
+          "required": [
+            "kind",
+            "edge_id",
+            "edge_revision",
+            "from_task_id",
+            "depends_on_task_id",
+            "requirement"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "exclusive_cursor": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "message",
+              "type": "string"
+            },
+            "sender": {
+              "$ref": "#/$defs/SenderConstraint"
+            },
+            "thread_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "thread_id",
+            "exclusive_cursor",
+            "sender"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "decision_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "const": "human_decision",
+              "type": "string"
+            },
+            "question_digest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "subject_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "subject_revision": {
+              "$ref": "#/$defs/Text"
+            }
+          },
+          "required": [
+            "kind",
+            "decision_id",
+            "subject_id",
+            "subject_revision",
+            "question_digest"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "due_at_ms": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "timer",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "due_at_ms"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "operation",
+              "type": "string"
+            },
+            "operation_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "owner": {
+              "$ref": "#/$defs/OperationOwner"
+            },
+            "revision": {
+              "$ref": "#/$defs/Text",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "kind",
+            "owner",
+            "operation_id",
+            "revision"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "playbook_run",
+              "type": "string"
+            },
+            "revision": {
+              "$ref": "#/$defs/Text",
+              "minimum": 1
+            },
+            "run_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "run_id",
+            "revision"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "wait_outcome",
+              "type": "string"
+            },
+            "wait": {
+              "$ref": "#/$defs/WaitRef"
+            }
+          },
+          "required": [
+            "kind",
+            "wait"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "resource",
+              "type": "string"
+            },
+            "resource": {
+              "$ref": "#/$defs/ResourceKind"
+            },
+            "selection_snapshot": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "resource",
+            "selection_snapshot"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ContinuationRef": {
+      "additionalProperties": false,
+      "properties": {
+        "continuation_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "generation": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "wait": {
+          "$ref": "#/$defs/WaitRef"
+        }
+      },
+      "required": [
+        "continuation_id",
+        "generation",
+        "wait"
+      ],
+      "type": "object"
+    },
+    "ContinuationState": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "pending_policy",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "held",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/Text"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "admission_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "const": "wake_admitted",
+              "type": "string"
+            },
+            "offer_digest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "successor": {
+              "$ref": "#/$defs/Binding"
+            }
+          },
+          "required": [
+            "kind",
+            "admission_id",
+            "successor",
+            "offer_digest"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "bootstrap_acknowledged",
+              "type": "string"
+            },
+            "receipt": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "receipt"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "cancelled",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Cost": {
+      "description": "An estimate is explicitly not an invoice. Reported charges still require\nprovenance/owner verification; no wire claim authorizes double-billing.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unknown",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/UnknownReason"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "amount_microunits": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "currency": {
+              "$ref": "#/$defs/Text"
+            },
+            "kind": {
+              "const": "provider_reported",
+              "type": "string"
+            },
+            "receipt": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "amount_microunits",
+            "currency",
+            "receipt"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "allocation_policy": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "amount_microunits": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "basis": {
+              "$ref": "#/$defs/EstimateBasis"
+            },
+            "currency": {
+              "$ref": "#/$defs/Text"
+            },
+            "kind": {
+              "const": "non_invoice_estimate",
+              "type": "string"
+            },
+            "rate_card": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "amount_microunits",
+            "currency",
+            "rate_card",
+            "basis",
+            "allocation_policy"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Counter": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "known",
+              "type": "string"
+            },
+            "value": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "value"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unknown",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/UnknownReason"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Counters": {
+      "additionalProperties": false,
+      "properties": {
+        "cache_read": {
+          "$ref": "#/$defs/Counter"
+        },
+        "cache_write": {
+          "$ref": "#/$defs/Counter"
+        },
+        "input": {
+          "$ref": "#/$defs/Counter"
+        },
+        "output": {
+          "$ref": "#/$defs/Counter"
+        },
+        "reasoning": {
+          "$ref": "#/$defs/Counter"
+        }
+      },
+      "required": [
+        "input",
+        "output",
+        "cache_read",
+        "cache_write",
+        "reasoning"
+      ],
+      "type": "object"
+    },
+    "CycleAssessment": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "no_known_cycle",
+              "type": "string"
+            },
+            "revision": {
+              "$ref": "#/$defs/ArtifactRef",
+              "minimum": 1
+            }
+          },
+          "required": [
+            "kind",
+            "revision"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "external_unknown",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/Text"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "DecisionAnswer": {
+      "enum": [
+        "approve",
+        "reject",
+        "cancel"
+      ],
+      "type": "string"
+    },
+    "DecisionView": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "not_applicable",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "decision_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "const": "pending",
+              "type": "string"
+            },
+            "question_digest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "subject_revision": {
+              "$ref": "#/$defs/Text"
+            }
+          },
+          "required": [
+            "kind",
+            "decision_id",
+            "subject_revision",
+            "question_digest"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "answer": {
+              "$ref": "#/$defs/DecisionAnswer"
+            },
+            "authenticated_receipt": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "decision_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "const": "answered",
+              "type": "string"
+            },
+            "question_digest": {
+              "$ref": "#/$defs/Digest"
+            },
+            "subject_revision": {
+              "$ref": "#/$defs/Text"
+            }
+          },
+          "required": [
+            "kind",
+            "decision_id",
+            "subject_revision",
+            "question_digest",
+            "answer",
+            "authenticated_receipt"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "DeliveryState": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "no_external_route",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "queued",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "dispatching",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "accepted_by_transport",
+              "type": "string"
+            },
+            "receipt": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "receipt"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "delivery_unknown",
+              "type": "string"
+            },
+            "since_ms": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "since_ms"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "attempts_remaining": {
+              "format": "uint32",
+              "maximum": 4294967295,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "retry_scheduled",
+              "type": "string"
+            },
+            "next_attempt_ms": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "next_attempt_ms",
+            "attempts_remaining"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "permanently_failed",
+              "type": "string"
+            },
+            "reason": {
+              "$ref": "#/$defs/Text"
+            }
+          },
+          "required": [
+            "kind",
+            "reason"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "suppressed",
+              "type": "string"
+            },
+            "policy": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "policy"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "DigestWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "occurrence_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "schedule_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "timezone": {
+          "$ref": "#/$defs/Text"
+        },
+        "window_end_ms": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "window_start_ms": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "winning_logical_revision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MessageRevision"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "occurrence_id",
+        "schedule_id",
+        "window_start_ms",
+        "window_end_ms",
+        "timezone"
+      ],
+      "type": "object"
+    },
+    "Effect": {
+      "enum": [
+        "not_applied",
+        "unknown"
+      ],
+      "type": "string"
+    },
+    "EstimateBasis": {
+      "enum": [
+        "token_rates",
+        "subscription_allocation",
+        "local_model_allocation"
+      ],
+      "type": "string"
+    },
+    "EventRef": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "event_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "digest"
+      ],
+      "type": "object"
+    },
+    "HumanAcknowledgment": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "unacknowledged",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "authenticated_actor": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "kind": {
+              "const": "acknowledged",
+              "type": "string"
+            },
+            "receipt": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "revision": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 1,
+              "type": "integer"
+            }
+          },
+          "required": [
+            "kind",
+            "authenticated_actor",
+            "receipt",
+            "revision"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "InspectionItem": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/SessionView"
+            },
+            "kind": {
+              "const": "session",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "body"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/WaitView"
+            },
+            "kind": {
+              "const": "wait",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "body"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/NotificationView"
+            },
+            "kind": {
+              "const": "notification",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "body"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "InspectionPage": {
+      "additionalProperties": false,
+      "properties": {
+        "complete_for_authorized_scope": {
+          "type": "boolean"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/InspectionItem"
+          },
+          "maxItems": 64,
+          "type": "array"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Text"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/Text"
+          },
+          "maxItems": 32,
+          "type": "array"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        }
+      },
+      "required": [
+        "scope",
+        "items",
+        "complete_for_authorized_scope",
+        "reasons"
+      ],
+      "type": "object"
+    },
+    "Member": {
+      "additionalProperties": false,
+      "properties": {
+        "condition": {
+          "$ref": "#/$defs/Condition"
+        },
+        "member_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "member_id",
+        "condition"
+      ],
+      "type": "object"
+    },
+    "MemberOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SourceEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "member_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/MemberState"
+        }
+      },
+      "required": [
+        "member_id",
+        "state"
+      ],
+      "type": "object"
+    },
+    "MemberState": {
+      "enum": [
+        "pending",
+        "satisfied",
+        "source_failed",
+        "source_unavailable"
+      ],
+      "type": "string"
+    },
+    "MessageRevision": {
+      "additionalProperties": false,
+      "properties": {
+        "message_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "revision": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "message_id",
+        "revision"
+      ],
+      "type": "object"
+    },
+    "NotificationView": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "$ref": "#/$defs/DecisionView"
+        },
+        "delivery": {
+          "$ref": "#/$defs/DeliveryState"
+        },
+        "digest_window": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DigestWindow"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "human_acknowledgment": {
+          "$ref": "#/$defs/HumanAcknowledgment"
+        },
+        "message": {
+          "$ref": "#/$defs/MessageRevision"
+        },
+        "route_revision": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        }
+      },
+      "required": [
+        "scope",
+        "message",
+        "delivery",
+        "human_acknowledgment",
+        "decision"
+      ],
+      "type": "object"
+    },
+    "OperationOwner": {
+      "enum": [
+        "graph_delivery",
+        "source_retention",
+        "assessment"
+      ],
+      "type": "string"
+    },
+    "OutcomeRef": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "outcome_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "revision": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "wait": {
+          "$ref": "#/$defs/WaitRef"
+        }
+      },
+      "required": [
+        "outcome_id",
+        "wait",
+        "revision",
+        "digest"
+      ],
+      "type": "object"
+    },
+    "Predicate": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "single",
+              "type": "string"
+            },
+            "member": {
+              "$ref": "#/$defs/Member"
+            }
+          },
+          "required": [
+            "kind",
+            "member"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "all",
+              "type": "string"
+            },
+            "members": {
+              "items": {
+                "$ref": "#/$defs/Member"
+              },
+              "maxItems": 32,
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "members"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "any",
+              "type": "string"
+            },
+            "members": {
+              "items": {
+                "$ref": "#/$defs/Member"
+              },
+              "maxItems": 32,
+              "type": "array"
+            }
+          },
+          "required": [
+            "kind",
+            "members"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "ProcessObservation": {
+      "enum": [
+        "unknown",
+        "reported_running",
+        "reported_stopped"
+      ],
+      "type": "string"
+    },
+    "RefusalCode": {
+      "enum": [
+        "invalid_request",
+        "unsupported_capability",
+        "scope_denied",
+        "self_wait",
+        "known_cycle",
+        "changed_payload",
+        "stale_generation",
+        "source_unavailable",
+        "overloaded"
+      ],
+      "type": "string"
+    },
+    "RegisteredWait": {
+      "additionalProperties": false,
+      "properties": {
+        "binding": {
+          "$ref": "#/$defs/Binding"
+        },
+        "boundaries": {
+          "items": {
+            "$ref": "#/$defs/SourceBoundary"
+          },
+          "maxItems": 32,
+          "type": "array"
+        },
+        "central_hold_receipt": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "continuation": {
+          "$ref": "#/$defs/ContinuationRef"
+        },
+        "cycle_assessment": {
+          "$ref": "#/$defs/CycleAssessment"
+        },
+        "execution": {
+          "$ref": "#/$defs/WaitExecutionState"
+        },
+        "original_created_at_ms": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "predicate": {
+          "$ref": "#/$defs/Predicate"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "wait": {
+          "$ref": "#/$defs/WaitRef"
+        }
+      },
+      "required": [
+        "scope",
+        "binding",
+        "wait",
+        "predicate",
+        "continuation",
+        "original_created_at_ms",
+        "central_hold_receipt",
+        "boundaries",
+        "cycle_assessment",
+        "execution"
+      ],
+      "type": "object"
+    },
+    "ResourceKind": {
+      "enum": [
+        "provider_availability",
+        "workspace_capacity",
+        "worker_slots"
+      ],
+      "type": "string"
+    },
+    "ResponseBody": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/RegisteredWait"
+            },
+            "kind": {
+              "const": "wait_registered",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "body"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/WaitOutcome"
+            },
+            "kind": {
+              "const": "wait_outcome",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "body"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "additionalProperties": false,
+              "properties": {
+                "claim_digest": {
+                  "$ref": "#/$defs/Digest"
+                },
+                "continuation": {
+                  "$ref": "#/$defs/ContinuationRef"
+                }
+              },
+              "required": [
+                "continuation",
+                "claim_digest"
+              ],
+              "type": "object"
+            },
+            "kind": {
+              "const": "checkpoint_recorded",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "body"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "additionalProperties": false,
+              "properties": {
+                "acknowledgment_receipt": {
+                  "$ref": "#/$defs/ArtifactRef"
+                },
+                "admission_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "continuation": {
+                  "$ref": "#/$defs/ContinuationRef"
+                }
+              },
+              "required": [
+                "admission_id",
+                "continuation",
+                "acknowledgment_receipt"
+              ],
+              "type": "object"
+            },
+            "kind": {
+              "const": "continuation_acknowledged",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "body"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "$ref": "#/$defs/InspectionPage"
+            },
+            "kind": {
+              "const": "inspection",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "body"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "additionalProperties": false,
+              "properties": {
+                "receipt": {
+                  "$ref": "#/$defs/ArtifactRef"
+                }
+              },
+              "required": [
+                "receipt"
+              ],
+              "type": "object"
+            },
+            "kind": {
+              "const": "operator_requested",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "body"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "body": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "$ref": "#/$defs/RefusalCode"
+                },
+                "effect": {
+                  "$ref": "#/$defs/Effect"
+                }
+              },
+              "required": [
+                "code",
+                "effect"
+              ],
+              "type": "object"
+            },
+            "kind": {
+              "const": "refused",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "body"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Scope": {
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "workspace_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "project_id",
+        "workspace_id"
+      ],
+      "type": "object"
+    },
+    "SenderConstraint": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "any_authorized",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "task",
+              "type": "string"
+            },
+            "task_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "task_id"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "binding": {
+              "$ref": "#/$defs/Binding"
+            },
+            "kind": {
+              "const": "session",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "binding"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "SessionIdentity": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "assignment_generation": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "attempt_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "boot_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "const": "remote",
+              "type": "string"
+            },
+            "node_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "session_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "node_id",
+            "boot_id",
+            "attempt_id",
+            "assignment_generation",
+            "session_id"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "authority_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "generation": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 1,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "central",
+              "type": "string"
+            },
+            "session_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "authority_id",
+            "session_id",
+            "generation"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "SessionView": {
+      "additionalProperties": false,
+      "properties": {
+        "active_wait": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WaitRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "authority": {
+          "$ref": "#/$defs/AuthorityView"
+        },
+        "binding": {
+          "$ref": "#/$defs/Binding"
+        },
+        "last_observation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EventRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observed_at_ms": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "pending_operation_ids": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "maxItems": 32,
+          "type": "array"
+        },
+        "process": {
+          "$ref": "#/$defs/ProcessObservation"
+        },
+        "usage": {
+          "$ref": "#/$defs/UsageView"
+        }
+      },
+      "required": [
+        "binding",
+        "authority",
+        "process",
+        "usage",
+        "pending_operation_ids"
+      ],
+      "type": "object"
+    },
+    "SourceBoundary": {
+      "additionalProperties": false,
+      "properties": {
+        "committed_replay_cursor": {
+          "$ref": "#/$defs/Text"
+        },
+        "committed_revision": {
+          "$ref": "#/$defs/Text"
+        },
+        "condition_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "member_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "owner": {
+          "$ref": "#/$defs/SourceOwner"
+        },
+        "snapshot_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "subscription_receipt": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      },
+      "required": [
+        "member_id",
+        "owner",
+        "condition_digest",
+        "committed_revision",
+        "committed_replay_cursor",
+        "subscription_receipt",
+        "snapshot_digest"
+      ],
+      "type": "object"
+    },
+    "SourceEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "condition_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "owner": {
+          "$ref": "#/$defs/SourceOwner"
+        },
+        "result": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "revision": {
+          "$ref": "#/$defs/Text",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "owner",
+        "condition_digest",
+        "revision",
+        "result"
+      ],
+      "type": "object"
+    },
+    "SourceOwner": {
+      "enum": [
+        "task_graph",
+        "mailbox",
+        "human_decision",
+        "clock",
+        "operation",
+        "playbook",
+        "wait_registry",
+        "scheduler"
+      ],
+      "type": "string"
+    },
+    "TaskRequirement": {
+      "enum": [
+        "successful",
+        "settled"
+      ],
+      "type": "string"
+    },
+    "Text": {
+      "description": "Nonempty UTF-8 text, at most 512 bytes; no control characters.",
+      "maxLength": 512,
+      "minLength": 1,
+      "type": "string"
+    },
+    "UnknownReason": {
+      "enum": [
+        "not_reported",
+        "unsupported",
+        "source_gap",
+        "not_applicable",
+        "incomplete"
+      ],
+      "type": "string"
+    },
+    "UsageView": {
+      "additionalProperties": false,
+      "properties": {
+        "completeness": {
+          "$ref": "#/$defs/AccountingCompleteness"
+        },
+        "costs": {
+          "items": {
+            "$ref": "#/$defs/Cost"
+          },
+          "type": "array"
+        },
+        "counter_generation": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "counters": {
+          "$ref": "#/$defs/Counters"
+        },
+        "ledger_revision": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      },
+      "required": [
+        "ledger_revision",
+        "counters",
+        "costs",
+        "completeness"
+      ],
+      "type": "object"
+    },
+    "WaitExecutionState": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "policy_pending",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "expires_at_ms": {
+              "format": "uint64",
+              "maximum": 18446744073709551615,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "warm_bounded",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "expires_at_ms"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "suspension_requested",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "parked_reported",
+              "type": "string"
+            },
+            "receipt": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "receipt"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "WaitOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/WaitOutcomeKind"
+        },
+        "members": {
+          "items": {
+            "$ref": "#/$defs/MemberOutcome"
+          },
+          "maxItems": 32,
+          "type": "array"
+        },
+        "outcome": {
+          "$ref": "#/$defs/OutcomeRef"
+        },
+        "recorded_at_ms": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "selected_member_id": {
+          "format": "uuid",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unresolved_predicate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Digest"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "outcome",
+        "kind",
+        "members",
+        "recorded_at_ms"
+      ],
+      "type": "object"
+    },
+    "WaitOutcomeKind": {
+      "enum": [
+        "satisfied",
+        "source_failed",
+        "cancelled",
+        "deadline_reached",
+        "source_unavailable",
+        "manual_override"
+      ],
+      "type": "string"
+    },
+    "WaitRef": {
+      "additionalProperties": false,
+      "properties": {
+        "generation": {
+          "format": "uint64",
+          "maximum": 18446744073709551615,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "predicate_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "wait_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "wait_id",
+        "generation",
+        "predicate_digest"
+      ],
+      "type": "object"
+    },
+    "WaitView": {
+      "additionalProperties": false,
+      "properties": {
+        "continuation": {
+          "$ref": "#/$defs/ContinuationState"
+        },
+        "outcome": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WaitOutcome"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "parking_report": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "registration": {
+          "$ref": "#/$defs/RegisteredWait"
+        }
+      },
+      "required": [
+        "registration",
+        "continuation"
+      ],
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "api_version": {
+      "const": 1,
+      "format": "uint32",
+      "maximum": 4294967295,
+      "minimum": 0,
+      "type": "integer"
+    },
+    "body": {
+      "$ref": "#/$defs/ResponseBody"
+    },
+    "operation_id": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "request_digest": {
+      "$ref": "#/$defs/Digest"
+    }
+  },
+  "required": [
+    "api_version",
+    "operation_id",
+    "request_digest",
+    "body"
+  ],
+  "title": "Response",
+  "type": "object",
+  "x-max-wire-bytes": 262144
+}

@@ -1,0 +1,173 @@
+{
+  "register_any_wait": {
+    "body": {
+      "api_version": 1,
+      "command": {
+        "body": {
+          "binding": {
+            "attempt_generation": 1,
+            "attempt_id": "00000000-0000-0000-0000-000000000004",
+            "lineage_id": "00000000-0000-0000-0000-000000000003",
+            "project_id": "00000000-0000-0000-0000-000000000001",
+            "session": {
+              "assignment_generation": 1,
+              "attempt_id": "00000000-0000-0000-0000-000000000004",
+              "boot_id": "00000000-0000-0000-0000-000000000006",
+              "kind": "remote",
+              "node_id": "00000000-0000-0000-0000-000000000005",
+              "session_id": "00000000-0000-0000-0000-000000000007"
+            },
+            "task_id": "00000000-0000-0000-0000-000000000002"
+          },
+          "continuation_generation": 1,
+          "policy": {
+            "digest": "dceab0e3e83864db9822c60092e5d2ee2f78adcebfec61cbb30542ef72df52e2",
+            "id": "wait-policy",
+            "version": "1"
+          },
+          "predicate": {
+            "kind": "any",
+            "members": [
+              {
+                "condition": {
+                  "due_at_ms": 100,
+                  "kind": "timer"
+                },
+                "member_id": "00000000-0000-0000-0000-000000000014"
+              },
+              {
+                "condition": {
+                  "kind": "task",
+                  "requirement": "settled",
+                  "revision": "1",
+                  "task_id": "00000000-0000-0000-0000-000000000016"
+                },
+                "member_id": "00000000-0000-0000-0000-000000000015"
+              }
+            ]
+          },
+          "predicate_digest": "e263e0f98429221849cbd9eca810bb6954f4d20560b9aa4f08a83094e0d7ffba",
+          "preference": "economical",
+          "scope": {
+            "project_id": "00000000-0000-0000-0000-000000000001",
+            "workspace_id": "00000000-0000-0000-0000-000000000008"
+          },
+          "wait_generation": 1,
+          "wait_id": "00000000-0000-0000-0000-000000000009"
+        },
+        "kind": "register_wait"
+      },
+      "operation_id": "00000000-0000-0000-0000-00000000001e",
+      "required_capability": {
+        "id": "aq.lifecycle-api.wait",
+        "version": 1
+      }
+    },
+    "body_digest": "67a4c3336431461da6157068e45ddcfe9c61891858db9ed3b3f02c5934bfbc92"
+  },
+  "registered_policy_pending": {
+    "api_version": 1,
+    "body": {
+      "body": {
+        "binding": {
+          "attempt_generation": 1,
+          "attempt_id": "00000000-0000-0000-0000-000000000004",
+          "lineage_id": "00000000-0000-0000-0000-000000000003",
+          "project_id": "00000000-0000-0000-0000-000000000001",
+          "session": {
+            "assignment_generation": 1,
+            "attempt_id": "00000000-0000-0000-0000-000000000004",
+            "boot_id": "00000000-0000-0000-0000-000000000006",
+            "kind": "remote",
+            "node_id": "00000000-0000-0000-0000-000000000005",
+            "session_id": "00000000-0000-0000-0000-000000000007"
+          },
+          "task_id": "00000000-0000-0000-0000-000000000002"
+        },
+        "boundaries": [
+          {
+            "committed_replay_cursor": "fixture-committed-replay-boundary",
+            "committed_revision": "fixture-committed-revision",
+            "condition_digest": "dcb83af6c19475d05b0bbc4313972ad77f6d1eb82b0d57f066c2c7750482314d",
+            "member_id": "00000000-0000-0000-0000-000000000014",
+            "owner": "clock",
+            "snapshot_digest": "6d9515e7528218ce6edb8240f8a1e3b51afae9c9c28058dd907b8dfb83371c96",
+            "subscription_receipt": {
+              "digest": "7f1f1e92df23b4ee7b63d769f63f348e07903ec375e1bd686bb51f896df9fc21",
+              "id": "fake-subscription-not-runtime-proof",
+              "version": "1"
+            }
+          },
+          {
+            "committed_replay_cursor": "fixture-committed-replay-boundary",
+            "committed_revision": "fixture-committed-revision",
+            "condition_digest": "22f6393b3cf906a2b8a4084cf2346a67b9bc55fea2f6a43d8e812c9d9c5a3c22",
+            "member_id": "00000000-0000-0000-0000-000000000015",
+            "owner": "task_graph",
+            "snapshot_digest": "6d9515e7528218ce6edb8240f8a1e3b51afae9c9c28058dd907b8dfb83371c96",
+            "subscription_receipt": {
+              "digest": "7f1f1e92df23b4ee7b63d769f63f348e07903ec375e1bd686bb51f896df9fc21",
+              "id": "fake-subscription-not-runtime-proof",
+              "version": "1"
+            }
+          }
+        ],
+        "central_hold_receipt": {
+          "digest": "0272307ab4baf46045fa95c82d56e6ad61f4695238ba5e50c862f260d8128a64",
+          "id": "fake-central-hold-only",
+          "version": "1"
+        },
+        "continuation": {
+          "continuation_id": "00000000-0000-0000-0000-00000000001e",
+          "generation": 1,
+          "wait": {
+            "generation": 1,
+            "predicate_digest": "e263e0f98429221849cbd9eca810bb6954f4d20560b9aa4f08a83094e0d7ffba",
+            "wait_id": "00000000-0000-0000-0000-000000000009"
+          }
+        },
+        "cycle_assessment": {
+          "kind": "external_unknown",
+          "reason": "runtime graph/source cycle verification remains required"
+        },
+        "execution": {
+          "kind": "policy_pending"
+        },
+        "original_created_at_ms": 10,
+        "predicate": {
+          "kind": "any",
+          "members": [
+            {
+              "condition": {
+                "due_at_ms": 100,
+                "kind": "timer"
+              },
+              "member_id": "00000000-0000-0000-0000-000000000014"
+            },
+            {
+              "condition": {
+                "kind": "task",
+                "requirement": "settled",
+                "revision": "1",
+                "task_id": "00000000-0000-0000-0000-000000000016"
+              },
+              "member_id": "00000000-0000-0000-0000-000000000015"
+            }
+          ]
+        },
+        "scope": {
+          "project_id": "00000000-0000-0000-0000-000000000001",
+          "workspace_id": "00000000-0000-0000-0000-000000000008"
+        },
+        "wait": {
+          "generation": 1,
+          "predicate_digest": "e263e0f98429221849cbd9eca810bb6954f4d20560b9aa4f08a83094e0d7ffba",
+          "wait_id": "00000000-0000-0000-0000-000000000009"
+        }
+      },
+      "kind": "wait_registered"
+    },
+    "operation_id": "00000000-0000-0000-0000-00000000001e",
+    "request_digest": "67a4c3336431461da6157068e45ddcfe9c61891858db9ed3b3f02c5934bfbc92"
+  }
+}
