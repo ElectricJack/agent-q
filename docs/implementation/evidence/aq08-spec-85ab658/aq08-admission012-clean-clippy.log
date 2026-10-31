@@ -1,0 +1,4 @@
+    Checking aq-session-protocol v0.1.0 (/tmp/aq08-spec-clean-85ab658/vendor/aq-session-protocol-0.1.0)
+    Checking aq-lifecycle-protocol v0.1.0 (/tmp/aq08-spec-clean-85ab658/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking aq-admission v0.1.2 (/tmp/aq08-spec-clean-85ab658/crates/aq-admission)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.71s

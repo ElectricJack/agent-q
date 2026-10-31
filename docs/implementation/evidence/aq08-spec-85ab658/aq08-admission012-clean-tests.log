@@ -1,0 +1,79 @@
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq08-spec-clean-85ab658/vendor/aq-session-protocol-0.1.0)
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/aq08-spec-clean-85ab658/vendor/aq-lifecycle-protocol-0.1.0)
+   Compiling aq-admission v0.1.2 (/tmp/aq08-spec-clean-85ab658/crates/aq-admission)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.71s
+     Running unittests src/lib.rs (/home/jkern/dev/agent-q/target/debug/deps/aq_admission-be387f32222cfc34)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/common.rs (/home/jkern/dev/agent-q/target/debug/deps/common-cc879735d88cb0d4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contracts.rs (/home/jkern/dev/agent-q/target/debug/deps/contracts-82c54d336a5f93c0)
+
+running 7 tests
+test material_bytes_and_receipts_are_exact_attempt_binding_not_presence_claims ... ok
+test source_requires_explicit_safe_ref_or_matching_immutable_object_and_freshness ... ok
+test artifact_requires_real_matching_bytes_and_current_retention_metadata ... ok
+test shipped_shared_offer_uses_exact_existing_launch_binding_bridge ... ok
+test mutations_reject_unknown_duplicate_nil_unbounded_and_wrong_versions ... ok
+test retained_role_and_byte_coverage_validates_against_resealed_public_offer ... ok
+test published_schema_and_fixtures_drift_test_packaged_artifacts ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/execution_spec.rs (/home/jkern/dev/agent-q/target/debug/deps/execution_spec-1b8406e7d3884ccd)
+
+running 3 tests
+test publication_is_independent_and_decode_rejects_caller_secret_unknown_duplicate_fields ... ok
+test typed_worker_artifact_is_digest_bound_without_a_manifest_cycle ... ok
+test spec_observation_context_and_canonical_bytes_must_all_be_retained ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/placement.rs (/home/jkern/dev/agent-q/target/debug/deps/placement-e622ff4741ba128a)
+
+running 5 tests
+test bounded_project_round_robin_preserves_priority_then_advances_cursor ... ok
+test oversized_head_does_not_hide_later_fit_and_resources_are_reserved_in_proposal ... ok
+test stable_ties_and_snapshot_bounds_are_explicit ... ok
+test stale_boot_capacity_candidate_and_duplicate_subjects_never_become_authority ... ok
+test warmth_is_only_after_eligibility_and_cold_nodes_can_prepare ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/spec_common.rs (/home/jkern/dev/agent-q/target/debug/deps/spec_common-8b2156202636ba3f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/task_lineage.rs (/home/jkern/dev/agent-q/target/debug/deps/task_lineage-85e1f2336e7f5435)
+
+running 2 tests
+test independent_python_raw_uuid_vectors_are_stable ... ok
+test namespace_cannot_be_reset_by_attempt_and_nil_scope_refuses ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/transport.rs (/home/jkern/dev/agent-q/target/debug/deps/transport-3a9578b82ff93963)
+
+running 4 tests
+test roundtrip_budget_is_charged_and_replay_cannot_restart_ttl ... ok
+test stop_journal_requires_durable_closed_reservation_and_unknown_never_releases ... ok
+test exact_stop_replay_is_immutable_and_journal_order_is_launch_scoped ... ok
+test published_transport_replays_and_mutations_reject_duplicate_unknown_and_scope ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests aq_admission
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,48 @@
+{
+  "source_revision": "85ab658b3885098d03a3fbcd9a70cf4e3bd75b1b",
+  "source_hash_method": "SHA256 of exact git show SOURCE:path, never live bytes",
+  "source_sha256": {
+    "Cargo.lock": "9ff82bf33b47c11d7eaa86ff812c7839947dfb0409f4df4f360f3ee5cee4577f",
+    "crates/aq-admission/Cargo.toml": "9114640570ece859e07d6f480966531174056512c06a6c5b5a972302b9561062",
+    "crates/aq-admission/README.md": "316d9e0f150cfe52b74187348003f5ddb0506f5e7f5bc9385fdbb33d05b3fe0d",
+    "crates/aq-admission/artifacts/contract.schema.json": "1a5637238c16ec1345f40232a732ae391143d518a320f6823da94241c9c6f988",
+    "crates/aq-admission/artifacts/execution-spec.fixture.json": "3f5509eec96f33ca0023016f3c633a2d340f245c8454a0c0f4d9e88295bbfc8d",
+    "crates/aq-admission/artifacts/execution-spec.schema.json": "865634d68302bb70c024152c1db47b34563216feb7645e579d4ed76dd1383f47",
+    "crates/aq-admission/artifacts/fixtures.json": "53217ced2c2d36e8f03542298212275327b3741eabe848a8fec236464a857a24",
+    "crates/aq-admission/artifacts/transport.fixtures.json": "6d59a63df2b21ee5e836d65e91f009de92cf0fab20aeaa3e433e2a1e6ab297a3",
+    "crates/aq-admission/artifacts/transport.schema.json": "3c160f996a27b2f7ebc21f8015122c932e301bed37377b119392f34195a70d83",
+    "crates/aq-admission/examples/export_spec.rs": "1a35ec214038c7b4f0f293dd42f631ca14a6e7eafd5a8abd58519e3c3033f88d",
+    "crates/aq-admission/src/execution_spec.rs": "b99b12222e4cf6becf3aa914b4295485fec588a504c6f529977cd3c3a4c10c89",
+    "crates/aq-admission/src/lib.rs": "9d57a75ddca1cbe0efe164c29f198505ed9e2ca57a5aec7a2eb99311bed278bb",
+    "crates/aq-admission/tests/execution_spec.rs": "bd76d2a2836cb6834f87577bde444f6a9e6f15d3944d4acac8371e1928bc00ea",
+    "crates/aq-admission/tests/spec_common.rs": "22d13218d21c465609972e6c8badab388555f5a7665b8ea73153d4a71f91bb13",
+    "crates/aq-server/Cargo.toml": "839578fa7fc879ef3ee0832f81f4213343c2028bbf8cb34e2612b1836992a132"
+  },
+  "retained_files_sha256": {
+    "aq08-admission012-clean-package.log": "42e864f23fc8f5e5d85a00a1039ad7d5f466f13b8112ef422c2a2216112d96b4",
+    "aq08-admission012-clean-tests.log": "18b8cf7e5f218229581f1ddf41e76009bffa8b86df7af6b3493be1bd82e06089",
+    "aq-admission-0.1.2.crate": "1772e20f58c541eecf9ca89e6791640333c5ed0f1145f8aa52b9398b97da8311",
+    "aq08-admission012-clean-clippy.log": "e7fb9bdc10279c583f3c0b3c4396ad9a08688529b5a559dd9dcdb1cd2acbb6be",
+    "aq08-admission012-clean-archive-tests.log": "947f8ae908dc3c02258b2f08f3ee8737900c0939a136352708a3f380e90bd421",
+    "aq08-admission012-clean-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "scope": "Pure typed worker artifact only; runtime/hot authority excluded",
+  "tests": {
+    "clean_admission": 21,
+    "standalone_archive": 21
+  },
+  "worktree": "/tmp/aq08-spec-clean-85ab658",
+  "commands": [
+    "CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-admission --locked --offline",
+    "CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo clippy -p aq-admission --all-targets --locked --offline -- -D warnings",
+    "cargo fmt --package aq-admission --check",
+    "cargo package -p aq-admission --no-verify --offline (exact pinned session/lifecycle path patches)",
+    "cargo test --manifest-path /tmp/aq-admission012-clean-archive/aq-admission-0.1.2/Cargo.toml --locked --offline (same pinned package patches)"
+  ],
+  "limitations": [
+    "No real offer, host launch, provider material delivery or physical stop qualification.",
+    "The runtime producer must compare selection_digest against actual sealed selection and retain exact referenced task/source artifacts.",
+    "Synthetic fixture is structural conformance data, not physical retention or provider evidence.",
+    "No database/server/provider needed by standalone artifact; no paid calls."
+  ]
+}
