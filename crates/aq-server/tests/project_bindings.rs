@@ -697,7 +697,7 @@ async fn selection_fixture() -> SelectionFixture {
     use aq_selection::*;
     use aq_server::intelligence::config::{CredentialConfig, IntelligenceConfig};
     let mut env = setup(false).await;
-    let fixture: Value = serde_json::from_str(include_str!("fixtures/selection.json")).unwrap();
+    let fixture: Value = serde_json::from_str(include_str!("fixtures/selection-v2.json")).unwrap();
     let mut input: SelectionInputs = serde_json::from_value(fixture["inputs"].clone()).unwrap();
     let activation=call(&env.app,"/api/profiles/catalogs/activate",Some(json!({"operation_id":Uuid::new_v4(),"expected_revision":1,"artifact_json":fixture["catalog_artifact_json"]})),"owner@localhost").await;
     assert_eq!(activation.0, StatusCode::OK, "{}", activation.1);

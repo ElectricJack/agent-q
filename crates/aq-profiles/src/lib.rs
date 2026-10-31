@@ -2,6 +2,8 @@
 //! No provider selection, authority service, database or process launch.
 mod catalog;
 mod compile;
+mod graph_policy;
+pub use graph_policy::*;
 mod registry;
 mod selection_policy;
 use aq_session_protocol::Digest;

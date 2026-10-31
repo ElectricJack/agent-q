@@ -60,6 +60,80 @@ pub fn fixture() -> (ValidatedCatalog, SelectionInputs) {
         agent.intelligence = "engineering@2".into();
         agent.execution = "confined-development@2".into();
     }
+    // Scope edits publish new immutable module versions, including dependents.
+    let mut changed = std::collections::BTreeSet::new();
+    for module in &definitions.modules {
+        if module.requirements.iter().any(|r| {
+            ["project:example", "repository:example"]
+                .contains(&r.permission.scope_reference.as_str())
+        }) {
+            changed.insert(aq_profiles::key(&module.id, module.version));
+        }
+    }
+    loop {
+        let previous = changed.len();
+        for module in &definitions.modules {
+            if module.dependencies.iter().any(|d| changed.contains(d)) {
+                changed.insert(aq_profiles::key(&module.id, module.version));
+            }
+        }
+        if previous == changed.len() {
+            break;
+        }
+    }
+    let replacements: std::collections::BTreeMap<_, _> = definitions
+        .modules
+        .iter()
+        .filter(|m| changed.contains(&aq_profiles::key(&m.id, m.version)))
+        .map(|m| {
+            (
+                aq_profiles::key(&m.id, m.version),
+                aq_profiles::key(&m.id, m.version + 1),
+            )
+        })
+        .collect();
+    for module in &mut definitions.modules {
+        if changed.contains(&aq_profiles::key(&module.id, module.version)) {
+            module.version += 1;
+        }
+        for dependency in &mut module.dependencies {
+            if let Some(new) = replacements.get(dependency) {
+                *dependency = new.clone();
+            }
+        }
+        for requirement in &mut module.requirements {
+            if requirement.permission.scope_reference == "project:example" {
+                requirement.permission.scope_reference = format!("project:{}", Uuid::from_u128(1));
+            }
+            if requirement.permission.scope_reference == "repository:example" {
+                requirement.permission.scope_reference =
+                    format!("repository:{}", Uuid::from_u128(41));
+            }
+        }
+    }
+    for agent in &mut definitions.agents {
+        for root in agent.behaviors.iter_mut().chain(&mut agent.capabilities) {
+            if let Some(new) = replacements.get(root) {
+                *root = new.clone();
+            }
+        }
+    }
+    for execution in &mut definitions.execution {
+        for permission in &mut execution.permissions {
+            if permission.scope_reference == "project:example" {
+                permission.scope_reference = format!("project:{}", Uuid::from_u128(1));
+            }
+            if permission.scope_reference == "repository:example" {
+                permission.scope_reference = format!("repository:{}", Uuid::from_u128(41));
+            }
+        }
+    }
+    let instructions = old
+        .artifact()
+        .instructions
+        .iter()
+        .map(|(key, text)| (replacements.get(key).unwrap_or(key).clone(), text.clone()))
+        .collect();
     let i = &mut definitions.intelligence[0];
     i.version = 2;
     i.selection_policy = Some(policy());
@@ -82,36 +156,25 @@ pub fn fixture() -> (ValidatedCatalog, SelectionInputs) {
     definitions.execution[0].version = 2;
     definitions.execution[0].credential_profile_references =
         vec!["account-a@1".into(), "account-b@1".into()];
-    let catalog = aq_profiles::validate(definitions, old.artifact().instructions.clone()).unwrap();
+    let catalog = aq_profiles::validate(definitions, instructions).unwrap();
     let permissions = catalog.artifact().catalog.execution[0].permissions.clone();
-    let request = CompileRequest {
-        profile: ProfileRequest {
-            catalog_digest: catalog.digest().into(),
-            agent_profile: "implementer@2".into(),
-            project_binding_id: Uuid::from_u128(1),
-            expected_project_revision: 1,
-            task_context_revision: "task:1".into(),
-        },
-        ceilings: Ceilings {
-            installation: permissions.clone(),
-            project: permissions.clone(),
-            execution: permissions.clone(),
-            caller: permissions.clone(),
-        },
-        available_tools: permissions.iter().map(|p| p.operation.clone()).collect(),
-        available_adapters: vec!["codex".into()],
-        harness: "codex".into(),
-        environment: "confined-worktree".into(),
-        platform: context("platform:1", "Platform rules"),
-        project: context("project:1", "Project rules"),
-        assignment: context("assignment:1", "Exact assignment"),
-        context: vec![],
-        overrides: vec![],
-    };
-    let composition = compile(&catalog, &request, &"a".repeat(64))
+    let request = compile_request(&catalog);
+    let composition = compile_draft(&catalog, &request)
         .unwrap()
         .composition
-        .unwrap();
+        .unwrap()
+        .seal(
+            GraphAccessScope {
+                repository_id: Uuid::from_u128(41),
+                workspace_id: Uuid::from_u128(2),
+                task_id: Uuid::from_u128(3),
+                record_ids: vec![Uuid::from_u128(3)],
+                edge_types: vec![],
+            },
+            &graph_context(),
+        )
+        .unwrap()
+        .composition;
     let composition = PreparedComposition {
         digest: aq_selection::digest(&composition).unwrap(),
         composition,
@@ -289,4 +352,60 @@ pub fn change_policy(
         composition.digest = aq_selection::digest(&composition.composition).unwrap();
     }
     updated
+}
+
+pub fn graph_context() -> serde_json::Value {
+    serde_json::json!({"observed_at":"1970-01-01T00:00:01Z","projection":"authorized_scope","root_ids":[Uuid::from_u128(3)],"nodes":[{"id":Uuid::from_u128(3),"kind":"task","version":"1","content_revision":"1","title":"Synthetic task","body":"Bounded work","acceptance_criteria":"Verify","labels":[],"task_state":"active","verification":null,"content_type":null,"retired":false,"deleted":false}],"edges":[],"pinned_revisions":[],"coverage":{"status":"complete","complete_for":"authorized_projection","reasons":[]}})
+}
+pub fn graph_policy(comp: &aq_profiles::FrozenComposition) -> aq_profiles::GraphAccessPolicy {
+    aq_profiles::GraphAccessPolicy {
+        schema_version: 1,
+        kind: aq_profiles::GraphAccessPolicyKind::PreselectionGraphAccessPolicyV1,
+        project_binding_id: comp.project_binding_id,
+        project_revision: comp.project_revision,
+        source_context_revision: comp.task_context_revision.clone(),
+        context_digest: aq_profiles::digest(&graph_context()).unwrap(),
+        instructions_digest: aq_profiles::digest(&comp.instruction_order).unwrap(),
+        tool_policy_digest: aq_profiles::digest(&(
+            comp.requested_permissions.as_ref().unwrap(),
+            &comp.effective_permissions,
+        ))
+        .unwrap(),
+        effective_permissions: comp.effective_permissions.clone(),
+        scope: aq_profiles::GraphAccessScope {
+            repository_id: Uuid::from_u128(41),
+            workspace_id: Uuid::from_u128(2),
+            task_id: Uuid::from_u128(3),
+            record_ids: vec![Uuid::from_u128(3)],
+            edge_types: vec![],
+        },
+    }
+}
+
+pub fn compile_request(catalog: &ValidatedCatalog) -> CompileRequest {
+    let permissions = catalog.artifact().catalog.execution[0].permissions.clone();
+    CompileRequest {
+        profile: ProfileRequest {
+            catalog_digest: catalog.digest().into(),
+            agent_profile: "implementer@2".into(),
+            project_binding_id: Uuid::from_u128(1),
+            expected_project_revision: 1,
+            task_context_revision: "task:1".into(),
+        },
+        ceilings: Ceilings {
+            installation: permissions.clone(),
+            project: permissions.clone(),
+            execution: permissions.clone(),
+            caller: permissions.clone(),
+        },
+        available_tools: permissions.iter().map(|p| p.operation.clone()).collect(),
+        available_adapters: vec!["codex".into()],
+        harness: "codex".into(),
+        environment: "confined-worktree".into(),
+        platform: context("platform:1", "Platform rules"),
+        project: context("project:1", "Project rules"),
+        assignment: context("assignment:1", "Exact assignment"),
+        context: vec![],
+        overrides: vec![],
+    }
 }

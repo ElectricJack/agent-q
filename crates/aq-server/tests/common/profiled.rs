@@ -88,7 +88,7 @@ pub async fn fixture() -> Fixture {
         })
         .await
         .unwrap();
-    let raw: Value = serde_json::from_str(include_str!("../fixtures/selection.json")).unwrap();
+    let raw: Value = serde_json::from_str(include_str!("../fixtures/selection-v2.json")).unwrap();
     let catalog = aq_profiles::ValidatedCatalog::from_artifact(
         raw["catalog_artifact_json"].as_str().unwrap().as_bytes(),
     )

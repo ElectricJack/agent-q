@@ -261,6 +261,29 @@ pub(crate) fn validate(
         )?;
         bounds(&composition.instruction_order, 128)?;
         for instruction in &composition.instruction_order {
+            if let Some(key) = instruction.source.identity.strip_prefix("module:") {
+                let expected = catalog
+                    .source("module", key)
+                    .map_err(|_| SelectionError::Invalid("unknown instruction module".into()))?;
+                ensure(
+                    instruction.source.digest == expected.digest
+                        && instruction.source.revision == expected.revision
+                        && catalog.artifact().instructions.get(key) == Some(&instruction.text),
+                    "instruction module differs from immutable catalog",
+                )?;
+            } else if let Some(key) = instruction.source.identity.strip_prefix("agent:") {
+                let expected = catalog
+                    .source("agent", key)
+                    .map_err(|_| SelectionError::Invalid("unknown instruction agent".into()))?;
+                ensure(
+                    instruction.source.digest == expected.digest
+                        && instruction.source.revision == expected.revision
+                        && catalog.artifact().catalog.agents.iter().any(|a| {
+                            aq_profiles::key(&a.id, a.version) == key && a.role == instruction.text
+                        }),
+                    "instruction role differs from immutable catalog",
+                )?;
+            }
             ensure(instruction.text.len() <= 65_536, "instruction bound")?;
             total = total
                 .checked_add(instruction.text.len())
