@@ -40,7 +40,8 @@ Read the mapped source and regression cases before implementing an affected task
 | --- | --- | --- |
 | [WRK-05](#wrk-05) | aq-worker | Provision the AQ agent client and bounded context cache |
 | [WRK-07](#wrk-07) | aq-worker | Implement resumable artifact handoff and retention release |
-| [CON-03](#con-03) | aq-worker | Publish session observation and continuation contracts |
+| [AQ-10](#aq-10) | agent-q | Apply evidence-based result disposition and graph completion |
+| [AQ-12](#aq-12) | agent-q | Embed the qualified playbook runner with bounded execution |
 | [REL-01](#rel-01) | agent-q | Version the composite product manifest and component inventory |
 | [AQ-21](#aq-21) | agent-q | Implement authorized terminal relay and controller leasing |
 | [WRK-14](#wrk-14) | aq-worker | Implement the bounded outbound terminal bridge |
@@ -122,7 +123,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [GIT-01](#git-01): Qualify and package an immutable Git integration candidate | aq-git | [AUD-00](#aud-00) | complete |
 | [API-01](#api-01): Publish scoped agent API contracts | agent-q | [AQ-02](#aq-02), [GRAPH-01](#graph-01) | complete |
 | [AQ-06](#aq-06): Implement session credentials and scoped graph reads | agent-q | [API-01](#api-01), [AQ-03](#aq-03) | complete |
-| [AQ-07](#aq-07): Implement durable graph mutation delivery and recovery | agent-q | [AQ-06](#aq-06) | in_progress |
+| [AQ-07](#aq-07): Implement durable graph mutation delivery and recovery | agent-q | [AQ-06](#aq-06) | complete |
 | [AQ-08](#aq-08): Schedule real graph candidates with explicit eligibility | agent-q | [AQ-04](#aq-04), [AQ-07](#aq-07), [GATE-03](#gate-03), [AQ-19](#aq-19), [AQ-20](#aq-20) | planned |
 | [WRK-05](#wrk-05): Provision the AQ agent client and bounded context cache | aq-worker | [WRK-04](#wrk-04), [AQ-06](#aq-06), [CON-02](#con-02), [AQ-18](#aq-18) | planned |
 | [WRK-06](#wrk-06): Integrate local aq-git workspaces and storage admission | aq-worker | [WRK-04](#wrk-04), [GIT-01](#git-01) | complete |
@@ -150,7 +151,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [AQ-14](#aq-14): Implement judgment, decision and check host adapters | agent-q | [AQ-13](#aq-13), [AQ-10](#aq-10), [AQ-17](#aq-17), [WRK-09](#wrk-09) | planned |
 | [AQ-15](#aq-15): Implement candidate preparation and guarded publication policy | agent-q | [AQ-14](#aq-14), [AQ-09](#aq-09), [GIT-01](#git-01) | planned |
 | [AQ-16](#aq-16): Implement findings reconciliation and durable calendar/report coordination | agent-q | [AQ-13](#aq-13), [AQ-14](#aq-14) | planned |
-| [CON-03](#con-03): Publish session observation and continuation contracts | aq-worker | [CON-02](#con-02) | planned |
+| [CON-03](#con-03): Publish session observation and continuation contracts | aq-worker | [CON-02](#con-02) | in_progress |
 | [WRK-15](#wrk-15): Implement harness transcript readers and durable observation delivery | aq-worker | [CON-03](#con-03), [WRK-10](#wrk-10) | planned |
 | [AQ-22](#aq-22): Implement session observations, transcript inspection and usage accounting | agent-q | [CON-03](#con-03), [AQ-03](#aq-03), [AQ-20](#aq-20) | planned |
 | [AQ-23](#aq-23): Implement the evidence-based session stall ladder | agent-q | [AQ-22](#aq-22), [AQ-11](#aq-11), [WRK-09](#wrk-09), [AQ-05](#aq-05) | planned |
@@ -165,7 +166,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 
 | Task | Owner | Hard prerequisites | Status |
 | --- | --- | --- | --- |
-| [PB-02](#pb-02): Establish the playbook storage and scheduling operating envelope | aq-playbooks | [PB-01](#pb-01) | in_progress |
+| [PB-02](#pb-02): Establish the playbook storage and scheduling operating envelope | aq-playbooks | [PB-01](#pb-01) | complete |
 | [API-02](#api-02): Expose task, attempt and workflow explanation views | agent-q | [AQ-10](#aq-10), [AQ-11](#aq-11), [AQ-12](#aq-12), [AQ-18](#aq-18), [AQ-20](#aq-20) | planned |
 | [UI-01](#ui-01): Create the independent dashboard application and mock suite | aq-dashboard | [API-02](#api-02) | planned |
 | [UI-02](#ui-02): Implement pending-safe actions and browser compatibility | aq-dashboard | [UI-01](#ui-01) | planned |
@@ -184,7 +185,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [UI-04](#ui-04): Expose session health, accounting, waits and notification delivery | aq-dashboard | [UI-01](#ui-01), [CON-03](#con-03) | planned |
 | [INT-03](#int-03): Qualify session operations, external delivery and cross-node hibernation | agent-q | [GATE-05](#gate-05), [INT-02](#int-02), [AQ-22](#aq-22), [AQ-23](#aq-23), [AQ-24](#aq-24), [AQ-25](#aq-25), [AQ-26](#aq-26), [AQ-27](#aq-27), [WRK-15](#wrk-15), [WRK-16](#wrk-16), [UI-04](#ui-04) | planned |
 | [GATE-06](#gate-06): Accept a usable, measured and upgradeable AQ product candidate | agent-q | [GATE-05](#gate-05), [REL-02](#rel-02), [REL-03](#rel-03), [PERF-01](#perf-01), [OPS-01](#ops-01), [INT-02](#int-02), [INT-03](#int-03) | planned |
-| [PB-03](#pb-03): Remove redundant immutable-artifact work from playbook storage commits | aq-playbooks | [PB-02](#pb-02) | planned |
+| [PB-03](#pb-03): Remove redundant immutable-artifact work from playbook storage commits | aq-playbooks | [PB-02](#pb-02) | in_progress |
 | [PB-04](#pb-04): Bound playbook transition persistence costs as history grows | aq-playbooks | [PB-03](#pb-03) | planned |
 
 ## Task contracts
@@ -610,7 +611,7 @@ Evidence: [m4-foundations.md](../implementation/m4-foundations.md), [m4-qualific
 
 **Implement durable graph mutation delivery and recovery**
 
-Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: in_progress.
+Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: complete.
 
 Hard prerequisites: [AQ-06](#aq-06).
 
@@ -622,6 +623,8 @@ Acceptance:
 - Cancelled/expired sessions cannot admit new writes; node recovery can inspect existing attempt operations without renewed agent mutation access.
 
 Requirement links: D2, D4, D5, D6, W20, X10, X11.
+
+Evidence: [AQ-07.md](../implementation/AQ-07.md), [AQ-07.json](../implementation/AQ-07.json).
 
 ### AQ-08
 
@@ -1030,7 +1033,7 @@ Requirement links: D2, D6, D9, W1, X6, X13, N3.
 
 **Publish session observation and continuation contracts**
 
-Owner: `aq-worker`. Milestone: M5. Kind: implementation. Status: planned.
+Owner: `aq-worker`. Milestone: M5. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [CON-02](#con-02).
 
@@ -1231,7 +1234,7 @@ Requirement links: E3, D2, D3, D5, D6, W1, X6, X7, X8, X10, X13, S2, S3, S4, S5,
 
 **Establish the playbook storage and scheduling operating envelope**
 
-Owner: `aq-playbooks`. Milestone: M6. Kind: qualification. Status: in_progress.
+Owner: `aq-playbooks`. Milestone: M6. Kind: qualification. Status: complete.
 
 Hard prerequisites: [PB-01](#pb-01).
 
@@ -1245,6 +1248,8 @@ Acceptance:
 Requirement links: E8, D7.
 
 Outside this task: Treating the 100-admission microbenchmark as 500-agent product evidence; Silently widening limits after a failing benchmark.
+
+Evidence: [PB-02.md](../../../aq-playbooks/docs/implementation/PB-02.md), [PB-02.json](../../../aq-playbooks/docs/implementation/PB-02.json).
 
 ### API-02
 
@@ -1603,7 +1608,7 @@ Requirement links: E1, E2, E3, E4, E5, E6, E7, E8, U7, U8, P1, P3, P5, P6, P7, H
 
 **Remove redundant immutable-artifact work from playbook storage commits**
 
-Owner: `aq-playbooks`. Milestone: M6. Kind: implementation. Status: planned.
+Owner: `aq-playbooks`. Milestone: M6. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [PB-02](#pb-02).
 

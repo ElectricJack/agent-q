@@ -775,7 +775,7 @@
       "repo": "agent-q",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "AQ-06"
       ],
@@ -794,7 +794,10 @@
         "Cancelled/expired sessions cannot admit new writes; node recovery can inspect existing attempt operations without renewed agent mutation access."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-07.md",
+        "../implementation/AQ-07.json"
+      ]
     },
     {
       "id": "AQ-08",
@@ -1515,7 +1518,7 @@
       "repo": "aq-worker",
       "milestone": "M5",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "CON-02"
       ],
@@ -1847,7 +1850,7 @@
       "repo": "aq-playbooks",
       "milestone": "M6",
       "kind": "qualification",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "PB-01"
       ],
@@ -1864,7 +1867,10 @@
         "Treating the 100-admission microbenchmark as 500-agent product evidence",
         "Silently widening limits after a failing benchmark"
       ],
-      "evidence": []
+      "evidence": [
+        "../../../aq-playbooks/docs/implementation/PB-02.md",
+        "../../../aq-playbooks/docs/implementation/PB-02.json"
+      ]
     },
     {
       "id": "API-02",
@@ -2552,7 +2558,7 @@
       "repo": "aq-playbooks",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "PB-02"
       ],

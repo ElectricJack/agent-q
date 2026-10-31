@@ -1,0 +1,278 @@
+{
+  "task": "AQ-07",
+  "status": "component implementation qualified at immutable source revision; full product/harness integration remains separate",
+  "source_repository": "agent-q",
+  "source_revision": "8cdd22115b99a0cd91d594cac3df49f4d35c0ddf",
+  "source_hash_semantics": "Per-file SHA-256 and Git blob of exact git show SOURCE_REVISION:path bytes. No live AQ-19/format-8 files are used.",
+  "state_format": 7,
+  "files": {
+    "Dockerfile": {
+      "sha256": "3c4e569b5c70ea79d08bf1bf3358bd8914811d455dbde9082f07e39784f87b41",
+      "bytes": 4139,
+      "git_blob": "57f1265ad89798f4536cb03d8a2ad9f9f1efeccd"
+    },
+    "crates/aq-server/src/lib.rs": {
+      "sha256": "d4cd981d8c613f3f07cc26671c694b9aaf57fa4e059e4a9a12fea33bcb2f2775",
+      "bytes": 8306,
+      "git_blob": "33592e593845753ee4210460d340f0929469a822"
+    },
+    "crates/aq-server/src/store.rs": {
+      "sha256": "f7f7b8b0330af6a9685b0aa1cd84c6011af8336314e73df00644f6a1777635ff",
+      "bytes": 17310,
+      "git_blob": "21a3c940dc971e889c086bc8bf03c44dc08f2ed6"
+    },
+    "crates/aq-server/src/agent_access.rs": {
+      "sha256": "cd30f589a11d9c94715b1f0da65016b6f4d075754ebedd001bc9114ccab02abf",
+      "bytes": 29132,
+      "git_blob": "6dd7b70b3aa04c7d53f6969e3a5d21c499282671"
+    },
+    "crates/aq-server/src/agent_access/contract.rs": {
+      "sha256": "f275444fed04b6a3fac3b4559d909ba7273d28e3bc8eb6240014d4526c969f4a",
+      "bytes": 8995,
+      "git_blob": "428c0fb1c7da899fd12adacde44b97b13a94fa4b"
+    },
+    "crates/aq-server/src/agent_access/graph.rs": {
+      "sha256": "b69c5c098a076a75dd94cd139ee5a34d36e0bbf58239abfac1c092ab1e8e3f3a",
+      "bytes": 24493,
+      "git_blob": "68a97e752cc38971f87f6357f6a41b99facc882c"
+    },
+    "crates/aq-server/src/agent_access/mutations.rs": {
+      "sha256": "0e89cb6d57cfefa775ad4136c6929e38e860271eaca5b76c7fb3815356654bbb",
+      "bytes": 19770,
+      "git_blob": "37e675be12d6b0099e937ab77a134118649122e7"
+    },
+    "crates/aq-server/src/agent_access/mutations/authorize.rs": {
+      "sha256": "4e3ef10dfaab7d3bb0f491530f05146593c16286c031878e7668fafbd5411d3a",
+      "bytes": 14673,
+      "git_blob": "45312ec1c4d1401c61c712aadb426965332bba3b"
+    },
+    "crates/aq-server/src/agent_access/mutations/dispatch.rs": {
+      "sha256": "35f9720cab5dc16055cf63ea48658f4c095cf041ef6c466f324edc389e14af9b",
+      "bytes": 17087,
+      "git_blob": "e8270286056e6a336b1e33f0e1b5a5109a17df2b"
+    },
+    "crates/aq-server/migrations/0007_graph_mutations.sql": {
+      "sha256": "0ec5317b0e54466b5a88aef05fc951827a7b4e156ecdfca6e60d1a5dd75faa64",
+      "bytes": 1917,
+      "git_blob": "38cb2f74a59a54e9f9b56dcd7d7739949646538e"
+    },
+    "crates/aq-server/tests/agent_access.rs": {
+      "sha256": "aa25c5824372fc3d6c94d95e34f87b4a301feda233258fe1060c04d7bc2473ab",
+      "bytes": 26657,
+      "git_blob": "2a4d6c7192f2031c4b12e619cfc8c695aaf6fbc3"
+    },
+    "crates/aq-server/tests/messaging.rs": {
+      "sha256": "f3e5252805901cb2d5000205f5c9ace07741620c7e6932b97a92ee5684e6e3c6",
+      "bytes": 35880,
+      "git_blob": "2cd57e7c377b2dc2f37d099baa60ae3cea2f56ed"
+    },
+    "crates/aq-server/tests/graph_mutations.rs": {
+      "sha256": "97c3dae63a37a1f3b1f2416c28ce444f5cfda5501b5c2ea75151477d11cbd14a",
+      "bytes": 47905,
+      "git_blob": "17bf57273cfbea7f6f235575aec97998c6cbbf40"
+    },
+    "scripts/test-agent-mutations.py": {
+      "sha256": "a77ac9bb61d05907bbc9c0cef31f7d49a89745f06dfd22605adbc4353e98bcdc",
+      "bytes": 1425,
+      "git_blob": "0e8bc4693814b7ea01275c12efb9a0b31dfbf37a"
+    },
+    "docs/operations/agent-access.md": {
+      "sha256": "93e544dd2f50077ddd76c60a33fb778a4cfd344d50e15f606ce4422223c1aad9",
+      "bytes": 4705,
+      "git_blob": "471cae57e4c881f14bb9623f6e6500ba15682537"
+    },
+    "docs/operations/graph-mutations.md": {
+      "sha256": "80fdfd0dcf1e91308ca5291dd0dee2648de96c769cf0ec80d81573a8cf049597",
+      "bytes": 10302,
+      "git_blob": "0bd0bd15a3338b42c588094a942d08b1a9c5f9c5"
+    },
+    "protocol/agent-access/v1/MANIFEST.json": {
+      "sha256": "1e65127f2fd7460d071994159246b558214edb6f6bc3d9dda65574acf64de024",
+      "bytes": 4638,
+      "git_blob": "dfc6c5c7f4ef919b418da80f08c80efe0ef44648"
+    },
+    "protocol/agent-access/v1/README.md": {
+      "sha256": "c1ad1191e9525ec50c36af56cbf282abf7873f7de4d72c8e0dc5335b090cf3fe",
+      "bytes": 17194,
+      "git_blob": "e6c4860b3bd33f96b03a86b3870d168d34fcd76f"
+    },
+    "protocol/agent-access/v1/build_fixtures.py": {
+      "sha256": "2eb4d5405a0de6d79b10e636e086f39de1a82f8dd666c3ef711ca9bf85f7df69",
+      "bytes": 14572,
+      "git_blob": "0b55167c638ad0f3d1d2f42a5455b98f8b5aede0"
+    },
+    "protocol/agent-access/v1/client_types.py": {
+      "sha256": "47a2be0ef54b16f8031909f13a489fc51a80bffd08d17aa96e39a5e3c4ea4cd0",
+      "bytes": 16005,
+      "git_blob": "4e17a4d2dd6e2300a217711d4a15db932174e07d"
+    },
+    "protocol/agent-access/v1/conformance_model.py": {
+      "sha256": "c7748743977da091aad30de642db61ace1aed66d9db54d927748ac9673adc505",
+      "bytes": 26353,
+      "git_blob": "a3a6d99f7f6295a6046809bde4a17ab05b8d4424"
+    },
+    "protocol/agent-access/v1/generate.py": {
+      "sha256": "e7d40ea363bb825b5e66f3d8332beb10a87a06385a542cce3c5ef2133702fa32",
+      "bytes": 27880,
+      "git_blob": "9570c5ce12f5505ae66d885398759aa6ea0e770d"
+    },
+    "protocol/agent-access/v1/openapi.json": {
+      "sha256": "eace57b329766da89478d87f1fd68a69c7463073a276fc5f65c9b4ac1917e7e7",
+      "bytes": 183327,
+      "git_blob": "533bdfda2cdb9ca69402a7388b277baf90af1dab"
+    },
+    "protocol/agent-access/v1/schema.json": {
+      "sha256": "a9fdaf3766c09ee40c87c68aeb161da738991decb876e79aa8d7efba112fab97",
+      "bytes": 85989,
+      "git_blob": "3b9677afd20119ab0d7ed2d3b9d6ff19e0c63faf"
+    },
+    "protocol/agent-access/v1/test_conformance.py": {
+      "sha256": "13ab445cfc1f3997bde81e3ac8493c318e8f4ac11500b5818c52e94fac2f98dc",
+      "bytes": 28325,
+      "git_blob": "a741a75706f62ec6c23d58246b876ac329085049"
+    },
+    "protocol/agent-access/v1/fixtures/scope-cases.json": {
+      "sha256": "8d58c701ab1ebd6dfe4c67357bbe80e93e38ea60ebcb528bea2b4149eacf33bc",
+      "bytes": 58424,
+      "git_blob": "be15f2fa286d21f097f8e5781f6d14cb316d961e"
+    },
+    "protocol/agent-access/v1/fixtures/mutation-delivery.json": {
+      "sha256": "12ad3cc630778ef0088e75569b7cd586e5ff393ef71bb9753c5a4dea2e1958a3",
+      "bytes": 5155,
+      "git_blob": "43e1d0eb275ca9fcb32062ffb44ace4209ca147f"
+    },
+    "protocol/agent-access/v1/fixtures/native-draft-normalization.json": {
+      "sha256": "75bc7f6b3793e7122a1032e96365b2599c571c65b9aaf47e94030dca568de049",
+      "bytes": 3323,
+      "git_blob": "ff0c38e07fd8a2cb788031b9a0b9c840d576b464"
+    }
+  },
+  "inventory_sha256": "9aaf64af724c31f356521d781715264e32dfe1b80d65fc46c7876587a80b9dee",
+  "protocol_inventory_sha256": "fdb3177afd64f383dd497057185beb24d2aaed374a7353fe211c75cae9b7966f",
+  "qualification": {
+    "source_revision": "8cdd22115b99a0cd91d594cac3df49f4d35c0ddf",
+    "working_tree_clean_before_and_after": true,
+    "executor": "root independent clean worktree qualification; exact commands and results confirmed by root",
+    "worktree": "/tmp/aq18-qualification-61af1ff",
+    "artifact_scope": "Local debug build/component tests; no published image or deployment claimed.",
+    "checks": [
+      {
+        "command": "CARGO_TARGET_DIR=/tmp/aq18-qualification-target CARGO_INCREMENTAL=0 DATABASE_URL=<scripts/test-db disposable URL> cargo test -p aq-server --offline",
+        "result": "passed",
+        "passed": 200,
+        "ignored": 2,
+        "log": "root-tests"
+      },
+      {
+        "command": "CARGO_TARGET_DIR=/tmp/aq18-qualification-target CARGO_INCREMENTAL=0 DATABASE_URL=<scripts/test-db disposable URL> python3 scripts/test-agent-mutations.py",
+        "result": "passed",
+        "passed": 1,
+        "log": "root-graph",
+        "detail": "Wrapper internal cargo command uses --locked --offline; graph source/image identity verified before isolated setup."
+      },
+      {
+        "command": "CARGO_TARGET_DIR=/tmp/aq18-qualification-target CARGO_INCREMENTAL=0 cargo clippy -p aq-server --all-targets --offline -- -D warnings",
+        "result": "passed",
+        "log": "root-clippy"
+      },
+      {
+        "command": "python3 protocol/agent-access/v1/generate.py --check",
+        "result": "passed",
+        "execution": "root confirmed exact clean revision; no generated file drift"
+      },
+      {
+        "command": "python3 -m unittest discover -s protocol/agent-access/v1 -p test_conformance.py -q",
+        "result": "passed",
+        "passed": 32,
+        "execution": "root confirmed exact clean revision; copied protocol log also records 32 passing cases against byte-identical frozen contract files"
+      },
+      {
+        "command": "cargo fmt --package aq-server --check",
+        "result": "passed",
+        "execution": "root confirmed exact clean revision"
+      }
+    ]
+  },
+  "logs": {
+    "root-tests": {
+      "path": "docs/implementation/AQ-07-root-tests.log",
+      "sha256": "d308ccc2c9080748948009052b820dadf9c9ea17c0ae642427e1755f9e7835ef",
+      "bytes": 16700
+    },
+    "root-graph": {
+      "path": "docs/implementation/AQ-07-root-graph.log",
+      "sha256": "ba0062228d1e44e6682c49381c4991c0410309216b1ac49f6350d54133e08274",
+      "bytes": 905
+    },
+    "root-clippy": {
+      "path": "docs/implementation/AQ-07-root-clippy.log",
+      "sha256": "4a93711ad89b00fb3e9f1cf2efeccb4d3b0bd596f8c0705d89ff1be1aefa8d27",
+      "bytes": 153
+    },
+    "protocol": {
+      "path": "docs/implementation/AQ-07-protocol.log",
+      "sha256": "505a13cd36eca61a9a956437b872aa466685e44556b8b0f20847353ad5d25053",
+      "bytes": 98
+    },
+    "focused": {
+      "path": "docs/implementation/AQ-07-focused.log",
+      "sha256": "aaf3f727a2728f8d13f4cb845cdf2b573d0a9073a17196c707dafdbe455987bf",
+      "bytes": 3549
+    }
+  },
+  "environment": {
+    "rustc": "1.96.1 (31fca3adb 2026-06-26)",
+    "database": "Disposable scripts/test-db PostgreSQL admin URL; each Rust TestDb owns and drops an isolated test database. No operator database.",
+    "postgres_image_id": "sha256:99445113a4a19e82dd3713c65bd9f6fb5bf972065ab043df8d1e1c93e957da9a",
+    "qualified_graph_source_revision": "225329cd6acf5a775fd2a0b016dd1c45fb16c79b",
+    "qualified_graph_image_id": "sha256:807beba98dcd20b0ae335f09cae8c06ecb182a352ee78de278cb47fccb2ee3be",
+    "graph_credentials": "Synthetic ordinary api01-writer in uniquely named isolated Docker resources; no admin credential used by gateway.",
+    "provider_calls": false,
+    "human_notifications": false
+  },
+  "mutation_integration_tests": [
+    "confirmed_outbox_replay_byte_conflict_and_truthful_version_conflict",
+    "response_loss_recovery_after_expiry_and_revocation_replays_exact_intent",
+    "permissions_protected_authors_and_capabilities_refuse_before_admission",
+    "relationship_guard_same_batch_and_findings_created_scope",
+    "future_guard_versions_and_concurrent_protection_changes_cannot_authorize_a_write",
+    "structural_proposals_need_explicit_edge_scopes_and_never_apply",
+    "admitted_dispatch_does_not_hold_authority_locks_and_cannot_be_cancelled_as_unsent",
+    "actual_qualified_graph_delivery_recovers_lost_receipt_without_duplicate_history",
+    "queued_admission_cancellation_wins_before_first_dispatch",
+    "retained_budget_refuses_new_intents_but_preserves_exact_replay",
+    "recovery_cursor_freezes_membership_and_serializes_its_finite_quota",
+    "retry_budget_and_changed_service_mapping_hold_unknown_without_new_dispatch",
+    "local_receipt_commit_failure_keeps_unknown_and_recovery_publishes_once"
+  ],
+  "acceptance_evidence": {
+    "admission_and_scope": "Finite API01 commands with explicit capability/record/edge/author protection, immutable binding and current authority recheck. Future CAS tokens reject before admission; concurrent protection changes retain original CAS.",
+    "durable_replay": "Canonical request digest, global operation identity, fixed actor/workspace/class mapping and derived key persist before dispatch. Changed bytes conflict; exact replay does not refetch/overwrite mutable graph guards.",
+    "unknown_and_local_fault": "Real graph commit followed by deliberately discarded receipt recovers by identical node retry after agent expiry with one history entry. Real PostgreSQL outbox insertion failure leaves possible effect; exact retry confirms once without duplicate graph application.",
+    "cancellation": "Queued intent can be atomically rejected before first dispatch. Once reserved, cancellation cannot claim unsent; authority locks are released during HTTP and session revoke does not erase recorded possible effect.",
+    "recovery_authority": "Current enrolled node can inspect/retry only already associated attempt/session/generation IDs without a renewed agent credential or replacement graph payload. New expired/revoked agent writes refuse.",
+    "outbox_and_created_grants": "Scoped receipt and one stable confirmed-event outbox commit in the same local transaction; only confirmed findings grant optional creation-derived reads. Draft tasks and unknown outcomes do not.",
+    "finite_storage_and_recovery": "4096 retained intents / 32MiB conservative logical reservation per attempt, cumulative creation quota, bounded request/receipt, finite dispatch retry/elapsed budget, fixed cursor membership and serialized 128-cursor quota. Exact replay/ID lookup remain available when new admission/cursor allocation overloads.",
+    "all_five_public_mappings": "Independent clean pinned graph qualification exercises finding creation, correction with lost receipt and stale-version refusal, informational add/remove with same-batch source CAS, and explicit structural draft remaining unapplied.",
+    "native_draft_normalization": "Captured public Draft materializes optional defaults; receipt validation accepts only ordered-plan equivalence after declared no-effect defaults and rejects non-default metadata/verification/title/CAS alterations. Stored submitted payload/key never change.",
+    "postadmission_errors": "No postcommit lookup in respond-async path. Postadmission response-size/storage faults preserve known identity and unknown/recovery semantics rather than false not_applied."
+  },
+  "declared_ignores": [
+    {
+      "test": "actual_qualified_graph_delivery_recovers_lost_receipt_without_duplicate_history",
+      "reason": "Ordinary suite excludes explicit image qualification; the root-graph check separately ran and passed this exact test."
+    },
+    {
+      "test": "selected_real_aq_git_import_survives_worker_volume_loss_and_base_download_is_scoped",
+      "reason": "Existing independent aq-git/bookworm runtime qualification; not rerun by AQ-07."
+    }
+  ],
+  "limits": [
+    "One configured ordinary workspace service binding; operator must ensure mutation_actor_id matches the actual credential actor. No automatic privilege upgrade or alternate actor/key recovery.",
+    "A changed/revoked service binding or exhausted retry budget preserves unknown for manual reconciliation; it cannot mint a fresh key, prune uncertainty or overwrite a newer graph version.",
+    "Retained-intent byte reservation is canonical logical bytes plus fixed status/outbox allowance; PostgreSQL/index physical overhead requires installation storage policy.",
+    "Created-record grants are reads only, subject to frozen profile permission; final task lifecycle/completion policy belongs to AQ-10.",
+    "Confirmed outbox production is qualified; downstream playbook consumption is AQ-15, and provider/harness/client/product-scale qualification remains separate.",
+    "Public graph APIs only; no private graph database, graph replica, live AQ daemon, paid model, external notification or deployment was used."
+  ]
+}

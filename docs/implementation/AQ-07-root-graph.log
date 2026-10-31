@@ -1,0 +1,23 @@
+    Blocking waiting for file lock on package cache
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.23s
+     Running tests/graph_mutations.rs (/tmp/aq18-qualification-target/debug/deps/graph_mutations-b46f0b2dd283fd5e)
+
+running 1 test
+test actual_qualified_graph_delivery_recovers_lost_receipt_without_duplicate_history ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.69s
+
+{
+  "result": "passed",
+  "source_revision": "225329cd6acf5a775fd2a0b016dd1c45fb16c79b",
+  "image_id": "sha256:807beba98dcd20b0ae335f09cae8c06ecb182a352ee78de278cb47fccb2ee3be",
+  "guard_results": {
+    "valid_same_transaction": 200,
+    "identical_replay": true,
+    "guard_noop_does_not_advance_version": true,
+    "stale_guard_atomic_refusal": 409,
+    "foreign_author_refused": 403,
+    "retired_source_refused": 403,
+    "failed_edges_absent": true
+  }
+}

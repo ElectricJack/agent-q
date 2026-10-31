@@ -1,0 +1,48 @@
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.46s
+     Running unittests src/lib.rs (agent-q/target/debug/deps/aq_server-42cf5e7559cd9274)
+
+running 21 tests
+test agent_access::mutations::tests::retained_admission_count_and_byte_boundaries_are_exact ... ok
+test agent_access::tests::strict_json_rejects_duplicate_and_fractional_values ... ok
+test config::tests::other_deployments_accept_dev_vault ... ok
+test config::tests::production_deployment_accepts_production_vault ... ok
+test config::tests::production_deployment_rejects_dev_auth_in_production_env ... ok
+test config::tests::production_deployment_rejects_dev_vault ... ok
+test config::tests::production_deployment_rejects_development_env_with_access_auth ... ok
+test agent_access::graph::tests::http_adapter_never_exposes_graph_errors_or_follows_redirects ... ok
+test store::tests::state_format_is_the_latest_migration ... ok
+test agent_access::tests::query_digest_omits_cursor_but_binds_authority ... ok
+test agent_access::graph::tests::http_adapter_refuses_missing_or_changed_response_version ... ok
+test updates::tests::unreadable_marker_dir_counts_as_maintenance ... ok
+test updates::tests::stamped_binary_refuses_other_revision ... ok
+test updates::tests::unstamped_binary_accepts_any_revision ... ok
+test agent_access::graph::tests::edge_projection_requires_both_endpoints_and_allowed_type ... ok
+test agent_access::graph::tests::projection_removes_metadata_and_enforces_workspace ... ok
+test agent_access::tests::canonical_digest_matches_published_profile_and_context ... ok
+test agent_access::tests::context_and_issuance_budgets_include_profile_binding_and_credentials ... ok
+test agent_access::mutations::tests::oversized_postadmission_status_reports_unknown_with_existing_identity ... ok
+test agent_access::mutations::dispatch::tests::native_draft_defaults_preserve_exact_plan_but_extra_meaning_is_refused ... ok
+test agent_access::tests::contract_enforces_unknown_fields_uuid_integer_and_conditional_rules ... ok
+
+test result: ok. 21 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/graph_mutations.rs (agent-q/target/debug/deps/graph_mutations-c8557ff83389d06e)
+
+running 13 tests
+test actual_qualified_graph_delivery_recovers_lost_receipt_without_duplicate_history ... ignored, requires scripts/test-agent-mutations.py isolated pinned graph image and ordinary credential
+test retained_budget_refuses_new_intents_but_preserves_exact_replay ... ok
+test admitted_dispatch_does_not_hold_authority_locks_and_cannot_be_cancelled_as_unsent ... ok
+test retry_budget_and_changed_service_mapping_hold_unknown_without_new_dispatch ... ok
+test queued_admission_cancellation_wins_before_first_dispatch ... ok
+test local_receipt_commit_failure_keeps_unknown_and_recovery_publishes_once ... ok
+test permissions_protected_authors_and_capabilities_refuse_before_admission ... ok
+test response_loss_recovery_after_expiry_and_revocation_replays_exact_intent ... ok
+test confirmed_outbox_replay_byte_conflict_and_truthful_version_conflict ... ok
+test recovery_cursor_freezes_membership_and_serializes_its_finite_quota ... ok
+test future_guard_versions_and_concurrent_protection_changes_cannot_authorize_a_write ... ok
+test relationship_guard_same_batch_and_findings_created_scope ... ok
+test structural_proposals_need_explicit_edge_scopes_and_never_apply ... ok
+
+test result: ok. 12 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.23s
+
