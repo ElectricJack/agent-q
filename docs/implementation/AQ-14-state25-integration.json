@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "task": "AQ-14",
+  "status": "isolated state25 source integration qualified; activation and broader task incomplete",
+  "source_revision": "514c014032c15b4ad9d0ee36aedfdcc4c0f4092d",
+  "base_revision": "6c1c8475463d5063789765946e99b5e21586d870",
+  "branch": "integration/aq14-profile2",
+  "recorded_at": "2026-10-31T23:26:19.149212+00:00",
+  "migration": {
+    "state_format": 25,
+    "registered": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25
+    ],
+    "review_026_registered": false,
+    "normal_owners_enabled": false,
+    "component_review_fixture": "explicit026 tables without changing state25 metadata"
+  },
+  "producer": {
+    "source_revision": "d3bd349d9293b7aee6ed434cd1927ecfb035f8e7",
+    "archive_sha256": "bd1246e8e972ee1627e94598945f398812c89044106b463151a696511412ca39",
+    "host_version": "0.1.2",
+    "verified_vendor_files": 725,
+    "pin_manifests": [
+      "vendor/aq-playbooks-source.json",
+      "vendor/aq-playbooks-source-0.1.1.json",
+      "vendor/aq-playbooks-source-0.1.2.json"
+    ]
+  },
+  "qualification": {
+    "server_tests": 31,
+    "actual_disposable_postgresql_tests": 25,
+    "pure_catalog_compiler_tests": 6,
+    "ignored": 0,
+    "strict_targeted_server_clippy": true,
+    "strict_all_target_host_clippy": true,
+    "format": true,
+    "vendor_drift": true,
+    "database": "scripts/test-db loopback55432 disposable random TestDb databases only",
+    "commands": [
+      "DATABASE_URL=<disposable-test-db> CARGO_TARGET_DIR=/tmp/aq14-decisions/target CARGO_INCREMENTAL=0 RUST_TEST_THREADS=2 cargo test -p aq-server --features test-support --test playbook_bridge --test playbook_contract --test playbook_review_contract --test profiled_results --locked --offline -- --test-threads=2",
+      "DATABASE_URL=<disposable-test-db> CARGO_TARGET_DIR=/tmp/aq14-decisions/target CARGO_INCREMENTAL=0 RUST_TEST_THREADS=2 cargo test -p aq-server --test playbook_integration_startup --locked --offline -- --test-threads=2",
+      "CARGO_TARGET_DIR=/tmp/aq14-decisions/target CARGO_INCREMENTAL=0 cargo clippy -p aq-server --lib --test playbook_bridge --test playbook_contract --test playbook_review_contract --test profiled_results --test playbook_integration_startup --example playbook_contract --example playbook_review_contract --all-features --locked --offline -- -D warnings",
+      "CARGO_TARGET_DIR=/tmp/aq14-decisions/target CARGO_INCREMENTAL=0 cargo clippy -p aq-playbook-host --all-targets --locked --offline -- -D warnings",
+      "cargo fmt --package aq-server --package aq-playbook-host --check",
+      "git diff --check"
+    ]
+  },
+  "development_failure": {
+    "log": "development-startup-compile-error",
+    "cause": "New startup test imported Namespace from domain instead of service; corrected before final passing startup tests. No runtime failure or suppression."
+  },
+  "source_inventory": [
+    {
+      "path": "Cargo.lock",
+      "bytes": 88659,
+      "sha256": "1ec46dc99271d9a24680a2fc9e2be15f6aa9d88a2c7d0f01ef84d9b5bc30b2af"
+    },
+    {
+      "path": "Cargo.toml",
+      "bytes": 2574,
+      "sha256": "42bcbada166090885b1fd7c5da190aa8022bcedf1770885b6f0c111e1f1ef6cc"
+    },
+    {
+      "path": "Dockerfile",
+      "bytes": 4140,
+      "sha256": "2ade117894ecc05a7609403c2d485548e1ecfe41e7c028c543351241f88f1d3d"
+    },
+    {
+      "path": "crates/aq-playbook-host/Cargo.toml",
+      "bytes": 713,
+      "sha256": "c05c121cb69c3c0f3b03ef342214901ae06d32fb6e4cb6a2bef763f6d7a6481d"
+    },
+    {
+      "path": "crates/aq-playbook-host/README.md",
+      "bytes": 5485,
+      "sha256": "0569418ef61be7ad646bbf9a67f8a620031b10887ffdaf78cab12b799625cbca"
+    },
+    {
+      "path": "crates/aq-playbook-host/src/lib.rs",
+      "bytes": 22497,
+      "sha256": "6c2f1666a90b2b6cfe3a6f510809877b2d231c6aa88fcf173e9bccfd5ba76a5e"
+    },
+    {
+      "path": "crates/aq-playbook-host/src/protected.rs",
+      "bytes": 3780,
+      "sha256": "46ba2c2cf922e2344e2475497395fe34846ff37021b2ed3d63e430249b2cef1a"
+    },
+    {
+      "path": "crates/aq-server/Cargo.toml",
+      "bytes": 2420,
+      "sha256": "655236be3c454fb54046cfec68469d4b2e6b9cbde901f9b04f6e16ba672619ef"
+    },
+    {
+      "path": "crates/aq-server/examples/playbook_review_contract.rs",
+      "bytes": 762,
+      "sha256": "58ce3f51ef6f742c2163801c433557a8ff8651598339c92205fdee15ab507b63"
+    },
+    {
+      "path": "crates/aq-server/migrations/0026_review_owners.sql",
+      "bytes": 5779,
+      "sha256": "1f2999baeca7caf48e23a08cb74e1970ea2c1725d15d6a88c6258b32e4ae392e"
+    },
+    {
+      "path": "crates/aq-server/src/config.rs",
+      "bytes": 11269,
+      "sha256": "ce566b3a4a5a33c6637abab37563eb70e6665297820518c436ed2ece419138c9"
+    },
+    {
+      "path": "crates/aq-server/src/lib.rs",
+      "bytes": 13485,
+      "sha256": "4af380cf705b56f3b260fffd9c905e85329703a2f957f6211251640c50119e14"
+    },
+    {
+      "path": "crates/aq-server/src/main.rs",
+      "bytes": 5404,
+      "sha256": "6429139099c2b19ef0218c9c83aef03a896f49db8a868e3dd4f4712b9c5d8c38"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/domain.rs",
+      "bytes": 10478,
+      "sha256": "6e19a8ecf659f9ed4b38454aa486cd5b9ad8133c1347ab983663f3f408cb4c4f"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/driver.rs",
+      "bytes": 19538,
+      "sha256": "da120222039831301b6f5e5219d2da4c40f567902e8f7151b926a28ef45a777f"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/mod.rs",
+      "bytes": 247,
+      "sha256": "993c0bb356dc10d4d5bc24f2058c4db90686c0bd8169928f68d3b210f5f77e68"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/review_domain.rs",
+      "bytes": 8382,
+      "sha256": "12cc8c4d1c04b2dc0dbcbcc8e82c559bf71f5aa28193bec3f2a16a958afa61d0"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/service.rs",
+      "bytes": 66223,
+      "sha256": "45102b4a24539f71efaae68046d4cb053faed5b3cf7005ea1c2d513b1fad60b0"
+    },
+    {
+      "path": "crates/aq-server/src/reviews.rs",
+      "bytes": 39301,
+      "sha256": "adea5390b0d1ce99158542094b688680264f9c8a019b3a69f5e17d31fc44a769"
+    },
+    {
+      "path": "crates/aq-server/src/store.rs",
+      "bytes": 23936,
+      "sha256": "370dc8a76ce5c71103b3416da6dbea9da073a668be61b51204e53598add601db"
+    },
+    {
+      "path": "crates/aq-server/tests/playbook_integration_startup.rs",
+      "bytes": 4569,
+      "sha256": "0b4652b0a657b62eb80c313352bb27999b696b583a2dd5317b089e39eea2fdea"
+    },
+    {
+      "path": "crates/aq-server/tests/playbook_review_contract.rs",
+      "bytes": 7922,
+      "sha256": "effa45abc155ec411f373578c8663f4eb9c7646b39f70a28e99763ebabc23b25"
+    },
+    {
+      "path": "crates/aq-server/tests/profiled_results.rs",
+      "bytes": 59733,
+      "sha256": "5019eb77c35747a03e152057d6cd368c3bf0ed96fe044f3355e4be4b698256ef"
+    },
+    {
+      "path": "protocol/playbook-host/v2/README.md",
+      "bytes": 1733,
+      "sha256": "e02faad292be47b5868fd064d66f7e0d6e7403377480d491a31b008f2ffdb8e6"
+    },
+    {
+      "path": "protocol/playbook-host/v2/registry.json",
+      "bytes": 39912,
+      "sha256": "47d83f91473e187b6d986c44be189a9e5af18e42740df74f28fd8629abf5d60a"
+    },
+    {
+      "path": "vendor/aq-playbooks-source-0.1.2.json",
+      "bytes": 57993,
+      "sha256": "d4c8554298bcf37ee9a1b97a4cc8ace957d58fd22a5828f608f290735a4cbd2b"
+    }
+  ],
+  "logs": {
+    "server-tests": {
+      "path": "docs/implementation/evidence/aq14-state25-514c014/server-tests.log",
+      "sha256": "ea0a356abaa591e043ff2fdff60a976c9376415f8f8c8ddd20d3b995009bef5c"
+    },
+    "startup-tests": {
+      "path": "docs/implementation/evidence/aq14-state25-514c014/startup-tests.log",
+      "sha256": "42b53660a4fdab65a5bf31c091d0baf6b25cc7c08c0ae8df93ed8494f7131d43"
+    },
+    "server-clippy": {
+      "path": "docs/implementation/evidence/aq14-state25-514c014/server-clippy.log",
+      "sha256": "36fc4658bd00755568a0f39274b8270d56b3750744f4f062eee2966653b61672"
+    },
+    "host-clippy": {
+      "path": "docs/implementation/evidence/aq14-state25-514c014/host-clippy.log",
+      "sha256": "5fcc7be74fc94f5f7763ff4663cc1ec6971dad7f09acf747346e5b7d448da5ca"
+    },
+    "format": {
+      "path": "docs/implementation/evidence/aq14-state25-514c014/format.log",
+      "sha256": "b824e2451dcbd841cb7c09e691a4316fe911de2522b1bafea8968715a783bcae"
+    },
+    "vendor": {
+      "path": "docs/implementation/evidence/aq14-state25-514c014/vendor.log",
+      "sha256": "168384fb1e0653c7c94182c265e4630ab09f47d832c9ffe879db9cd3f2e03079"
+    },
+    "development-startup-compile-error": {
+      "path": "docs/implementation/evidence/aq14-state25-514c014/development-startup-compile-error.log",
+      "sha256": "52963b870f0e434cd13041cfdaec98b49a8faca88323be29a1662fa2e487b7cc"
+    }
+  },
+  "remaining_blockers": [
+    "Ordered026 startup/upgrade and metadata qualification before registration.",
+    "Production protected namespace/config/TLS/startup/shutdown and bounded owner-drive wiring remains absent.",
+    "Real native result/current public-Git review workflow is not qualified by synthetic component fixtures.",
+    "Executed checks, richer late-attempt audit, B2 settlement and PB04 performance gates remain open."
+  ]
+}
