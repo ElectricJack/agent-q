@@ -20,6 +20,7 @@ pub struct Admission {
     control: Semaphore,
     general: Semaphore,
     bulk: Semaphore,
+    notification: Semaphore,
 }
 impl Default for Admission {
     fn default() -> Self {
@@ -27,6 +28,7 @@ impl Default for Admission {
             control: Semaphore::new(CONTROL_LIMIT),
             general: Semaphore::new(GENERAL_LIMIT),
             bulk: Semaphore::new(BULK_LIMIT),
+            notification: Semaphore::new(4),
         }
     }
 }
@@ -35,6 +37,7 @@ pub enum Class {
     Control,
     General,
     Bulk,
+    Notification,
 }
 pub(crate) fn execution_cancel_path(path: &str) -> bool {
     path.strip_prefix("/api/execution/attempts/")
@@ -47,6 +50,9 @@ pub(crate) fn agent_revoke_path(path: &str) -> bool {
         .is_some_and(|id| uuid::Uuid::parse_str(id).is_ok())
 }
 pub fn classify(path: &str) -> Class {
+    if path == "/api/notifications" || path.starts_with("/api/notifications/") {
+        return Class::Notification;
+    }
     if path == "/v1/execution/sources/status" {
         return Class::Control;
     }
@@ -131,6 +137,7 @@ pub async fn gate(
         Class::Control => (&admission.control, Duration::from_secs(5)),
         Class::General => (&admission.general, Duration::from_secs(15)),
         Class::Bulk => (&admission.bulk, Duration::from_secs(30)),
+        Class::Notification => (&admission.notification, Duration::from_secs(10)),
     };
     let Ok(_permit) = slots.try_acquire() else {
         return busy(

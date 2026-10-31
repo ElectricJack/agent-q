@@ -11,6 +11,11 @@ const SUPPORTED_FORMAT_VERSION: u32 = 1;
 pub struct Config {
     #[serde(
         default,
+        deserialize_with = "crate::notifications::config::deserialize"
+    )]
+    pub notifications: Option<std::sync::Arc<crate::notifications::config::Loaded>>,
+    #[serde(
+        default,
         deserialize_with = "crate::intelligence::config::deserialize_registry"
     )]
     pub intelligence: Option<std::sync::Arc<crate::intelligence::config::LoadedRegistry>>,
@@ -269,6 +274,7 @@ mod tests {
 
     fn cfg(env: Environment, dev: bool) -> Config {
         Config {
+            notifications: None,
             format_version: 1,
             environment: env,
             server: ServerConfig {

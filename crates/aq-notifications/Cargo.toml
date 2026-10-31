@@ -1,0 +1,22 @@
+[package]
+name = "aq-notifications"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+test-support = []
+
+[dependencies]
+aq-lifecycle-api = { path = "../aq-lifecycle-api", version = "=0.1.0" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+thiserror = "2"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio = { version = "1", features = ["time", "sync"] }
+
+[dev-dependencies]
+aq-notifications = { path = ".", features = ["test-support"] }
+axum = "0.8"
+tokio = { version = "1", features = ["full"] }

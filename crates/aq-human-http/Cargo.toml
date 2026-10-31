@@ -1,0 +1,20 @@
+[package]
+name = "aq-human-http"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[features]
+loopback-development = []
+
+[dependencies]
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+nix.workspace = true
+zeroize = "1"
+
+[dev-dependencies]
+tokio.workspace = true
+tempfile.workspace = true

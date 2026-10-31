@@ -7,6 +7,7 @@ pub mod error;
 pub mod execution;
 pub mod identity;
 pub mod intelligence;
+pub mod notifications;
 pub mod profile_catalog;
 pub mod project_bindings;
 pub mod readiness;
@@ -121,6 +122,7 @@ async fn method_not_allowed() -> Response {
 pub fn build_admin_router(state: AppState) -> Router {
     Router::new()
         .merge(admin_api::admin_routes())
+        .merge(notifications::api::routes(state.clone()))
         .merge(profile_catalog::admin_routes())
         .merge(project_bindings::admin_routes())
         .merge(intelligence::admin_routes())
