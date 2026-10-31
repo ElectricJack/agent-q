@@ -1,0 +1,1746 @@
+{
+  "fixture": "execution",
+  "project": "aq-product-22be97f198d2",
+  "started_at": "2026-10-31T03:52:52.902389+00:00",
+  "commands": [
+    {
+      "command": [
+        "docker",
+        "build",
+        "--target",
+        "server",
+        "--build-arg",
+        "AQ_SOURCE_REVISION=dev-c9bae805fa3a284d19d3c0ab",
+        "--build-arg",
+        "AQ_STATE_FORMAT=4",
+        "-t",
+        "aq-product-22be97f198d2-server:candidate",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source"
+      ],
+      "started_at": "2026-10-31T03:52:53.015747+00:00",
+      "finished_at": "2026-10-31T03:53:15.742650+00:00",
+      "exit_code": 0,
+      "log": "build-server.log"
+    },
+    {
+      "command": [
+        "docker",
+        "build",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/Dockerfile.worker",
+        "--target",
+        "worker",
+        "--build-arg",
+        "AQ_SOURCE_REVISION=3fb2bcb2f63f73838ddd97e44580fe721a539bdd",
+        "--build-arg",
+        "AQ_WORKER_ARCHIVE_SHA256=ed33076d62d37884cab04f1206d1fda3dd5e06181ddb1ccdebec58fda789b535",
+        "--build-arg",
+        "AQ_VERSION=0.3.1",
+        "--build-arg",
+        "AQ_STATE_FORMAT=4",
+        "-t",
+        "aq-product-22be97f198d2-worker:candidate",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source"
+      ],
+      "started_at": "2026-10-31T03:53:15.742879+00:00",
+      "finished_at": "2026-10-31T03:53:51.287399+00:00",
+      "exit_code": 0,
+      "log": "build-worker.log"
+    },
+    {
+      "command": [
+        "docker",
+        "image",
+        "inspect",
+        "aq-product-22be97f198d2-server:candidate",
+        "aq-product-22be97f198d2-worker:candidate"
+      ],
+      "started_at": "2026-10-31T03:53:51.287622+00:00",
+      "finished_at": "2026-10-31T03:53:51.322661+00:00",
+      "exit_code": 0,
+      "log": "image-identities.log"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--entrypoint",
+        "cat",
+        "aq-product-22be97f198d2-worker:candidate",
+        "/usr/share/agent-q/worker-candidate.json"
+      ],
+      "started_at": "2026-10-31T03:53:51.322870+00:00",
+      "finished_at": "2026-10-31T03:53:51.823963+00:00",
+      "exit_code": 0,
+      "log": "worker-provenance.log"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "aq-product-22be97f198d2-worker:candidate",
+        "--version"
+      ],
+      "started_at": "2026-10-31T03:53:51.824267+00:00",
+      "finished_at": "2026-10-31T03:53:52.340418+00:00",
+      "exit_code": 0,
+      "log": "worker-version.log"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "aq-product-22be97f198d2-worker:candidate",
+        "run-execution",
+        "--help"
+      ],
+      "started_at": "2026-10-31T03:53:52.340686+00:00",
+      "finished_at": "2026-10-31T03:53:52.946326+00:00",
+      "exit_code": 0,
+      "log": "worker-execution-cli.log"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--entrypoint",
+        "sha256sum",
+        "aq-product-22be97f198d2-worker:candidate",
+        "/usr/local/bin/aq-worker",
+        "/usr/local/bin/aq-fixture-agent"
+      ],
+      "started_at": "2026-10-31T03:53:52.946692+00:00",
+      "finished_at": "2026-10-31T03:53:53.596773+00:00",
+      "exit_code": 0,
+      "log": "worker-binary-identities.log"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--entrypoint",
+        "cat",
+        "aq-product-22be97f198d2-server:candidate",
+        "/usr/share/agent-q/git-candidate.json"
+      ],
+      "started_at": "2026-10-31T03:53:53.597090+00:00",
+      "finished_at": "2026-10-31T03:53:54.323270+00:00",
+      "exit_code": 0,
+      "log": "server-git-provenance.log"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--entrypoint",
+        "/usr/bin/git",
+        "aq-product-22be97f198d2-server:candidate",
+        "--version"
+      ],
+      "started_at": "2026-10-31T03:53:54.323610+00:00",
+      "finished_at": "2026-10-31T03:53:55.269666+00:00",
+      "exit_code": 0,
+      "log": "server-git-version.log"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--entrypoint",
+        "aq-git",
+        "aq-product-22be97f198d2-server:candidate",
+        "--state-dir",
+        "/tmp/aq-git-smoke",
+        "--json",
+        "capabilities"
+      ],
+      "started_at": "2026-10-31T03:53:55.269971+00:00",
+      "finished_at": "2026-10-31T03:53:56.524302+00:00",
+      "exit_code": 0,
+      "log": "server-git-capabilities.log"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--entrypoint",
+        "sha256sum",
+        "aq-product-22be97f198d2-server:candidate",
+        "/usr/local/bin/aq-git",
+        "/opt/aq-git-runtime/bin/git"
+      ],
+      "started_at": "2026-10-31T03:53:56.524655+00:00",
+      "finished_at": "2026-10-31T03:53:58.063406+00:00",
+      "exit_code": 0,
+      "log": "server-git-binary-identities.log"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--entrypoint",
+        "cat",
+        "aq-product-22be97f198d2-worker:candidate",
+        "/usr/share/agent-q/git-candidate.json"
+      ],
+      "started_at": "2026-10-31T03:53:58.064703+00:00",
+      "finished_at": "2026-10-31T03:53:59.699547+00:00",
+      "exit_code": 0,
+      "log": "worker-git-provenance.log"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--entrypoint",
+        "/usr/bin/git",
+        "aq-product-22be97f198d2-worker:candidate",
+        "--version"
+      ],
+      "started_at": "2026-10-31T03:53:59.699812+00:00",
+      "finished_at": "2026-10-31T03:54:01.258546+00:00",
+      "exit_code": 0,
+      "log": "worker-git-version.log"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--entrypoint",
+        "aq-git",
+        "aq-product-22be97f198d2-worker:candidate",
+        "--state-dir",
+        "/tmp/aq-git-smoke",
+        "--json",
+        "capabilities"
+      ],
+      "started_at": "2026-10-31T03:54:01.258803+00:00",
+      "finished_at": "2026-10-31T03:54:02.979420+00:00",
+      "exit_code": 0,
+      "log": "worker-git-capabilities.log"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--entrypoint",
+        "sha256sum",
+        "aq-product-22be97f198d2-worker:candidate",
+        "/usr/local/bin/aq-git",
+        "/opt/aq-git-runtime/bin/git"
+      ],
+      "started_at": "2026-10-31T03:54:02.979753+00:00",
+      "finished_at": "2026-10-31T03:54:04.744610+00:00",
+      "exit_code": 0,
+      "log": "worker-git-binary-identities.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "up",
+        "-d",
+        "--no-build",
+        "--wait",
+        "--wait-timeout",
+        "120",
+        "server"
+      ],
+      "started_at": "2026-10-31T03:54:04.749795+00:00",
+      "finished_at": "2026-10-31T03:54:19.562949+00:00",
+      "exit_code": 0,
+      "log": "start-server.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "port",
+        "server",
+        "8080"
+      ],
+      "started_at": "2026-10-31T03:54:19.563209+00:00",
+      "finished_at": "2026-10-31T03:54:19.644800+00:00",
+      "exit_code": 0,
+      "log": "address-8080.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "port",
+        "server",
+        "8081"
+      ],
+      "started_at": "2026-10-31T03:54:19.645061+00:00",
+      "finished_at": "2026-10-31T03:54:19.726002+00:00",
+      "exit_code": 0,
+      "log": "address-8081.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "images",
+        "--format",
+        "json"
+      ],
+      "started_at": "2026-10-31T03:54:19.743370+00:00",
+      "finished_at": "2026-10-31T03:54:19.852538+00:00",
+      "exit_code": 0,
+      "log": "compose-images.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "run",
+        "--rm",
+        "-T",
+        "--no-deps",
+        "worker",
+        "enroll",
+        "--server",
+        "http://server:8081",
+        "--name",
+        "smoke"
+      ],
+      "started_at": "2026-10-31T03:54:19.867376+00:00",
+      "finished_at": "2026-10-31T03:54:20.657325+00:00",
+      "exit_code": 0,
+      "log": "enroll.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "up",
+        "-d",
+        "--no-build",
+        "worker"
+      ],
+      "started_at": "2026-10-31T03:54:20.657540+00:00",
+      "finished_at": "2026-10-31T03:54:21.210143+00:00",
+      "exit_code": 0,
+      "log": "start-worker.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "ps",
+        "-q",
+        "worker"
+      ],
+      "started_at": "2026-10-31T03:54:21.210507+00:00",
+      "finished_at": "2026-10-31T03:54:21.360988+00:00",
+      "exit_code": 0,
+      "log": "heartbeat-container.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "exec",
+        "-T",
+        "worker",
+        "cat",
+        "/config/agent-q/worker.toml"
+      ],
+      "started_at": "2026-10-31T03:54:21.364689+00:00",
+      "finished_at": "2026-10-31T03:54:21.601473+00:00",
+      "exit_code": 0,
+      "log": null
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "restart",
+        "server",
+        "postgres"
+      ],
+      "started_at": "2026-10-31T03:54:21.609599+00:00",
+      "finished_at": "2026-10-31T03:54:23.126648+00:00",
+      "exit_code": 0,
+      "log": "restart.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "port",
+        "server",
+        "8080"
+      ],
+      "started_at": "2026-10-31T03:54:23.127040+00:00",
+      "finished_at": "2026-10-31T03:54:23.255724+00:00",
+      "exit_code": 0,
+      "log": "address-8080.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "port",
+        "server",
+        "8081"
+      ],
+      "started_at": "2026-10-31T03:54:23.256009+00:00",
+      "finished_at": "2026-10-31T03:54:23.366454+00:00",
+      "exit_code": 0,
+      "log": "address-8081.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "exec",
+        "-T",
+        "worker",
+        "cat",
+        "/config/agent-q/worker.toml"
+      ],
+      "started_at": "2026-10-31T03:54:36.485882+00:00",
+      "finished_at": "2026-10-31T03:54:36.745005+00:00",
+      "exit_code": 0,
+      "log": null
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "run",
+        "-d",
+        "--no-deps",
+        "--name",
+        "aq-product-22be97f198d2-execution",
+        "-e",
+        "AQ_FIXTURE_HOLD=1",
+        "worker",
+        "run-execution",
+        "--state-dir",
+        "/state/runtime",
+        "--fixture-agent",
+        "/usr/local/bin/aq-fixture-agent",
+        "--idle-timeout-secs",
+        "90",
+        "--exit-after-result",
+        "--drop-acceptance-response-once",
+        "--drop-report-response-once"
+      ],
+      "started_at": "2026-10-31T03:54:36.745126+00:00",
+      "finished_at": "2026-10-31T03:54:37.360943+00:00",
+      "exit_code": 0,
+      "log": "start-execution.log"
+    },
+    {
+      "command": [
+        "docker",
+        "logs",
+        "aq-product-22be97f198d2-execution"
+      ],
+      "started_at": "2026-10-31T03:54:37.361148+00:00",
+      "finished_at": "2026-10-31T03:54:37.415069+00:00",
+      "exit_code": 0,
+      "log": "execution-log.log"
+    },
+    {
+      "command": [
+        "docker",
+        "pause",
+        "aq-product-22be97f198d2-execution"
+      ],
+      "started_at": "2026-10-31T03:54:37.415514+00:00",
+      "finished_at": "2026-10-31T03:54:37.482434+00:00",
+      "exit_code": 0,
+      "log": "pause-before-offers.log"
+    },
+    {
+      "command": [
+        "docker",
+        "unpause",
+        "aq-product-22be97f198d2-execution"
+      ],
+      "started_at": "2026-10-31T03:54:37.504365+00:00",
+      "finished_at": "2026-10-31T03:54:37.564358+00:00",
+      "exit_code": 0,
+      "log": "unpause-after-offers.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "run",
+        "--rm",
+        "-T",
+        "--no-deps",
+        "--entrypoint",
+        "sh",
+        "worker",
+        "-ec",
+        "find /state/runtime/launches -name started.claim -print"
+      ],
+      "started_at": "2026-10-31T03:54:37.564656+00:00",
+      "finished_at": "2026-10-31T03:54:38.504765+00:00",
+      "exit_code": 0,
+      "log": "launch-claim.log"
+    },
+    {
+      "command": [
+        "docker",
+        "exec",
+        "aq-product-22be97f198d2-execution",
+        "touch",
+        "/state/runtime/launches/c218dc77-9cab-4cf9-b51d-8d5d3bc1d599/release"
+      ],
+      "started_at": "2026-10-31T03:54:38.505233+00:00",
+      "finished_at": "2026-10-31T03:54:38.681924+00:00",
+      "exit_code": 0,
+      "log": "release-fixture.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "aq-product-22be97f198d2-execution"
+      ],
+      "started_at": "2026-10-31T03:54:38.682227+00:00",
+      "finished_at": "2026-10-31T03:54:38.761788+00:00",
+      "exit_code": 0,
+      "log": "execution-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "aq-product-22be97f198d2-execution"
+      ],
+      "started_at": "2026-10-31T03:54:39.262206+00:00",
+      "finished_at": "2026-10-31T03:54:39.305350+00:00",
+      "exit_code": 0,
+      "log": "execution-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "logs",
+        "aq-product-22be97f198d2-execution"
+      ],
+      "started_at": "2026-10-31T03:54:39.305664+00:00",
+      "finished_at": "2026-10-31T03:54:39.376045+00:00",
+      "exit_code": 0,
+      "log": "execution-log.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "run",
+        "--rm",
+        "-T",
+        "--no-deps",
+        "--entrypoint",
+        "cat",
+        "worker",
+        "/state/runtime/journal.json"
+      ],
+      "started_at": "2026-10-31T03:54:39.380748+00:00",
+      "finished_at": "2026-10-31T03:54:40.463411+00:00",
+      "exit_code": 0,
+      "log": "execution-journal.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "restart",
+        "server"
+      ],
+      "started_at": "2026-10-31T03:54:40.467108+00:00",
+      "finished_at": "2026-10-31T03:54:41.780453+00:00",
+      "exit_code": 0,
+      "log": "restart-after-result.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "port",
+        "server",
+        "8080"
+      ],
+      "started_at": "2026-10-31T03:54:41.780752+00:00",
+      "finished_at": "2026-10-31T03:54:41.900503+00:00",
+      "exit_code": 0,
+      "log": "address-8080.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "port",
+        "server",
+        "8081"
+      ],
+      "started_at": "2026-10-31T03:54:41.900851+00:00",
+      "finished_at": "2026-10-31T03:54:42.009813+00:00",
+      "exit_code": 0,
+      "log": "address-8081.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:42.039628+00:00",
+      "finished_at": "2026-10-31T03:54:42.111913+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:42.612352+00:00",
+      "finished_at": "2026-10-31T03:54:42.687512+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:43.188108+00:00",
+      "finished_at": "2026-10-31T03:54:43.261482+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:43.761914+00:00",
+      "finished_at": "2026-10-31T03:54:43.811294+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:44.311745+00:00",
+      "finished_at": "2026-10-31T03:54:44.348863+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:44.849250+00:00",
+      "finished_at": "2026-10-31T03:54:44.907757+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:45.408288+00:00",
+      "finished_at": "2026-10-31T03:54:45.451652+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:45.952068+00:00",
+      "finished_at": "2026-10-31T03:54:46.003014+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:46.503429+00:00",
+      "finished_at": "2026-10-31T03:54:46.576534+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:47.076994+00:00",
+      "finished_at": "2026-10-31T03:54:47.129900+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:47.630350+00:00",
+      "finished_at": "2026-10-31T03:54:47.691256+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:48.191729+00:00",
+      "finished_at": "2026-10-31T03:54:48.236826+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:48.737320+00:00",
+      "finished_at": "2026-10-31T03:54:48.795839+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:49.296389+00:00",
+      "finished_at": "2026-10-31T03:54:49.343831+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:49.844215+00:00",
+      "finished_at": "2026-10-31T03:54:49.879219+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:50.379738+00:00",
+      "finished_at": "2026-10-31T03:54:50.423769+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:50.924210+00:00",
+      "finished_at": "2026-10-31T03:54:50.972116+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "inspect",
+        "--format",
+        "{{json .State}}",
+        "39c38ca84fb414b704653b51956e5c87beedf38e2764527fde2bbd126a8212a2"
+      ],
+      "started_at": "2026-10-31T03:54:51.472581+00:00",
+      "finished_at": "2026-10-31T03:54:51.545182+00:00",
+      "exit_code": 0,
+      "log": "revoked-worker-state.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "logs",
+        "--no-color",
+        "--tail",
+        "100"
+      ],
+      "started_at": "2026-10-31T03:54:51.545477+00:00",
+      "finished_at": "2026-10-31T03:54:51.728913+00:00",
+      "exit_code": 0,
+      "log": "stack-logs.log"
+    },
+    {
+      "command": [
+        "docker",
+        "compose",
+        "-p",
+        "aq-product-22be97f198d2",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/source/compose.yaml",
+        "-f",
+        "/tmp/aq-product-22be97f198d2-gkonqn7n/compose.smoke.json",
+        "down",
+        "-v",
+        "--remove-orphans"
+      ],
+      "started_at": "2026-10-31T03:54:51.729281+00:00",
+      "finished_at": "2026-10-31T03:54:54.442362+00:00",
+      "exit_code": 0,
+      "log": "teardown.log"
+    },
+    {
+      "command": [
+        "docker",
+        "rm",
+        "-fv",
+        "aq-product-22be97f198d2-execution"
+      ],
+      "started_at": "2026-10-31T03:54:54.442621+00:00",
+      "finished_at": "2026-10-31T03:54:54.481091+00:00",
+      "exit_code": 0,
+      "log": "runtime-teardown.log"
+    },
+    {
+      "command": [
+        "docker",
+        "ps",
+        "-aq",
+        "--filter",
+        "label=com.docker.compose.project=aq-product-22be97f198d2"
+      ],
+      "started_at": "2026-10-31T03:54:54.481338+00:00",
+      "finished_at": "2026-10-31T03:54:54.529372+00:00",
+      "exit_code": 0,
+      "log": "remaining-containers.log"
+    },
+    {
+      "command": [
+        "docker",
+        "ps",
+        "-aq",
+        "--filter",
+        "label=com.docker.compose.project=aq-product-22be97f198d2"
+      ],
+      "started_at": "2026-10-31T03:54:54.529567+00:00",
+      "finished_at": "2026-10-31T03:54:54.578478+00:00",
+      "exit_code": 0,
+      "log": "verified-containers.log"
+    },
+    {
+      "command": [
+        "docker",
+        "volume",
+        "ls",
+        "-q",
+        "--filter",
+        "label=com.docker.compose.project=aq-product-22be97f198d2"
+      ],
+      "started_at": "2026-10-31T03:54:54.578669+00:00",
+      "finished_at": "2026-10-31T03:54:54.610601+00:00",
+      "exit_code": 0,
+      "log": "remaining-volumes.log"
+    },
+    {
+      "command": [
+        "docker",
+        "volume",
+        "ls",
+        "-q",
+        "--filter",
+        "label=com.docker.compose.project=aq-product-22be97f198d2"
+      ],
+      "started_at": "2026-10-31T03:54:54.610897+00:00",
+      "finished_at": "2026-10-31T03:54:54.642906+00:00",
+      "exit_code": 0,
+      "log": "verified-volumes.log"
+    },
+    {
+      "command": [
+        "docker",
+        "network",
+        "ls",
+        "-q",
+        "--filter",
+        "label=com.docker.compose.project=aq-product-22be97f198d2"
+      ],
+      "started_at": "2026-10-31T03:54:54.643151+00:00",
+      "finished_at": "2026-10-31T03:54:54.682443+00:00",
+      "exit_code": 0,
+      "log": "remaining-networks.log"
+    },
+    {
+      "command": [
+        "docker",
+        "network",
+        "ls",
+        "-q",
+        "--filter",
+        "label=com.docker.compose.project=aq-product-22be97f198d2"
+      ],
+      "started_at": "2026-10-31T03:54:54.682630+00:00",
+      "finished_at": "2026-10-31T03:54:54.729615+00:00",
+      "exit_code": 0,
+      "log": "verified-networks.log"
+    },
+    {
+      "command": [
+        "docker",
+        "image",
+        "rm",
+        "aq-product-22be97f198d2-server:candidate",
+        "aq-product-22be97f198d2-worker:candidate"
+      ],
+      "started_at": "2026-10-31T03:54:54.729897+00:00",
+      "finished_at": "2026-10-31T03:54:54.818189+00:00",
+      "exit_code": 0,
+      "log": "image-teardown.log"
+    }
+  ],
+  "scope": "local candidate; no hosted acceptance",
+  "worker_candidate": {
+    "candidate_format": 1,
+    "source_repository": "aq-worker",
+    "source_revision": "3fb2bcb2f63f73838ddd97e44580fe721a539bdd",
+    "version": "0.3.1",
+    "archive": "aq-worker-source.tar.gz",
+    "archive_sha256": "ed33076d62d37884cab04f1206d1fda3dd5e06181ddb1ccdebec58fda789b535",
+    "lockfile_sha256": "8df379105458d4ecdd10929edf9eecbf62b61c6b7787f5b46c05c435dcc6e830",
+    "foundation_protocol": 1,
+    "execution_protocol": 2,
+    "worker_journal_format": 3,
+    "distribution": "Immutable local integration source candidate; not a published or hosted release. Builds require no sibling source checkout."
+  },
+  "source_inventory": {
+    ".dockerignore": "c1e02fed3df19835364350d14f94a58ac73badbe98f048b572c6ed7036e8daaf",
+    "Cargo.lock": "ab0e2ede23635bb24e849fb4d806c1ccd49ab9aabb8eb0ef2ed2dfebfcf56e3c",
+    "Cargo.toml": "354cec5f3fdcb97ed9a4272c6623c5ab5b3019fc2bf6a124a6fb792e393d31b0",
+    "Dockerfile": "296a3bdebfc3881526a9a51131aacd170e46f9c16acdabedbf54467bda431261",
+    "Dockerfile.worker": "04595df9674ac603899ed72b7b42b01341771d589be858ddd7633d8379f6fba9",
+    "compose.yaml": "1be66ea68d1876c1e46b28fe9babbd9dc6ceefbdc5f58938f9a3f182d811c46c",
+    "crates/aq-release/Cargo.toml": "737f2993b536dd6f76b272626f4f28a4ccda9c0d72ac0df4067ec254b32efd12",
+    "crates/aq-release/src/lib.rs": "cee5f853c5985f675acf359b317a6a79ff57df4f44e43c1c19e4a40a1d1ed1a7",
+    "crates/aq-release/src/manifest.rs": "3ab2237897e58c12c376f2e17ae8100eaf026764b7d3f2fec6edb96a327d8352",
+    "crates/aq-release/src/spool.rs": "f73afd6922feae7826152fa021185aa586a1e89e7133e7139d6dd62ce10397b8",
+    "crates/aq-release/tests/manifest.rs": "03acfba5ab1ea9e3c7bf4a34389be5d8fec5a1cac74832fbc972054d3b4c26f7",
+    "crates/aq-release/tests/spool.rs": "2b8729a890aeba5b210e828cc0df496e7e179fd16af7d5cdddd1e3d6f9e9219c",
+    "crates/aq-server/Cargo.toml": "1637ddca12afbfe2d5c80e8ce5df871ff198e8e3d4502dd92122f9cc5636257f",
+    "crates/aq-server/migrations/0001_foundation.sql": "2ac1359cde1cebfbe9b94de1dc91c67d7277f04e723081ae0f98b69d93be3715",
+    "crates/aq-server/migrations/0002_execution.sql": "e52191473cf6eca5b5b8e81662873f25dc9eb80967e11d5a8d7b390c583e34ed",
+    "crates/aq-server/migrations/0003_agent_access.sql": "863cfa9e1bf91d863452a9f473c26612e2d4e9d71cfcc42a4727682b6bde77d3",
+    "crates/aq-server/migrations/0004_source_retention.sql": "54a00da384fa810f01060cd04bf0b3cb9b30c52a32d4fc370e7697ef30d77606",
+    "crates/aq-server/src/admin_api.rs": "bb7081f926c331574c96d2c4ead201843e06068772ff401b010fc6c4c418ddde",
+    "crates/aq-server/src/admission.rs": "35700089af70a1c96287dd1abc169bf4ecd3290fb3e190806ec540ab4811d6d1",
+    "crates/aq-server/src/agent_access/contract.rs": "df6ebb4f2c22db23aa188790843cb6bf2216f1b1835fb70405559e747bad6781",
+    "crates/aq-server/src/agent_access/graph.rs": "cccd89adaa1f39f0ec8fbbf3ae783beb2cb39c9242b0da792c2dd8a4d70aa801",
+    "crates/aq-server/src/agent_access.rs": "530a15c32d02d82c0abd1436c19cb0c69d1a6815ef7233e3c17081e720e96606",
+    "crates/aq-server/src/authz.rs": "4a51f29ab06b64b4b5c5739e86966cd9dcdbddbd9256e2b8ddc1b71d9dcb2a57",
+    "crates/aq-server/src/config.rs": "1025f3ed6c867f9088786d26a628592a443304ddd1a6337abed6a9940126f31e",
+    "crates/aq-server/src/error.rs": "630e3f85d70ad68aed679d3e2356dc0827f4dbd6202a1ba5f48b452b1f895e1a",
+    "crates/aq-server/src/execution/api.rs": "7d7f2d24893402c771113f9775f7f5c0be7d7d94d68928fa7f70d1524e471fcc",
+    "crates/aq-server/src/execution/testing.rs": "0f9044c5f4cdf6add95c93df519369caf5f4ab9acc60eb4fd1a3f5ea08585f65",
+    "crates/aq-server/src/execution.rs": "b628822e38cedb022c5f02d4fa61e3a7d31805583844b3366270ee936f579a77",
+    "crates/aq-server/src/identity/cloudflare.rs": "c58339fcdd9157624060fe2eb311fa2f3c9bd0f011baf36808359cddf09aeb43",
+    "crates/aq-server/src/identity/dev.rs": "c80ef43905057a914ff67769585412366e8c78a655d03c432d059d38cce79053",
+    "crates/aq-server/src/identity/mod.rs": "562e0867e0e3cacc6d7fb67d190d5d1cb156d5d80bfda4bbe0b65126aff1eebe",
+    "crates/aq-server/src/lib.rs": "df55bb9c9b320bfbd14b97e97aad0d17d67b22798cc16d3cc9bf85623f2b8125",
+    "crates/aq-server/src/main.rs": "6429139099c2b19ef0218c9c83aef03a896f49db8a868e3dd4f4712b9c5d8c38",
+    "crates/aq-server/src/readiness.rs": "b9aba4d36137fcbff140303f4cbeda71b8dea5f6e581ab961b03402c5b0437c1",
+    "crates/aq-server/src/source_retention.rs": "8cce1e006af8cefa88547591750f25dd44ae0e3ccd65cc48475fbf2492577c66",
+    "crates/aq-server/src/store.rs": "0f7948904a81e1809c235a77bf91a2abb216642b141c2e0ced456029fe62df47",
+    "crates/aq-server/src/test_support.rs": "1382c32ecdfae94c228ec71437b2c133985e0e47a71f49a9ec752d3ca173860c",
+    "crates/aq-server/src/tokens.rs": "725491872bd17ecf587fb49ddfdf8d9dc28b34df9f2e28b49676a301176c4c41",
+    "crates/aq-server/src/updates.rs": "53c331a370bcdced977f542c3203ef2ab58a1d9f5b1c30b223559adffc4bda0d",
+    "crates/aq-server/src/worker_api.rs": "74b4dc20e9be83c272dc29fde179fe4a7c9985dc5c6c50ec8b1b5184c5a05a9c",
+    "crates/aq-server/tests/agent_access.rs": "04192ee44ee55db602ee1ef281f9ce5816d16fa2a8dc51bb0c994d7e67a7d17c",
+    "crates/aq-server/tests/authz.rs": "782a1d3fac7c7dee4799a02537e8c29cd07daa006395934383281a8044650c51",
+    "crates/aq-server/tests/cli.rs": "f9f6378bf2d151effd411eecc59ba9f32e75a61592e41e712069febe1b6a84db",
+    "crates/aq-server/tests/common/mod.rs": "64d84a2c5949a14e27019e263a63f82cd60dd3505998d390d0d07ea525e15ade",
+    "crates/aq-server/tests/config.rs": "138576b25509e384581ad48815b64897504cdbc3c98108f0c21ba2f9260e8edd",
+    "crates/aq-server/tests/enrollment.rs": "73f232d7de4976398f805ca832b2672c647d52da9e2af761149e7f1b7c2eb3ce",
+    "crates/aq-server/tests/execution.rs": "58907b551e7eff0182fdfcc88c05d26d75f29644812ec9bc26496d0f38dd9f71",
+    "crates/aq-server/tests/health.rs": "445c3dd3778121cea48a2c7709f3935ac36553154f7ec4063182fc70f5f7c9c3",
+    "crates/aq-server/tests/identity.rs": "5e73a7a3a791eede5e79ea68b571806250e521e4bd1e4ba2761736dc0200a29c",
+    "crates/aq-server/tests/readiness.rs": "7760e16aa0aa00a78a4078abe088d4c94357e753a1bb342f967ccc3f03ef9fb5",
+    "crates/aq-server/tests/source_retention.rs": "356f7ea78f4bd3ceb91e4e50f8c53ab6c6f4ba3dc58b12380ff617513b6ae5d0",
+    "crates/aq-server/tests/store.rs": "47edce8d7e64d14aadaff8ce8e166aac2f1ebd8876c0a779d50467fad4f1d568",
+    "crates/aq-server/tests/updates.rs": "d0bad97752f7363828cae4f8d22da565e2e101f46bbfac664a8c6ef5e037da70",
+    "crates/aq-server/tests/worker_api.rs": "041a7e97caf15797c28433098172aea20fd44a18964049085b43b25bf6a08698",
+    "crates/aq-updater/Cargo.toml": "faa56c0d4deafbeb64207218eeb81bf4c658cd7e543d0fe84e7cc1f9811e7e64",
+    "crates/aq-updater/src/config.rs": "c89786c706f2f7b04cec2bc8b5cdb2e8f890f4ffff90e7c814c1c1e8911cfc41",
+    "crates/aq-updater/src/engine.rs": "0841ec62174f25d228652a2caff58c07ca9caf5973a16538bcfa0d89dcce33b9",
+    "crates/aq-updater/src/journal.rs": "f32f577355e1e584815952dc62b0f20d4a967711558058e1f6597c9cb02d8f37",
+    "crates/aq-updater/src/lib.rs": "237f2a5f55794169ce85325e9dd8b7844aec2f2cec47e901056c9b91eafb5eb4",
+    "crates/aq-updater/src/main.rs": "a2a282928f7773c0886bb4d111dcdc48f05b4e7968e87b0e60753c79ff30b2ae",
+    "crates/aq-updater/src/runtime.rs": "da43023596289a1107ae6473a49129bfe13c28c18a7c4824507ca37b12d20c3d",
+    "crates/aq-updater/src/spool.rs": "f05c19c04b06ceca02b5e2f6ecc689049a2202283633dd37fb31797994903c37",
+    "crates/aq-updater/src/verify.rs": "f6966a7372bd2b848cd4bc5c7b318e8cefd4c724a66ce1b1d11c68c9a98025b5",
+    "crates/aq-updater/tests/cli.rs": "31d055546ee2c954713bd8c1f357cbb3a3cd73fcc80310dca8da26c8d8e7967e",
+    "crates/aq-updater/tests/common/fake_runtime.rs": "ee36b2d2623d0ed02bac84f399d276dc6624d3b7db20395e2027ae57bbacf172",
+    "crates/aq-updater/tests/common/mod.rs": "f29bd99d188bf232f82d0c3c76b5ee000588b626a97ba953505712d2458f647d",
+    "crates/aq-updater/tests/config.rs": "b087500c0660ff61d399d07f056cfdcc39a2b62fdee675ebe3dda34cc762c027",
+    "crates/aq-updater/tests/engine.rs": "870dc139e8e56b475a565e219b8eb83cbb9b7d5187af6ef00c07ea7feba4bc7b",
+    "crates/aq-updater/tests/journal.rs": "7d1702333f2ea54a23a2ee83b8c097ff989bb801c820e2ec225ab58bf86e14c9",
+    "crates/aq-updater/tests/spool.rs": "9a58d43e8c3050f9955f5cde4c871c7c1348ebe8d0b23ca0b87499d8585686aa",
+    "protocol/agent-access/.gitignore": "e99f6ee4eb88882ea6589ecb717e10a41401763241b246b6821bc091cfe2227e",
+    "protocol/agent-access/v1/MANIFEST.json": "0d02dcf01b0929b5764b3e0de42456a63b4964be4a18aa0c49333ba9d079b5e0",
+    "protocol/agent-access/v1/README.md": "54ca5ee435392be24c91d55b327a1e574d2333bd0b432331a9946588201f4530",
+    "protocol/agent-access/v1/__pycache__/build_fixtures.cpython-312.pyc": "2bf2c1e876ee6deb3c8ee670cc2de7ae99c0c59a84eb71d6747971a3f33ce39b",
+    "protocol/agent-access/v1/__pycache__/client_types.cpython-312.pyc": "12381758bdab5059e4f9d6eefd987d2a309ec7380a80a1bee2b2885c8387286e",
+    "protocol/agent-access/v1/__pycache__/conformance_model.cpython-312.pyc": "8e1cbff0a0beecfccfd8535f19d8aa1ed75b169d1b1501d3423d26f30c42884a",
+    "protocol/agent-access/v1/__pycache__/generate.cpython-312.pyc": "132b1bfa5d5d12b6654f1c761bd92d91d3f6dab5ef8fae2fa93edfe97c9b4acd",
+    "protocol/agent-access/v1/__pycache__/test_conformance.cpython-312.pyc": "3deba77fd0778ae5daf05d287c9a8c2494eae83ef785f8e975ad032f17bb7290",
+    "protocol/agent-access/v1/__pycache__/types.cpython-312.pyc": "2c97f8c7c9992a1061c491d0d0e62ffc894a73c7c998c42b9047a66e9c11bf81",
+    "protocol/agent-access/v1/__pycache__/validate.cpython-312.pyc": "b0a3ce5abfd94c94317d78660bfa0fcc6b1a0a020aa42c21d4fce1c3afabaf9a",
+    "protocol/agent-access/v1/build_fixtures.py": "ecbb223536e72904124288879d0b0dc747206ca6b5893b32c79fdab4a5b6a902",
+    "protocol/agent-access/v1/capture_graph_fixture.py": "ca5d34d196e955c525b4311d519ba4f446e20ed2fdf7f30d317f006a1088b40b",
+    "protocol/agent-access/v1/cli-contract.json": "75087bf8ee96918ba12266b96cc3b3dfc064c8d4187673eb2428af3e7d840e52",
+    "protocol/agent-access/v1/client_types.py": "d572bd66247428baeccfb949dae3379c568c3159ced7e4fb2e874a97543d8152",
+    "protocol/agent-access/v1/conformance_model.py": "2ecf3d0f3b1ddf8f9ad979214a051fc8830159bcc898c95a91bc27748ecf4211",
+    "protocol/agent-access/v1/fixtures/base.json": "e3deade737992bad2800b8e5d6e0e89282f8c3078b484896e9b8c81fc2af78e5",
+    "protocol/agent-access/v1/fixtures/conformance.log": "9f33d51f5de69fca97b9e0c1ea7b474cb102c3ae1bef5c13df76248905ca4c18",
+    "protocol/agent-access/v1/fixtures/fresh-environment.log": "40c04d7d43c1d6c5d07d292df265e856a83102ab8228da9f055134e7f658e916",
+    "protocol/agent-access/v1/fixtures/guard-probe.log": "a4084fa146d23df499f977dac0a1c85b93d260e373d10bda7f8d2202ae6eff05",
+    "protocol/agent-access/v1/fixtures/initial-environment-failure.log": "80c1f700bfab392fe0c010e6a31b02181f05851d3aad849755efc82d0ab6b617",
+    "protocol/agent-access/v1/fixtures/messages.json": "0d862801912ac2230e14d10a106ac4fcb810b41fc83ee9855cad40949c2b856d",
+    "protocol/agent-access/v1/fixtures/qualified-graph.json": "5339a187b153636afdc28e66971ccd02f8846b68080fa8b17c80cdf42d8622f0",
+    "protocol/agent-access/v1/fixtures/scope-cases.json": "29880559715363bd3c718b9752ed8236c1c972ded33232ca0960b1d5794a4dae",
+    "protocol/agent-access/v1/generate.py": "933e668b6f831c139108c04046ed9d2587752e8c332e47dfbb69d7f155a3d807",
+    "protocol/agent-access/v1/openapi.json": "603cc7ebb0655af34bff18a963a0a581b3f617b17b7532073f521c82c5df1999",
+    "protocol/agent-access/v1/requirements-dev.txt": "e5d8aad6444e49bf2726aa35af230a27c9e754aa5e539bbd85f96aae54b4a878",
+    "protocol/agent-access/v1/schema.json": "46002a4b7b91a83c6658653938309eec08776e24290e4be47f5fa034f068204e",
+    "protocol/agent-access/v1/test_conformance.py": "54ac2378fbd22ff1f279cbc70813e47f8dbdbb7b69e87645b351b48a2b99787a",
+    "protocol/agent-access/v1/upstream/aq-graph-api.md": "64f916198677872f732599e3dcd51beffb889165240687b3a2f25e3ee687c59e",
+    "protocol/agent-access/v1/upstream/aq-graph-openapi.json": "a06393e0557fe06bfcaf9820c073f6e3e585441282561b1e53638e80600b46bc",
+    "protocol/agent-access/v1/upstream/manifest.json": "cd3a73a4fbc4003afb4dc0c58de9947dfd63b1059ecbebc9594b9943468cc1e5",
+    "protocol/agent-access/v1/validate.py": "c4f875705052abc9cbfbdb47711c42242957ebc4dbec137b4bb7b37cff1e46f9",
+    "rust-toolchain.toml": "6791dcb04edcb490caaf08590dbe1dd9d9954b46dab2095df12dc984f704f1a8",
+    "vendor/aq-git-0.1.0/git-2.56.0.tar.xz": "26c56c296b38c0695b26fa95f475f1d01704d2d38e73465ca30b0b2f5dc789d3",
+    "vendor/aq-git-0.1.0/git-upstream-sha256sums.asc": "651650b65a26b27d1bcbc150c700cd23353060a0e8ad22d261c8ff993430397d",
+    "vendor/aq-git-0.1.0/source-inventory.json": "3f88d2fad5a1a206301575b73af2e763a4c324ad84b1543c6cde98b6b08bb6de",
+    "vendor/aq-git-source.bundle": "9637c96a93834d51c1aecf8f602e1f4d2ea86792d164978830583c1512fd709d",
+    "vendor/aq-git-source.tar.gz": "8f6a2f8ce04361c3cabaff5de7274505e28a042235da18cc346086f47e4c6cd5",
+    "vendor/aq-protocol-0.1.0/.cargo_vcs_info.json": "e0030765e1fd697adcc359fae6e19d6420dc20ffd14275f02161e94c33fe1a48",
+    "vendor/aq-protocol-0.1.0/Cargo.lock": "7e9c0492b2b99c8ae7702b94d45b6b73b75406b5eff2ae45044cd5ef56574220",
+    "vendor/aq-protocol-0.1.0/Cargo.toml": "c51bf772787a0de43d557bc057b21ae92bad53fc9a435b0bb2ee032c33d42dd5",
+    "vendor/aq-protocol-0.1.0/Cargo.toml.orig": "b1f5460343cc24104291d3ddca0b44346442576add78ade9f3efa6a5e6fec8a8",
+    "vendor/aq-protocol-0.1.0/src/lib.rs": "ae06f83f6e30cd390d25a46114a79ce1740342cd7aa82ab86f8f2174a8c0c32f",
+    "vendor/aq-worker-protocol-0.1.1/.cargo_vcs_info.json": "f842b88a70342d4c5ba9f51f85095827db3f73764684e99750fad2079eb6a332",
+    "vendor/aq-worker-protocol-0.1.1/Cargo.lock": "dc366d95ba3a822dc67787cee28dcd571c308f6d908cb90da58c9f8fdedc9ab4",
+    "vendor/aq-worker-protocol-0.1.1/Cargo.toml": "f4c6a68697304bd4f339d2301753b342eabb0aba35174a0b06f665e3565f52c2",
+    "vendor/aq-worker-protocol-0.1.1/Cargo.toml.orig": "fa045d601476b6dd88891e881c2cf455d391cc3a1c983b2884b34ecb1343a373",
+    "vendor/aq-worker-protocol-0.1.1/examples/fixtures.rs": "78626667dff2fc5808f19c64ce601160e74b1d68a718d6fb402b1016abf48631",
+    "vendor/aq-worker-protocol-0.1.1/examples/schema.rs": "661eb1d44ba4b643671a6b1e45e635480ba6c912c5e9858342168df189701369",
+    "vendor/aq-worker-protocol-0.1.1/fixtures/conformance-v2.json": "b0b42f1af65540201d7c2975108120fbec693dea48421d7551e2bc668f90041c",
+    "vendor/aq-worker-protocol-0.1.1/fixtures/execution-v2.schema.json": "bf63b640353416d8662f86f1af6a2584482b01a7a5ca8a5b40226540d91e57e7",
+    "vendor/aq-worker-protocol-0.1.1/src/lib.rs": "69b3175343e3c92b1b4e84fe45a08097c16ab0cc9fd7f687d27d84efeab8ff49",
+    "vendor/aq-worker-protocol-0.1.1/src/testing.rs": "2c4d4c1e03c45c359764371959aa930065d44a7fcb6c1aef11063761b514b7e0",
+    "vendor/aq-worker-protocol-0.1.1/tests/conformance.rs": "65c0e826ecc11ddd400e37dc010a975bb98e49f9084ed2d08fab5d0f963a1fef",
+    "vendor/aq-worker-protocol-0.2.0/.cargo_vcs_info.json": "17a747fd978747d7e2f51313a4a0b7603565cc0664349cb6cf08b53054b05775",
+    "vendor/aq-worker-protocol-0.2.0/Cargo.lock": "c2fcd832761d205113a8f1fce4adbd3d3782bd105dcf85fe1d65c55ea25f0bb2",
+    "vendor/aq-worker-protocol-0.2.0/Cargo.toml": "4be3fc2e759af93390fa4b455d6f757557f6bd0827dc699925ecbdcdb63aa47d",
+    "vendor/aq-worker-protocol-0.2.0/Cargo.toml.orig": "aec32c542381f3ba170d7595dab8cfbc24e0cc9de1dbfbf0e970d1c181ddf3a0",
+    "vendor/aq-worker-protocol-0.2.0/examples/fixtures.rs": "78626667dff2fc5808f19c64ce601160e74b1d68a718d6fb402b1016abf48631",
+    "vendor/aq-worker-protocol-0.2.0/examples/schema.rs": "661eb1d44ba4b643671a6b1e45e635480ba6c912c5e9858342168df189701369",
+    "vendor/aq-worker-protocol-0.2.0/fixtures/conformance-v2.json": "ef45249d51e12aab408d8f9c3aa09d890990f6d125376adc43d7f8c4e957e672",
+    "vendor/aq-worker-protocol-0.2.0/fixtures/execution-v2.schema.json": "c916367bf00ad78a18ee4df709829a8fb9843f5a11446e1940e2aa57f87b0de7",
+    "vendor/aq-worker-protocol-0.2.0/src/lib.rs": "c3c7cf66aa40d2d6a52009187231ae8e8e857c41c4c1c69ed327c5a600c72905",
+    "vendor/aq-worker-protocol-0.2.0/src/m4.rs": "89b5285310ae431908f630eba1ce9d99b793b73a2043af09745267c3fce2e4f7",
+    "vendor/aq-worker-protocol-0.2.0/src/testing.rs": "c6724fbfcd9eebafb725266aa9f38e381dd7750ad621988e93f956396e191bd9",
+    "vendor/aq-worker-protocol-0.2.0/tests/conformance.rs": "65c0e826ecc11ddd400e37dc010a975bb98e49f9084ed2d08fab5d0f963a1fef",
+    "vendor/aq-worker-protocol-0.2.0/tests/m4.rs": "37604a4dda663d5050068c1963e2d84a57cd31f6d48f26a4860582200351e6a9",
+    "vendor/aq-worker-source.tar.gz": "ed33076d62d37884cab04f1206d1fda3dd5e06181ddb1ccdebec58fda789b535",
+    "vendor/git-candidate.json": "e2fec237ee0fffce45edd4c7b8f788a5cfb775ca33f8a423261689b39d2e0d31",
+    "vendor/git-candidate.sha256": "4e115bade64b15aabfd606cc58e8dfbefabb53ca1f8c10d8d709f413b2036f1a",
+    "vendor/worker-candidate.json": "8c74189b82a5f07d3ec97a2a09607770ba513b9425ff73d620703bd95c1fae35",
+    "vendor/worker-candidate.sha256": "9b3816e79f3879151f54f9c0527ba24a08a128ffb8666ccf0bb7d8a96fe825b3",
+    "vendor/worker-contracts.json": "9250abe081bc7502b18cceb066f8627588ceacbfcd79216e58aa8eb539676f43"
+  },
+  "source_tree_sha256": "c9bae805fa3a284d19d3c0ab5858fea2491e754f922ffaaddf3cf0dc1c44db05",
+  "source_revision": "a03c5f23f756b606a7876563e037d5d23a0e0e5e",
+  "working_tree_dirty": true,
+  "images": [
+    {
+      "Id": "sha256:5d7aefe6116f03dcfc0a1057bd4ba0be0f0bad800d48b4d78fd0b4893bb3142c",
+      "RepoTags": [
+        "aq-product-22be97f198d2-server:candidate"
+      ],
+      "RepoDigests": [],
+      "Comment": "buildkit.dockerfile.v0",
+      "Created": "2026-10-31T03:53:15.329563954Z",
+      "Config": {
+        "User": "10001:10001",
+        "ExposedPorts": {
+          "8080/tcp": {},
+          "8081/tcp": {}
+        },
+        "Env": [
+          "PATH=/opt/aq-git-runtime/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "AQ_VAULT_DIR=/vault"
+        ],
+        "Entrypoint": [
+          "aq-server"
+        ],
+        "Cmd": [
+          "serve",
+          "--vault",
+          "/vault"
+        ],
+        "Labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "4",
+          "org.opencontainers.image.revision": "dev-c9bae805fa3a284d19d3c0ab",
+          "org.opencontainers.image.title": "agent-q-server",
+          "org.opencontainers.image.version": "unknown"
+        },
+        "ArgsEscaped": true,
+        "Healthcheck": {
+          "Test": [
+            "CMD",
+            "aq-server",
+            "healthcheck"
+          ],
+          "Interval": 10000000000,
+          "Timeout": 5000000000,
+          "StartPeriod": 30000000000,
+          "Retries": 5
+        }
+      },
+      "Architecture": "amd64",
+      "Os": "linux",
+      "Size": 233959310,
+      "GraphDriver": {
+        "Data": {
+          "LowerDir": "/var/lib/docker/overlay2/v64wzx2n8ibs4fjnqjhqpbrpl/diff:/var/lib/docker/overlay2/w1l62c80s53l966mq0guu8z29/diff:/var/lib/docker/overlay2/unsablpbqhj3rbv4af7531emy/diff:/var/lib/docker/overlay2/otb9ndu0i7557uwmtishut9m6/diff:/var/lib/docker/overlay2/9h2d0uxc9uqhmom6yw8qsb4me/diff:/var/lib/docker/overlay2/5486fdae5c6e09e6496a211e47c219ca32799ffa9d533512d0540581ca57526c/diff",
+          "MergedDir": "/var/lib/docker/overlay2/ag4qcww7g9q9npa9t0qqxster/merged",
+          "UpperDir": "/var/lib/docker/overlay2/ag4qcww7g9q9npa9t0qqxster/diff",
+          "WorkDir": "/var/lib/docker/overlay2/ag4qcww7g9q9npa9t0qqxster/work"
+        },
+        "Name": "overlay2"
+      },
+      "RootFS": {
+        "Type": "layers",
+        "Layers": [
+          "sha256:44a87794b739d471ec360bec56cc0ceac640d06bbf579ee7d9061a0b88d09818",
+          "sha256:1818d40bbbed3e02a57c7fb636848daedd78bbc133203513f4ee5ba4d76509e0",
+          "sha256:fac7166742cfc379c333f67a1b29e823c11f3580ad0870cd92f36058a3c749f4",
+          "sha256:f007c76c3d948849f266439d4612bb610eddc1460e9078ab48bd1e8542c8565a",
+          "sha256:ffd4a82fe8b624dd1315f608a7e954d1e16e4e74359218942dc2ba9efea89697",
+          "sha256:d506ded0c73d21dd5373ca1cc269b74602e7714bebda7af1f19ac995cbc39ef2",
+          "sha256:d523ebdabca3f3ec1ce7bd25e05c182ff094c4be4835cb941ef7177f5c9ff3bf"
+        ]
+      },
+      "Metadata": {
+        "LastTagTime": "2026-10-31T03:53:15.63537046Z"
+      }
+    },
+    {
+      "Id": "sha256:e810ebc21c3436452efbe7c9b348116983e462fd3dd758e4deec10622f155eaf",
+      "RepoTags": [
+        "aq-product-22be97f198d2-worker:candidate",
+        "aq-recovery-4d8de2f08a6a-worker:fixture"
+      ],
+      "RepoDigests": [],
+      "Comment": "buildkit.dockerfile.v0",
+      "Created": "2026-10-31T03:53:50.877658865Z",
+      "Config": {
+        "User": "10001:10001",
+        "Env": [
+          "PATH=/opt/aq-git-runtime/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+          "XDG_CONFIG_HOME=/config"
+        ],
+        "Entrypoint": [
+          "aq-worker"
+        ],
+        "Cmd": [
+          "run"
+        ],
+        "Volumes": {
+          "/config": {},
+          "/state": {}
+        },
+        "Labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "4",
+          "org.opencontainers.image.revision": "3fb2bcb2f63f73838ddd97e44580fe721a539bdd",
+          "org.opencontainers.image.title": "aq-worker",
+          "org.opencontainers.image.version": "0.3.1"
+        },
+        "ArgsEscaped": true
+      },
+      "Architecture": "amd64",
+      "Os": "linux",
+      "Size": 229187516,
+      "GraphDriver": {
+        "Data": {
+          "LowerDir": "/var/lib/docker/overlay2/bo1cy1k3zp4lsbas6knh4wim7/diff:/var/lib/docker/overlay2/4kp9lhcl10zx3t06eb9drz251/diff:/var/lib/docker/overlay2/53bfcwgdttm3nvouymb0k60qz/diff:/var/lib/docker/overlay2/auzjlq5x8lwlva7l5lu1g8gdx/diff:/var/lib/docker/overlay2/x78g8tg5kt5fg3rhakcm3x7cq/diff:/var/lib/docker/overlay2/t7qlfnk1ccarhyb0w7k6fcfq2/diff:/var/lib/docker/overlay2/5486fdae5c6e09e6496a211e47c219ca32799ffa9d533512d0540581ca57526c/diff",
+          "MergedDir": "/var/lib/docker/overlay2/ij5scv2e88zy8jqiw95b5qn8f/merged",
+          "UpperDir": "/var/lib/docker/overlay2/ij5scv2e88zy8jqiw95b5qn8f/diff",
+          "WorkDir": "/var/lib/docker/overlay2/ij5scv2e88zy8jqiw95b5qn8f/work"
+        },
+        "Name": "overlay2"
+      },
+      "RootFS": {
+        "Type": "layers",
+        "Layers": [
+          "sha256:44a87794b739d471ec360bec56cc0ceac640d06bbf579ee7d9061a0b88d09818",
+          "sha256:c94638097f7c005f03096f976c623fd263252f913031faaafe822478f893d2ad",
+          "sha256:6f307d57d9b76b2865125dfc1add8ad884d8a1f4ff11a5e1a45dc74c989e852e",
+          "sha256:95350092f1287c3d4bd36cd839a59f2da0ebda0f68432383d4204aa66b129c80",
+          "sha256:84db1b79324d9994f9060cba4691468e6a65cb55a2ece38dedd19c4bff52086b",
+          "sha256:43055bfaf0b0776db309c185eec210cebf49ab547dff7e1277d1fbb5f7230d55",
+          "sha256:5719651684aa3d51da7f48fe0e05234273030ddb7f00ce18778bda182af506ec",
+          "sha256:71eadbf89af7f826a8370c4ca83952182dd029eaf9413daf0a671a2ba43a64d0"
+        ]
+      },
+      "Metadata": {
+        "LastTagTime": "2026-10-31T03:53:51.14723206Z"
+      }
+    }
+  ],
+  "worker_binary_sha256": "b73b5844128fb52c4d9cb5ac7a1a98a7124fbeafdfe882938919a6bac9316ff1  /usr/local/bin/aq-worker\n71f705a3c96ba054dfecfa6cfc704a8f6dab45c7772c1e25914aea42b71a4ece  /usr/local/bin/aq-fixture-agent\n",
+  "git_candidate": {
+    "component": "aq-git",
+    "version": "0.1.0",
+    "source_revision": "f3660a89cbeac0e068105af2926dfdcb06a1daad",
+    "archive": "aq-git-source.tar.gz",
+    "archive_sha256": "8f6a2f8ce04361c3cabaff5de7274505e28a042235da18cc346086f47e4c6cd5",
+    "builder": "rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663",
+    "runtime": "debian:bookworm-slim",
+    "protocol_version": 1,
+    "git": {
+      "version": "2.56.0",
+      "archive": "aq-git-0.1.0/git-2.56.0.tar.xz",
+      "sha256": "26c56c296b38c0695b26fa95f475f1d01704d2d38e73465ca30b0b2f5dc789d3",
+      "url": "https://www.kernel.org/pub/software/scm/git/git-2.56.0.tar.xz",
+      "release_source": "https://git-scm.com/install/"
+    },
+    "bundle_sha256": "9637c96a93834d51c1aecf8f602e1f4d2ea86792d164978830583c1512fd709d"
+  },
+  "git_runtime": {
+    "server": {
+      "version": "git version 2.56.0",
+      "binary_sha256": "9de33fd4e79d68a9cb8c72532ee03825dca3a3dbaf979bcd8770a53ef8fe9d3a  /usr/local/bin/aq-git\n7c0d4454dd24953ae608b461312b0db1c021644df3c074262b147d7ab0327241  /opt/aq-git-runtime/bin/git\n",
+      "capabilities": {
+        "protocol_version": 1,
+        "request_id": "f88d4f47-8d7a-4da6-9c10-ba7c424362e6",
+        "ok": true,
+        "result": {
+          "artifact_format_version": 1,
+          "direct_only_operations": [
+            "recovery.clear-fence"
+          ],
+          "git": {
+            "checkout_profile": "no_attributes_v1",
+            "credential_profiles": false,
+            "object_formats": [
+              "sha1"
+            ],
+            "persistent_object_readers": true,
+            "process_limits": {
+              "max_address_space_bytes": 1073741824,
+              "max_children": 16,
+              "max_output_bytes": 16777216,
+              "timeout": {
+                "nanos": 0,
+                "secs": 300
+              }
+            },
+            "unsupported_features": [
+              "shallow",
+              "partial",
+              "submodules",
+              "lfs",
+              "attributes",
+              "signing",
+              "pruning"
+            ],
+            "verification": {
+              "probe_on": "repo.register",
+              "status": "unverified"
+            }
+          },
+          "limits": {
+            "artifact": {
+              "disk_reserve_bytes": 268435456,
+              "max_bundle_bytes": 1073741824,
+              "max_expanded_bytes": 10737418240
+            },
+            "batch_items": 100,
+            "batch_response_bytes": 1048576,
+            "cache_bytes": 16777216,
+            "cache_entries": 4096,
+            "candidate_sources": 64,
+            "concurrent_mutations": 4,
+            "concurrent_reads": 32,
+            "connections": 64,
+            "git_child_waiters": 64,
+            "query_response_bytes": 65536,
+            "request_admission": 64,
+            "request_bytes": 1048576,
+            "response_bytes": 8388608,
+            "socket_io_workers": 4
+          },
+          "operations": [
+            "capabilities",
+            "operation.show",
+            "service.metrics",
+            "repo.register",
+            "repo.binding-update",
+            "repo.show",
+            "repo.sync",
+            "repo.observation",
+            "inspect",
+            "tree",
+            "diff",
+            "contains",
+            "query.batch",
+            "workspace.create",
+            "workspace.inspect",
+            "workspace.checkpoint",
+            "workspace.retire",
+            "candidate.create",
+            "candidate.show",
+            "artifact.export",
+            "artifact.import",
+            "retention.inspect",
+            "retention.release",
+            "repo.cache-evict",
+            "doctor",
+            "maintenance",
+            "publish",
+            "operation.reconcile",
+            "operation.resolve"
+          ],
+          "performance_acceptance": "not_measured",
+          "protocol_version": 1,
+          "state_format_version": 1,
+          "version": "0.1.0"
+        }
+      }
+    },
+    "worker": {
+      "version": "git version 2.56.0",
+      "binary_sha256": "9de33fd4e79d68a9cb8c72532ee03825dca3a3dbaf979bcd8770a53ef8fe9d3a  /usr/local/bin/aq-git\n7c0d4454dd24953ae608b461312b0db1c021644df3c074262b147d7ab0327241  /opt/aq-git-runtime/bin/git\n",
+      "capabilities": {
+        "protocol_version": 1,
+        "request_id": "e413b4c1-2e77-4d09-a8fa-b427299b5891",
+        "ok": true,
+        "result": {
+          "artifact_format_version": 1,
+          "direct_only_operations": [
+            "recovery.clear-fence"
+          ],
+          "git": {
+            "checkout_profile": "no_attributes_v1",
+            "credential_profiles": false,
+            "object_formats": [
+              "sha1"
+            ],
+            "persistent_object_readers": true,
+            "process_limits": {
+              "max_address_space_bytes": 1073741824,
+              "max_children": 16,
+              "max_output_bytes": 16777216,
+              "timeout": {
+                "nanos": 0,
+                "secs": 300
+              }
+            },
+            "unsupported_features": [
+              "shallow",
+              "partial",
+              "submodules",
+              "lfs",
+              "attributes",
+              "signing",
+              "pruning"
+            ],
+            "verification": {
+              "probe_on": "repo.register",
+              "status": "unverified"
+            }
+          },
+          "limits": {
+            "artifact": {
+              "disk_reserve_bytes": 268435456,
+              "max_bundle_bytes": 1073741824,
+              "max_expanded_bytes": 10737418240
+            },
+            "batch_items": 100,
+            "batch_response_bytes": 1048576,
+            "cache_bytes": 16777216,
+            "cache_entries": 4096,
+            "candidate_sources": 64,
+            "concurrent_mutations": 4,
+            "concurrent_reads": 32,
+            "connections": 64,
+            "git_child_waiters": 64,
+            "query_response_bytes": 65536,
+            "request_admission": 64,
+            "request_bytes": 1048576,
+            "response_bytes": 8388608,
+            "socket_io_workers": 4
+          },
+          "operations": [
+            "capabilities",
+            "operation.show",
+            "service.metrics",
+            "repo.register",
+            "repo.binding-update",
+            "repo.show",
+            "repo.sync",
+            "repo.observation",
+            "inspect",
+            "tree",
+            "diff",
+            "contains",
+            "query.batch",
+            "workspace.create",
+            "workspace.inspect",
+            "workspace.checkpoint",
+            "workspace.retire",
+            "candidate.create",
+            "candidate.show",
+            "artifact.export",
+            "artifact.import",
+            "retention.inspect",
+            "retention.release",
+            "repo.cache-evict",
+            "doctor",
+            "maintenance",
+            "publish",
+            "operation.reconcile",
+            "operation.resolve"
+          ],
+          "performance_acceptance": "not_measured",
+          "protocol_version": 1,
+          "state_format_version": 1,
+          "version": "0.1.0"
+        }
+      }
+    }
+  },
+  "postgres_image": "[{\"ID\":\"sha256:99445113a4a19e82dd3713c65bd9f6fb5bf972065ab043df8d1e1c93e957da9a\",\"ContainerName\":\"aq-product-22be97f198d2-postgres-1\",\"Repository\":\"postgres\",\"Tag\":\"17-bookworm\",\"Platform\":\"linux/amd64\",\"Size\":437944456,\"Created\":\"2026-10-28T01:31:24.32855846Z\"},{\"ID\":\"sha256:5d7aefe6116f03dcfc0a1057bd4ba0be0f0bad800d48b4d78fd0b4893bb3142c\",\"ContainerName\":\"aq-product-22be97f198d2-server-1\",\"Repository\":\"aq-product-22be97f198d2-server\",\"Tag\":\"candidate\",\"Platform\":\"linux/amd64\",\"Size\":233959310,\"Created\":\"2026-10-31T03:53:15.329563954Z\",\"LastTagTime\":\"2026-10-31T03:53:15.63537046Z\"}]\n\n",
+  "node_id": "20371ef6-d5c2-414e-990a-906a2f013001",
+  "foundation": {
+    "first_heartbeat": "2026-10-31T03:54:21.204598Z",
+    "later_heartbeat": "2026-10-31T03:54:36.246434Z",
+    "identity_preserved": true,
+    "probe": "passed",
+    "unsupported_protocol": "passed",
+    "unsupported_execution_preserves_connectivity": "passed",
+    "revocation": "passed (HTTP 401 and connector exit 3)"
+  },
+  "execution": {
+    "attempt_id": "0cce3684-aedf-4b01-9a39-dedf973b6e81",
+    "boot_id": "3ec65890-16f8-4197-933b-03eabb43fcd2",
+    "launch_id": "c218dc77-9cab-4cf9-b51d-8d5d3bc1d599",
+    "launch_count": 1,
+    "result": {
+      "task_id": "5a81d67e-0c5d-4642-9a44-ada3c78f928e",
+      "offer": {
+        "offer_id": "525f6c5f-03f0-4fa6-8aac-65c300cc3aba",
+        "identity": {
+          "node_id": "20371ef6-d5c2-414e-990a-906a2f013001",
+          "boot_id": "3ec65890-16f8-4197-933b-03eabb43fcd2"
+        },
+        "attempt": {
+          "attempt_id": "0cce3684-aedf-4b01-9a39-dedf973b6e81",
+          "session_id": "c656d8dc-726c-42d4-bc8f-ed65b75f5341",
+          "generation": 1
+        },
+        "spec": {
+          "project_id": "7df4756d-f59d-4171-a737-3b27364b3687",
+          "harness": "deterministic-agent-v1",
+          "resolved_spec_digest": "c175f72736cc8c66f2bd37130ebf1423577980472223b2b0bb379b6f2dd21d4c",
+          "fixture_output": "product synthetic success",
+          "resources": {
+            "slots": 1,
+            "cpu_millis": 100,
+            "memory_bytes": 1048576,
+            "disk_bytes": 1048576
+          },
+          "required_capabilities": [
+            "deterministic-agent-v1"
+          ]
+        },
+        "offer_expires_at_ms": 1793418967415,
+        "reservation_ttl_ms": 90000
+      },
+      "status": "finished",
+      "grant": {
+        "identity": {
+          "node_id": "20371ef6-d5c2-414e-990a-906a2f013001",
+          "boot_id": "3ec65890-16f8-4197-933b-03eabb43fcd2"
+        },
+        "attempt": {
+          "attempt_id": "0cce3684-aedf-4b01-9a39-dedf973b6e81",
+          "session_id": "c656d8dc-726c-42d4-bc8f-ed65b75f5341",
+          "generation": 1
+        },
+        "offer_id": "525f6c5f-03f0-4fa6-8aac-65c300cc3aba",
+        "reservation_id": "d173184f-8a66-4cfd-8119-ed1530b1af8a",
+        "resolved_spec_digest": "c175f72736cc8c66f2bd37130ebf1423577980472223b2b0bb379b6f2dd21d4c",
+        "grant_sequence": 1,
+        "valid_for_ms": 120000,
+        "reservation_deadline_ms": 78144141
+      },
+      "grant_expires_at_ms": 1793418997573,
+      "last_observation": {
+        "identity": {
+          "node_id": "20371ef6-d5c2-414e-990a-906a2f013001",
+          "boot_id": "3ec65890-16f8-4197-933b-03eabb43fcd2"
+        },
+        "operation_id": "82d0ec59-c8be-4410-a7cc-69f2c29a9872",
+        "attempt": {
+          "attempt_id": "0cce3684-aedf-4b01-9a39-dedf973b6e81",
+          "session_id": "c656d8dc-726c-42d4-bc8f-ed65b75f5341",
+          "generation": 1
+        },
+        "sequence": 2,
+        "phase": "reporting",
+        "stop_certainty": "confirmed_stopped",
+        "detail": "synthetic writers confirmed stopped; immutable report pending"
+      },
+      "report": {
+        "identity": {
+          "node_id": "20371ef6-d5c2-414e-990a-906a2f013001",
+          "boot_id": "3ec65890-16f8-4197-933b-03eabb43fcd2"
+        },
+        "report_id": "32e30133-a5fd-4676-9a63-7a2107e4961c",
+        "supersedes_report_id": null,
+        "attempt": {
+          "attempt_id": "0cce3684-aedf-4b01-9a39-dedf973b6e81",
+          "session_id": "c656d8dc-726c-42d4-bc8f-ed65b75f5341",
+          "generation": 1
+        },
+        "resolved_spec_digest": "c175f72736cc8c66f2bd37130ebf1423577980472223b2b0bb379b6f2dd21d4c",
+        "outcome": "success",
+        "stop_certainty": "confirmed_stopped",
+        "claimed_success": true,
+        "output": "product synthetic success",
+        "artifacts": [],
+        "pending_operation_ids": []
+      },
+      "disposition": {
+        "report_id": "32e30133-a5fd-4676-9a63-7a2107e4961c",
+        "disposition": "accepted",
+        "retention_release": true
+      },
+      "cancellation_id": null,
+      "cancellation_reason": null,
+      "stopped": true,
+      "may_have_started": true
+    },
+    "acceptance_response_loss": "passed",
+    "report_response_loss": "passed",
+    "report_replay": "passed",
+    "daemon_restart": "passed",
+    "graph_completion": "not exercised",
+    "cancelled_unaccepted_attempt_id": "cef5594a-978d-4a29-882b-ca4b6e65ea60",
+    "cancel_before_poll_then_acquire": "passed"
+  },
+  "outcome": "passed",
+  "cleanup": {
+    "owned_resources_removed": true,
+    "errors": []
+  },
+  "finished_at": "2026-10-31T03:54:54.830026+00:00"
+}

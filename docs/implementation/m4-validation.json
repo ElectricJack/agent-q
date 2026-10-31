@@ -1,0 +1,79 @@
+{
+  "format_version": 1,
+  "validated_at_utc": "2026-10-31T03:46:26.092922+00:00",
+  "repository": "/home/jkern/dev/agent-q",
+  "baseline_revision": "af9e47d626a4ddba5508a54d4ba59fe55e176e4f",
+  "source_state": "Frozen validation inputs mapped to implementation commit; source code unchanged after validation.",
+  "python_executable": "/usr/bin/python3",
+  "python_dependency_source": "existing user-installed jsonschema/referencing; no install performed",
+  "checks": [
+    {
+      "check": "workspace",
+      "command": "DATABASE_URL=<disposable PostgreSQL> cargo test --workspace --locked --features recovery-test-support",
+      "log": "validation/workspace.log",
+      "sha256": "10dc7a1defd19e6b04fc7c54ea2e79661d0672d331f0bf1742c83c9c9dcd4df4",
+      "passed": true,
+      "passed_tests": 266,
+      "failed_tests": 0,
+      "ignored_tests": 1,
+      "test_suites": 28,
+      "exit_code": 0
+    },
+    {
+      "check": "default-routes",
+      "command": "DATABASE_URL=<disposable PostgreSQL> cargo test -p aq-server --features test-support --test execution execution_http_authenticates_node_binding_and_keeps_routes_separate --locked",
+      "log": "validation/default-routes.log",
+      "sha256": "6539721c940e6316e5199020276a127a1b79ef12405ffaa783cdc4dd95cf7dc8",
+      "passed": true,
+      "passed_tests": 1,
+      "failed_tests": 0,
+      "ignored_tests": 0,
+      "test_suites": 1,
+      "exit_code": 0
+    },
+    {
+      "check": "clippy-default",
+      "command": "cargo clippy --workspace --all-targets --locked -- -D warnings",
+      "log": "validation/clippy-default.log",
+      "sha256": "cc784cf59ab0c4f4ff75c36ba15b8f4b056093eae8353588a8a471da91abd20b",
+      "passed": true,
+      "exit_code": 0
+    },
+    {
+      "check": "clippy-recovery",
+      "command": "cargo clippy --workspace --all-targets --locked --features recovery-test-support -- -D warnings",
+      "log": "validation/clippy-recovery.log",
+      "sha256": "62ad7073f9a50ec8d1194d0849d1adcf8d9c1802a38cf6f1241876b7b823f6ae",
+      "passed": true,
+      "exit_code": 0
+    },
+    {
+      "check": "api01-generate",
+      "command": "python3 protocol/agent-access/v1/generate.py --check",
+      "log": "validation/api01-generate.log",
+      "sha256": "df4b48668b777958884a12d1ae065337f6da82292557591b00f0ad29ae8bc4af",
+      "passed": true,
+      "exit_code": 0
+    },
+    {
+      "check": "api01-contract",
+      "command": "python3 -m unittest discover -s protocol/agent-access/v1 -p test_conformance.py -v",
+      "log": "validation/api01-contract.log",
+      "sha256": "126ab2f4deb90b431d990a015e0b800c0f5c749b24d4809712960d102b3ddc7a",
+      "passed": true,
+      "passed_tests": 30,
+      "exit_code": 0
+    },
+    {
+      "check": "fmt",
+      "command": "cargo fmt --all -- --check",
+      "log": "validation/fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "passed": true,
+      "exit_code": 0
+    }
+  ],
+  "scope": "Full local daemon workspace qualification plus API-01 offline contract and default-build recovery-fixture route absence. Real graph qualification retained separately; no new live-model or production deployment claim.",
+  "database": "Isolated disposable qualification PostgreSQL on 127.0.0.1:19673; each TestDb creates and drops its own database.",
+  "implementation_revision": "056b1feafef2fa1d0629bf429bec336bd7c1c1dc"
+}

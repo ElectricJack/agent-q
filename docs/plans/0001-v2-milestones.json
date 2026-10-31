@@ -722,7 +722,7 @@
       "repo": "agent-q",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "complete",
       "depends_on": [
         "API-01",
         "AQ-03"
@@ -742,7 +742,14 @@
         "Cached context is revision-labelled; worker/node/graph service identities cannot be substituted for agent authority."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/m4-foundations.md",
+        "../implementation/m4-qualification.md",
+        "../implementation/m4-validation.json",
+        "../implementation/m4-source-mapping.json",
+        "../qualification/aq06-agent-access.md",
+        "../implementation/m4-graph-qualification.json"
+      ]
     },
     {
       "id": "AQ-07",
@@ -832,7 +839,7 @@
       "repo": "aq-worker",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "complete",
       "depends_on": [
         "WRK-04",
         "GIT-01"
@@ -852,7 +859,14 @@
         "Alternating projects and disk pressure preserve active/pending data, bound caches and refuse new work when protected storage fills."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/m4-foundations.md",
+        "../implementation/m4-qualification.md",
+        "../implementation/m4-validation.json",
+        "../implementation/m4-source-mapping.json",
+        "../../../aq-worker/docs/source-workspaces.md",
+        "../implementation/m4-recovery-qualification.json"
+      ]
     },
     {
       "id": "AQ-09",
@@ -860,7 +874,7 @@
       "repo": "agent-q",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "complete",
       "depends_on": [
         "AQ-03",
         "GIT-01"
@@ -880,7 +894,15 @@
         "Stale attempts may retain authorized recovery source but cannot restore execution authority or settle newer work."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/m4-foundations.md",
+        "../implementation/m4-qualification.md",
+        "../implementation/m4-validation.json",
+        "../implementation/m4-source-mapping.json",
+        "../source-retention.md",
+        "../evidence/m4-git-package.json",
+        "../evidence/m4-source-retention-tests.log"
+      ]
     },
     {
       "id": "WRK-07",

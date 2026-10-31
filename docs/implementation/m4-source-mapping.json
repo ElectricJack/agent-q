@@ -1,0 +1,38 @@
+{
+  "integration_revision": "a03c5f23f756b606a7876563e037d5d23a0e0e5e",
+  "daemon_implementation_revision": "056b1feafef2fa1d0629bf429bec336bd7c1c1dc",
+  "worker_revision": "3fb2bcb2f63f73838ddd97e44580fe721a539bdd",
+  "production_image_source_tree_sha256": "c9bae805fa3a284d19d3c0ab5858fea2491e754f922ffaaddf3cf0dc1c44db05",
+  "tracked_files_matched": 132,
+  "mismatches": [],
+  "additional_build_context_files": [
+    "protocol/agent-access/v1/__pycache__/build_fixtures.cpython-312.pyc",
+    "protocol/agent-access/v1/__pycache__/client_types.cpython-312.pyc",
+    "protocol/agent-access/v1/__pycache__/conformance_model.cpython-312.pyc",
+    "protocol/agent-access/v1/__pycache__/generate.cpython-312.pyc",
+    "protocol/agent-access/v1/__pycache__/test_conformance.cpython-312.pyc",
+    "protocol/agent-access/v1/__pycache__/types.cpython-312.pyc",
+    "protocol/agent-access/v1/__pycache__/validate.cpython-312.pyc",
+    "protocol/agent-access/v1/fixtures/conformance.log",
+    "protocol/agent-access/v1/fixtures/fresh-environment.log",
+    "protocol/agent-access/v1/fixtures/guard-probe.log",
+    "protocol/agent-access/v1/fixtures/initial-environment-failure.log"
+  ],
+  "additional_files_scope": "Inert developer Python bytecode and prior test logs, not Rust compiler inputs. The exact frozen inventory records their digests. All Rust sources, Cargo manifests, schemas and recipes match the integration commit.",
+  "recovery_image_source_tree_sha256": "2f7b8ffc4a100fdfab78a3f5a47d4f7876ce14b79ad982ad158c30656e205216",
+  "recovery_tracked_files_matched": 131,
+  "recovery_additional_build_context_files": [
+    "protocol/agent-access/v1/__pycache__/build_fixtures.cpython-312.pyc",
+    "protocol/agent-access/v1/__pycache__/client_types.cpython-312.pyc",
+    "protocol/agent-access/v1/__pycache__/conformance_model.cpython-312.pyc",
+    "protocol/agent-access/v1/__pycache__/generate.cpython-312.pyc",
+    "protocol/agent-access/v1/__pycache__/test_conformance.cpython-312.pyc",
+    "protocol/agent-access/v1/__pycache__/types.cpython-312.pyc",
+    "protocol/agent-access/v1/__pycache__/validate.cpython-312.pyc",
+    "protocol/agent-access/v1/fixtures/conformance.log",
+    "protocol/agent-access/v1/fixtures/fresh-environment.log",
+    "protocol/agent-access/v1/fixtures/guard-probe.log",
+    "protocol/agent-access/v1/fixtures/initial-environment-failure.log"
+  ],
+  "recovery_recipe_mapping": "Dockerfile.recovery maps to scripts/recovery-smoke-server.Dockerfile at integration revision"
+}

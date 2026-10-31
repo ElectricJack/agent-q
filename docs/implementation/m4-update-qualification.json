@@ -1,0 +1,18 @@
+{
+  "completed_at": "2026-10-31T03:49:13.538000+00:00",
+  "exit_code": 0,
+  "outcome": "PASS",
+  "cases_passed": 7,
+  "schema_format": 4,
+  "worker_revision": "e7c99b7ce1c31711f23ccb9d4410c406e062108f",
+  "worker_version": "0.3.0",
+  "temporary_work_directory_removed": true,
+  "source_claim": "Development snapshot with exact B/C copied context inventories; B/C differ only in Cargo version and lockfile. Not a final-freeze whole-source qualification.",
+  "worker_checks": {
+    "full73_raw_log": "worker-full73.log",
+    "real_fixture_fmt_strict_clippy_raw_logs": "not retained; successful tool results and checked-in docs/source-workspaces.md record these checks"
+  },
+  "command": "AQ_UPDATE_EVIDENCE_DIR=<evidence> scripts/update-lifecycle",
+  "evidence_directory_in_bundle": "update-lifecycle",
+  "migration": "Separate raw PostgreSQL schema 2 -> 4 preservation and reopen regression passed; see migration-store-check.json in bundle."
+}

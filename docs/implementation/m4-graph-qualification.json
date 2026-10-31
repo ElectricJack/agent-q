@@ -1,0 +1,28 @@
+{
+  "format_version": 1,
+  "captured_at_utc": "2026-10-31T03:51:34.538089+00:00",
+  "daemon_revision": "056b1feafef2fa1d0629bf429bec336bd7c1c1dc",
+  "probe_paths_match_revision": true,
+  "command": "DATABASE_URL=<disposable PostgreSQL> python3 scripts/test-agent-graph.py",
+  "working_directory": "/home/jkern/dev/agent-q",
+  "exit_code": 0,
+  "passed": true,
+  "graph_source_revision": "225329cd6acf5a775fd2a0b016dd1c45fb16c79b",
+  "graph_image": "aq-graph:graph01-225329cd6acf-pinned",
+  "graph_image_id": "sha256:807beba98dcd20b0ae335f09cae8c06ecb182a352ee78de278cb47fccb2ee3be",
+  "log": "validation/real-graph.log",
+  "log_sha256": "b7700f9da3af1031ecadce9345d982815692188fb49bd8a38afe6986e5f09989",
+  "test_count": 1,
+  "scope": "All six production read shapes, all 13 API-01 read scope vectors, verifier-only rotation and response budget checks plus maintenance through root routers; ordinary graph writer credential.",
+  "cleanup": {
+    "probe_exit_zero": true,
+    "mechanism": "Retained fixture finally removes owned containers with docker rm -fv and owned network; any cleanup failure raises and changes exit status.",
+    "current_matching_containers": [],
+    "current_matching_networks": [],
+    "snapshot_commands": [
+      "docker ps -a --filter name=aq-api01- --format {{.Names}}",
+      "docker network ls --filter name=aq-api01- --format {{.Name}}"
+    ],
+    "passed": true
+  }
+}

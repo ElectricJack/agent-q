@@ -27,9 +27,9 @@ The original planning baseline completed AUD-00; current statuses below record s
 
 | Task | Owner | Deliverable |
 | --- | --- | --- |
-| [AQ-06](#aq-06) | agent-q | Implement session credentials and scoped graph reads |
-| [WRK-06](#wrk-06) | aq-worker | Integrate local aq-git workspaces and storage admission |
-| [AQ-09](#aq-09) | agent-q | Implement authenticated source transfer and central retention |
+| [AQ-07](#aq-07) | agent-q | Implement durable graph mutation delivery and recovery |
+| [WRK-05](#wrk-05) | aq-worker | Provision the AQ agent client and bounded context cache |
+| [WRK-07](#wrk-07) | aq-worker | Implement resumable artifact handoff and retention release |
 | [AQ-11](#aq-11) | agent-q | Implement durable supervisor and agent messaging |
 | [PB-02](#pb-02) | aq-playbooks | Establish the playbook storage and scheduling operating envelope |
 | [REL-01](#rel-01) | agent-q | Version the composite product manifest and component inventory |
@@ -110,12 +110,12 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [GRAPH-01](#graph-01): Qualify an immutable graph integration candidate | aq-graph | [AUD-00](#aud-00) | complete |
 | [GIT-01](#git-01): Qualify and package an immutable Git integration candidate | aq-git | [AUD-00](#aud-00) | complete |
 | [API-01](#api-01): Publish scoped agent API contracts | agent-q | [AQ-02](#aq-02), [GRAPH-01](#graph-01) | complete |
-| [AQ-06](#aq-06): Implement session credentials and scoped graph reads | agent-q | [API-01](#api-01), [AQ-03](#aq-03) | planned |
+| [AQ-06](#aq-06): Implement session credentials and scoped graph reads | agent-q | [API-01](#api-01), [AQ-03](#aq-03) | complete |
 | [AQ-07](#aq-07): Implement durable graph mutation delivery and recovery | agent-q | [AQ-06](#aq-06) | planned |
 | [AQ-08](#aq-08): Schedule real graph candidates with explicit eligibility | agent-q | [AQ-04](#aq-04), [AQ-07](#aq-07), [GATE-03](#gate-03) | planned |
 | [WRK-05](#wrk-05): Provision the AQ agent client and bounded context cache | aq-worker | [WRK-04](#wrk-04), [AQ-06](#aq-06) | planned |
-| [WRK-06](#wrk-06): Integrate local aq-git workspaces and storage admission | aq-worker | [WRK-04](#wrk-04), [GIT-01](#git-01) | planned |
-| [AQ-09](#aq-09): Implement authenticated source transfer and central retention | agent-q | [AQ-03](#aq-03), [GIT-01](#git-01) | planned |
+| [WRK-06](#wrk-06): Integrate local aq-git workspaces and storage admission | aq-worker | [WRK-04](#wrk-04), [GIT-01](#git-01) | complete |
+| [AQ-09](#aq-09): Implement authenticated source transfer and central retention | agent-q | [AQ-03](#aq-03), [GIT-01](#git-01) | complete |
 | [WRK-07](#wrk-07): Implement resumable artifact handoff and retention release | aq-worker | [WRK-06](#wrk-06), [AQ-09](#aq-09) | planned |
 | [WRK-08](#wrk-08): Support one real harness with tested confinement | aq-worker | [WRK-05](#wrk-05), [WRK-06](#wrk-06), [GATE-03](#gate-03) | planned |
 | [AQ-10](#aq-10): Apply evidence-based result disposition and graph completion | agent-q | [AQ-05](#aq-05), [AQ-07](#aq-07), [AQ-09](#aq-09) | planned |
@@ -555,7 +555,7 @@ Evidence: [API-01.md](../implementation/API-01.md), [API-01.json](../implementat
 
 **Implement session credentials and scoped graph reads**
 
-Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: complete.
 
 Hard prerequisites: [API-01](#api-01), [AQ-03](#aq-03).
 
@@ -567,6 +567,8 @@ Acceptance:
 - Cached context is revision-labelled; worker/node/graph service identities cannot be substituted for agent authority.
 
 Requirement links: D4, D9, W1, W18, W19, X5, X11.
+
+Evidence: [m4-foundations.md](../implementation/m4-foundations.md), [m4-qualification.md](../implementation/m4-qualification.md), [m4-validation.json](../implementation/m4-validation.json), [m4-source-mapping.json](../implementation/m4-source-mapping.json), [aq06-agent-access.md](../qualification/aq06-agent-access.md), [m4-graph-qualification.json](../implementation/m4-graph-qualification.json).
 
 ### AQ-07
 
@@ -623,7 +625,7 @@ Requirement links: W18, W19, W20, X10, X11.
 
 **Integrate local aq-git workspaces and storage admission**
 
-Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: planned.
+Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: complete.
 
 Hard prerequisites: [WRK-04](#wrk-04), [GIT-01](#git-01).
 
@@ -636,11 +638,13 @@ Acceptance:
 
 Requirement links: W3, W6, W7, W8, W14, W15, X4.
 
+Evidence: [m4-foundations.md](../implementation/m4-foundations.md), [m4-qualification.md](../implementation/m4-qualification.md), [m4-validation.json](../implementation/m4-validation.json), [m4-source-mapping.json](../implementation/m4-source-mapping.json), [source-workspaces.md](../../../aq-worker/docs/source-workspaces.md), [m4-recovery-qualification.json](../implementation/m4-recovery-qualification.json).
+
 ### AQ-09
 
 **Implement authenticated source transfer and central retention**
 
-Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: complete.
 
 Hard prerequisites: [AQ-03](#aq-03), [GIT-01](#git-01).
 
@@ -652,6 +656,8 @@ Acceptance:
 - Stale attempts may retain authorized recovery source but cannot restore execution authority or settle newer work.
 
 Requirement links: D2, D3, W7, W8, W9, X7, X12.
+
+Evidence: [m4-foundations.md](../implementation/m4-foundations.md), [m4-qualification.md](../implementation/m4-qualification.md), [m4-validation.json](../implementation/m4-validation.json), [m4-source-mapping.json](../implementation/m4-source-mapping.json), [source-retention.md](../source-retention.md), [m4-git-package.json](../evidence/m4-git-package.json), [m4-source-retention-tests.log](../evidence/m4-source-retention-tests.log).
 
 ### WRK-07
 
