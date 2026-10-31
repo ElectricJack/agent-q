@@ -299,3 +299,34 @@ producer. Those handlers must compose these real owners, count every final start
 byte using qualified facts, and preserve the acyclic schema2 policy/selection
 order. Production harness eligibility remains closed without real definition,
 model-capacity/counting and adapter qualification bodies.
+
+## Public definition bodies for producer assembly
+
+An ArtifactRef alone cannot supply the definition/evidence bytes required by a
+manifest. Optional `ProfiledConfig.definition_bodies` supplies daemon-owned exact
+public UTF8 bodies with ArtifactKind Definition and a matching content digest.
+It defaults to empty and changes no old startup behavior or serialized defaults.
+Missing required bodies refuse construction; retaining arbitrary text does not
+qualify a model, credential, adapter, tokenizer or environment. The configured
+qualification owner remains responsible for truthful public evidence and must
+exclude credentials and private material from these public bodies. They are
+never interpreted as executable hooks, paths or commands.
+
+The catalog is bounded to 64 definitions, 2MiB per body and 8MiB total. Definition
+fields are immutable after checked construction/deserialization. Configuration
+serde retains exact bodies for roundtrip, while `configuration_digest()` uses an
+explicit compact projection with exact references/kinds/byte counts. Each
+reference digest already binds its constructor-verified bytes. Empty catalogs
+preserve the prior configuration digest. Installer, policy-record and current
+configuration fences all use this same projection; hot authority requests do not
+rehash multi-MiB definition bodies.
+
+The actual inline artifact owner supplies receipts for the required definitions.
+All required references are checked before retaining any; individual receipts
+are durable per-artifact operations, so a later storage failure can leave charged
+retained artifacts but grants no execution. Draft migration027 makes definition
+identity/version content immutable across projects and configuration revisions,
+serialized under the existing inline-artifact quota lock. It is unregistered
+until human026 is present; explicit027 component tests are not ordered migration
+qualification. Final producer offer/grant transactions must fence the same
+current configuration after external work and waits.

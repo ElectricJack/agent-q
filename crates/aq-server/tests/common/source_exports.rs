@@ -25,6 +25,7 @@ pub async fn setup() -> (Fixture, Request, tempfile::TempDir) {
         super::profiled::artifact("synthetic-source-reader-qualification", b"qualification");
     let features = vec![aq_admission::transport::Feature::ArtifactTransferV1];
     let config = ProfiledConfig {
+        definition_bodies: vec![],
         revision: 1,
         qualified_runtimes: vec![QualifiedRuntime {
             runtime: runtime_ref.clone(),

@@ -97,6 +97,7 @@ async fn cold_native_inventory_requires_exact_qualified_delivery_and_fresh_owner
         version: 1,
     };
     config.profiled_execution = Some(Arc::new(ProfiledConfig {
+        definition_bodies: vec![],
         context_qualifications: vec![],
         revision: 1,
         qualified_runtimes: vec![QualifiedRuntime {

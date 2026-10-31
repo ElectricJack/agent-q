@@ -32,6 +32,8 @@ pub struct ProfiledConfig {
     pub projects: Vec<ProjectPolicy>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub context_qualifications: Vec<super::context_budget::Qualification>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub definition_bodies: Vec<super::definitions::Definition>,
 }
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -80,6 +82,7 @@ fn artifact(value: &ArtifactRef) -> Result<(), String> {
 }
 impl ProfiledConfig {
     pub fn validate(&self) -> Result<(), String> {
+        super::definitions::validate_catalog(&self.definition_bodies)?;
         super::context_budget::validate_catalog(&self.context_qualifications)
             .map_err(|_| "invalid context qualifications".to_string())?;
         if self.revision == 0
@@ -132,6 +135,29 @@ impl ProfiledConfig {
         }
         Ok(())
     }
+    /// Compact authority anchor. Private immutable Definition construction proves
+    /// each reference digest equals its body, so request paths never rehash MiBs.
+    /// Input/output serde still retains complete bodies for exact roundtrips.
+    pub fn configuration_digest(&self) -> Result<aq_admission::Digest, String> {
+        #[derive(Serialize)]
+        struct Anchor<'a> {
+            revision: u64,
+            qualified_runtimes: &'a [QualifiedRuntime],
+            projects: &'a [ProjectPolicy],
+            #[serde(skip_serializing_if = "Vec::is_empty")]
+            context_qualifications: Vec<&'a super::context_budget::Qualification>,
+            #[serde(skip_serializing_if = "Vec::is_empty")]
+            definition_bodies: Vec<super::definitions::DefinitionReference<'a>>,
+        }
+        aq_selection::digest(&Anchor {
+            revision: self.revision,
+            qualified_runtimes: &self.qualified_runtimes,
+            projects: &self.projects,
+            context_qualifications: self.context_qualifications.iter().collect(),
+            definition_bodies: super::definitions::references(&self.definition_bodies),
+        })
+        .map_err(|_| "profiled configuration digest".into())
+    }
     pub fn project_policy_record(&self, project_id: Uuid) -> Result<ProjectPolicyRecord, String> {
         self.validate()?;
         let policy = self
@@ -143,8 +169,7 @@ impl ProfiledConfig {
             schema_version: 1,
             project_id,
             revision: self.revision,
-            configuration_digest: aq_selection::digest(self)
-                .map_err(|_| "profiled configuration digest")?,
+            configuration_digest: self.configuration_digest()?,
             enabled: policy.enabled,
             priority: policy.priority,
             source: policy.source.clone(),

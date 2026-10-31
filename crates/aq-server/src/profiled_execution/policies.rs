@@ -63,7 +63,9 @@ pub async fn install(state: &AppState) -> Result<InstallReport, AppError> {
     config
         .validate()
         .map_err(|_| conflict("invalid profiled policy configuration"))?;
-    let configuration_digest = aq_selection::digest(config).map_err(|_| AppError::Internal)?;
+    let configuration_digest = config
+        .configuration_digest()
+        .map_err(|_| AppError::Internal)?;
     let configured: BTreeMap<_, _> = config
         .projects
         .iter()
@@ -227,7 +229,9 @@ pub async fn fence_configuration_locked(
     if owner.schema_version != 1
         || owner.revision != config.revision
         || owner.configuration_digest
-            != aq_selection::digest(config).map_err(|_| AppError::Internal)?
+            != config
+                .configuration_digest()
+                .map_err(|_| AppError::Internal)?
     {
         return Err(conflict("profiled configuration is stale"));
     }

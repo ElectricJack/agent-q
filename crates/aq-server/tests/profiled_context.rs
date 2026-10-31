@@ -44,6 +44,7 @@ async fn context_fact_changes_are_fenced_by_installed_global_revision_and_digest
         expires_at_ms: NOW + 30000,
     };
     let original = ProfiledConfig {
+        definition_bodies: vec![],
         revision: 1,
         qualified_runtimes: vec![QualifiedRuntime {
             runtime,
