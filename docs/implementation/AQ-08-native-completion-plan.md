@@ -229,3 +229,24 @@ execution or replaces final configuration/registry/project/authority fences.
 Changed facts alter the content-addressed definition and installed global
 configuration digest; a stale daemon cannot keep using an old capacity policy.
 Synthetic tests do not install any real provider/model qualification.
+
+## Delivery lease versus installed execution binding
+
+The source022 owner is separate from execution authority. Delivery lease expiry
+ends retrieval permission for private material; it does not itself erase an
+already verified admitted installation or renew execution. Initial Grant0.1.6
+keeps its lease-covered expiry. Native control0.1.7 adds explicit renewed
+authority for the same binding/grant/logical owner and immutable hard deadline,
+with current machine/agent/registry/profile/fingerprint fences. No changed secret
+or fallback is silently adopted. The worker stops authorized writers before
+private binding deletion on stop/revocation/hard deadline. A historical delivery
+receipt never supplies fresh execution permission. See the [native control reply
+specification](AQ-08-native-control-017.md) for fresh per-transmission delivery,
+replay/current-state separation and finite page bounds.
+
+The final producer still needs a typed inline Source-role observation owner:
+existing frozen NativeOffer validation requires Source for manifest.source,
+whereas the current proposal receipt is Context. Migration025 will add the
+bounded actual Source owner without relabeling a Context receipt or editing020.
+The large retained Git bundle stays separate. No server placeholder converts a
+proposal, unknown token count or missing owner into a runnable manifest.
