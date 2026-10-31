@@ -125,3 +125,6 @@ pub async fn serve_jwks(json: Value) -> JwksServer {
         delay_ms,
     }
 }
+
+/// Fixture-only actual profiled authority builder; never production seeding.
+pub mod profiled;
