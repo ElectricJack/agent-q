@@ -9,6 +9,8 @@ use uuid::Uuid;
 use crate::store::Store;
 
 pub mod api;
+#[cfg(feature = "recovery-test-support")]
+pub mod testing;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
@@ -20,6 +22,28 @@ pub enum Error {
     Json(#[from] serde_json::Error),
 }
 pub type Result<T> = std::result::Result<T, Error>;
+
+/// Request handlers supply a live clock. Storage tests can explicitly freeze
+/// time. Eligibility is sampled after database locks, never before queue waits.
+#[derive(Clone)]
+pub enum AdmissionClock {
+    Frozen(u64),
+    Live(std::sync::Arc<dyn Fn() -> u64 + Send + Sync>),
+}
+impl From<u64> for AdmissionClock {
+    fn from(now: u64) -> Self {
+        Self::Frozen(now)
+    }
+}
+impl AdmissionClock {
+    fn now_ms(&self) -> u64 {
+        match self {
+            Self::Frozen(now) => *now,
+            Self::Live(clock) => clock(),
+        }
+    }
+}
+
 fn refuse(code: ErrorCode, message: &'static str) -> Error {
     Error::Refused(code, message)
 }
@@ -214,6 +238,17 @@ fn remaining_grant(mut receipt: GrantReceipt, state: &AttemptState, now: u64) ->
 }
 
 impl Store {
+    fn execution_grant_ttl(&self) -> u64 {
+        #[cfg(feature = "recovery-test-support")]
+        {
+            self.recovery_test.grant_ttl_ms()
+        }
+        #[cfg(not(feature = "recovery-test-support"))]
+        {
+            MAX_GRANT_MS
+        }
+    }
+
     pub async fn execution_register(&self, request: &RegisterRequest) -> Result<RegisterResponse> {
         validate(request)?;
         let mut tx = self.pool.begin().await?;
@@ -342,7 +377,12 @@ impl Store {
         Ok(offer.clone())
     }
 
-    pub async fn execution_poll(&self, request: &PollRequest, now: u64) -> Result<PollResponse> {
+    pub async fn execution_poll(
+        &self,
+        request: &PollRequest,
+        clock: impl Into<AdmissionClock>,
+    ) -> Result<PollResponse> {
+        let clock = clock.into();
         validate(request)?;
         let mut tx = self.pool.begin().await?;
         lock_node(&mut tx, request.identity.node_id).await?;
@@ -353,6 +393,7 @@ impl Store {
         let mut available = request.available.clone();
         for row in rows {
             let mut state: AttemptState = serde_json::from_str(&row)?;
+            let now = clock.now_ms();
             if state.offer.offer_expires_at_ms <= now {
                 state.status = AuthorityStatus::Declined;
                 state.stopped = true;
@@ -383,15 +424,16 @@ impl Store {
         Ok(PollResponse {
             offers,
             directives,
-            server_time_ms: now,
+            server_time_ms: clock.now_ms(),
         })
     }
 
     pub async fn execution_accept(
         &self,
         request: &AcceptRequest,
-        now: u64,
+        clock: impl Into<AdmissionClock>,
     ) -> Result<AcceptResponse> {
+        let clock = clock.into();
         validate(request)?;
         let mut tx = self.pool.begin().await?;
         lock_node(&mut tx, request.identity.node_id).await?;
@@ -399,6 +441,7 @@ impl Store {
         let digest = payload_digest(request);
         let mut state = load_attempt(&mut tx, request.attempt.attempt_id).await?;
         bind_attempt(&state, request.identity.node_id, &request.attempt)?;
+        let now = clock.now_ms();
         if state.offer.identity != request.identity
             || state.offer.offer_id != request.offer_id
             || state.offer.spec.resolved_spec_digest != request.resolved_spec_digest
@@ -438,10 +481,10 @@ impl Store {
             reservation_deadline_ms: request.reservation_deadline_ms,
             resolved_spec_digest: request.resolved_spec_digest.clone(),
             grant_sequence: 1,
-            valid_for_ms: MAX_GRANT_MS,
+            valid_for_ms: self.execution_grant_ttl(),
         };
         state.status = AuthorityStatus::Granted;
-        state.grant_expires_at_ms = now.saturating_add(MAX_GRANT_MS);
+        state.grant_expires_at_ms = now.saturating_add(grant.valid_for_ms);
         state.grant = Some(grant.clone());
         save_attempt(&mut tx, &state).await?;
         record(
@@ -460,13 +503,19 @@ impl Store {
         Ok(AcceptResponse { grant })
     }
 
-    pub async fn execution_renew(&self, request: &RenewRequest, now: u64) -> Result<RenewResponse> {
+    pub async fn execution_renew(
+        &self,
+        request: &RenewRequest,
+        clock: impl Into<AdmissionClock>,
+    ) -> Result<RenewResponse> {
+        let clock = clock.into();
         validate(request)?;
         let mut tx = self.pool.begin().await?;
         lock_node(&mut tx, request.identity.node_id).await?;
         active(&mut tx, &request.identity).await?;
         let mut state = load_attempt(&mut tx, request.attempt.attempt_id).await?;
         bind_attempt(&state, request.identity.node_id, &request.attempt)?;
+        let now = clock.now_ms();
         let digest = payload_digest(request);
         if let Some(receipt) = receipt(
             &mut tx,
@@ -504,9 +553,9 @@ impl Store {
             .grant_sequence
             .checked_add(1)
             .ok_or_else(|| refuse(ErrorCode::InvalidRequest, "grant sequence exhausted"))?;
-        grant.valid_for_ms = MAX_GRANT_MS;
+        grant.valid_for_ms = self.execution_grant_ttl();
         state.grant = Some(grant.clone());
-        state.grant_expires_at_ms = now.saturating_add(MAX_GRANT_MS);
+        state.grant_expires_at_ms = now.saturating_add(grant.valid_for_ms);
         save_attempt(&mut tx, &state).await?;
         record(
             &mut tx,
@@ -595,8 +644,9 @@ impl Store {
     pub async fn execution_result(
         &self,
         request: &ResultReport,
-        now: u64,
+        clock: impl Into<AdmissionClock>,
     ) -> Result<ResultResponse> {
+        let clock = clock.into();
         validate(request)?;
         if !request.artifacts.is_empty() {
             return Err(refuse(
@@ -641,10 +691,28 @@ impl Store {
             ));
         }
         let node = registration(&mut tx, request.identity.node_id).await?;
+        let now = clock.now_ms();
         let stopped = matches!(
             request.stop_certainty,
             StopCertainty::ConfirmedStopped | StopCertainty::NotStarted
         );
+        if state.stopped && !stopped {
+            return Err(refuse(
+                ErrorCode::InvalidRequest,
+                "confirmed stopped writers cannot become unresolved",
+            ));
+        }
+        if state
+            .disposition
+            .as_ref()
+            .is_some_and(|r| r.retention_release)
+            && !request.pending_operation_ids.is_empty()
+        {
+            return Err(refuse(
+                ErrorCode::InvalidRequest,
+                "released execution cannot introduce pending operations",
+            ));
+        }
         let disposition = if !stopped {
             ResultDisposition::Rejected
         } else if state.cancellation_id.is_some() {
@@ -765,7 +833,6 @@ impl Store {
         validate(request)?;
         let mut tx = self.pool.begin().await?;
         lock_node(&mut tx, request.identity.node_id).await?;
-        active(&mut tx, &request.identity).await?;
         let digest = payload_digest(request);
         if let Some(ack) = receipt(
             &mut tx,
@@ -787,12 +854,26 @@ impl Store {
         .await?
         .ok_or_else(|| refuse(ErrorCode::NotFound, "offer not found"))?;
         let mut state = load_attempt(&mut tx, attempt_id).await?;
-        if state.offer.identity != request.identity || state.status != AuthorityStatus::Offered {
+        if state.offer.identity != request.identity {
             return Err(refuse(
-                ErrorCode::IdConflict,
-                "cannot decline a resolved offer",
+                ErrorCode::StaleBoot,
+                "decline must name the original offer incarnation",
             ));
         }
+        if state.grant.is_some()
+            || !matches!(
+                state.status,
+                AuthorityStatus::Offered | AuthorityStatus::Declined
+            )
+        {
+            return Err(refuse(
+                ErrorCode::IdConflict,
+                "accepted assignment requires a result, not decline",
+            ));
+        }
+        // This only removes authority: a terminal no-grant decline remains
+        // acknowledgeable after expiry, cancellation or incarnation replacement.
+        // The node lock fences a concurrent acceptance before releasing capacity.
         state.status = AuthorityStatus::Declined;
         state.stopped = true;
         save_attempt(&mut tx, &state).await?;
@@ -880,8 +961,9 @@ impl Store {
     pub async fn execution_reconcile(
         &self,
         request: &ReconcileRequest,
-        now: u64,
+        clock: impl Into<AdmissionClock>,
     ) -> Result<ReconcileResponse> {
+        let clock = clock.into();
         validate(request)?;
         let offset: usize = request
             .cursor
@@ -926,6 +1008,7 @@ impl Store {
             };
             if let Some(body) = body {
                 let state: AttemptState = serde_json::from_str(&body)?;
+                let now = clock.now_ms();
                 if state.offer.attempt == local.attempt
                     && state.offer.identity.boot_id == local.previous_boot_id
                 {

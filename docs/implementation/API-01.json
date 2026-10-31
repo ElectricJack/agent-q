@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "task": "API-01",
+  "status": "completed_contract_candidate",
+  "captured_at": "2026-10-31T01:36:06.083951+00:00",
+  "source": {
+    "baseline_agent_q_commit": "2cc300360107b190943615f23548645702d33b2a",
+    "candidate_code_is_uncommitted": true,
+    "owned_paths": [
+      "protocol/agent-access/**",
+      "docs/implementation/API-01.*"
+    ],
+    "contract_inventory_sha256": "1c394fc38c2a280c3822d2abaa11b2fb03561d2cbb623eea6753ad6a34a04dfc",
+    "manifest": "protocol/agent-access/v1/MANIFEST.json"
+  },
+  "public_artifacts": {
+    "schema": "protocol/agent-access/v1/schema.json",
+    "openapi": "protocol/agent-access/v1/openapi.json",
+    "developer_type_declarations": "protocol/agent-access/v1/client_types.py",
+    "cli_contract": "protocol/agent-access/v1/cli-contract.json",
+    "semantics": "protocol/agent-access/v1/README.md"
+  },
+  "inputs": {
+    "agent-q/docs/specs/0002-execution-and-agent-access.md": "254a3b9beb641d487953654610419acf9fdb455d2eed12d2daf2f4eb1d95cccf",
+    "agent-q/docs/architecture/0002-execution-and-recovery.md": "ef4aa0e1bb8d23090737e2e646cd792ef8e655a73ca19f55bf8eb286e8469e6c",
+    "aq-worker/docs/specs/0002-execution-and-agent-access.md": "e9a041aaebaa95de765c9cf30c39a8f762ba87eeb9e9c252ff651ae60990744c",
+    "aq-graph/docs/aq-integration.md": "a0987690e195e7237e02af5a4f1c004647a1c91a7539f92c3f7037f85c15721d"
+  },
+  "qualified_graph": {
+    "source_revision": "225329cd6acf5a775fd2a0b016dd1c45fb16c79b",
+    "api_version": 1,
+    "schema_version": 8,
+    "image_id": "sha256:807beba98dcd20b0ae335f09cae8c06ecb182a352ee78de278cb47fccb2ee3be",
+    "qualified_source_anchor_sha256": {
+      "src/store.rs": "ae09f36102ddf0b14484883b3b0eb00d56e9ec8f254b2fd23145acbea70cd46d",
+      "src/knowledge_rules.rs": "1932803a0a053779f17691e08ebef325f412b8617713e86a30113f3a9084b799",
+      "docs/openapi.json": "a06393e0557fe06bfcaf9820c073f6e3e585441282561b1e53638e80600b46bc",
+      "docs/api.md": "64f916198677872f732599e3dcd51beffb889165240687b3a2f25e3ee687c59e"
+    },
+    "retained_public_schema": "protocol/agent-access/v1/upstream/aq-graph-openapi.json",
+    "raw_synthetic_http_fixture": "protocol/agent-access/v1/fixtures/qualified-graph.json"
+  },
+  "checks": [
+    {
+      "command": "python3 protocol/agent-access/v1/generate.py --check",
+      "result": "passed",
+      "scope": "Generated strict JSON Schema/OpenAPI/developer TypedDict drift; no root Cargo change"
+    },
+    {
+      "command": "python3 -m unittest discover -s protocol/agent-access/v1 -p test_conformance.py -v",
+      "result": "passed",
+      "tests": 30,
+      "log": "protocol/agent-access/v1/fixtures/conformance.log"
+    },
+    {
+      "command": "isolated venv --without-pip; base pip --python VENV install -r protocol/agent-access/v1/requirements-dev.txt; VENV/python generate.py --check; VENV/python -m unittest discover ...",
+      "result": "passed",
+      "tests": 30,
+      "log": "protocol/agent-access/v1/fixtures/fresh-environment.log",
+      "note": "Host lacks ensurepip; no global package installation. Initial generated types.py shadowed stdlib types; fixed by client_types.py and rerun. Initial failure retained separately."
+    },
+    {
+      "command": "python3 protocol/agent-access/v1/capture_graph_fixture.py",
+      "result": "passed",
+      "log": "protocol/agent-access/v1/fixtures/guard-probe.log",
+      "checks": [
+        "atomic no-op source guard plus edge succeeds",
+        "no-op guard does not increment version",
+        "identical graph receipt replays",
+        "stale guard returns409 without inserting edge",
+        "foreign-author guard returns403",
+        "retired-source guard returns403",
+        "failed edges absent; owned containers/network removed"
+      ]
+    }
+  ],
+  "fixtures": {
+    "wire_vectors": 39,
+    "portable_scope_vectors": 32,
+    "query_variants": 6,
+    "command_variants": 5,
+    "read_relationship_types": 8,
+    "routes": 5
+  },
+  "environment": {
+    "python": "3.12.3",
+    "developer_dependencies": {
+      "jsonschema": "4.26.0",
+      "attrs": "26.1.0",
+      "jsonschema-specifications": "2025.9.1",
+      "referencing": "0.37.0",
+      "rpds-py": "0.30.0",
+      "typing-extensions": "4.15.0"
+    },
+    "runtime_dependency_claim": false
+  },
+  "acceptance": {
+    "schema_scope_state_fixtures": "passed for the finite published surface; full-batch admission, both edge endpoints, context/pins/history/search leakage, authority and known-operation recovery vectors included",
+    "independent_clients": "Strict JSON Schema2020-12/OpenAPI3.1 and generated developer bindings plus language-independent wire/scope/CLI fixtures; semantic byte/digest/scope rules remain normative",
+    "credential_boundary": "No graph database/service credential or arbitrary graph proxy in agent bodies; node recovery only own existing attempt operations"
+  },
+  "limits": [
+    "No installed HTTP routes, production authentication/author-delegation enforcement or session credential provisioning; AQ-06 remains open.",
+    "No production durable intent/outbox/retry scheduler/receipt service or concurrency proof; AQ-07 remains open.",
+    "No production agent CLI/SDK/journal/private cache; Python tooling is developer-only and WRK-05 remains open.",
+    "Fixture ledger/service are in-memory oracles, not another graph engine; real cursor encoding and full scoped traversal/history/search are deferred.",
+    "Graph guard was narrowly validated against actual selected image and source. Reject guard-unavailable operations without privilege escalation; no generic graph compare primitive added.",
+    "No task lifecycle/approval/publication/assignment control; decomposition remains unapplied draft; twelve playbook Host commands are separate.",
+    "No worker graph replica, node graph credential, offline committed edits, production deployment or capacity/recovery-gate claim."
+  ]
+}

@@ -1,0 +1,15 @@
+# M3 execution authority and recovery
+
+The daemon keeps execution authority in PostgreSQL and the worker keeps a durable local execution journal. Neither an absent PID nor a lost response proves that work stopped. The selected Linux worker profile uses one dedicated subreaper guardian per launch, suspend-aware deadlines and kernel child-reaping evidence. Recovery stops and preserves an existing execution; it does not resume agents under old authority. Guardian loss or a changed PID namespace without a durable stopped receipt retains uncertainty and protects reservations.
+
+The daemon now separates control traffic from ordinary and bulk traffic. Shared admission budgets permit 16 control, 8 general and 2 bulk requests, with 5/15/30-second handler deadlines and explicit retryable overload responses. Control authentication and handlers share a separate four-connection database pool; readiness also uses that pool. These are initial bounded fixture budgets, not fleet sizing or a guarantee against database-wide exhaustion. Artifact streaming and per-node fairness require later qualification.
+
+Authority-sensitive handlers sample current time after acquiring the node and attempt locks. A regression holds the actual node row lock, observes the blocked HTTP request through PostgreSQL, advances the fixture clock, then releases the lock. Acceptance and renewal refuse expired authority without changing grants; late results are retained as stale. Existing receipt replay preserves the original absolute expiry.
+
+Result corrections cannot retract confirmed stop evidence or introduce pending operations after a task claim has been released. A stable decline can reconcile an unaccepted offer under its original boot identity even after replacement; the same node lock fences concurrent acceptance. An already accepted offer requires a result. Maintenance continues authenticated cancellation while refusing new work.
+
+The `recovery-test-support` Cargo feature adds development-only clock and synthetic bulk controls. Ordinary builds do not contain those routes; production authentication mode refuses them even in an instrumented build. The bulk fixture holds actual ordinary database connections. Tests exhaust that pool and bulk admission while authenticated renewal, polling, cancellation and readiness continue through reserved control capacity. Fault tests use observable barriers and injected clocks, not assumed network timing.
+
+API-01 separately defines the future scoped agent graph contract. It does not install a graph gateway, grant graph credentials to workers or replicate the graph database. See [API-01](API-01.md) for its independently tested contract and implementation boundaries.
+
+Final image identities, failure cases and acceptance evidence are recorded in the recovery qualification artifacts. Host power-loss and physical suspend testing, a hostile-process security boundary, full-container live reattachment, real agent harnesses, graph/Git delivery and large-fleet capacity are outside this synthetic execution qualification.

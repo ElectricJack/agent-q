@@ -61,21 +61,24 @@ fn maintenance_error() -> Response {
         .into_response()
 }
 
-/// Admin listener: every non-GET/HEAD request is refused while the marker exists.
+/// Maintenance prevents new actions, but authenticated typed cancellation
+/// remains available so an update cannot make an active writer unstoppable.
 pub async fn admin_maintenance_gate(
     State(state): State<AppState>,
     req: Request,
     next: Next,
 ) -> Response {
     let read_only = matches!(*req.method(), Method::GET | Method::HEAD | Method::OPTIONS);
-    if !read_only && under_maintenance(&state) {
+    let cancelling =
+        req.method() == Method::POST && crate::admission::execution_cancel_path(req.uri().path());
+    if !read_only && !cancelling && under_maintenance(&state) {
         return maintenance_error();
     }
     next.run(req).await
 }
 
-/// Worker listener: only enrollment is gated. Heartbeat and probe keep
-/// working so workers keep their identity through an update.
+/// New enrollment and grant acceptance are gated. Heartbeat, renewal,
+/// cancellation polling and result reporting continue through maintenance.
 pub async fn worker_maintenance_gate(
     State(state): State<AppState>,
     req: Request,

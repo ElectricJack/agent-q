@@ -235,9 +235,22 @@ async fn migrate(pool: &PgPool) -> Result<()> {
 #[derive(Clone)]
 pub struct Store {
     pub(crate) pool: PgPool,
+    control_pool: PgPool,
+    pub(crate) admission: std::sync::Arc<crate::admission::Admission>,
+    #[cfg(feature = "recovery-test-support")]
+    pub(crate) recovery_test: std::sync::Arc<crate::execution::testing::Controls>,
 }
 
 impl Store {
+    /// A view over the same database with reserved control connections. Private
+    /// route wiring selects this; credentials cannot choose their own class.
+    pub(crate) fn control_view(&self) -> Self {
+        Self {
+            pool: self.control_pool.clone(),
+            ..self.clone()
+        }
+    }
+
     /// `SELECT 1`: true when the database answers within `limit`.
     pub async fn ping(&self, limit: std::time::Duration) -> bool {
         matches!(
@@ -250,6 +263,7 @@ impl Store {
     #[cfg(any(test, feature = "test-support"))]
     pub async fn close(&self) {
         self.pool.close().await;
+        self.control_pool.close().await;
     }
 
     pub async fn connect(database_url: &str) -> Result<Store> {
@@ -267,7 +281,17 @@ impl Store {
 
     pub async fn from_pool(pool: PgPool) -> Result<Store> {
         migrate(&pool).await?;
-        Ok(Store { pool })
+        let control_pool = PgPoolOptions::new()
+            .max_connections(4)
+            .acquire_timeout(Duration::from_secs(2))
+            .connect_lazy_with(pool.connect_options().as_ref().clone());
+        Ok(Store {
+            pool,
+            control_pool,
+            admission: std::sync::Arc::new(crate::admission::Admission::default()),
+            #[cfg(feature = "recovery-test-support")]
+            recovery_test: std::sync::Arc::new(crate::execution::testing::Controls::default()),
+        })
     }
 
     pub async fn find_user_by_binding(&self, issuer: &str, subject: &str) -> Result<Option<User>> {

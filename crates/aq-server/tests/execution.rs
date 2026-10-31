@@ -578,13 +578,31 @@ owner_email="owner@localhost"
         .body(Body::empty())
         .unwrap();
     assert_eq!(
-        aq_server::build_admin_router(state)
+        aq_server::build_admin_router(state.clone())
             .oneshot(req)
             .await
             .unwrap()
             .status(),
         StatusCode::NOT_FOUND
     );
+    #[cfg(not(feature = "recovery-test-support"))]
+    for path in ["/api/execution/test-control", "/api/execution/test-bulk"] {
+        let req = Request::builder()
+            .method("POST")
+            .uri(path)
+            .header("x-aq-request", "1")
+            .header("content-type", "application/json")
+            .body(Body::from("{}"))
+            .unwrap();
+        assert_eq!(
+            aq_server::build_admin_router(state.clone())
+                .oneshot(req)
+                .await
+                .unwrap()
+                .status(),
+            StatusCode::NOT_FOUND
+        );
+    }
 }
 
 fn recovery(identity: &NodeIdentity) -> ReconcileRequest {
@@ -937,4 +955,586 @@ async fn conflicting_task_claims_on_different_nodes_share_one_central_fence() {
     assert_eq!(usize::from(a.is_ok()) + usize::from(b.is_ok()), 1);
     let losing = if a.is_err() { a } else { b };
     is_error(losing, ErrorCode::IdConflict);
+}
+
+#[cfg(feature = "recovery-test-support")]
+fn recovery_state(h: &Harness) -> aq_server::AppState {
+    let config: aq_server::config::Config = toml::from_str(
+        r#"
+format_version=1
+environment="development"
+[server]
+admin_bind="127.0.0.1:0"
+worker_bind="127.0.0.1:0"
+public_origin="http://127.0.0.1:8080"
+[auth]
+mode="dev"
+dev_email="owner@localhost"
+[bootstrap]
+enabled=true
+owner_email="owner@localhost"
+"#,
+    )
+    .unwrap();
+    aq_server::AppState {
+        identity: aq_server::identity::verifier_from_config(&config.auth, reqwest::Client::new()),
+        config: std::sync::Arc::new(config),
+        store: h.store.clone(),
+        clock: std::sync::Arc::new(|| chrono::DateTime::from_timestamp_millis(NOW as i64).unwrap()),
+    }
+}
+
+#[cfg(feature = "recovery-test-support")]
+async fn recovery_call(
+    app: &axum::Router,
+    method: &str,
+    path: &str,
+    body: serde_json::Value,
+    credential: Option<&str>,
+) -> (axum::http::StatusCode, serde_json::Value) {
+    use axum::{body::Body, http::Request};
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+    let mut request = Request::builder()
+        .extension(axum::extract::ConnectInfo(
+            "127.0.0.1:12345".parse::<std::net::SocketAddr>().unwrap(),
+        ))
+        .method(method)
+        .uri(path)
+        .header("content-type", "application/json")
+        .header("x-aq-request", "1");
+    if let Some(c) = credential {
+        request = request.header("authorization", format!("Bearer {c}"));
+    }
+    let response = app
+        .clone()
+        .oneshot(request.body(Body::from(body.to_string())).unwrap())
+        .await
+        .unwrap();
+    let status = response.status();
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    (
+        status,
+        if bytes.is_empty() {
+            serde_json::Value::Null
+        } else {
+            serde_json::from_slice(&bytes).unwrap()
+        },
+    )
+}
+
+#[cfg(feature = "recovery-test-support")]
+#[tokio::test]
+async fn control_auth_and_operations_survive_full_general_pool_and_bulk_saturation() {
+    use axum::http::StatusCode;
+    use serde_json::{json, to_value};
+    use std::time::Duration;
+    let mut h = Harness::new().await;
+    let pool = sqlx::postgres::PgPoolOptions::new()
+        .max_connections(2)
+        .connect_with(h.db.options())
+        .await
+        .unwrap();
+    h.store = Store::from_pool(pool.clone()).await.unwrap();
+    let offer = h.offer(Uuid::new_v4()).await;
+    h.store
+        .execution_accept(&acceptance(&offer), NOW)
+        .await
+        .unwrap();
+    let state = recovery_state(&h);
+    let admin = aq_server::build_admin_router(state.clone());
+    let worker = aq_server::build_worker_router(state);
+    let set = recovery_call(
+        &admin,
+        "POST",
+        "/api/execution/test-control",
+        json!({"bulk_blocked":true}),
+        None,
+    )
+    .await;
+    assert_eq!(set.0, StatusCode::OK);
+    let mut bulk = Vec::new();
+    for _ in 0..2 {
+        let app = admin.clone();
+        bulk.push(tokio::spawn(async move {
+            recovery_call(&app, "POST", "/api/execution/test-bulk", json!({}), None).await
+        }));
+    }
+    // Wait for the observable barrier, not a guessed sleep interval.
+    tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            let (status, value) = recovery_call(
+                &admin,
+                "GET",
+                "/api/execution/test-control",
+                json!({}),
+                None,
+            )
+            .await;
+            assert_eq!(status, StatusCode::OK);
+            if value["bulk_active"] == 2 {
+                break;
+            }
+            tokio::task::yield_now().await;
+        }
+    })
+    .await
+    .unwrap();
+    assert!(
+        pool.try_acquire().is_none(),
+        "both general connections must actually be held"
+    );
+    assert_eq!(
+        recovery_call(&admin, "GET", "/readyz", json!({}), None)
+            .await
+            .0,
+        StatusCode::OK
+    );
+    let (status, _) =
+        recovery_call(&admin, "POST", "/api/execution/test-bulk", json!({}), None).await;
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    let renew = RenewRequest {
+        identity: h.identity.clone(),
+        operation_id: Uuid::new_v4(),
+        attempt: offer.attempt.clone(),
+        grant_sequence: 1,
+    };
+    let result = tokio::time::timeout(
+        Duration::from_secs(2),
+        recovery_call(
+            &worker,
+            "POST",
+            "/v2/worker/renew",
+            to_value(&renew).unwrap(),
+            Some(&h.credential),
+        ),
+    )
+    .await
+    .unwrap();
+    assert_eq!(result.0, StatusCode::OK);
+    assert_eq!(result.1["grant"]["grant_sequence"], 2);
+    let poll = PollRequest {
+        identity: h.identity.clone(),
+        operation_id: Uuid::new_v4(),
+        inventory_sequence: 1,
+        available: offer.spec.resources.clone(),
+        max_items: 64,
+    };
+    assert_eq!(
+        recovery_call(
+            &worker,
+            "POST",
+            "/v2/worker/poll",
+            to_value(poll).unwrap(),
+            Some(&h.credential)
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    let cancel = format!(
+        "/api/execution/attempts/{}/cancel",
+        offer.attempt.attempt_id
+    );
+    assert_eq!(
+        recovery_call(
+            &admin,
+            "POST",
+            &cancel,
+            json!({"operation_id":Uuid::new_v4(),"reason":"control survives load"}),
+            None
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        recovery_call(
+            &admin,
+            "POST",
+            "/api/execution/test-control",
+            json!({"bulk_blocked":false}),
+            None
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    for task in bulk {
+        assert_eq!(task.await.unwrap().0, StatusCode::OK);
+    }
+    let (_, value) = recovery_call(
+        &admin,
+        "GET",
+        "/api/execution/test-control",
+        json!({}),
+        None,
+    )
+    .await;
+    assert_eq!(value["bulk_active"], 0);
+}
+
+#[cfg(feature = "recovery-test-support")]
+#[tokio::test]
+async fn recovery_clock_controls_do_not_extend_prior_receipts_and_refuse_production() {
+    use axum::http::StatusCode;
+    use serde_json::{json, to_value};
+    let h = Harness::new().await;
+    let state = recovery_state(&h);
+    let admin = aq_server::build_admin_router(state.clone());
+    let worker = aq_server::build_worker_router(state.clone());
+    assert_eq!(
+        recovery_call(
+            &admin,
+            "POST",
+            "/api/execution/test-control",
+            json!({"grant_ttl_ms":1000}),
+            None
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    let offer = h.offer(Uuid::new_v4()).await;
+    let request = acceptance(&offer);
+    let (status, result) = recovery_call(
+        &worker,
+        "POST",
+        "/v2/worker/accept",
+        to_value(&request).unwrap(),
+        Some(&h.credential),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(result["grant"]["valid_for_ms"], 1000);
+    recovery_call(
+        &admin,
+        "POST",
+        "/api/execution/test-control",
+        json!({"advance_ms":1000,"grant_ttl_ms":120000}),
+        None,
+    )
+    .await;
+    let (status, result) = recovery_call(
+        &worker,
+        "POST",
+        "/v2/worker/accept",
+        to_value(request).unwrap(),
+        Some(&h.credential),
+    )
+    .await;
+    assert_eq!(status, StatusCode::CONFLICT);
+    assert_eq!(result["code"], "grant_expired");
+    let mut production = state;
+    let mut config = production.config.as_ref().clone();
+    config.auth = aq_server::config::AuthConfig::CloudflareAccess {
+        team_domain: "https://example.cloudflareaccess.com".into(),
+        audience: "test".into(),
+    };
+    production.config = std::sync::Arc::new(config);
+    // Authenticated test owner reaches the handler; production-mode guard still refuses.
+    let app = aq_server::build_admin_router(production);
+    assert_eq!(
+        recovery_call(
+            &app,
+            "POST",
+            "/api/execution/test-control",
+            json!({"advance_ms":1}),
+            None
+        )
+        .await
+        .0,
+        StatusCode::NOT_FOUND
+    );
+    assert_eq!(
+        recovery_call(&app, "POST", "/api/execution/test-bulk", json!({}), None)
+            .await
+            .0,
+        StatusCode::NOT_FOUND
+    );
+}
+
+#[tokio::test]
+async fn released_report_correction_cannot_reacquire_a_successors_task_claim() {
+    let h = Harness::new().await;
+    let task = Uuid::new_v4();
+    let offer = h.offer(task).await;
+    h.store
+        .execution_accept(&acceptance(&offer), NOW)
+        .await
+        .unwrap();
+    let original = report(&offer);
+    h.store.execution_result(&original, NOW).await.unwrap();
+    let next = h.offer(task).await;
+    h.store
+        .execution_accept(&acceptance(&next), NOW)
+        .await
+        .unwrap();
+    let mut correction = report(&offer);
+    correction.supersedes_report_id = Some(original.report_id);
+    correction.stop_certainty = StopCertainty::StopUncertain;
+    is_error(
+        h.store.execution_result(&correction, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+    correction.stop_certainty = StopCertainty::ConfirmedStopped;
+    correction.pending_operation_ids.push(Uuid::new_v4());
+    is_error(
+        h.store.execution_result(&correction, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+    assert_eq!(
+        h.store
+            .execution_report(h.identity.node_id, original.report_id)
+            .await
+            .unwrap()
+            .0,
+        original
+    );
+    assert_eq!(
+        h.store
+            .execution_get(next.attempt.attempt_id)
+            .await
+            .unwrap()
+            .status,
+        AuthorityStatus::Granted
+    );
+}
+
+#[cfg(feature = "recovery-test-support")]
+#[tokio::test]
+async fn maintenance_preserves_authorized_cancellation_but_blocks_new_fixture_work() {
+    use axum::http::StatusCode;
+    use serde_json::json;
+    let h = Harness::new().await;
+    let offer = h.offer(Uuid::new_v4()).await;
+    h.store
+        .execution_accept(&acceptance(&offer), NOW)
+        .await
+        .unwrap();
+    let mut state = recovery_state(&h);
+    let spool = tempfile::tempdir().unwrap();
+    std::fs::create_dir(spool.path().join("status")).unwrap();
+    std::fs::write(spool.path().join("status/maintenance"), "").unwrap();
+    let mut config = state.config.as_ref().clone();
+    config.updates = Some(aq_server::config::UpdatesConfig {
+        spool_dir: spool.path().to_path_buf(),
+    });
+    state.config = std::sync::Arc::new(config);
+    let admin = aq_server::build_admin_router(state);
+    let path = format!(
+        "/api/execution/attempts/{}/cancel",
+        offer.attempt.attempt_id
+    );
+    let request = json!({"operation_id":Uuid::new_v4(),"reason":"drain during update"});
+    assert_eq!(
+        recovery_call(&admin, "POST", &path, request, None).await.0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        recovery_call(&admin, "POST", "/api/execution/fixtures", json!({}), None)
+            .await
+            .0,
+        StatusCode::SERVICE_UNAVAILABLE
+    );
+}
+
+#[tokio::test]
+async fn no_start_decline_can_reconcile_terminal_unaccepted_old_boot_offers() {
+    let h = Harness::new().await;
+    let offer = h.offer(Uuid::new_v4()).await;
+    let next = NodeIdentity {
+        node_id: h.identity.node_id,
+        boot_id: Uuid::new_v4(),
+    };
+    h.store
+        .execution_reconcile(&recovery(&next), NOW)
+        .await
+        .unwrap();
+    h.store.execution_register(&register(&next)).await.unwrap();
+    let decline = DeclineRequest {
+        identity: h.identity.clone(),
+        operation_id: Uuid::new_v4(),
+        offer_id: offer.offer_id,
+        reason: "recovered before any launch".into(),
+    };
+    let ack = h.store.execution_decline(&decline).await.unwrap();
+    assert_eq!(h.store.execution_decline(&decline).await.unwrap(), ack);
+    let mut wrong = decline.clone();
+    wrong.identity = next;
+    wrong.operation_id = Uuid::new_v4();
+    is_error(
+        h.store.execution_decline(&wrong).await,
+        ErrorCode::StaleBoot,
+    );
+    assert_eq!(
+        h.store
+            .execution_get(offer.attempt.attempt_id)
+            .await
+            .unwrap()
+            .status,
+        AuthorityStatus::Declined
+    );
+    // No-grant results still cannot fabricate accepted execution evidence.
+    let mut never_started = report(&offer);
+    never_started.stop_certainty = StopCertainty::NotStarted;
+    is_error(
+        h.store.execution_result(&never_started, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+}
+
+#[tokio::test]
+async fn decline_racing_acceptance_either_fences_launch_or_requires_result() {
+    let h = Harness::new().await;
+    let offer = h.offer(Uuid::new_v4()).await;
+    let decline = DeclineRequest {
+        identity: h.identity.clone(),
+        operation_id: Uuid::new_v4(),
+        offer_id: offer.offer_id,
+        reason: "local reservation expired before start".into(),
+    };
+    let acceptance = acceptance(&offer);
+    let (accepted, declined) = tokio::join!(
+        h.store.execution_accept(&acceptance, NOW),
+        h.store.execution_decline(&decline)
+    );
+    assert_ne!(accepted.is_ok(), declined.is_ok());
+    if accepted.is_ok() {
+        is_error(declined, ErrorCode::IdConflict);
+        is_error(
+            h.store.execution_decline(&decline).await,
+            ErrorCode::IdConflict,
+        );
+        let mut stopped = report(&offer);
+        stopped.stop_certainty = StopCertainty::NotStarted;
+        stopped.outcome = ProcessOutcome::Expired;
+        stopped.claimed_success = false;
+        assert!(
+            h.store
+                .execution_result(&stopped, NOW)
+                .await
+                .unwrap()
+                .retention_release
+        );
+    } else {
+        is_error(accepted, ErrorCode::IdConflict);
+        assert_eq!(
+            h.store
+                .execution_get(offer.attempt.attempt_id)
+                .await
+                .unwrap()
+                .status,
+            AuthorityStatus::Declined
+        );
+    }
+}
+
+#[cfg(feature = "recovery-test-support")]
+#[tokio::test]
+async fn authority_decisions_use_time_after_database_lock_wait() {
+    use axum::http::StatusCode;
+    use serde_json::{json, to_value};
+    for operation in ["accept", "renew", "result"] {
+        let h = Harness::new().await;
+        let state = recovery_state(&h);
+        let admin = aq_server::build_admin_router(state.clone());
+        let worker = aq_server::build_worker_router(state);
+        assert_eq!(
+            recovery_call(
+                &admin,
+                "POST",
+                "/api/execution/test-control",
+                json!({"grant_ttl_ms":1000}),
+                None
+            )
+            .await
+            .0,
+            StatusCode::OK
+        );
+        let offer = h.offer(Uuid::new_v4()).await;
+        if operation != "accept" {
+            h.store
+                .execution_accept(&acceptance(&offer), NOW)
+                .await
+                .unwrap();
+        }
+        let before = h
+            .store
+            .execution_get(offer.attempt.attempt_id)
+            .await
+            .unwrap();
+        let body = match operation {
+            "accept" => to_value(acceptance(&offer)).unwrap(),
+            "renew" => to_value(RenewRequest {
+                identity: h.identity.clone(),
+                operation_id: Uuid::new_v4(),
+                attempt: offer.attempt.clone(),
+                grant_sequence: 1,
+            })
+            .unwrap(),
+            _ => to_value(report(&offer)).unwrap(),
+        };
+        let pool = h.db.pool().await;
+        let mut blocker = pool.begin().await.unwrap();
+        let blocker_pid: i32 = sqlx::query_scalar("SELECT pg_backend_pid()")
+            .fetch_one(&mut *blocker)
+            .await
+            .unwrap();
+        sqlx::query("SELECT id FROM nodes WHERE id=$1 FOR UPDATE")
+            .bind(h.identity.node_id)
+            .fetch_one(&mut *blocker)
+            .await
+            .unwrap();
+        let credential = h.credential.clone();
+        let path = format!("/v2/worker/{operation}");
+        let pending = tokio::spawn(async move {
+            recovery_call(&worker, "POST", &path, body, Some(&credential)).await
+        });
+        tokio::time::timeout(std::time::Duration::from_secs(3), async {
+            loop {
+                let blocked: bool = sqlx::query_scalar(
+                    "SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND $1 = ANY(pg_blocking_pids(pid)))")
+                    .bind(blocker_pid).fetch_one(&pool).await.unwrap();
+                if blocked { break; }
+                tokio::task::yield_now().await;
+            }
+        }).await.expect("request must observably wait on held node lock");
+        let elapsed = if operation == "accept" { 30_001 } else { 1_001 };
+        assert_eq!(
+            recovery_call(
+                &admin,
+                "POST",
+                "/api/execution/test-control",
+                json!({"advance_ms":elapsed}),
+                None
+            )
+            .await
+            .0,
+            StatusCode::OK
+        );
+        blocker.commit().await.unwrap();
+        let (status, response) = pending.await.unwrap();
+        if operation == "result" {
+            assert_eq!(status, StatusCode::OK, "{response}");
+            assert_eq!(response["disposition"], "retained_stale");
+        } else {
+            assert_eq!(status, StatusCode::CONFLICT, "{response}");
+            assert_eq!(
+                response["code"],
+                if operation == "accept" {
+                    "offer_expired"
+                } else {
+                    "grant_expired"
+                }
+            );
+            let after = h
+                .store
+                .execution_get(offer.attempt.attempt_id)
+                .await
+                .unwrap();
+            assert_eq!(after.grant, before.grant);
+            assert_eq!(after.grant_expires_at_ms, before.grant_expires_at_ms);
+        }
+    }
 }

@@ -1,0 +1,11 @@
+{
+  "repository": "aq-graph",
+  "source_revision": "225329cd6acf5a775fd2a0b016dd1c45fb16c79b",
+  "api_version": 1,
+  "schema_version": 8,
+  "qualification": "GRAPH-01",
+  "files": {
+    "aq-graph-api.md": "64f916198677872f732599e3dcd51beffb889165240687b3a2f25e3ee687c59e",
+    "aq-graph-openapi.json": "a06393e0557fe06bfcaf9820c073f6e3e585441282561b1e53638e80600b46bc"
+  }
+}

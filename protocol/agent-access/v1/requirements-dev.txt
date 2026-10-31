@@ -1,0 +1,7 @@
+# Developer-only conformance environment; no daemon/worker runtime dependency.
+jsonschema==4.26.0
+attrs==26.1.0
+jsonschema-specifications==2025.9.1
+referencing==0.37.0
+rpds-py==0.30.0
+typing-extensions==4.15.0; python_version < "3.13"

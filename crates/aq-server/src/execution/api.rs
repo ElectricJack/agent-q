@@ -85,34 +85,56 @@ async fn authenticate(
     }
     Ok(())
 }
-fn now(state: &AppState) -> u64 {
-    (state.clock)().timestamp_millis().max(0) as u64
+pub(super) fn now(state: &AppState) -> u64 {
+    let now = (state.clock)().timestamp_millis().max(0) as u64;
+    #[cfg(feature = "recovery-test-support")]
+    if matches!(state.config.auth, AuthConfig::Dev { .. }) {
+        return now.saturating_add(state.store.recovery_test.offset_ms());
+    }
+    now
 }
 
-pub fn worker_routes() -> Router<AppState> {
+fn admission_clock(state: &AppState) -> super::AdmissionClock {
+    let state = state.clone();
+    super::AdmissionClock::Live(std::sync::Arc::new(move || now(&state)))
+}
+
+pub fn worker_routes(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/v2/worker/register", post(register))
-        .route("/v2/worker/poll", post(poll))
         .route("/v2/worker/accept", post(accept))
-        .route("/v2/worker/decline", post(decline))
-        .route("/v2/worker/renew", post(renew))
-        .route("/v2/worker/observe", post(observe))
-        .route("/v2/worker/directive-ack", post(directive_ack))
-        .route("/v2/worker/result", post(result))
-        .route("/v2/worker/reconcile", post(reconcile))
         .route("/v2/worker/artifact-handoff", post(artifact_handoff))
-        .layer(DefaultBodyLimit::max(1024 * 1024))
-}
-pub fn admin_routes() -> Router<AppState> {
-    Router::new()
-        .route("/api/execution/fixtures", post(fixture))
-        .route("/api/execution/attempts/{id}", get(inspect))
-        .route("/api/execution/attempts/{id}/cancel", post(cancel))
-        .route(
-            "/api/execution/replace-incarnation",
-            post(replace_incarnation),
+        .with_state(state.clone())
+        .merge(
+            Router::new()
+                .route("/v2/worker/poll", post(poll))
+                .route("/v2/worker/decline", post(decline))
+                .route("/v2/worker/renew", post(renew))
+                .route("/v2/worker/observe", post(observe))
+                .route("/v2/worker/directive-ack", post(directive_ack))
+                .route("/v2/worker/result", post(result))
+                .route("/v2/worker/reconcile", post(reconcile))
+                .with_state(state.control_view()),
         )
         .layer(DefaultBodyLimit::max(1024 * 1024))
+}
+pub fn admin_routes(state: AppState) -> Router<AppState> {
+    let routes = Router::new()
+        .route("/api/execution/fixtures", post(fixture))
+        .route("/api/execution/attempts/{id}", get(inspect))
+        .with_state(state.clone())
+        .merge(
+            Router::new()
+                .route("/api/execution/attempts/{id}/cancel", post(cancel))
+                .route(
+                    "/api/execution/replace-incarnation",
+                    post(replace_incarnation),
+                )
+                .with_state(state.control_view()),
+        );
+    #[cfg(feature = "recovery-test-support")]
+    let routes = routes.merge(super::testing::routes(state));
+    routes.layer(DefaultBodyLimit::max(1024 * 1024))
 }
 async fn register(
     State(state): State<AppState>,
@@ -136,7 +158,12 @@ macro_rules! timed_handler {
             ExecutionJson(request): ExecutionJson<$request>,
         ) -> Result<Json<$response>, Error> {
             authenticate(&state, &headers, &request.identity).await?;
-            Ok(Json(state.store.$method(&request, now(&state)).await?))
+            Ok(Json(
+                state
+                    .store
+                    .$method(&request, admission_clock(&state))
+                    .await?,
+            ))
         }
     };
 }

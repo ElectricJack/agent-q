@@ -1,0 +1,105 @@
+{
+  "contract": "agent-access",
+  "major": 1,
+  "status": "local public contract candidate; production gateway/client not implemented",
+  "inventory_algorithm": "SHA256 of canonical sorted JSON map of relative paths to SHA256 and byte size; excludes MANIFEST.json and Python caches",
+  "inventory_sha256": "1c394fc38c2a280c3822d2abaa11b2fb03561d2cbb623eea6753ad6a34a04dfc",
+  "files": {
+    ".gitignore": {
+      "sha256": "e99f6ee4eb88882ea6589ecb717e10a41401763241b246b6821bc091cfe2227e",
+      "bytes": 20
+    },
+    "v1/README.md": {
+      "sha256": "54ca5ee435392be24c91d55b327a1e574d2333bd0b432331a9946588201f4530",
+      "bytes": 14391
+    },
+    "v1/build_fixtures.py": {
+      "sha256": "ecbb223536e72904124288879d0b0dc747206ca6b5893b32c79fdab4a5b6a902",
+      "bytes": 14506
+    },
+    "v1/capture_graph_fixture.py": {
+      "sha256": "ca5d34d196e955c525b4311d519ba4f446e20ed2fdf7f30d317f006a1088b40b",
+      "bytes": 10000
+    },
+    "v1/cli-contract.json": {
+      "sha256": "75087bf8ee96918ba12266b96cc3b3dfc064c8d4187673eb2428af3e7d840e52",
+      "bytes": 2416
+    },
+    "v1/client_types.py": {
+      "sha256": "d572bd66247428baeccfb949dae3379c568c3159ced7e4fb2e874a97543d8152",
+      "bytes": 11801
+    },
+    "v1/conformance_model.py": {
+      "sha256": "2ecf3d0f3b1ddf8f9ad979214a051fc8830159bcc898c95a91bc27748ecf4211",
+      "bytes": 25241
+    },
+    "v1/fixtures/base.json": {
+      "sha256": "e3deade737992bad2800b8e5d6e0e89282f8c3078b484896e9b8c81fc2af78e5",
+      "bytes": 41615
+    },
+    "v1/fixtures/conformance.log": {
+      "sha256": "9f33d51f5de69fca97b9e0c1ea7b474cb102c3ae1bef5c13df76248905ca4c18",
+      "bytes": 4919
+    },
+    "v1/fixtures/fresh-environment.log": {
+      "sha256": "40c04d7d43c1d6c5d07d292df265e856a83102ab8228da9f055134e7f658e916",
+      "bytes": 5045
+    },
+    "v1/fixtures/guard-probe.log": {
+      "sha256": "a4084fa146d23df499f977dac0a1c85b93d260e373d10bda7f8d2202ae6eff05",
+      "bytes": 460
+    },
+    "v1/fixtures/initial-environment-failure.log": {
+      "sha256": "80c1f700bfab392fe0c010e6a31b02181f05851d3aad849755efc82d0ab6b617",
+      "bytes": 1250
+    },
+    "v1/fixtures/messages.json": {
+      "sha256": "0d862801912ac2230e14d10a106ac4fcb810b41fc83ee9855cad40949c2b856d",
+      "bytes": 61208
+    },
+    "v1/fixtures/qualified-graph.json": {
+      "sha256": "5339a187b153636afdc28e66971ccd02f8846b68080fa8b17c80cdf42d8622f0",
+      "bytes": 25900
+    },
+    "v1/fixtures/scope-cases.json": {
+      "sha256": "29880559715363bd3c718b9752ed8236c1c972ded33232ca0960b1d5794a4dae",
+      "bytes": 58419
+    },
+    "v1/generate.py": {
+      "sha256": "933e668b6f831c139108c04046ed9d2587752e8c332e47dfbb69d7f155a3d807",
+      "bytes": 21676
+    },
+    "v1/openapi.json": {
+      "sha256": "603cc7ebb0655af34bff18a963a0a581b3f617b17b7532073f521c82c5df1999",
+      "bytes": 106616
+    },
+    "v1/requirements-dev.txt": {
+      "sha256": "e5d8aad6444e49bf2726aa35af230a27c9e754aa5e539bbd85f96aae54b4a878",
+      "bytes": 235
+    },
+    "v1/schema.json": {
+      "sha256": "46002a4b7b91a83c6658653938309eec08776e24290e4be47f5fa034f068204e",
+      "bytes": 63059
+    },
+    "v1/test_conformance.py": {
+      "sha256": "54ac2378fbd22ff1f279cbc70813e47f8dbdbb7b69e87645b351b48a2b99787a",
+      "bytes": 25963
+    },
+    "v1/upstream/aq-graph-api.md": {
+      "sha256": "64f916198677872f732599e3dcd51beffb889165240687b3a2f25e3ee687c59e",
+      "bytes": 27781
+    },
+    "v1/upstream/aq-graph-openapi.json": {
+      "sha256": "a06393e0557fe06bfcaf9820c073f6e3e585441282561b1e53638e80600b46bc",
+      "bytes": 175201
+    },
+    "v1/upstream/manifest.json": {
+      "sha256": "cd3a73a4fbc4003afb4dc0c58de9947dfd63b1059ecbebc9594b9943468cc1e5",
+      "bytes": 375
+    },
+    "v1/validate.py": {
+      "sha256": "c4f875705052abc9cbfbdb47711c42242957ebc4dbec137b4bb7b37cff1e46f9",
+      "bytes": 6888
+    }
+  }
+}

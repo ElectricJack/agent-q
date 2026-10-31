@@ -19,11 +19,16 @@ use crate::{AppState, version_info};
 
 const MAX_BODY_BYTES: usize = 16 * 1024;
 
-pub fn worker_routes() -> Router<AppState> {
+pub fn worker_routes(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/v1/worker/enroll", post(enroll))
-        .route("/v1/worker/heartbeat", post(heartbeat))
-        .route("/v1/worker/probe", post(probe))
+        .with_state(state.clone())
+        .merge(
+            Router::new()
+                .route("/v1/worker/heartbeat", post(heartbeat))
+                .route("/v1/worker/probe", post(probe))
+                .with_state(state.control_view()),
+        )
         .layer(DefaultBodyLimit::max(MAX_BODY_BYTES))
 }
 

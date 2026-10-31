@@ -1,0 +1,6452 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "aq-graph HTTP API",
+    "version": "1.0.0",
+    "description": "Standalone workspace graph. JSON byte limits are UTF-8 byte limits; schema maxLength constraints are advisory character limits."
+  },
+  "security": [
+    {
+      "workspaceBearer": []
+    }
+  ],
+  "paths": {
+    "/health/live": {
+      "get": {
+        "operationId": "get__health_live",
+        "description": "",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/health/ready": {
+      "get": {
+        "operationId": "get__health_ready",
+        "description": "Requires database connectivity and exact supported migration checksums.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/v1/workspaces/{workspace}/nodes": {
+      "get": {
+        "operationId": "get__v1_workspaces_workspace_nodes",
+        "description": "Shared current-record list; disputed records included.",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/NodeKind"
+            },
+            "description": "Both kinds by default."
+          },
+          {
+            "name": "include_retired",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Include retired records; deletion is always excluded."
+          },
+          {
+            "name": "valid_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Timezone required; UTC microseconds after normalization."
+            },
+            "description": "Half-open validity: null lower/upper bounds are unbounded; valid_from <= t < valid_until."
+          },
+          {
+            "name": "review_due_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Timezone required; UTC microseconds after normalization."
+            },
+            "description": "Require a nonnull review_at <= the requested timestamp."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodePage"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/nodes/{id}": {
+      "get": {
+        "operationId": "get__v1_workspaces_workspace_nodes_id",
+        "description": "",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Node"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/nodes/{id}/history": {
+      "get": {
+        "operationId": "get__v1_workspaces_workspace_nodes_id_history",
+        "description": "",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HistoryPage"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/nodes/{id}/diff": {
+      "get": {
+        "operationId": "get__v1_workspaces_workspace_nodes_id_diff",
+        "description": "Compare common record revisions, including lifecycle/deletion fields and owned-link changes.",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "from",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Diff"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/nodes/{id}/context": {
+      "get": {
+        "operationId": "get__v1_workspaces_workspace_nodes_id_context",
+        "description": "",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "depth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "max_bytes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 1048576,
+              "default": 262144
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "enum": [
+                "both",
+                "incoming",
+                "outgoing"
+              ],
+              "default": "both"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Context"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/ready": {
+      "get": {
+        "operationId": "get__v1_workspaces_workspace_ready",
+        "description": "",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodePage"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/search": {
+      "get": {
+        "operationId": "get__v1_workspaces_workspace_search",
+        "description": "Shared current-record title/body full-text search; disputed records excluded by default.",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1024
+            }
+          },
+          {
+            "name": "include_retired",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Include retired records; deletion is always excluded."
+          },
+          {
+            "name": "include_disputed",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Include disputed records in search."
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/NodeKind"
+            },
+            "description": "Both kinds by default."
+          },
+          {
+            "name": "valid_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Timezone required; UTC microseconds after normalization."
+            },
+            "description": "Half-open validity: null lower/upper bounds are unbounded; valid_from <= t < valid_until."
+          },
+          {
+            "name": "review_due_at",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date-time",
+              "description": "Timezone required; UTC microseconds after normalization."
+            },
+            "description": "Require a nonnull review_at <= the requested timestamp."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodePage"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/mutations": {
+      "post": {
+        "operationId": "post__v1_workspaces_workspace_mutations",
+        "description": "Atomic ordered batch; actor/workspace/operation-scoped idempotency.",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MutationRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/changesets": {
+      "post": {
+        "operationId": "post__v1_workspaces_workspace_changesets",
+        "description": "",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Draft"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/changesets/{id}": {
+      "get": {
+        "operationId": "get__v1_workspaces_workspace_changesets_id",
+        "description": "",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Draft"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/changesets/{id}/validate": {
+      "post": {
+        "operationId": "post__v1_workspaces_workspace_changesets_id_validate",
+        "description": "Execute the proposal and roll back all preview writes.",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationResult"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/changesets/{id}/apply": {
+      "post": {
+        "operationId": "post__v1_workspaces_workspace_changesets_id_apply",
+        "description": "",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MutationResult"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/credentials": {
+      "post": {
+        "operationId": "post__v1_workspaces_workspace_credentials",
+        "description": "Admin only. Create or replace a workspace credential.",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Committed result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/credentials/{actor}": {
+      "delete": {
+        "operationId": "delete__v1_workspaces_workspace_credentials_actor",
+        "description": "Admin only. Revoke an actor; the last administrator cannot be removed.",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "actor",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ok"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/nodes/{id}/tree": {
+      "get": {
+        "operationId": "get_v1_workspaces_workspace_nodes_id_tree",
+        "description": "Bounded recursive structural children only. Other context direction values do not change child-only traversal.",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "depth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5,
+              "default": 1
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          },
+          {
+            "name": "max_bytes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1024,
+              "maximum": 1048576,
+              "default": 262144
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Tree"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspace}/nodes/{id}/revisions/{revision}": {
+      "get": {
+        "operationId": "get_v1_workspaces_workspace_nodes_id_revisions_revision",
+        "description": "Read an exact retained task or knowledge revision, including owned historical edge versions. Never substitutes current links for unavailable legacy relationships.",
+        "parameters": [
+          {
+            "name": "workspace",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevisionSnapshot"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input or unsupported API version",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid workspace bearer credential",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "WWW-Authenticate": {
+                "schema": {
+                  "type": "string"
+                },
+                "description": "Bearer challenge"
+              }
+            }
+          },
+          "403": {
+            "description": "Capability denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "409": {
+            "description": "Stale version, unresolved references, duplicate identity, applied draft, or idempotency conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "413": {
+            "description": "Request or response exceeds byte limit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error; no driver details disclosed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              }
+            }
+          },
+          "503": {
+            "description": "Admission, pool, lock, or request deadline exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            },
+            "headers": {
+              "X-AQ-Graph-API-Version": {
+                "schema": {
+                  "const": "1"
+                },
+                "description": "API major version"
+              },
+              "Retry-After": {
+                "schema": {
+                  "type": "integer",
+                  "const": 1
+                },
+                "description": "Minimum suggested retry delay in seconds"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "workspaceBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    },
+    "schemas": {
+      "Capability": {
+        "type": "string",
+        "enum": [
+          "read",
+          "write",
+          "admin"
+        ]
+      },
+      "NodeKind": {
+        "type": "string",
+        "enum": [
+          "task",
+          "knowledge"
+        ]
+      },
+      "TaskState": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "active",
+          "completed",
+          "canceled"
+        ]
+      },
+      "KnowledgeType": {
+        "type": "string",
+        "enum": [
+          "fact",
+          "decision",
+          "policy",
+          "procedure",
+          "incident",
+          "reference",
+          "note"
+        ],
+        "deprecated": true
+      },
+      "Verification": {
+        "type": "string",
+        "enum": [
+          "unverified",
+          "verified",
+          "disputed"
+        ]
+      },
+      "EdgeType": {
+        "type": "string",
+        "enum": [
+          "blocks",
+          "parent-child",
+          "references",
+          "motivated_by",
+          "produces",
+          "supports",
+          "contradicts",
+          "supersedes"
+        ]
+      },
+      "Node": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NodeKind"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Expected-version/CAS token, advancing on every authoritative record mutation."
+          },
+          "content_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Common immutable revision identifier covering content, lifecycle, deletion and owned relationships."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 262144
+          },
+          "acceptance_criteria": {
+            "type": "string",
+            "maxLength": 16384
+          },
+          "labels": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Namespaced keys, e.g. aq:priority; at most 16384 UTF-8 bytes."
+          },
+          "task_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Verification"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "New nodes of either kind start unverified; assertions are independent of task completion."
+          },
+          "provenance": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "description": "Unique source_id values, at most 16384 UTF-8 bytes total."
+          },
+          "retired": {
+            "type": "boolean"
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {
+            "type": "string",
+            "description": "Immutable authenticated creator. Legacy snapshots may omit this field; legacy default is legacy:unknown.",
+            "readOnly": true
+          },
+          "last_verified_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "readOnly": true
+          },
+          "last_verified_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "readOnly": true
+          },
+          "retirement_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContentType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8192,
+                "readOnly": true
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summary_of_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "readOnly": true
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "review_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "successor_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "kind",
+          "version",
+          "content_revision",
+          "title",
+          "body",
+          "acceptance_criteria",
+          "labels",
+          "metadata",
+          "task_state",
+          "verification",
+          "provenance",
+          "retired",
+          "deleted",
+          "created_at",
+          "updated_at",
+          "created_by",
+          "last_verified_by",
+          "last_verified_at",
+          "retirement_reason",
+          "content_type",
+          "summary",
+          "summary_of_revision",
+          "valid_from",
+          "valid_until",
+          "review_at",
+          "successor_id"
+        ],
+        "additionalProperties": false,
+        "description": "Canonical current and exact-revision response. All nullable shared keys are present; raw history and retained legacy receipts use their original payload shapes."
+      },
+      "NodePatch": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "body": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 262144
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "acceptance_criteria": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 16384
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "labels": {
+            "anyOf": [
+              {
+                "type": "array",
+                "maxItems": 64,
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 128
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "type": "object",
+                "description": "Namespaced keys, e.g. aq:priority; at most 16384 UTF-8 bytes."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "task_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "knowledge_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContentType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "deprecated": true,
+            "description": "Accepted input alias for content_type. Do not provide both names."
+          },
+          "verification": {
+            "type": "null",
+            "deprecated": true,
+            "description": "Only null/no-op is accepted; use verify_knowledge for assertions."
+          },
+          "provenance": {
+            "anyOf": [
+              {
+                "type": "array",
+                "maxItems": 64,
+                "items": {
+                  "$ref": "#/components/schemas/Source"
+                },
+                "description": "Unique source_id values, at most 16384 UTF-8 bytes total."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retired": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "retirement_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContentType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "review_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "successor_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Explicit null clears the retirement successor; absence leaves it unchanged."
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "not": {
+              "required": [
+                "content_type",
+                "knowledge_type"
+              ]
+            }
+          }
+        ]
+      },
+      "Edge": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "source": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "edge_type": {
+            "$ref": "#/components/schemas/EdgeType"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "source",
+          "target",
+          "edge_type",
+          "source_revision",
+          "target_revision",
+          "version",
+          "deleted",
+          "created_at"
+        ],
+        "additionalProperties": false
+      },
+      "CreateNode": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "const": "create_node"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NodeKind"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 262144
+          },
+          "acceptance_criteria": {
+            "type": "string",
+            "maxLength": 16384
+          },
+          "labels": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Namespaced keys, e.g. aq:priority; at most 16384 UTF-8 bytes."
+          },
+          "task_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "knowledge_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContentType"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "deprecated": true,
+            "description": "Accepted input alias for content_type. Do not provide both names."
+          },
+          "verification": {
+            "anyOf": [
+              {
+                "const": "unverified"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Creation cannot self-assert verified/disputed status."
+          },
+          "provenance": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "description": "Unique source_id values, at most 16384 UTF-8 bytes total."
+          },
+          "content_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContentType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "review_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "op",
+          "kind",
+          "title"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "not": {
+              "required": [
+                "content_type",
+                "knowledge_type"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "kind": {
+                  "const": "knowledge"
+                }
+              },
+              "required": [
+                "kind"
+              ]
+            },
+            "then": {
+              "properties": {
+                "task_state": {
+                  "type": "null"
+                },
+                "acceptance_criteria": {
+                  "type": "string",
+                  "maxLength": 0
+                }
+              }
+            }
+          }
+        ]
+      },
+      "UpdateNode": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "const": "update_node"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expected_version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "patch": {
+            "$ref": "#/components/schemas/NodePatch"
+          }
+        },
+        "required": [
+          "op",
+          "id",
+          "expected_version",
+          "patch"
+        ],
+        "additionalProperties": false
+      },
+      "DeleteNode": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "const": "delete_node"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expected_version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "op",
+          "id",
+          "expected_version"
+        ],
+        "additionalProperties": false
+      },
+      "RestoreNode": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "const": "restore_node"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expected_version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "include_lifecycle": {
+            "type": "boolean",
+            "default": false,
+            "description": "Admin-only for both kinds. Restore task_state, retired, retirement_reason, successor_id and deleted when true; meaningful restore clears verification and derived summaries."
+          }
+        },
+        "required": [
+          "op",
+          "id",
+          "expected_version",
+          "revision"
+        ],
+        "additionalProperties": false
+      },
+      "AddEdge": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "const": "add_edge"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "target": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "edge_type": {
+            "$ref": "#/components/schemas/EdgeType"
+          },
+          "source_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "target_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "op",
+          "source",
+          "target",
+          "edge_type"
+        ],
+        "additionalProperties": false
+      },
+      "RemoveEdge": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "const": "remove_edge"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expected_version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "op",
+          "id",
+          "expected_version"
+        ],
+        "additionalProperties": false
+      },
+      "Mutation": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/CreateNode"
+          },
+          {
+            "$ref": "#/components/schemas/UpdateNode"
+          },
+          {
+            "$ref": "#/components/schemas/DeleteNode"
+          },
+          {
+            "$ref": "#/components/schemas/RestoreNode"
+          },
+          {
+            "$ref": "#/components/schemas/AddEdge"
+          },
+          {
+            "$ref": "#/components/schemas/RemoveEdge"
+          },
+          {
+            "$ref": "#/components/schemas/SetParent"
+          },
+          {
+            "$ref": "#/components/schemas/VerifyKnowledge"
+          },
+          {
+            "$ref": "#/components/schemas/VerifyNode"
+          },
+          {
+            "$ref": "#/components/schemas/SetSummary"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "op",
+          "mapping": {
+            "create_node": "#/components/schemas/CreateNode",
+            "update_node": "#/components/schemas/UpdateNode",
+            "delete_node": "#/components/schemas/DeleteNode",
+            "restore_node": "#/components/schemas/RestoreNode",
+            "add_edge": "#/components/schemas/AddEdge",
+            "remove_edge": "#/components/schemas/RemoveEdge",
+            "set_parent": "#/components/schemas/SetParent",
+            "verify_knowledge": "#/components/schemas/VerifyKnowledge",
+            "verify_node": "#/components/schemas/VerifyNode",
+            "set_summary": "#/components/schemas/SetSummary"
+          }
+        }
+      },
+      "MutationRequest": {
+        "type": "object",
+        "properties": {
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/Mutation"
+            }
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "operations"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "operations": {
+                  "contains": {
+                    "type": "object",
+                    "properties": {
+                      "op": {
+                        "enum": [
+                          "verify_node",
+                          "verify_knowledge"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "op"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "operations"
+              ]
+            },
+            "then": {
+              "required": [
+                "reason"
+              ],
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "pattern": "\\S"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "DraftRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/Mutation"
+            }
+          }
+        },
+        "required": [
+          "name",
+          "idempotency_key",
+          "operations"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "operations": {
+                  "contains": {
+                    "type": "object",
+                    "properties": {
+                      "op": {
+                        "enum": [
+                          "verify_node",
+                          "verify_knowledge"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "op"
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "operations"
+              ]
+            },
+            "then": {
+              "required": [
+                "reason"
+              ],
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "pattern": "\\S"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "ApplyRequest": {
+        "type": "object",
+        "properties": {
+          "idempotency_key": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "idempotency_key"
+        ],
+        "additionalProperties": false
+      },
+      "GrantRequest": {
+        "type": "object",
+        "properties": {
+          "actor_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "token": {
+            "type": "string",
+            "minLength": 32,
+            "maxLength": 4096,
+            "writeOnly": true
+          },
+          "capability": {
+            "$ref": "#/components/schemas/Capability"
+          }
+        },
+        "required": [
+          "actor_id",
+          "token",
+          "capability"
+        ],
+        "additionalProperties": false
+      },
+      "MutationResult": {
+        "type": "object",
+        "properties": {
+          "change_set_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "description": "Committed node/edge result. Old idempotency receipts preserve the original LegacyNode payload without alias rewriting.",
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/Node"
+                },
+                {
+                  "$ref": "#/components/schemas/Edge"
+                },
+                {
+                  "$ref": "#/components/schemas/LegacyNode"
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "change_set_id",
+          "results"
+        ],
+        "additionalProperties": false
+      },
+      "NodePage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Node"
+            }
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "additionalProperties": false
+      },
+      "Context": {
+        "type": "object",
+        "properties": {
+          "node": {
+            "$ref": "#/components/schemas/Node"
+          },
+          "nodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Node"
+            }
+          },
+          "edges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Edge"
+            }
+          },
+          "pinned_revisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Node"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "node",
+          "nodes",
+          "edges",
+          "pinned_revisions",
+          "truncated"
+        ],
+        "additionalProperties": false
+      },
+      "HistoryEntry": {
+        "type": "object",
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "entry_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "category": {
+            "enum": [
+              "revision",
+              "lifecycle",
+              "edge"
+            ]
+          },
+          "actor_id": {
+            "type": "string"
+          },
+          "operation": {
+            "type": "string"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "change_set_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "data": {},
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "sequence",
+          "entry_id",
+          "category",
+          "actor_id",
+          "operation",
+          "reason",
+          "change_set_id",
+          "data",
+          "created_at"
+        ],
+        "additionalProperties": false
+      },
+      "HistoryPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HistoryEntry"
+            }
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "additionalProperties": false
+      },
+      "Diff": {
+        "type": "object",
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "from": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "to": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "before": {
+            "$ref": "#/components/schemas/Node"
+          },
+          "after": {
+            "$ref": "#/components/schemas/Node"
+          },
+          "changes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "type": "string"
+                },
+                "before": {},
+                "after": {}
+              },
+              "required": [
+                "field",
+                "before",
+                "after"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "before_links": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Edge"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "after_links": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Edge"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relationships_available": {
+            "type": "boolean",
+            "description": "True only when both compared revisions have exact retained link sets."
+          }
+        },
+        "required": [
+          "node_id",
+          "from",
+          "to",
+          "before",
+          "after",
+          "changes",
+          "before_links",
+          "after_links",
+          "relationships_available"
+        ],
+        "additionalProperties": false
+      },
+      "Draft": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "actor_id": {
+            "type": "string"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Mutation"
+            }
+          },
+          "status": {
+            "enum": [
+              "draft",
+              "applied"
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "applied_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MutationResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "actor_id",
+          "name",
+          "reason",
+          "operations",
+          "status",
+          "created_at",
+          "applied_at",
+          "result"
+        ],
+        "additionalProperties": false
+      },
+      "ValidationResult": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "const": true
+          },
+          "change_set_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "results": {
+            "type": "array",
+            "items": {}
+          },
+          "preview": {
+            "type": "object",
+            "properties": {
+              "nodes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "before": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Node"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "after": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Node"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "before",
+                    "after"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "edges": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "before": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Edge"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "after": {
+                      "anyOf": [
+                        {
+                          "$ref": "#/components/schemas/Edge"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "before",
+                    "after"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "nodes",
+              "edges"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "valid",
+          "change_set_id",
+          "results",
+          "preview"
+        ],
+        "additionalProperties": false
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false
+      },
+      "Ok": {
+        "type": "object",
+        "properties": {
+          "ok": {
+            "const": true
+          }
+        },
+        "required": [
+          "ok"
+        ],
+        "additionalProperties": false
+      },
+      "Health": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "enum": [
+              "live",
+              "ready"
+            ]
+          },
+          "api_version": {
+            "const": "1"
+          }
+        },
+        "required": [
+          "status",
+          "api_version"
+        ],
+        "additionalProperties": false
+      },
+      "TaskSource": {
+        "type": "object",
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "kind": {
+            "const": "task"
+          },
+          "task_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "attempt_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "source_id",
+          "kind",
+          "task_id"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewSource": {
+        "type": "object",
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "kind": {
+            "const": "review"
+          },
+          "review_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "source_id",
+          "kind",
+          "review_id",
+          "revision",
+          "sha256"
+        ],
+        "additionalProperties": false
+      },
+      "GitSource": {
+        "type": "object",
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "kind": {
+            "const": "git"
+          },
+          "repository": {
+            "type": "string",
+            "minLength": 1
+          },
+          "commit": {
+            "type": "string",
+            "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1
+          },
+          "blob_sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "source_id",
+          "kind",
+          "repository",
+          "commit",
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "ArtifactSource": {
+        "type": "object",
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "kind": {
+            "const": "artifact"
+          },
+          "artifact_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "source_id",
+          "kind",
+          "artifact_id",
+          "sha256"
+        ],
+        "additionalProperties": false
+      },
+      "UrlSource": {
+        "type": "object",
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "kind": {
+            "const": "url"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https?://"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "retained": {
+            "type": "boolean"
+          },
+          "artifact_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "sha256": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "source_id",
+          "kind",
+          "url",
+          "observed_at",
+          "retained"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "retained": {
+                  "const": true
+                }
+              },
+              "required": [
+                "retained"
+              ]
+            },
+            "then": {
+              "required": [
+                "artifact_id"
+              ],
+              "properties": {
+                "artifact_id": {
+                  "type": "string",
+                  "format": "uuid"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "LegacySource": {
+        "type": "object",
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "kind": {
+            "const": "legacy"
+          },
+          "snapshot_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "store": {
+            "type": "string",
+            "minLength": 1
+          },
+          "key": {
+            "type": "string",
+            "minLength": 1
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "required": [
+          "source_id",
+          "kind",
+          "snapshot_id",
+          "store",
+          "key",
+          "sha256"
+        ],
+        "additionalProperties": false
+      },
+      "Source": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/TaskSource"
+          },
+          {
+            "$ref": "#/components/schemas/ReviewSource"
+          },
+          {
+            "$ref": "#/components/schemas/GitSource"
+          },
+          {
+            "$ref": "#/components/schemas/ArtifactSource"
+          },
+          {
+            "$ref": "#/components/schemas/UrlSource"
+          },
+          {
+            "$ref": "#/components/schemas/LegacySource"
+          }
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        },
+        "description": "Attributed typed source descriptor. This service does not fetch external content or prove retention/access/approval of external task, review, or artifact systems."
+      },
+      "SetParent": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "const": "set_parent"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expected_version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "parent_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "op",
+          "id",
+          "expected_version",
+          "parent_id"
+        ],
+        "additionalProperties": false
+      },
+      "VerifyKnowledge": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "const": "verify_knowledge"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expected_version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "verification": {
+            "enum": [
+              "verified",
+              "disputed"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "description": "Unique source_id values, at most 16384 UTF-8 bytes total.",
+            "minItems": 1
+          }
+        },
+        "required": [
+          "op",
+          "id",
+          "expected_version",
+          "verification",
+          "evidence"
+        ],
+        "additionalProperties": false,
+        "deprecated": true,
+        "description": "Legacy operation name for shared task/knowledge verification; same authority and evidence rules."
+      },
+      "Tree": {
+        "type": "object",
+        "properties": {
+          "node": {
+            "$ref": "#/components/schemas/Node"
+          },
+          "children": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Tree"
+            }
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "node",
+          "children",
+          "truncated"
+        ],
+        "additionalProperties": false
+      },
+      "RevisionSnapshot": {
+        "type": "object",
+        "properties": {
+          "node": {
+            "$ref": "#/components/schemas/Node"
+          },
+          "links": {
+            "anyOf": [
+              {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Edge"
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "relationships_available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "node",
+          "links",
+          "relationships_available"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "relationships_available": {
+                  "const": true
+                }
+              },
+              "required": [
+                "relationships_available"
+              ]
+            },
+            "then": {
+              "properties": {
+                "links": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Edge"
+                  }
+                }
+              }
+            },
+            "else": {
+              "properties": {
+                "links": {
+                  "type": "null"
+                }
+              }
+            }
+          }
+        ],
+        "description": "Exact node and owned link versions: all outgoing links plus incoming blocks/parent-child. Legacy missing link sets are explicitly unavailable."
+      },
+      "ContentType": {
+        "type": "string",
+        "enum": [
+          "fact",
+          "decision",
+          "policy",
+          "procedure",
+          "incident",
+          "reference",
+          "note"
+        ],
+        "description": "Shared content classification for tasks and knowledge."
+      },
+      "VerifyNode": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "const": "verify_node"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expected_version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "verification": {
+            "enum": [
+              "verified",
+              "disputed"
+            ]
+          },
+          "evidence": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/Source"
+            },
+            "description": "Unique source_id values, at most 16384 UTF-8 bytes total.",
+            "minItems": 1
+          }
+        },
+        "required": [
+          "op",
+          "id",
+          "expected_version",
+          "verification",
+          "evidence"
+        ],
+        "additionalProperties": false,
+        "description": "Admin-only evidence assertion on either kind; nonempty mutation reason required."
+      },
+      "SetSummary": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "const": "set_summary"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expected_version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "source_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8192,
+                "pattern": "\\S"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "op",
+          "id",
+          "expected_version",
+          "source_revision",
+          "summary"
+        ],
+        "additionalProperties": false,
+        "description": "Store derived text citing the current record revision; null clears summary and citation. Other meaningful changes invalidate it."
+      },
+      "NodeFilters": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/NodeKind"
+          },
+          "include_retired": {
+            "type": "boolean",
+            "default": false
+          },
+          "include_disputed": {
+            "type": "boolean",
+            "default": false,
+            "description": "Search only; lists include disputed records."
+          },
+          "valid_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "review_due_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "LegacyNode": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "workspace_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/NodeKind"
+          },
+          "version": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Expected-version/CAS token, advancing on every authoritative record mutation."
+          },
+          "content_revision": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Common immutable revision identifier covering content, lifecycle, deletion and owned relationships."
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "body": {
+            "type": "string",
+            "maxLength": 262144
+          },
+          "acceptance_criteria": {
+            "type": "string",
+            "maxLength": 16384
+          },
+          "labels": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Namespaced keys, e.g. aq:priority; at most 16384 UTF-8 bytes."
+          },
+          "task_state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Verification"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "New nodes of either kind start unverified; assertions are independent of task completion."
+          },
+          "provenance": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Original retained descriptor payload; earlier releases allowed broader shapes."
+          },
+          "retired": {
+            "type": "boolean"
+          },
+          "deleted": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "created_by": {
+            "type": "string",
+            "description": "Immutable authenticated creator. Legacy snapshots may omit this field; legacy default is legacy:unknown.",
+            "readOnly": true
+          },
+          "last_verified_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "readOnly": true
+          },
+          "last_verified_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "readOnly": true
+          },
+          "retirement_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 8192,
+                "readOnly": true
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summary_of_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "readOnly": true
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "valid_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "review_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "description": "Timezone required; UTC microseconds after normalization."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "successor_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "knowledge_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KnowledgeType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "workspace_id",
+          "kind",
+          "version",
+          "content_revision",
+          "title",
+          "body",
+          "acceptance_criteria",
+          "labels",
+          "metadata",
+          "task_state",
+          "verification",
+          "provenance",
+          "retired",
+          "deleted",
+          "created_at",
+          "updated_at",
+          "knowledge_type"
+        ],
+        "additionalProperties": false,
+        "description": "Original pre-schema-7 node payload preserved in retained idempotency receipts. Fresh node reads use canonical content_type."
+      }
+    }
+  }
+}

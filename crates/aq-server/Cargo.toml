@@ -33,6 +33,8 @@ uuid.workspace = true
 
 [features]
 test-support = []
+# Instrumented disposable recovery fixture only; absent from release builds.
+recovery-test-support = ["test-support"]
 
 [dev-dependencies]
 aq-server = { path = ".", features = ["test-support"] }

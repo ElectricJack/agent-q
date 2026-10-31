@@ -1,0 +1,1502 @@
+[
+  {
+    "name": "authorized-read-get",
+    "action": "read",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d2",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "get",
+        "node_id": "00000000-0000-0000-0000-000000000002"
+      }
+    },
+    "expected": "allowed"
+  },
+  {
+    "name": "hidden-root-get",
+    "action": "read",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d2",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "get",
+        "node_id": "00000000-0000-0000-0000-000000000004"
+      }
+    },
+    "expected": "not_found"
+  },
+  {
+    "name": "authorized-read-revision",
+    "action": "read",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d3",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "revision",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "revision": "1"
+      }
+    },
+    "expected": "allowed"
+  },
+  {
+    "name": "hidden-root-revision",
+    "action": "read",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d3",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "revision",
+        "node_id": "00000000-0000-0000-0000-000000000004",
+        "revision": "1"
+      }
+    },
+    "expected": "not_found"
+  },
+  {
+    "name": "authorized-read-history",
+    "action": "read",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d4",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "history",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "limit": 64,
+        "cursor": null
+      }
+    },
+    "expected": "allowed"
+  },
+  {
+    "name": "hidden-root-history",
+    "action": "read",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d4",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "history",
+        "node_id": "00000000-0000-0000-0000-000000000004",
+        "limit": 64,
+        "cursor": null
+      }
+    },
+    "expected": "not_found"
+  },
+  {
+    "name": "authorized-read-search",
+    "action": "read",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d5",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "search",
+        "text": "receipts",
+        "kind_filter": "knowledge",
+        "limit": 64,
+        "cursor": null
+      }
+    },
+    "expected": "allowed"
+  },
+  {
+    "name": "authorized-read-context",
+    "action": "read",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d6",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "context",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "depth": 1,
+        "direction": "both",
+        "max_nodes": 64,
+        "max_edges": 256,
+        "max_bytes": 262144
+      }
+    },
+    "expected": "allowed"
+  },
+  {
+    "name": "hidden-root-context",
+    "action": "read",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d6",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "context",
+        "node_id": "00000000-0000-0000-0000-000000000004",
+        "depth": 1,
+        "direction": "both",
+        "max_nodes": 64,
+        "max_edges": 256,
+        "max_bytes": 262144
+      }
+    },
+    "expected": "not_found"
+  },
+  {
+    "name": "authorized-read-relationships",
+    "action": "read",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "relationships",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "direction": "both",
+        "edge_types": [
+          "blocks",
+          "parent-child",
+          "references",
+          "motivated_by",
+          "produces",
+          "supports",
+          "contradicts",
+          "supersedes"
+        ],
+        "limit": 64,
+        "cursor": null
+      }
+    },
+    "expected": "allowed"
+  },
+  {
+    "name": "hidden-root-relationships",
+    "action": "read",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "relationships",
+        "node_id": "00000000-0000-0000-0000-000000000004",
+        "direction": "both",
+        "edge_types": [
+          "blocks",
+          "parent-child",
+          "references",
+          "motivated_by",
+          "produces",
+          "supports",
+          "contradicts",
+          "supersedes"
+        ],
+        "limit": 64,
+        "cursor": null
+      }
+    },
+    "expected": "not_found"
+  },
+  {
+    "name": "authorized-command-create_finding",
+    "action": "command",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "operation_id": "00000000-0000-0000-0000-00000000012c",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "reason": "Synthetic contract conformance",
+      "commands": [
+        {
+          "kind": "create_finding",
+          "id": "00000000-0000-0000-0000-00000000000a",
+          "title": "A scoped finding",
+          "body": "Synthetic evidence; no secret or automatic approval.",
+          "labels": [
+            "conformance"
+          ],
+          "content_type": "note"
+        }
+      ]
+    },
+    "expected": "allowed"
+  },
+  {
+    "name": "authorized-command-correct_record",
+    "action": "command",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "operation_id": "00000000-0000-0000-0000-00000000012d",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "reason": "Synthetic contract conformance",
+      "commands": [
+        {
+          "kind": "correct_record",
+          "id": "00000000-0000-0000-0000-000000000002",
+          "expected_version": "2",
+          "patch": {
+            "body": "Preserve the same operation and graph idempotency key."
+          }
+        }
+      ]
+    },
+    "expected": "allowed"
+  },
+  {
+    "name": "authorized-command-add_relationship",
+    "action": "command",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "operation_id": "00000000-0000-0000-0000-00000000012e",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "reason": "Synthetic contract conformance",
+      "commands": [
+        {
+          "kind": "add_relationship",
+          "id": "00000000-0000-0000-0000-00000000001d",
+          "source": "00000000-0000-0000-0000-000000000002",
+          "target": "00000000-0000-0000-0000-000000000003",
+          "expected_source_version": "2",
+          "edge_type": "references",
+          "source_revision": null,
+          "target_revision": "1",
+          "description": "Pinned authorized evidence"
+        }
+      ]
+    },
+    "expected": "allowed"
+  },
+  {
+    "name": "authorized-command-remove_relationship",
+    "action": "command",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "operation_id": "00000000-0000-0000-0000-00000000012f",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "reason": "Synthetic contract conformance",
+      "commands": [
+        {
+          "kind": "remove_relationship",
+          "id": "00000000-0000-0000-0000-000000000015",
+          "source": "00000000-0000-0000-0000-000000000002",
+          "target": "00000000-0000-0000-0000-000000000001",
+          "expected_version": "1",
+          "expected_source_version": "2"
+        }
+      ]
+    },
+    "expected": "allowed"
+  },
+  {
+    "name": "authorized-command-propose_decomposition",
+    "action": "command",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "operation_id": "00000000-0000-0000-0000-000000000130",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "reason": "Synthetic contract conformance",
+      "commands": [
+        {
+          "kind": "propose_decomposition",
+          "name": "Proposed follow-up work",
+          "parent_id": "00000000-0000-0000-0000-000000000001",
+          "expected_parent_version": "3",
+          "tasks": [
+            {
+              "id": "00000000-0000-0000-0000-00000000000b",
+              "title": "Review scoped writes",
+              "body": "Draft only.",
+              "acceptance_criteria": "No stale overwrite."
+            }
+          ],
+          "relationships": [
+            {
+              "id": "00000000-0000-0000-0000-00000000001f",
+              "source": "00000000-0000-0000-0000-000000000001",
+              "target": "00000000-0000-0000-0000-00000000000b",
+              "edge_type": "parent-child"
+            },
+            {
+              "id": "00000000-0000-0000-0000-000000000020",
+              "source": "00000000-0000-0000-0000-00000000000b",
+              "target": "00000000-0000-0000-0000-000000000003",
+              "edge_type": "blocks"
+            }
+          ],
+          "guards": [
+            {
+              "id": "00000000-0000-0000-0000-000000000003",
+              "expected_version": "2"
+            }
+          ]
+        }
+      ]
+    },
+    "expected": "allowed"
+  },
+  {
+    "name": "wrong-credential-read-node",
+    "action": "read",
+    "principal_kind": "node",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d2",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "get",
+        "node_id": "00000000-0000-0000-0000-000000000002"
+      }
+    },
+    "expected": "unauthorized"
+  },
+  {
+    "name": "wrong-credential-write-node",
+    "action": "command",
+    "principal_kind": "node",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "operation_id": "00000000-0000-0000-0000-00000000012d",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "reason": "Synthetic contract conformance",
+      "commands": [
+        {
+          "kind": "correct_record",
+          "id": "00000000-0000-0000-0000-000000000002",
+          "expected_version": "2",
+          "patch": {
+            "body": "Preserve the same operation and graph idempotency key."
+          }
+        }
+      ]
+    },
+    "expected": "unauthorized"
+  },
+  {
+    "name": "wrong-credential-read-graph_service",
+    "action": "read",
+    "principal_kind": "graph_service",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d2",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "get",
+        "node_id": "00000000-0000-0000-0000-000000000002"
+      }
+    },
+    "expected": "unauthorized"
+  },
+  {
+    "name": "wrong-credential-write-graph_service",
+    "action": "command",
+    "principal_kind": "graph_service",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "operation_id": "00000000-0000-0000-0000-00000000012d",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "reason": "Synthetic contract conformance",
+      "commands": [
+        {
+          "kind": "correct_record",
+          "id": "00000000-0000-0000-0000-000000000002",
+          "expected_version": "2",
+          "patch": {
+            "body": "Preserve the same operation and graph idempotency key."
+          }
+        }
+      ]
+    },
+    "expected": "unauthorized"
+  },
+  {
+    "name": "expired-agent-no-new-write",
+    "action": "command",
+    "principal_kind": "agent_session",
+    "active": false,
+    "request": {
+      "api_version": 1,
+      "operation_id": "00000000-0000-0000-0000-00000000012d",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "reason": "Synthetic contract conformance",
+      "commands": [
+        {
+          "kind": "correct_record",
+          "id": "00000000-0000-0000-0000-000000000002",
+          "expected_version": "2",
+          "patch": {
+            "body": "Preserve the same operation and graph idempotency key."
+          }
+        }
+      ]
+    },
+    "expected": "session_expired_or_revoked"
+  },
+  {
+    "name": "hidden-write-endpoint-source",
+    "action": "command",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "operation_id": "00000000-0000-0000-0000-00000000012e",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "reason": "Synthetic contract conformance",
+      "commands": [
+        {
+          "kind": "add_relationship",
+          "id": "00000000-0000-0000-0000-00000000001d",
+          "source": "00000000-0000-0000-0000-000000000004",
+          "target": "00000000-0000-0000-0000-000000000003",
+          "expected_source_version": "2",
+          "edge_type": "references",
+          "source_revision": null,
+          "target_revision": "1",
+          "description": "Pinned authorized evidence"
+        }
+      ]
+    },
+    "expected": "not_found"
+  },
+  {
+    "name": "hidden-write-endpoint-target",
+    "action": "command",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "operation_id": "00000000-0000-0000-0000-00000000012e",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "reason": "Synthetic contract conformance",
+      "commands": [
+        {
+          "kind": "add_relationship",
+          "id": "00000000-0000-0000-0000-00000000001d",
+          "source": "00000000-0000-0000-0000-000000000002",
+          "target": "00000000-0000-0000-0000-000000000004",
+          "expected_source_version": "2",
+          "edge_type": "references",
+          "source_revision": null,
+          "target_revision": "1",
+          "description": "Pinned authorized evidence"
+        }
+      ]
+    },
+    "expected": "not_found"
+  },
+  {
+    "name": "second-command-fails-whole-batch",
+    "action": "command",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "operation_id": "00000000-0000-0000-0000-00000000012c",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "reason": "Synthetic contract conformance",
+      "commands": [
+        {
+          "kind": "create_finding",
+          "id": "00000000-0000-0000-0000-00000000000a",
+          "title": "A scoped finding",
+          "body": "Synthetic evidence; no secret or automatic approval.",
+          "labels": [
+            "conformance"
+          ],
+          "content_type": "note"
+        },
+        {
+          "kind": "add_relationship",
+          "id": "00000000-0000-0000-0000-00000000001d",
+          "source": "00000000-0000-0000-0000-000000000002",
+          "target": "00000000-0000-0000-0000-000000000004",
+          "expected_source_version": "2",
+          "edge_type": "references",
+          "source_revision": null,
+          "target_revision": "1",
+          "description": "Pinned authorized evidence"
+        }
+      ]
+    },
+    "expected": "not_found"
+  },
+  {
+    "name": "hidden-response-edge-blocks",
+    "action": "response",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "relationships",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "direction": "both",
+        "edge_types": [
+          "blocks",
+          "parent-child",
+          "references",
+          "motivated_by",
+          "produces",
+          "supports",
+          "contradicts",
+          "supersedes"
+        ],
+        "limit": 64,
+        "cursor": null
+      }
+    },
+    "expected": "scope_denied",
+    "response": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query_digest": "d0929eddafb82e5ae4e98d2a12a958bb69f383a09a8bdd9a7571f6e6278626ca",
+      "observed_at": "2026-10-31T01:19:39.098143+00:00",
+      "projection": "authorized_scope",
+      "result": {
+        "kind": "relationships",
+        "edges": [
+          {
+            "id": "00000000-0000-0000-0000-000000000015",
+            "source": "00000000-0000-0000-0000-000000000001",
+            "target": "00000000-0000-0000-0000-000000000004",
+            "edge_type": "blocks",
+            "version": "1",
+            "description": null,
+            "source_revision": null,
+            "target_revision": "1"
+          }
+        ],
+        "next_cursor": null,
+        "coverage": {
+          "status": "complete",
+          "complete_for": "authorized_projection",
+          "reasons": []
+        }
+      }
+    }
+  },
+  {
+    "name": "hidden-response-edge-parent-child",
+    "action": "response",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "relationships",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "direction": "both",
+        "edge_types": [
+          "blocks",
+          "parent-child",
+          "references",
+          "motivated_by",
+          "produces",
+          "supports",
+          "contradicts",
+          "supersedes"
+        ],
+        "limit": 64,
+        "cursor": null
+      }
+    },
+    "expected": "scope_denied",
+    "response": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query_digest": "d0929eddafb82e5ae4e98d2a12a958bb69f383a09a8bdd9a7571f6e6278626ca",
+      "observed_at": "2026-10-31T01:19:39.098143+00:00",
+      "projection": "authorized_scope",
+      "result": {
+        "kind": "relationships",
+        "edges": [
+          {
+            "id": "00000000-0000-0000-0000-000000000015",
+            "source": "00000000-0000-0000-0000-000000000001",
+            "target": "00000000-0000-0000-0000-000000000004",
+            "edge_type": "parent-child",
+            "version": "1",
+            "description": null,
+            "source_revision": null,
+            "target_revision": "1"
+          }
+        ],
+        "next_cursor": null,
+        "coverage": {
+          "status": "complete",
+          "complete_for": "authorized_projection",
+          "reasons": []
+        }
+      }
+    }
+  },
+  {
+    "name": "hidden-response-edge-references",
+    "action": "response",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "relationships",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "direction": "both",
+        "edge_types": [
+          "blocks",
+          "parent-child",
+          "references",
+          "motivated_by",
+          "produces",
+          "supports",
+          "contradicts",
+          "supersedes"
+        ],
+        "limit": 64,
+        "cursor": null
+      }
+    },
+    "expected": "scope_denied",
+    "response": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query_digest": "d0929eddafb82e5ae4e98d2a12a958bb69f383a09a8bdd9a7571f6e6278626ca",
+      "observed_at": "2026-10-31T01:19:39.098143+00:00",
+      "projection": "authorized_scope",
+      "result": {
+        "kind": "relationships",
+        "edges": [
+          {
+            "id": "00000000-0000-0000-0000-000000000015",
+            "source": "00000000-0000-0000-0000-000000000001",
+            "target": "00000000-0000-0000-0000-000000000004",
+            "edge_type": "references",
+            "version": "1",
+            "description": null,
+            "source_revision": null,
+            "target_revision": "1"
+          }
+        ],
+        "next_cursor": null,
+        "coverage": {
+          "status": "complete",
+          "complete_for": "authorized_projection",
+          "reasons": []
+        }
+      }
+    }
+  },
+  {
+    "name": "hidden-response-edge-motivated_by",
+    "action": "response",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "relationships",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "direction": "both",
+        "edge_types": [
+          "blocks",
+          "parent-child",
+          "references",
+          "motivated_by",
+          "produces",
+          "supports",
+          "contradicts",
+          "supersedes"
+        ],
+        "limit": 64,
+        "cursor": null
+      }
+    },
+    "expected": "scope_denied",
+    "response": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query_digest": "d0929eddafb82e5ae4e98d2a12a958bb69f383a09a8bdd9a7571f6e6278626ca",
+      "observed_at": "2026-10-31T01:19:39.098143+00:00",
+      "projection": "authorized_scope",
+      "result": {
+        "kind": "relationships",
+        "edges": [
+          {
+            "id": "00000000-0000-0000-0000-000000000015",
+            "source": "00000000-0000-0000-0000-000000000001",
+            "target": "00000000-0000-0000-0000-000000000004",
+            "edge_type": "motivated_by",
+            "version": "1",
+            "description": null,
+            "source_revision": null,
+            "target_revision": "1"
+          }
+        ],
+        "next_cursor": null,
+        "coverage": {
+          "status": "complete",
+          "complete_for": "authorized_projection",
+          "reasons": []
+        }
+      }
+    }
+  },
+  {
+    "name": "hidden-response-edge-produces",
+    "action": "response",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "relationships",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "direction": "both",
+        "edge_types": [
+          "blocks",
+          "parent-child",
+          "references",
+          "motivated_by",
+          "produces",
+          "supports",
+          "contradicts",
+          "supersedes"
+        ],
+        "limit": 64,
+        "cursor": null
+      }
+    },
+    "expected": "scope_denied",
+    "response": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query_digest": "d0929eddafb82e5ae4e98d2a12a958bb69f383a09a8bdd9a7571f6e6278626ca",
+      "observed_at": "2026-10-31T01:19:39.098143+00:00",
+      "projection": "authorized_scope",
+      "result": {
+        "kind": "relationships",
+        "edges": [
+          {
+            "id": "00000000-0000-0000-0000-000000000015",
+            "source": "00000000-0000-0000-0000-000000000001",
+            "target": "00000000-0000-0000-0000-000000000004",
+            "edge_type": "produces",
+            "version": "1",
+            "description": null,
+            "source_revision": null,
+            "target_revision": "1"
+          }
+        ],
+        "next_cursor": null,
+        "coverage": {
+          "status": "complete",
+          "complete_for": "authorized_projection",
+          "reasons": []
+        }
+      }
+    }
+  },
+  {
+    "name": "hidden-response-edge-supports",
+    "action": "response",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "relationships",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "direction": "both",
+        "edge_types": [
+          "blocks",
+          "parent-child",
+          "references",
+          "motivated_by",
+          "produces",
+          "supports",
+          "contradicts",
+          "supersedes"
+        ],
+        "limit": 64,
+        "cursor": null
+      }
+    },
+    "expected": "scope_denied",
+    "response": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query_digest": "d0929eddafb82e5ae4e98d2a12a958bb69f383a09a8bdd9a7571f6e6278626ca",
+      "observed_at": "2026-10-31T01:19:39.098143+00:00",
+      "projection": "authorized_scope",
+      "result": {
+        "kind": "relationships",
+        "edges": [
+          {
+            "id": "00000000-0000-0000-0000-000000000015",
+            "source": "00000000-0000-0000-0000-000000000001",
+            "target": "00000000-0000-0000-0000-000000000004",
+            "edge_type": "supports",
+            "version": "1",
+            "description": null,
+            "source_revision": null,
+            "target_revision": "1"
+          }
+        ],
+        "next_cursor": null,
+        "coverage": {
+          "status": "complete",
+          "complete_for": "authorized_projection",
+          "reasons": []
+        }
+      }
+    }
+  },
+  {
+    "name": "hidden-response-edge-contradicts",
+    "action": "response",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "relationships",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "direction": "both",
+        "edge_types": [
+          "blocks",
+          "parent-child",
+          "references",
+          "motivated_by",
+          "produces",
+          "supports",
+          "contradicts",
+          "supersedes"
+        ],
+        "limit": 64,
+        "cursor": null
+      }
+    },
+    "expected": "scope_denied",
+    "response": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query_digest": "d0929eddafb82e5ae4e98d2a12a958bb69f383a09a8bdd9a7571f6e6278626ca",
+      "observed_at": "2026-10-31T01:19:39.098143+00:00",
+      "projection": "authorized_scope",
+      "result": {
+        "kind": "relationships",
+        "edges": [
+          {
+            "id": "00000000-0000-0000-0000-000000000015",
+            "source": "00000000-0000-0000-0000-000000000001",
+            "target": "00000000-0000-0000-0000-000000000004",
+            "edge_type": "contradicts",
+            "version": "1",
+            "description": null,
+            "source_revision": null,
+            "target_revision": "1"
+          }
+        ],
+        "next_cursor": null,
+        "coverage": {
+          "status": "complete",
+          "complete_for": "authorized_projection",
+          "reasons": []
+        }
+      }
+    }
+  },
+  {
+    "name": "hidden-response-edge-supersedes",
+    "action": "response",
+    "principal_kind": "agent_session",
+    "active": true,
+    "request": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query": {
+        "kind": "relationships",
+        "node_id": "00000000-0000-0000-0000-000000000001",
+        "direction": "both",
+        "edge_types": [
+          "blocks",
+          "parent-child",
+          "references",
+          "motivated_by",
+          "produces",
+          "supports",
+          "contradicts",
+          "supersedes"
+        ],
+        "limit": 64,
+        "cursor": null
+      }
+    },
+    "expected": "scope_denied",
+    "response": {
+      "api_version": 1,
+      "request_id": "00000000-0000-0000-0000-0000000000d7",
+      "binding": {
+        "task_id": "00000000-0000-0000-0000-000000000001",
+        "attempt_id": "00000000-0000-0000-0000-000000000066",
+        "session_id": "00000000-0000-0000-0000-000000000067",
+        "generation": 1,
+        "node_id": "00000000-0000-0000-0000-000000000064",
+        "boot_id": "00000000-0000-0000-0000-000000000065",
+        "project_id": "00000000-0000-0000-0000-000000000068",
+        "workspace_id": "00000000-0000-0000-0000-000000000069",
+        "resolved_spec_digest": "4444444444444444444444444444444444444444444444444444444444444444",
+        "profile_digest": "c811b2e30db6ac7e128432bfcf3b06b2c15eb6dba576f502d3cd15d0cb061a36",
+        "context_digest": "9b6ad2f3f32353e8e45d679f90091882954041c96c7e5a34a4322a5db5ef83d8"
+      },
+      "query_digest": "d0929eddafb82e5ae4e98d2a12a958bb69f383a09a8bdd9a7571f6e6278626ca",
+      "observed_at": "2026-10-31T01:19:39.098143+00:00",
+      "projection": "authorized_scope",
+      "result": {
+        "kind": "relationships",
+        "edges": [
+          {
+            "id": "00000000-0000-0000-0000-000000000015",
+            "source": "00000000-0000-0000-0000-000000000001",
+            "target": "00000000-0000-0000-0000-000000000004",
+            "edge_type": "supersedes",
+            "version": "1",
+            "description": null,
+            "source_revision": null,
+            "target_revision": "1"
+          }
+        ],
+        "next_cursor": null,
+        "coverage": {
+          "status": "complete",
+          "complete_for": "authorized_projection",
+          "reasons": []
+        }
+      }
+    }
+  }
+]

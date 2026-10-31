@@ -1,4 +1,5 @@
 pub mod admin_api;
+pub mod admission;
 pub mod authz;
 pub mod config;
 pub mod error;
@@ -69,6 +70,15 @@ pub struct AppState {
     pub clock: Clock,
 }
 
+impl AppState {
+    pub(crate) fn control_view(&self) -> Self {
+        Self {
+            store: self.store.control_view(),
+            ..self.clone()
+        }
+    }
+}
+
 async fn harden(req: Request, next: Next) -> Response {
     let mut resp = next.run(req).await;
     let h = resp.headers_mut();
@@ -104,7 +114,7 @@ async fn method_not_allowed() -> Response {
 pub fn build_admin_router(state: AppState) -> Router {
     Router::new()
         .merge(admin_api::admin_routes())
-        .merge(execution::api::admin_routes())
+        .merge(execution::api::admin_routes(state.clone()))
         .route("/healthz", get(healthz))
         .route("/readyz", get(readiness::readyz))
         .fallback(not_found)
@@ -114,6 +124,10 @@ pub fn build_admin_router(state: AppState) -> Router {
             updates::admin_maintenance_gate,
         ))
         .layer(from_fn_with_state(state.clone(), authz::csrf_guard))
+        .layer(from_fn_with_state(
+            state.store.admission.clone(),
+            admission::gate,
+        ))
         .layer(from_fn(harden))
         .with_state(state)
 }
@@ -121,8 +135,8 @@ pub fn build_admin_router(state: AppState) -> Router {
 /// Machine routes plus `/healthz`. No human routes are mounted here.
 pub fn build_worker_router(state: AppState) -> Router {
     Router::new()
-        .merge(worker_api::worker_routes())
-        .merge(execution::api::worker_routes())
+        .merge(worker_api::worker_routes(state.clone()))
+        .merge(execution::api::worker_routes(state.clone()))
         .route("/healthz", get(healthz))
         .route("/readyz", get(readiness::readyz))
         .fallback(not_found)
@@ -130,6 +144,10 @@ pub fn build_worker_router(state: AppState) -> Router {
         .layer(from_fn_with_state(
             state.clone(),
             updates::worker_maintenance_gate,
+        ))
+        .layer(from_fn_with_state(
+            state.store.admission.clone(),
+            admission::gate,
         ))
         .layer(from_fn(harden))
         .with_state(state)
