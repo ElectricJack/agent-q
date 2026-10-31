@@ -22,6 +22,17 @@ This specification defines AQ's implementation of the shared [execution and reco
 
 No new generic workflow language, second graph store, offline merge engine or direct worker RPC is introduced here. Scheduling optimization remains in the worker framework's placement contract; this spec supplies its durable authority boundary.
 
+The [profile, intelligence and terminal design](../architecture/0003-agent-profiles-harnesses-and-terminals.md) supplies additional requirements P1–P8, H1–H4 and R1–R6. AQ-18/19/20 implement catalog composition, project execution bindings and intelligence selection before real scheduling. AQ-21 supplies authorized remote/central terminal relay; worker directives still arrive only through responses to worker-initiated requests. API-01 access profiles remain separate authorization objects.
+
+The [session operations, waits and notifications design](../architecture/0004-session-operations-waits-and-notifications.md)
+adds S1–S5, N1–N4 and C1–C6. AQ-22/23 own normalized observations, accounting and
+stall recovery; AQ-24/27 own external delivery and escalation/digest policy;
+AQ-25/26 own verified waits and continuation scheduling. Their CLI/API handlers
+share the daemon's domain admission paths. Sleeping continuations retain no live
+execution grant; their wake uses fresh attempt authority and the original lineage
+budgets. Notifications, transcripts and source events cannot manufacture task
+completion, human decisions or stopped-writer evidence.
+
 ## 2. Internal modules and storage
 
 Implement narrow modules for placement, execution authority, worker exchanges, agent access, graph delivery, artifact handoff and result policy. Modules may be crates inside `agent-q` when useful; they do not each require a repository or service. Runtime/harness code is not linked into these modules.
@@ -64,7 +75,7 @@ Authorization checks current central assignment state, not merely token signatur
 
 Admission of an operation is the authorization boundary. An operation durably admitted before cancellation may already have reached aq-graph. Reconciliation of that exact intent can continue under its recorded authority, including after session expiry; it cannot broaden its payload or create a new action. An undispatched operation may be cancelled only when the delivery state proves it was not sent. Expose these distinctions to the caller.
 
-Terminal sessions do not receive fresh graph write credentials to recover an unknown response. An authenticated node recovery endpoint can retrieve the dispositions of its already-associated operation IDs; it cannot submit arbitrary agent actions or read unrelated graph content. Operators have a separately authorized recovery interface.
+Finished or revoked execution sessions do not receive fresh graph write credentials to recover an unknown response. An authenticated node recovery endpoint can retrieve the dispositions of its already-associated operation IDs; it cannot submit arbitrary agent actions or read unrelated graph content. Operators have a separately authorized recovery interface.
 
 ## 5. Read scopes and context
 

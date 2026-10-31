@@ -21,6 +21,8 @@ At most one assignment generation for an attempt is currently authorized. A conf
 
 The resolved execution specification freezes task/context revision references, outcome contract, project/repository binding, base OID, harness/model configuration, resource limits, folder grants, permitted agent operations and retry/termination budgets. It has a content digest. Credentials are provisioned separately through protected mechanisms; ordinary specification payloads contain references. Messages cannot silently change these fields. Unsupported live changes require stopping and creating a new attempt.
 
+The [profile/session design](0003-agent-profiles-harnesses-and-terminals.md) defines deterministic composition and intelligence selection for those frozen inputs. Every real agent CLI runs in an attempt-owned tmux host within the tested guardian boundary. Remote watch/control has its own session/epoch and controller fencing, does not renew execution authority, and does not enable unqualified live reattachment. Synthetic process acceptance predates and does not qualify these additions.
+
 ## 2. Ownership and consistency
 
 AQ stores grants, directive delivery, received observations and result dispositions. The worker stores local action intent, process evidence, retained files and outgoing reports. Graph content lives only in aq-graph; source facts live in aq-git. Each owner acknowledges its own durable boundary, and retries connect those boundaries. No cross-system exactly-once transaction is assumed.
@@ -79,6 +81,13 @@ After writers stop, the worker checkpoints through aq-git, exports/uploads sourc
 AQ may retain a stale attempt's source while rejecting its result for current task settlement. The daemon applies evidence and playbook policy to accepted results and delivers authorized completion changes to aq-graph with expected versions and stable operation IDs. A version conflict requires reconsidering the completion inputs. No automatic read-new-version-and-overwrite loop is allowed.
 
 Replacement attempts start from explicit base/checkpoint references and a bounded handoff summary with provenance. They do not inherit old credentials, mutable directories or provider conversation state implicitly.
+
+The [session operations and waits design](0004-session-operations-waits-and-notifications.md)
+adds voluntary suspension and durable continuations. Hibernation releases compute
+after stopped-writer proof while required source remains protected until retention
+and release. Wake creates a newly authorized attempt from verified dependency
+outcome and retained context, potentially on another eligible node. Wait resolution
+alone cannot release a workspace, prove stopped writers or settle the task.
 
 ## 8. Remote graph access
 

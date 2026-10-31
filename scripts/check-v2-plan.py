@@ -89,6 +89,23 @@ def read_plan():
     require(set(by_id) <= ancestors(final_gate) | {final_gate}, "tasks disconnected from final gate")
     for key in ("audit", "snapshot"):
         require((SOURCE.parent / plan[key]).is_file(), f"missing {key}")
+    for update in plan.get("design_updates", []):
+        require((SOURCE.parent / update["source"]).is_file(), "missing design update source")
+        require(update["summary"], "missing design update summary")
+    for reference in plan.get("implementation_reference_maps", []):
+        inventory_path = SOURCE.parent / reference["inventory"]
+        require((SOURCE.parent / reference["guide"]).is_file(), "missing implementation reference guide")
+        inventory = json.loads(inventory_path.read_text())
+        require(re.fullmatch(r"[0-9a-f]{40}", inventory["source_revision"]), "unpinned implementation reference")
+        for entry in inventory["entries"]:
+            require(entry["tasks"] and set(entry["tasks"]) <= by_id.keys(), "unknown implementation reference task")
+            require(entry["rationale"] and entry["coverage"], "missing reference disposition/coverage")
+            require(entry["disposition"] in {"preserve", "adapt", "replace", "omit"}, "invalid reference disposition")
+            for source in entry["sources"] + entry["tests"]:
+                require(source["path"] in inventory["files"], "unhashed implementation reference")
+                require(source["sha256"] == inventory["files"][source["path"]]["sha256"], "reference hash disagreement")
+                require(re.fullmatch(r"[0-9a-f]{64}", source["sha256"]), "invalid reference hash")
+                require(source["symbol"] and 0 < source["line"] <= source["end_line"], "invalid reference symbol")
     return plan, order, requirements
 
 
@@ -123,6 +140,17 @@ def render(plan):
         "### Definition of done", "",
     ]
     lines += ["- " + item for item in plan["definition_of_done"]]
+    if plan.get("design_updates"):
+        lines += ["", "### Design additions", ""]
+        for update in plan["design_updates"]:
+            lines += [f"- [{Path(update['source']).name}]({update['source']}): {update['summary']}"]
+    if plan.get("implementation_reference_maps"):
+        lines += ["", "### V1 implementation evidence", "",
+                  "Read the mapped source and regression cases before implementing an affected task. "
+                  "The pinned references inform the v2 contract; inventory inclusion is not passing v2 coverage. "
+                  "Normal builds and plan checks require no v1 checkout.", ""]
+        for reference in plan["implementation_reference_maps"]:
+            lines += [f"- [Reference guide]({reference['guide']}) and [pinned symbol/test inventory]({reference['inventory']})."]
     lines += ["", "### Ready work", "", "| Task | Owner | Deliverable |", "| --- | --- | --- |"]
     lines += [f"| {link(task['id'])} | {task['repo']} | {task['title']} |" for task in ready_tasks(plan)]
     lines += ["", "The daemon authority track can start after BASE-01 and CON-01. The worker runtime track follows connector extraction. "
@@ -138,7 +166,9 @@ def render(plan):
               '    P[Playbook candidate] --> M5', '    M5 --> M6[Product acceptance]',
               '    U[API and dashboard] --> M6', '    R[Manifest and upgrade work] --> M6', "```", "",
               "## Task graph", "", "Requirements name implementation responsibility, not passing test coverage. "
-              "E refers to ecosystem acceptance; X to shared failure scenarios; D to daemon requirements; W to worker requirements; U to dashboard acceptance.", ""]
+              "E refers to ecosystem acceptance; X to shared failure scenarios; D to daemon requirements; W to worker requirements; U to dashboard acceptance; "
+              "P to profile/intelligence requirements; H to harness/host requirements; R to remote terminal requirements; "
+              "S to session observability/recovery; N to human notifications; C to agent waits/continuations.", ""]
     for milestone in plan["milestones"]:
         lines += [f"### {milestone['id']} overview", "", "| Task | Owner | Hard prerequisites | Status |", "| --- | --- | --- | --- |"]
         for task in plan["tasks"]:

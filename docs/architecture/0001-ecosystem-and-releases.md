@@ -41,6 +41,11 @@ flowchart LR
 | Local process observations, reservations and unacknowledged local work | aq-worker |
 | Git objects, revisions, checkpoints, retention and publication receipts | aq-git |
 | Workflow run state, waits, child relationships and effect intents | aq-playbooks |
+| Editable profile definitions | AQ configuration vault; validation produces immutable artifacts, not a second editable database catalog |
+| Activated catalog selection, project execution bindings, frozen launch manifests and controller leases | AQ daemon; workers enforce the matching local execution/input permits |
+| Live terminal output and process observations | Session host; bounded central/browser views carry sequence, epoch and freshness |
+| Agent waits, continuation holds, wake delivery and stall episodes | AQ daemon; source outcomes stay with their domain owner |
+| Normalized usage facts, cost estimates/corrections and notification delivery receipts | AQ daemon; worker parser journals retain unacknowledged facts; external acceptance is not human acknowledgment |
 | User presentation state and disposable browser caches | aq-dashboard |
 
 AQ applies task completion policy and delivers the resulting version-checked graph mutation; the resulting graph lifecycle is authoritative in aq-graph. AQ may expose an operation as awaiting graph confirmation. It must not maintain a second independently writable task lifecycle.
@@ -53,6 +58,8 @@ Observations identify their origin, revision/sequence and observation time. “W
 | --- | --- |
 | Ecosystem architecture and product release policy | This document in `agent-q` |
 | Cross-component execution guarantees and failure scenarios | [Execution and recovery](0002-execution-and-recovery.md) in `agent-q` |
+| Profile composition, intelligence selection, mandatory tmux hosting and remote terminals | [Shared profile/session design](0003-agent-profiles-harnesses-and-terminals.md) in `agent-q`; [worker mechanisms](../../../aq-worker/docs/specs/0003-profiled-tmux-sessions.md) and dashboard section 8 reference it |
+| Session observability, stall policy, accounting, notification delivery and agent hibernation | [Shared operations/waits design](0004-session-operations-waits-and-notifications.md) in `agent-q`; [worker mechanisms](../../../aq-worker/docs/specs/0004-session-observation-and-suspension.md) and dashboard section 9 reference it |
 | Daemon execution and graph gateway implementation requirements | [Daemon specification](../specs/0002-execution-and-agent-access.md) |
 | Worker internals | [Worker framework](../../../aq-worker/docs/specs/0001-worker-framework.md) and [execution specification](../../../aq-worker/docs/specs/0002-execution-and-agent-access.md) |
 | Worker wire contract, examples and conformance fixtures | [`aq-worker/protocol`](../../../aq-worker/protocol/README.md) |

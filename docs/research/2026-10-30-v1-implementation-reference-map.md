@@ -1,0 +1,24 @@
+# Revision-pinned v1 implementation references
+
+Source: `agent-queue2` at `9a9b8e8ef992d1ff699755a9383ed3c91e2844ea`. This bounded inventory records selected implementation bodies and tests read before further v2 implementation. It is not a full parity audit; no v1 tests were executed and no v2 coverage or task completion is claimed.
+
+The [machine-readable inventory](2026-10-30-v1-implementation-reference-map.json) records exact source/test symbols, pinned line spans, SHA-256 hashes of `git show REV:path` bytes and Git blob IDs. Working-tree source is not the authority. Retrieve a file with `git -C ../agent-queue2 show 9a9b8e8ef992d1ff699755a9383ed3c91e2844ea:<path>`.
+
+| Area | V2 tasks | Decision and observed behavior |
+| --- | --- | --- |
+| profiles-and-intelligence | AQ-18, AQ-20 | **adapt** — Class/provider slices derive eligible rungs; missing provider slices yield no rung and seeding preserves operator files. Registry preserves last good entries on parse failure. V2 must freeze resolved revisions per launch and use per-node readiness instead of treating one host activation file as fleet authority. |
+| terminal-identity-and-safe-nudge | CON-02, WRK-10, WRK-09, WRK-14, AQ-21 | **adapt** — Terminal input verifies instance and tmux identity; nudge serializes input, refuses recent human input, and only resubmits exact durable AQ drafts. V2 needs assignment/node/boot fencing and shared human-control arbitration at the worker; provider-specific composer probes require qualification. |
+| transcripts-and-accounting | WRK-15, AQ-22 | **adapt** — Readers bind known native session keys and incremental offsets; watcher adopts checkpoints, tracks historical usage and emits transcript-missing observations. Retain fixture semantics while replacing local path/DB coupling with scoped worker sources, atomic cursor/outbox receipts, explicit gaps and lineage accounting. |
+| stall-recovery | AQ-23 | **adapt** — Ladder examines intentional waits, control holds, activity and persisted nudge/recovery state before escalation. Stall-watch tests here cover read-only orphan/route diagnostics, not proof of ladder recovery. V2 central authority must use fresh remote evidence, stopped-writer retention and fenced replacement. |
+| verified-wait-registration | AQ-25 | **adapt** — Registry delegates typed verification/observation; dispatcher treats source events as hints, reobserves under source/graph fences and commits immutable outcomes. Preserve lost-wakeup/idempotency obligations; replace single-database source locks with explicit v2 owner contracts where remote boundaries require them. |
+| hibernation-and-wake | WRK-16, AQ-26 | **adapt** — Parking stops the exact writer before WIP save/push and holds uncertain stop/push failures. Resume reserves capacity, binds fresh launch and requires delivered generation-bound acknowledgement before releasing held mail. Replace local workspace assumptions with central retention receipts, eligible-node placement and separate compute/disk release; v1 SQL/orchestrator objects are not portable modules. |
+| notification-transport | AQ-24 | **preserve** — Preserve observable retryable/ambiguous/permanent/missing failure distinctions and bounded marker-preserving payload semantics. Implement behind the central scoped outbox with dispatch-time visibility checks; workers receive no Discord credentials. Adapter qualification remains pending. |
+| digest-and-escalation-policy | AQ-27 | **adapt** — Digest reserves one durable window, persists silence, bounds catch-up and delegates marker-based external delivery. Preserve logical window identity and visibility revalidation; integrate policy through v2 host APIs rather than importing v1 scheduling, database or Discord runtime. |
+
+## Implementation boundary
+
+Preserve behavior and useful fixtures; adapt remote ownership and explicit retained-artifact receipts. Replace single-host database, vault, workspace and daemon integration. Omit a wholesale port and new runtime dependencies. V1 terminal/composer heuristics are evidence for qualified configurations, not a universal readiness guarantee. The referenced stall-watch tests establish diagnostics only; ladder replacement and quarantine need additional evidence.
+
+Each listed test module is hashed in full, but only bounded excerpts from the first eight test bodies were selected for this bounded pass. Exact selected names are in JSON. Coverage remains `pending_v2_implementation_and_qualification` for every row. Read additional adapters and fault tests when the corresponding task starts, then record v2 tests and immutable artifacts. INT-03 must separately qualify real harnesses, terminal input, configured notification delivery and cross-node continuation recovery.
+
+No daemon, database, provider or external-notification actions were performed.

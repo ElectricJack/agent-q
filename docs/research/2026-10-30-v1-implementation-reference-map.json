@@ -1,0 +1,1270 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-30",
+  "source_repository": "agent-queue2",
+  "source_revision": "9a9b8e8ef992d1ff699755a9383ed3c91e2844ea",
+  "scope": "Bounded implementation reference inventory before further v2 work; not a full parity audit or evidence that v2 tasks are complete.",
+  "hash_semantics": "SHA-256 of exact git show REV:path bytes; git_blob is the pinned Git object ID. No working-tree bytes used.",
+  "policy": {
+    "preserve": "Behavioral obligation only; no wholesale Python port.",
+    "adapt": "Preserve useful behavior while changing authority, persistence and remote-worker boundaries.",
+    "replace": "V1 single-host SQL/workspace/runtime integration must be replaced at v2 boundaries.",
+    "omit": "Do not port v1 vault layout, daemon dependencies or terminal screen heuristics as universal harness guarantees. No new runtime dependency is authorized by this inventory."
+  },
+  "files": {
+    "src/profiles/catalog.py": {
+      "sha256": "71cf053bc1c0ee734370f2520b5310b354e10c5408c8cd4d3b5eec24e5b9574e",
+      "git_blob": "7a4a5f0d606a734ea442a0244d0328c6563f900f"
+    },
+    "src/intelligence_classes/registry.py": {
+      "sha256": "1ee1d40d25bbe5866397b874a6420ef23217bd7cde0eb96227b2f0a657a59020",
+      "git_blob": "3d858c6d849e3a63eadc55bcec994928019aa396"
+    },
+    "tests/test_profile_catalog.py": {
+      "sha256": "6b94229821a554aa34139d701af1f60f328b582468f1feac0a947663a25e7b93",
+      "git_blob": "776403e5e5a0bfee365d5de04af66612d782bd33"
+    },
+    "tests/test_intelligence_classes.py": {
+      "sha256": "f3cd11564cde8194c6963e58f9a9e339efa4d54eba27d6cd800d4261bd6233ef",
+      "git_blob": "d0ebb81e781290a82df20a7eabd491bf015c9133"
+    },
+    "src/sessions/terminal_input.py": {
+      "sha256": "e1b11b635f15af6e9980edfd48db38f2dd0b2131fb4e04e3d400ff24d962d12d",
+      "git_blob": "6aba51ff7547ee82faa6bb875c427ee34c0fc00b"
+    },
+    "src/sessions/tmux.py": {
+      "sha256": "337bd479fe24584c8db58b2f7e5cfeac56eec5c86eae970600d5655035b2256d",
+      "git_blob": "3b9dc95dadd87d6f14122889232989663af84ba3"
+    },
+    "tests/test_terminal_input.py": {
+      "sha256": "4e5a1c4acbc08a50d78c8c1c3fb08a179ca7677d205ef4a077d53ef9c221b156",
+      "git_blob": "23af0ba41088ac045354c88c7e5f6ae4c58a33cf"
+    },
+    "tests/test_tmux_nudge_drafts.py": {
+      "sha256": "c09cbd6eec160b23b5830cbcd83d78582d7a00a5f3e68df54baded2fc030494b",
+      "git_blob": "f081921b4eac6d216afca0ae5a01659f7d715e77"
+    },
+    "src/sessions/transcripts/codex.py": {
+      "sha256": "a0457f21f55df897160cd2a3884546c13825946e81371718c5896b05f612f6fc",
+      "git_blob": "22668a346e01df866aa575df7da6b09b29f33e1a"
+    },
+    "src/sessions/transcripts/claude.py": {
+      "sha256": "47db46634ec0afd4de2c207aa972c206fcf638b6261406e9433057a31c8d4df1",
+      "git_blob": "860c6f5d69eed7a106263754113a525290e8aa0d"
+    },
+    "src/sessions/transcripts/watcher.py": {
+      "sha256": "675f721ecdc771266f3fd954859eb63c15d9604d92d0bc1622533ae1827b02fc",
+      "git_blob": "fad91e821dfb2519c0c3fc63ac7439700339defc"
+    },
+    "tests/test_transcript_identity.py": {
+      "sha256": "18b359e4367e5e7c6aef489408d242939bf77fec8fe8e48340f18ce255097dc7",
+      "git_blob": "ee4a8135dc0fcac5af7f2df5f767db8f5994dc29"
+    },
+    "tests/test_transcript_codex.py": {
+      "sha256": "461b459910a24bcd20fe1e73be80800b5444a03f721319cd4668140663c41a54",
+      "git_blob": "5ab326acfa8bf39f4b406929859b461332bee4de"
+    },
+    "tests/test_transcript_checkpoints.py": {
+      "sha256": "0deaaef6b01262db5a69d62f02b9754812dbefa6d315782a2a07d988ff9451f1",
+      "git_blob": "ceb457dac68774cb0a0935623bf84d9341282cea"
+    },
+    "src/sessions/reconciler.py": {
+      "sha256": "744b67633e3f3dc0f79f1e335d6b95cecfe2707afec81e0c077b67e09a8415a0",
+      "git_blob": "1a52c7385ed9b9d0bbfccd4383d09cdf87ad3764"
+    },
+    "tests/test_stall_watch.py": {
+      "sha256": "a3453c3266dc86ab8d8269d62464a3e3ace5d69d9f1f671d3f2ba199b4746f86",
+      "git_blob": "4e56d0e2b1855f08d87999cb60e12bdffc854d2e"
+    },
+    "src/waits/registry.py": {
+      "sha256": "49219dc2cf7dec9c391672e741e6a4bb80b051506dfedcc944324529049ff7e9",
+      "git_blob": "856162c8a69ffc999152554d247330664737525e"
+    },
+    "src/waits/dispatcher.py": {
+      "sha256": "a94ba6c9a466a1f5728a4a2c41dd2e06ec5ebfe53dc11f145174d75ca8dd1e57",
+      "git_blob": "b6ae78b6f44a9af394e3ed0db93685cdcf21bfe7"
+    },
+    "tests/test_wait_faults.py": {
+      "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+      "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+    },
+    "src/wait_runtime/hibernate.py": {
+      "sha256": "ba1dea3d45bd0ed1c62b37dad80067672b48210410a6cfddf8f6fdb1f4d0d0ad",
+      "git_blob": "6ef87d15069bb33c28e7c37e626171e47753ba78"
+    },
+    "src/wait_runtime/resume.py": {
+      "sha256": "2e1f441f3ea496cae291054ef46536b07e77aaaab713c687b2b8e350e4c02cdd",
+      "git_blob": "b904643993647fc440a590142900dd3633187768"
+    },
+    "src/waits/resume_ack.py": {
+      "sha256": "a4bb23820b5546ce8a5da55309ba24be3ce0f30ea9f805ba5589ef1d0394149c",
+      "git_blob": "ac933a117219ee9892bf69845e4e3154132a177d"
+    },
+    "src/escalations/transport.py": {
+      "sha256": "2c97f761526e8140b8c2bf5b9b904612ae2401bdcad3eb5324be69689be18753",
+      "git_blob": "9d0ecbe0bbaf21b45d85f72918e93611d8e68992"
+    },
+    "tests/test_discord_escalation_transport.py": {
+      "sha256": "5a6925d09c2d8363de2863b01e15c819e06a8962c865b26bc530622c34b9ded2",
+      "git_blob": "596eb551802efa8d9c4d830ac01fd8f0a19a0c12"
+    },
+    "src/digest/dispatch.py": {
+      "sha256": "763ea9ac175fe4c044d86e3db0956139334cb56f9b0014e466b187313b92b235",
+      "git_blob": "9affc3262808ee34a850b75f55d5a6eba090abee"
+    },
+    "tests/test_digest_dispatch.py": {
+      "sha256": "59824d94918ad68ae7fe9e5e02df6a1845e702fe43433331ee2e042adc7129ad",
+      "git_blob": "a1d928eae3ec7277e856878d6976871e253c4479"
+    }
+  },
+  "entries": [
+    {
+      "rationale": "Class/provider slices derive eligible rungs; missing provider slices yield no rung and seeding preserves operator files. Registry preserves last good entries on parse failure. V2 must freeze resolved revisions per launch and use per-node readiness instead of treating one host activation file as fleet authority.",
+      "coverage": "pending_v2_implementation_and_qualification",
+      "evidence_limit": "Selected implementation bodies and bounded excerpts from selected test bodies inspected; this is not a full module audit. Test symbols locate obligations, not proof of executed or replacement coverage. Tests were read, not executed.",
+      "id": "profiles-and-intelligence",
+      "tasks": [
+        "AQ-18",
+        "AQ-20"
+      ],
+      "disposition": "adapt",
+      "sources": [
+        {
+          "path": "src/profiles/catalog.py",
+          "symbol": "shipped_profile_catalog",
+          "line": 106,
+          "end_line": 155,
+          "sha256": "71cf053bc1c0ee734370f2520b5310b354e10c5408c8cd4d3b5eec24e5b9574e",
+          "git_blob": "7a4a5f0d606a734ea442a0244d0328c6563f900f"
+        },
+        {
+          "path": "src/profiles/catalog.py",
+          "symbol": "evaluate_catalog",
+          "line": 178,
+          "end_line": 202,
+          "sha256": "71cf053bc1c0ee734370f2520b5310b354e10c5408c8cd4d3b5eec24e5b9574e",
+          "git_blob": "7a4a5f0d606a734ea442a0244d0328c6563f900f"
+        },
+        {
+          "path": "src/profiles/catalog.py",
+          "symbol": "render_rung_stub",
+          "line": 370,
+          "end_line": 403,
+          "sha256": "71cf053bc1c0ee734370f2520b5310b354e10c5408c8cd4d3b5eec24e5b9574e",
+          "git_blob": "7a4a5f0d606a734ea442a0244d0328c6563f900f"
+        },
+        {
+          "path": "src/intelligence_classes/registry.py",
+          "symbol": "IntelligenceClassRegistry.reload",
+          "line": 107,
+          "end_line": 154,
+          "sha256": "1ee1d40d25bbe5866397b874a6420ef23217bd7cde0eb96227b2f0a657a59020",
+          "git_blob": "3d858c6d849e3a63eadc55bcec994928019aa396"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_profile_catalog.py",
+          "symbol": "test_the_worker_set_is_the_class_x_harness_cross_product",
+          "line": 35,
+          "end_line": 49,
+          "sha256": "6b94229821a554aa34139d701af1f60f328b582468f1feac0a947663a25e7b93",
+          "git_blob": "776403e5e5a0bfee365d5de04af66612d782bd33"
+        },
+        {
+          "path": "tests/test_profile_catalog.py",
+          "symbol": "test_a_class_with_no_slice_for_a_harness_yields_no_rung",
+          "line": 52,
+          "end_line": 61,
+          "sha256": "6b94229821a554aa34139d701af1f60f328b582468f1feac0a947663a25e7b93",
+          "git_blob": "776403e5e5a0bfee365d5de04af66612d782bd33"
+        },
+        {
+          "path": "tests/test_profile_catalog.py",
+          "symbol": "test_an_operators_own_class_yields_rungs_too",
+          "line": 64,
+          "end_line": 76,
+          "sha256": "6b94229821a554aa34139d701af1f60f328b582468f1feac0a947663a25e7b93",
+          "git_blob": "776403e5e5a0bfee365d5de04af66612d782bd33"
+        },
+        {
+          "path": "tests/test_profile_catalog.py",
+          "symbol": "test_a_rung_is_a_stub_that_inherits_its_template",
+          "line": 79,
+          "end_line": 91,
+          "sha256": "6b94229821a554aa34139d701af1f60f328b582468f1feac0a947663a25e7b93",
+          "git_blob": "776403e5e5a0bfee365d5de04af66612d782bd33"
+        },
+        {
+          "path": "tests/test_profile_catalog.py",
+          "symbol": "test_a_template_is_not_itself_a_profile",
+          "line": 94,
+          "end_line": 101,
+          "sha256": "6b94229821a554aa34139d701af1f60f328b582468f1feac0a947663a25e7b93",
+          "git_blob": "776403e5e5a0bfee365d5de04af66612d782bd33"
+        },
+        {
+          "path": "tests/test_profile_catalog.py",
+          "symbol": "test_unready_provider_is_not_activated_and_carries_setup_guidance",
+          "line": 104,
+          "end_line": 110,
+          "sha256": "6b94229821a554aa34139d701af1f60f328b582468f1feac0a947663a25e7b93",
+          "git_blob": "776403e5e5a0bfee365d5de04af66612d782bd33"
+        },
+        {
+          "path": "tests/test_profile_catalog.py",
+          "symbol": "test_installed_but_unauthenticated_provider_has_login_remediation",
+          "line": 113,
+          "end_line": 123,
+          "sha256": "6b94229821a554aa34139d701af1f60f328b582468f1feac0a947663a25e7b93",
+          "git_blob": "776403e5e5a0bfee365d5de04af66612d782bd33"
+        },
+        {
+          "path": "tests/test_profile_catalog.py",
+          "symbol": "test_refresh_seeds_ready_providers_and_preserves_existing_profile_edits",
+          "line": 126,
+          "end_line": 140,
+          "sha256": "6b94229821a554aa34139d701af1f60f328b582468f1feac0a947663a25e7b93",
+          "git_blob": "776403e5e5a0bfee365d5de04af66612d782bd33"
+        },
+        {
+          "path": "tests/test_intelligence_classes.py",
+          "symbol": "test_defaults_shipped",
+          "line": 34,
+          "end_line": 37,
+          "sha256": "f3cd11564cde8194c6963e58f9a9e339efa4d54eba27d6cd800d4261bd6233ef",
+          "git_blob": "d0ebb81e781290a82df20a7eabd491bf015c9133"
+        },
+        {
+          "path": "tests/test_intelligence_classes.py",
+          "symbol": "test_load_parses_frontmatter_and_mapping",
+          "line": 40,
+          "end_line": 50,
+          "sha256": "f3cd11564cde8194c6963e58f9a9e339efa4d54eba27d6cd800d4261bd6233ef",
+          "git_blob": "d0ebb81e781290a82df20a7eabd491bf015c9133"
+        },
+        {
+          "path": "tests/test_intelligence_classes.py",
+          "symbol": "test_astra_is_openai_only_and_names_the_astra_model",
+          "line": 53,
+          "end_line": 62,
+          "sha256": "f3cd11564cde8194c6963e58f9a9e339efa4d54eba27d6cd800d4261bd6233ef",
+          "git_blob": "d0ebb81e781290a82df20a7eabd491bf015c9133"
+        },
+        {
+          "path": "tests/test_intelligence_classes.py",
+          "symbol": "test_high_classes_buy_the_providers_extra_high_effort",
+          "line": 65,
+          "end_line": 73,
+          "sha256": "f3cd11564cde8194c6963e58f9a9e339efa4d54eba27d6cd800d4261bd6233ef",
+          "git_blob": "d0ebb81e781290a82df20a7eabd491bf015c9133"
+        },
+        {
+          "path": "tests/test_intelligence_classes.py",
+          "symbol": "test_resolve_class_returns_provider_slice",
+          "line": 76,
+          "end_line": 80,
+          "sha256": "f3cd11564cde8194c6963e58f9a9e339efa4d54eba27d6cd800d4261bd6233ef",
+          "git_blob": "d0ebb81e781290a82df20a7eabd491bf015c9133"
+        },
+        {
+          "path": "tests/test_intelligence_classes.py",
+          "symbol": "test_resolve_class_unknown_provider_returns_empty",
+          "line": 83,
+          "end_line": 86,
+          "sha256": "f3cd11564cde8194c6963e58f9a9e339efa4d54eba27d6cd800d4261bd6233ef",
+          "git_blob": "d0ebb81e781290a82df20a7eabd491bf015c9133"
+        },
+        {
+          "path": "tests/test_intelligence_classes.py",
+          "symbol": "test_missing_dir_returns_empty_dict",
+          "line": 89,
+          "end_line": 90,
+          "sha256": "f3cd11564cde8194c6963e58f9a9e339efa4d54eba27d6cd800d4261bd6233ef",
+          "git_blob": "d0ebb81e781290a82df20a7eabd491bf015c9133"
+        },
+        {
+          "path": "tests/test_intelligence_classes.py",
+          "symbol": "test_load_skips_bad_yaml_json_symlink_and_preserves_valid_neighbor",
+          "line": 106,
+          "end_line": 164,
+          "sha256": "f3cd11564cde8194c6963e58f9a9e339efa4d54eba27d6cd800d4261bd6233ef",
+          "git_blob": "d0ebb81e781290a82df20a7eabd491bf015c9133"
+        }
+      ]
+    },
+    {
+      "rationale": "Terminal input verifies instance and tmux identity; nudge serializes input, refuses recent human input, and only resubmits exact durable AQ drafts. V2 needs assignment/node/boot fencing and shared human-control arbitration at the worker; provider-specific composer probes require qualification.",
+      "coverage": "pending_v2_implementation_and_qualification",
+      "evidence_limit": "Selected implementation bodies and bounded excerpts from selected test bodies inspected; this is not a full module audit. Test symbols locate obligations, not proof of executed or replacement coverage. Tests were read, not executed.",
+      "id": "terminal-identity-and-safe-nudge",
+      "tasks": [
+        "CON-02",
+        "WRK-10",
+        "WRK-09",
+        "WRK-14",
+        "AQ-21"
+      ],
+      "disposition": "adapt",
+      "sources": [
+        {
+          "path": "src/sessions/terminal_input.py",
+          "symbol": "TmuxInputClient.attach",
+          "line": 80,
+          "end_line": 91,
+          "sha256": "e1b11b635f15af6e9980edfd48db38f2dd0b2131fb4e04e3d400ff24d962d12d",
+          "git_blob": "6aba51ff7547ee82faa6bb875c427ee34c0fc00b"
+        },
+        {
+          "path": "src/sessions/terminal_input.py",
+          "symbol": "TmuxInputClient.verify",
+          "line": 96,
+          "end_line": 101,
+          "sha256": "e1b11b635f15af6e9980edfd48db38f2dd0b2131fb4e04e3d400ff24d962d12d",
+          "git_blob": "6aba51ff7547ee82faa6bb875c427ee34c0fc00b"
+        },
+        {
+          "path": "src/sessions/terminal_input.py",
+          "symbol": "TmuxInputClient.write",
+          "line": 111,
+          "end_line": 130,
+          "sha256": "e1b11b635f15af6e9980edfd48db38f2dd0b2131fb4e04e3d400ff24d962d12d",
+          "git_blob": "6aba51ff7547ee82faa6bb875c427ee34c0fc00b"
+        },
+        {
+          "path": "src/sessions/tmux.py",
+          "symbol": "TmuxProvider.nudge",
+          "line": 796,
+          "end_line": 931,
+          "sha256": "337bd479fe24584c8db58b2f7e5cfeac56eec5c86eae970600d5655035b2256d",
+          "git_blob": "3b9dc95dadd87d6f14122889232989663af84ba3"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_terminal_input.py",
+          "symbol": "test_raw_bytes_utf8_ctrl_c_and_escape_reach_the_app_without_resizing",
+          "line": 98,
+          "end_line": 113,
+          "sha256": "4e5a1c4acbc08a50d78c8c1c3fb08a179ca7677d205ef4a077d53ef9c221b156",
+          "git_blob": "23af0ba41088ac045354c88c7e5f6ae4c58a33cf"
+        },
+        {
+          "path": "tests/test_terminal_input.py",
+          "symbol": "test_paste_is_bracketed_only_when_the_app_asked_and_lf_becomes_cr",
+          "line": 120,
+          "end_line": 128,
+          "sha256": "4e5a1c4acbc08a50d78c8c1c3fb08a179ca7677d205ef4a077d53ef9c221b156",
+          "git_blob": "23af0ba41088ac045354c88c7e5f6ae4c58a33cf"
+        },
+        {
+          "path": "tests/test_terminal_input.py",
+          "symbol": "test_paste_split_across_writes_arrives_once",
+          "line": 131,
+          "end_line": 145,
+          "sha256": "4e5a1c4acbc08a50d78c8c1c3fb08a179ca7677d205ef4a077d53ef9c221b156",
+          "git_blob": "23af0ba41088ac045354c88c7e5f6ae4c58a33cf"
+        },
+        {
+          "path": "tests/test_terminal_input.py",
+          "symbol": "test_single_arrow_frames_follow_the_panes_cursor_key_mode",
+          "line": 152,
+          "end_line": 160,
+          "sha256": "4e5a1c4acbc08a50d78c8c1c3fb08a179ca7677d205ef4a077d53ef9c221b156",
+          "git_blob": "23af0ba41088ac045354c88c7e5f6ae4c58a33cf"
+        },
+        {
+          "path": "tests/test_terminal_input.py",
+          "symbol": "test_copy_mode_is_left_so_keys_reach_the_app_not_the_hidden_mode",
+          "line": 163,
+          "end_line": 173,
+          "sha256": "4e5a1c4acbc08a50d78c8c1c3fb08a179ca7677d205ef4a077d53ef9c221b156",
+          "git_blob": "23af0ba41088ac045354c88c7e5f6ae4c58a33cf"
+        },
+        {
+          "path": "tests/test_terminal_input.py",
+          "symbol": "test_changed_instance_token_refuses_writes",
+          "line": 176,
+          "end_line": 189,
+          "sha256": "4e5a1c4acbc08a50d78c8c1c3fb08a179ca7677d205ef4a077d53ef9c221b156",
+          "git_blob": "23af0ba41088ac045354c88c7e5f6ae4c58a33cf"
+        },
+        {
+          "path": "tests/test_terminal_input.py",
+          "symbol": "test_same_named_successor_with_same_token_refuses_writes",
+          "line": 192,
+          "end_line": 204,
+          "sha256": "4e5a1c4acbc08a50d78c8c1c3fb08a179ca7677d205ef4a077d53ef9c221b156",
+          "git_blob": "23af0ba41088ac045354c88c7e5f6ae4c58a33cf"
+        },
+        {
+          "path": "tests/test_terminal_input.py",
+          "symbol": "test_close_ends_reads_and_further_writes",
+          "line": 207,
+          "end_line": 218,
+          "sha256": "4e5a1c4acbc08a50d78c8c1c3fb08a179ca7677d205ef4a077d53ef9c221b156",
+          "git_blob": "23af0ba41088ac045354c88c7e5f6ae4c58a33cf"
+        },
+        {
+          "path": "tests/test_tmux_nudge_drafts.py",
+          "symbol": "TestBackgroundNudgeDrafts.test_refusal_names_the_guard_condition_without_typing",
+          "line": 150,
+          "end_line": 156,
+          "sha256": "c09cbd6eec160b23b5830cbcd83d78582d7a00a5f3e68df54baded2fc030494b",
+          "git_blob": "f081921b4eac6d216afca0ae5a01659f7d715e77"
+        },
+        {
+          "path": "tests/test_tmux_nudge_drafts.py",
+          "symbol": "TestBackgroundNudgeDrafts.test_defers_without_touching_existing_input",
+          "line": 185,
+          "end_line": 194,
+          "sha256": "c09cbd6eec160b23b5830cbcd83d78582d7a00a5f3e68df54baded2fc030494b",
+          "git_blob": "f081921b4eac6d216afca0ae5a01659f7d715e77"
+        },
+        {
+          "path": "tests/test_tmux_nudge_drafts.py",
+          "symbol": "TestBackgroundNudgeDrafts.test_known_empty_composer_gets_only_the_reminder",
+          "line": 210,
+          "end_line": 214,
+          "sha256": "c09cbd6eec160b23b5830cbcd83d78582d7a00a5f3e68df54baded2fc030494b",
+          "git_blob": "f081921b4eac6d216afca0ae5a01659f7d715e77"
+        },
+        {
+          "path": "tests/test_tmux_nudge_drafts.py",
+          "symbol": "TestBackgroundNudgeDrafts.test_failed_prompt_probe_defers_without_keys",
+          "line": 216,
+          "end_line": 221,
+          "sha256": "c09cbd6eec160b23b5830cbcd83d78582d7a00a5f3e68df54baded2fc030494b",
+          "git_blob": "f081921b4eac6d216afca0ae5a01659f7d715e77"
+        },
+        {
+          "path": "tests/test_tmux_nudge_drafts.py",
+          "symbol": "TestBackgroundNudgeDrafts.test_attachment_appearing_during_capture_defers",
+          "line": 223,
+          "end_line": 228,
+          "sha256": "c09cbd6eec160b23b5830cbcd83d78582d7a00a5f3e68df54baded2fc030494b",
+          "git_blob": "f081921b4eac6d216afca0ae5a01659f7d715e77"
+        },
+        {
+          "path": "tests/test_tmux_nudge_drafts.py",
+          "symbol": "TestBackgroundNudgeDrafts.test_recent_manual_input_defers_even_if_old_empty_frame_remains",
+          "line": 231,
+          "end_line": 246,
+          "sha256": "c09cbd6eec160b23b5830cbcd83d78582d7a00a5f3e68df54baded2fc030494b",
+          "git_blob": "f081921b4eac6d216afca0ae5a01659f7d715e77"
+        },
+        {
+          "path": "tests/test_tmux_nudge_drafts.py",
+          "symbol": "TestBackgroundNudgeDrafts.test_quiet_empty_composer_can_be_nudged_after_manual_input",
+          "line": 248,
+          "end_line": 255,
+          "sha256": "c09cbd6eec160b23b5830cbcd83d78582d7a00a5f3e68df54baded2fc030494b",
+          "git_blob": "f081921b4eac6d216afca0ae5a01659f7d715e77"
+        },
+        {
+          "path": "tests/test_tmux_nudge_drafts.py",
+          "symbol": "TestBackgroundNudgeDrafts.test_multiline_draft_line_that_looks_like_prompt_is_ambiguous",
+          "line": 264,
+          "end_line": 283,
+          "sha256": "c09cbd6eec160b23b5830cbcd83d78582d7a00a5f3e68df54baded2fc030494b",
+          "git_blob": "f081921b4eac6d216afca0ae5a01659f7d715e77"
+        }
+      ]
+    },
+    {
+      "rationale": "Readers bind known native session keys and incremental offsets; watcher adopts checkpoints, tracks historical usage and emits transcript-missing observations. Retain fixture semantics while replacing local path/DB coupling with scoped worker sources, atomic cursor/outbox receipts, explicit gaps and lineage accounting.",
+      "coverage": "pending_v2_implementation_and_qualification",
+      "evidence_limit": "Selected implementation bodies and bounded excerpts from selected test bodies inspected; this is not a full module audit. Test symbols locate obligations, not proof of executed or replacement coverage. Tests were read, not executed.",
+      "id": "transcripts-and-accounting",
+      "tasks": [
+        "WRK-15",
+        "AQ-22"
+      ],
+      "disposition": "adapt",
+      "sources": [
+        {
+          "path": "src/sessions/transcripts/codex.py",
+          "symbol": "CodexTranscriptReader.resolve_session",
+          "line": 410,
+          "end_line": 446,
+          "sha256": "a0457f21f55df897160cd2a3884546c13825946e81371718c5896b05f612f6fc",
+          "git_blob": "22668a346e01df866aa575df7da6b09b29f33e1a"
+        },
+        {
+          "path": "src/sessions/transcripts/codex.py",
+          "symbol": "CodexTranscriptReader.read_new",
+          "line": 544,
+          "end_line": 547,
+          "sha256": "a0457f21f55df897160cd2a3884546c13825946e81371718c5896b05f612f6fc",
+          "git_blob": "22668a346e01df866aa575df7da6b09b29f33e1a"
+        },
+        {
+          "path": "src/sessions/transcripts/claude.py",
+          "symbol": "ClaudeTranscriptReader.read_usage_baselines",
+          "line": 122,
+          "end_line": 138,
+          "sha256": "47db46634ec0afd4de2c207aa972c206fcf638b6261406e9433057a31c8d4df1",
+          "git_blob": "860c6f5d69eed7a106263754113a525290e8aa0d"
+        },
+        {
+          "path": "src/sessions/transcripts/claude.py",
+          "symbol": "ClaudeTranscriptReader.read_new",
+          "line": 176,
+          "end_line": 179,
+          "sha256": "47db46634ec0afd4de2c207aa972c206fcf638b6261406e9433057a31c8d4df1",
+          "git_blob": "860c6f5d69eed7a106263754113a525290e8aa0d"
+        },
+        {
+          "path": "src/sessions/transcripts/watcher.py",
+          "symbol": "TranscriptWatcher._process_session",
+          "line": 139,
+          "end_line": 257,
+          "sha256": "675f721ecdc771266f3fd954859eb63c15d9604d92d0bc1622533ae1827b02fc",
+          "git_blob": "fad91e821dfb2519c0c3fc63ac7439700339defc"
+        },
+        {
+          "path": "src/sessions/transcripts/watcher.py",
+          "symbol": "TranscriptWatcher._save_checkpoint",
+          "line": 356,
+          "end_line": 371,
+          "sha256": "675f721ecdc771266f3fd954859eb63c15d9604d92d0bc1622533ae1827b02fc",
+          "git_blob": "fad91e821dfb2519c0c3fc63ac7439700339defc"
+        },
+        {
+          "path": "src/sessions/transcripts/watcher.py",
+          "symbol": "TranscriptWatcher._record_usage",
+          "line": 468,
+          "end_line": 529,
+          "sha256": "675f721ecdc771266f3fd954859eb63c15d9604d92d0bc1622533ae1827b02fc",
+          "git_blob": "fad91e821dfb2519c0c3fc63ac7439700339defc"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_transcript_identity.py",
+          "symbol": "test_missing_known_codex_key_never_falls_back_to_newer_cwd",
+          "line": 32,
+          "end_line": 34,
+          "sha256": "18b359e4367e5e7c6aef489408d242939bf77fec8fe8e48340f18ce255097dc7",
+          "git_blob": "ee4a8135dc0fcac5af7f2df5f767db8f5994dc29"
+        },
+        {
+          "path": "tests/test_transcript_identity.py",
+          "symbol": "test_known_codex_key_is_not_hidden_by_recent_scan_limit",
+          "line": 37,
+          "end_line": 41,
+          "sha256": "18b359e4367e5e7c6aef489408d242939bf77fec8fe8e48340f18ce255097dc7",
+          "git_blob": "ee4a8135dc0fcac5af7f2df5f767db8f5994dc29"
+        },
+        {
+          "path": "tests/test_transcript_identity.py",
+          "symbol": "test_legacy_aq_uuid_uses_launch_time_not_newest_workdir",
+          "line": 44,
+          "end_line": 47,
+          "sha256": "18b359e4367e5e7c6aef489408d242939bf77fec8fe8e48340f18ce255097dc7",
+          "git_blob": "ee4a8135dc0fcac5af7f2df5f767db8f5994dc29"
+        },
+        {
+          "path": "tests/test_transcript_identity.py",
+          "symbol": "test_keyless_session_rejects_previous_workspaces_conversation",
+          "line": 50,
+          "end_line": 52,
+          "sha256": "18b359e4367e5e7c6aef489408d242939bf77fec8fe8e48340f18ce255097dc7",
+          "git_blob": "ee4a8135dc0fcac5af7f2df5f767db8f5994dc29"
+        },
+        {
+          "path": "tests/test_transcript_identity.py",
+          "symbol": "test_discovery_refuses_ambiguous_launches",
+          "line": 55,
+          "end_line": 58,
+          "sha256": "18b359e4367e5e7c6aef489408d242939bf77fec8fe8e48340f18ce255097dc7",
+          "git_blob": "ee4a8135dc0fcac5af7f2df5f767db8f5994dc29"
+        },
+        {
+          "path": "tests/test_transcript_identity.py",
+          "symbol": "test_known_key_remains_authoritative_even_when_another_launch_is_nearby",
+          "line": 61,
+          "end_line": 64,
+          "sha256": "18b359e4367e5e7c6aef489408d242939bf77fec8fe8e48340f18ce255097dc7",
+          "git_blob": "ee4a8135dc0fcac5af7f2df5f767db8f5994dc29"
+        },
+        {
+          "path": "tests/test_transcript_identity.py",
+          "symbol": "test_codex_local_date_partition_can_differ_from_utc_launch",
+          "line": 69,
+          "end_line": 71,
+          "sha256": "18b359e4367e5e7c6aef489408d242939bf77fec8fe8e48340f18ce255097dc7",
+          "git_blob": "ee4a8135dc0fcac5af7f2df5f767db8f5994dc29"
+        },
+        {
+          "path": "tests/test_transcript_identity.py",
+          "symbol": "test_cross_date_discovery_still_rejects_ambiguous_launches",
+          "line": 74,
+          "end_line": 77,
+          "sha256": "18b359e4367e5e7c6aef489408d242939bf77fec8fe8e48340f18ce255097dc7",
+          "git_blob": "ee4a8135dc0fcac5af7f2df5f767db8f5994dc29"
+        },
+        {
+          "path": "tests/test_transcript_codex.py",
+          "symbol": "test_token_usage_keeps_transcript_declared_model_across_incremental_reads",
+          "line": 64,
+          "end_line": 73,
+          "sha256": "461b459910a24bcd20fe1e73be80800b5444a03f721319cd4668140663c41a54",
+          "git_blob": "5ab326acfa8bf39f4b406929859b461332bee4de"
+        },
+        {
+          "path": "tests/test_transcript_codex.py",
+          "symbol": "test_primary_window_maps_to_a_normalized_reading",
+          "line": 81,
+          "end_line": 88,
+          "sha256": "461b459910a24bcd20fe1e73be80800b5444a03f721319cd4668140663c41a54",
+          "git_blob": "5ab326acfa8bf39f4b406929859b461332bee4de"
+        },
+        {
+          "path": "tests/test_transcript_codex.py",
+          "symbol": "test_both_windows_are_carried_when_both_are_reported",
+          "line": 91,
+          "end_line": 100,
+          "sha256": "461b459910a24bcd20fe1e73be80800b5444a03f721319cd4668140663c41a54",
+          "git_blob": "5ab326acfa8bf39f4b406929859b461332bee4de"
+        },
+        {
+          "path": "tests/test_transcript_codex.py",
+          "symbol": "test_missing_rate_limits_is_none_not_an_empty_reading",
+          "line": 103,
+          "end_line": 105,
+          "sha256": "461b459910a24bcd20fe1e73be80800b5444a03f721319cd4668140663c41a54",
+          "git_blob": "5ab326acfa8bf39f4b406929859b461332bee4de"
+        },
+        {
+          "path": "tests/test_transcript_codex.py",
+          "symbol": "test_a_block_with_no_numeric_percent_is_none",
+          "line": 108,
+          "end_line": 118,
+          "sha256": "461b459910a24bcd20fe1e73be80800b5444a03f721319cd4668140663c41a54",
+          "git_blob": "5ab326acfa8bf39f4b406929859b461332bee4de"
+        },
+        {
+          "path": "tests/test_transcript_codex.py",
+          "symbol": "test_account_label_falls_back_to_limit_id",
+          "line": 121,
+          "end_line": 123,
+          "sha256": "461b459910a24bcd20fe1e73be80800b5444a03f721319cd4668140663c41a54",
+          "git_blob": "5ab326acfa8bf39f4b406929859b461332bee4de"
+        },
+        {
+          "path": "tests/test_transcript_codex.py",
+          "symbol": "test_an_unparseable_reset_still_yields_the_percentage",
+          "line": 126,
+          "end_line": 130,
+          "sha256": "461b459910a24bcd20fe1e73be80800b5444a03f721319cd4668140663c41a54",
+          "git_blob": "5ab326acfa8bf39f4b406929859b461332bee4de"
+        },
+        {
+          "path": "tests/test_transcript_codex.py",
+          "symbol": "test_invalid_numeric_quota_does_not_block_following_entry",
+          "line": 134,
+          "end_line": 143,
+          "sha256": "461b459910a24bcd20fe1e73be80800b5444a03f721319cd4668140663c41a54",
+          "git_blob": "5ab326acfa8bf39f4b406929859b461332bee4de"
+        },
+        {
+          "path": "tests/test_transcript_checkpoints.py",
+          "symbol": "test_unseen_path_has_no_mark",
+          "line": 29,
+          "end_line": 30,
+          "sha256": "0deaaef6b01262db5a69d62f02b9754812dbefa6d315782a2a07d988ff9451f1",
+          "git_blob": "ceb457dac68774cb0a0935623bf84d9341282cea"
+        },
+        {
+          "path": "tests/test_transcript_checkpoints.py",
+          "symbol": "test_set_then_get_round_trips",
+          "line": 33,
+          "end_line": 41,
+          "sha256": "0deaaef6b01262db5a69d62f02b9754812dbefa6d315782a2a07d988ff9451f1",
+          "git_blob": "ceb457dac68774cb0a0935623bf84d9341282cea"
+        },
+        {
+          "path": "tests/test_transcript_checkpoints.py",
+          "symbol": "test_the_mark_never_moves_backwards",
+          "line": 44,
+          "end_line": 55,
+          "sha256": "0deaaef6b01262db5a69d62f02b9754812dbefa6d315782a2a07d988ff9451f1",
+          "git_blob": "ceb457dac68774cb0a0935623bf84d9341282cea"
+        },
+        {
+          "path": "tests/test_transcript_checkpoints.py",
+          "symbol": "test_zero_resets_a_rewritten_file",
+          "line": 58,
+          "end_line": 68,
+          "sha256": "0deaaef6b01262db5a69d62f02b9754812dbefa6d315782a2a07d988ff9451f1",
+          "git_blob": "ceb457dac68774cb0a0935623bf84d9341282cea"
+        },
+        {
+          "path": "tests/test_transcript_checkpoints.py",
+          "symbol": "test_marks_are_per_path",
+          "line": 71,
+          "end_line": 78,
+          "sha256": "0deaaef6b01262db5a69d62f02b9754812dbefa6d315782a2a07d988ff9451f1",
+          "git_blob": "ceb457dac68774cb0a0935623bf84d9341282cea"
+        },
+        {
+          "path": "tests/test_transcript_checkpoints.py",
+          "symbol": "test_usage_call_migration_is_idempotent_and_preserves_ledger",
+          "line": 81,
+          "end_line": 109,
+          "sha256": "0deaaef6b01262db5a69d62f02b9754812dbefa6d315782a2a07d988ff9451f1",
+          "git_blob": "ceb457dac68774cb0a0935623bf84d9341282cea"
+        }
+      ]
+    },
+    {
+      "rationale": "Ladder examines intentional waits, control holds, activity and persisted nudge/recovery state before escalation. Stall-watch tests here cover read-only orphan/route diagnostics, not proof of ladder recovery. V2 central authority must use fresh remote evidence, stopped-writer retention and fenced replacement.",
+      "coverage": "pending_v2_implementation_and_qualification",
+      "evidence_limit": "Selected implementation bodies and bounded excerpts from selected test bodies inspected; this is not a full module audit. Test symbols locate obligations, not proof of executed or replacement coverage. Tests were read, not executed.",
+      "id": "stall-recovery",
+      "tasks": [
+        "AQ-23"
+      ],
+      "disposition": "adapt",
+      "sources": [
+        {
+          "path": "src/sessions/reconciler.py",
+          "symbol": "SessionReconciler._step_stall_ladder",
+          "line": 2692,
+          "end_line": 2909,
+          "sha256": "744b67633e3f3dc0f79f1e335d6b95cecfe2707afec81e0c077b67e09a8415a0",
+          "git_blob": "1a52c7385ed9b9d0bbfccd4383d09cdf87ad3764"
+        },
+        {
+          "path": "src/sessions/reconciler.py",
+          "symbol": "SessionReconciler._try_nudge",
+          "line": 3842,
+          "end_line": 3881,
+          "sha256": "744b67633e3f3dc0f79f1e335d6b95cecfe2707afec81e0c077b67e09a8415a0",
+          "git_blob": "1a52c7385ed9b9d0bbfccd4383d09cdf87ad3764"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_stall_watch.py",
+          "symbol": "test_orphan_age_threshold_and_epic_exclusion",
+          "line": 55,
+          "end_line": 58,
+          "sha256": "a3453c3266dc86ab8d8269d62464a3e3ace5d69d9f1f671d3f2ba199b4746f86",
+          "git_blob": "4e56d0e2b1855f08d87999cb60e12bdffc854d2e"
+        },
+        {
+          "path": "tests/test_stall_watch.py",
+          "symbol": "test_live_holder_is_not_orphaned",
+          "line": 69,
+          "end_line": 70,
+          "sha256": "a3453c3266dc86ab8d8269d62464a3e3ace5d69d9f1f671d3f2ba199b4746f86",
+          "git_blob": "4e56d0e2b1855f08d87999cb60e12bdffc854d2e"
+        },
+        {
+          "path": "tests/test_stall_watch.py",
+          "symbol": "test_orphan_worker_failure_modes",
+          "line": 83,
+          "end_line": 86,
+          "sha256": "a3453c3266dc86ab8d8269d62464a3e3ace5d69d9f1f671d3f2ba199b4746f86",
+          "git_blob": "4e56d0e2b1855f08d87999cb60e12bdffc854d2e"
+        },
+        {
+          "path": "tests/test_stall_watch.py",
+          "symbol": "test_ready_route_failure_requires_thirty_minutes",
+          "line": 90,
+          "end_line": 94,
+          "sha256": "a3453c3266dc86ab8d8269d62464a3e3ace5d69d9f1f671d3f2ba199b4746f86",
+          "git_blob": "4e56d0e2b1855f08d87999cb60e12bdffc854d2e"
+        },
+        {
+          "path": "tests/test_stall_watch.py",
+          "symbol": "test_normal_waits_are_not_failed_routes",
+          "line": 98,
+          "end_line": 99,
+          "sha256": "a3453c3266dc86ab8d8269d62464a3e3ace5d69d9f1f671d3f2ba199b4746f86",
+          "git_blob": "4e56d0e2b1855f08d87999cb60e12bdffc854d2e"
+        },
+        {
+          "path": "tests/test_stall_watch.py",
+          "symbol": "test_real_command_readonly_orphan_and_summary",
+          "line": 108,
+          "end_line": 120,
+          "sha256": "a3453c3266dc86ab8d8269d62464a3e3ace5d69d9f1f671d3f2ba199b4746f86",
+          "git_blob": "4e56d0e2b1855f08d87999cb60e12bdffc854d2e"
+        },
+        {
+          "path": "tests/test_stall_watch.py",
+          "symbol": "test_command_honors_actual_worker_and_heartbeat",
+          "line": 123,
+          "end_line": 139,
+          "sha256": "a3453c3266dc86ab8d8269d62464a3e3ace5d69d9f1f671d3f2ba199b4746f86",
+          "git_blob": "4e56d0e2b1855f08d87999cb60e12bdffc854d2e"
+        },
+        {
+          "path": "tests/test_stall_watch.py",
+          "symbol": "test_command_excludes_declared_and_actual_containers",
+          "line": 142,
+          "end_line": 152,
+          "sha256": "a3453c3266dc86ab8d8269d62464a3e3ace5d69d9f1f671d3f2ba199b4746f86",
+          "git_blob": "4e56d0e2b1855f08d87999cb60e12bdffc854d2e"
+        }
+      ]
+    },
+    {
+      "rationale": "Registry delegates typed verification/observation; dispatcher treats source events as hints, reobserves under source/graph fences and commits immutable outcomes. Preserve lost-wakeup/idempotency obligations; replace single-database source locks with explicit v2 owner contracts where remote boundaries require them.",
+      "coverage": "pending_v2_implementation_and_qualification",
+      "evidence_limit": "Selected implementation bodies and bounded excerpts from selected test bodies inspected; this is not a full module audit. Test symbols locate obligations, not proof of executed or replacement coverage. Tests were read, not executed.",
+      "id": "verified-wait-registration",
+      "tasks": [
+        "AQ-25"
+      ],
+      "disposition": "adapt",
+      "sources": [
+        {
+          "path": "src/waits/registry.py",
+          "symbol": "ConditionRegistry.normalise",
+          "line": 25,
+          "end_line": 28,
+          "sha256": "49219dc2cf7dec9c391672e741e6a4bb80b051506dfedcc944324529049ff7e9",
+          "git_blob": "856162c8a69ffc999152554d247330664737525e"
+        },
+        {
+          "path": "src/waits/registry.py",
+          "symbol": "ConditionRegistry.verify",
+          "line": 30,
+          "end_line": 31,
+          "sha256": "49219dc2cf7dec9c391672e741e6a4bb80b051506dfedcc944324529049ff7e9",
+          "git_blob": "856162c8a69ffc999152554d247330664737525e"
+        },
+        {
+          "path": "src/waits/registry.py",
+          "symbol": "ConditionRegistry.observe",
+          "line": 33,
+          "end_line": 34,
+          "sha256": "49219dc2cf7dec9c391672e741e6a4bb80b051506dfedcc944324529049ff7e9",
+          "git_blob": "856162c8a69ffc999152554d247330664737525e"
+        },
+        {
+          "path": "src/waits/dispatcher.py",
+          "symbol": "WakeDispatcher.prepare_observations",
+          "line": 64,
+          "end_line": 77,
+          "sha256": "a94ba6c9a466a1f5728a4a2c41dd2e06ec5ebfe53dc11f145174d75ca8dd1e57",
+          "git_blob": "b6ae78b6f44a9af394e3ed0db93685cdcf21bfe7"
+        },
+        {
+          "path": "src/waits/dispatcher.py",
+          "symbol": "WakeDispatcher.commit",
+          "line": 79,
+          "end_line": 195,
+          "sha256": "a94ba6c9a466a1f5728a4a2c41dd2e06ec5ebfe53dc11f145174d75ca8dd1e57",
+          "git_blob": "b6ae78b6f44a9af394e3ed0db93685cdcf21bfe7"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_invalid_condition_has_no_side_effect_even_on_retry",
+          "line": 108,
+          "end_line": 114,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_source_resolves_before_registration_preserves_result_pointer",
+          "line": 117,
+          "end_line": 127,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_daemon_crash_and_double_listeners_keep_one_immutable_outcome",
+          "line": 131,
+          "end_line": 174,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_nine_sessions_zero_wait_induced_turns_then_one_outcome_each",
+          "line": 177,
+          "end_line": 226,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_escalation_extend_and_concurrent_wakes_preserve_age",
+          "line": 229,
+          "end_line": 247,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_repeated_condition_hibernates_even_across_service_restart",
+          "line": 250,
+          "end_line": 262,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_human_days_of_digest_and_supervisor_reply_require_explicit_lift",
+          "line": 265,
+          "end_line": 287,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_repair_priority_20_reservation_and_deadline_survive_restart",
+          "line": 290,
+          "end_line": 324,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        }
+      ]
+    },
+    {
+      "rationale": "Parking stops the exact writer before WIP save/push and holds uncertain stop/push failures. Resume reserves capacity, binds fresh launch and requires delivered generation-bound acknowledgement before releasing held mail. Replace local workspace assumptions with central retention receipts, eligible-node placement and separate compute/disk release; v1 SQL/orchestrator objects are not portable modules.",
+      "coverage": "pending_v2_implementation_and_qualification",
+      "evidence_limit": "Selected implementation bodies and bounded excerpts from selected test bodies inspected; this is not a full module audit. Test symbols locate obligations, not proof of executed or replacement coverage. Tests were read, not executed.",
+      "id": "hibernation-and-wake",
+      "tasks": [
+        "WRK-16",
+        "AQ-26"
+      ],
+      "disposition": "adapt",
+      "sources": [
+        {
+          "path": "src/wait_runtime/hibernate.py",
+          "symbol": "HibernationTransaction.advance",
+          "line": 190,
+          "end_line": 204,
+          "sha256": "ba1dea3d45bd0ed1c62b37dad80067672b48210410a6cfddf8f6fdb1f4d0d0ad",
+          "git_blob": "6ef87d15069bb33c28e7c37e626171e47753ba78"
+        },
+        {
+          "path": "src/wait_runtime/hibernate.py",
+          "symbol": "HibernationTransaction._advance_locked",
+          "line": 206,
+          "end_line": 419,
+          "sha256": "ba1dea3d45bd0ed1c62b37dad80067672b48210410a6cfddf8f6fdb1f4d0d0ad",
+          "git_blob": "6ef87d15069bb33c28e7c37e626171e47753ba78"
+        },
+        {
+          "path": "src/wait_runtime/resume.py",
+          "symbol": "ResumeTransaction.reserve",
+          "line": 99,
+          "end_line": 107,
+          "sha256": "2e1f441f3ea496cae291054ef46536b07e77aaaab713c687b2b8e350e4c02cdd",
+          "git_blob": "b904643993647fc440a590142900dd3633187768"
+        },
+        {
+          "path": "src/wait_runtime/resume.py",
+          "symbol": "ResumeTransaction.fresh_workspace",
+          "line": 195,
+          "end_line": 268,
+          "sha256": "2e1f441f3ea496cae291054ef46536b07e77aaaab713c687b2b8e350e4c02cdd",
+          "git_blob": "b904643993647fc440a590142900dd3633187768"
+        },
+        {
+          "path": "src/wait_runtime/resume.py",
+          "symbol": "ResumeTransaction.bind_launch",
+          "line": 483,
+          "end_line": 536,
+          "sha256": "2e1f441f3ea496cae291054ef46536b07e77aaaab713c687b2b8e350e4c02cdd",
+          "git_blob": "b904643993647fc440a590142900dd3633187768"
+        },
+        {
+          "path": "src/waits/resume_ack.py",
+          "symbol": "acknowledge",
+          "line": 105,
+          "end_line": 164,
+          "sha256": "a4bb23820b5546ce8a5da55309ba24be3ce0f30ea9f805ba5589ef1d0394149c",
+          "git_blob": "ac933a117219ee9892bf69845e4e3154132a177d"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_invalid_condition_has_no_side_effect_even_on_retry",
+          "line": 108,
+          "end_line": 114,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_source_resolves_before_registration_preserves_result_pointer",
+          "line": 117,
+          "end_line": 127,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_daemon_crash_and_double_listeners_keep_one_immutable_outcome",
+          "line": 131,
+          "end_line": 174,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_nine_sessions_zero_wait_induced_turns_then_one_outcome_each",
+          "line": 177,
+          "end_line": 226,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_escalation_extend_and_concurrent_wakes_preserve_age",
+          "line": 229,
+          "end_line": 247,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_repeated_condition_hibernates_even_across_service_restart",
+          "line": 250,
+          "end_line": 262,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_human_days_of_digest_and_supervisor_reply_require_explicit_lift",
+          "line": 265,
+          "end_line": 287,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        },
+        {
+          "path": "tests/test_wait_faults.py",
+          "symbol": "test_matrix_repair_priority_20_reservation_and_deadline_survive_restart",
+          "line": 290,
+          "end_line": 324,
+          "sha256": "b469a35c5db8bd00b26ec5c871f95d61f26d0c73a1e39b9aa119c9d1db1d63b2",
+          "git_blob": "3ebca46f1aa2653d19f147610a90ef998925cf1d"
+        }
+      ]
+    },
+    {
+      "rationale": "Preserve observable retryable/ambiguous/permanent/missing failure distinctions and bounded marker-preserving payload semantics. Implement behind the central scoped outbox with dispatch-time visibility checks; workers receive no Discord credentials. Adapter qualification remains pending.",
+      "coverage": "pending_v2_implementation_and_qualification",
+      "evidence_limit": "Selected implementation bodies and bounded excerpts from selected test bodies inspected; this is not a full module audit. Test symbols locate obligations, not proof of executed or replacement coverage. Tests were read, not executed.",
+      "id": "notification-transport",
+      "tasks": [
+        "AQ-24"
+      ],
+      "disposition": "preserve",
+      "sources": [
+        {
+          "path": "src/escalations/transport.py",
+          "symbol": "TransportAmbiguous",
+          "line": 45,
+          "end_line": 46,
+          "sha256": "2c97f761526e8140b8c2bf5b9b904612ae2401bdcad3eb5324be69689be18753",
+          "git_blob": "9d0ecbe0bbaf21b45d85f72918e93611d8e68992"
+        },
+        {
+          "path": "src/escalations/transport.py",
+          "symbol": "TransportRejected",
+          "line": 57,
+          "end_line": 58,
+          "sha256": "2c97f761526e8140b8c2bf5b9b904612ae2401bdcad3eb5324be69689be18753",
+          "git_blob": "9d0ecbe0bbaf21b45d85f72918e93611d8e68992"
+        },
+        {
+          "path": "src/escalations/transport.py",
+          "symbol": "bound_content",
+          "line": 99,
+          "end_line": 115,
+          "sha256": "2c97f761526e8140b8c2bf5b9b904612ae2401bdcad3eb5324be69689be18753",
+          "git_blob": "9d0ecbe0bbaf21b45d85f72918e93611d8e68992"
+        },
+        {
+          "path": "src/escalations/transport.py",
+          "symbol": "SinkTransport.post_root",
+          "line": 278,
+          "end_line": 291,
+          "sha256": "2c97f761526e8140b8c2bf5b9b904612ae2401bdcad3eb5324be69689be18753",
+          "git_blob": "9d0ecbe0bbaf21b45d85f72918e93611d8e68992"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_discord_escalation_transport.py",
+          "symbol": "test_only_the_configured_ids_may_ever_be_mentioned",
+          "line": 74,
+          "end_line": 81,
+          "sha256": "5a6925d09c2d8363de2863b01e15c819e06a8962c865b26bc530622c34b9ded2",
+          "git_blob": "596eb551802efa8d9c4d830ac01fd8f0a19a0c12"
+        },
+        {
+          "path": "tests/test_discord_escalation_transport.py",
+          "symbol": "test_no_configured_mention_means_no_mention_at_all",
+          "line": 84,
+          "end_line": 87,
+          "sha256": "5a6925d09c2d8363de2863b01e15c819e06a8962c865b26bc530622c34b9ded2",
+          "git_blob": "596eb551802efa8d9c4d830ac01fd8f0a19a0c12"
+        },
+        {
+          "path": "tests/test_discord_escalation_transport.py",
+          "symbol": "test_http_failures_are_classified_for_the_dispatcher",
+          "line": 103,
+          "end_line": 107,
+          "sha256": "5a6925d09c2d8363de2863b01e15c819e06a8962c865b26bc530622c34b9ded2",
+          "git_blob": "596eb551802efa8d9c4d830ac01fd8f0a19a0c12"
+        },
+        {
+          "path": "tests/test_discord_escalation_transport.py",
+          "symbol": "test_a_validation_400_is_rejected_for_good_and_names_discords_error_code",
+          "line": 110,
+          "end_line": 116,
+          "sha256": "5a6925d09c2d8363de2863b01e15c819e06a8962c865b26bc530622c34b9ded2",
+          "git_blob": "596eb551802efa8d9c4d830ac01fd8f0a19a0c12"
+        },
+        {
+          "path": "tests/test_discord_escalation_transport.py",
+          "symbol": "test_a_hot_rate_guard_holds_the_send_instead_of_dropping_it",
+          "line": 119,
+          "end_line": 122,
+          "sha256": "5a6925d09c2d8363de2863b01e15c819e06a8962c865b26bc530622c34b9ded2",
+          "git_blob": "596eb551802efa8d9c4d830ac01fd8f0a19a0c12"
+        },
+        {
+          "path": "tests/test_discord_escalation_transport.py",
+          "symbol": "test_a_non_numeric_channel_is_an_actionable_configuration_fault",
+          "line": 125,
+          "end_line": 128,
+          "sha256": "5a6925d09c2d8363de2863b01e15c819e06a8962c865b26bc530622c34b9ded2",
+          "git_blob": "596eb551802efa8d9c4d830ac01fd8f0a19a0c12"
+        },
+        {
+          "path": "tests/test_discord_escalation_transport.py",
+          "symbol": "test_read_root_requires_the_exact_bot_owned_message",
+          "line": 131,
+          "end_line": 143,
+          "sha256": "5a6925d09c2d8363de2863b01e15c819e06a8962c865b26bc530622c34b9ded2",
+          "git_blob": "596eb551802efa8d9c4d830ac01fd8f0a19a0c12"
+        },
+        {
+          "path": "tests/test_discord_escalation_transport.py",
+          "symbol": "test_read_root_distinguishes_deleted_from_unavailable",
+          "line": 146,
+          "end_line": 157,
+          "sha256": "5a6925d09c2d8363de2863b01e15c819e06a8962c865b26bc530622c34b9ded2",
+          "git_blob": "596eb551802efa8d9c4d830ac01fd8f0a19a0c12"
+        }
+      ]
+    },
+    {
+      "rationale": "Digest reserves one durable window, persists silence, bounds catch-up and delegates marker-based external delivery. Preserve logical window identity and visibility revalidation; integrate policy through v2 host APIs rather than importing v1 scheduling, database or Discord runtime.",
+      "coverage": "pending_v2_implementation_and_qualification",
+      "evidence_limit": "Selected implementation bodies and bounded excerpts from selected test bodies inspected; this is not a full module audit. Test symbols locate obligations, not proof of executed or replacement coverage. Tests were read, not executed.",
+      "id": "digest-and-escalation-policy",
+      "tasks": [
+        "AQ-27"
+      ],
+      "disposition": "adapt",
+      "sources": [
+        {
+          "path": "src/digest/dispatch.py",
+          "symbol": "DigestScheduleService.evaluate",
+          "line": 294,
+          "end_line": 444,
+          "sha256": "763ea9ac175fe4c044d86e3db0956139334cb56f9b0014e466b187313b92b235",
+          "git_blob": "9affc3262808ee34a850b75f55d5a6eba090abee"
+        },
+        {
+          "path": "src/digest/dispatch.py",
+          "symbol": "DigestScheduleService._deliver_one",
+          "line": 712,
+          "end_line": 784,
+          "sha256": "763ea9ac175fe4c044d86e3db0956139334cb56f9b0014e466b187313b92b235",
+          "git_blob": "9affc3262808ee34a850b75f55d5a6eba090abee"
+        }
+      ],
+      "tests": [
+        {
+          "path": "tests/test_digest_dispatch.py",
+          "symbol": "test_bounds_are_snapped_to_the_interval_grid_so_two_daemons_agree",
+          "line": 124,
+          "end_line": 132,
+          "sha256": "59824d94918ad68ae7fe9e5e02df6a1845e702fe43433331ee2e042adc7129ad",
+          "git_blob": "a1d928eae3ec7277e856878d6976871e253c4479"
+        },
+        {
+          "path": "tests/test_digest_dispatch.py",
+          "symbol": "test_nothing_is_due_before_the_first_boundary_passes",
+          "line": 135,
+          "end_line": 137,
+          "sha256": "59824d94918ad68ae7fe9e5e02df6a1845e702fe43433331ee2e042adc7129ad",
+          "git_blob": "a1d928eae3ec7277e856878d6976871e253c4479"
+        },
+        {
+          "path": "tests/test_digest_dispatch.py",
+          "symbol": "test_a_long_gap_becomes_one_catchup_window_bounded_by_the_horizon",
+          "line": 140,
+          "end_line": 146,
+          "sha256": "59824d94918ad68ae7fe9e5e02df6a1845e702fe43433331ee2e042adc7129ad",
+          "git_blob": "a1d928eae3ec7277e856878d6976871e253c4479"
+        },
+        {
+          "path": "tests/test_digest_dispatch.py",
+          "symbol": "test_an_hour_with_work_reserves_one_window_and_sends_one_message",
+          "line": 152,
+          "end_line": 172,
+          "sha256": "59824d94918ad68ae7fe9e5e02df6a1845e702fe43433331ee2e042adc7129ad",
+          "git_blob": "a1d928eae3ec7277e856878d6976871e253c4479"
+        },
+        {
+          "path": "tests/test_digest_dispatch.py",
+          "symbol": "test_an_idle_hour_is_persisted_as_silence_rather_than_rescanned",
+          "line": 175,
+          "end_line": 193,
+          "sha256": "59824d94918ad68ae7fe9e5e02df6a1845e702fe43433331ee2e042adc7129ad",
+          "git_blob": "a1d928eae3ec7277e856878d6976871e253c4479"
+        },
+        {
+          "path": "tests/test_digest_dispatch.py",
+          "symbol": "test_a_second_daemon_on_the_same_boundary_produces_one_message",
+          "line": 196,
+          "end_line": 210,
+          "sha256": "59824d94918ad68ae7fe9e5e02df6a1845e702fe43433331ee2e042adc7129ad",
+          "git_blob": "a1d928eae3ec7277e856878d6976871e253c4479"
+        },
+        {
+          "path": "tests/test_digest_dispatch.py",
+          "symbol": "test_a_restart_mid_hour_does_not_re_send_the_window",
+          "line": 213,
+          "end_line": 228,
+          "sha256": "59824d94918ad68ae7fe9e5e02df6a1845e702fe43433331ee2e042adc7129ad",
+          "git_blob": "a1d928eae3ec7277e856878d6976871e253c4479"
+        },
+        {
+          "path": "tests/test_digest_dispatch.py",
+          "symbol": "test_a_long_outage_produces_one_labelled_catchup_not_hourly_backlog",
+          "line": 231,
+          "end_line": 251,
+          "sha256": "59824d94918ad68ae7fe9e5e02df6a1845e702fe43433331ee2e042adc7129ad",
+          "git_blob": "a1d928eae3ec7277e856878d6976871e253c4479"
+        }
+      ]
+    }
+  ],
+  "pending": [
+    "Inspect additional source adapters and race/fault tests as each task starts; this inventory is deliberately bounded.",
+    "Record v2 test names, commands, immutable artifacts and acceptance limits on the owning task.",
+    "Qualify actual harness/composer versions, cross-node retention/wake and configured Discord adapter in INT-03; fixture evidence alone does not close product gates."
+  ]
+}

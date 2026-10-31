@@ -16,6 +16,8 @@ The standalone task and knowledge service is **aq-graph**, maintained in its own
 
 - [Ecosystem, repository ownership and product releases](docs/architecture/0001-ecosystem-and-releases.md)
 - [Shared agent execution and recovery](docs/architecture/0002-execution-and-recovery.md)
+- [Agent profiles, intelligence, mandatory tmux hosting and remote terminals](docs/architecture/0003-agent-profiles-harnesses-and-terminals.md)
+- [Session observability, stall recovery, notifications and dependency-aware hibernation](docs/architecture/0004-session-operations-waits-and-notifications.md)
 - [Daemon execution coordination and remote agent graph access](docs/specs/0002-execution-and-agent-access.md)
 - [Worker framework](../aq-worker/docs/specs/0001-worker-framework.md) and [worker execution/agent access](../aq-worker/docs/specs/0002-execution-and-agent-access.md)
 - [Git interface](../aq-git/docs/specs/0001-aq-git.md) and [playbook engine](../aq-playbooks/docs/specs/0001-aq-playbooks.md)
