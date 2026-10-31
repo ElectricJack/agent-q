@@ -1,0 +1,93 @@
+{
+  "source_revision": "742297efdb0a440dc0dca32fe665b0216baa6cb8",
+  "source": [
+    {
+      "path": "Dockerfile",
+      "sha256": "1d5addaab4fc969f132d5b9cbffafc8ee8e41e015d58f09cd0891e10ed9e06a8"
+    },
+    {
+      "path": "crates/aq-server/migrations/0022_profiled_source_exports.sql",
+      "sha256": "8656485f0e9f45bb37da4ee3139c8582125c5cb112fe73390da4d3428fdb9475"
+    },
+    {
+      "path": "crates/aq-server/src/lib.rs",
+      "sha256": "6d60eeea575c32d93b8056c1414179ace6b65c7919c86e740a9ded0404208470"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/source_exports.rs",
+      "sha256": "ee6ecbe54bd7e501d7b580df0e89b94e17ca099261592720dfff824954072d25"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/source_exports/completion.rs",
+      "sha256": "a14fc6d68bda07968552d44ad4c1646e25f946254f96d96f7af57a551e7999ac"
+    },
+    {
+      "path": "crates/aq-server/src/source_retention.rs",
+      "sha256": "3d830654e396da83d6466a58ee62b3f9491c3e95df319feece7306fd7fab3928"
+    },
+    {
+      "path": "crates/aq-server/src/store.rs",
+      "sha256": "2b13bcc4b08a1793a7870ae42711d2eaae6a7d0430b4a7db4ee1e8521aa7f845"
+    },
+    {
+      "path": "crates/aq-server/tests/profiled_source_exports.rs",
+      "sha256": "bd37093827a34694dafec41af7f7d323fc1e04a9897b8f7fd8b1838980d58f15"
+    },
+    {
+      "path": "docs/implementation/AQ-08-native-completion-plan.md",
+      "sha256": "14eb692b169c8782e56db998ce95a4ce953116d757db542fe71b85437d12bffc"
+    },
+    {
+      "path": "docs/implementation/AQ-08-native-storage-022.md",
+      "sha256": "a28c27b5fa9a6c1430a8f165c75eb32a8089dfd6868c68717149f0a912ca9a06"
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-source-owner-742297e/aq08-source-exports-focused.log",
+      "sha256": "9eba5f28dc487a7858496dc0af414da715b827d7ffc695db8cf7e887ed6c65e5"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-source-owner-742297e/aq08-source-exports-store.log",
+      "sha256": "7ed2a56ebad6e1f3ed32ae772c67c5f7380322ab8dbd2a76a1ad102e36bedc77"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-source-owner-742297e/aq08-source-exports-migrations.log",
+      "sha256": "380c929261c9fa950a197635b0c84e93c810144d56bcb07b8f43b2b77ef12873"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-source-owner-742297e/aq08-source-exports-clippy.log",
+      "sha256": "7c04816f4190b4f6e8891b395da66120ae59a2b91228c66e62d3f503e85b95e1"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-source-owner-742297e/aq08-source-exports-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "commands": [
+    "RUST_TEST_THREADS=4 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-server --test profiled_source_exports --test source_retention --locked --offline",
+    "RUST_TEST_THREADS=4 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-server --test store --locked --offline",
+    "RUST_TEST_THREADS=4 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-server --lib store::tests --locked --offline",
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo clippy -p aq-server --all-targets --all-features --locked --offline -- -D warnings",
+    "cargo fmt --package aq-server --check",
+    "git diff --check"
+  ],
+  "results": {
+    "new_source_owner_pg": 9,
+    "legacy_source_pg": 8,
+    "legacy_source_declared_real_peer_ignore": 1,
+    "store_pg": 14,
+    "state_format_unit": 1,
+    "strict_clippy": "pass",
+    "format": "pass"
+  },
+  "limitations": [
+    "Focused component qualification only; root combined workspace gate remains required.",
+    "SQL owner tests use explicitly synthetic observation/export facts; actual pinned Git export/file/retention/chunk verification is separately qualified in root9fa3428/bad2cb9 evidence7d76c85. No combined real-Git/SQL/native worker run claimed.",
+    "No native poll/accept/prepare/grant/renew handler or actual provider/model qualification.",
+    "Original pending operations stay fully charged and recoverable; no orphan timeout pruning or final source deduplication/GC implemented.",
+    "One export operation per attempt; permanent referenced retention may reach finite configured capacity until a separate qualified release/cleanup owner exists.",
+    "Legacy routes refuse native source wrappers; current-credential native fetch/upload is a subsequent producer increment.",
+    "Inline Source-role observation correction and actual grant validation/phase receipt hardening are deferred025; existing Context receipt is not relabeled."
+  ]
+}
