@@ -30,6 +30,8 @@ pub struct ProfiledConfig {
     pub revision: u64,
     pub qualified_runtimes: Vec<QualifiedRuntime>,
     pub projects: Vec<ProjectPolicy>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub context_qualifications: Vec<super::context_budget::Qualification>,
 }
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -78,6 +80,8 @@ fn artifact(value: &ArtifactRef) -> Result<(), String> {
 }
 impl ProfiledConfig {
     pub fn validate(&self) -> Result<(), String> {
+        super::context_budget::validate_catalog(&self.context_qualifications)
+            .map_err(|_| "invalid context qualifications".to_string())?;
         if self.revision == 0
             || self.revision > i64::MAX as u64
             || self.qualified_runtimes.len() > 32
@@ -102,6 +106,14 @@ impl ProfiledConfig {
                 if delivery.version != 1 || !item.features.contains(&Feature::ServerMaterialV1) {
                     return Err("unsupported configured material delivery".into());
                 }
+            }
+        }
+        for fact in &self.context_qualifications {
+            if !self.qualified_runtimes.iter().any(|runtime| {
+                runtime.runtime == fact.subject.runtime
+                    && runtime.qualification == fact.subject.runtime_qualification
+            }) {
+                return Err("context qualification references an unqualified runtime".into());
             }
         }
         let mut projects = BTreeSet::new();

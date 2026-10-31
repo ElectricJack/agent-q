@@ -60,6 +60,7 @@ async fn setup(granted: bool) -> Case {
     );
     let mut config = (*f.state.config).clone();
     config.profiled_execution = Some(Arc::new(ProfiledConfig {
+        context_qualifications: vec![],
         revision: 1,
         qualified_runtimes: vec![QualifiedRuntime {
             runtime: registration.runtime.clone(),

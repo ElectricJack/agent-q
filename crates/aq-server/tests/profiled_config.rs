@@ -12,6 +12,7 @@ fn artifact(id: &str) -> ArtifactRef {
 }
 fn config() -> ProfiledConfig {
     ProfiledConfig {
+        context_qualifications: vec![],
         revision: 1,
         qualified_runtimes: vec![QualifiedRuntime {
             runtime: artifact("synthetic-runtime"),

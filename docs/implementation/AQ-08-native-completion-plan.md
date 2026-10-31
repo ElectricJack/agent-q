@@ -176,10 +176,41 @@ make an empty polling loop permanently consume one retained mutation row per tic
    interface; server-only synthetic HTTP tests cannot close this gate.
 5. Run a meaningful selected native CLI task through the ordinary daemon/worker,
    capture genuine transcript/structured failure/usage provenance and retained
-   source/effect disposition. Paid provider calls require separate authorization;
-   absent authorization/qualified installed CLI facts remain explicit blockers.
+   source/effect disposition. Actual CLI qualification uses a selected configured test target and a declared
+   bounded budget. Missing concrete facts, credentials or a target are reported
+   as those blockers; they do not block ordinary component implementation. This
+   initial component stage makes no paid provider calls.
    Root owns combined final workspace/component acceptance and canonical status.
 
 Each increment separates code from frozen source/log/archive evidence. Focused
 checks precede the combined root gate. Session/control, supervisor/playbook and
 central-authority changes remain in their assigned lanes.
+
+## Qualified context input increment
+
+`context_projection` constructs an API01-only projection from the actual bounded
+ready/context reader result. It verifies original response bytes/digest, root CAS
+and content revision, workspace, freshness, typed permission coverage, exact edge
+endpoints/pins and complete required context. It omits raw graph metadata,
+provenance and actor fields. Original observation time and source digest remain
+available centrally; canonical projected bytes are the model input artifact.
+
+`context_budget` accepts only explicit daemon-owned
+`ProfiledConfig.context_qualifications`. The optional empty vector is omitted
+from serialization, preserving old configuration digests. Each bounded fact
+names exact runtime/qualification, harness CLI/adapter/environment/qualification,
+provider/model/reasoning/configuration, credential profile/revision/account and
+endpoint. Facts name counting and capacity evidence, validity and a qualified
+UTF8-bound/rendering profile. The current renderer joins startup instructions
+with two literal newlines; qualified fixed overhead is charged explicitly. It is
+not a universal tokenizer claim. Conservative planning capacity is labeled as
+such instead of being advertised as an exact native window.
+
+The result binds actual rendered bytes, selection/composition and evidence and
+includes per-startup-instruction upper bounds plus selected reserved output.
+Deferred context has no invented zero-token entry; any later manifest/consumer
+must obtain its own supported bound or refuse that mode. The helper never grants
+execution or replaces final configuration/registry/project/authority fences.
+Changed facts alter the content-addressed definition and installed global
+configuration digest; a stale daemon cannot keep using an old capacity policy.
+Synthetic tests do not install any real provider/model qualification.
