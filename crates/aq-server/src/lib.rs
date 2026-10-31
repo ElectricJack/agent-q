@@ -6,6 +6,7 @@ pub mod config;
 pub mod error;
 pub mod execution;
 pub mod identity;
+pub mod intelligence;
 pub mod profile_catalog;
 pub mod project_bindings;
 pub mod readiness;
@@ -36,9 +37,9 @@ use std::sync::Arc;
 /// every migration is a state-format change (`store` tests enforce it). The
 /// updater restores the pre-update backup on rollback only when the format
 /// changes, so a migration without a bump would strand the old release.
-pub const STATE_FORMAT_VERSION: u32 = 8;
+pub const STATE_FORMAT_VERSION: u32 = 9;
 /// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
-pub const READABLE_STATE_FORMATS: &[u32] = &[1, 2, 3, 4, 5, 6, 7, 8];
+pub const READABLE_STATE_FORMATS: &[u32] = &[1, 2, 3, 4, 5, 6, 7, 8, 9];
 /// Versions that may be upgraded to this release.
 pub const UPGRADE_FROM: &str = ">=0.1.0";
 
@@ -122,6 +123,7 @@ pub fn build_admin_router(state: AppState) -> Router {
         .merge(admin_api::admin_routes())
         .merge(profile_catalog::admin_routes())
         .merge(project_bindings::admin_routes())
+        .merge(intelligence::admin_routes())
         .merge(agent_access::admin_routes(state.clone()))
         .merge(source_retention::admin_routes())
         .merge(execution::api::admin_routes(state.clone()))
@@ -146,6 +148,7 @@ pub fn build_admin_router(state: AppState) -> Router {
 pub fn build_worker_router(state: AppState) -> Router {
     Router::new()
         .merge(worker_api::worker_routes(state.clone()))
+        .merge(intelligence::worker_routes())
         .merge(agent_access::machine_routes(state.clone()))
         .merge(source_retention::machine_routes(state.clone()))
         .merge(execution::api::worker_routes(state.clone()))

@@ -9,6 +9,11 @@ const SUPPORTED_FORMAT_VERSION: u32 = 1;
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
+    #[serde(
+        default,
+        deserialize_with = "crate::intelligence::config::deserialize_registry"
+    )]
+    pub intelligence: Option<std::sync::Arc<crate::intelligence::config::LoadedRegistry>>,
     pub format_version: u32,
     pub environment: Environment,
     pub server: ServerConfig,
@@ -291,6 +296,7 @@ mod tests {
             updates: None,
             agent_access: None,
             source_retention: None,
+            intelligence: None,
         }
     }
 

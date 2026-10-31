@@ -5,6 +5,7 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
+aq-selection = { path = "../aq-selection", version = "=0.1.0" }
 aq-profiles = { path = "../aq-profiles", version = "=0.1.0" }
 aq-protocol.workspace = true
 aq-worker-protocol.workspace = true
@@ -17,6 +18,7 @@ chrono.workspace = true
 clap.workspace = true
 hex.workspace = true
 jsonwebtoken.workspace = true
+nix.workspace = true
 rand.workspace = true
 reqwest.workspace = true
 serde.workspace = true

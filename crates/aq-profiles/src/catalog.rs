@@ -81,6 +81,8 @@ pub struct Intelligence {
     pub id: String,
     pub version: u32,
     pub candidates: Vec<ModelCandidate>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub selection_policy: Option<SelectionPolicy>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -366,6 +368,9 @@ pub fn validate(
         insert("agent", &a.id, a.version, serde_json::to_value(a).unwrap())?;
     }
     for i in &catalog.intelligence {
+        if let Some(policy) = &i.selection_policy {
+            policy.validate()?;
+        }
         bounded(&i.candidates)?;
         ensure(
             !i.candidates.is_empty(),

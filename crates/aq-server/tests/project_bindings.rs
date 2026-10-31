@@ -681,3 +681,297 @@ async fn exact_replay_survives_group_configuration_changes_but_new_mutations_do_
         StatusCode::FORBIDDEN
     );
 }
+
+// AQ-20 composes the already-qualified project seam with synthetic selection
+// facts. No provider or worker execution is started by this test.
+#[tokio::test]
+async fn intelligence_decision_is_immutable_and_final_fence_rechecks_scoped_facts() {
+    use aq_selection::*;
+    use aq_server::intelligence::{
+        config::{CredentialConfig, IntelligenceConfig},
+        resolver::{self, ResolveRequest},
+    };
+    let mut env = setup(false).await;
+    let fixture: Value = serde_json::from_str(include_str!("fixtures/selection.json")).unwrap();
+    let mut input: SelectionInputs = serde_json::from_value(fixture["inputs"].clone()).unwrap();
+    let activation=call(&env.app,"/api/profiles/catalogs/activate",Some(json!({"operation_id":Uuid::new_v4(),"expected_revision":1,"artifact_json":fixture["catalog_artifact_json"]})),"owner@localhost").await;
+    assert_eq!(activation.0, StatusCode::OK, "{}", activation.1);
+    env.body["catalog_digest"] = json!(input.project.catalog_digest);
+    env.body["allowed_agent_profiles"] = json!(["implementer@2"]);
+    env.body["allowed_intelligence_profiles"] = json!(["engineering@2"]);
+    env.body["allowed_execution_profiles"] = json!(["confined-development@2"]);
+    env.body["ceilings"]["permissions"] = json!(
+        input
+            .project
+            .permission_ceiling
+            .iter()
+            .map(|p| json!({"operation":p.operation,"scope_reference":p.resource}))
+            .collect::<Vec<_>>()
+    );
+    bind(&env).await;
+    let request=serde_json::from_value(json!({"expected_project_revision":1,"expected_catalog_revision":2,"node_id":env.node,"environment":"confined-worktree","agent_profile":"implementer@2","intelligence_profile":"engineering@2","execution_profile":"confined-development@2"})).unwrap();
+    let frozen =
+        aq_server::project_bindings::check_eligibility(&env.state, Uuid::from_u128(1), &request)
+            .await
+            .unwrap()
+            .frozen_binding
+            .unwrap();
+    let boot = Uuid::new_v4();
+    env.state
+        .store
+        .execution_register(&aq_worker_protocol::RegisterRequest {
+            identity: aq_worker_protocol::NodeIdentity {
+                node_id: env.node,
+                boot_id: boot,
+            },
+            operation_id: Uuid::new_v4(),
+            protocol_version: 2,
+            worker_version: "0.1.0".into(),
+            capabilities: vec![aq_worker_protocol::FAKE_HARNESS_CAPABILITY.into()],
+        })
+        .await
+        .unwrap();
+    let key = env._dir.path().join("synthetic-provider-key");
+    std::fs::write(&key, b"synthetic-not-a-provider-key").unwrap();
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o600)).unwrap();
+    let mut configured: Vec<_> = input
+        .credentials
+        .iter()
+        .cloned()
+        .map(|mut c| {
+            c.provisionable = false;
+            CredentialConfig {
+                credential: c,
+                allowed_node_ids: vec![env.node],
+                secret_file: Some(key.clone()),
+            }
+        })
+        .collect();
+    let mut unrelated = configured[0].credential.clone();
+    unrelated.profile = ArtifactRef {
+        id: Text::new("unrelated-account").unwrap(),
+        version: Text::new("1").unwrap(),
+        digest: Digest::of(b"unrelated"),
+    };
+    unrelated.provider = "unrelated-provider".into();
+    unrelated.account_reference = "unrelated-account".into();
+    configured.push(CredentialConfig {
+        credential: unrelated.clone(),
+        allowed_node_ids: vec![],
+        secret_file: Some(key.clone()),
+    });
+    let config = IntelligenceConfig {
+        revision: 1,
+        credentials: configured,
+        qualified_harnesses: input.node.harnesses.clone(),
+    };
+    let mut cfg = (*env.state.config).clone();
+    cfg.intelligence = Some(Arc::new(config.load().unwrap()));
+    env.state.config = Arc::new(cfg);
+    env.app = aq_server::build_admin_router(env.state.clone());
+    assert_eq!(
+        call(
+            &env.app,
+            "/api/intelligence/register",
+            Some(json!({})),
+            "owner@localhost"
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    let time = env.time.load(Ordering::SeqCst) as u64;
+    input.node.target = ExecutionTarget::Worker {
+        node_id: env.node,
+        boot_id: boot,
+    };
+    input.node.observed_at_ms = time;
+    input.node.expires_at_ms = time + 30_000;
+    for c in &mut input.node.credential_bindings {
+        c.observed_at_ms = time;
+        c.expires_at_ms = time + 30_000;
+    }
+    sqlx::query("INSERT INTO intelligence_node_snapshots(node_id,boot_id,sequence,revision,snapshot) VALUES($1,$2,1,1,$3)").bind(env.node).bind(boot).bind(json!(input.node)).execute(&env.pool).await.unwrap();
+    // Fresh operator observation for the preferred account. No provider probe.
+    let scope = input.observations[0].scope.clone();
+    let manual = json!({"operation_id":Uuid::new_v4(),"expected_revision":1,"sequence":1,"scope":scope,"state":"available","ttl_ms":30_000,"cooldown_ms":0});
+    assert_eq!(
+        call(
+            &env.app,
+            "/api/intelligence/observations",
+            Some(manual.clone()),
+            "owner@localhost"
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    let actor: Uuid = sqlx::query_scalar("SELECT id FROM users WHERE role='owner'")
+        .fetch_one(&env.pool)
+        .await
+        .unwrap();
+    let operation = Uuid::new_v4();
+    let lineage = TaskLineage {
+        project_id: Uuid::from_u128(1),
+        workspace_id: env.body["graph_workspace_id"]
+            .as_str()
+            .unwrap()
+            .parse()
+            .unwrap(),
+        task_id: Uuid::new_v4(),
+    };
+    let req = ResolveRequest {
+        operation_id: operation,
+        lineage: lineage.clone(),
+        project: frozen.clone(),
+        compositions: input.compositions.clone(),
+    };
+    let decision = resolver::resolve_trusted(&env.state, actor, req)
+        .await
+        .unwrap();
+    assert!(
+        decision.outcome.resolved.is_some(),
+        "{:?}",
+        decision.outcome.reason_codes
+    );
+    let mut tx = env.pool.begin().await.unwrap();
+    sqlx::query("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    resolver::fence_for_offer(&env.state, &mut tx, &decision)
+        .await
+        .unwrap();
+    tx.rollback().await.unwrap();
+    let mut tx = env.pool.begin().await.unwrap();
+    assert!(
+        resolver::fence_for_offer(&env.state, &mut tx, &decision)
+            .await
+            .is_err()
+    );
+    tx.rollback().await.unwrap();
+    let replay = resolver::resolve_trusted(
+        &env.state,
+        actor,
+        ResolveRequest {
+            operation_id: operation,
+            lineage: lineage.clone(),
+            project: frozen.clone(),
+            compositions: input.compositions.clone(),
+        },
+    )
+    .await
+    .unwrap();
+    assert_eq!(replay.decision_id, decision.decision_id);
+    // Expiry is checked after an observed lock wait, not only before entry.
+    let mut held = env.pool.begin().await.unwrap();
+    sqlx::query("SELECT id FROM nodes WHERE id=$1 FOR UPDATE")
+        .bind(env.node)
+        .execute(&mut *held)
+        .await
+        .unwrap();
+    let (pid_tx, pid_rx) = tokio::sync::oneshot::channel();
+    let pool = env.pool.clone();
+    let state = env.state.clone();
+    let frozen_decision = decision.clone();
+    let waiting = tokio::spawn(async move {
+        let mut tx = pool.begin().await.unwrap();
+        sqlx::query("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+            .execute(&mut *tx)
+            .await
+            .unwrap();
+        let pid: i32 = sqlx::query_scalar("SELECT pg_backend_pid()")
+            .fetch_one(&mut *tx)
+            .await
+            .unwrap();
+        pid_tx.send(pid).unwrap();
+        let result = resolver::fence_for_offer(&state, &mut tx, &frozen_decision).await;
+        tx.rollback().await.unwrap();
+        result
+    });
+    let pid = pid_rx.await.unwrap();
+    let observer = env._db.pool().await;
+    let mut observed = false;
+    for _ in 0..100 {
+        let blocked: bool = sqlx::query_scalar(
+            "SELECT COALESCE(wait_event_type='Lock',false) FROM pg_stat_activity WHERE pid=$1",
+        )
+        .bind(pid)
+        .fetch_one(&observer)
+        .await
+        .unwrap();
+        if blocked {
+            observed = true;
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(1)).await;
+    }
+    assert!(
+        observed,
+        "fence must be observed waiting on the retained node lock"
+    );
+    env.time.store((time + 2001) as i64, Ordering::SeqCst);
+    held.rollback().await.unwrap();
+    let error = waiting.await.unwrap().unwrap_err();
+    assert!(format!("{error:?}").contains("expired"));
+    env.time.store(time as i64, Ordering::SeqCst);
+    // Other-account observations do not poison this decision's scope fence.
+    let unrelated_observation = json!({"operation_id":Uuid::new_v4(),"expected_revision":2,"sequence":1,"scope":{"credential_revision":1,"provider":unrelated.provider,"credential_profile":unrelated.profile,"account_reference":unrelated.account_reference,"endpoint_reference":unrelated.endpoint_reference,"model":null,"node_id":null},"state":"quota_unavailable","ttl_ms":30_000,"cooldown_ms":30_000});
+    assert_eq!(
+        call(
+            &env.app,
+            "/api/intelligence/observations",
+            Some(unrelated_observation),
+            "owner@localhost"
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    let mut tx = env.pool.begin().await.unwrap();
+    sqlx::query("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    resolver::fence_for_offer(&env.state, &mut tx, &decision)
+        .await
+        .unwrap();
+    tx.rollback().await.unwrap();
+    // An applicable change does, even while the original artifact stays intact.
+    let mut changed = manual;
+    changed["operation_id"] = json!(Uuid::new_v4());
+    changed["expected_revision"] = 3.into();
+    changed["sequence"] = 2.into();
+    changed["state"] = "quota_unavailable".into();
+    assert_eq!(
+        call(
+            &env.app,
+            "/api/intelligence/observations",
+            Some(changed),
+            "owner@localhost"
+        )
+        .await
+        .0,
+        StatusCode::OK
+    );
+    let mut tx = env.pool.begin().await.unwrap();
+    sqlx::query("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    assert!(
+        resolver::fence_for_offer(&env.state, &mut tx, &decision)
+            .await
+            .is_err()
+    );
+    tx.rollback().await.unwrap();
+    let mut tampered = decision.clone();
+    tampered.inputs.budget.spent_microunits = Some(0);
+    let mut tx = env.pool.begin().await.unwrap();
+    assert!(
+        resolver::fence_for_offer(&env.state, &mut tx, &tampered)
+            .await
+            .is_err()
+    );
+}

@@ -1,0 +1,37 @@
+# Deterministic selection
+
+`aq-selection` is a pure library over bounded explicit snapshots. It has no
+provider clients, database, daemon dependency, or credential values. Run its
+qualification with `cargo test -p aq-selection --locked --offline`.
+
+Selection preserves configured candidate order, execution harness order, and
+credential profile order. Installed adapter variants have a canonical tie order.
+Provider-native model and reasoning mappings must match exactly. An explicit
+versioned `selection_policy` is required; old catalogs retain identical bytes and
+digests, but have no inferred runnable model. Every fallback reason needs policy
+permission. Unknown availability requires explicit permission and independently
+present, authorized credentials; unknown never means missing credentials.
+
+The result freezes model/provider, native reasoning, tested harness CLI/adapter,
+environment and qualification artifacts, credential profile/account/endpoint,
+composition digest, effective resource limits, estimates, snapshot revisions,
+observation provenance and candidate reasons. It is metadata, not an offer or
+launch grant. It cannot override daemon authorization or prove external facts.
+
+Task budgets use `(project_id, workspace_id, original_task_id)`, deliberately
+stronger than an individual lifecycle lineage UUID. All replacement/continuation
+UUIDs must resolve to this original aggregate in authoritative central records;
+worker-selected UUIDs and ledger checkpoint strings cannot reset limits. Missing
+accounting is explicit, never zero. A known spent lower bound at or above a limit
+refuses even under bounded unknown-cost policy. Hard cost requires both a
+qualified native enforcer and an authoritative complete ledger adapter.
+Replacement requires actual owning-domain stop, retained-source and effect
+reconciliation receipts; DTO references alone are not verification.
+
+`StructuredFailure` is an AQ-owned v1 classification contract. It contains no
+worker-selected account, endpoint, credential or model scope. The daemon first
+authenticates current node/boot and exact sealed attempt; the pure helper derives
+scope from the retained selection and requires its qualified classifier artifact.
+Generic lifecycle `ProviderError {code,retryable}` is unverified source evidence
+and cannot directly become quota/authentication truth. No classifier is implied
+by a provider name or an arbitrary worker error string.

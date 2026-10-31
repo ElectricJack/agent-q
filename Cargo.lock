@@ -143,6 +143,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-selection"
+version = "0.1.0"
+dependencies = [
+ "aq-profiles",
+ "aq-session-api",
+ "aq-session-protocol",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
 name = "aq-server"
 version = "0.1.0"
 dependencies = [
@@ -150,6 +163,7 @@ dependencies = [
  "aq-profiles",
  "aq-protocol",
  "aq-release",
+ "aq-selection",
  "aq-server",
  "aq-worker-protocol",
  "async-trait",
@@ -160,6 +174,7 @@ dependencies = [
  "hex",
  "http-body-util",
  "jsonwebtoken",
+ "nix",
  "rand 0.8.8",
  "reqwest",
  "rsa",

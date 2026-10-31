@@ -163,3 +163,45 @@ fn fifo_and_nonregular_catalog_inputs_refuse_without_blocking() {
     std::fs::create_dir(temp.path().join("catalog.toml")).unwrap();
     assert!(load(temp.path()).is_err());
 }
+#[test]
+fn pre_selection_policy_artifact_roundtrips_identically_and_policy_edits_need_new_identity() {
+    let bytes = include_bytes!("golden/pre-selection-policy-catalog.json");
+    let old = ValidatedCatalog::from_artifact(bytes).unwrap();
+    assert_eq!(old.canonical_bytes().unwrap(), bytes);
+    assert_eq!(
+        old.digest(),
+        "0c8a041de2e1af9e6937cd0c87cefed8a0c82d6e592d986c7d0ab3dfc817d6f2"
+    );
+    assert!(
+        old.artifact().catalog.intelligence[0]
+            .selection_policy
+            .is_none()
+    );
+    let policy = SelectionPolicy {
+        schema_version: 1,
+        fallback_on: vec![FallbackReason::Unavailable],
+        allow_unknown_availability: false,
+        observation_max_age_ms: 30_000,
+        max_output_tokens: 100,
+        max_attempts: 2,
+        max_lineage_elapsed_ms: 60_000,
+        required_capabilities: vec![],
+        budget: IntelligenceBudgetPolicy {
+            max_cost_microunits: None,
+            currency: None,
+            require_complete_accounting: false,
+            require_hard_cost_enforcement: false,
+            unknown_cost: UnknownCostPolicy::Deny,
+        },
+    };
+    let changed = modified(&old, |catalog, _| {
+        catalog.intelligence[0].selection_policy = Some(policy)
+    })
+    .unwrap();
+    let mut registry = MemoryRepository::default();
+    activate(&mut registry, 0, &old).unwrap();
+    assert!(matches!(
+        activate(&mut registry, 1, &changed),
+        Err(Error::IdentityConflict(_))
+    ));
+}

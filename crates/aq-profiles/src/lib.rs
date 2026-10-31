@@ -3,10 +3,12 @@
 mod catalog;
 mod compile;
 mod registry;
+mod selection_policy;
 use aq_session_protocol::Digest;
 pub use catalog::*;
 pub use compile::*;
 pub use registry::*;
+pub use selection_policy::*;
 use serde::Serialize;
 
 #[derive(Debug, thiserror::Error)]
