@@ -86,7 +86,9 @@ impl DeliveryStamp {
         )
     }
     /// Charge this nonce's send→receive interval. An earlier known local
-    /// terminal deadline is preserved; a retry never revives an expired permit.
+    /// terminal deadline for this SAME authority is preserved. For a new
+    /// renewal revision use RenewedAuthority::client_renewal_deadline_ns: the
+    /// prior permit must still be live, but its old expiry does not cap extension.
     pub fn client_deadline_ns(
         &self,
         sent_ns: u64,
@@ -288,12 +290,45 @@ impl RenewedAuthority {
         )?;
         self.delivery
             .validate_for(nonce, self.delivery.clock.expires_at_ms)?;
+        if self.versions.grant_revision == initial.versions.grant_revision {
+            require(
+                self.delivery.clock.expires_at_ms == initial.original.grant.expires_at_ms,
+                "same initial revision changed grant expiry",
+            )?;
+        }
         require(
             self.delivery.clock.expires_at_ms <= self.execution_deadline_ms
                 && self.delivery.clock.server_time_ms >= initial.original.clock.server_time_ms,
             "renewal immutable hard deadline",
         )?;
         bounded(self)
+    }
+    /// A new revision may extend a still-live prior permit, bounded by the
+    /// immutable local hard deadline. A retransmission of the same revision
+    /// retains its earlier local deadline. Neither path resurrects expiry.
+    pub fn client_renewal_deadline_ns(
+        &self,
+        sent_ns: u64,
+        received_ns: u64,
+        prior_grant_deadline_ns: u64,
+        hard_deadline_ns: u64,
+        prior_grant_revision: u64,
+    ) -> Result<u64> {
+        require(
+            received_ns < prior_grant_deadline_ns && received_ns < hard_deadline_ns,
+            "prior renewal permit expired",
+        )?;
+        require(
+            self.versions.grant_revision >= prior_grant_revision,
+            "local renewal revision regression",
+        )?;
+        let cap = if self.versions.grant_revision == prior_grant_revision {
+            prior_grant_deadline_ns.min(hard_deadline_ns)
+        } else {
+            hard_deadline_ns
+        };
+        self.delivery
+            .client_deadline_ns(sent_ns, received_ns, Some(cap))
     }
     /// Stateful consumer fence. Delivery stamps differ on retransmission; the
     /// same grant revision cannot change its absolute expiry or authority.

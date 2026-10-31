@@ -327,3 +327,36 @@ fn material_receipt_time_is_server_watermark_not_unqualified_worker_wall_clock()
             .is_err()
     );
 }
+
+#[test]
+fn initial_revision_cannot_change_expiry_and_new_revision_extends_only_live_prior_permit() {
+    let (_, _, _, _, initial, request, renewed) = fixture();
+    let mut unchanged = renewed.clone();
+    unchanged.versions.grant_revision = initial.versions.grant_revision;
+    assert!(unchanged.validate_for(&request, &initial, id(116)).is_err());
+    unchanged.delivery.clock =
+        DeliveryClock::new(1700, initial.original.grant.expires_at_ms).unwrap();
+    unchanged.validate_for(&request, &initial, id(116)).unwrap();
+    assert!(
+        renewed
+            .client_renewal_deadline_ns(100, 200, 100_000_000, 900_000_000, 1)
+            .unwrap()
+            > 100_000_000
+    );
+    assert_eq!(
+        renewed
+            .client_renewal_deadline_ns(100, 200, 100_000_000, 900_000_000, 2)
+            .unwrap(),
+        100_000_000
+    );
+    assert!(
+        renewed
+            .client_renewal_deadline_ns(100, 200, 200, 900_000_000, 1)
+            .is_err()
+    );
+    assert!(
+        renewed
+            .client_renewal_deadline_ns(100, 200, 100_000_000, 900_000_000, 3)
+            .is_err()
+    );
+}

@@ -134,3 +134,11 @@ All positive replies use `control::ControlReply` tagged `kind`/`body`; requests
 remain the raw existing frozen structs. An explicit reconcile batch is complete,
 contains at most its requested limit and uses no discovery cursor. An empty
 batch discovers only authenticated owned attempts using the bounded cursor.
+
+For a retransmission of the same authority/grant revision, preserve its earlier
+known local deadline. A genuinely newer renewal revision may extend a still-live
+prior grant, bounded independently by the immutable local hard deadline; the old
+grant expiry must not accidentally cap a valid extension. If the prior local
+permit has already expired, the new reply cannot resurrect it. The public
+`client_renewal_deadline_ns` helper makes this distinction explicit. An equal
+initial grant revision must retain the original initial absolute expiry.
