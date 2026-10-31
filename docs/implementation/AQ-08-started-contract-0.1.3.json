@@ -1,0 +1,63 @@
+{
+  "source_revision": "e3cf5c01a96e36a3418d73d6a8feb4d6528441a9",
+  "archive": "/tmp/aq08-started-package-target/package/aq-admission-0.1.3.crate",
+  "archive_sha256": "ab6be9535ad10fc84ad3ccca0292ce905c7eff74899d7397512e8f3efba59858",
+  "standalone_root": "/tmp/aq08-started-extracted",
+  "dependencies": {
+    "/tmp/con03-producer-target/package/aq-lifecycle-protocol-0.1.0.crate": "945b03a99701035eb7cf6679bd9baa9ad2b50a7cb6329b9ca8de2cf8bd58b92b",
+    "/home/jkern/dev/.aq-qualification/session-host-2026-10-31/aq-session-protocol-0.1.0.crate": "479778d8ea76f0605b9a20460e0bd3fda73b699337b1e80783ada0d291a68090"
+  },
+  "qualification": {
+    "passed": 24,
+    "failed": 0,
+    "ignored": 0,
+    "strict_all_target_clippy": "passed",
+    "format_and_publication_drift": "passed"
+  },
+  "limitations": [
+    "SQL/HTTP and filesystem handshake are separate qualification; package grants no source/execution authority."
+  ],
+  "retained_archive": "evidence/aq08-started-e3cf5c0/aq-admission-0.1.3.crate",
+  "evidence_sha256": {
+    "docs/implementation/evidence/aq08-started-e3cf5c0/aq08-started-clean-package.log": "b4f20604de731d34717c9c7fbca9ce68457f6468c156cc17c6f51983b114e06e",
+    "docs/implementation/evidence/aq08-started-e3cf5c0/aq08-started-clean-tests.log": "1450b2108acb52d4cc38bddcb6c04fc4f519a3c64406024e075aad175fe64db4",
+    "docs/implementation/evidence/aq08-started-e3cf5c0/aq08-started-clean-clippy.log": "cf554ec650f7e21a9fafcd46f7fda6422481aace0d0c8ce7ed40972cbdc1a76b",
+    "docs/implementation/evidence/aq08-started-e3cf5c0/aq08-started-clean-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/implementation/evidence/aq08-started-e3cf5c0/aq08-started-qualify.py": "ed4168c3b45332b3f03f7d7da2b811053c06c777cfea54dd4560a8c618d4b094",
+    "docs/implementation/evidence/aq08-started-e3cf5c0/Cargo.lock": "eaa67ea246a189cac7c45c6ef840494ec50858ab206f5fa55f0578845fefe8b0",
+    "docs/implementation/evidence/aq08-started-e3cf5c0/aq-admission-0.1.3.crate": "ab6be9535ad10fc84ad3ccca0292ce905c7eff74899d7397512e8f3efba59858"
+  },
+  "source_sha256": {
+    "crates/aq-admission/Cargo.toml": "5a05dfaa55833211ef92b2033654cf1585845b9a4f02acac37de160acecc0a4c",
+    "crates/aq-admission/README.md": "18141710ac6f31b16a516799212e4ae6586a7337d462a622628602c4eb922b67",
+    "crates/aq-admission/artifacts/contract.schema.json": "1a5637238c16ec1345f40232a732ae391143d518a320f6823da94241c9c6f988",
+    "crates/aq-admission/artifacts/execution-spec.fixture.json": "3f5509eec96f33ca0023016f3c633a2d340f245c8454a0c0f4d9e88295bbfc8d",
+    "crates/aq-admission/artifacts/execution-spec.schema.json": "865634d68302bb70c024152c1db47b34563216feb7645e579d4ed76dd1383f47",
+    "crates/aq-admission/artifacts/fixtures.json": "53217ced2c2d36e8f03542298212275327b3741eabe848a8fec236464a857a24",
+    "crates/aq-admission/artifacts/shared-launch.json": "34b28ba102cbec61985249edecee228cafdebc76896d2e0625b8b518e612517d",
+    "crates/aq-admission/artifacts/started.fixture.json": "7bb69786ea9b76225ae3c69ee2ab654114860d00918b01ffea13a5726843cdae",
+    "crates/aq-admission/artifacts/started.python-vectors.json": "cf692dc3f705be8164c09ff4e25dac74ce9701f7cc60301485d43d30ff31d781",
+    "crates/aq-admission/artifacts/started.schema.json": "6d168444ede7a3a6066eed98a0d07d82c667d1340fbadcc7af4f38be4023e7ce",
+    "crates/aq-admission/artifacts/task-lineage-v1.json": "2ecd6d94254fd73b39156a437beaffe37627a7799087833d8481836fe1f983c0",
+    "crates/aq-admission/artifacts/transport.fixtures.json": "6d59a63df2b21ee5e836d65e91f009de92cf0fab20aeaa3e433e2a1e6ab297a3",
+    "crates/aq-admission/artifacts/transport.schema.json": "3c160f996a27b2f7ebc21f8015122c932e301bed37377b119392f34195a70d83",
+    "crates/aq-admission/examples/export.rs": "b0b07b7c2ee381bb47b55ddc3ded00218b075aad343b83115cc7f79880ad72de",
+    "crates/aq-admission/examples/export_spec.rs": "1a35ec214038c7b4f0f293dd42f631ca14a6e7eafd5a8abd58519e3c3033f88d",
+    "crates/aq-admission/examples/export_started.rs": "fdab70372d0f13576fadda43fc0ac2914b952c85d2f929a7df567a1bae82486f",
+    "crates/aq-admission/examples/export_transport.rs": "28cb7f24c915c3c9fc4a26b4109a6b6cd5bb7a603c9f7893915cc617b8f75d9e",
+    "crates/aq-admission/src/execution_spec.rs": "b99b12222e4cf6becf3aa914b4295485fec588a504c6f529977cd3c3a4c10c89",
+    "crates/aq-admission/src/lib.rs": "59ca3fa54a8364dfd13e0ac329bc6ffb7769f69f51aabbffc8e297e0a7b82eea",
+    "crates/aq-admission/src/placement.rs": "97031dd2400be6404490db678988c6d106bebd4fbaecd2773d9358226886dd13",
+    "crates/aq-admission/src/started.rs": "a6eaf294088314db3b01432b470755a0f33dbf166edfa268b578e2ad1137e8b5",
+    "crates/aq-admission/src/transport.rs": "4f19c6c0bb728e781fb6349c4a994e28c31b0ff665fe11628c70169df9ceea50",
+    "crates/aq-admission/tests/common.rs": "0e8ca341f86e73bdc63d7144eae7e5c381349e25b95fb56444391de989692b07",
+    "crates/aq-admission/tests/contracts.rs": "a14980e77071ee2ca183eb61453f2ced66e1ed24282424f0bfe7c07f9b7300b5",
+    "crates/aq-admission/tests/execution_spec.rs": "bd76d2a2836cb6834f87577bde444f6a9e6f15d3944d4acac8371e1928bc00ea",
+    "crates/aq-admission/tests/placement.rs": "63754549e9d2b140ceac40e736c70db60d69c07f1c10bb806f25c89952a4ba30",
+    "crates/aq-admission/tests/spec_common.rs": "22d13218d21c465609972e6c8badab388555f5a7665b8ea73153d4a71f91bb13",
+    "crates/aq-admission/tests/started.rs": "0a391a7e69c1a1d3be11470b0e2739f300eb9aa5e4f5a0e2a42d4185983ef6c4",
+    "crates/aq-admission/tests/started_common.rs": "bfe971db2dc4d8fd373eb6a90787fdda1be2e8fe1c787f95d459f5e4728fa524",
+    "crates/aq-admission/tests/task_lineage.rs": "11d64917ee5721094b04c68932a716e4e78ddbdbe1ec49fbcd80c1dd2bbda986",
+    "crates/aq-admission/tests/transport.rs": "db24d558462763267f1da6dca5d6ba28995d8fe0305cdd2959d911bac23e155c"
+  }
+}

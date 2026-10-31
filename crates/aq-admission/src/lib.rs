@@ -2,6 +2,7 @@
 //! retention, secret ownership, a capacity reservation, or an execution grant.
 pub mod execution_spec;
 mod placement;
+pub mod started;
 pub mod transport;
 use aq_session_protocol::Validate;
 pub use aq_session_protocol::{

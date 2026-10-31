@@ -1,4 +1,4 @@
-# AQ admission contracts 0.1.1
+# AQ admission contracts 0.1.3
 
 Pure versioned preparation contracts and bounded placement proposals. This crate
 contains no daemon, database, network client, provider call or secret delivery.
@@ -94,3 +94,23 @@ caps the artifact at 256 KiB and rejects duplicate/unknown fields. Graph
 `task.version` is the shared manifest's `task_revision` (the admission CAS fence);
 `task.content_revision` remains independently frozen. Central execution requires
 its distinct future authority adapter and is refused by this worker spec.
+
+## Additive host-start contract (0.1.3)
+
+`started::Request` and its separate schema bind the original durable start
+operation, exact launch/grant/logical reservation owner, qualified runtime and
+journal to an actual `aq-session-host` Running observation. The pre-grant logical
+guardian ID is distinct from the physical guardian nonce allocated at launch.
+Existing preparation, transport and execution-spec document bytes are unchanged.
+
+The 16 KiB decoder rejects other host phases, missing panes, contradictory stop
+evidence, changed observation digests and foreign launch bindings. Canonical
+digests have independent Python vectors. These checks do not prove that a remote
+process exists: the daemon must authenticate the current admitted node/runtime,
+check the actual prepared journal head and central grant, and trust only its
+qualified worker owner. Deserializing a report is never execution authority.
+
+`started::Receipt` is an immutable historical acknowledgment. Replaying it cannot
+renew permission, extend a deadline, revive a stopped host or authorize terminal
+input. Worker integration must persist the original operation and genuine host
+observation before sending; renew counters and parser events are not start proof.

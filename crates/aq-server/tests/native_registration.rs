@@ -8,6 +8,50 @@ use aq_server::profiled_execution::{
 use common::profiled::{NOW, artifact, fixture};
 use std::sync::Arc;
 use uuid::Uuid;
+
+#[tokio::test]
+async fn startup_installs_policy_anchor_and_refuses_stale_configuration() {
+    let mut f = fixture().await;
+    let mut config = (*f.state.config).clone();
+    config.profiled_execution = Some(Arc::new(ProfiledConfig {
+        revision: 1,
+        qualified_runtimes: vec![],
+        projects: vec![],
+    }));
+    f.state.config = Arc::new(config);
+    let admin = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let worker = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    tokio::time::timeout(
+        std::time::Duration::from_secs(5),
+        aq_server::run_with_listeners(f.state.clone(), admin, worker, async {}),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    let pool = f.db.pool().await;
+    let mut tx = pool.begin().await.unwrap();
+    aq_server::profiled_execution::policies::fence_configuration_locked(
+        &mut tx,
+        f.state.config.profiled_execution.as_deref().unwrap(),
+    )
+    .await
+    .unwrap();
+    tx.rollback().await.unwrap();
+    let stale = f.state.clone();
+    let mut config = (*f.state.config).clone();
+    Arc::make_mut(config.profiled_execution.as_mut().unwrap()).revision = 2;
+    f.state.config = Arc::new(config);
+    aq_server::profiled_execution::policies::install(&f.state)
+        .await
+        .unwrap();
+    let admin = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let worker = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let error = aq_server::run_with_listeners(stale, admin, worker, async {})
+        .await
+        .unwrap_err();
+    assert_eq!(error.to_string(), "profiled policy installation failed");
+}
+
 #[tokio::test]
 async fn configured_allowlist_does_not_synthesize_registration_and_admitted_identity_is_exact() {
     let mut f = fixture().await;
@@ -207,13 +251,13 @@ fn native_semantics_ignore_only_operation_id_not_runtime_or_capability_change() 
 
 #[tokio::test]
 async fn native_writer_replays_without_reinstall_and_fences_held_claims_and_credentials() {
+    use axum::{
+        body::Body,
+        http::{Request as HttpRequest, StatusCode},
+    };
+    use tower::ServiceExt;
     let mut f = fixture().await;
     let pool = f.db.pool().await;
-    // 019 remains explicitly installed until root's ordered 018 checkpoint.
-    sqlx::raw_sql(include_str!("../migrations/0019_native_registration.sql"))
-        .execute(&pool)
-        .await
-        .unwrap();
     let request = Register {
         schema_version: 1,
         operation_id: Uuid::new_v4(),
@@ -249,9 +293,50 @@ async fn native_writer_replays_without_reinstall_and_fences_held_claims_and_cred
     let auth = aq_server::worker_api::authenticate_context(&f.state, &headers)
         .await
         .unwrap();
-    registration::register(&f.state, &auth, &request)
+    let router = aq_server::build_worker_router(f.state.clone());
+    let http_request = |token: &str, body: Vec<u8>| {
+        HttpRequest::builder()
+            .method("POST")
+            .uri("/v1/worker/profiled/register")
+            .header("authorization", format!("Bearer {token}"))
+            .header("content-type", "application/json")
+            .body(Body::from(body))
+            .unwrap()
+    };
+    let document = aq_admission::transport::TransportDocument::Register(request.clone());
+    let bytes = serde_json::to_vec(&document).unwrap();
+    assert_eq!(
+        router
+            .clone()
+            .oneshot(http_request("aqn_wrong", bytes.clone()))
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::UNAUTHORIZED
+    );
+    let response = router
+        .clone()
+        .oneshot(http_request(&f.credential, bytes.clone()))
         .await
         .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.headers()["cache-control"], "no-store");
+    let response = axum::body::to_bytes(response.into_body(), 65536)
+        .await
+        .unwrap();
+    let decoded = aq_admission::transport::decode_transport(&response).unwrap();
+    assert_eq!(
+        serde_json::to_value(decoded).unwrap(),
+        serde_json::to_value(document).unwrap()
+    );
+    assert_eq!(
+        router
+            .oneshot(http_request(&f.credential, vec![b' '; 65537]))
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::PAYLOAD_TOO_LARGE
+    );
     let attempt = common::profiled::insert(&f).await;
     sqlx::query("INSERT INTO profiled_authority_hot(attempt_id,state,record_revision,authority_revision,grant_revision) VALUES($1,$2,1,1,0)").bind(attempt).bind(serde_json::json!(aq_server::execution::authority::hot::HotState::from_compat(&f.profiled).unwrap())).execute(&pool).await.unwrap();
     assert!(sqlx::query("UPDATE execution_nodes SET state=jsonb_set(state,'{worker_version}','\"changed\"') WHERE node_id=$1")
