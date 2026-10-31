@@ -108,5 +108,7 @@
     "failed": 0,
     "ignored": 0,
     "execution_integration_tests": 19
-  }
+  },
+  "implementation_revision": "09634b61d0016e8816a667c3091ac0a2efbdaef5",
+  "implementation_revision_note": "Source inventory was tested before this checkpoint commit; source hashes match the committed files. Subsequent qualification/documentation commits do not alter those implementation inputs."
 }

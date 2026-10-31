@@ -174,7 +174,7 @@
       "repo": "aq-worker",
       "milestone": "M1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "BASE-01",
         "CON-01"
@@ -195,7 +195,11 @@
         "Launching agents during extraction",
         "Changing foundation protocol semantics"
       ],
-      "evidence": []
+      "evidence": [
+        "../../../aq-worker/docs/implementation/worker-candidate.md",
+        "../implementation/connector-integration.md",
+        "../../vendor/worker-candidate.json"
+      ]
     },
     {
       "id": "AQ-01",
@@ -203,7 +207,7 @@
       "repo": "agent-q",
       "milestone": "M1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "WRK-01"
       ],
@@ -220,7 +224,11 @@
         "Normal AQ builds no longer require an in-tree worker implementation or sibling source path."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/connector-integration.md",
+        "../implementation/connector-integration.evidence.json",
+        "../implementation/execution-review.md"
+      ]
     },
     {
       "id": "INT-01",
@@ -228,7 +236,7 @@
       "repo": "agent-q",
       "milestone": "M1",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "AQ-01"
       ],
@@ -246,7 +254,11 @@
         "Requiring all component source checkouts",
         "Completing the composite updater"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/connector-integration.md",
+        "../implementation/connector-integration.evidence.json",
+        "../implementation/execution-review.md"
+      ]
     },
     {
       "id": "GATE-01",
@@ -254,7 +266,7 @@
       "repo": "agent-q",
       "milestone": "M1",
       "kind": "gate",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "INT-01",
         "CON-01",
@@ -273,7 +285,11 @@
         "Publish the tested contract/candidate references for downstream tasks."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/connector-integration.md",
+        "../implementation/connector-integration.evidence.json",
+        "../implementation/execution-review.md"
+      ]
     },
     {
       "id": "GRAPH-01",
@@ -433,7 +449,7 @@
       "repo": "aq-worker",
       "milestone": "M2",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "WRK-01"
       ],
@@ -453,7 +469,11 @@
         "Late grants cannot resurrect expired reservations; no project-by-slot preallocation is introduced."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../../../aq-worker/docs/implementation/worker-candidate.md",
+        "../implementation/connector-integration.md",
+        "../../vendor/worker-candidate.json"
+      ]
     },
     {
       "id": "WRK-03",
@@ -461,7 +481,7 @@
       "repo": "aq-worker",
       "milestone": "M2",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "WRK-02"
       ],
@@ -479,7 +499,11 @@
         "Launch-window uncertainty never causes blind relaunch; confirmed stopped writers are required before resource reuse."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../../../aq-worker/docs/implementation/worker-candidate.md",
+        "../implementation/connector-integration.md",
+        "../../vendor/worker-candidate.json"
+      ]
     },
     {
       "id": "AQ-04",
@@ -518,7 +542,7 @@
       "repo": "agent-q",
       "milestone": "M2",
       "kind": "gate",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "GATE-01",
         "AQ-04",
@@ -537,7 +561,11 @@
         "Retain an executable demonstration with exact images, logs and correlation IDs; no model provider is required."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/connector-integration.md",
+        "../implementation/connector-integration.evidence.json",
+        "../implementation/execution-review.md"
+      ]
     },
     {
       "id": "AQ-05",

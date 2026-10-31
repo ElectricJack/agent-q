@@ -3,6 +3,7 @@
 import argparse
 from datetime import datetime, timezone
 import hashlib
+from http.client import HTTPException
 import importlib.util
 import json
 import os
@@ -50,6 +51,7 @@ class Fixture:
         self.commands = []
         self.images = []
         self.runtime = None
+        self.heartbeat_container = None
         self.dc = []
         self.record = {"fixture": "execution" if execution else "foundation", "project": self.project,
                        "started_at": utc(), "commands": self.commands, "scope": "local candidate; no hosted acceptance"}
@@ -81,7 +83,7 @@ class Fixture:
                 value = call()
                 if value:
                     return value
-            except (OSError, ValueError, urllib.error.URLError, RuntimeError):
+            except (OSError, ValueError, HTTPException, urllib.error.URLError, RuntimeError):
                 pass
             time.sleep(0.5)
         raise RuntimeError(f"timed out waiting for {description}")
@@ -105,8 +107,11 @@ class Fixture:
         return json.loads(raw) if raw else None
 
     def address(self):
-        self.admin = "http://" + self.compose("port", "server", "8080", name="admin-address").strip()
-        self.worker = "http://" + self.compose("port", "server", "8081", name="worker-address").strip()
+        def mapped(port):
+            output = self.compose("port", "server", str(port), name="address-" + str(port), check=False).strip()
+            return output if re.fullmatch(r"127\.0\.0\.1:[0-9]+", output) else None
+        self.admin = "http://" + self.poll("published admin address", lambda: mapped(8080))
+        self.worker = "http://" + self.poll("published worker address", lambda: mapped(8081))
 
     def worker_row(self):
         rows = [row for row in self.http("/api/workers") if row["name"] == "smoke"]
@@ -203,6 +208,8 @@ class Fixture:
         self.compose("run", "--rm", "-T", "--no-deps", "worker", "enroll", "--server", "http://server:8081",
                      "--name", "smoke", name="enroll", input=code + "\n")
         self.compose("up", "-d", "--no-build", "worker", name="start-worker")
+        self.heartbeat_container = self.compose("ps", "-q", "worker", name="heartbeat-container").strip()
+        assert re.fullmatch(r"[0-9a-f]{64}", self.heartbeat_container), "expected one heartbeat connector container"
         def online():
             row = self.worker_row()
             return row if row and row["status"] == "online" and row.get("last_seen_at") else None
@@ -322,7 +329,7 @@ class Fixture:
         self.http("/api/workers/" + self.node + "/revoke", {}, expected=204)
         response = self.http("/v1/worker/probe", {"nonce": "revoked"}, machine=True, credential=self.credential, expected=401)
         assert response["error"] == "credential_revoked"
-        container = self.compose("ps", "-aq", "worker", name="worker-container").strip()
+        container = self.heartbeat_container
         def stopped():
             state = json.loads(self.run(["docker", "inspect", "--format", "{{json .State}}", container], name="revoked-worker-state"))
             return state if state["Status"] == "exited" else None
@@ -394,7 +401,7 @@ def main():
         fixture.revoke()
         fixture.record["outcome"] = "passed"
         status = 0
-    except (OSError, ValueError, AssertionError, RuntimeError, subprocess.SubprocessError) as error:
+    except (OSError, ValueError, HTTPException, AssertionError, RuntimeError, subprocess.SubprocessError) as error:
         fixture.record["outcome"] = "failed"
         fixture.record["error"] = str(error)
         print(f"smoke: FAIL: {error}", file=sys.stderr)

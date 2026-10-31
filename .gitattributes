@@ -1,2 +1,4 @@
 # Retained patch artifacts contain significant one-space context lines.
 docs/implementation/*.patch whitespace=-blank-at-eol
+# Preserve raw test output, including its terminal blank line.
+docs/implementation/execution-validation-*.log whitespace=-blank-at-eof

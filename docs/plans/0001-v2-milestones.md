@@ -30,6 +30,7 @@ The original planning baseline completed AUD-00; current statuses below record s
 | [API-01](#api-01) | agent-q | Publish scoped agent API contracts |
 | [AQ-09](#aq-09) | agent-q | Implement authenticated source transfer and central retention |
 | [PB-02](#pb-02) | aq-playbooks | Establish the playbook storage and scheduling operating envelope |
+| [REL-01](#rel-01) | agent-q | Version the composite product manifest and component inventory |
 
 The daemon authority track can start after BASE-01 and CON-01. The worker runtime track follows connector extraction. Graph, Git and playbook qualification are independent early tracks; they are not artificial prerequisites for fake-agent execution. Dashboard work waits for a versioned inspection/action API, but does not wait for production deployment.
 
@@ -76,10 +77,10 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | --- | --- | --- | --- |
 | [BASE-01](#base-01): Qualify the existing foundation baseline | agent-q | [AUD-00](#aud-00) | complete |
 | [CON-01](#con-01): Publish the execution contract and conformance fixtures | aq-worker | [AUD-00](#aud-00) | complete |
-| [WRK-01](#wrk-01): Extract the foundation connector into aq-worker | aq-worker | [BASE-01](#base-01), [CON-01](#con-01) | in_progress |
-| [AQ-01](#aq-01): Consume the standalone connector and remove duplicate ownership | agent-q | [WRK-01](#wrk-01) | in_progress |
-| [INT-01](#int-01): Add reproducible integration assembly and explicit local overrides | agent-q | [AQ-01](#aq-01) | in_progress |
-| [GATE-01](#gate-01): Accept contract and connector compatibility | agent-q | [INT-01](#int-01), [CON-01](#con-01), [BASE-01](#base-01) | in_progress |
+| [WRK-01](#wrk-01): Extract the foundation connector into aq-worker | aq-worker | [BASE-01](#base-01), [CON-01](#con-01) | complete |
+| [AQ-01](#aq-01): Consume the standalone connector and remove duplicate ownership | agent-q | [WRK-01](#wrk-01) | complete |
+| [INT-01](#int-01): Add reproducible integration assembly and explicit local overrides | agent-q | [AQ-01](#aq-01) | complete |
+| [GATE-01](#gate-01): Accept contract and connector compatibility | agent-q | [INT-01](#int-01), [CON-01](#con-01), [BASE-01](#base-01) | complete |
 
 ### M2 overview
 
@@ -87,10 +88,10 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | --- | --- | --- | --- |
 | [AQ-02](#aq-02): Persist execution authority and immutable attempt inputs | agent-q | [BASE-01](#base-01), [CON-01](#con-01) | complete |
 | [AQ-03](#aq-03): Implement worker exchanges and durable result dispositions | agent-q | [AQ-02](#aq-02) | complete |
-| [WRK-02](#wrk-02): Implement local journal, capacity reservation and grant admission | aq-worker | [WRK-01](#wrk-01) | in_progress |
-| [WRK-03](#wrk-03): Launch and report one deterministic fake agent | aq-worker | [WRK-02](#wrk-02) | in_progress |
+| [WRK-02](#wrk-02): Implement local journal, capacity reservation and grant admission | aq-worker | [WRK-01](#wrk-01) | complete |
+| [WRK-03](#wrk-03): Launch and report one deterministic fake agent | aq-worker | [WRK-02](#wrk-02) | complete |
 | [AQ-04](#aq-04): Add test-only deterministic assignment scheduling | agent-q | [AQ-03](#aq-03) | complete |
-| [GATE-02](#gate-02): Demonstrate minimal distributed execution | agent-q | [GATE-01](#gate-01), [AQ-04](#aq-04), [WRK-03](#wrk-03) | in_progress |
+| [GATE-02](#gate-02): Demonstrate minimal distributed execution | agent-q | [GATE-01](#gate-01), [AQ-04](#aq-04), [WRK-03](#wrk-03) | complete |
 
 ### M3 overview
 
@@ -213,7 +214,7 @@ Evidence: [worker-candidate.md](../../../aq-worker/docs/implementation/worker-ca
 
 **Extract the foundation connector into aq-worker**
 
-Owner: `aq-worker`. Milestone: M1. Kind: implementation. Status: in_progress.
+Owner: `aq-worker`. Milestone: M1. Kind: implementation. Status: complete.
 
 Hard prerequisites: [BASE-01](#base-01), [CON-01](#con-01).
 
@@ -228,11 +229,13 @@ Requirement links: E1, E4, W12, W16, W21.
 
 Outside this task: Launching agents during extraction; Changing foundation protocol semantics.
 
+Evidence: [worker-candidate.md](../../../aq-worker/docs/implementation/worker-candidate.md), [connector-integration.md](../implementation/connector-integration.md), [worker-candidate.json](../../vendor/worker-candidate.json).
+
 ### AQ-01
 
 **Consume the standalone connector and remove duplicate ownership**
 
-Owner: `agent-q`. Milestone: M1. Kind: implementation. Status: in_progress.
+Owner: `agent-q`. Milestone: M1. Kind: implementation. Status: complete.
 
 Hard prerequisites: [WRK-01](#wrk-01).
 
@@ -245,11 +248,13 @@ Acceptance:
 
 Requirement links: E1, E4, E7, D8, W16.
 
+Evidence: [connector-integration.md](../implementation/connector-integration.md), [connector-integration.evidence.json](../implementation/connector-integration.evidence.json), [execution-review.md](../implementation/execution-review.md).
+
 ### INT-01
 
 **Add reproducible integration assembly and explicit local overrides**
 
-Owner: `agent-q`. Milestone: M1. Kind: implementation. Status: in_progress.
+Owner: `agent-q`. Milestone: M1. Kind: implementation. Status: complete.
 
 Hard prerequisites: [AQ-01](#aq-01).
 
@@ -264,11 +269,13 @@ Requirement links: E1, E2, E7.
 
 Outside this task: Requiring all component source checkouts; Completing the composite updater.
 
+Evidence: [connector-integration.md](../implementation/connector-integration.md), [connector-integration.evidence.json](../implementation/connector-integration.evidence.json), [execution-review.md](../implementation/execution-review.md).
+
 ### GATE-01
 
 **Accept contract and connector compatibility**
 
-Owner: `agent-q`. Milestone: M1. Kind: gate. Status: in_progress.
+Owner: `agent-q`. Milestone: M1. Kind: gate. Status: complete.
 
 Hard prerequisites: [INT-01](#int-01), [CON-01](#con-01), [BASE-01](#base-01).
 
@@ -280,6 +287,8 @@ Acceptance:
 - Publish the tested contract/candidate references for downstream tasks.
 
 Requirement links: E1, E4, D8, W16, W21.
+
+Evidence: [connector-integration.md](../implementation/connector-integration.md), [connector-integration.evidence.json](../implementation/connector-integration.evidence.json), [execution-review.md](../implementation/execution-review.md).
 
 ### GRAPH-01
 
@@ -386,7 +395,7 @@ Evidence: [execution-authority.md](../implementation/execution-authority.md), [e
 
 **Implement local journal, capacity reservation and grant admission**
 
-Owner: `aq-worker`. Milestone: M2. Kind: implementation. Status: in_progress.
+Owner: `aq-worker`. Milestone: M2. Kind: implementation. Status: complete.
 
 Hard prerequisites: [WRK-01](#wrk-01).
 
@@ -399,11 +408,13 @@ Acceptance:
 
 Requirement links: W3, W4, W5, W9, W15, W17, X1, X2.
 
+Evidence: [worker-candidate.md](../../../aq-worker/docs/implementation/worker-candidate.md), [connector-integration.md](../implementation/connector-integration.md), [worker-candidate.json](../../vendor/worker-candidate.json).
+
 ### WRK-03
 
 **Launch and report one deterministic fake agent**
 
-Owner: `aq-worker`. Milestone: M2. Kind: implementation. Status: in_progress.
+Owner: `aq-worker`. Milestone: M2. Kind: implementation. Status: complete.
 
 Hard prerequisites: [WRK-02](#wrk-02).
 
@@ -415,6 +426,8 @@ Acceptance:
 - Launch-window uncertainty never causes blind relaunch; confirmed stopped writers are required before resource reuse.
 
 Requirement links: W9, W10, W14, W17, X1, X3.
+
+Evidence: [worker-candidate.md](../../../aq-worker/docs/implementation/worker-candidate.md), [connector-integration.md](../implementation/connector-integration.md), [worker-candidate.json](../../vendor/worker-candidate.json).
 
 ### AQ-04
 
@@ -441,7 +454,7 @@ Evidence: [execution-authority.md](../implementation/execution-authority.md), [e
 
 **Demonstrate minimal distributed execution**
 
-Owner: `agent-q`. Milestone: M2. Kind: gate. Status: in_progress.
+Owner: `agent-q`. Milestone: M2. Kind: gate. Status: complete.
 
 Hard prerequisites: [GATE-01](#gate-01), [AQ-04](#aq-04), [WRK-03](#wrk-03).
 
@@ -453,6 +466,8 @@ Acceptance:
 - Retain an executable demonstration with exact images, logs and correlation IDs; no model provider is required.
 
 Requirement links: E3, D2, W9, X1, X2.
+
+Evidence: [connector-integration.md](../implementation/connector-integration.md), [connector-integration.evidence.json](../implementation/connector-integration.evidence.json), [execution-review.md](../implementation/execution-review.md).
 
 ### AQ-05
 

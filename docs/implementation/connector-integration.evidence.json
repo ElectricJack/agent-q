@@ -1,0 +1,1964 @@
+{
+  "implementation_revision": "09634b61d0016e8816a667c3091ac0a2efbdaef5",
+  "worker_candidate": {
+    "candidate_format": 1,
+    "source_repository": "aq-worker",
+    "source_revision": "cf87edffa3384a08f5bb0319b4f92ffc2a26b145",
+    "version": "0.1.0",
+    "archive": "aq-worker-source.tar.gz",
+    "archive_sha256": "6f54954b2ab38e9625fd5680fa70c63f512bf7e5ef74ec19d815e562fe176e15",
+    "lockfile_sha256": "be5c1196b5e029a7913cca2b801654df4e53cb59418f48834f8472e6adcfecad",
+    "foundation_protocol": 1,
+    "execution_protocol": 2,
+    "worker_journal_format": 1,
+    "distribution": "Immutable local integration source candidate; not a published or hosted release. Builds require no sibling source checkout."
+  },
+  "source_inventory_matches_revision": true,
+  "image_smoke": {
+    "fixture": "execution",
+    "project": "aq-product-e02edfa785cb",
+    "started_at": "2026-10-31T00:21:16.508513+00:00",
+    "commands": [
+      {
+        "command": [
+          "docker",
+          "build",
+          "--target",
+          "server",
+          "--build-arg",
+          "AQ_SOURCE_REVISION=dev-415cde7df8c4c632d58b40ef",
+          "--build-arg",
+          "AQ_STATE_FORMAT=2",
+          "-t",
+          "aq-product-e02edfa785cb-server:candidate",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source"
+        ],
+        "started_at": "2026-10-31T00:21:16.544520+00:00",
+        "finished_at": "2026-10-31T00:21:17.458234+00:00",
+        "exit_code": 0,
+        "log": "build-server.log"
+      },
+      {
+        "command": [
+          "docker",
+          "build",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/Dockerfile.worker",
+          "--target",
+          "worker",
+          "--build-arg",
+          "AQ_SOURCE_REVISION=cf87edffa3384a08f5bb0319b4f92ffc2a26b145",
+          "--build-arg",
+          "AQ_WORKER_ARCHIVE_SHA256=6f54954b2ab38e9625fd5680fa70c63f512bf7e5ef74ec19d815e562fe176e15",
+          "--build-arg",
+          "AQ_VERSION=0.1.0",
+          "--build-arg",
+          "AQ_STATE_FORMAT=2",
+          "-t",
+          "aq-product-e02edfa785cb-worker:candidate",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source"
+        ],
+        "started_at": "2026-10-31T00:21:17.458441+00:00",
+        "finished_at": "2026-10-31T00:21:18.148787+00:00",
+        "exit_code": 0,
+        "log": "build-worker.log"
+      },
+      {
+        "command": [
+          "docker",
+          "image",
+          "inspect",
+          "aq-product-e02edfa785cb-server:candidate",
+          "aq-product-e02edfa785cb-worker:candidate"
+        ],
+        "started_at": "2026-10-31T00:21:18.149041+00:00",
+        "finished_at": "2026-10-31T00:21:18.182611+00:00",
+        "exit_code": 0,
+        "log": "image-identities.log"
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--entrypoint",
+          "cat",
+          "aq-product-e02edfa785cb-worker:candidate",
+          "/usr/share/agent-q/worker-candidate.json"
+        ],
+        "started_at": "2026-10-31T00:21:18.182849+00:00",
+        "finished_at": "2026-10-31T00:21:18.693875+00:00",
+        "exit_code": 0,
+        "log": "worker-provenance.log"
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "aq-product-e02edfa785cb-worker:candidate",
+          "--version"
+        ],
+        "started_at": "2026-10-31T00:21:18.694168+00:00",
+        "finished_at": "2026-10-31T00:21:19.191112+00:00",
+        "exit_code": 0,
+        "log": "worker-version.log"
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "aq-product-e02edfa785cb-worker:candidate",
+          "run-execution",
+          "--help"
+        ],
+        "started_at": "2026-10-31T00:21:19.191466+00:00",
+        "finished_at": "2026-10-31T00:21:19.720413+00:00",
+        "exit_code": 0,
+        "log": "worker-execution-cli.log"
+      },
+      {
+        "command": [
+          "docker",
+          "run",
+          "--rm",
+          "--entrypoint",
+          "sha256sum",
+          "aq-product-e02edfa785cb-worker:candidate",
+          "/usr/local/bin/aq-worker",
+          "/usr/local/bin/aq-fixture-agent"
+        ],
+        "started_at": "2026-10-31T00:21:19.720640+00:00",
+        "finished_at": "2026-10-31T00:21:20.321467+00:00",
+        "exit_code": 0,
+        "log": "worker-binary-identities.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "up",
+          "-d",
+          "--no-build",
+          "--wait",
+          "--wait-timeout",
+          "120",
+          "server"
+        ],
+        "started_at": "2026-10-31T00:21:20.326226+00:00",
+        "finished_at": "2026-10-31T00:21:33.397553+00:00",
+        "exit_code": 0,
+        "log": "start-server.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "port",
+          "server",
+          "8080"
+        ],
+        "started_at": "2026-10-31T00:21:33.397828+00:00",
+        "finished_at": "2026-10-31T00:21:33.486488+00:00",
+        "exit_code": 0,
+        "log": "address-8080.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "port",
+          "server",
+          "8081"
+        ],
+        "started_at": "2026-10-31T00:21:33.486915+00:00",
+        "finished_at": "2026-10-31T00:21:33.558448+00:00",
+        "exit_code": 0,
+        "log": "address-8081.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "images",
+          "--format",
+          "json"
+        ],
+        "started_at": "2026-10-31T00:21:33.576281+00:00",
+        "finished_at": "2026-10-31T00:21:33.676114+00:00",
+        "exit_code": 0,
+        "log": "compose-images.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "run",
+          "--rm",
+          "-T",
+          "--no-deps",
+          "worker",
+          "enroll",
+          "--server",
+          "http://server:8081",
+          "--name",
+          "smoke"
+        ],
+        "started_at": "2026-10-31T00:21:33.688760+00:00",
+        "finished_at": "2026-10-31T00:21:34.628145+00:00",
+        "exit_code": 0,
+        "log": "enroll.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "up",
+          "-d",
+          "--no-build",
+          "worker"
+        ],
+        "started_at": "2026-10-31T00:21:34.628430+00:00",
+        "finished_at": "2026-10-31T00:21:35.079347+00:00",
+        "exit_code": 0,
+        "log": "start-worker.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "ps",
+          "-q",
+          "worker"
+        ],
+        "started_at": "2026-10-31T00:21:35.079576+00:00",
+        "finished_at": "2026-10-31T00:21:35.189242+00:00",
+        "exit_code": 0,
+        "log": "heartbeat-container.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "exec",
+          "-T",
+          "worker",
+          "cat",
+          "/config/agent-q/worker.toml"
+        ],
+        "started_at": "2026-10-31T00:21:35.192783+00:00",
+        "finished_at": "2026-10-31T00:21:35.406347+00:00",
+        "exit_code": 0,
+        "log": null
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "restart",
+          "server",
+          "postgres"
+        ],
+        "started_at": "2026-10-31T00:21:35.412271+00:00",
+        "finished_at": "2026-10-31T00:21:37.076521+00:00",
+        "exit_code": 0,
+        "log": "restart.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "port",
+          "server",
+          "8080"
+        ],
+        "started_at": "2026-10-31T00:21:37.076868+00:00",
+        "finished_at": "2026-10-31T00:21:37.151344+00:00",
+        "exit_code": 0,
+        "log": "address-8080.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "port",
+          "server",
+          "8081"
+        ],
+        "started_at": "2026-10-31T00:21:37.151609+00:00",
+        "finished_at": "2026-10-31T00:21:37.232000+00:00",
+        "exit_code": 0,
+        "log": "address-8081.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "exec",
+          "-T",
+          "worker",
+          "cat",
+          "/config/agent-q/worker.toml"
+        ],
+        "started_at": "2026-10-31T00:21:50.298653+00:00",
+        "finished_at": "2026-10-31T00:21:50.466814+00:00",
+        "exit_code": 0,
+        "log": null
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "run",
+          "-d",
+          "--no-deps",
+          "--name",
+          "aq-product-e02edfa785cb-execution",
+          "-e",
+          "AQ_FIXTURE_HOLD=1",
+          "worker",
+          "run-execution",
+          "--state-dir",
+          "/state/runtime",
+          "--fixture-agent",
+          "/usr/local/bin/aq-fixture-agent",
+          "--idle-timeout-secs",
+          "90",
+          "--exit-after-result",
+          "--drop-acceptance-response-once",
+          "--drop-report-response-once"
+        ],
+        "started_at": "2026-10-31T00:21:50.466934+00:00",
+        "finished_at": "2026-10-31T00:21:50.905608+00:00",
+        "exit_code": 0,
+        "log": "start-execution.log"
+      },
+      {
+        "command": [
+          "docker",
+          "logs",
+          "aq-product-e02edfa785cb-execution"
+        ],
+        "started_at": "2026-10-31T00:21:50.905842+00:00",
+        "finished_at": "2026-10-31T00:21:50.944121+00:00",
+        "exit_code": 0,
+        "log": "execution-log.log"
+      },
+      {
+        "command": [
+          "docker",
+          "pause",
+          "aq-product-e02edfa785cb-execution"
+        ],
+        "started_at": "2026-10-31T00:21:50.944491+00:00",
+        "finished_at": "2026-10-31T00:21:51.000878+00:00",
+        "exit_code": 0,
+        "log": "pause-before-offers.log"
+      },
+      {
+        "command": [
+          "docker",
+          "unpause",
+          "aq-product-e02edfa785cb-execution"
+        ],
+        "started_at": "2026-10-31T00:21:51.020395+00:00",
+        "finished_at": "2026-10-31T00:21:51.063078+00:00",
+        "exit_code": 0,
+        "log": "unpause-after-offers.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "run",
+          "--rm",
+          "-T",
+          "--no-deps",
+          "--entrypoint",
+          "sh",
+          "worker",
+          "-ec",
+          "find /state/runtime/launches -name started.claim -print"
+        ],
+        "started_at": "2026-10-31T00:21:51.063258+00:00",
+        "finished_at": "2026-10-31T00:21:51.737115+00:00",
+        "exit_code": 0,
+        "log": "launch-claim.log"
+      },
+      {
+        "command": [
+          "docker",
+          "exec",
+          "aq-product-e02edfa785cb-execution",
+          "touch",
+          "/state/runtime/launches/65ded6a0-8cdc-4744-8be0-f2497b38d7f0/release"
+        ],
+        "started_at": "2026-10-31T00:21:51.737546+00:00",
+        "finished_at": "2026-10-31T00:21:51.885410+00:00",
+        "exit_code": 0,
+        "log": "release-fixture.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "aq-product-e02edfa785cb-execution"
+        ],
+        "started_at": "2026-10-31T00:21:51.885574+00:00",
+        "finished_at": "2026-10-31T00:21:51.918963+00:00",
+        "exit_code": 0,
+        "log": "execution-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "aq-product-e02edfa785cb-execution"
+        ],
+        "started_at": "2026-10-31T00:21:52.419238+00:00",
+        "finished_at": "2026-10-31T00:21:52.456312+00:00",
+        "exit_code": 0,
+        "log": "execution-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "logs",
+          "aq-product-e02edfa785cb-execution"
+        ],
+        "started_at": "2026-10-31T00:21:52.456604+00:00",
+        "finished_at": "2026-10-31T00:21:52.498849+00:00",
+        "exit_code": 0,
+        "log": "execution-log.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "run",
+          "--rm",
+          "-T",
+          "--no-deps",
+          "--entrypoint",
+          "cat",
+          "worker",
+          "/state/runtime/journal.json"
+        ],
+        "started_at": "2026-10-31T00:21:52.501606+00:00",
+        "finished_at": "2026-10-31T00:21:53.184329+00:00",
+        "exit_code": 0,
+        "log": "execution-journal.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "restart",
+          "server"
+        ],
+        "started_at": "2026-10-31T00:21:53.186821+00:00",
+        "finished_at": "2026-10-31T00:21:54.247457+00:00",
+        "exit_code": 0,
+        "log": "restart-after-result.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "port",
+          "server",
+          "8080"
+        ],
+        "started_at": "2026-10-31T00:21:54.247818+00:00",
+        "finished_at": "2026-10-31T00:21:54.314371+00:00",
+        "exit_code": 0,
+        "log": "address-8080.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "port",
+          "server",
+          "8081"
+        ],
+        "started_at": "2026-10-31T00:21:54.314618+00:00",
+        "finished_at": "2026-10-31T00:21:54.386400+00:00",
+        "exit_code": 0,
+        "log": "address-8081.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:21:54.400822+00:00",
+        "finished_at": "2026-10-31T00:21:54.432210+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:21:54.932477+00:00",
+        "finished_at": "2026-10-31T00:21:54.961838+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:21:55.462152+00:00",
+        "finished_at": "2026-10-31T00:21:55.491348+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:21:55.991685+00:00",
+        "finished_at": "2026-10-31T00:21:56.020868+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:21:56.521170+00:00",
+        "finished_at": "2026-10-31T00:21:56.555305+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:21:57.055689+00:00",
+        "finished_at": "2026-10-31T00:21:57.091301+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:21:57.591653+00:00",
+        "finished_at": "2026-10-31T00:21:57.620847+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:21:58.121145+00:00",
+        "finished_at": "2026-10-31T00:21:58.150866+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:21:58.651135+00:00",
+        "finished_at": "2026-10-31T00:21:58.679632+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:21:59.180075+00:00",
+        "finished_at": "2026-10-31T00:21:59.208822+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:21:59.709125+00:00",
+        "finished_at": "2026-10-31T00:21:59.736679+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:22:00.236991+00:00",
+        "finished_at": "2026-10-31T00:22:00.266274+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:22:00.766582+00:00",
+        "finished_at": "2026-10-31T00:22:00.794525+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:22:01.294848+00:00",
+        "finished_at": "2026-10-31T00:22:01.322572+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:22:02.371029+00:00",
+        "finished_at": "2026-10-31T00:22:03.167521+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:22:03.667805+00:00",
+        "finished_at": "2026-10-31T00:22:03.694685+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:22:04.194985+00:00",
+        "finished_at": "2026-10-31T00:22:04.222638+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:22:04.722962+00:00",
+        "finished_at": "2026-10-31T00:22:04.754475+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:22:05.254790+00:00",
+        "finished_at": "2026-10-31T00:22:05.282786+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:22:05.783157+00:00",
+        "finished_at": "2026-10-31T00:22:05.812010+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:22:06.312316+00:00",
+        "finished_at": "2026-10-31T00:22:06.340080+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "inspect",
+          "--format",
+          "{{json .State}}",
+          "e1fa56d5fc01a8c8511dd30c3f815ce039fdc9af75ceadc5443b130c50ae7a39"
+        ],
+        "started_at": "2026-10-31T00:22:06.840435+00:00",
+        "finished_at": "2026-10-31T00:22:06.867915+00:00",
+        "exit_code": 0,
+        "log": "revoked-worker-state.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "logs",
+          "--no-color",
+          "--tail",
+          "100"
+        ],
+        "started_at": "2026-10-31T00:22:06.868191+00:00",
+        "finished_at": "2026-10-31T00:22:06.980749+00:00",
+        "exit_code": 0,
+        "log": "stack-logs.log"
+      },
+      {
+        "command": [
+          "docker",
+          "compose",
+          "-p",
+          "aq-product-e02edfa785cb",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/source/compose.yaml",
+          "-f",
+          "/tmp/aq-product-e02edfa785cb-znwibwqw/compose.smoke.json",
+          "down",
+          "-v",
+          "--remove-orphans"
+        ],
+        "started_at": "2026-10-31T00:22:06.980932+00:00",
+        "finished_at": "2026-10-31T00:22:08.735159+00:00",
+        "exit_code": 0,
+        "log": "teardown.log"
+      },
+      {
+        "command": [
+          "docker",
+          "rm",
+          "-fv",
+          "aq-product-e02edfa785cb-execution"
+        ],
+        "started_at": "2026-10-31T00:22:08.735362+00:00",
+        "finished_at": "2026-10-31T00:22:08.760520+00:00",
+        "exit_code": 0,
+        "log": "runtime-teardown.log"
+      },
+      {
+        "command": [
+          "docker",
+          "ps",
+          "-aq",
+          "--filter",
+          "label=com.docker.compose.project=aq-product-e02edfa785cb"
+        ],
+        "started_at": "2026-10-31T00:22:08.760791+00:00",
+        "finished_at": "2026-10-31T00:22:08.789722+00:00",
+        "exit_code": 0,
+        "log": "remaining-containers.log"
+      },
+      {
+        "command": [
+          "docker",
+          "ps",
+          "-aq",
+          "--filter",
+          "label=com.docker.compose.project=aq-product-e02edfa785cb"
+        ],
+        "started_at": "2026-10-31T00:22:08.789875+00:00",
+        "finished_at": "2026-10-31T00:22:08.827158+00:00",
+        "exit_code": 0,
+        "log": "verified-containers.log"
+      },
+      {
+        "command": [
+          "docker",
+          "volume",
+          "ls",
+          "-q",
+          "--filter",
+          "label=com.docker.compose.project=aq-product-e02edfa785cb"
+        ],
+        "started_at": "2026-10-31T00:22:08.827305+00:00",
+        "finished_at": "2026-10-31T00:22:08.857375+00:00",
+        "exit_code": 0,
+        "log": "remaining-volumes.log"
+      },
+      {
+        "command": [
+          "docker",
+          "volume",
+          "ls",
+          "-q",
+          "--filter",
+          "label=com.docker.compose.project=aq-product-e02edfa785cb"
+        ],
+        "started_at": "2026-10-31T00:22:08.857541+00:00",
+        "finished_at": "2026-10-31T00:22:08.883110+00:00",
+        "exit_code": 0,
+        "log": "verified-volumes.log"
+      },
+      {
+        "command": [
+          "docker",
+          "network",
+          "ls",
+          "-q",
+          "--filter",
+          "label=com.docker.compose.project=aq-product-e02edfa785cb"
+        ],
+        "started_at": "2026-10-31T00:22:08.883252+00:00",
+        "finished_at": "2026-10-31T00:22:08.907632+00:00",
+        "exit_code": 0,
+        "log": "remaining-networks.log"
+      },
+      {
+        "command": [
+          "docker",
+          "network",
+          "ls",
+          "-q",
+          "--filter",
+          "label=com.docker.compose.project=aq-product-e02edfa785cb"
+        ],
+        "started_at": "2026-10-31T00:22:08.907778+00:00",
+        "finished_at": "2026-10-31T00:22:08.932656+00:00",
+        "exit_code": 0,
+        "log": "verified-networks.log"
+      },
+      {
+        "command": [
+          "docker",
+          "image",
+          "rm",
+          "aq-product-e02edfa785cb-server:candidate",
+          "aq-product-e02edfa785cb-worker:candidate"
+        ],
+        "started_at": "2026-10-31T00:22:08.932848+00:00",
+        "finished_at": "2026-10-31T00:22:08.982004+00:00",
+        "exit_code": 0,
+        "log": "image-teardown.log"
+      }
+    ],
+    "scope": "local candidate; no hosted acceptance",
+    "worker_candidate": {
+      "candidate_format": 1,
+      "source_repository": "aq-worker",
+      "source_revision": "cf87edffa3384a08f5bb0319b4f92ffc2a26b145",
+      "version": "0.1.0",
+      "archive": "aq-worker-source.tar.gz",
+      "archive_sha256": "6f54954b2ab38e9625fd5680fa70c63f512bf7e5ef74ec19d815e562fe176e15",
+      "lockfile_sha256": "be5c1196b5e029a7913cca2b801654df4e53cb59418f48834f8472e6adcfecad",
+      "foundation_protocol": 1,
+      "execution_protocol": 2,
+      "worker_journal_format": 1,
+      "distribution": "Immutable local integration source candidate; not a published or hosted release. Builds require no sibling source checkout."
+    },
+    "source_inventory": {
+      ".dockerignore": "c1e02fed3df19835364350d14f94a58ac73badbe98f048b572c6ed7036e8daaf",
+      "Cargo.lock": "d234ace1e965414e184d2abfcb0a045a83e167af8563354c386e0982221c2045",
+      "Cargo.toml": "5681132efa0d2dc039deac3133c831388b1e9f9d63d5ae01a1af0399600f5a02",
+      "Dockerfile": "5fbbca9a8329066636ff30385df1098e48d6a2eb4bdd278d84ee55df15fe226e",
+      "Dockerfile.worker": "c513788cfbd6b29eaa9c6f18774f3b556cbe5f1a2901c422b8b3dff33fbee3ee",
+      "compose.yaml": "1be66ea68d1876c1e46b28fe9babbd9dc6ceefbdc5f58938f9a3f182d811c46c",
+      "crates/aq-release/Cargo.toml": "737f2993b536dd6f76b272626f4f28a4ccda9c0d72ac0df4067ec254b32efd12",
+      "crates/aq-release/src/lib.rs": "cee5f853c5985f675acf359b317a6a79ff57df4f44e43c1c19e4a40a1d1ed1a7",
+      "crates/aq-release/src/manifest.rs": "3ab2237897e58c12c376f2e17ae8100eaf026764b7d3f2fec6edb96a327d8352",
+      "crates/aq-release/src/spool.rs": "f73afd6922feae7826152fa021185aa586a1e89e7133e7139d6dd62ce10397b8",
+      "crates/aq-release/tests/manifest.rs": "03acfba5ab1ea9e3c7bf4a34389be5d8fec5a1cac74832fbc972054d3b4c26f7",
+      "crates/aq-release/tests/spool.rs": "2b8729a890aeba5b210e828cc0df496e7e179fd16af7d5cdddd1e3d6f9e9219c",
+      "crates/aq-server/Cargo.toml": "8f8349efab620eb60a54066d55e71534a9c718480515899e41d7f2c65c8da880",
+      "crates/aq-server/migrations/0001_foundation.sql": "2ac1359cde1cebfbe9b94de1dc91c67d7277f04e723081ae0f98b69d93be3715",
+      "crates/aq-server/migrations/0002_execution.sql": "e52191473cf6eca5b5b8e81662873f25dc9eb80967e11d5a8d7b390c583e34ed",
+      "crates/aq-server/src/admin_api.rs": "bb7081f926c331574c96d2c4ead201843e06068772ff401b010fc6c4c418ddde",
+      "crates/aq-server/src/authz.rs": "4a51f29ab06b64b4b5c5739e86966cd9dcdbddbd9256e2b8ddc1b71d9dcb2a57",
+      "crates/aq-server/src/config.rs": "ea0c6be7b2612f0f7fff551df805a4617a4184f9db0e8151abccb8d8304b630d",
+      "crates/aq-server/src/error.rs": "630e3f85d70ad68aed679d3e2356dc0827f4dbd6202a1ba5f48b452b1f895e1a",
+      "crates/aq-server/src/execution/api.rs": "92e2d10ab862afff4312b65d2a946637a5af989e876922cb4aa9bd349892423b",
+      "crates/aq-server/src/execution.rs": "21f6fa1a0c249992c1d76bfcb3a02bd40377eb6ee3300316c6cddaed41d99d00",
+      "crates/aq-server/src/identity/cloudflare.rs": "c58339fcdd9157624060fe2eb311fa2f3c9bd0f011baf36808359cddf09aeb43",
+      "crates/aq-server/src/identity/dev.rs": "c80ef43905057a914ff67769585412366e8c78a655d03c432d059d38cce79053",
+      "crates/aq-server/src/identity/mod.rs": "562e0867e0e3cacc6d7fb67d190d5d1cb156d5d80bfda4bbe0b65126aff1eebe",
+      "crates/aq-server/src/lib.rs": "bc0476cab4ea44531014f1ad8f4ddb5e5c077b20ceda0ea4bb885902538cf3ed",
+      "crates/aq-server/src/main.rs": "6429139099c2b19ef0218c9c83aef03a896f49db8a868e3dd4f4712b9c5d8c38",
+      "crates/aq-server/src/readiness.rs": "64726f202b5035ce6d979079ff653594c3dfb6e20e88548ea4482a0816a41d6d",
+      "crates/aq-server/src/store.rs": "d0875568008dde0b525423e903fb847cdc161f4dc75c59a5f2fba34ddb9ecb9b",
+      "crates/aq-server/src/test_support.rs": "1382c32ecdfae94c228ec71437b2c133985e0e47a71f49a9ec752d3ca173860c",
+      "crates/aq-server/src/tokens.rs": "725491872bd17ecf587fb49ddfdf8d9dc28b34df9f2e28b49676a301176c4c41",
+      "crates/aq-server/src/updates.rs": "08e770c1fe110053084b6ad15a75e141e4fe85d7517eb5ec543adc33c5009777",
+      "crates/aq-server/src/worker_api.rs": "a62bc36c4c48633cfcc1f37fa4f88c8287cf4ba7ca35d2f2c3a1284c57071dd7",
+      "crates/aq-server/tests/authz.rs": "10d42ba4a755df5802fd908fab5d3fe4607c13a278056a04ce2f64dd0b8a73d6",
+      "crates/aq-server/tests/cli.rs": "657753d88b15a2fb32195f3a67360891f2c3cbef06d1c8dd3a50f5d3397355cd",
+      "crates/aq-server/tests/common/mod.rs": "64d84a2c5949a14e27019e263a63f82cd60dd3505998d390d0d07ea525e15ade",
+      "crates/aq-server/tests/config.rs": "138576b25509e384581ad48815b64897504cdbc3c98108f0c21ba2f9260e8edd",
+      "crates/aq-server/tests/enrollment.rs": "94628a43c03325126787af48d10cc6c3aaab75c979e37b65d3c7def63f5857ae",
+      "crates/aq-server/tests/execution.rs": "71f30da616ed736fc8a2e90c3b24ccbb6dcc5b9e751bb7ceb1c06defc5b90ac0",
+      "crates/aq-server/tests/health.rs": "445c3dd3778121cea48a2c7709f3935ac36553154f7ec4063182fc70f5f7c9c3",
+      "crates/aq-server/tests/identity.rs": "5e73a7a3a791eede5e79ea68b571806250e521e4bd1e4ba2761736dc0200a29c",
+      "crates/aq-server/tests/readiness.rs": "8869670d9f6310b739e16b0ecc627371c09628313a0d5896c0d31598af7ec115",
+      "crates/aq-server/tests/store.rs": "01a9c7ce4b9dcc6dfa6d1d0a1a88c70fcfd07735a9eefa1a7a23960e4ce87df6",
+      "crates/aq-server/tests/updates.rs": "4dee36041ff0ab30056a0fe0db97240fc674395bea084e638677b9f562b09bc7",
+      "crates/aq-server/tests/worker_api.rs": "528e54218a47cb7b4068575c1c756ab783405fee41044b9d6947789b059d99f8",
+      "crates/aq-updater/Cargo.toml": "faa56c0d4deafbeb64207218eeb81bf4c658cd7e543d0fe84e7cc1f9811e7e64",
+      "crates/aq-updater/src/config.rs": "c89786c706f2f7b04cec2bc8b5cdb2e8f890f4ffff90e7c814c1c1e8911cfc41",
+      "crates/aq-updater/src/engine.rs": "0841ec62174f25d228652a2caff58c07ca9caf5973a16538bcfa0d89dcce33b9",
+      "crates/aq-updater/src/journal.rs": "f32f577355e1e584815952dc62b0f20d4a967711558058e1f6597c9cb02d8f37",
+      "crates/aq-updater/src/lib.rs": "237f2a5f55794169ce85325e9dd8b7844aec2f2cec47e901056c9b91eafb5eb4",
+      "crates/aq-updater/src/main.rs": "a2a282928f7773c0886bb4d111dcdc48f05b4e7968e87b0e60753c79ff30b2ae",
+      "crates/aq-updater/src/runtime.rs": "da43023596289a1107ae6473a49129bfe13c28c18a7c4824507ca37b12d20c3d",
+      "crates/aq-updater/src/spool.rs": "f05c19c04b06ceca02b5e2f6ecc689049a2202283633dd37fb31797994903c37",
+      "crates/aq-updater/src/verify.rs": "f6966a7372bd2b848cd4bc5c7b318e8cefd4c724a66ce1b1d11c68c9a98025b5",
+      "crates/aq-updater/tests/cli.rs": "31d055546ee2c954713bd8c1f357cbb3a3cd73fcc80310dca8da26c8d8e7967e",
+      "crates/aq-updater/tests/common/fake_runtime.rs": "ee36b2d2623d0ed02bac84f399d276dc6624d3b7db20395e2027ae57bbacf172",
+      "crates/aq-updater/tests/common/mod.rs": "f29bd99d188bf232f82d0c3c76b5ee000588b626a97ba953505712d2458f647d",
+      "crates/aq-updater/tests/config.rs": "b087500c0660ff61d399d07f056cfdcc39a2b62fdee675ebe3dda34cc762c027",
+      "crates/aq-updater/tests/engine.rs": "870dc139e8e56b475a565e219b8eb83cbb9b7d5187af6ef00c07ea7feba4bc7b",
+      "crates/aq-updater/tests/journal.rs": "7d1702333f2ea54a23a2ee83b8c097ff989bb801c820e2ec225ab58bf86e14c9",
+      "crates/aq-updater/tests/spool.rs": "9a58d43e8c3050f9955f5cde4c871c7c1348ebe8d0b23ca0b87499d8585686aa",
+      "rust-toolchain.toml": "6791dcb04edcb490caaf08590dbe1dd9d9954b46dab2095df12dc984f704f1a8",
+      "vendor/aq-protocol-0.1.0/.cargo_vcs_info.json": "e0030765e1fd697adcc359fae6e19d6420dc20ffd14275f02161e94c33fe1a48",
+      "vendor/aq-protocol-0.1.0/Cargo.lock": "7e9c0492b2b99c8ae7702b94d45b6b73b75406b5eff2ae45044cd5ef56574220",
+      "vendor/aq-protocol-0.1.0/Cargo.toml": "c51bf772787a0de43d557bc057b21ae92bad53fc9a435b0bb2ee032c33d42dd5",
+      "vendor/aq-protocol-0.1.0/Cargo.toml.orig": "b1f5460343cc24104291d3ddca0b44346442576add78ade9f3efa6a5e6fec8a8",
+      "vendor/aq-protocol-0.1.0/src/lib.rs": "ae06f83f6e30cd390d25a46114a79ce1740342cd7aa82ab86f8f2174a8c0c32f",
+      "vendor/aq-worker-protocol-0.1.1/.cargo_vcs_info.json": "f842b88a70342d4c5ba9f51f85095827db3f73764684e99750fad2079eb6a332",
+      "vendor/aq-worker-protocol-0.1.1/Cargo.lock": "dc366d95ba3a822dc67787cee28dcd571c308f6d908cb90da58c9f8fdedc9ab4",
+      "vendor/aq-worker-protocol-0.1.1/Cargo.toml": "f4c6a68697304bd4f339d2301753b342eabb0aba35174a0b06f665e3565f52c2",
+      "vendor/aq-worker-protocol-0.1.1/Cargo.toml.orig": "fa045d601476b6dd88891e881c2cf455d391cc3a1c983b2884b34ecb1343a373",
+      "vendor/aq-worker-protocol-0.1.1/examples/fixtures.rs": "78626667dff2fc5808f19c64ce601160e74b1d68a718d6fb402b1016abf48631",
+      "vendor/aq-worker-protocol-0.1.1/examples/schema.rs": "661eb1d44ba4b643671a6b1e45e635480ba6c912c5e9858342168df189701369",
+      "vendor/aq-worker-protocol-0.1.1/fixtures/conformance-v2.json": "b0b42f1af65540201d7c2975108120fbec693dea48421d7551e2bc668f90041c",
+      "vendor/aq-worker-protocol-0.1.1/fixtures/execution-v2.schema.json": "bf63b640353416d8662f86f1af6a2584482b01a7a5ca8a5b40226540d91e57e7",
+      "vendor/aq-worker-protocol-0.1.1/src/lib.rs": "69b3175343e3c92b1b4e84fe45a08097c16ab0cc9fd7f687d27d84efeab8ff49",
+      "vendor/aq-worker-protocol-0.1.1/src/testing.rs": "2c4d4c1e03c45c359764371959aa930065d44a7fcb6c1aef11063761b514b7e0",
+      "vendor/aq-worker-protocol-0.1.1/tests/conformance.rs": "65c0e826ecc11ddd400e37dc010a975bb98e49f9084ed2d08fab5d0f963a1fef",
+      "vendor/aq-worker-source.tar.gz": "6f54954b2ab38e9625fd5680fa70c63f512bf7e5ef74ec19d815e562fe176e15",
+      "vendor/worker-candidate.json": "1bb44a8a56c5014f7d171dc97a4f8dc5fd10a82abbb654ccc9415c56624620af",
+      "vendor/worker-candidate.sha256": "b5bb68347fa76fd46e9adeb8c48d815d814e623f97227021e87e4f50e3a7063a",
+      "vendor/worker-contracts.json": "7e83dd4f315146b8b706e3d85103e3e9ff3305959d7a6c71c7a45cd8aef07210"
+    },
+    "source_tree_sha256": "415cde7df8c4c632d58b40ef4fd5895b6dbd98650f9986305e19c2b98cd8ed9b",
+    "source_revision": "09634b61d0016e8816a667c3091ac0a2efbdaef5",
+    "working_tree_dirty": true,
+    "images": [
+      {
+        "Id": "sha256:789e00e7781b2aef5a54f0a577f69522125bfa804099cb2dbd786dd0b97447e5",
+        "RepoTags": [
+          "aq-product-aec4a16d8d8e-server:candidate",
+          "aq-product-e02edfa785cb-server:candidate"
+        ],
+        "RepoDigests": [],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-10-31T00:19:33.22424537Z",
+        "Config": {
+          "User": "10001:10001",
+          "ExposedPorts": {
+            "8080/tcp": {},
+            "8081/tcp": {}
+          },
+          "Env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "AQ_VAULT_DIR=/vault"
+          ],
+          "Entrypoint": [
+            "aq-server"
+          ],
+          "Cmd": [
+            "serve",
+            "--vault",
+            "/vault"
+          ],
+          "Labels": {
+            "io.agent-q.protocol-max": "1",
+            "io.agent-q.state-format": "2",
+            "org.opencontainers.image.revision": "dev-415cde7df8c4c632d58b40ef",
+            "org.opencontainers.image.title": "agent-q-server",
+            "org.opencontainers.image.version": "unknown"
+          },
+          "ArgsEscaped": true,
+          "Healthcheck": {
+            "Test": [
+              "CMD",
+              "aq-server",
+              "healthcheck"
+            ],
+            "Interval": 10000000000,
+            "Timeout": 5000000000,
+            "StartPeriod": 30000000000,
+            "Retries": 5
+          }
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 95839410,
+        "GraphDriver": {
+          "Data": {
+            "LowerDir": "/var/lib/docker/overlay2/n5ck4vjeuj6po8a0oj2ph24g3/diff:/var/lib/docker/overlay2/5486fdae5c6e09e6496a211e47c219ca32799ffa9d533512d0540581ca57526c/diff",
+            "MergedDir": "/var/lib/docker/overlay2/ivc2nuu3fkfmitw79zk0qbt9f/merged",
+            "UpperDir": "/var/lib/docker/overlay2/ivc2nuu3fkfmitw79zk0qbt9f/diff",
+            "WorkDir": "/var/lib/docker/overlay2/ivc2nuu3fkfmitw79zk0qbt9f/work"
+          },
+          "Name": "overlay2"
+        },
+        "RootFS": {
+          "Type": "layers",
+          "Layers": [
+            "sha256:44a87794b739d471ec360bec56cc0ceac640d06bbf579ee7d9061a0b88d09818",
+            "sha256:f359472b8c60c940ade1e27fdff505dabff00afa28e754d54aa18394ee72ac53",
+            "sha256:9e3be893f1c212453814e66fe915eea75c0e426636a74dd5fdd651cf268ef2c5"
+          ]
+        },
+        "Metadata": {
+          "LastTagTime": "2026-10-31T00:21:17.387797643Z"
+        }
+      },
+      {
+        "Id": "sha256:73729d91e80ea27de449e1b55ddf1aab460cd206e43d85bdffd7254e97c76b65",
+        "RepoTags": [
+          "127.0.0.1:42528/agent-q-worker:0.1.0",
+          "127.0.0.1:42528/agent-q-worker:0.1.1",
+          "127.0.0.1:42528/agent-q-worker:0.1.2",
+          "aq-product-aec4a16d8d8e-worker:candidate",
+          "aq-product-e02edfa785cb-worker:candidate"
+        ],
+        "RepoDigests": [
+          "127.0.0.1:42528/agent-q-worker@sha256:db29a3b0a691fc7bf6cee03696bc6ac50b938dad1996b377d1a8b9c767e72d29"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-10-31T00:10:35.634186979Z",
+        "Config": {
+          "User": "10001:10001",
+          "Env": [
+            "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "XDG_CONFIG_HOME=/config"
+          ],
+          "Entrypoint": [
+            "aq-worker"
+          ],
+          "Cmd": [
+            "run"
+          ],
+          "Volumes": {
+            "/config": {},
+            "/state": {}
+          },
+          "Labels": {
+            "io.agent-q.protocol-max": "1",
+            "io.agent-q.state-format": "2",
+            "org.opencontainers.image.revision": "cf87edffa3384a08f5bb0319b4f92ffc2a26b145",
+            "org.opencontainers.image.title": "aq-worker",
+            "org.opencontainers.image.version": "0.1.0"
+          },
+          "ArgsEscaped": true
+        },
+        "Architecture": "amd64",
+        "Os": "linux",
+        "Size": 91710672,
+        "GraphDriver": {
+          "Data": {
+            "LowerDir": "/var/lib/docker/overlay2/ja62ormnuzx1xjj00kvhr6meg/diff:/var/lib/docker/overlay2/x8stz1t2y7kam2j4pmpzw8s10/diff:/var/lib/docker/overlay2/5486fdae5c6e09e6496a211e47c219ca32799ffa9d533512d0540581ca57526c/diff",
+            "MergedDir": "/var/lib/docker/overlay2/ka6jxni62us04k10m7u3cqhfz/merged",
+            "UpperDir": "/var/lib/docker/overlay2/ka6jxni62us04k10m7u3cqhfz/diff",
+            "WorkDir": "/var/lib/docker/overlay2/ka6jxni62us04k10m7u3cqhfz/work"
+          },
+          "Name": "overlay2"
+        },
+        "RootFS": {
+          "Type": "layers",
+          "Layers": [
+            "sha256:44a87794b739d471ec360bec56cc0ceac640d06bbf579ee7d9061a0b88d09818",
+            "sha256:b97f9984dd51598af29d67b290a78ce1ce1f4eac8b2eee291f320b6aa1b509cc",
+            "sha256:9f3280241651f66419131ea83931e4d3e5eddfd987b60f0151380f920e7915ac",
+            "sha256:123e8ba32a73bf2db80908f400514935168a7d1480b1df8acf5b9f12503d4f7e"
+          ]
+        },
+        "Metadata": {
+          "LastTagTime": "2026-10-31T00:21:18.073275875Z"
+        }
+      }
+    ],
+    "worker_binary_sha256": "ed6ce8b2b82f4aca16d51c1407264963d8a00f44b7bc09c63d891bceec5e75c0  /usr/local/bin/aq-worker\ncbaa14dea4179105917bccb0811eea09cb91b58f35dd5bbf19957f5dcbe13677  /usr/local/bin/aq-fixture-agent\n",
+    "postgres_image": "[{\"ID\":\"sha256:99445113a4a19e82dd3713c65bd9f6fb5bf972065ab043df8d1e1c93e957da9a\",\"ContainerName\":\"aq-product-e02edfa785cb-postgres-1\",\"Repository\":\"postgres\",\"Tag\":\"17-bookworm\",\"Platform\":\"linux/amd64\",\"Size\":437944456,\"Created\":\"2026-10-28T01:31:24.32855846Z\"},{\"ID\":\"sha256:789e00e7781b2aef5a54f0a577f69522125bfa804099cb2dbd786dd0b97447e5\",\"ContainerName\":\"aq-product-e02edfa785cb-server-1\",\"Repository\":\"aq-product-e02edfa785cb-server\",\"Tag\":\"candidate\",\"Platform\":\"linux/amd64\",\"Size\":95839410,\"Created\":\"2026-10-31T00:19:33.22424537Z\",\"LastTagTime\":\"2026-10-31T00:21:17.387797643Z\"}]\n\n",
+    "node_id": "f81647d2-da71-418b-a5b6-b1a8377657f3",
+    "foundation": {
+      "first_heartbeat": "2026-10-31T00:21:35.070010Z",
+      "later_heartbeat": "2026-10-31T00:21:50.075456Z",
+      "identity_preserved": true,
+      "probe": "passed",
+      "unsupported_protocol": "passed",
+      "unsupported_execution_preserves_connectivity": "passed",
+      "revocation": "passed (HTTP 401 and connector exit 3)"
+    },
+    "execution": {
+      "attempt_id": "f62941a7-19cc-402a-9e53-7215b0ac9afe",
+      "boot_id": "412cfc10-007d-4f0d-a92b-d5fa6ca965e1",
+      "launch_id": "65ded6a0-8cdc-4744-8be0-f2497b38d7f0",
+      "launch_count": 1,
+      "result": {
+        "task_id": "6eca48a6-4411-41b7-be3d-6b1ecdf0a403",
+        "offer": {
+          "offer_id": "18588973-ec55-48eb-9ff1-169dd8fe1927",
+          "identity": {
+            "node_id": "f81647d2-da71-418b-a5b6-b1a8377657f3",
+            "boot_id": "412cfc10-007d-4f0d-a92b-d5fa6ca965e1"
+          },
+          "attempt": {
+            "attempt_id": "f62941a7-19cc-402a-9e53-7215b0ac9afe",
+            "session_id": "75f7016a-7a9d-4cfb-bcb5-67380fe98cb9",
+            "generation": 1
+          },
+          "spec": {
+            "project_id": "0f4b36c9-68a8-432e-bb70-af05d1cf2568",
+            "harness": "deterministic-agent-v1",
+            "resolved_spec_digest": "055bca7a97beb3aa47be24362f8df55de88b9bf4ccca9cb425555d6152c61816",
+            "fixture_output": "product synthetic success",
+            "resources": {
+              "slots": 1,
+              "cpu_millis": 100,
+              "memory_bytes": 1048576,
+              "disk_bytes": 1048576
+            },
+            "required_capabilities": [
+              "deterministic-agent-v1"
+            ]
+          },
+          "offer_expires_at_ms": 1793406200944,
+          "reservation_ttl_ms": 90000
+        },
+        "status": "finished",
+        "grant": {
+          "identity": {
+            "node_id": "f81647d2-da71-418b-a5b6-b1a8377657f3",
+            "boot_id": "412cfc10-007d-4f0d-a92b-d5fa6ca965e1"
+          },
+          "attempt": {
+            "attempt_id": "f62941a7-19cc-402a-9e53-7215b0ac9afe",
+            "session_id": "75f7016a-7a9d-4cfb-bcb5-67380fe98cb9",
+            "generation": 1
+          },
+          "offer_id": "18588973-ec55-48eb-9ff1-169dd8fe1927",
+          "reservation_id": "39c665cd-7794-4c1b-86d2-a65fff48d5fb",
+          "resolved_spec_digest": "055bca7a97beb3aa47be24362f8df55de88b9bf4ccca9cb425555d6152c61816",
+          "grant_sequence": 1,
+          "valid_for_ms": 120000,
+          "reservation_deadline_ms": 65881336
+        },
+        "grant_expires_at_ms": 1793406231070,
+        "last_observation": {
+          "identity": {
+            "node_id": "f81647d2-da71-418b-a5b6-b1a8377657f3",
+            "boot_id": "412cfc10-007d-4f0d-a92b-d5fa6ca965e1"
+          },
+          "operation_id": "0929f9bc-ad99-4c4d-9020-1b4553742d89",
+          "attempt": {
+            "attempt_id": "f62941a7-19cc-402a-9e53-7215b0ac9afe",
+            "session_id": "75f7016a-7a9d-4cfb-bcb5-67380fe98cb9",
+            "generation": 1
+          },
+          "sequence": 2,
+          "phase": "reporting",
+          "stop_certainty": "confirmed_stopped",
+          "detail": "synthetic writers confirmed stopped; immutable report pending"
+        },
+        "report": {
+          "identity": {
+            "node_id": "f81647d2-da71-418b-a5b6-b1a8377657f3",
+            "boot_id": "412cfc10-007d-4f0d-a92b-d5fa6ca965e1"
+          },
+          "report_id": "02a92306-7d6a-4ea9-8741-98f41231baf3",
+          "supersedes_report_id": null,
+          "attempt": {
+            "attempt_id": "f62941a7-19cc-402a-9e53-7215b0ac9afe",
+            "session_id": "75f7016a-7a9d-4cfb-bcb5-67380fe98cb9",
+            "generation": 1
+          },
+          "resolved_spec_digest": "055bca7a97beb3aa47be24362f8df55de88b9bf4ccca9cb425555d6152c61816",
+          "outcome": "success",
+          "stop_certainty": "confirmed_stopped",
+          "claimed_success": true,
+          "output": "product synthetic success",
+          "artifacts": [],
+          "pending_operation_ids": []
+        },
+        "disposition": {
+          "report_id": "02a92306-7d6a-4ea9-8741-98f41231baf3",
+          "disposition": "accepted",
+          "retention_release": true
+        },
+        "cancellation_id": null,
+        "cancellation_reason": null,
+        "stopped": true
+      },
+      "acceptance_response_loss": "passed",
+      "report_response_loss": "passed",
+      "report_replay": "passed",
+      "daemon_restart": "passed",
+      "graph_completion": "not exercised",
+      "cancelled_unaccepted_attempt_id": "8b23c2f3-55b1-483a-a511-1c4a03bd4649",
+      "cancel_before_poll_then_acquire": "passed"
+    },
+    "outcome": "passed",
+    "cleanup": {
+      "owned_resources_removed": true,
+      "errors": []
+    },
+    "finished_at": "2026-10-31T00:22:08.984905+00:00"
+  },
+  "validation": {
+    "checked_at": "2026-10-31T00:22:29.247504+00:00",
+    "results": [
+      {
+        "name": "official-valid",
+        "command": [
+          "python3",
+          "/tmp/aq-candidate-negative-g0hzc7y4/scripts/check-worker-candidate.py",
+          "--official"
+        ],
+        "exit_code": 0,
+        "expected_exit_code": 0,
+        "passed": true
+      },
+      {
+        "name": "official-rejects-local-executable",
+        "command": [
+          "python3",
+          "/tmp/aq-candidate-negative-m9uzoezg/scripts/check-worker-candidate.py",
+          "--official"
+        ],
+        "exit_code": 1,
+        "expected_exit_code": 1,
+        "passed": true
+      },
+      {
+        "name": "rejects-floating-revision",
+        "command": [
+          "python3",
+          "/tmp/aq-candidate-negative-3tpffeda/scripts/check-worker-candidate.py",
+          "--official"
+        ],
+        "exit_code": 1,
+        "expected_exit_code": 1,
+        "passed": true
+      },
+      {
+        "name": "rejects-corrupt-archive",
+        "command": [
+          "python3",
+          "/tmp/aq-candidate-negative-gwz46n2_/scripts/check-worker-candidate.py",
+          "--official"
+        ],
+        "exit_code": 1,
+        "expected_exit_code": 1,
+        "passed": true
+      },
+      {
+        "name": "rejects-conformance-fixture-drift",
+        "command": [
+          "python3",
+          "/tmp/aq-candidate-negative-tlcvk25q/scripts/check-worker-candidate.py",
+          "--official"
+        ],
+        "exit_code": 1,
+        "expected_exit_code": 1,
+        "passed": true
+      },
+      {
+        "name": "rejects-test-peer-source-drift",
+        "command": [
+          "python3",
+          "/tmp/aq-candidate-negative-22n4nqe2/scripts/check-worker-candidate.py",
+          "--official"
+        ],
+        "exit_code": 1,
+        "expected_exit_code": 1,
+        "passed": true
+      },
+      {
+        "name": "rejects-original-manifest-drift",
+        "command": [
+          "python3",
+          "/tmp/aq-candidate-negative-p2d4_f5h/scripts/check-worker-candidate.py",
+          "--official"
+        ],
+        "exit_code": 1,
+        "expected_exit_code": 1,
+        "passed": true
+      },
+      {
+        "name": "cleanup-continues-after-timeout-and-oserror",
+        "passed": true,
+        "calls": [
+          "stack-logs",
+          "teardown",
+          "runtime-teardown",
+          "remaining-containers",
+          "verified-containers",
+          "remaining-volumes",
+          "verified-volumes",
+          "remaining-networks",
+          "verified-networks",
+          "image-teardown"
+        ]
+      },
+      {
+        "name": "official-rejects-floating-images-before-pull",
+        "exit_code": 1,
+        "passed": true
+      },
+      {
+        "name": "standalone-dev-command-version",
+        "command": [
+          "scripts/dev-worker",
+          "--version"
+        ],
+        "exit_code": 0,
+        "passed": true
+      },
+      {
+        "name": "explicit-dev-command-override",
+        "command": [
+          "scripts/dev-worker",
+          "explicit-development-test"
+        ],
+        "environment": {
+          "AQ_WORKER_BIN": "/bin/echo"
+        },
+        "exit_code": 0,
+        "passed": true
+      }
+    ],
+    "source_sha256": {
+      "scripts/check-worker-candidate.py": "77cb32913863e5abe03f73a7682ba2676af9f3b38100d1e473d803def437f000",
+      "scripts/product-smoke.py": "d032d134eeb906c5e00fcedd6b97b32387f769926d3508babd033fbf2813e81d"
+    },
+    "source_revision": "09634b61d0016e8816a667c3091ac0a2efbdaef5",
+    "worker_candidate": {
+      "candidate_format": 1,
+      "source_repository": "aq-worker",
+      "source_revision": "cf87edffa3384a08f5bb0319b4f92ffc2a26b145",
+      "version": "0.1.0",
+      "archive": "aq-worker-source.tar.gz",
+      "archive_sha256": "6f54954b2ab38e9625fd5680fa70c63f512bf7e5ef74ec19d815e562fe176e15",
+      "lockfile_sha256": "be5c1196b5e029a7913cca2b801654df4e53cb59418f48834f8472e6adcfecad",
+      "foundation_protocol": 1,
+      "execution_protocol": 2,
+      "worker_journal_format": 1,
+      "distribution": "Immutable local integration source candidate; not a published or hosted release. Builds require no sibling source checkout."
+    },
+    "dev_binary_sha256": "b8d3771b87611a91f0bc8f7e5dbabaa0b4f720af12a3998591be95324802969f"
+  },
+  "lifecycle": {
+    "source_revision": "09634b61d0016e8816a667c3091ac0a2efbdaef5",
+    "source_inventory_matches_revision": true,
+    "invocation": {
+      "command": [
+        "scripts/update-lifecycle"
+      ],
+      "started_at": "2026-10-31T00:19:08.547133+00:00",
+      "source_revision": "eed842362f29016ee508ca200f3bb3da2473dc08",
+      "source_inventory_sha256": "f98648757b17f1565697b5a99888006a27cb0635559047298caac088b03e69a1",
+      "environment": {
+        "CARGO_BUILD_JOBS": "4",
+        "AQ_UPDATE_EVIDENCE_DIR": "/tmp/aq-cutover-lifecycle-locked-id3hfpcf/evidence"
+      }
+    },
+    "exit": {
+      "exit_code": 0,
+      "finished_at": "2026-10-31T00:22:48.075914+00:00"
+    },
+    "source_inventory": {
+      ".dockerignore": "c1e02fed3df19835364350d14f94a58ac73badbe98f048b572c6ed7036e8daaf",
+      "Cargo.lock": "d234ace1e965414e184d2abfcb0a045a83e167af8563354c386e0982221c2045",
+      "Cargo.toml": "5681132efa0d2dc039deac3133c831388b1e9f9d63d5ae01a1af0399600f5a02",
+      "Dockerfile": "5fbbca9a8329066636ff30385df1098e48d6a2eb4bdd278d84ee55df15fe226e",
+      "Dockerfile.worker": "c513788cfbd6b29eaa9c6f18774f3b556cbe5f1a2901c422b8b3dff33fbee3ee",
+      "compose.yaml": "1be66ea68d1876c1e46b28fe9babbd9dc6ceefbdc5f58938f9a3f182d811c46c",
+      "crates/aq-release/Cargo.toml": "737f2993b536dd6f76b272626f4f28a4ccda9c0d72ac0df4067ec254b32efd12",
+      "crates/aq-release/src/lib.rs": "cee5f853c5985f675acf359b317a6a79ff57df4f44e43c1c19e4a40a1d1ed1a7",
+      "crates/aq-release/src/manifest.rs": "3ab2237897e58c12c376f2e17ae8100eaf026764b7d3f2fec6edb96a327d8352",
+      "crates/aq-release/src/spool.rs": "f73afd6922feae7826152fa021185aa586a1e89e7133e7139d6dd62ce10397b8",
+      "crates/aq-release/tests/manifest.rs": "03acfba5ab1ea9e3c7bf4a34389be5d8fec5a1cac74832fbc972054d3b4c26f7",
+      "crates/aq-release/tests/spool.rs": "2b8729a890aeba5b210e828cc0df496e7e179fd16af7d5cdddd1e3d6f9e9219c",
+      "crates/aq-server/Cargo.toml": "8f8349efab620eb60a54066d55e71534a9c718480515899e41d7f2c65c8da880",
+      "crates/aq-server/migrations/0001_foundation.sql": "2ac1359cde1cebfbe9b94de1dc91c67d7277f04e723081ae0f98b69d93be3715",
+      "crates/aq-server/migrations/0002_execution.sql": "e52191473cf6eca5b5b8e81662873f25dc9eb80967e11d5a8d7b390c583e34ed",
+      "crates/aq-server/src/admin_api.rs": "bb7081f926c331574c96d2c4ead201843e06068772ff401b010fc6c4c418ddde",
+      "crates/aq-server/src/authz.rs": "4a51f29ab06b64b4b5c5739e86966cd9dcdbddbd9256e2b8ddc1b71d9dcb2a57",
+      "crates/aq-server/src/config.rs": "ea0c6be7b2612f0f7fff551df805a4617a4184f9db0e8151abccb8d8304b630d",
+      "crates/aq-server/src/error.rs": "630e3f85d70ad68aed679d3e2356dc0827f4dbd6202a1ba5f48b452b1f895e1a",
+      "crates/aq-server/src/execution/api.rs": "92e2d10ab862afff4312b65d2a946637a5af989e876922cb4aa9bd349892423b",
+      "crates/aq-server/src/execution.rs": "21f6fa1a0c249992c1d76bfcb3a02bd40377eb6ee3300316c6cddaed41d99d00",
+      "crates/aq-server/src/identity/cloudflare.rs": "c58339fcdd9157624060fe2eb311fa2f3c9bd0f011baf36808359cddf09aeb43",
+      "crates/aq-server/src/identity/dev.rs": "c80ef43905057a914ff67769585412366e8c78a655d03c432d059d38cce79053",
+      "crates/aq-server/src/identity/mod.rs": "562e0867e0e3cacc6d7fb67d190d5d1cb156d5d80bfda4bbe0b65126aff1eebe",
+      "crates/aq-server/src/lib.rs": "bc0476cab4ea44531014f1ad8f4ddb5e5c077b20ceda0ea4bb885902538cf3ed",
+      "crates/aq-server/src/main.rs": "6429139099c2b19ef0218c9c83aef03a896f49db8a868e3dd4f4712b9c5d8c38",
+      "crates/aq-server/src/readiness.rs": "64726f202b5035ce6d979079ff653594c3dfb6e20e88548ea4482a0816a41d6d",
+      "crates/aq-server/src/store.rs": "d0875568008dde0b525423e903fb847cdc161f4dc75c59a5f2fba34ddb9ecb9b",
+      "crates/aq-server/src/test_support.rs": "1382c32ecdfae94c228ec71437b2c133985e0e47a71f49a9ec752d3ca173860c",
+      "crates/aq-server/src/tokens.rs": "725491872bd17ecf587fb49ddfdf8d9dc28b34df9f2e28b49676a301176c4c41",
+      "crates/aq-server/src/updates.rs": "08e770c1fe110053084b6ad15a75e141e4fe85d7517eb5ec543adc33c5009777",
+      "crates/aq-server/src/worker_api.rs": "a62bc36c4c48633cfcc1f37fa4f88c8287cf4ba7ca35d2f2c3a1284c57071dd7",
+      "crates/aq-server/tests/authz.rs": "10d42ba4a755df5802fd908fab5d3fe4607c13a278056a04ce2f64dd0b8a73d6",
+      "crates/aq-server/tests/cli.rs": "657753d88b15a2fb32195f3a67360891f2c3cbef06d1c8dd3a50f5d3397355cd",
+      "crates/aq-server/tests/common/mod.rs": "64d84a2c5949a14e27019e263a63f82cd60dd3505998d390d0d07ea525e15ade",
+      "crates/aq-server/tests/config.rs": "138576b25509e384581ad48815b64897504cdbc3c98108f0c21ba2f9260e8edd",
+      "crates/aq-server/tests/enrollment.rs": "94628a43c03325126787af48d10cc6c3aaab75c979e37b65d3c7def63f5857ae",
+      "crates/aq-server/tests/execution.rs": "71f30da616ed736fc8a2e90c3b24ccbb6dcc5b9e751bb7ceb1c06defc5b90ac0",
+      "crates/aq-server/tests/health.rs": "445c3dd3778121cea48a2c7709f3935ac36553154f7ec4063182fc70f5f7c9c3",
+      "crates/aq-server/tests/identity.rs": "5e73a7a3a791eede5e79ea68b571806250e521e4bd1e4ba2761736dc0200a29c",
+      "crates/aq-server/tests/readiness.rs": "8869670d9f6310b739e16b0ecc627371c09628313a0d5896c0d31598af7ec115",
+      "crates/aq-server/tests/store.rs": "01a9c7ce4b9dcc6dfa6d1d0a1a88c70fcfd07735a9eefa1a7a23960e4ce87df6",
+      "crates/aq-server/tests/updates.rs": "4dee36041ff0ab30056a0fe0db97240fc674395bea084e638677b9f562b09bc7",
+      "crates/aq-server/tests/worker_api.rs": "528e54218a47cb7b4068575c1c756ab783405fee41044b9d6947789b059d99f8",
+      "crates/aq-updater/Cargo.toml": "faa56c0d4deafbeb64207218eeb81bf4c658cd7e543d0fe84e7cc1f9811e7e64",
+      "crates/aq-updater/src/config.rs": "c89786c706f2f7b04cec2bc8b5cdb2e8f890f4ffff90e7c814c1c1e8911cfc41",
+      "crates/aq-updater/src/engine.rs": "0841ec62174f25d228652a2caff58c07ca9caf5973a16538bcfa0d89dcce33b9",
+      "crates/aq-updater/src/journal.rs": "f32f577355e1e584815952dc62b0f20d4a967711558058e1f6597c9cb02d8f37",
+      "crates/aq-updater/src/lib.rs": "237f2a5f55794169ce85325e9dd8b7844aec2f2cec47e901056c9b91eafb5eb4",
+      "crates/aq-updater/src/main.rs": "a2a282928f7773c0886bb4d111dcdc48f05b4e7968e87b0e60753c79ff30b2ae",
+      "crates/aq-updater/src/runtime.rs": "da43023596289a1107ae6473a49129bfe13c28c18a7c4824507ca37b12d20c3d",
+      "crates/aq-updater/src/spool.rs": "f05c19c04b06ceca02b5e2f6ecc689049a2202283633dd37fb31797994903c37",
+      "crates/aq-updater/src/verify.rs": "f6966a7372bd2b848cd4bc5c7b318e8cefd4c724a66ce1b1d11c68c9a98025b5",
+      "crates/aq-updater/tests/cli.rs": "31d055546ee2c954713bd8c1f357cbb3a3cd73fcc80310dca8da26c8d8e7967e",
+      "crates/aq-updater/tests/common/fake_runtime.rs": "ee36b2d2623d0ed02bac84f399d276dc6624d3b7db20395e2027ae57bbacf172",
+      "crates/aq-updater/tests/common/mod.rs": "f29bd99d188bf232f82d0c3c76b5ee000588b626a97ba953505712d2458f647d",
+      "crates/aq-updater/tests/config.rs": "b087500c0660ff61d399d07f056cfdcc39a2b62fdee675ebe3dda34cc762c027",
+      "crates/aq-updater/tests/engine.rs": "870dc139e8e56b475a565e219b8eb83cbb9b7d5187af6ef00c07ea7feba4bc7b",
+      "crates/aq-updater/tests/journal.rs": "7d1702333f2ea54a23a2ee83b8c097ff989bb801c820e2ec225ab58bf86e14c9",
+      "crates/aq-updater/tests/spool.rs": "9a58d43e8c3050f9955f5cde4c871c7c1348ebe8d0b23ca0b87499d8585686aa",
+      "rust-toolchain.toml": "6791dcb04edcb490caaf08590dbe1dd9d9954b46dab2095df12dc984f704f1a8",
+      "scripts/check-v2-plan.py": "7dcef3e64209a5ab4dd1b4fe24b6a94183db67de0f71c196ba81d44071714bfd",
+      "scripts/check-worker-candidate.py": "77cb32913863e5abe03f73a7682ba2676af9f3b38100d1e473d803def437f000",
+      "scripts/dev-up": "d43dba9158350f463b720138feb75f3eb84022f298233677a93945e94f13d8ea",
+      "scripts/dev-worker": "13f004d1ff51a3764454da2358f116b8836eef664d348c57f8595a1d19809737",
+      "scripts/execution-smoke": "563584043c5602d79a98a7ce37263fbcb1bebba3b128d6de81b4b45e79d450eb",
+      "scripts/product-smoke.py": "edb88dbaf334ba4ef93042f82cd42da74dc068b49dbcf6cfaa5f383662038f32",
+      "scripts/smoke": "1d06405329a7bd589f4cd544eb10a8da9415761ebe982618f53d17e2a1d9599b",
+      "scripts/test-db": "3eb5f7e11303ac0589900f7b49c127a77cdecf2b19bcb5ca321fcf89012d3cb4",
+      "scripts/update-lifecycle": "456c4f3978f83358cddb6903816389080eee1daa3bf36306ced53ac7dd3681d7",
+      "scripts/worker-command.py": "f59b2f7c017e7b123d26cab65858d7bf97053b249d98a46e3c90eca5766fdd50",
+      "vendor/aq-protocol-0.1.0/.cargo_vcs_info.json": "e0030765e1fd697adcc359fae6e19d6420dc20ffd14275f02161e94c33fe1a48",
+      "vendor/aq-protocol-0.1.0/Cargo.lock": "7e9c0492b2b99c8ae7702b94d45b6b73b75406b5eff2ae45044cd5ef56574220",
+      "vendor/aq-protocol-0.1.0/Cargo.toml": "c51bf772787a0de43d557bc057b21ae92bad53fc9a435b0bb2ee032c33d42dd5",
+      "vendor/aq-protocol-0.1.0/Cargo.toml.orig": "b1f5460343cc24104291d3ddca0b44346442576add78ade9f3efa6a5e6fec8a8",
+      "vendor/aq-protocol-0.1.0/src/lib.rs": "ae06f83f6e30cd390d25a46114a79ce1740342cd7aa82ab86f8f2174a8c0c32f",
+      "vendor/aq-worker-protocol-0.1.1/.cargo_vcs_info.json": "f842b88a70342d4c5ba9f51f85095827db3f73764684e99750fad2079eb6a332",
+      "vendor/aq-worker-protocol-0.1.1/Cargo.lock": "dc366d95ba3a822dc67787cee28dcd571c308f6d908cb90da58c9f8fdedc9ab4",
+      "vendor/aq-worker-protocol-0.1.1/Cargo.toml": "f4c6a68697304bd4f339d2301753b342eabb0aba35174a0b06f665e3565f52c2",
+      "vendor/aq-worker-protocol-0.1.1/Cargo.toml.orig": "fa045d601476b6dd88891e881c2cf455d391cc3a1c983b2884b34ecb1343a373",
+      "vendor/aq-worker-protocol-0.1.1/examples/fixtures.rs": "78626667dff2fc5808f19c64ce601160e74b1d68a718d6fb402b1016abf48631",
+      "vendor/aq-worker-protocol-0.1.1/examples/schema.rs": "661eb1d44ba4b643671a6b1e45e635480ba6c912c5e9858342168df189701369",
+      "vendor/aq-worker-protocol-0.1.1/fixtures/conformance-v2.json": "b0b42f1af65540201d7c2975108120fbec693dea48421d7551e2bc668f90041c",
+      "vendor/aq-worker-protocol-0.1.1/fixtures/execution-v2.schema.json": "bf63b640353416d8662f86f1af6a2584482b01a7a5ca8a5b40226540d91e57e7",
+      "vendor/aq-worker-protocol-0.1.1/src/lib.rs": "69b3175343e3c92b1b4e84fe45a08097c16ab0cc9fd7f687d27d84efeab8ff49",
+      "vendor/aq-worker-protocol-0.1.1/src/testing.rs": "2c4d4c1e03c45c359764371959aa930065d44a7fcb6c1aef11063761b514b7e0",
+      "vendor/aq-worker-protocol-0.1.1/tests/conformance.rs": "65c0e826ecc11ddd400e37dc010a975bb98e49f9084ed2d08fab5d0f963a1fef",
+      "vendor/aq-worker-source.tar.gz": "6f54954b2ab38e9625fd5680fa70c63f512bf7e5ef74ec19d815e562fe176e15",
+      "vendor/worker-candidate.json": "1bb44a8a56c5014f7d171dc97a4f8dc5fd10a82abbb654ccc9415c56624620af",
+      "vendor/worker-candidate.sha256": "b5bb68347fa76fd46e9adeb8c48d815d814e623f97227021e87e4f50e3a7063a",
+      "vendor/worker-contracts.json": "7e83dd4f315146b8b706e3d85103e3e9ff3305959d7a6c71c7a45cd8aef07210"
+    },
+    "cases_passed": 7,
+    "registry": "127.0.0.1:42528 (unique explicit port, WSL and Docker daemon verified)",
+    "updater_sha256": "f0f5f7b0950c7766d36ef6c90babb4cc2b5a961ed38b0a3d8dcaafa3947edd75",
+    "images": [
+      {
+        "id": "sha256:adb0c3a136b59be338e03502fdff0732941aa8069d0f749e64812d0c2e9ae83d",
+        "repo_tags": [
+          "127.0.0.1:42528/agent-q-server:0.1.0"
+        ],
+        "repo_digests": [
+          "127.0.0.1:42528/agent-q-server@sha256:81720b58e81e769b0569be317bf03485f0a0a968f2261c14bf8df3a70f750b93"
+        ],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "2",
+          "org.opencontainers.image.revision": "suite-0.1.0",
+          "org.opencontainers.image.title": "agent-q-server",
+          "org.opencontainers.image.version": "0.1.0"
+        }
+      },
+      {
+        "id": "sha256:73729d91e80ea27de449e1b55ddf1aab460cd206e43d85bdffd7254e97c76b65",
+        "repo_tags": [
+          "127.0.0.1:42528/agent-q-worker:0.1.0",
+          "127.0.0.1:42528/agent-q-worker:0.1.1",
+          "127.0.0.1:42528/agent-q-worker:0.1.2"
+        ],
+        "repo_digests": [
+          "127.0.0.1:42528/agent-q-worker@sha256:db29a3b0a691fc7bf6cee03696bc6ac50b938dad1996b377d1a8b9c767e72d29"
+        ],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "2",
+          "org.opencontainers.image.revision": "cf87edffa3384a08f5bb0319b4f92ffc2a26b145",
+          "org.opencontainers.image.title": "aq-worker",
+          "org.opencontainers.image.version": "0.1.0"
+        }
+      },
+      {
+        "id": "sha256:fce0bdbdfa24646a7de83407a6da0bbf68092117595989ae6b47d2a7fa00b56e",
+        "repo_tags": [
+          "127.0.0.1:42528/agent-q-release:0.1.0"
+        ],
+        "repo_digests": [
+          "127.0.0.1:42528/agent-q-release@sha256:ac72ff86cb2b2f7c62daae6238f801f3caff9faaff611d62a4859b5e630398ad"
+        ],
+        "labels": {
+          "org.opencontainers.image.revision": "suite-0.1.0",
+          "org.opencontainers.image.title": "agent-q-release",
+          "org.opencontainers.image.version": "0.1.0"
+        }
+      },
+      {
+        "id": "sha256:6de65392bc4b9fe1705650b80ba53f473bf8ff063be9f4bf3614cb892a30d18d",
+        "repo_tags": [
+          "127.0.0.1:42528/agent-q-server:0.1.1"
+        ],
+        "repo_digests": [
+          "127.0.0.1:42528/agent-q-server@sha256:83aaa56fde68a958b501fbf9219f88241c2a64e136864f957f6e3944564b29de"
+        ],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "2",
+          "org.opencontainers.image.revision": "suite-0.1.1",
+          "org.opencontainers.image.title": "agent-q-server",
+          "org.opencontainers.image.version": "0.1.1"
+        }
+      },
+      {
+        "id": "sha256:73729d91e80ea27de449e1b55ddf1aab460cd206e43d85bdffd7254e97c76b65",
+        "repo_tags": [
+          "127.0.0.1:42528/agent-q-worker:0.1.0",
+          "127.0.0.1:42528/agent-q-worker:0.1.1",
+          "127.0.0.1:42528/agent-q-worker:0.1.2"
+        ],
+        "repo_digests": [
+          "127.0.0.1:42528/agent-q-worker@sha256:db29a3b0a691fc7bf6cee03696bc6ac50b938dad1996b377d1a8b9c767e72d29"
+        ],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "2",
+          "org.opencontainers.image.revision": "cf87edffa3384a08f5bb0319b4f92ffc2a26b145",
+          "org.opencontainers.image.title": "aq-worker",
+          "org.opencontainers.image.version": "0.1.0"
+        }
+      },
+      {
+        "id": "sha256:da5b6e33436892301f4ad9029f02d406731d036a84c96d5e94ee10f76cc64af0",
+        "repo_tags": [
+          "127.0.0.1:42528/agent-q-release:0.1.1"
+        ],
+        "repo_digests": [
+          "127.0.0.1:42528/agent-q-release@sha256:11b5544298efb7cc3e3eabc8cde42662b3f7817863799845b756eddfb29a9cd6"
+        ],
+        "labels": {
+          "org.opencontainers.image.revision": "suite-0.1.1",
+          "org.opencontainers.image.title": "agent-q-release",
+          "org.opencontainers.image.version": "0.1.1"
+        }
+      },
+      {
+        "id": "sha256:b4968c301a81a4bb129d87f2e502260458159c0275cbf9ae9abdbcc89c0a4905",
+        "repo_tags": [
+          "127.0.0.1:42528/agent-q-server:0.1.2-c0"
+        ],
+        "repo_digests": [],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "2",
+          "org.opencontainers.image.revision": "suite-0.1.2",
+          "org.opencontainers.image.title": "agent-q-server",
+          "org.opencontainers.image.version": "0.1.2"
+        }
+      },
+      {
+        "id": "sha256:73729d91e80ea27de449e1b55ddf1aab460cd206e43d85bdffd7254e97c76b65",
+        "repo_tags": [
+          "127.0.0.1:42528/agent-q-worker:0.1.0",
+          "127.0.0.1:42528/agent-q-worker:0.1.1",
+          "127.0.0.1:42528/agent-q-worker:0.1.2"
+        ],
+        "repo_digests": [
+          "127.0.0.1:42528/agent-q-worker@sha256:db29a3b0a691fc7bf6cee03696bc6ac50b938dad1996b377d1a8b9c767e72d29"
+        ],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "2",
+          "org.opencontainers.image.revision": "cf87edffa3384a08f5bb0319b4f92ffc2a26b145",
+          "org.opencontainers.image.title": "aq-worker",
+          "org.opencontainers.image.version": "0.1.0"
+        }
+      },
+      {
+        "id": "sha256:efdff95fe95820bc5438f74fe33790e97209e2397473553ed06cc0db129e1156",
+        "repo_tags": [
+          "127.0.0.1:42528/agent-q-server:0.1.2"
+        ],
+        "repo_digests": [
+          "127.0.0.1:42528/agent-q-server@sha256:c06cccdb5f49f160ea516c463076d1885b3ec780f4ae887b0cd7da1033521f72"
+        ],
+        "labels": {
+          "io.agent-q.protocol-max": "1",
+          "io.agent-q.state-format": "2",
+          "org.opencontainers.image.revision": "suite-0.1.2",
+          "org.opencontainers.image.title": "agent-q-server",
+          "org.opencontainers.image.version": "0.1.2"
+        }
+      },
+      {
+        "id": "sha256:0f9e6c25bc10d734717fca5a997890f0f0ebe7c810c5f3b5667521b9848c9030",
+        "repo_tags": [
+          "127.0.0.1:42528/agent-q-release:0.1.2"
+        ],
+        "repo_digests": [
+          "127.0.0.1:42528/agent-q-release@sha256:c012214bb62ba7ddcb66b08af0c27fd2c5006e69a9f072977f883c72440bc63b"
+        ],
+        "labels": {
+          "org.opencontainers.image.revision": "suite-0.1.2",
+          "org.opencontainers.image.title": "agent-q-release",
+          "org.opencontainers.image.version": "0.1.2"
+        }
+      },
+      {
+        "id": "sha256:c55eae960cbfec4057be1e48ac477b7b5fb06cef31ed379fdaf606fb626ac251",
+        "repo_tags": [
+          "127.0.0.1:42528/agent-q-release:0.1.3"
+        ],
+        "repo_digests": [
+          "127.0.0.1:42528/agent-q-release@sha256:2a8e891ea06c6db030d5f9756e2bf80cc6c698dbe2529cadd4ec601de6017c1f"
+        ],
+        "labels": {
+          "org.opencontainers.image.revision": "suite-0.1.3",
+          "org.opencontainers.image.title": "agent-q-release",
+          "org.opencontainers.image.version": "0.1.3"
+        }
+      }
+    ],
+    "manifests": {
+      "release-0.1.3": {
+        "created_at": "2026-10-31T00:20:25.746887619Z",
+        "images": {
+          "server": "127.0.0.1:42528/agent-q-server@sha256:0000000000000000000000000000000000000000000000000000000000000000",
+          "worker": "127.0.0.1:42528/agent-q-worker@sha256:0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "manifest_version": 1,
+        "protocol": {
+          "max": 1,
+          "min": 1
+        },
+        "readable_state_formats": [
+          3
+        ],
+        "source_revision": "suite-0.1.1",
+        "state_format": 3,
+        "upgrade_from": ">=0.1.0",
+        "version": "0.1.3"
+      },
+      "release-0.1.1": {
+        "created_at": "2026-10-31T00:20:25.746887619Z",
+        "images": {
+          "server": "127.0.0.1:42528/agent-q-server@sha256:83aaa56fde68a958b501fbf9219f88241c2a64e136864f957f6e3944564b29de",
+          "worker": "127.0.0.1:42528/agent-q-worker@sha256:db29a3b0a691fc7bf6cee03696bc6ac50b938dad1996b377d1a8b9c767e72d29"
+        },
+        "manifest_version": 1,
+        "protocol": {
+          "max": 1,
+          "min": 1
+        },
+        "readable_state_formats": [
+          1,
+          2
+        ],
+        "source_revision": "suite-0.1.1",
+        "state_format": 2,
+        "upgrade_from": ">=0.1.0",
+        "version": "0.1.1"
+      },
+      "release-0.1.2": {
+        "created_at": "2026-10-31T00:20:46.266488470Z",
+        "images": {
+          "server": "127.0.0.1:42528/agent-q-server@sha256:c06cccdb5f49f160ea516c463076d1885b3ec780f4ae887b0cd7da1033521f72",
+          "worker": "127.0.0.1:42528/agent-q-worker@sha256:db29a3b0a691fc7bf6cee03696bc6ac50b938dad1996b377d1a8b9c767e72d29"
+        },
+        "manifest_version": 1,
+        "protocol": {
+          "max": 1,
+          "min": 1
+        },
+        "readable_state_formats": [
+          1,
+          2
+        ],
+        "source_revision": "suite-0.1.2",
+        "state_format": 2,
+        "upgrade_from": ">=0.1.0",
+        "version": "0.1.2"
+      },
+      "release-0.1.0": {
+        "created_at": "2026-10-31T00:20:05.249307915Z",
+        "images": {
+          "server": "127.0.0.1:42528/agent-q-server@sha256:81720b58e81e769b0569be317bf03485f0a0a968f2261c14bf8df3a70f750b93",
+          "worker": "127.0.0.1:42528/agent-q-worker@sha256:db29a3b0a691fc7bf6cee03696bc6ac50b938dad1996b377d1a8b9c767e72d29"
+        },
+        "manifest_version": 1,
+        "protocol": {
+          "max": 1,
+          "min": 1
+        },
+        "readable_state_formats": [
+          1,
+          2
+        ],
+        "source_revision": "suite-0.1.0",
+        "state_format": 2,
+        "upgrade_from": ">=0.1.0",
+        "version": "0.1.0"
+      }
+    },
+    "cleanup": "Suite asserted no project containers/volumes or registry remain."
+  },
+  "harness_files": {
+    "scripts/product-smoke.py": "d032d134eeb906c5e00fcedd6b97b32387f769926d3508babd033fbf2813e81d",
+    "scripts/check-worker-candidate.py": "77cb32913863e5abe03f73a7682ba2676af9f3b38100d1e473d803def437f000",
+    "scripts/worker-command.py": "f59b2f7c017e7b123d26cab65858d7bf97053b249d98a46e3c90eca5766fdd50",
+    "scripts/update-lifecycle": "456c4f3978f83358cddb6903816389080eee1daa3bf36306ced53ac7dd3681d7",
+    "Dockerfile": "5fbbca9a8329066636ff30385df1098e48d6a2eb4bdd278d84ee55df15fe226e",
+    "Dockerfile.worker": "c513788cfbd6b29eaa9c6f18774f3b556cbe5f1a2901c422b8b3dff33fbee3ee"
+  },
+  "accepted_tasks": [
+    "AQ-01",
+    "INT-01",
+    "GATE-01",
+    "GATE-02"
+  ],
+  "status": "complete (local exact-artifact candidate only)",
+  "qualified_at": "2026-10-31T00:24:14.950958+00:00",
+  "limits": [
+    "No hosted ingress/Access, public release publication or real signing authority.",
+    "Synthetic deterministic child only; no real model harness, source/Git handoff or graph task completion.",
+    "This updater run uses synthetic versions of state-format2 source, not a historical1->2 deployment migration.",
+    "Grant restart/expiry/cancellation coverage beyond the exercised paths remains separate GATE-03 acceptance.",
+    "Format1 release manifest is preserved; composite component upgrade inventory is future work."
+  ],
+  "development_attempts": [
+    {
+      "path": "aq-integration-cf87edf.43HTVO",
+      "excluded": "Prototype harness expected enrollment200 instead of201."
+    },
+    {
+      "path": "aq-integration-final-cf87edf.m2R7GZ",
+      "excluded": "Prototype harness expected revoke200 instead of204; execution assertions passed."
+    },
+    {
+      "path": "aq-integration-accepted-cf87edf.ueIsME",
+      "excluded": "DockerDesktop returned transient invalid IP on restart; address lookup now polls valid loopback mappings."
+    },
+    {
+      "path": "aq-integration-locked-cf87edf.UibZwh",
+      "excluded": "Revoke selector included execution one-off alongside heartbeat service; exact heartbeat ID is now retained before one-offs."
+    },
+    {
+      "path": "aq-cutover-lifecycle-mkpjafji",
+      "excluded": "WSL dynamic registry port unreachable from Docker daemon; explicit unique high port with daemon probe now used."
+    },
+    {
+      "path": "aq-cutover-lifecycle-final-3z361klu",
+      "excluded": "Passed7cases but preceded final sharing=locked cache policy; final locked run closes acceptance."
+    }
+  ]
+}
