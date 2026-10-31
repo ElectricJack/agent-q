@@ -26,7 +26,9 @@ Existing design and implementation sources:
 - [Native producer completion](../implementation/AQ-08-native-completion-plan.md),
   [versioned control delivery](../implementation/AQ-08-native-control-017.md),
   [exact0.1.7 standalone contract](../implementation/aq-admission-0.1.7-qualification.md),
-  [worker runtime](../../../aq-worker/docs/implementation/WRK-08-native-runtime-plan.md)
+  [worker runtime](../../../aq-worker/docs/implementation/WRK-08-native-runtime-plan.md),
+  [durable journal/restart boundary](../../../aq-worker/docs/implementation/WRK-08-native-journal-plan.md),
+  [private material installation](../../../aq-worker/docs/implementation/WRK-08-private-material-plan.md)
   and [first Codex adapter](../../../aq-worker/docs/implementation/WRK-08-codex-adapter-plan.md).
 - [Result settlement stages](../implementation/AQ-10-result-settlement-plan.md)
   and [validated historical result reads](../implementation/AQ-14-result-owner-read.md).
@@ -42,15 +44,16 @@ verified preparation receipts, current grant, guarded tmux launch, durable Start
 reporting, source/result handoff and evidence-based graph completion.
 
 The current producer/control plans specify transaction/lock order, operation
-receipts and recovery against the ordered state format24 foundation. Candidate
-025 belongs to native producer/source-observation work;026 belongs to human/check
-owners. Neither candidate is claimed as an installed migration. The original
+receipts and recovery against the ordered state format25 foundation. Migration025
+now owns typed source observations and authenticated native source reads; its
+focused component qualification is retained separately from the earlier full
+state24 run. Candidate026 belongs to human/check owners and remains unregistered. The original
 AQ-08 plan's migration numbers and stage status are historical; current owner
 records and exact published contracts govern.
 Context planning must use qualified model-capacity/counting facts, with unknown
 values explicit. It cannot invent a context window or represent unknown usage as
-zero. Specify the worker's matching durable journal transitions and private
-material installation/cleanup according to the native runtime plan, then implement
+zero. Implement the worker's matching durable journal transitions and connect the
+qualified private material installer according to the native runtime plan, then implement
 the pinned first Codex adapter configuration and standalone ownership gates.
 AQ-10 still needs the concrete evidence-validation and graph-settlement sequence.
 

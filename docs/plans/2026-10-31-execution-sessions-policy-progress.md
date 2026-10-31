@@ -35,7 +35,7 @@ Implemented components in that checkpoint:
   A blocked backend does not block actual daemon renew/cancel HTTP. No production
   commands or startup mount are implied by this foundation.
 
-Additional components now included in the state24 assembled source:
+Additional components integrated after the full state24 checkpoint:
 
 - [Admission0.1.6](../implementation/aq-admission-0.1.6-qualification.md) has43
   passing repository tests and43 passing independent extracted-package tests,
@@ -46,14 +46,21 @@ Additional components now included in the state24 assembled source:
   passing focused tests, including an actual export/retry/fresh-retention test
   against retained aq-git/Git binaries. Fixed bounded chunk reads reopen members
   without following symlinks. Migration022 adds durable quota reservation, verified
-  finalization and exact attempt linking. Native authenticated download and full
-  producer assembly still require integration.
+  finalization and exact attempt linking. The current authenticated status/chunk endpoints and typed Source observation
+  owner are now integrated through ordered migration025. Their
+  [frozen qualification](../implementation/AQ-08-source-025.qualification.md) passes
+  37 SQL/router/store tests and one metadata check, with one declared real-Git-peer
+  ignore, strict lint and formatting. Full producer assembly remains open.
 - Upstream keyed playbook admission is retained in aq-playbooks sourcea463e59:
   atomic run/receipt creation and protection against old writers. Its exact
   archive has158 all-feature test executions and strict lint/format checks.
   Central adoption now includes an explicitly mounted durable first bridge,
-  actual message.send adapter, cancellation and protected outbox. Default startup
-  configuration and broader command adapters remain in progress.
+  actual message.send adapter, cancellation and protected outbox. A subsequent
+  accepted-effect recovery fix is published as runner/Postgres/CLI0.1.2 at source
+  `d3bd349`, with160 independent extracted-package test executions. It fixes a
+  lost-reply recovery path that otherwise stranded an accepted human question in
+  Blocked. AQ host adoption and broader adapters remain separate integration work;
+  default startup is still open.
 - Migration024 records immutable result reports and exact Stopped/outcome bindings,
   bounded correction heads and replay receipts. The ledger does not accept results,
   release holds, settle source/effects or complete graph tasks.
@@ -61,12 +68,16 @@ Additional components now included in the state24 assembled source:
 Continuing work:
 
 - Native preparation/offer/grant assembly and actual worker consumer. The worker
-  now verifies actual inline artifact/startup bytes and consumes the existing
-  native reporting/download HTTP endpoints (12 focused tests, strict lint/fmt).
-  Transport review additionally fixes remote plaintext/ambient proxy acceptance
-  and pins explicit retry-never (13 focused tests). The exact0.1.7 control contract
-  passes53 independent extracted-package tests; actual producer routes and durable
-  worker control integration remain in progress.
+  now verifies actual inline artifact/startup bytes and consumes native reporting,
+  control and bounded source-download endpoints. The private material installer
+  commits exact lease/operation/boot provenance and private bytes before returning
+  a receipt. The latest worker client checkpoint `3bbf168` passes26 focused tests,
+  strict lint and formatting. Transport refuses remote plaintext and ambient
+  proxies and disables implicit retries. The exact0.1.7 control contract passes53
+  independent extracted-package tests. These components do not yet form a durable
+  execution driver: the [native journal/restart plan](../../../aq-worker/docs/implementation/WRK-08-native-journal-plan.md)
+  specifies immutable operation writes, uncertain-launch holds and stop-and-preserve
+  recovery. Source HTTP verification is not actual Git workspace hydration.
   The pinned Codex CLI interface inspection is non-authorizing; standalone
   guardian-owned executor and provider/model compatibility still need qualification.
   Pre-offer Git export must precede attempt/spec-bound transport wrapping. Final rendered startup

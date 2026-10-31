@@ -2778,7 +2778,7 @@
     },
     {
       "source": "2026-10-31-execution-sessions-policy-progress.md",
-      "summary": "Three-area design/implementation reconciliation: ordered state24 integration764tests, exact native startup contract and worker host consumer, durable source export/result recording/first playbook message bridge, independent terminal reader expiry and dense output decoding. Native control delivery, renderer baseline and exact human review/check ownership continue; product gates remain open."
+      "summary": "Three-area design/implementation reconciliation: full state24 checkpoint778tests; ordered state25 source-owner/read integration with38focused checks; exact native control, private material and source-client components with26worker tests. Durable native driver, physical terminal baseline and human/check integration continue; product gates remain open."
     },
     {
       "source": "../implementation/AQ-14-result-owner-read.md",
