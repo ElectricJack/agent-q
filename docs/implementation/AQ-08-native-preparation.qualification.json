@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "source_commit": "52b9575907934cab54696dedcf42bcb1c31240fe",
+  "baseline": "9ceb3dc",
+  "dependency_checkpoints": [
+    "881ee8e",
+    "539e3bd",
+    "562e130",
+    "d945633",
+    "791bce2",
+    "fba8e5f",
+    "f8c0517"
+  ],
+  "source_sha256": {
+    "Dockerfile": "2ade117894ecc05a7609403c2d485548e1ecfe41e7c028c543351241f88f1d3d",
+    "crates/aq-server/migrations/0025_native_source_observations.sql": "6fbb1ee724ddb9253aeb779e84f0a6953a41a9c1f23d4c2550defbd54dacc5c6",
+    "crates/aq-server/migrations/0027_native_definition_identities.sql": "02aa60ce3159a3d1447cb903e4cdd759c2b46caf6f846db5eea38ed2edf85bb6",
+    "crates/aq-server/src/admission.rs": "34548053d3bfaf58685f955aa8ffb2e21c592819c64673bd923f1498e6a5af06",
+    "crates/aq-server/src/intelligence/resolver.rs": "06e9d1b36f5bb724d9b8810d7fec099d9f8755c6b0969abad645c2b7f8e20ddc",
+    "crates/aq-server/src/lib.rs": "d0d8efb33f444e6a90d586639ac7675325bf4d19c7d04e07fb3d193fe8c665c4",
+    "crates/aq-server/src/profiled_execution.rs": "f28814daf3014f461eda08a0f21a65fb35e4c77e1261112fcc4303111f69c828",
+    "crates/aq-server/src/profiled_execution/artifacts.rs": "9b49ee5dca389c3a5d4fe9b9d34fd11730b83b2ec7964af1ec40dd3c92c7c116",
+    "crates/aq-server/src/profiled_execution/config.rs": "a5d34fa599940f4257b51dcf07b392eb84589c3d5b81d9a0538fe6556d28408f",
+    "crates/aq-server/src/profiled_execution/control_api.rs": "abd565ccb313f9f7ad23c9ff1029e5ac84712354a82638f00a7df8c7f09751dd",
+    "crates/aq-server/src/profiled_execution/definitions.rs": "02c6e1fbcf708f9fac8ed45fdc798bb7ae8625661d58b30635abf2545371da24",
+    "crates/aq-server/src/profiled_execution/material.rs": "97453ff8a06edfc45d2f06a02acd82251095d1c1b7535ebce351e8ad68f206e7",
+    "crates/aq-server/src/profiled_execution/material/issuance.rs": "1fbb7e82711870e2b81c189fc5c7a119d35ef134ab1a98cd65ddd05cd0ab6762",
+    "crates/aq-server/src/profiled_execution/policies.rs": "dbacc73aaa325fc86bd4c58f89b348aaab0e2a8d717299607f29e9a2d4f0b143",
+    "crates/aq-server/src/profiled_execution/preparation.rs": "1d288826884b0c7f285a75e59f80dea2df9fe6ec50f0b5d86bd254250c3eed4e",
+    "crates/aq-server/src/profiled_execution/source.rs": "d0d0b4b3d25fa70549000a751699a0c038ae33d727b33726b51c0de23f84eb9f",
+    "crates/aq-server/src/profiled_execution/source/ownership.rs": "0dd01b973ec9dddf30c308992ef162fc6a893cae5f16b5ece01e74854109917d",
+    "crates/aq-server/src/profiled_execution/source_api.rs": "62d526eedc1d1fdb983b734e8553ad59fd8a33d7a7a5656175fcbfbcefd7e3a5",
+    "crates/aq-server/src/profiled_execution/source_exports.rs": "26aba0a33abf5857a8f794b93438451501fb2033bf9f711315ba274bd5081894",
+    "crates/aq-server/src/profiled_execution/source_exports/completion.rs": "0da04d4e4b5ab2c81a91e837fc30b6a24a6a5aaa0cacfa3d2ea80c25567dbc4f",
+    "crates/aq-server/src/store.rs": "370dc8a76ce5c71103b3416da6dbea9da073a668be61b51204e53598add601db",
+    "crates/aq-server/tests/common/mod.rs": "757ed7794bbf9199e9faf2c0996119df1a868005466caee49d303f6447316498",
+    "crates/aq-server/tests/common/native_preparation.rs": "04a8d93d444a1eeffd0f5acccffc9b3a4020709dd6b4e4f7c3283323a7a4c42a",
+    "crates/aq-server/tests/common/native_started.rs": "f9a5372c64710cc48d081b62bb534ea5860149dc10d05c31d5b11ae0f2c20139",
+    "crates/aq-server/tests/common/profiled.rs": "fc9389917dbeb515f65d904430669d9813c51b7efa5cd2345a292671d9f92432",
+    "crates/aq-server/tests/common/selection.rs": "6967e8bbfed1131ceed536cc59d1bc7f6c7df1aa0bed445ff3e5137f6ab766e9",
+    "crates/aq-server/tests/common/source_exports.rs": "85ff3ef9e79a2994e6b0d7eb629cea8b8a8c63465d76ecaef68778334e565048",
+    "crates/aq-server/tests/native_definitions.rs": "e18989bd59e2ab6b107f573c7efe3c505e36fe420c78dc2c95ce19e8e83371a8",
+    "crates/aq-server/tests/native_inventory.rs": "12c45654338689027d8511b9d51255dcf9c1947f0306e9d112986fe856dd620f",
+    "crates/aq-server/tests/native_material_issuance.rs": "6e51b5cc535c8e3828cddcf0401ab22fdeae265c4fef5ad0af73efe8cc0c195d",
+    "crates/aq-server/tests/native_preparation.rs": "19c875d8d308652235ae29a10f5ba4a40d7a459d4f87f86cf3a5da15b4fb7ecd",
+    "crates/aq-server/tests/native_registration.rs": "b006eec96a364b544c56bc73faeb640824a29b1bf9a304230a5e15c94fb51cb4",
+    "crates/aq-server/tests/native_source.rs": "4e114c4a08ca5bcc5a55699ef458b7a2fb97d1eea7fc852feca9d9e8dbba7c7f",
+    "crates/aq-server/tests/profiled_artifact_phases.rs": "45a235d96b6e57618b84636b24565d90b54d9b905bc58abd55607e8e83ec2b8c",
+    "crates/aq-server/tests/profiled_artifacts.rs": "83249801aafda8097ff65c1503c0a8045f17951ea4a97da04bc7992877e15a68",
+    "crates/aq-server/tests/profiled_config.rs": "84e93e408511440a6853f6ab0388b4199bce4518e57889b3e7f0cd04542e3266",
+    "crates/aq-server/tests/profiled_context.rs": "6f13b00019b07d8cf8bdc7a3011b68bc5c70611b8bd4d856c37352b2a0f6dbec",
+    "crates/aq-server/tests/profiled_material.rs": "8bee52d4438acbe3fd432a15f5801d39c07338bb416670a2e7ea6b75189fd173",
+    "crates/aq-server/tests/profiled_source.rs": "05261fc113937de28ac7b4c7d4cae1f4950258d0e912345f1bff8e3203685fd9",
+    "crates/aq-server/tests/profiled_source_exports.rs": "0512e5592254c3397dc631dc0640a75d63b247054f5c4889bf53bf099e7dd090",
+    "crates/aq-server/tests/project_bindings.rs": "42b9831eb76788b6afdb6de235f19b3dac3bc9a18efe73c6e9cce89893cdc670",
+    "docs/implementation/AQ-08-native-completion-plan.md": "b3381dabe99b8bb2bf4615565a68f4bf7303c632ae4fd5bfa119748b1225e330",
+    "docs/implementation/AQ-08-native-control-017.md": "2870a2521fe207e53e5024f95f508718ae82843a8e99885bbfd54b2dcdf803ec",
+    "docs/implementation/AQ-08-plan.md": "e5ffb142aff6fbb35cd80b12aec82ccbb0a6b4b92685c0ed30c0e3ada3561741"
+  },
+  "logs": {
+    "docs/implementation/evidence/aq08-preparation-52b9575/focused.log": {
+      "sha256": "d03848745e5eac473d7ccd27ef24c5b11fa62e80c595ae5044327e33b7c831bd",
+      "bytes": 9452
+    },
+    "docs/implementation/evidence/aq08-preparation-52b9575/clippy.log": {
+      "sha256": "8459f3a19e60465356b69d50ddc7661a5ab4000e717506fecb5cb7a6a96ac883",
+      "bytes": 148
+    },
+    "docs/implementation/evidence/aq08-preparation-52b9575/format.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "results": {
+    "total_passed": 84,
+    "total_failed": 0,
+    "declared_real_git_graph_peer_ignore": 1,
+    "native_preparation": 11,
+    "material_issuance": 1,
+    "definition_owner": 3,
+    "native_source": 6,
+    "never_granted": 7,
+    "profiled_authority": 7,
+    "source_exports": 9,
+    "started": 6,
+    "stopped": 8,
+    "project_bindings": 12,
+    "store": 14,
+    "strict_server_all_target_all_feature_clippy": "pass",
+    "format": "pass"
+  },
+  "commands": [
+    "RUST_TEST_THREADS=4 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo test -p aq-server --test native_preparation --test native_material_issuance --test native_definitions --test project_bindings --test profiled_authority --test profiled_source_exports --test native_source --test profiled_started --test profiled_stopped --test never_granted --test store --locked --offline",
+    "CARGO_BUILD_JOBS=2 CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target cargo clippy -p aq-server --all-targets --all-features --locked --offline -- -D warnings",
+    "cargo fmt --package aq-server --check"
+  ],
+  "scope": [
+    "Mounted raw Accept with unique physical-send nonce and bounded0.1.7 preparation reply.",
+    "Actual retained selector Decision, current authenticated node/configuration/registry/project/policy/budget fence; exactly current ungranted reservation comparison only.",
+    "Atomic single admitted material lease/mapping, Preparing transition, Reserved journal and immutable original plan receipt.",
+    "Actual existing private-material HTTP delivery, no grant/Running/process/provider/source-effect mutation.",
+    "No published contract/archive/Cargo byte changes."
+  ],
+  "limitations": [
+    "Sealed offer and public Git/Graph peer data are explicitly synthetic component fixtures; source I/O real-component qualification remains separate.",
+    "Actual ready/context/composition/selection/artifact/source offer assembler and poll/prepare/grant/renew/reconcile handlers remain incomplete.",
+    "No real native CLI/model/counting/resource enforcement or fleet throughput/deployment qualification claimed.",
+    "Draft027 explicitly applied in definition component tests only, unregistered until026; normal migration chain here is1..25.",
+    "Strict original snapshot fences refuse changes/expiry; no hidden model/account fallback or refreshed choice.",
+    "Startup-only bounded aggregate quotas are logical uncompressed storage charges, not RSS/PostgreSQL allocation ceilings; full combined root qualification remains separate.",
+    "A fixture-clock refactor regression was caught by existing NeverGranted history tests; default historical fixture timing was restored before final84-pass run."
+  ]
+}
