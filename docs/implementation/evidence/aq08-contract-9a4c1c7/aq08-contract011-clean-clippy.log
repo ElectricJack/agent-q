@@ -1,0 +1,7 @@
+    Checking aq-session-protocol v0.1.0 (/tmp/aq08-contract-clean-9a4c1c7/vendor/aq-session-protocol-0.1.0)
+    Checking aq-lifecycle-protocol v0.1.0 (/tmp/aq08-contract-clean-9a4c1c7/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking aq-session-api v0.1.0 (/tmp/aq08-contract-clean-9a4c1c7/crates/aq-session-api)
+    Checking aq-profiles v0.1.0 (/tmp/aq08-contract-clean-9a4c1c7/crates/aq-profiles)
+    Checking aq-admission v0.1.1 (/tmp/aq08-contract-clean-9a4c1c7/crates/aq-admission)
+    Checking aq-selection v0.1.1 (/tmp/aq08-contract-clean-9a4c1c7/crates/aq-selection)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.94s

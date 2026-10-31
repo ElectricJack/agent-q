@@ -1,0 +1,106 @@
+   Compiling schemars v1.2.3
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq08-contract-clean-9a4c1c7/vendor/aq-session-protocol-0.1.0)
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/aq08-contract-clean-9a4c1c7/vendor/aq-lifecycle-protocol-0.1.0)
+   Compiling aq-session-api v0.1.0 (/tmp/aq08-contract-clean-9a4c1c7/crates/aq-session-api)
+   Compiling aq-profiles v0.1.0 (/tmp/aq08-contract-clean-9a4c1c7/crates/aq-profiles)
+   Compiling aq-admission v0.1.1 (/tmp/aq08-contract-clean-9a4c1c7/crates/aq-admission)
+   Compiling aq-selection v0.1.1 (/tmp/aq08-contract-clean-9a4c1c7/crates/aq-selection)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.11s
+     Running unittests src/lib.rs (/home/jkern/dev/agent-q/target/debug/deps/aq_admission-6809a8e1ef5fec3c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/common.rs (/home/jkern/dev/agent-q/target/debug/deps/common-9c2d0cbfa7cbf8f7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contracts.rs (/home/jkern/dev/agent-q/target/debug/deps/contracts-1b86558f8646423e)
+
+running 7 tests
+test material_bytes_and_receipts_are_exact_attempt_binding_not_presence_claims ... ok
+test source_requires_explicit_safe_ref_or_matching_immutable_object_and_freshness ... ok
+test artifact_requires_real_matching_bytes_and_current_retention_metadata ... ok
+test shipped_shared_offer_uses_exact_existing_launch_binding_bridge ... ok
+test mutations_reject_unknown_duplicate_nil_unbounded_and_wrong_versions ... ok
+test retained_role_and_byte_coverage_validates_against_resealed_public_offer ... ok
+test published_schema_and_fixtures_drift_test_packaged_artifacts ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/placement.rs (/home/jkern/dev/agent-q/target/debug/deps/placement-5824ff6e8fede56d)
+
+running 5 tests
+test oversized_head_does_not_hide_later_fit_and_resources_are_reserved_in_proposal ... ok
+test bounded_project_round_robin_preserves_priority_then_advances_cursor ... ok
+test stale_boot_capacity_candidate_and_duplicate_subjects_never_become_authority ... ok
+test warmth_is_only_after_eligibility_and_cold_nodes_can_prepare ... ok
+test stable_ties_and_snapshot_bounds_are_explicit ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/task_lineage.rs (/home/jkern/dev/agent-q/target/debug/deps/task_lineage-8509295e1900de18)
+
+running 2 tests
+test namespace_cannot_be_reset_by_attempt_and_nil_scope_refuses ... ok
+test independent_python_raw_uuid_vectors_are_stable ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/transport.rs (/home/jkern/dev/agent-q/target/debug/deps/transport-5d526b321fc453af)
+
+running 4 tests
+test roundtrip_budget_is_charged_and_replay_cannot_restart_ttl ... ok
+test stop_journal_requires_durable_closed_reservation_and_unknown_never_releases ... ok
+test exact_stop_replay_is_immutable_and_journal_order_is_launch_scoped ... ok
+test published_transport_replays_and_mutations_reject_duplicate_unknown_and_scope ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/home/jkern/dev/agent-q/target/debug/deps/aq_selection-079c9211ab3594ec)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/selection.rs (/home/jkern/dev/agent-q/target/debug/deps/selection-9325fe6f603132d4)
+
+running 20 tests
+test independent_matching_source_cannot_clear_another_sources_live_restriction ... ok
+test project_environment_allowlist_cannot_be_widened_by_installed_qualified_adapter ... ok
+test cold_node_selects_only_explicit_owned_preparation_and_preserves_material_provenance ... ok
+test source_sequence_precedes_wall_clock_when_history_contains_clock_correction ... ok
+test installed_only_v010_snapshots_and_decisions_roundtrip_byte_semantics_unchanged ... ok
+test fallback_unsupported_is_explicit_and_provider_specific_reasoning_remains_native ... ok
+test classified_worker_failure_is_bound_to_exact_sealed_choice_and_current_boot ... ok
+test arbitrary_node_delivery_claims_cannot_manufacture_keys_owner_identity_or_current_boot ... ok
+test worker_failure_cannot_claim_account_wide_availability_or_survive_boot_reuse ... ok
+test explicit_fallback_and_cooldown_do_not_implicitly_downgrade ... ok
+test stable_order_chooses_exact_native_configuration_without_equating_reasoning_controls ... ok
+test lineage_retry_cost_and_replacement_budgets_cannot_reset_on_fallback ... ok
+test ledger_unknown_is_not_zero_and_hard_cost_requires_qualified_provider_and_adapter ... ok
+test unknown_cost_never_bypasses_known_exhaustion_or_incompatible_currency ... ok
+test unknown_availability_can_only_allow_bounded_attempt_with_present_credentials ... ok
+test observations_scope_account_endpoint_model_node_and_credential_revision_exactly ... ok
+test installed_credential_and_central_authorization_are_independent ... ok
+test missing_policy_old_catalog_is_explicitly_ineligible_and_snapshots_are_bound ... ok
+test published_human_selection_preserves_exact_provenance_and_refuses_changed_decisions ... ok
+test stale_node_and_unsupported_native_settings_never_become_unknown_availability_attempts ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+   Doc-tests aq_admission
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aq_selection
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
