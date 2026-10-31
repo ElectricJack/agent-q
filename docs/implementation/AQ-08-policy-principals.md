@@ -50,3 +50,29 @@ service provenance with no human actor, independent replay namespaces, changed
 payloads, current human-role revocation, policy disablement and an observed SQL
 policy-lock wait crossing the decision deadline. Migration017 is explicitly
 installed by these tests until ordered registration follows015 and016.
+
+## Source-policy installation follow-up
+
+`profiled_execution::policies::install` is a daemon-owner service, with no public
+HTTP route or actor argument. It runs before dispatch and when configured
+projects acquire their real project binding. It computes the full configuration
+digest once, installs bound policies, and reports unbound projects as ineligible.
+It creates no project, workspace or human identity.
+
+A reserved `meta` record (`profiled_policy_configuration_v1`) retains the global
+revision and digest even when there are no projects or policy rows. Otherwise an
+older daemon could restore a removed configuration after an empty installation.
+The installer uses one advisory owner lock, then project predicates before source
+policy updates. Policy records, omission tombstones and the configuration owner
+commit atomically. Same revision/content is idempotent; lower revisions and
+same-revision changed content refuse. Retained policy history is capped at1024
+project rows, with individual records bounded to64 KiB. Unknown legacy policy
+shapes require an explicit owner migration rather than being guessed into the
+new authority scheme.
+
+Removing the local configuration section makes this daemon's installer a no-op;
+it does not claim to revoke another installed configuration. To retire all
+policies, install a higher explicit revision with an empty projects list. Removed
+projects retain disabled records and their prior source identity. This service
+must be invoked by the runtime owner before dispatch; the final resolver fence
+still verifies current configured and installed policy on every admission.
