@@ -27,3 +27,23 @@ private bytes. A preparation receipt must verify delivery before any usable
 execution grant; readiness never means a key is installed. No provider network
 call is made to infer account identity or availability. Actual runtime offer,
 prepare, delivery and worker installation remain separate integration gates.
+
+## Native inventory preparation facts
+
+The existing inventory route now authenticates with the opaque current-node
+context and rechecks the credential under the node lock. For an actually admitted
+native runtime, its exact configured delivery adapter can enable a fresh bounded
+file check before any SQL locks. Up to four blocking file-owner observations run
+concurrently; each retains its admission permit until the file read finishes,
+including after the two-second request wait expires. No model/provider call is
+made. The final transaction rechecks the admitted runtime, full installed
+configuration anchor, registry revision, boot and observation age after lock and
+quota waits. Observation time is retained rather than refreshed after waiting.
+
+Derived credential bindings have `available=false` and exact node/boot/adapter
+preparation provenance. Missing, unsafe or changed files yield no preparation
+fact. Workers cannot submit delivery capabilities or preparation facts in the
+inventory request, and `available=true` is refused for credentials configured for
+server delivery until the real verified material-receipt owner exists. Existing
+installed-only mode retains its original report behavior. These snapshots can
+make a cold candidate eligible for preparation; they cannot issue a grant.

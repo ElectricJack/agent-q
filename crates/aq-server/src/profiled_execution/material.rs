@@ -64,14 +64,29 @@ pub fn read_for_lease(
     {
         return Err(MaterialError::Scope);
     }
+    let bytes = read_configured(registry, index)?;
+    if aq_admission::Digest::of(bytes.bytes()) != lease.material_digest
+        || bytes.bytes().len() as u64 != lease.material_bytes
+    {
+        return Err(MaterialError::Changed);
+    }
+    Ok(bytes)
+}
+
+fn read_configured(
+    registry: &LoadedRegistry,
+    index: usize,
+) -> Result<ProtectedMaterial, MaterialError> {
     let expected = registry
         .fingerprints
         .get(index)
         .and_then(Option::as_ref)
         .ok_or(MaterialError::Unavailable)?;
-    let path = configured
-        .secret_file
-        .as_ref()
+    let path = registry
+        .config
+        .credentials
+        .get(index)
+        .and_then(|c| c.secret_file.as_ref())
         .ok_or(MaterialError::Unavailable)?;
     let file = OpenOptions::new()
         .read(true)
@@ -92,14 +107,67 @@ pub fn read_for_lease(
     if bytes.is_empty() || bytes.len() > 65_536 {
         return Err(MaterialError::Unavailable);
     }
-    let digest = aq_admission::Digest::of(&bytes);
-    if digest.as_str() != expected
-        || digest != lease.material_digest
-        || bytes.len() as u64 != lease.material_bytes
-    {
+    if aq_admission::Digest::of(&bytes).as_str() != expected {
         return Err(MaterialError::Changed);
     }
     Ok(ProtectedMaterial(bytes))
+}
+/// Trusted daemon facts only. Call outside SQL locks, then fence the exact
+/// admitted runtime, registry and observation age in the write transaction.
+/// File presence yields preparation readiness, never installed availability.
+pub(crate) fn provisioning_bindings(
+    registry: &LoadedRegistry,
+    node: Uuid,
+    boot: Uuid,
+    delivery: &aq_selection::DeliveryCapability,
+    observed: u64,
+    expires: u64,
+) -> Vec<aq_selection::CredentialBinding> {
+    if node.is_nil()
+        || boot.is_nil()
+        || observed == 0
+        || expires <= observed
+        || expires - observed > 120_000
+        || delivery.version != 1
+    {
+        return vec![];
+    }
+    registry
+        .credentials
+        .iter()
+        .enumerate()
+        .filter_map(|(index, c)| {
+            let cfg = registry.config.credentials.get(index)?;
+            let owner = c.material_owner.as_ref()?;
+            if !c.enabled
+                || !c.provisionable
+                || cfg.delivery_mode.is_none()
+                || !cfg.allowed_node_ids.contains(&node)
+                || read_configured(registry, index).is_err()
+            {
+                return None;
+            }
+            Some(aq_selection::CredentialBinding {
+                credential_revision: c.revision,
+                credential_profile: c.profile.clone(),
+                available: false,
+                preparation: Some(aq_selection::ProvisioningReadiness {
+                    owner: owner.clone(),
+                    credential_profile: c.profile.clone(),
+                    credential_revision: c.revision,
+                    target: aq_selection::ExecutionTarget::Worker {
+                        node_id: node,
+                        boot_id: boot,
+                    },
+                    delivery: delivery.clone(),
+                    observed_at_ms: observed,
+                    expires_at_ms: expires,
+                }),
+                observed_at_ms: observed,
+                expires_at_ms: expires,
+            })
+        })
+        .collect()
 }
 
 #[cfg(test)]
