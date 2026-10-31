@@ -214,6 +214,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         include_str!("../migrations/0020_inline_artifact_owner.sql"),
     ),
     (21, include_str!("../migrations/0021_profiled_stopped.sql")),
+    (
+        22,
+        include_str!("../migrations/0022_profiled_source_exports.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.

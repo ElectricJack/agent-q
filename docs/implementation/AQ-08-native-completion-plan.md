@@ -6,11 +6,26 @@ plan for worker execution, subordinate to architecture0003/0004 and the
 It supersedes the historical stage1-only AQ08 plan. None of the remaining routes
 or native producer transitions below are claimed installed by this document.
 
+## Current increments
+
+The qualified context projection/counting slice is5510d3d; byte-verifiable native
+startup delivery is c3f49fd with single-descriptor correction70e98fe. Their facts
+and contracts are prerequisites, not an installed native producer or real model
+qualification. The source I/O owner9fa3428/bad2cb9 verifies actual retained Git
+exports/chunks before any attempt; source owner022 adds durable quota and exact
+reconciliation/completion/linkage. See [the022 storage review](AQ-08-native-storage-022.md).
+Migration022 does not add poll/accept/prepare/grant/renew handlers. The ordinary
+first native worker consumer and final startup-byte assembly/counting remain
+next required increments; missing actual CLI/model facts continue to refuse.
+
 ## Ownership and immutable contracts
 
-Reuse `aq-admission`0.1.3 transport/execution-spec/Started DTOs and the pinned
-session/lifecycle identities. Root owns additive stopped evidence0.1.4 and
-migration021; the native producer reserves022 for reviewed storage additions.
+Reuse the frozen transport/execution-spec/Started DTOs through current
+`aq-admission`0.1.6 and pinned session/lifecycle identities. Additive stopped
+and outcome owners are installed through migration021; the0.1.6 startup profile
+and report-recording acknowledgment have exact qualified archives. The native
+producer's022 candidate is functional pre-offer source ownership only; later
+phase storage needs a separately coordinated migration.
 No existing migration or publication is edited in place. Any missing typed
 reconcile reply or genuinely incompatible envelope is coordinated/versioned
 before use; generic undocumented JSON is not a substitute.
