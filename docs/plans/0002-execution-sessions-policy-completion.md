@@ -25,6 +25,7 @@ Existing design and implementation sources:
   [artifact owner](../implementation/AQ-08-inline-artifacts.md).
 - [Native producer completion](../implementation/AQ-08-native-completion-plan.md),
   [versioned control delivery](../implementation/AQ-08-native-control-017.md),
+  [exact0.1.7 standalone contract](../implementation/aq-admission-0.1.7-qualification.md),
   [worker runtime](../../../aq-worker/docs/implementation/WRK-08-native-runtime-plan.md)
   and [first Codex adapter](../../../aq-worker/docs/implementation/WRK-08-codex-adapter-plan.md).
 - [Result settlement stages](../implementation/AQ-10-result-settlement-plan.md)
@@ -80,7 +81,9 @@ Canonical work: AQ-21, WRK-14, WRK-09, AQ-22, WRK-15 and AQ-23.
 The terminal plans specify output acquisition, epoch/sequence and snapshot
 barriers, bounded buffering, reconnect/gap handling and production worker adoption.
 Reader expiry and dense incremental output decoding are now qualified components;
-full renderer/baseline and runtime adoption remain open. Input/resize qualification does not establish renderer state or
+the pure bounded renderer now has16 passing component tests and a retained actual
+tmux REP counterexample that causes conservative refusal. Physical baseline,
+resize barriers, snapshots and runtime adoption remain open. Input/resize qualification does not establish renderer state or
 live viewing. CLI attach/peek should use the same authorized relay; a dashboard
 implementation is outside this batch.
 
@@ -116,14 +119,20 @@ Existing design and implementation sources:
   and [latest measured experiment](../../../aq-playbooks/docs/implementation/PB-04.lookahead.md).
 - [AQ-12 through AQ-17 implementation plan](../implementation/AQ-12-through-17-plan.md),
   [first durable bridge](../implementation/AQ-13-first-bridge.md) and
-  [exact human/check ownership](../implementation/AQ-14-decision-check-owner-design.md).
+  [exact human/check ownership](../implementation/AQ-14-decision-check-owner-design.md),
+  [standalone review protocol](../implementation/AQ-14-review-protocol.md) and
+  [optional human/source owner](../implementation/AQ-14-human-owner-checkpoint.md).
 
 Canonical work: AQ-12 through AQ-17, applicable escalation/digest portions of
 AQ-27, WRK-09 and PB-04.
 
 The engine and AQ host have concrete implementation plans. The explicitly mounted
 first bridge now has durable keyed admission, message.send, cancellation and a
-protected outbox. Default startup and broader adapters remain open. Use current
+protected outbox. The candidate human/source owner has actual PG component
+qualification for competing answers, current role/expiry fences and atomic
+receipt/outbox writes; its optional admin routes are disabled by default and026
+remains unregistered. Profile2 decision adapter, executed checks, completion
+reconciliation and default startup remain open. Use current
 messaging, graph, selection and notification services; dated foundation-only route
 inventories must not cause duplicate owners to be implemented.
 

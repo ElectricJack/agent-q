@@ -63,7 +63,10 @@ Continuing work:
 - Native preparation/offer/grant assembly and actual worker consumer. The worker
   now verifies actual inline artifact/startup bytes and consumes the existing
   native reporting/download HTTP endpoints (12 focused tests, strict lint/fmt).
-  Durable native journal, installation and runnable control integration remain.
+  Transport review additionally fixes remote plaintext/ambient proxy acceptance
+  and pins explicit retry-never (13 focused tests). The exact0.1.7 control contract
+  passes53 independent extracted-package tests; actual producer routes and durable
+  worker control integration remain in progress.
   The pinned Codex CLI interface inspection is non-authorizing; standalone
   guardian-owned executor and provider/model compatibility still need qualification.
   Pre-offer Git export must precede attempt/spec-bound transport wrapping. Final rendered startup
@@ -83,9 +86,12 @@ Continuing work:
   307 normal tests, 39 ignored, 32 actual host
   and 3 actual bridge tests, with strict lint/formatting. Full rendering/baseline
   and native runtime adoption remain open.
-- Broader AQ playbook adapters and actual default host startup. Exact human review
-  subjects and executed check ownership are the next separate design/implementation
-  slice; a human answer is not a result eligibility or completion receipt.
+- Broader AQ playbook adapters and actual default host startup. The pure review
+  protocol passes11 standalone tests. The optional human/source owner is now
+  integrated as a candidate026 component:11 actual-PG tests plus2 current-retention
+  checks, with strict lint/formatting. Its source peer is synthetic; actual native
+  Git end-to-end qualification, ordered026, profile2 decision adapter and executed
+  check ownership remain open. A human answer is not result eligibility/completion.
   PB04's 25ms latency target remains unmet and is not relaxed.
 
 No live-provider qualification, deployment, external human notification or push

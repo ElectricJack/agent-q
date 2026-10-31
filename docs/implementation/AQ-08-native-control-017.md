@@ -1,8 +1,9 @@
-# Native worker control replies: admission0.1.7 candidate
+# Native worker control replies: admission0.1.7
 
-Status: design candidate before implementation/publication. Frozen0.1.6 and its
-archive remain unchanged. This document specifies the missing native control
-replies; it does not claim poll/accept/prepare/grant/renew handlers are installed.
+Status: pure contract implemented and locally published as an exact retained
+archive; [standalone qualification](aq-admission-0.1.7-qualification.md) passes53
+tests, strict lint and formatting. Frozen0.1.6 and its archive remain unchanged.
+Actual poll/accept/prepare/grant/renew producer handlers remain in progress.
 The source022 checkpoint owns only source preparation. Migration025 is reserved
 for the actual producer's required storage and typed inline Source observation.
 
