@@ -224,6 +224,11 @@ const MIGRATIONS: &[(i32, &str)] = &[
         25,
         include_str!("../migrations/0025_native_source_observations.sql"),
     ),
+    (26, include_str!("../migrations/0026_review_owners.sql")),
+    (
+        27,
+        include_str!("../migrations/0027_native_definition_identities.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
