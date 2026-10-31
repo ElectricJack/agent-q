@@ -46,7 +46,6 @@ Read the mapped source and regression cases before implementing an affected task
 | [WRK-11](#wrk-11) | aq-worker | Qualify the Claude Code harness adapter |
 | [WRK-12](#wrk-12) | aq-worker | Qualify the Gemini CLI harness adapter |
 | [WRK-13](#wrk-13) | aq-worker | Qualify the OpenCode harness adapter |
-| [WRK-14](#wrk-14) | aq-worker | Implement the bounded outbound terminal bridge |
 
 The daemon authority track can start after BASE-01 and CON-01. The worker runtime track follows connector extraction. Graph, Git and playbook qualification are independent early tracks; they are not artificial prerequisites for fake-agent execution. Dashboard work waits for a versioned inspection/action API, but does not wait for production deployment.
 
@@ -181,7 +180,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [WRK-11](#wrk-11): Qualify the Claude Code harness adapter | aq-worker | [CON-02](#con-02), [WRK-05](#wrk-05), [WRK-06](#wrk-06), [WRK-10](#wrk-10) | planned |
 | [WRK-12](#wrk-12): Qualify the Gemini CLI harness adapter | aq-worker | [CON-02](#con-02), [WRK-05](#wrk-05), [WRK-06](#wrk-06), [WRK-10](#wrk-10) | planned |
 | [WRK-13](#wrk-13): Qualify the OpenCode harness adapter | aq-worker | [CON-02](#con-02), [WRK-05](#wrk-05), [WRK-06](#wrk-06), [WRK-10](#wrk-10) | planned |
-| [WRK-14](#wrk-14): Implement the bounded outbound terminal bridge | aq-worker | [CON-02](#con-02), [WRK-10](#wrk-10) | planned |
+| [WRK-14](#wrk-14): Implement the bounded outbound terminal bridge | aq-worker | [CON-02](#con-02), [WRK-10](#wrk-10) | in_progress |
 | [UI-03](#ui-03): Build profile/session inspection and terminal watch/control | aq-dashboard | [UI-01](#ui-01), [CON-02](#con-02) | planned |
 | [INT-02](#int-02): Qualify composed profiles, four harnesses and remote terminals | agent-q | [GATE-04](#gate-04), [AQ-17](#aq-17), [AQ-21](#aq-21), [WRK-09](#wrk-09), [WRK-11](#wrk-11), [WRK-12](#wrk-12), [WRK-13](#wrk-13), [WRK-14](#wrk-14), [UI-03](#ui-03) | planned |
 | [UI-04](#ui-04): Expose session health, accounting, waits and notification delivery | aq-dashboard | [UI-01](#ui-01), [CON-03](#con-03) | planned |
@@ -646,7 +645,7 @@ Acceptance:
 
 Requirement links: D1, D6, D9, W3, W4, W5, W13, P2, P4, P5, P6, P7.
 
-Evidence: [AQ-08-stage1.md](../implementation/AQ-08-stage1.md), [AQ-08-stage1.json](../implementation/AQ-08-stage1.json), [AQ-08-contract-0.1.1.json](../implementation/AQ-08-contract-0.1.1.json), [AQ-08-execution-spec-0.1.2.json](../implementation/AQ-08-execution-spec-0.1.2.json), [AQ-08-hot-authority-qualification.json](../implementation/AQ-08-hot-authority-qualification.json), [AQ-08-source-grant-gate-qualification.json](../implementation/AQ-08-source-grant-gate-qualification.json), [AQ-08-never-granted-closure.md](../implementation/AQ-08-never-granted-closure.md), [AQ-08-policy-principals.md](../implementation/AQ-08-policy-principals.md), [AQ-08-policy-install-qualification.json](../implementation/AQ-08-policy-install-qualification.json), [AQ-08-AQ-22-state17-qualification.json](../implementation/AQ-08-AQ-22-state17-qualification.json).
+Evidence: [AQ-08-stage1.md](../implementation/AQ-08-stage1.md), [AQ-08-stage1.json](../implementation/AQ-08-stage1.json), [AQ-08-contract-0.1.1.json](../implementation/AQ-08-contract-0.1.1.json), [AQ-08-execution-spec-0.1.2.json](../implementation/AQ-08-execution-spec-0.1.2.json), [AQ-08-hot-authority-qualification.json](../implementation/AQ-08-hot-authority-qualification.json), [AQ-08-source-grant-gate-qualification.json](../implementation/AQ-08-source-grant-gate-qualification.json), [AQ-08-never-granted-closure.md](../implementation/AQ-08-never-granted-closure.md), [AQ-08-policy-principals.md](../implementation/AQ-08-policy-principals.md), [AQ-08-policy-install-qualification.json](../implementation/AQ-08-policy-install-qualification.json), [AQ-08-AQ-22-state17-qualification.json](../implementation/AQ-08-AQ-22-state17-qualification.json), [AQ-08-started-owner.md](../implementation/AQ-08-started-owner.md), [AQ-08-started-contract-0.1.3.json](../implementation/AQ-08-started-contract-0.1.3.json), [AQ-08-AQ-21-state19-qualification.json](../implementation/AQ-08-AQ-21-state19-qualification.json), [AQ-08-provider-material-owner.md](../implementation/AQ-08-provider-material-owner.md), [AQ-08-source-observation.md](../implementation/AQ-08-source-observation.md).
 
 ### WRK-05
 
@@ -1105,7 +1104,7 @@ Requirement links: S1, S2, S3, S5.
 
 Outside this task: Inferring semantic progress from token count or retaining unlimited transcripts.
 
-Evidence: [AQ-22-plan.md](../implementation/AQ-22-plan.md), [AQ-22-ledger.md](../implementation/AQ-22-ledger.md), [AQ-22-inspection.md](../implementation/AQ-22-inspection.md), [AQ-22-observation-api.json](../implementation/AQ-22-observation-api.json), [AQ-22-mounted-qualification.json](../implementation/AQ-22-mounted-qualification.json), [AQ-22-transport-ownership.md](../implementation/AQ-22-transport-ownership.md), [AQ-22-transport-qualification.json](../implementation/AQ-22-transport-qualification.json), [AQ-08-AQ-22-state17-qualification.json](../implementation/AQ-08-AQ-22-state17-qualification.json).
+Evidence: [AQ-22-plan.md](../implementation/AQ-22-plan.md), [AQ-22-ledger.md](../implementation/AQ-22-ledger.md), [AQ-22-inspection.md](../implementation/AQ-22-inspection.md), [AQ-22-observation-api.json](../implementation/AQ-22-observation-api.json), [AQ-22-mounted-qualification.json](../implementation/AQ-22-mounted-qualification.json), [AQ-22-transport-ownership.md](../implementation/AQ-22-transport-ownership.md), [AQ-22-transport-qualification.json](../implementation/AQ-22-transport-qualification.json), [AQ-08-AQ-22-state17-qualification.json](../implementation/AQ-08-AQ-22-state17-qualification.json), [AQ-08-AQ-21-state19-qualification.json](../implementation/AQ-08-AQ-21-state19-qualification.json).
 
 ### AQ-23
 
@@ -1442,7 +1441,7 @@ Requirement links: R1, R2, R3, R4, R5, R6, D7, D9, S1.
 
 Outside this task: Browser rendering, literal terminal input as domain approval, unbounded transcript retention.
 
-Evidence: [AQ-21-migration12.md](../implementation/AQ-21-migration12.md), [AQ-21-migration12.json](../implementation/AQ-21-migration12.json).
+Evidence: [AQ-21-migration12.md](../implementation/AQ-21-migration12.md), [AQ-21-migration12.json](../implementation/AQ-21-migration12.json), [AQ-21-relay-integration-qualification.json](../implementation/AQ-21-relay-integration-qualification.json), [AQ-08-AQ-21-state19-qualification.json](../implementation/AQ-08-AQ-21-state19-qualification.json).
 
 ### WRK-11
 
@@ -1511,7 +1510,7 @@ Outside this task: Unqualified CLI versions, pretending optional native capabili
 
 **Implement the bounded outbound terminal bridge**
 
-Owner: `aq-worker`. Milestone: M6. Kind: implementation. Status: planned.
+Owner: `aq-worker`. Milestone: M6. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [CON-02](#con-02), [WRK-10](#wrk-10).
 
@@ -1667,7 +1666,7 @@ Requirement links: E8, D7.
 
 Outside this task: A second editable workflow-state store, arbitrary eviction of unresolved work, a 500-agent claim from component microbenchmarks.
 
-Evidence: [PB-04.stage-a.md](../../../aq-playbooks/docs/implementation/PB-04.stage-a.md), [PB-04.stage-a.json](../../../aq-playbooks/docs/implementation/PB-04.stage-a.json), [PB-04.proposal.md](../../../aq-playbooks/docs/implementation/PB-04.proposal.md), [PB-04.prototype.md](../../../aq-playbooks/docs/implementation/PB-04.prototype.md), [PB-04.prototype.json](../../../aq-playbooks/docs/implementation/PB-04.prototype.json).
+Evidence: [PB-04.stage-a.md](../../../aq-playbooks/docs/implementation/PB-04.stage-a.md), [PB-04.stage-a.json](../../../aq-playbooks/docs/implementation/PB-04.stage-a.json), [PB-04.proposal.md](../../../aq-playbooks/docs/implementation/PB-04.proposal.md), [PB-04.prototype.md](../../../aq-playbooks/docs/implementation/PB-04.prototype.md), [PB-04.prototype.json](../../../aq-playbooks/docs/implementation/PB-04.prototype.json), [PB-04.lookahead.md](../../../aq-playbooks/docs/implementation/PB-04.lookahead.md), [PB-04.lookahead.json](../../../aq-playbooks/docs/implementation/PB-04.lookahead.json).
 
 ## Validation and updates
 

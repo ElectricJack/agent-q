@@ -844,7 +844,12 @@
         "../implementation/AQ-08-never-granted-closure.md",
         "../implementation/AQ-08-policy-principals.md",
         "../implementation/AQ-08-policy-install-qualification.json",
-        "../implementation/AQ-08-AQ-22-state17-qualification.json"
+        "../implementation/AQ-08-AQ-22-state17-qualification.json",
+        "../implementation/AQ-08-started-owner.md",
+        "../implementation/AQ-08-started-contract-0.1.3.json",
+        "../implementation/AQ-08-AQ-21-state19-qualification.json",
+        "../implementation/AQ-08-provider-material-owner.md",
+        "../implementation/AQ-08-source-observation.md"
       ]
     },
     {
@@ -1634,7 +1639,8 @@
         "../implementation/AQ-22-mounted-qualification.json",
         "../implementation/AQ-22-transport-ownership.md",
         "../implementation/AQ-22-transport-qualification.json",
-        "../implementation/AQ-08-AQ-22-state17-qualification.json"
+        "../implementation/AQ-08-AQ-22-state17-qualification.json",
+        "../implementation/AQ-08-AQ-21-state19-qualification.json"
       ]
     },
     {
@@ -2207,7 +2213,9 @@
       ],
       "evidence": [
         "../implementation/AQ-21-migration12.md",
-        "../implementation/AQ-21-migration12.json"
+        "../implementation/AQ-21-migration12.json",
+        "../implementation/AQ-21-relay-integration-qualification.json",
+        "../implementation/AQ-08-AQ-21-state19-qualification.json"
       ]
     },
     {
@@ -2324,7 +2332,7 @@
       "repo": "aq-worker",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "CON-02",
         "WRK-10"
@@ -2652,7 +2660,9 @@
         "../../../aq-playbooks/docs/implementation/PB-04.stage-a.json",
         "../../../aq-playbooks/docs/implementation/PB-04.proposal.md",
         "../../../aq-playbooks/docs/implementation/PB-04.prototype.md",
-        "../../../aq-playbooks/docs/implementation/PB-04.prototype.json"
+        "../../../aq-playbooks/docs/implementation/PB-04.prototype.json",
+        "../../../aq-playbooks/docs/implementation/PB-04.lookahead.md",
+        "../../../aq-playbooks/docs/implementation/PB-04.lookahead.json"
       ]
     }
   ],
