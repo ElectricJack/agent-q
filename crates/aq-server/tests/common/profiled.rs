@@ -255,16 +255,20 @@ enabled=true
 }
 pub async fn insert(f: &Fixture) -> Uuid {
     let spec = json!({"schema_version":1,"kind":"synthetic_profiled_authority_fixture","task_id":f.selection.lineage.task_id});
-    insert_spec(f, spec).await
+    insert_spec(f, spec, false).await
 }
 pub async fn insert_typed(
     f: &Fixture,
     spec: &aq_admission::execution_spec::ProfiledExecutionSpec,
 ) -> Uuid {
     spec.validate_against(&f.profiled.offer).unwrap();
-    insert_spec(f, json!(spec)).await
+    insert_spec(f, json!(spec), false).await
 }
-async fn insert_spec(f: &Fixture, spec: Value) -> Uuid {
+pub async fn insert_sibling(f: &Fixture) -> Uuid {
+    let spec = json!({"schema_version":1,"kind":"synthetic_profiled_authority_fixture","task_id":f.selection.lineage.task_id});
+    insert_spec(f, spec, true).await
+}
+async fn insert_spec(f: &Fixture, spec: Value, reuse_project: bool) -> Uuid {
     let pool = f.db.pool().await;
     let p = &f.profiled;
     let binding = &p.offer.binding;
@@ -290,7 +294,21 @@ async fn insert_spec(f: &Fixture, spec: Value) -> Uuid {
         observed_at_ms: NOW,
         expires_at_ms: NOW + 30_000,
     };
-    sqlx::query("INSERT INTO project_execution_bindings(project_id,revision,binding,validated_at_ms,binding_observation) VALUES($1,1,$2,$3,$4)").bind(f.selection.lineage.project_id).bind(project).bind(NOW as i64).bind(json!(observed)).execute(&pool).await.unwrap();
+    if reuse_project {
+        let existing: Value = sqlx::query_scalar(
+            "SELECT binding FROM project_execution_bindings WHERE project_id=$1",
+        )
+        .bind(f.selection.lineage.project_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            existing, project,
+            "sibling fixture must reuse the exact sealed project"
+        );
+    } else {
+        sqlx::query("INSERT INTO project_execution_bindings(project_id,revision,binding,validated_at_ms,binding_observation) VALUES($1,1,$2,$3,$4)").bind(f.selection.lineage.project_id).bind(project).bind(NOW as i64).bind(json!(observed)).execute(&pool).await.unwrap();
+    }
     let observation = aq_admission::SourceAdmission {
         schema_version: 1,
         project_id: f.selection.lineage.project_id,

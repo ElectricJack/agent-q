@@ -16,6 +16,7 @@ pub mod readiness;
 pub mod session_access;
 pub mod source_retention;
 pub mod store;
+pub mod terminal;
 #[cfg(any(test, feature = "test-support"))]
 pub mod test_support;
 pub mod tokens;
@@ -82,6 +83,18 @@ pub struct AppState {
 }
 
 impl AppState {
+    pub(crate) fn terminal_read_view(&self) -> Self {
+        Self {
+            store: self.store.terminal_read_view(),
+            ..self.clone()
+        }
+    }
+    pub(crate) fn terminal_view(&self) -> Self {
+        Self {
+            store: self.store.terminal_view(),
+            ..self.clone()
+        }
+    }
     pub(crate) fn control_view(&self) -> Self {
         Self {
             store: self.store.control_view(),
@@ -127,6 +140,7 @@ pub fn build_admin_router(state: AppState) -> Router {
         .merge(admin_api::admin_routes())
         .merge(notifications::api::routes(state.clone()))
         .merge(observations::api::admin_routes(state.clone()))
+        .merge(terminal::api::human_routes(state.clone()))
         .merge(profile_catalog::admin_routes())
         .merge(project_bindings::admin_routes())
         .merge(intelligence::admin_routes())
@@ -159,6 +173,7 @@ pub fn build_worker_router(state: AppState) -> Router {
         .merge(agent_access::machine_routes(state.clone()))
         .merge(source_retention::machine_routes(state.clone()))
         .merge(execution::api::worker_routes(state.clone()))
+        .merge(terminal::api::worker_routes(state.clone()))
         .route("/healthz", get(healthz))
         .route("/readyz", get(readiness::readyz))
         .fallback(not_found)
@@ -182,6 +197,11 @@ pub async fn run_with_listeners(
     worker: tokio::net::TcpListener,
     shutdown: impl std::future::Future<Output = ()> + Send + 'static,
 ) -> anyhow::Result<()> {
+    if state.config.terminals.is_some() {
+        terminal::persistence::install(&state)
+            .await
+            .map_err(|_| anyhow::anyhow!("terminal runtime installation failed"))?;
+    }
     let notification_dispatcher = uuid::Uuid::new_v4();
     notifications::api::service(&state)
         .install(notification_dispatcher)
@@ -192,6 +212,7 @@ pub async fn run_with_listeners(
         notification_dispatcher,
         rx.clone(),
     ));
+    let terminal_task = tokio::spawn(terminal::runtime::run(state.clone(), rx.clone()));
     tokio::spawn(async move {
         shutdown.await;
         let _ = tx.send(true);
@@ -219,6 +240,8 @@ pub async fn run_with_listeners(
             .await
         },
     );
+    terminal_task.abort();
+    let _ = terminal_task.await;
     notification_task.abort();
     let _ = notification_task.await;
     serving?;
