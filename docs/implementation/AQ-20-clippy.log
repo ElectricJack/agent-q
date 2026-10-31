@@ -1,0 +1,5 @@
+    Checking nix v0.29.0
+    Checking aq-profiles v0.1.0 (/tmp/aq18-qualification-61af1ff/crates/aq-profiles)
+    Checking aq-selection v0.1.0 (/tmp/aq18-qualification-61af1ff/crates/aq-selection)
+    Checking aq-server v0.1.0 (/tmp/aq18-qualification-61af1ff/crates/aq-server)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 13.14s

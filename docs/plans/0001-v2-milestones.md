@@ -38,9 +38,11 @@ Read the mapped source and regression cases before implementing an affected task
 
 | Task | Owner | Deliverable |
 | --- | --- | --- |
+| [AQ-08](#aq-08) | agent-q | Schedule real graph candidates with explicit eligibility |
 | [AQ-10](#aq-10) | agent-q | Apply evidence-based result disposition and graph completion |
 | [AQ-12](#aq-12) | agent-q | Embed the qualified playbook runner with bounded execution |
 | [WRK-15](#wrk-15) | aq-worker | Implement harness transcript readers and durable observation delivery |
+| [AQ-22](#aq-22) | agent-q | Implement session observations, transcript inspection and usage accounting |
 | [AQ-24](#aq-24) | agent-q | Implement durable external notification delivery with Discord |
 | [REL-01](#rel-01) | agent-q | Version the composite product manifest and component inventory |
 | [AQ-21](#aq-21) | agent-q | Implement authorized terminal relay and controller leasing |
@@ -134,7 +136,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [CON-02](#con-02): Publish profile launch, harness capability and terminal contracts | aq-worker | [CON-01](#con-01), [API-01](#api-01) | complete |
 | [AQ-18](#aq-18): Build the compositional profile catalog, compiler and explanation CLI | agent-q | [CON-02](#con-02) | complete |
 | [AQ-19](#aq-19): Implement project execution bindings and policy administration | agent-q | [AQ-18](#aq-18), [AQ-03](#aq-03) | complete |
-| [AQ-20](#aq-20): Resolve intelligence and execution choices with bounded provider availability | agent-q | [AQ-18](#aq-18), [AQ-19](#aq-19), [AQ-03](#aq-03) | in_progress |
+| [AQ-20](#aq-20): Resolve intelligence and execution choices with bounded provider availability | agent-q | [AQ-18](#aq-18), [AQ-19](#aq-19), [AQ-03](#aq-03) | complete |
 | [WRK-10](#wrk-10): Implement the guarded tmux session host and reusable adapter interface | aq-worker | [CON-02](#con-02), [WRK-04](#wrk-04) | complete |
 | [GATE-04](#gate-04): Demonstrate a real agent with retained source and graph outcome | agent-q | [GATE-03](#gate-03), [AQ-08](#aq-08), [AQ-10](#aq-10), [WRK-07](#wrk-07), [WRK-08](#wrk-08) | planned |
 
@@ -824,7 +826,7 @@ Evidence: [AQ-19.md](../implementation/AQ-19.md), [AQ-19.json](../implementation
 
 **Resolve intelligence and execution choices with bounded provider availability**
 
-Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: in_progress.
+Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: complete.
 
 Hard prerequisites: [AQ-18](#aq-18), [AQ-19](#aq-19), [AQ-03](#aq-03).
 
@@ -840,6 +842,8 @@ Acceptance:
 Requirement links: P5, P6, P7, D1, D9, W4, S3.
 
 Outside this task: Implicit provider/model downgrades, automatic quota-probe adapters, editing live attempt configuration.
+
+Evidence: [AQ-20.md](../implementation/AQ-20.md), [AQ-20.json](../implementation/AQ-20.json).
 
 ### WRK-10
 

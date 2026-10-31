@@ -1,0 +1,122 @@
+{
+  "task": "AQ-20",
+  "status": "qualified committed deterministic selection and scoped registry implementation; actual profiled offer integration remains AQ08",
+  "source_revision": "d3be9ffd83057507bf54e68681932fcf1d18752f",
+  "source_hash_method": "SHA256 of exact git show source_revision:path bytes; independent of live working-tree edits",
+  "state_format": 9,
+  "files": {
+    "Cargo.lock": "f09a62f0a25e96d66a7df1d90a19d15b17148867261c5c617a898745a07f149d",
+    "Cargo.toml": "e6dfda5bbcb92e57597f123e30d09b0631ca4631360935131b1c7a97c14e928c",
+    "Dockerfile": "d75f0628aa7760ad376bf4230a21ca3dace2187a319c313701f641f26fb06dcb",
+    "crates/aq-profiles/src/catalog.rs": "d55cc1a51c1c1dd478b10be72645a695f6fdded2cb685d3c4d8abb3df5dab20c",
+    "crates/aq-profiles/src/lib.rs": "f1386677df6d9c33f381b8a1f709b2933885f457c07a8843ed939f0510654c18",
+    "crates/aq-profiles/src/selection_policy.rs": "3569ef76d86782e28969e754c2a605ac3f11429b9f7b639c05e091e7fcbe9cfc",
+    "crates/aq-profiles/tests/golden/pre-selection-policy-catalog.json": "0c8a041de2e1af9e6937cd0c87cefed8a0c82d6e592d986c7d0ab3dfc817d6f2",
+    "crates/aq-profiles/tests/registry.rs": "b33f65f3120dca6c8af09e83ab215330cfb0a96adc8c0dcef4a2139b2b03cf7c",
+    "crates/aq-selection/Cargo.toml": "a3725af02f369c8a83dd4dfc833aff487a8a64bb6857bf5b3350c2541b916c46",
+    "crates/aq-selection/README.md": "0501d720b6aace9583a32887bc3f41d410bf39a1d8605d9751730b9f5bca79d0",
+    "crates/aq-selection/src/domain.rs": "410e2867d812ba2c674185940af3a8b06f5213009eb886d8a46a2251adde7835",
+    "crates/aq-selection/src/explanation.rs": "403636f493bebb8b20c5d55a12c24dec6af160ea7b71b758ecc4d67da5fe99c8",
+    "crates/aq-selection/src/feedback.rs": "dbc46daba9034d6f1aab8706b9aaa61ae63864e128ea3baa1520cbb1dfaacc48",
+    "crates/aq-selection/src/lib.rs": "cd9fea1a3fb62c0d4172678d5b692437111956d977723789e20c3417240356b6",
+    "crates/aq-selection/src/select.rs": "0b5f0c6a3dcece1ac0a3a286132e14bac212ff4aa30d697e8dc34b4cea479a9f",
+    "crates/aq-selection/src/validate.rs": "0eefe74096de0897bcb9b93f585b05c6a771a69cdf90f3d38031f1cce5ef9b8d",
+    "crates/aq-selection/tests/common/mod.rs": "34ca219855a760719f4ef620ff502e237a4e5c48d2b0eb6c94795a88fed3b166",
+    "crates/aq-selection/tests/fixtures/pre-selection-policy-catalog.json": "0c8a041de2e1af9e6937cd0c87cefed8a0c82d6e592d986c7d0ab3dfc817d6f2",
+    "crates/aq-selection/tests/selection.rs": "b1b4f8c83c5abaf9933cc0142ce81599bc8b26b94d58dc84fa250d571211e5fc",
+    "crates/aq-server/Cargo.toml": "03054314c49b3b07ad2ac83ef79767f8a5aa9a244468204f7eb13f23b4dbd868",
+    "crates/aq-server/migrations/0009_intelligence_selection.sql": "4817b6191e6c9f5ece5c2e103747f7775a6f30fe066784d30e9035f295e61b86",
+    "crates/aq-server/src/config.rs": "7c19234a7e36e6255d5641f2cf55e46b9e37ddadedfe28ba32aa10bc86bf676f",
+    "crates/aq-server/src/intelligence.rs": "ba8729d0495a80c46a38636981dd14c57cae98580ab8fb8f98b6886c105baee1",
+    "crates/aq-server/src/intelligence/config.rs": "f2c83ac5435a62f3b746e2b9f1a9b872ca1df59a80f4e923ae8909c6cae06d61",
+    "crates/aq-server/src/intelligence/feedback.rs": "b998137e3127c8eaaa1be98f34b027694b42bde8464ed39a75302bfa125069ba",
+    "crates/aq-server/src/intelligence/inventory.rs": "3e79c4150191ba936950d8d5e30c9e9f70dca313d7b219da8225e6a14c0aa6cf",
+    "crates/aq-server/src/intelligence/registry.rs": "dcebf7db00dbec0944eb5979c58d283a9cc4e63e2b433601b4445e55e9465c39",
+    "crates/aq-server/src/intelligence/resolver.rs": "e09bfb7ca67a737f94db30533a6e0146a6430dad2f579585365fc6a3453bc08e",
+    "crates/aq-server/src/lib.rs": "e049bcfce1b5080a739f4bbf0d7bfb963a74e77a5ea0fd00f3845a611d72f832",
+    "crates/aq-server/src/store.rs": "c119fcb51d758baa758c30809f02293314a82f17247e73048a7a1ae81e3bcfd8",
+    "crates/aq-server/tests/fixtures/selection.json": "1afb38480b464c64497b12c32237462ed86bb00ee62056cbba44a7defa22ff3f",
+    "crates/aq-server/tests/intelligence.rs": "3594950cc9ab01d8868971c6e2dd787078b12e27719c9e7e06749fc458ab59f2",
+    "crates/aq-server/tests/project_bindings.rs": "082626db45421e99201e31ebcb3985c1b90a103268292b03c6d27fa5d8770a4e",
+    "docs/specs/0004-intelligence-selection.md": "c6552bd8647a6400a82df6250fca992138199a1367c00bee4a05729d0277e288"
+  },
+  "environment": {
+    "checkout": "clean detached worktree /tmp/aq18-qualification-61af1ff at source_revision; source hashes from git show, not live working tree",
+    "database": "disposable PostgreSQL; independent per-test databases",
+    "provider_calls": false,
+    "actual_profiled_launch": false,
+    "operator_resources_used": false,
+    "secret_material": "synthetic private fixture files only",
+    "build_directory": "isolated /tmp/aq18-qualification-target; CARGO_INCREMENTAL=0",
+    "actual_components": {
+      "aq_git": {
+        "version": "0.1.0",
+        "source_revision": "f3660a89cbeac0e068105af2926dfdcb06a1daad",
+        "image": "aq-m4-git-candidate:bookworm",
+        "image_id": "sha256:ad68eec4eb7208bac9314a01d02694c4e422df8aebd24a7afd5c674389f15f01"
+      },
+      "aq_graph": {
+        "api_version": 1,
+        "source_revision": "225329cd6acf5a775fd2a0b016dd1c45fb16c79b",
+        "image_id": "sha256:807beba98dcd20b0ae335f09cae8c06ecb182a352ee78de278cb47fccb2ee3be"
+      }
+    }
+  },
+  "results": {
+    "passed": 255,
+    "ignored": 3,
+    "aq_profiles": 22,
+    "aq_selection": 17,
+    "aq_server": 216,
+    "clippy": "passed strict all-targets",
+    "format": "passed",
+    "actual_pinned_project_wrapper": "1 passed against retained pinned Git/Graph components; no model providers"
+  },
+  "commands": [
+    "CARGO_TARGET_DIR=/tmp/aq18-qualification-target CARGO_INCREMENTAL=0 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres cargo test -p aq-profiles -p aq-selection -p aq-server --locked --offline",
+    "CARGO_TARGET_DIR=/tmp/aq18-qualification-target CARGO_INCREMENTAL=0 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres python3 scripts/test-project-bindings.py",
+    "CARGO_TARGET_DIR=/tmp/aq18-qualification-target CARGO_INCREMENTAL=0 cargo clippy -p aq-profiles -p aq-selection -p aq-server --all-targets --locked --offline -- -D warnings",
+    "cargo fmt --package aq-profiles --package aq-selection --package aq-server --check"
+  ],
+  "logs": {
+    "tests": {
+      "path": "docs/implementation/AQ-20-tests.log",
+      "sha256": "083f22d405c8070e39e74916a95fe25a4c465c8053bbfe1d56bab9606324c7a9",
+      "qualification": "root clean source_revision checkout"
+    },
+    "project": {
+      "path": "docs/implementation/AQ-20-project.log",
+      "sha256": "6515efe0d2d92dcad5cbdb0e6ec0a65ebdf20f8a0bab649f96beba2616b5527b",
+      "qualification": "root clean source_revision checkout"
+    },
+    "clippy": {
+      "path": "docs/implementation/AQ-20-clippy.log",
+      "sha256": "4edaed2333c62a8464f1343da9beae6365ddbf0c28d20ff797a18f0ef034216c",
+      "qualification": "root clean source_revision checkout"
+    },
+    "format": {
+      "path": "docs/implementation/AQ-20-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "qualification": "root clean source_revision checkout"
+    }
+  },
+  "claims": [
+    "Deterministic explicit-policy pure selector, exact provider-native reasoning/adapter/credential/account/endpoint/environment tuple; fallback and unknown policy bounds",
+    "Optional new catalog policy preserves old canonical bytes/digests; immutable definition/version updates required",
+    "Owner registry/manual availability adapters and current-boot authenticated inventory; private bounded regular key-file presence reads only at startup",
+    "Qualified-classifier worker failure DTO derives scope only from actual sealed attempt; legacy fixture attempts refuse",
+    "Immutable decision replay and retained-artifact SERIALIZABLE final transaction fence, expiry after observed lock wait, relevant-scope invalidation without unrelated account poisoning",
+    "Task aggregate budget scope survives lineage UUID changes; unavailable accounting not zero, known exhaustion/currency mismatch always refused",
+    "Published human Selection output preserves exact profile and observation provenance without modifying CON02"
+  ],
+  "limitations": [
+    "Actual authenticated task/context/access-profile/assignment/session/outcome/source sealing and atomic profiled offer creation belong to AQ08; retained decisions and snapshot explanations confer no runnable authority",
+    "Provider secret delivery gateway is absent; startup key presence/fingerprint must be revalidated by actual credential owner or sealed lease before provisioning",
+    "Real native model/reasoning/error-classifier/capability qualifications and real provider quota/auth behavior remain unqualified; all such fixtures are synthetic",
+    "Bootstrap ledger adapter reports unavailable and has no rate card/hard budget provider; hard cost and complete-accounting-required policy refuse",
+    "Legacy retries lack verified latest/stop/source-retention/effect-reconciliation receipts and refuse replacement; no fixture boolean manufactures proof",
+    "Structured failure must be sent while exact sealed attempt is granted/unexpired, before final result reporting",
+    "Current daemon project/fence adapter is worker-only; central supervisors require separate authority path",
+    "Three pre-existing explicit component qualifications remain ignored in ordinary suite; AQ19 actual Git/Graph evidence retained separately"
+  ]
+}

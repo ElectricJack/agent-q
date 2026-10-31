@@ -1148,7 +1148,7 @@
       "repo": "agent-q",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "AQ-18",
         "AQ-19",
@@ -1173,7 +1173,10 @@
       "out_of_scope": [
         "Implicit provider/model downgrades, automatic quota-probe adapters, editing live attempt configuration"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/AQ-20.md",
+        "../implementation/AQ-20.json"
+      ]
     },
     {
       "id": "WRK-10",
