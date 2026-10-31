@@ -145,3 +145,202 @@ mod tests {
         );
     }
 }
+
+pub enum Reservation {
+    Pending(ReservedExport),
+    /// Retained original fact only. A fresh owner inspection is required before
+    /// an offer; historical readback neither re-exports nor extends freshness.
+    Verified {
+        reservation: ReservedExport,
+        canonical_verified: Vec<u8>,
+    },
+}
+fn unavailable() -> crate::error::AppError {
+    crate::error::AppError::Conflict("source export ownership unavailable or inconsistent".into())
+}
+fn database(_: sqlx::Error) -> crate::error::AppError {
+    crate::error::AppError::Internal
+}
+fn canonical(value: &impl Serialize) -> Result<Vec<u8>, crate::error::AppError> {
+    let mut value = serde_json::to_value(value).map_err(|_| unavailable())?;
+    value.sort_all_objects();
+    serde_json::to_vec(&value).map_err(|_| unavailable())
+}
+/// Trusted central owner only. Commits a finite quota reservation before it can
+/// return the opaque capability accepted by the private Git I/O owner.
+pub async fn reserve(
+    state: &crate::AppState,
+    request: Request,
+) -> Result<Reservation, crate::error::AppError> {
+    use sqlx::Row;
+    request.validate().map_err(|_| unavailable())?;
+    let request_bytes = canonical(&request)?;
+    let request_digest = request.digest().map_err(|_| unavailable())?;
+    if request_bytes.len() > 8192 {
+        return Err(unavailable());
+    }
+    let mut tx = state.store.pool.begin().await.map_err(database)?;
+    sqlx::query("SET LOCAL lock_timeout='2s'")
+        .execute(&mut *tx)
+        .await
+        .map_err(database)?;
+    sqlx::query("SET LOCAL statement_timeout='3s'")
+        .execute(&mut *tx)
+        .await
+        .map_err(database)?;
+    // Historical verified facts are read before current admission and quota.
+    // They cannot mint a different operation or execute any physical writer.
+    if let Some(row)=sqlx::query("SELECT request_bytes,request_digest,reserved_bytes,state,verified_bytes,verified_digest FROM profiled_source_exports WHERE operation_id=$1").bind(request.operation_id).fetch_optional(&mut *tx).await.map_err(database)? {
+        if row.get::<Vec<u8>,_>("request_bytes")!=request_bytes || row.get::<String,_>("request_digest")!=request_digest.as_str() {return Err(unavailable());}
+        if row.get::<String,_>("state")=="verified" {
+            let bytes=row.get::<Option<Vec<u8>>,_>("verified_bytes").ok_or_else(unavailable)?;
+            if bytes.len()>4_194_304 || Some(Digest::of(&bytes).as_str())!=row.get::<Option<String>,_>("verified_digest").as_deref() {return Err(unavailable());}
+            let token=ReservedExport{request,request_digest,reserved_bytes:row.get::<i64,_>("reserved_bytes") as u64};
+            tx.commit().await.map_err(database)?;
+            return Ok(Reservation::Verified{reservation:token,canonical_verified:bytes});
+        }
+        if row.get::<String,_>("state")!="pending" {return Err(unavailable());}
+        // The original durable side-effect intent may be reconciled even after
+        // admission policy retirement. It remains charged, fixed-scope and is
+        // never offer authority; the Git owner still checks original scope.
+        let token=ReservedExport{request,request_digest,reserved_bytes:row.get::<i64,_>("reserved_bytes") as u64};
+        tx.commit().await.map_err(database)?;
+        return Ok(Reservation::Pending(token));
+    }
+    let runtime = state.source_retention.as_ref().ok_or_else(unavailable)?;
+    let reserved_bytes = runtime
+        .config
+        .max_bundle_bytes
+        .checked_add(1_048_576)
+        .ok_or_else(unavailable)?;
+    let config = state
+        .config
+        .profiled_execution
+        .as_deref()
+        .ok_or_else(unavailable)?;
+    super::policies::fence_configuration_locked(&mut tx, config).await?;
+    let project = sqlx::query(
+        "SELECT revision,binding FROM project_execution_bindings WHERE project_id=$1 FOR SHARE",
+    )
+    .bind(request.project_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(database)?
+    .ok_or_else(unavailable)?;
+    let binding: crate::project_bindings::domain::ProjectBinding =
+        serde_json::from_value(project.get("binding")).map_err(|_| unavailable())?;
+    if !binding.enabled
+        || project.get::<i64, _>("revision") as u64 != request.project_revision
+        || binding.repository_id != request.repository_id
+        || binding.repository_binding_generation != request.binding_generation
+    {
+        return Err(unavailable());
+    }
+    let configured = config
+        .project_policy_record(request.project_id)
+        .map_err(|_| unavailable())?;
+    let installed: serde_json::Value = sqlx::query_scalar(
+        "SELECT policy FROM admission_source_policies WHERE project_id=$1 FOR SHARE",
+    )
+    .bind(request.project_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(database)?
+    .ok_or_else(unavailable)?;
+    if !configured.enabled
+        || configured.retention_handle != request.source_retention_handle
+        || canonical(&configured)? != canonical(&installed)?
+    {
+        return Err(unavailable());
+    }
+    let observation_id:Uuid=sqlx::query_scalar("SELECT artifact_id FROM admission_artifacts WHERE owner_key=$1 AND owner_kind='source_retention' AND descriptor->'artifact'=$2 ORDER BY artifact_id LIMIT 1").bind(request.project_id.to_string()).bind(serde_json::to_value(&request.source_observation).map_err(|_|unavailable())?).fetch_optional(&mut *tx).await.map_err(database)?.ok_or_else(unavailable)?;
+    let retained = super::artifacts::load_locked(&mut tx, observation_id).await?;
+    if retained.project_id != request.project_id
+        || retained.owner != super::artifacts::OwnerKind::SourceRetention
+        || retained.descriptor.artifact != request.source_observation
+        || retained.descriptor.kind != aq_admission::ArtifactKind::Context
+    {
+        return Err(unavailable());
+    }
+    let value: serde_json::Value =
+        serde_json::from_slice(&retained.bytes).map_err(|_| unavailable())?;
+    let observation: aq_admission::SourceAdmission =
+        serde_json::from_value(value["admission"].clone()).map_err(|_| unavailable())?;
+    observation.validate().map_err(|_| unavailable())?;
+    if observation.project_id != request.project_id
+        || observation.project_revision != request.project_revision
+        || observation.repository_id != request.repository_id
+        || observation.repository_binding_generation != request.binding_generation
+        || observation.policy != configured.artifact().map_err(|_| unavailable())?
+        || observation.resolved_object.format != aq_admission::ObjectFormat::Sha1
+        || observation.resolved_object.hex != request.base.hex
+        || serde_json::to_value(&observation.selection).map_err(|_| unavailable())?
+            != serde_json::to_value(&configured.source).map_err(|_| unavailable())?
+        || value["retention_handle"] != serde_json::json!(request.source_retention_handle)
+    {
+        return Err(unavailable());
+    }
+    // Same shared owner lock as legacy transfers/bases; unknown exports remain
+    // fully charged. No I/O or file reading occurs inside this transaction.
+    sqlx::query("SELECT pg_advisory_xact_lock(719247031)")
+        .execute(&mut *tx)
+        .await
+        .map_err(database)?;
+    let prior=sqlx::query("SELECT request_bytes,request_digest,reserved_bytes,state FROM profiled_source_exports WHERE operation_id=$1 FOR UPDATE").bind(request.operation_id).fetch_optional(&mut *tx).await.map_err(database)?;
+    let now = u64::try_from((state.clock)().timestamp_millis()).map_err(|_| unavailable())?;
+    let reserved = if let Some(row) = prior {
+        if row.get::<Vec<u8>, _>("request_bytes") != request_bytes
+            || row.get::<String, _>("request_digest") != request_digest.as_str()
+            || row.get::<String, _>("state") != "pending"
+        {
+            return Err(unavailable());
+        }
+        row.get::<i64, _>("reserved_bytes") as u64
+    } else {
+        retained
+            .descriptor
+            .verify(&retained.bytes, now)
+            .map_err(|_| unavailable())?;
+        if now == 0 || now < observation.observed_at_ms || now >= observation.expires_at_ms {
+            return Err(unavailable());
+        }
+        let used:i64=sqlx::query_scalar("SELECT (COALESCE((SELECT sum((manifest->>'manifest_bytes')::BIGINT+(manifest->>'bundle_bytes')::BIGINT) FROM source_transfers WHERE NOT staging_released),0)+COALESCE((SELECT sum(reserved_bytes) FROM source_bases),0)+COALESCE((SELECT sum(charged_bytes) FROM profiled_source_exports),0))::BIGINT").fetch_one(&mut *tx).await.map_err(database)?;
+        if used < 0
+            || (used as u64)
+                .checked_add(reserved_bytes)
+                .is_none_or(|n| n > runtime.config.max_staging_bytes)
+        {
+            return Err(crate::error::AppError::PayloadTooLarge(
+                "source staging quota exhausted".into(),
+            ));
+        }
+        let capacity=sqlx::query("SELECT count(*) AS total_count,count(*) FILTER(WHERE project_id=$1) AS project_count,COALESCE(sum(octet_length(request_bytes)+COALESCE(octet_length(verified_bytes),4194304)),0)::BIGINT AS total_bytes,COALESCE(sum(octet_length(request_bytes)+COALESCE(octet_length(verified_bytes),4194304)) FILTER(WHERE project_id=$1),0)::BIGINT AS project_bytes FROM profiled_source_exports").bind(request.project_id).fetch_one(&mut *tx).await.map_err(database)?;
+        let incoming = request_bytes.len() as i64 + 4_194_304;
+        if capacity.get::<i64, _>("total_count") >= 4096
+            || capacity.get::<i64, _>("project_count") >= 256
+            || capacity
+                .get::<i64, _>("total_bytes")
+                .checked_add(incoming)
+                .is_none_or(|n| n > 268_435_456)
+            || capacity
+                .get::<i64, _>("project_bytes")
+                .checked_add(incoming)
+                .is_none_or(|n| n > 67_108_864)
+        {
+            return Err(crate::error::AppError::PayloadTooLarge(
+                "source export metadata quota exhausted".into(),
+            ));
+        }
+        sqlx::query("INSERT INTO profiled_source_exports(operation_id,project_id,request_bytes,request_digest,reserved_bytes,charged_bytes,state) VALUES($1,$2,$3,$4,$5,$5,'pending')").bind(request.operation_id).bind(request.project_id).bind(&request_bytes).bind(request_digest.as_str()).bind(reserved_bytes as i64).execute(&mut *tx).await.map_err(database)?;
+        reserved_bytes
+    };
+    tx.commit().await.map_err(database)?;
+    Ok(Reservation::Pending(ReservedExport {
+        request,
+        request_digest,
+        reserved_bytes: reserved,
+    }))
+}
+
+mod completion;
+pub use completion::{finalize, link_locked};
