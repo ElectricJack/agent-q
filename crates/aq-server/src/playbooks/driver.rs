@@ -20,6 +20,8 @@ struct MailHost {
     runtime: RuntimeOwner,
     handle: tokio::runtime::Handle,
     mode: HostMode,
+    #[cfg(feature = "test-support")]
+    lose_decision_reply: Arc<std::sync::atomic::AtomicBool>,
 }
 impl DomainHost for MailHost {
     fn set_mode(&mut self, mode: HostMode) {
@@ -28,24 +30,59 @@ impl DomainHost for MailHost {
 }
 impl Host for MailHost {
     fn authorize(&self, authority: &Authority, contract: &CommandContract) -> bool {
-        if contract != &message_contract() {
-            return false;
-        }
-        let Ok((id, revision)) = grant_identity(authority) else {
+        let Ok((id, revision)) = grant_actor(authority) else {
             return false;
         };
-        if self.mode == HostMode::Dispatch {
-            self.handle
-                .block_on(self.service.authorize(&self.runtime, id, revision))
-                .is_ok()
-        } else {
-            self.handle
-                .block_on(self.service.authorize_recovery(&self.runtime, id, revision))
-                .is_ok()
-        }
+        self.handle
+            .block_on(self.service.authorize_contract(
+                &self.runtime,
+                id,
+                revision,
+                contract,
+                authority,
+                self.mode == HostMode::Dispatch,
+            ))
+            .is_ok()
     }
     fn dispatch(&mut self, intent: &Intent) -> DispatchResult {
-        let Ok((id, revision)) = grant_identity(&intent.authority) else {
+        if intent.command.name == "decision.request" {
+            let Ok((id, revision)) = grant_actor(&intent.authority) else {
+                return DispatchResult::Rejected {
+                    reason: "grant binding refused".into(),
+                };
+            };
+            let result = self.handle.block_on(self.service.request_decision(
+                &self.runtime,
+                id,
+                revision,
+                intent,
+            ));
+            #[cfg(feature = "test-support")]
+            if result.is_ok()
+                && self
+                    .lose_decision_reply
+                    .swap(false, std::sync::atomic::Ordering::SeqCst)
+            {
+                return DispatchResult::Unknown {
+                    reason: "synthetic lost host reply after owner commit".into(),
+                };
+            }
+            return decision_dispatch(result);
+        }
+        if intent.command.name == "operation.get" {
+            let Ok((id, revision)) = grant_actor(&intent.authority) else {
+                return DispatchResult::Rejected {
+                    reason: "grant binding refused".into(),
+                };
+            };
+            return decision_dispatch(self.handle.block_on(self.service.operation_get(
+                &self.runtime,
+                id,
+                revision,
+                intent,
+            )));
+        }
+        let Ok((id, revision)) = grant_actor(&intent.authority) else {
             return DispatchResult::Rejected {
                 reason: "grant binding refused".into(),
             };
@@ -75,7 +112,26 @@ impl Host for MailHost {
                 reason: "explicit recovery mode required".into(),
             };
         }
-        let Ok((id, revision)) = grant_identity(&intent.authority) else {
+        if intent.command.name == "decision.request" {
+            let Ok((id, revision)) = grant_actor(&intent.authority) else {
+                return DispatchResult::Unknown {
+                    reason: "grant binding refused".into(),
+                };
+            };
+            return match self
+                .handle
+                .block_on(self.service.reconcile_decision(id, revision, intent))
+            {
+                Ok(Some(result)) => decision_dispatch(Ok(result)),
+                _ => DispatchResult::Unknown {
+                    reason: "no exact retained decision owner result".into(),
+                },
+            };
+        }
+        if intent.command.name == "operation.get" {
+            return self.dispatch(intent);
+        }
+        let Ok((id, revision)) = grant_actor(&intent.authority) else {
             return DispatchResult::Unknown {
                 reason: "grant binding refused".into(),
             };
@@ -100,12 +156,38 @@ impl Host for MailHost {
         if self.mode != HostMode::Cancel {
             return CancellationResult::Unknown;
         }
-        let Ok((id, revision)) = grant_identity(&intent.authority) else {
+        let Ok((id, revision)) = grant_actor(&intent.authority) else {
             return CancellationResult::Refused;
         };
+        if intent.command.name == "decision.request" {
+            return self
+                .handle
+                .block_on(
+                    self.service
+                        .cancel_decision(&self.runtime, id, revision, intent),
+                )
+                .unwrap_or(CancellationResult::Unknown);
+        }
         self.handle
             .block_on(self.service.cancel(&self.runtime, id, revision, intent))
             .unwrap_or(CancellationResult::Unknown)
+    }
+}
+fn decision_dispatch(result: Result<DecisionResult>) -> DispatchResult {
+    match result {
+        Ok(DecisionResult::Accepted { handle }) => DispatchResult::Accepted { handle },
+        Ok(DecisionResult::Completed { outcome, output }) => {
+            DispatchResult::Completed { outcome, output }
+        }
+        Ok(DecisionResult::Cancelled) => DispatchResult::Rejected {
+            reason: "cancelled before question admission".into(),
+        },
+        Err(Error::Unknown) => DispatchResult::Unknown {
+            reason: "decision owner result unknown; retained lookup required".into(),
+        },
+        Err(e) => DispatchResult::Rejected {
+            reason: e.to_string(),
+        },
     }
 }
 pub struct Driver {
@@ -113,6 +195,8 @@ pub struct Driver {
     pub service: Service,
     pub(super) runtime: RuntimeOwner,
     gate: tokio::sync::Mutex<i64>,
+    #[cfg(feature = "test-support")]
+    lose_decision_reply: Arc<std::sync::atomic::AtomicBool>,
 }
 impl Driver {
     pub async fn start<S, F>(service: Service, limits: Limits, factory: F) -> Result<Self>
@@ -120,6 +204,10 @@ impl Driver {
         S: Storage + 'static,
         F: FnOnce() -> std::result::Result<S, aq_playbook_host::Error> + Send + 'static,
     {
+        #[cfg(feature = "test-support")]
+        let lose_decision_reply = Arc::new(std::sync::atomic::AtomicBool::new(false));
+        #[cfg(feature = "test-support")]
+        let host_reply_fault = lose_decision_reply.clone();
         let expected = service.runtime_revision().await?;
         let handle = tokio::runtime::Handle::current();
         let host_service = service.clone();
@@ -137,7 +225,7 @@ impl Driver {
         let owner = Owner::start_registered(
             namespace,
             limits,
-            registry(),
+            service.profile.registry(),
             guarded_factory,
             move |acquired| {
                 if acquired.namespace != expected_namespace {
@@ -158,6 +246,8 @@ impl Driver {
                     runtime,
                     handle,
                     mode: HostMode::Dispatch,
+                    #[cfg(feature = "test-support")]
+                    lose_decision_reply: host_reply_fault,
                 })
             },
         )
@@ -173,6 +263,8 @@ impl Driver {
             service,
             runtime,
             gate: tokio::sync::Mutex::new(0),
+            #[cfg(feature = "test-support")]
+            lose_decision_reply,
         })
     }
     pub async fn install(&self, artifact: aq_playbook_host::model::Artifact) -> Result<()> {
@@ -194,15 +286,16 @@ impl Driver {
         grant: Uuid,
         revision: i64,
     ) -> Result<serde_json::Value> {
-        self.service
-            .authorize(&self.runtime, grant, revision)
+        let active_authority = self
+            .service
+            .active_authority(&self.runtime, grant, revision)
             .await?;
         self.owner
             .call(
                 Request::Activate {
                     binding: binding.clone(),
                     artifact,
-                    authority: authority(grant, revision),
+                    authority: active_authority,
                 },
                 CALL,
             )
@@ -299,6 +392,9 @@ impl Driver {
                 self.service.hold_admission(&self.runtime, *id).await?;
             }
         }
+        self.service
+            .collect_decision_events(&self.runtime, 2)
+            .await?;
         let page = self.service.outbox(&self.runtime, *cursor, 2).await?;
         if page.is_empty() {
             *cursor = 0;
@@ -308,7 +404,7 @@ impl Driver {
                 .owner
                 .call(
                     Request::Event {
-                        authenticated_producer: "aq.host.bridge@1".into(),
+                        authenticated_producer: event.producer.clone(),
                         epoch: 0,
                         event: Box::new(event.clone()),
                         now_ms: self.service_clock(),
@@ -415,6 +511,15 @@ impl Driver {
 
 #[cfg(feature = "test-support")]
 impl Driver {
+    /// Component-only lost callback response after the actual question SQL
+    /// transaction. Never compiled into ordinary release builds or HTTP routes.
+    pub fn test_lose_next_decision_reply(&self) {
+        self.lose_decision_reply
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+    }
+    pub async fn test_collect_decision_events(&self) -> Result<usize> {
+        self.service.collect_decision_events(&self.runtime, 2).await
+    }
     /// Exact retained-event cut fixture: engine commits, AQ ACK is omitted.
     /// Not mounted as an HTTP route or present in ordinary release builds.
     pub async fn test_commit_event_without_aq_ack(&self) -> Result<EventDisposition> {
@@ -424,7 +529,7 @@ impl Driver {
             .owner
             .call(
                 Request::Event {
-                    authenticated_producer: "aq.host.bridge@1".into(),
+                    authenticated_producer: event.producer.clone(),
                     epoch: 0,
                     event: Box::new(event),
                     now_ms: self.service_clock(),

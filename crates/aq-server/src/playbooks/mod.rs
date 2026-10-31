@@ -4,3 +4,5 @@ pub mod api;
 pub mod domain;
 pub mod driver;
 pub mod service;
+
+pub mod review_domain;

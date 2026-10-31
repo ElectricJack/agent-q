@@ -256,7 +256,13 @@ pub fn registry() -> Registry {
     }
 }
 pub fn validate_intent(intent: &Intent, grant_id: Uuid, revision: i64) -> Result<MessageInput> {
-    if intent.command != message_contract() || intent.authority != authority(grant_id, revision) {
+    if intent.authority != authority(grant_id, revision) {
+        return Err(Error::Forbidden);
+    }
+    message_input(intent)
+}
+pub(crate) fn message_input(intent: &Intent) -> Result<MessageInput> {
+    if intent.command != message_contract() {
         return Err(Error::Forbidden);
     }
     if intent.input_digest != digest(&intent.input)?
@@ -288,6 +294,15 @@ pub fn stable_id(domain: &str, namespace: Uuid, generation: i64, key: &str) -> R
 }
 
 pub fn grant_identity(value: &Authority) -> Result<(Uuid, i64)> {
+    let (id, revision) = grant_actor(value)?;
+    if value != &authority(id, revision) {
+        return Err(Error::Forbidden);
+    }
+    Ok((id, revision))
+}
+/// Actor parsing is not authorization. Every profile2 callback separately
+/// compares full authority/capabilities with the locked immutable grant.
+pub(crate) fn grant_actor(value: &Authority) -> Result<(Uuid, i64)> {
     let suffix = value
         .actor
         .strip_prefix("aq.playbook.grant/")
@@ -295,7 +310,11 @@ pub fn grant_identity(value: &Authority) -> Result<(Uuid, i64)> {
     let (id, revision) = suffix.split_once('/').ok_or(Error::Forbidden)?;
     let id: Uuid = id.parse().map_err(|_| Error::Forbidden)?;
     let revision: i64 = revision.parse().map_err(|_| Error::Forbidden)?;
-    if id.is_nil() || revision <= 0 || value != &authority(id, revision) {
+    if id.is_nil()
+        || revision <= 0
+        || value.actor != authority(id, revision).actor
+        || value.scope != "project"
+    {
         return Err(Error::Forbidden);
     }
     Ok((id, revision))
