@@ -83,6 +83,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330a5ed07fa54e4702c9d6c4174f74427fc0ef6e214bbd677ae50a5099946470"
 
 [[package]]
+name = "aq-admission"
+version = "0.1.0"
+dependencies = [
+ "aq-session-protocol",
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
 name = "aq-agent-api"
 version = "0.1.0"
 dependencies = [
@@ -170,8 +182,9 @@ dependencies = [
 name = "aq-server"
 version = "0.1.0"
 dependencies = [
- "aq-agent-api",
  "anyhow",
+ "aq-admission",
+ "aq-agent-api",
  "aq-profiles",
  "aq-protocol",
  "aq-release",

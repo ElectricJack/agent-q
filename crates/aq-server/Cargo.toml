@@ -5,6 +5,7 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
+aq-admission = { path = "../aq-admission", version = "=0.1.0" }
 aq-agent-api = { path = "../aq-agent-api", version = "=0.1.0" }
 aq-selection = { path = "../aq-selection", version = "=0.1.0" }
 aq-profiles = { path = "../aq-profiles", version = "=0.1.0" }

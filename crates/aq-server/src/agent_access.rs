@@ -3,6 +3,7 @@ mod contract;
 mod graph;
 mod messaging;
 mod mutations;
+pub mod scheduling;
 use crate::{
     AppState,
     authz::RequireOwner,
