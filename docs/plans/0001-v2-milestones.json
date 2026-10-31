@@ -1055,6 +1055,43 @@
       ]
     },
     {
+      "id": "AQ-28",
+      "title": "Retain native stopped result claims and expose validated owner reads",
+      "repo": "agent-q",
+      "milestone": "M4",
+      "kind": "implementation",
+      "status": "complete",
+      "depends_on": [
+        "AQ-05",
+        "AQ-07",
+        "AQ-09"
+      ],
+      "requirements": [
+        "D3",
+        "D5",
+        "D6",
+        "D9",
+        "X6",
+        "X7"
+      ],
+      "scope": "AQ-10 stage B1 only: immutable bounded report recording after actual Started/Stopped, pinned expected outcome, correction-head CAS and historical owner reads under common authority locks.",
+      "acceptance": [
+        "Actual PostgreSQL and HTTP tests require exact physical stopped proof and typed outcome owner; stale credentials cannot record and exact report replay is immutable.",
+        "Historical owner reads validate report/receipt/spec/manifest/outcome and stop provenance, expose current-head versus superseded reports, and remain readable after worker credential revocation.",
+        "Recording and historical lookup do not release task/source/effect holds, assert live source availability, evaluate eligibility or complete graph tasks."
+      ],
+      "out_of_scope": [
+        "AQ-10 stages B2/C: result eligibility, settlement, hold release and expected-version graph completion",
+        "AQ-14 human/check execution and current source-retention verification"
+      ],
+      "evidence": [
+        "../implementation/AQ-10-result-ledger-qualification.md",
+        "../implementation/three-area-state24-qualification.json",
+        "../implementation/AQ-14-result-owner-read.md",
+        "../implementation/agent-issuance-credential-qualification.json"
+      ]
+    },
+    {
       "id": "AQ-10",
       "title": "Apply evidence-based result disposition and graph completion",
       "repo": "agent-q",
@@ -1064,7 +1101,8 @@
       "depends_on": [
         "AQ-05",
         "AQ-07",
-        "AQ-09"
+        "AQ-09",
+        "AQ-28"
       ],
       "requirements": [
         "D3",
@@ -1499,7 +1537,7 @@
       "status": "in_progress",
       "depends_on": [
         "AQ-13",
-        "AQ-10",
+        "AQ-28",
         "AQ-17",
         "WRK-09"
       ],
@@ -2741,6 +2779,10 @@
     {
       "source": "2026-10-31-execution-sessions-policy-progress.md",
       "summary": "Three-area design/implementation reconciliation: ordered state24 integration764tests, exact native startup contract and worker host consumer, durable source export/result recording/first playbook message bridge, independent terminal reader expiry and dense output decoding. Native control delivery, renderer baseline and exact human review/check ownership continue; product gates remain open."
+    },
+    {
+      "source": "../implementation/AQ-14-result-owner-read.md",
+      "summary": "Extract completed AQ-10 B1 ledger/owner-read slice as AQ-28. AQ-14 consumes that frozen owner boundary rather than waiting for full AQ-10 settlement; human decision/check receipts can develop before the evaluator that consumes them. B2/C and all product acceptance gates stay open."
     }
   ],
   "implementation_reference_maps": [

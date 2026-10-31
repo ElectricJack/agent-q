@@ -239,3 +239,11 @@ Recorded receipts and immutable correction history with21 passing new/regression
 SQL/HTTP tests. Candidate024 remains unregistered until022/023 integrate; explicit
 disposable application is not ordered-migration qualification. Strict lint and
 format pass. B1 does not close eligibility evaluation, StageC or GATE-04.
+
+## Scheduling boundary after B1 integration
+
+The canonical task graph now tracks the completed immutable ledger and historical
+owner-read slice as **AQ-28**. AQ-14 consumes AQ-28 instead of depending on all of
+AQ-10: decision/check owners must be implementable before settlement consumes
+their exact receipts. AQ-10 remains in progress for B2/C. This is a planning
+boundary, not a new service or a relaxation of result acceptance.

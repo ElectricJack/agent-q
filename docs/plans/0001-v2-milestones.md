@@ -28,6 +28,7 @@ The original planning baseline completed AUD-00; current statuses below record s
 - [0003-agent-profiles-harnesses-and-terminals.md](../architecture/0003-agent-profiles-harnesses-and-terminals.md): Required compositional agent/execution/intelligence profiles, explicit project bindings and provider selection, mandatory tmux for every real agent CLI, four qualified harnesses, and outbound-only remote terminal watch/control. M4 proves the first adapter; M6 requires all four and the browser terminal experience. Existing completed task evidence is unchanged.
 - [0004-session-operations-waits-and-notifications.md](../architecture/0004-session-operations-waits-and-notifications.md): Required session peek/attach/nudge, transcript and usage accounting, bounded stall recovery, Discord notification delivery, escalation/digest policy and verified agent suspension/hibernation with cross-node wake. M5 mechanisms and M6 product qualification are mandatory; earlier completed evidence remains unchanged.
 - [2026-10-31-execution-sessions-policy-progress.md](2026-10-31-execution-sessions-policy-progress.md): Three-area design/implementation reconciliation: ordered state24 integration764tests, exact native startup contract and worker host consumer, durable source export/result recording/first playbook message bridge, independent terminal reader expiry and dense output decoding. Native control delivery, renderer baseline and exact human review/check ownership continue; product gates remain open.
+- [AQ-14-result-owner-read.md](../implementation/AQ-14-result-owner-read.md): Extract completed AQ-10 B1 ledger/owner-read slice as AQ-28. AQ-14 consumes that frozen owner boundary rather than waiting for full AQ-10 settlement; human decision/check receipts can develop before the evaluator that consumes them. B2/C and all product acceptance gates stay open.
 
 ### V1 implementation evidence
 
@@ -129,7 +130,8 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [AQ-09](#aq-09): Implement authenticated source transfer and central retention | agent-q | [AQ-03](#aq-03), [GIT-01](#git-01) | complete |
 | [WRK-07](#wrk-07): Implement resumable artifact handoff and retention release | aq-worker | [WRK-06](#wrk-06), [AQ-09](#aq-09) | complete |
 | [WRK-08](#wrk-08): Qualify Codex CLI as the first real tmux harness | aq-worker | [WRK-05](#wrk-05), [WRK-06](#wrk-06), [GATE-03](#gate-03), [CON-02](#con-02), [WRK-10](#wrk-10), [AQ-20](#aq-20) | in_progress |
-| [AQ-10](#aq-10): Apply evidence-based result disposition and graph completion | agent-q | [AQ-05](#aq-05), [AQ-07](#aq-07), [AQ-09](#aq-09) | in_progress |
+| [AQ-28](#aq-28): Retain native stopped result claims and expose validated owner reads | agent-q | [AQ-05](#aq-05), [AQ-07](#aq-07), [AQ-09](#aq-09) | complete |
+| [AQ-10](#aq-10): Apply evidence-based result disposition and graph completion | agent-q | [AQ-05](#aq-05), [AQ-07](#aq-07), [AQ-09](#aq-09), [AQ-28](#aq-28) | in_progress |
 | [CON-02](#con-02): Publish profile launch, harness capability and terminal contracts | aq-worker | [CON-01](#con-01), [API-01](#api-01) | complete |
 | [AQ-18](#aq-18): Build the compositional profile catalog, compiler and explanation CLI | agent-q | [CON-02](#con-02) | complete |
 | [AQ-19](#aq-19): Implement project execution bindings and policy administration | agent-q | [AQ-18](#aq-18), [AQ-03](#aq-03) | complete |
@@ -147,7 +149,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [AQ-17](#aq-17): Host bounded supervisor sessions centrally | agent-q | [AQ-11](#aq-11), [AQ-06](#aq-06), [AQ-18](#aq-18), [AQ-20](#aq-20), [WRK-08](#wrk-08), [WRK-10](#wrk-10) | planned |
 | [AQ-12](#aq-12): Embed the qualified playbook runner with bounded execution | agent-q | [PB-01](#pb-01), [AQ-07](#aq-07) | in_progress |
 | [AQ-13](#aq-13): Implement core work, context and operation host adapters | agent-q | [AQ-12](#aq-12), [AQ-08](#aq-08), [AQ-05](#aq-05), [AQ-11](#aq-11), [AQ-20](#aq-20) | in_progress |
-| [AQ-14](#aq-14): Implement judgment, decision and check host adapters | agent-q | [AQ-13](#aq-13), [AQ-10](#aq-10), [AQ-17](#aq-17), [WRK-09](#wrk-09) | in_progress |
+| [AQ-14](#aq-14): Implement judgment, decision and check host adapters | agent-q | [AQ-13](#aq-13), [AQ-28](#aq-28), [AQ-17](#aq-17), [WRK-09](#wrk-09) | in_progress |
 | [AQ-15](#aq-15): Implement candidate preparation and guarded publication policy | agent-q | [AQ-14](#aq-14), [AQ-09](#aq-09), [GIT-01](#git-01) | planned |
 | [AQ-16](#aq-16): Implement findings reconciliation and durable calendar/report coordination | agent-q | [AQ-13](#aq-13), [AQ-14](#aq-14) | planned |
 | [CON-03](#con-03): Publish session observation and continuation contracts | aq-worker | [CON-02](#con-02) | complete |
@@ -745,13 +747,35 @@ Outside this task: Closing all-harness product acceptance (WRK-11/12/13 and INT-
 
 Evidence: [WRK-08-native-runtime-plan.md](../../../aq-worker/docs/implementation/WRK-08-native-runtime-plan.md), [WRK-08-host-union-qualification.md](../../../aq-worker/docs/implementation/WRK-08-host-union-qualification.md), [WRK-08-startup-consumer-qualification.json](../../../aq-worker/docs/implementation/WRK-08-startup-consumer-qualification.json), [WRK-08-native-http-qualification.json](../../../aq-worker/docs/implementation/WRK-08-native-http-qualification.json), [WRK-08-codex-adapter-plan.md](../../../aq-worker/docs/implementation/WRK-08-codex-adapter-plan.md).
 
+### AQ-28
+
+**Retain native stopped result claims and expose validated owner reads**
+
+Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: complete.
+
+Hard prerequisites: [AQ-05](#aq-05), [AQ-07](#aq-07), [AQ-09](#aq-09).
+
+AQ-10 stage B1 only: immutable bounded report recording after actual Started/Stopped, pinned expected outcome, correction-head CAS and historical owner reads under common authority locks.
+
+Acceptance:
+
+- Actual PostgreSQL and HTTP tests require exact physical stopped proof and typed outcome owner; stale credentials cannot record and exact report replay is immutable.
+- Historical owner reads validate report/receipt/spec/manifest/outcome and stop provenance, expose current-head versus superseded reports, and remain readable after worker credential revocation.
+- Recording and historical lookup do not release task/source/effect holds, assert live source availability, evaluate eligibility or complete graph tasks.
+
+Requirement links: D3, D5, D6, D9, X6, X7.
+
+Outside this task: AQ-10 stages B2/C: result eligibility, settlement, hold release and expected-version graph completion; AQ-14 human/check execution and current source-retention verification.
+
+Evidence: [AQ-10-result-ledger-qualification.md](../implementation/AQ-10-result-ledger-qualification.md), [three-area-state24-qualification.json](../implementation/three-area-state24-qualification.json), [AQ-14-result-owner-read.md](../implementation/AQ-14-result-owner-read.md), [agent-issuance-credential-qualification.json](../implementation/agent-issuance-credential-qualification.json).
+
 ### AQ-10
 
 **Apply evidence-based result disposition and graph completion**
 
 Owner: `agent-q`. Milestone: M4. Kind: implementation. Status: in_progress.
 
-Hard prerequisites: [AQ-05](#aq-05), [AQ-07](#aq-07), [AQ-09](#aq-09).
+Hard prerequisites: [AQ-05](#aq-05), [AQ-07](#aq-07), [AQ-09](#aq-09), [AQ-28](#aq-28).
 
 Connect immutable worker reports and retained source to pinned outcome/evidence contracts and an authorized version-checked task completion operation.
 
@@ -1000,7 +1024,7 @@ Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md)
 
 Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: in_progress.
 
-Hard prerequisites: [AQ-13](#aq-13), [AQ-10](#aq-10), [AQ-17](#aq-17), [WRK-09](#wrk-09).
+Hard prerequisites: [AQ-13](#aq-13), [AQ-28](#aq-28), [AQ-17](#aq-17), [WRK-09](#wrk-09).
 
 Implement judgment.request, decision.request and check.request with bounded central assessments, durable human decisions and actual check execution bound to exact subjects.
 

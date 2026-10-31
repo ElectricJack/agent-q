@@ -1,0 +1,9 @@
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.52s
+     Running tests/profiled_authority.rs (/tmp/aq22-observations/target/debug/deps/profiled_authority-4f4503502396a5b7)
+
+running 1 test
+test actual_profiled_graph_adapter_issues_exact_api01_binding_and_revokes_on_current_authority ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.62s
+

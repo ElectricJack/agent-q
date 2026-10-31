@@ -1,0 +1,24 @@
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.12s
+     Running tests/agent_access.rs (/tmp/aq22-observations/target/debug/deps/agent_access-eaaa9057b512846b)
+
+running 1 test
+test issuance_rotation_revocation_and_locked_authority_are_online ... FAILED
+
+failures:
+
+---- issuance_rotation_revocation_and_locked_authority_are_online stdout ----
+
+thread 'issuance_rotation_revocation_and_locked_authority_are_online' (4034751) panicked at crates/aq-server/tests/agent_access.rs:305:5:
+assertion `left == right` failed: the old credential cannot mint agent authority after rotation
+  left: 200
+ right: 401
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    issuance_rotation_revocation_and_locked_authority_are_online
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.62s
+
+error: test failed, to rerun pass `-p aq-server --test agent_access`

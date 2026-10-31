@@ -23,8 +23,16 @@ Existing design and implementation sources:
   [Started owner](../implementation/AQ-08-started-owner.md),
   [material delivery](../implementation/AQ-08-material-delivery.md) and
   [artifact owner](../implementation/AQ-08-inline-artifacts.md).
+- [Native producer completion](../implementation/AQ-08-native-completion-plan.md),
+  [versioned control delivery](../implementation/AQ-08-native-control-017.md),
+  [worker runtime](../../../aq-worker/docs/implementation/WRK-08-native-runtime-plan.md)
+  and [first Codex adapter](../../../aq-worker/docs/implementation/WRK-08-codex-adapter-plan.md).
+- [Result settlement stages](../implementation/AQ-10-result-settlement-plan.md)
+  and [validated historical result reads](../implementation/AQ-14-result-owner-read.md).
 
-Canonical work: AQ-08, WRK-08, AQ-10 and GATE-04.
+Canonical remaining work: AQ-08, WRK-08, AQ-10 and GATE-04. AQ-28 separately
+records the completed B1 report ledger/owner-read prerequisite; it does not
+complete AQ-10's eligibility and settlement stages.
 
 Complete the actual producer/consumer sequence: authorized ready/context query,
 current source and project policy, composition and intelligence selection,
@@ -32,14 +40,17 @@ retained immutable inputs, durable offer, worker reservation/preparation,
 verified preparation receipts, current grant, guarded tmux launch, durable Started
 reporting, source/result handoff and evidence-based graph completion.
 
-Before implementing the remaining producer, specify exact transaction/lock order,
-operation receipts and recovery for each missing transport transition against
-state format20. The original AQ-08 plan's proposed migration numbers and stage
-status are historical; current owner records and published contracts govern.
+The current producer/control plans specify transaction/lock order, operation
+receipts and recovery against the ordered state format24 foundation. Candidate
+025 belongs to native producer/source-observation work;026 belongs to human/check
+owners. Neither candidate is claimed as an installed migration. The original
+AQ-08 plan's migration numbers and stage status are historical; current owner
+records and exact published contracts govern.
 Context planning must use qualified model-capacity/counting facts, with unknown
 values explicit. It cannot invent a context window or represent unknown usage as
 zero. Specify the worker's matching durable journal transitions and private
-material installation/cleanup, then pin the first Codex adapter configuration.
+material installation/cleanup according to the native runtime plan, then implement
+the pinned first Codex adapter configuration and standalone ownership gates.
 AQ-10 still needs the concrete evidence-validation and graph-settlement sequence.
 
 Completion evidence is a real graph task producing a confined source change in a
@@ -57,15 +68,19 @@ Existing design and implementation sources:
 - [AQ-21 staged relay design](../implementation/AQ-21-design.md) and
   [current relay runtime](../implementation/AQ-21-runtime.md).
 - [WRK-14 stage1](../../../aq-worker/docs/implementation/WRK-14-stage1.md).
+- [Reader lease](../../../aq-worker/docs/implementation/WRK-14-reader-lease-plan.md),
+  [renderer/baseline plan](../../../aq-worker/docs/implementation/WRK-14-renderer-baseline-plan.md)
+  and [combined actual host qualification](../../../aq-worker/docs/implementation/WRK-08-host-union-qualification.md).
 - [AQ-22 plan](../implementation/AQ-22-plan.md),
   [WRK-15 plan](../../../aq-worker/docs/implementation/WRK-15-plan.md), and
   [qualified storage correction](../../../aq-worker/docs/implementation/WRK-15-reserved-control.md).
 
 Canonical work: AQ-21, WRK-14, WRK-09, AQ-22, WRK-15 and AQ-23.
 
-Remaining concrete plans must specify terminal output acquisition, epoch/sequence
-and snapshot barriers, bounded buffering, reconnect/gap handling and production
-worker adoption. Input/resize qualification does not establish renderer state or
+The terminal plans specify output acquisition, epoch/sequence and snapshot
+barriers, bounded buffering, reconnect/gap handling and production worker adoption.
+Reader expiry and dense incremental output decoding are now qualified components;
+full renderer/baseline and runtime adoption remain open. Input/resize qualification does not establish renderer state or
 live viewing. CLI attach/peek should use the same authorized relay; a dashboard
 implementation is outside this batch.
 
@@ -99,20 +114,22 @@ Existing design and implementation sources:
   [notification transport](../implementation/AQ-24.md).
 - [Playbook persistence proposal](../../../aq-playbooks/docs/implementation/PB-04.proposal.md)
   and [latest measured experiment](../../../aq-playbooks/docs/implementation/PB-04.lookahead.md).
+- [AQ-12 through AQ-17 implementation plan](../implementation/AQ-12-through-17-plan.md),
+  [first durable bridge](../implementation/AQ-13-first-bridge.md) and
+  [exact human/check ownership](../implementation/AQ-14-decision-check-owner-design.md).
 
 Canonical work: AQ-12 through AQ-17, applicable escalation/digest portions of
 AQ-27, WRK-09 and PB-04.
 
-The engine has a concrete implementation specification; AQ host integration has
-an ownership/contract specification and milestone acceptance criteria. Detailed
-production adapter implementation plans remain to be written. The host-boundary
-document's dated foundation-only route inventory is historical and must be
-reconciled with existing messaging, graph, selection and notification services.
-Do not implement duplicate owners based on that old inventory.
+The engine and AQ host have concrete implementation plans. The explicitly mounted
+first bridge now has durable keyed admission, message.send, cancellation and a
+protected outbox. Default startup and broader adapters remain open. Use current
+messaging, graph, selection and notification services; dated foundation-only route
+inventories must not cause duplicate owners to be implemented.
 
-Specify namespace ownership and blocking-I/O isolation, startup registration,
-protection-key provisioning, event-outbox delivery, bounded driver budgets,
-authorize/dispatch/reconcile/cancel mappings and revision-bound operation receipts.
+Follow the specified namespace ownership and blocking-I/O isolation, startup
+registration, protection-key provisioning, event-outbox delivery, bounded driver
+budgets, authorize/dispatch/reconcile/cancel mappings and revision-bound receipts.
 Map the twelve existing commands to AQ-owned services; do not expand the command
 surface to compensate for missing production adapters. Reuse the guarded host
 for central supervisor sessions, with separate central authority and credentials.
