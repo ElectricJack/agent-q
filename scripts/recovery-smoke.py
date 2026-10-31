@@ -707,6 +707,13 @@ class RecoveryFixture(product.Fixture):
 
     def cleanup(self):
         try:
+            if self.case_data and self.case_data.get("status") == "failed" and hasattr(self, "keeper"):
+                # Preserve the failed runtime's public evidence before removing
+                # its disposable namespace. Never collect private control tokens.
+                self.read("/state/runtime/journal.json", optional=True)
+                for number in range(1, self.driver_number + 1):
+                    self.read(f"/state/driver-{number}.log", optional=True)
+                    self.read(f"/state/driver-{number}.exit", optional=True)
             if self.control.exists():
                 for marker in self.control.glob("*.ready"):
                     marker.with_suffix(".release").touch()

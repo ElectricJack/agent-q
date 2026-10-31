@@ -20,7 +20,7 @@ their existing canonical digests. The protocol package was verified using
 
 | Component | Selected identity |
 | --- | --- |
-| Worker implementation | `e7c99b7ce1c31711f23ccb9d4410c406e062108f`, version 0.3.0 |
+| Worker implementation | `3fb2bcb2f63f73838ddd97e44580fe721a539bdd`, version 0.3.1 |
 | Shared protocol package | `c3af96037083508f5cb586861ca0bbb615569f16`, version 0.2.0 |
 | aq-git | `f3660a89cbeac0e068105af2926dfdcb06a1daad`, version 0.1.0 |
 | aq-graph | `225329cd6acf5a775fd2a0b016dd1c45fb16c79b` |
