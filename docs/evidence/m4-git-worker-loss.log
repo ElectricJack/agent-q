@@ -1,0 +1,70 @@
+info: syncing channel updates for 1.96.1-x86_64-unknown-linux-gnu
+info: latest update on 2026-06-30 for version 1.96.1 (31fca3adb 2026-06-26)
+info: downloading component clippy
+    Updating crates.io index
+ Downloading crates ...
+  Downloaded cfg-if v1.0.5
+  Downloaded proc-macro2 v1.0.107
+  Downloaded is_terminal_polyfill v1.70.2
+  Downloaded num-traits v0.2.19
+  Downloaded serde v1.0.229
+  Downloaded thiserror v2.0.21
+  Downloaded tokio-macros v2.7.2
+  Downloaded anstyle-query v1.1.5
+  Downloaded anstyle-parse v1.0.0
+  Downloaded strsim v0.11.1
+  Downloaded signal-hook-registry v1.4.8
+  Downloaded iana-time-zone v0.1.65
+  Downloaded tempfile v3.27.0
+  Downloaded utf8parse v0.2.2
+  Downloaded itoa v1.0.18
+  Downloaded memchr v2.8.3
+  Downloaded zmij v1.0.23
+  Downloaded unicode-ident v1.0.27
+  Downloaded typenum v1.20.1
+  Downloaded uuid v1.29.0
+  Downloaded clap_builder v4.6.7
+  Downloaded serde_json v1.0.154
+  Downloaded mio v1.2.4
+  Downloaded serde_core v1.0.229
+  Downloaded once_cell v1.21.4
+  Downloaded sha2 v0.10.9
+  Downloaded getrandom v0.4.3
+  Downloaded version_check v0.9.5
+  Downloaded thiserror-impl v2.0.21
+  Downloaded chrono v0.4.45
+  Downloaded serde_derive v1.0.229
+  Downloaded heck v0.5.0
+  Downloaded socket2 v0.6.5
+  Downloaded rustix v1.1.6
+  Downloaded cpufeatures v0.2.17
+  Downloaded digest v0.10.7
+  Downloaded clap_lex v1.1.1
+  Downloaded pin-project-lite v0.2.17
+  Downloaded fastrand v2.5.0
+  Downloaded quote v1.0.47
+  Downloaded hex v0.4.3
+  Downloaded errno v0.3.14
+  Downloaded colorchoice v1.0.5
+  Downloaded clap_derive v4.6.7
+  Downloaded clap v4.6.7
+  Downloaded block-buffer v0.10.4
+  Downloaded bitflags v2.13.2
+  Downloaded autocfg v1.5.1
+  Downloaded anstyle v1.0.14
+  Downloaded syn v3.0.9
+  Downloaded generic-array v0.14.7
+  Downloaded crypto-common v0.1.7
+  Downloaded bytes v1.12.1
+  Downloaded anstream v1.0.0
+  Downloaded libc v0.2.191
+  Downloaded tokio v1.54.1
+  Downloaded linux-raw-sys v0.12.1
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.61s
+     Running tests/scenario.rs (target/debug/deps/scenario-034e0bfc1d59c1b6)
+
+running 1 test
+test coordinator_worker_receipt_survives_worker_loss_and_publishes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.35s
+

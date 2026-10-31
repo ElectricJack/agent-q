@@ -6,6 +6,7 @@ ENV AQ_SOURCE_REVISION=${AQ_SOURCE_REVISION}
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY crates ./crates
 COPY vendor ./vendor
+COPY protocol ./protocol
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,sharing=locked,target=/build/target \
     cargo clean --release -p aq-server -p aq-release -p aq-protocol -p aq-worker-protocol \

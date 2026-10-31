@@ -41,11 +41,20 @@ pub(crate) fn execution_cancel_path(path: &str) -> bool {
         .and_then(|rest| rest.strip_suffix("/cancel"))
         .is_some_and(|id| uuid::Uuid::parse_str(id).is_ok())
 }
+pub(crate) fn agent_revoke_path(path: &str) -> bool {
+    path.strip_prefix("/api/agent-access/")
+        .and_then(|rest| rest.strip_suffix("/revoke"))
+        .is_some_and(|id| uuid::Uuid::parse_str(id).is_ok())
+}
 pub fn classify(path: &str) -> Class {
+    if path == "/v1/execution/sources/status" {
+        return Class::Control;
+    }
     if matches!(
         path,
-        "/v2/worker/artifact-handoff" | "/api/execution/test-bulk"
-    ) {
+        "/v2/worker/artifact-handoff" | "/api/execution/test-bulk" | "/api/source-bases/provision"
+    ) || path.starts_with("/v1/execution/sources/")
+    {
         Class::Bulk
     } else if matches!(
         path,
@@ -60,9 +69,11 @@ pub fn classify(path: &str) -> Class {
             | "/v2/worker/directive-ack"
             | "/v2/worker/result"
             | "/v2/worker/reconcile"
+            | "/v2/worker/agent-session"
             | "/api/execution/replace-incarnation"
             | "/api/execution/test-control"
     ) || execution_cancel_path(path)
+        || agent_revoke_path(path)
     {
         Class::Control
     } else {
@@ -70,7 +81,21 @@ pub fn classify(path: &str) -> Class {
     }
 }
 fn busy(path: &str, message: &str) -> Response {
-    let mut response = if path.starts_with("/v2/worker/") {
+    let mut response = if path.starts_with("/v1/agent/") {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            [
+                ("X-AQ-Agent-API-Version", "1"),
+                ("Cache-Control", "no-store"),
+            ],
+            Json(serde_json::json!({
+                "api_version": 1, "request_id": uuid::Uuid::new_v4(),
+                "operation_id": null, "code": "overloaded", "message": message,
+                "effect": "unknown", "retryable": true, "recovery": null
+            })),
+        )
+            .into_response()
+    } else if path.starts_with("/v2/worker/") {
         (
             StatusCode::SERVICE_UNAVAILABLE,
             Json(ProtocolError {

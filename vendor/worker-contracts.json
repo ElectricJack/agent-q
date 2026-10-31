@@ -1,28 +1,28 @@
 {
   "source_repository": "aq-worker",
-  "source_revision": "cf87edffa3384a08f5bb0319b4f92ffc2a26b145",
+  "source_revision": "c3af96037083508f5cb586861ca0bbb615569f16",
   "method": "Cargo package archives; public contract only, immutable integration candidate, no remote publication",
   "packages": [
     {
       "name": "aq-worker-protocol",
-      "version": "0.1.1",
-      "archive_sha256": "b421f42963c9b20b58a7a82dce96b0bbb9518e5fbb1a57069f26108f77e983f9",
+      "version": "0.2.0",
+      "archive_sha256": "6278b14d3923248a34af1e3f48bfc4410766d080a25eae6accde5a597658c684",
       "files": [
         {
           "path": ".cargo_vcs_info.json",
-          "sha256": "f842b88a70342d4c5ba9f51f85095827db3f73764684e99750fad2079eb6a332"
+          "sha256": "17a747fd978747d7e2f51313a4a0b7603565cc0664349cb6cf08b53054b05775"
         },
         {
           "path": "Cargo.lock",
-          "sha256": "dc366d95ba3a822dc67787cee28dcd571c308f6d908cb90da58c9f8fdedc9ab4"
+          "sha256": "c2fcd832761d205113a8f1fce4adbd3d3782bd105dcf85fe1d65c55ea25f0bb2"
         },
         {
           "path": "Cargo.toml",
-          "sha256": "f4c6a68697304bd4f339d2301753b342eabb0aba35174a0b06f665e3565f52c2"
+          "sha256": "4be3fc2e759af93390fa4b455d6f757557f6bd0827dc699925ecbdcdb63aa47d"
         },
         {
           "path": "Cargo.toml.orig",
-          "sha256": "fa045d601476b6dd88891e881c2cf455d391cc3a1c983b2884b34ecb1343a373"
+          "sha256": "aec32c542381f3ba170d7595dab8cfbc24e0cc9de1dbfbf0e970d1c181ddf3a0"
         },
         {
           "path": "examples/fixtures.rs",
@@ -34,23 +34,31 @@
         },
         {
           "path": "fixtures/conformance-v2.json",
-          "sha256": "b0b42f1af65540201d7c2975108120fbec693dea48421d7551e2bc668f90041c"
+          "sha256": "ef45249d51e12aab408d8f9c3aa09d890990f6d125376adc43d7f8c4e957e672"
         },
         {
           "path": "fixtures/execution-v2.schema.json",
-          "sha256": "bf63b640353416d8662f86f1af6a2584482b01a7a5ca8a5b40226540d91e57e7"
+          "sha256": "c916367bf00ad78a18ee4df709829a8fb9843f5a11446e1940e2aa57f87b0de7"
         },
         {
           "path": "src/lib.rs",
-          "sha256": "69b3175343e3c92b1b4e84fe45a08097c16ab0cc9fd7f687d27d84efeab8ff49"
+          "sha256": "c3c7cf66aa40d2d6a52009187231ae8e8e857c41c4c1c69ed327c5a600c72905"
+        },
+        {
+          "path": "src/m4.rs",
+          "sha256": "89b5285310ae431908f630eba1ce9d99b793b73a2043af09745267c3fce2e4f7"
         },
         {
           "path": "src/testing.rs",
-          "sha256": "2c4d4c1e03c45c359764371959aa930065d44a7fcb6c1aef11063761b514b7e0"
+          "sha256": "c6724fbfcd9eebafb725266aa9f38e381dd7750ad621988e93f956396e191bd9"
         },
         {
           "path": "tests/conformance.rs",
           "sha256": "65c0e826ecc11ddd400e37dc010a975bb98e49f9084ed2d08fab5d0f963a1fef"
+        },
+        {
+          "path": "tests/m4.rs",
+          "sha256": "37604a4dda663d5050068c1963e2d84a57cd31f6d48f26a4860582200351e6a9"
         }
       ],
       "source_revision": "cf87edffa3384a08f5bb0319b4f92ffc2a26b145"

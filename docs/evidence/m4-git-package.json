@@ -1,0 +1,38 @@
+{
+  "component": "aq-git",
+  "version": "0.1.0",
+  "source_revision": "f3660a89cbeac0e068105af2926dfdcb06a1daad",
+  "archive": "aq-git-source.tar.gz",
+  "archive_sha256": "8f6a2f8ce04361c3cabaff5de7274505e28a042235da18cc346086f47e4c6cd5",
+  "builder": "rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663",
+  "runtime": "debian:bookworm-slim",
+  "protocol_version": 1,
+  "git": {
+    "version": "2.56.0",
+    "archive": "aq-git-0.1.0/git-2.56.0.tar.xz",
+    "sha256": "26c56c296b38c0695b26fa95f475f1d01704d2d38e73465ca30b0b2f5dc789d3",
+    "url": "https://www.kernel.org/pub/software/scm/git/git-2.56.0.tar.xz",
+    "release_source": "https://git-scm.com/install/",
+    "relocatable_helpers": true
+  },
+  "bundle_sha256": "9637c96a93834d51c1aecf8f602e1f4d2ea86792d164978830583c1512fd709d",
+  "qualification": {
+    "initial_bookworm_git_2_39": "rejected: Git2.43 minimum",
+    "bookworm_git_2_56": "socket producer loss scenario passed",
+    "glibc_max_required": "2.34",
+    "final_image_id": "sha256:ad68eec4eb7208bac9314a01d02694c4e422df8aebd24a7afd5c674389f15f01",
+    "aq_git_binary_sha256": "9de33fd4e79d68a9cb8c72532ee03825dca3a3dbaf979bcd8770a53ef8fe9d3a",
+    "claims": [
+      "local process/socket test",
+      "runtime ABI in Debian bookworm",
+      "central retention survives stopped worker volume deletion"
+    ],
+    "excluded_claims": [
+      "hosted production",
+      "performance",
+      "power loss"
+    ],
+    "default_git_executable": "/usr/bin/git -> /opt/aq-git-runtime/bin/git",
+    "default_git_capability_probe": "verified Git 2.56.0 after repo.register in final standalone bookworm image"
+  }
+}

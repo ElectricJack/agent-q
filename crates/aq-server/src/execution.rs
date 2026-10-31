@@ -88,6 +88,10 @@ pub struct AttemptState {
     pub cancellation_id: Option<Uuid>,
     pub cancellation_reason: Option<String>,
     pub stopped: bool,
+    /// Monotonic conservative evidence: later reports cannot claim nonstart
+    /// after running, uncertain, or stopped execution was reported.
+    #[serde(default)]
+    pub may_have_started: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -127,6 +131,10 @@ async fn active(tx: &mut Transaction<'_, Postgres>, identity: &NodeIdentity) -> 
     }
     Ok(record)
 }
+fn observation_may_have_started(observation: &Observation) -> bool {
+    observation.stop_certainty != StopCertainty::NotStarted
+        || matches!(observation.phase, Phase::Running | Phase::LaunchUncertain)
+}
 async fn load_attempt(tx: &mut Transaction<'_, Postgres>, id: Uuid) -> Result<AttemptState> {
     let body: String = sqlx::query_scalar(
         "SELECT state::text FROM execution_attempts WHERE attempt_id=$1 FOR UPDATE",
@@ -135,7 +143,29 @@ async fn load_attempt(tx: &mut Transaction<'_, Postgres>, id: Uuid) -> Result<At
     .fetch_optional(&mut **tx)
     .await?
     .ok_or_else(|| refuse(ErrorCode::NotFound, "attempt not found"))?;
-    Ok(serde_json::from_str(&body)?)
+    let raw: serde_json::Value = serde_json::from_str(&body)?;
+    let legacy = raw.get("may_have_started").is_none();
+    let mut state: AttemptState = serde_json::from_value(raw)?;
+    state.may_have_started |= state
+        .report
+        .as_ref()
+        .is_some_and(|r| r.stop_certainty != StopCertainty::NotStarted)
+        || state
+            .last_observation
+            .as_ref()
+            .is_some_and(observation_may_have_started);
+    // Older projections could replace their latest report with a nonstart
+    // correction. Immutable report bodies retain the earlier evidence. Consult
+    // the indexed history only when upgrading a projection without this marker;
+    // the next save persists the monotonic fact, avoiding a new per-call scan.
+    // Observations retain only the latest body (receipts contain Ack, not input),
+    // so there is no older observation body to reconstruct beyond that projection.
+    if legacy && !state.may_have_started {
+        state.may_have_started = sqlx::query_scalar(
+            "SELECT EXISTS(SELECT 1 FROM execution_reports WHERE attempt_id=$1 AND request->>'stop_certainty' IS DISTINCT FROM 'not_started')",
+        ).bind(id).fetch_one(&mut **tx).await?;
+    }
+    Ok(state)
 }
 fn bind_attempt(state: &AttemptState, node: Uuid, attempt: &AttemptRef) -> Result<()> {
     if state.offer.identity.node_id != node || state.offer.attempt != *attempt {
@@ -151,6 +181,10 @@ async fn save_attempt(tx: &mut Transaction<'_, Postgres>, state: &AttemptState) 
         AuthorityStatus::Declined => false,
         AuthorityStatus::Finished => {
             !state.stopped
+                || !state
+                    .disposition
+                    .as_ref()
+                    .is_some_and(|r| r.retention_release)
                 || state
                     .report
                     .as_ref()
@@ -165,6 +199,70 @@ async fn save_attempt(tx: &mut Transaction<'_, Postgres>, state: &AttemptState) 
         .execute(&mut **tx)
         .await?;
     Ok(())
+}
+
+/// Source evidence is admitted from durable central receipts, never a worker's
+/// assertion that its upload completed. Caller holds node -> attempt locks.
+async fn retained_source(
+    tx: &mut Transaction<'_, Postgres>,
+    state: &AttemptState,
+    report: &ResultReport,
+) -> Result<bool> {
+    let source = state
+        .offer
+        .spec
+        .bindings
+        .as_ref()
+        .and_then(|b| b.source.as_ref());
+    if source.is_none() {
+        if !report.artifacts.is_empty() {
+            return Err(refuse(
+                ErrorCode::UnsupportedCapability,
+                "attempt has no source binding",
+            ));
+        }
+        return Ok(true);
+    }
+    let mut seen = std::collections::HashSet::new();
+    for artifact in &report.artifacts {
+        if !seen.insert(artifact.artifact_id) {
+            return Err(refuse(
+                ErrorCode::InvalidRequest,
+                "duplicate source artifact",
+            ));
+        }
+        let row = sqlx::query("SELECT manifest::text AS manifest,receipt::text AS receipt FROM source_transfers WHERE artifact_id=$1 AND node_id=$2 AND attempt_id=$3 AND state='retained'")
+            .bind(artifact.artifact_id).bind(report.identity.node_id).bind(report.attempt.attempt_id)
+            .fetch_optional(&mut **tx).await?
+            .ok_or_else(|| refuse(ErrorCode::InvalidRequest, "source retention is not confirmed"))?;
+        let manifest: TransferManifest = serde_json::from_str(row.get("manifest"))?;
+        let receipt: CentralRetentionReceipt = serde_json::from_str(row.get("receipt"))?;
+        validate(&manifest)?;
+        validate(&receipt)?;
+        if Some(&manifest.source) != source
+            || manifest.role != SourceRole::Checkpoint
+            || manifest.attempt != report.attempt
+            || manifest.resolved_spec_digest != report.resolved_spec_digest
+            || manifest.artifact_id != artifact.artifact_id
+            || artifact.digest != manifest.manifest_digest
+            || Some(artifact.bytes) != manifest.manifest_bytes.checked_add(manifest.bundle_bytes)
+            || artifact.central_receipt.as_deref() != Some(receipt.receipt_id.to_string().as_str())
+            || receipt.transfer_id != manifest.transfer_id
+            || receipt.repository_id != manifest.source.repository_id
+            || receipt.binding_generation != manifest.source.binding_generation
+            || receipt.source != manifest.checkpoint
+            || receipt.retention_handle != manifest.artifact_id
+        {
+            return Err(refuse(
+                ErrorCode::InvalidRequest,
+                "source receipt binding mismatch",
+            ));
+        }
+    }
+    let pending: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM source_transfers WHERE node_id=$1 AND attempt_id=$2 AND state IN ('uploading','import_pending'))")
+        .bind(report.identity.node_id).bind(report.attempt.attempt_id).fetch_one(&mut **tx).await?;
+    Ok(!pending
+        && (report.stop_certainty == StopCertainty::NotStarted || !report.artifacts.is_empty()))
 }
 async fn receipt<T: DeserializeOwned>(
     tx: &mut Transaction<'_, Postgres>,
@@ -361,6 +459,7 @@ impl Store {
             cancellation_id: None,
             cancellation_reason: None,
             stopped: false,
+            may_have_started: false,
         };
         let result = sqlx::query("INSERT INTO execution_attempts(attempt_id,task_id,node_id,offer_id,session_id,state) VALUES($1,$2,$3,$4,$5,$6::jsonb)")
             .bind(offer.attempt.attempt_id).bind(task_id).bind(offer.identity.node_id).bind(offer.offer_id).bind(offer.attempt.session_id).bind(encode(&state)?).execute(&mut *tx).await;
@@ -623,6 +722,7 @@ impl Store {
         if request.stop_certainty == StopCertainty::ConfirmedStopped {
             state.stopped = true;
         }
+        state.may_have_started |= observation_may_have_started(request);
         state.last_observation = Some(request.clone());
         save_attempt(&mut tx, &state).await?;
         let ack = Ack {
@@ -648,12 +748,6 @@ impl Store {
     ) -> Result<ResultResponse> {
         let clock = clock.into();
         validate(request)?;
-        if !request.artifacts.is_empty() {
-            return Err(refuse(
-                ErrorCode::UnsupportedCapability,
-                "artifact retention adapter is not installed",
-            ));
-        }
         let mut tx = self.pool.begin().await?;
         lock_node(&mut tx, request.identity.node_id).await?;
         let digest = payload_digest(request);
@@ -691,7 +785,6 @@ impl Store {
             ));
         }
         let node = registration(&mut tx, request.identity.node_id).await?;
-        let now = clock.now_ms();
         let stopped = matches!(
             request.stop_certainty,
             StopCertainty::ConfirmedStopped | StopCertainty::NotStarted
@@ -713,7 +806,26 @@ impl Store {
                 "released execution cannot introduce pending operations",
             ));
         }
-        let disposition = if !stopped {
+        if request.stop_certainty == StopCertainty::NotStarted && state.may_have_started {
+            return Err(refuse(
+                ErrorCode::InvalidRequest,
+                "execution evidence cannot be downgraded to nonstart",
+            ));
+        }
+        let source_retained = retained_source(&mut tx, &state, request).await?;
+        if state
+            .disposition
+            .as_ref()
+            .is_some_and(|r| r.retention_release)
+            && !source_retained
+        {
+            return Err(refuse(
+                ErrorCode::InvalidRequest,
+                "released execution cannot reacquire source retention",
+            ));
+        }
+        let now = clock.now_ms();
+        let disposition = if !stopped || !source_retained {
             ResultDisposition::Rejected
         } else if state.cancellation_id.is_some() {
             ResultDisposition::RetainedCancelled
@@ -725,12 +837,14 @@ impl Store {
         } else {
             ResultDisposition::Accepted
         };
-        // Retention release is only for this artifact-free fixture. Real source
-        // requires authenticated retained receipts from the future adapter.
+        // This releases retained execution evidence only. Graph completion and
+        // result policy remain separate AQ-10 operations.
         let response = ResultResponse {
             report_id: request.report_id,
             disposition,
-            retention_release: stopped && request.pending_operation_ids.is_empty(),
+            retention_release: stopped
+                && source_retained
+                && request.pending_operation_ids.is_empty(),
         };
         state.status = if stopped {
             AuthorityStatus::Finished
@@ -738,6 +852,7 @@ impl Store {
             AuthorityStatus::Cancelling
         };
         state.stopped = stopped;
+        state.may_have_started |= request.stop_certainty != StopCertainty::NotStarted;
         state.report = Some(request.clone());
         state.disposition = Some(response.clone());
         sqlx::query("INSERT INTO execution_reports(node_id,report_id,attempt_id,request,response) VALUES($1,$2,$3,$4::jsonb,$5::jsonb)")

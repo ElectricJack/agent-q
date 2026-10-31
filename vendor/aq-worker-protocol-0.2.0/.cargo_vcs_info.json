@@ -1,0 +1,6 @@
+{
+  "git": {
+    "sha1": "c3af96037083508f5cb586861ca0bbb615569f16"
+  },
+  "path_in_vcs": "crates/aq-worker-protocol"
+}

@@ -13,5 +13,7 @@
     "execution_protocol": 2,
     "worker_journal_format": 1,
     "distribution": "Immutable local integration source candidate; not a published or hosted release. Builds require no sibling source checkout."
-  }
+  },
+  "dockerfile": "recovery-smoke-legacy-worker.Dockerfile",
+  "dockerfile_sha256": "c513788cfbd6b29eaa9c6f18774f3b556cbe5f1a2901c422b8b3dff33fbee3ee"
 }

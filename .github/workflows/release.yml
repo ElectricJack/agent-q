@@ -58,6 +58,7 @@ jobs:
           state_format=$(sed -n 's/^pub const STATE_FORMAT_VERSION: u32 = \([0-9][0-9]*\);$/\1/p' crates/aq-server/src/lib.rs)
           protocol_source=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["dependencies"]["aq-protocol"]["path"] + "/src/lib.rs")')
           protocol_max=$(sed -n 's/^pub const SUPPORTED_WORKER_PROTOCOLS: (u32, u32) = ([0-9][0-9]*, \([0-9][0-9]*\));$/\1/p' "$protocol_source")
+          python3 scripts/check-git-candidate.py --official
           worker_revision=$(python3 scripts/check-worker-candidate.py --official --revision)
           worker_version=$(python3 -c 'import json; print(json.load(open("vendor/worker-candidate.json"))["version"])')
           worker_archive_sha256=$(python3 -c 'import json; print(json.load(open("vendor/worker-candidate.json"))["archive_sha256"])')

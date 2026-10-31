@@ -291,3 +291,96 @@ fn tokens_have_prefixes_and_are_unique() {
     assert!(c.starts_with("aqn_") && c != d);
     assert_eq!(c.len(), 4 + 43);
 }
+
+#[tokio::test]
+async fn exact_schema_two_upgrades_preserving_node_and_result_receipt() {
+    let db = TestDb::create().await;
+    let pool = db.pool().await;
+    // Start with the actual prior SQL, not a current Store downgraded by metadata.
+    let mut prior = pool.begin().await.unwrap();
+    sqlx::raw_sql(include_str!("../migrations/0001_foundation.sql"))
+        .execute(&mut *prior)
+        .await
+        .unwrap();
+    sqlx::raw_sql(include_str!("../migrations/0002_execution.sql"))
+        .execute(&mut *prior)
+        .await
+        .unwrap();
+    sqlx::raw_sql("CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now()); INSERT INTO schema_migrations(version) VALUES (1),(2)")
+        .execute(&mut *prior)
+        .await
+        .unwrap();
+    let node_id = uuid::Uuid::new_v4();
+    let operation_id = uuid::Uuid::new_v4();
+    let credential_hash = verifier("synthetic-prior-node-credential");
+    let response = serde_json::json!({"report_id":operation_id,"disposition":"retained_stale","retention_release":false});
+    sqlx::query("INSERT INTO nodes(id,name,credential_hash,worker_version,protocol_version,enrolled_at,last_seen_at) VALUES($1,'prior-node',$2,'0.2.0',2,$3,$3)")
+        .bind(node_id)
+        .bind(&credential_hash)
+        .bind(t0())
+        .execute(&mut *prior)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO execution_receipts(node_id,operation_id,kind,payload_digest,response) VALUES($1,$2,'result',$3,$4)")
+        .bind(node_id)
+        .bind(operation_id)
+        .bind("a".repeat(64))
+        .bind(&response)
+        .execute(&mut *prior)
+        .await
+        .unwrap();
+    prior.commit().await.unwrap();
+    let original_migrations: Vec<(i32, DateTime<Utc>)> =
+        sqlx::query_as("SELECT version,applied_at FROM schema_migrations ORDER BY version")
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+    let snapshot = async || {
+        sqlx::query_scalar::<_, serde_json::Value>("SELECT jsonb_build_object('node',(SELECT to_jsonb(n) FROM nodes n WHERE id=$1),'receipt',(SELECT to_jsonb(r) FROM execution_receipts r WHERE node_id=$1 AND operation_id=$2))")
+            .bind(node_id)
+            .bind(operation_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+    };
+    let before = snapshot().await;
+    assert_eq!(
+        sqlx::query_scalar::<_, String>("SELECT value FROM meta WHERE key='state_format_version'")
+            .fetch_one(&pool)
+            .await
+            .unwrap(),
+        "2"
+    );
+    for _ in 0..2 {
+        let store = Store::connect_with(db.options()).await.unwrap();
+        let node = store
+            .find_node_by_credential(&credential_hash)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(node.id, node_id);
+        assert_eq!(node.worker_version, "0.2.0");
+        assert_eq!(node.last_seen_at, Some(t0()));
+        assert_eq!(snapshot().await, before);
+        let migrations: Vec<(i32, DateTime<Utc>)> =
+            sqlx::query_as("SELECT version,applied_at FROM schema_migrations ORDER BY version")
+                .fetch_all(&pool)
+                .await
+                .unwrap();
+        assert_eq!(&migrations[..2], original_migrations.as_slice());
+        assert_eq!(
+            migrations.iter().map(|(v, _)| *v).collect::<Vec<_>>(),
+            vec![1, 2, 3, 4]
+        );
+        assert_eq!(
+            sqlx::query_scalar::<_, String>(
+                "SELECT value FROM meta WHERE key='state_format_version'"
+            )
+            .fetch_one(&pool)
+            .await
+            .unwrap(),
+            "4"
+        );
+        drop(store);
+    }
+}

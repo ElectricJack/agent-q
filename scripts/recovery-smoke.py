@@ -60,7 +60,7 @@ class RecoveryFixture(product.Fixture):
         source.mkdir()
         for name in ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "Dockerfile.worker", ".dockerignore"]:
             shutil.copy2(ROOT / name, source / name)
-        for name in ["crates", "vendor"]:
+        for name in ["crates", "vendor", "protocol"]:
             shutil.copytree(ROOT / name, source / name)
         if self.prototype_revision:
             raw = subprocess.check_output(["git", "archive", "--format=tar", self.prototype_revision], cwd=self.prototype_repository)
@@ -68,10 +68,11 @@ class RecoveryFixture(product.Fixture):
             with tarfile.open(fileobj=io.BytesIO(raw)) as tar:
                 package = tomllib.loads(tar.extractfile("crates/aq-worker/Cargo.toml").read().decode())["package"]
                 lock = tar.extractfile("Cargo.lock").read()
+                worker_state_format = int(re.search(r"pub const STATE_FORMAT: u32 = (\d+);", tar.extractfile("crates/aq-worker/src/journal.rs").read().decode()).group(1))
             candidate = json.loads((source / "vendor/worker-candidate.json").read_text())
             candidate.update(source_revision=self.prototype_revision, version=package["version"],
                              archive_sha256=product.sha(compressed), lockfile_sha256=product.sha(lock),
-                             worker_journal_format=2, distribution="PROTOTYPE recovery fixture only; not a qualified release")
+                             worker_journal_format=worker_state_format, distribution="PROTOTYPE recovery fixture only; not a qualified release")
             (source / "vendor/aq-worker-source.tar.gz").write_bytes(compressed)
             (source / "vendor/worker-candidate.json").write_text(json.dumps(candidate, indent=2) + "\n")
             (source / "vendor/worker-candidate.sha256").write_text(candidate["archive_sha256"] + "  aq-worker-source.tar.gz\n")
@@ -459,16 +460,18 @@ class RecoveryFixture(product.Fixture):
         self.finish_case()
 
     def case_old_binary(self):
-        self.start_case("old-binary-journal2-refusal")
+        self.start_case("old-binary-current-journal-refusal")
         self.start_driver()
         offer = self.offer(self.registered())
         record = self.running(offer)
         self.release_writers(record["launch_id"])
         self.stopped_result(offer)
-        journal = self.journal("journal2-for-downgrade-test")
-        assert journal["format_version"] == 2
+        journal = self.journal("current-journal-for-downgrade-test")
+        expected_format = self.record["recovery_build"]["candidate"]["worker_journal_format"]
+        assert journal["format_version"] == expected_format
         legacy = json.loads((ROOT / "scripts/recovery-smoke-legacy-worker.json").read_text())
         candidate = legacy["candidate"]
+        assert product.sha((ROOT / "scripts" / legacy["dockerfile"]).read_bytes()) == legacy["dockerfile_sha256"]
         source = self.temp / "legacy-worker-source"
         (source / "vendor").mkdir(parents=True)
         raw = (ROOT / "scripts" / legacy["archive"]).read_bytes()
@@ -478,12 +481,12 @@ class RecoveryFixture(product.Fixture):
         (source / "vendor/worker-candidate.sha256").write_text(candidate["archive_sha256"] + "  aq-worker-source.tar.gz\n")
         old_image = self.project + "-legacy-worker:fixture"
         self.images.append(old_image)
-        self.run(["docker", "build", "-f", str(ROOT / "Dockerfile.worker"), "--target", "worker",
+        self.run(["docker", "build", "-f", str(ROOT / "scripts" / legacy["dockerfile"]), "--target", "worker",
                   "--build-arg", "AQ_SOURCE_REVISION=" + candidate["source_revision"],
                   "--build-arg", "AQ_WORKER_ARCHIVE_SHA256=" + candidate["archive_sha256"],
                   "--build-arg", "AQ_STATE_FORMAT=2",
                   "--build-arg", "AQ_VERSION=" + candidate["version"], "-t", old_image, str(source)], name="build-old-binary", timeout=1800)
-        copied_volume = self.project + "-journal2-copy"
+        copied_volume = self.project + "-journal-current-copy"
         self.run(["docker", "volume", "create", "--label", "com.docker.compose.project=" + self.project, copied_volume], name="create-journal-copy")
         body = product.canonical(journal).decode()
         self.run(["docker", "run", "--rm", "-i", "--entrypoint", "sh", "-v", copied_volume + ":/state", old_image,
@@ -495,7 +498,7 @@ class RecoveryFixture(product.Fixture):
                            "--fixture-agent", "/usr/local/bin/aq-fixture-agent", "--idle-timeout-secs", "5", "--exit-after-result"],
                           name="old-binary-refusal", check=False, timeout=15)
         assert self.commands[-1]["exit_code"] != 0
-        assert "unsupported state format 2" in output or ("parse journal; refusing to advertise capacity" in output and "unknown field" in output)
+        assert f"unsupported state format {expected_format}" in output or ("parse journal; refusing to advertise capacity" in output and "unknown field" in output)
         assert len(self.proxy_events()) == boundary, "old binary contacted daemon instead of refusing journal format"
         unchanged = self.run(["docker", "run", "--rm", "--entrypoint", "cat", "-v", copied_volume + ":/state", old_image,
                               "/state/runtime/journal.json"], name="unchanged-journal-copy")
@@ -725,7 +728,7 @@ def main():
                    "start-sent-before-receipt", "start-receipt-durable", "report-durable"]
     names = ["lost-acceptance", "late-grant", *["crash-" + point for point in checkpoints], "worker-restart",
              "guardian-loss", "partition-expiry", "cancel-first", "result-first", "old-result-after-replacement",
-             "daemon-restart", "control-under-bulk", "old-binary-journal2-refusal", "renew-expires-while-db-locked"]
+             "daemon-restart", "control-under-bulk", "old-binary-current-journal-refusal", "renew-expires-while-db-locked"]
     if args.list:
         print("\n".join(names))
         return 0
@@ -751,7 +754,7 @@ def main():
             else:
                 {"guardian-loss": fixture.case_guardian_loss, "partition-expiry": fixture.case_partition,
                  "daemon-restart": fixture.case_daemon_restart, "old-result-after-replacement": fixture.case_old_result,
-                 "control-under-bulk": fixture.case_bulk, "old-binary-journal2-refusal": fixture.case_old_binary,
+                 "control-under-bulk": fixture.case_bulk, "old-binary-current-journal-refusal": fixture.case_old_binary,
                  "renew-expires-while-db-locked": fixture.case_lock_expiry}[name]()
         fixture.record.update(outcome="passed", gate_status="matrix passed; requires review and exact-artifact acceptance before closing GATE-03",
                               complete_matrix=selected == names)

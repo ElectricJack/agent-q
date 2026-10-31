@@ -37,6 +37,8 @@ enabled = true
 async fn state(db: &TestDb) -> AppState {
     let config = config();
     AppState {
+        agent_access: None,
+        source_retention: None,
         identity: verifier_from_config(&config.auth, reqwest::Client::new()),
         config: Arc::new(config),
         store: db.store().await,

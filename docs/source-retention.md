@@ -1,0 +1,133 @@
+# Authenticated source retention
+
+AQ-09 exposes bounded source transfer on the worker listener. Node credentials
+are resolved through the ordinary live central verifier. The attempt owner,
+repository UUID, logical identity, binding generation, base OID, session,
+generation and resolved spec digest come from the server's immutable offer.
+An agent graph credential cannot authenticate these routes. The adapter does
+not expose Git commands, paths, URLs or publication.
+
+Checkpoint upload uses `POST /v1/execution/sources/begin` with
+`{identity,operation_id,manifest:TransferManifest}`. The manifest's role must be
+`checkpoint`. `PUT /v1/execution/sources/{transfer_id}/{manifest|bundle}` accepts
+raw bytes with `operation_id`, `offset` and `digest` query parameters. Each
+chunk is at most 256 KiB; request bodies have a separate 1 MiB cap. Exact
+operation replay returns its durable response; changed payloads or incorrect
+offsets fail. Files are fsynced before SQL offsets advance. Unacknowledged
+trailing bytes are truncated on retry. Reservations are durable before files
+are created. The max bundle is configurable up to aq-git's 1 GiB bound.
+
+`POST /v1/execution/sources/status` and `/finalize` accept
+`TransferStatusRequest`. Status uses the reserved control database pool;
+bulk requests use a separate bounded semaphore. Node and attempt locks are
+released before whole-file hashing or socket I/O. Validation protects a completed upload from concurrent expiry cleanup.
+Definitely invalid pre-dispatch bytes are rejected and reclaimed; a durable
+dispatch-intent flag prevents reclaiming any potentially imported bytes.
+The import operation UUID is allocated once in SQL and preserved across lost or incompatible responses.
+Publication into the private aq-git incoming area uses an atomic directory
+rename. Put `staging_root` on the same filesystem as `git_root`. Unknown imports
+remain pending, including after worker disappearance; no timeout invents a
+receipt or renews assignment authority.
+
+The only source import mapping is `artifact.import` with trusted repository,
+generation, durable import UUID and a UUID transport artifact handle. The
+adapter validates the actual aq-git manifest and every central receipt binding.
+The transport manifest digest hashes exact uploaded bytes; aq-git's retention
+receipt digest hashes its typed canonical manifest serialization. These are
+separate values. Upload completion never means central retention. A retained
+receipt does not accept an AQ attempt or authorize candidate publication. Late
+attempts can retain their own source without restoring authority.
+
+After the complete central receipt is committed, incoming transport files are
+removed and their staging reservation released. Crash recovery retries this
+cleanup. Expired uploads that have never entered import may be deleted;
+pending imports are protected. Staging byte and transfer count reservations
+bound uploads. Operator-provisioned base exports share the byte budget;
+unknown exports retain their maximum reservation. The central aq-git retention
+store independently owns retained objects and their release lifecycle.
+
+An owner provisions a frozen base through
+`POST /api/source-bases/provision` with `{attempt_id,operation_id,retention_handle}`.
+The only mapping is `artifact.export` of the server's frozen base using that
+trusted retained handle. Keep the same operation UUID after uncertainty.
+The worker gets its typed descriptor at
+`GET /v1/execution/sources/base/{attempt_id}`, then downloads chunks at
+`GET /v1/execution/sources/base/{attempt_id}/{manifest|bundle}?offset=N&limit=N`.
+The maximum download chunk is 256 KiB. Ownership and frozen binding checks
+apply to every descriptor and chunk. AQ-08 scheduling/provisioning remains
+outside this operator endpoint.
+
+# Operator startup
+
+The server image includes the executables but does not start or supervise an
+aq-git daemon. Until REL-01 provides process ownership, an operator must run
+and supervise the central service separately. Run it as the same numeric UID
+as aq-server (the packaged server uses UID 10001). Keep its state, incoming
+artifacts, staging directory and socket private to that identity; aq-git creates
+its Unix socket with mode 0600. In separate containers, mount the same private
+state and socket directories at these same paths with matching UID ownership.
+
+As that service identity, with the parent directories already provisioned:
+
+```sh
+umask 077
+install -d -m 0700 /var/lib/aq/git /var/lib/aq/source-staging /run/aq-git
+aq-git --state-dir /var/lib/aq/git \
+  --git-executable /opt/aq-git-runtime/bin/git \
+  --listen /run/aq-git/central.sock serve
+```
+
+Keep that foreground process under the operator's supervisor. From another
+session with the same identity, verify its public socket before starting AQ:
+
+```sh
+aq-git --socket /run/aq-git/central.sock --json capabilities
+```
+
+Add the matching section to the vault's `config.toml`:
+
+```toml
+[source_retention]
+staging_root = "/var/lib/aq/source-staging"
+git_root = "/var/lib/aq/git"
+git_socket = "/run/aq-git/central.sock"
+max_staging_bytes = 4294967296
+max_bundle_bytes = 1073741824
+bulk_concurrency = 2
+incomplete_ttl_secs = 86400
+```
+
+Put both state and staging on the same filesystem for atomic publication.
+Provision the central repository binding and retained base handle through the
+public aq-git administrator CLI, then use the owner base-provision endpoint
+above. Repository UUID, identity, generation and base must match the frozen
+assignment. The server does not invent bindings, start the daemon, change
+socket ownership or infer source durability when that service is unavailable.
+
+# Reproducible aq-git package
+
+`python3 scripts/check-git-candidate.py --official` checks retained archive,
+bundle and complete source inventory; it never reads sibling checkouts.
+The adopted commit is `f3660a89cbeac0e068105af2926dfdcb06a1daad`.
+The qualified archive was compared byte for byte against its retained Git
+bundle's committed blobs. The original untracked sibling was not changed.
+`docker build -f scripts/Dockerfile.aq-git .` builds it with locked dependencies
+in pinned Rust 1.96.1 bookworm. The previous native executable required
+GLIBC2.39; this build requires at most GLIBC2.34 and executes in bookworm.
+
+Bookworm's distribution Git2.39 fails aq-git's Git2.43 minimum. The recipe also
+builds retained upstream Git2.56.0, the latest source release listed by the
+[official Git installation page](https://git-scm.com/install/) when checked on
+2026-10-30. The [kernel.org archive checksum list](https://www.kernel.org/pub/software/scm/git/sha256sums.asc)
+is retained alongside the exact archive. Its SHA256 is pinned in the candidate
+manifest and recipe. HTTPS helpers and curl/SSL/expat/zlib runtime libraries are
+included. Git helpers use a relocatable runtime prefix. Server/worker images must copy both `/usr/local/bin/aq-git` and
+`/opt/aq-git-runtime`, put its `bin` first on PATH, and install the recipe's
+runtime libraries. The recipes also link `/usr/bin/git` to the pinned runtime,
+so the component and worker defaults select Git 2.56.0. The whole application
+base image need not change.
+
+Evidence is in `docs/evidence/m4-git-*.{json,log}`. The process/socket scenario
+imports source centrally, stops and removes the complete worker volume, then
+constructs a candidate from central retention. These are local qualification
+results, with no hosted-production, performance or power-loss claim.

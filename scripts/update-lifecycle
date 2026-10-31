@@ -207,6 +207,7 @@ versioned_copy() {
   cp "$REPO/Cargo.toml" "$REPO/Cargo.lock" "$REPO/rust-toolchain.toml" "$dir/"
   cp -r "$REPO/crates" "$dir/"
   cp -r "$REPO/vendor" "$dir/"
+  cp -r "$REPO/protocol" "$dir/"
   sed -i -E '/^\[workspace\.package\]/,/^\[/ s/^version = "[^"]*"/version = "'"$version"'"/' \
     "$dir/Cargo.toml"
   grep -q "^version = \"$version\"$" "$dir/Cargo.toml" || fail "cannot set version $version"

@@ -76,6 +76,7 @@ fn register(identity: &NodeIdentity) -> RegisterRequest {
 }
 fn make_offer(identity: &NodeIdentity) -> Offer {
     let spec = ExecutionSpec {
+        bindings: None,
         project_id: Uuid::new_v4(),
         harness: FAKE_HARNESS_CAPABILITY.into(),
         resolved_spec_digest: String::new(),
@@ -552,6 +553,8 @@ owner_email="owner@localhost"
     )
     .unwrap();
     let state = aq_server::AppState {
+        agent_access: None,
+        source_retention: None,
         identity: aq_server::identity::verifier_from_config(&config.auth, reqwest::Client::new()),
         config: std::sync::Arc::new(config),
         store: h.store.clone(),
@@ -823,6 +826,8 @@ owner_email="owner@localhost"
         std::sync::Arc::new(|| chrono::DateTime::from_timestamp_millis(NOW as i64).unwrap());
     let app = |config| {
         aq_server::build_admin_router(aq_server::AppState {
+            agent_access: None,
+            source_retention: None,
             config: std::sync::Arc::new(config),
             identity: identity.clone(),
             store: h.store.clone(),
@@ -977,6 +982,8 @@ owner_email="owner@localhost"
     )
     .unwrap();
     aq_server::AppState {
+        agent_access: None,
+        source_retention: None,
         identity: aq_server::identity::verifier_from_config(&config.auth, reqwest::Client::new()),
         config: std::sync::Arc::new(config),
         store: h.store.clone(),
@@ -1537,4 +1544,323 @@ async fn authority_decisions_use_time_after_database_lock_wait() {
             assert_eq!(after.grant_expires_at_ms, before.grant_expires_at_ms);
         }
     }
+}
+
+async fn source_offer(h: &Harness, task: Uuid) -> Offer {
+    let mut registration = register(&h.identity);
+    registration.capabilities.push(SOURCE_CAPABILITY.into());
+    h.store.execution_register(&registration).await.unwrap();
+    let mut offer = make_offer(&h.identity);
+    offer
+        .spec
+        .required_capabilities
+        .push(SOURCE_CAPABILITY.into());
+    offer.spec.bindings = Some(ExecutionBindings {
+        source: Some(SourceBinding {
+            repository_id: Uuid::new_v4(),
+            binding_generation: 1,
+            logical_identity: "fixture/project".into(),
+            base: ObjectId {
+                algorithm: ObjectAlgorithm::Sha1,
+                hex: "1".repeat(40),
+            },
+        }),
+        graph: None,
+    });
+    offer.spec = offer.spec.seal();
+    h.store.execution_offer(task, &offer).await.unwrap();
+    h.store
+        .execution_accept(&acceptance(&offer), NOW)
+        .await
+        .unwrap();
+    offer
+}
+
+async fn source_receipt(h: &Harness, offer: &Offer, retained: bool) -> ArtifactRef {
+    let source = offer
+        .spec
+        .bindings
+        .as_ref()
+        .unwrap()
+        .source
+        .as_ref()
+        .unwrap()
+        .clone();
+    let manifest = TransferManifest {
+        transfer_id: Uuid::new_v4(),
+        role: SourceRole::Checkpoint,
+        checkpoint: ObjectId {
+            algorithm: ObjectAlgorithm::Sha1,
+            hex: "2".repeat(40),
+        },
+        attempt: offer.attempt.clone(),
+        resolved_spec_digest: offer.spec.resolved_spec_digest.clone(),
+        source: source.clone(),
+        artifact_id: Uuid::new_v4(),
+        manifest_digest: "a".repeat(64),
+        bundle_digest: None,
+        manifest_bytes: 64,
+        bundle_bytes: 0,
+    };
+    let receipt = CentralRetentionReceipt {
+        receipt_id: Uuid::new_v4(),
+        transfer_id: manifest.transfer_id,
+        repository_id: source.repository_id,
+        binding_generation: 1,
+        source: manifest.checkpoint.clone(),
+        retention_handle: manifest.artifact_id,
+        manifest_digest: "b".repeat(64),
+    };
+    let pool = h.db.pool().await;
+    sqlx::query("INSERT INTO source_transfers(transfer_id,attempt_id,node_id,repository_id,artifact_id,import_operation_id,manifest,state,receipt) VALUES($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9::jsonb)")
+        .bind(manifest.transfer_id).bind(offer.attempt.attempt_id).bind(h.identity.node_id)
+        .bind(source.repository_id).bind(manifest.artifact_id).bind(Uuid::new_v4())
+        .bind(serde_json::to_string(&manifest).unwrap())
+        .bind(if retained {"retained"} else {"import_pending"})
+        .bind(serde_json::to_string(&receipt).unwrap()).execute(&pool).await.unwrap();
+    ArtifactRef {
+        artifact_id: manifest.artifact_id,
+        digest: manifest.manifest_digest,
+        bytes: 64,
+        central_receipt: Some(receipt.receipt_id.to_string()),
+    }
+}
+
+#[tokio::test]
+async fn source_results_require_owned_retained_receipts_and_cannot_erase_launch_evidence() {
+    let h = Harness::new().await;
+    let task = Uuid::new_v4();
+    let offer = source_offer(&h, task).await;
+    let initial = report(&offer);
+    let refused = h.store.execution_result(&initial, NOW).await.unwrap();
+    assert_eq!(refused.disposition, ResultDisposition::Rejected);
+    assert!(!refused.retention_release);
+    is_error(
+        h.store
+            .execution_offer(task, &make_offer(&h.identity))
+            .await,
+        ErrorCode::IdConflict,
+    );
+    let mut downgrade = report(&offer);
+    downgrade.supersedes_report_id = Some(initial.report_id);
+    downgrade.stop_certainty = StopCertainty::NotStarted;
+    is_error(
+        h.store.execution_result(&downgrade, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+    let artifact = source_receipt(&h, &offer, true).await;
+    let mut correction = report(&offer);
+    correction.supersedes_report_id = Some(initial.report_id);
+    correction.artifacts.push(artifact.clone());
+    correction.artifacts[0].central_receipt = Some(Uuid::new_v4().to_string());
+    is_error(
+        h.store.execution_result(&correction, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+    correction.artifacts[0] = artifact.clone();
+    correction.artifacts[0].bytes += 1;
+    is_error(
+        h.store.execution_result(&correction, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+    correction.artifacts[0] = artifact.clone();
+    correction.artifacts[0].digest = "c".repeat(64);
+    is_error(
+        h.store.execution_result(&correction, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+    correction.artifacts = vec![artifact.clone(), artifact.clone()];
+    is_error(
+        h.store.execution_result(&correction, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+    correction.artifacts = vec![artifact];
+    let accepted = h.store.execution_result(&correction, NOW).await.unwrap();
+    assert!(accepted.retention_release);
+    assert_eq!(
+        h.store
+            .execution_result(&correction, NOW + 100_000)
+            .await
+            .unwrap(),
+        accepted
+    );
+    assert_eq!(
+        h.store.execution_result(&initial, NOW).await.unwrap(),
+        refused
+    );
+    h.store
+        .execution_offer(task, &make_offer(&h.identity))
+        .await
+        .unwrap();
+    // Another attempt cannot borrow this retained artifact.
+    let other = source_offer(&h, Uuid::new_v4()).await;
+    let mut borrowed = report(&other);
+    borrowed.artifacts = correction.artifacts;
+    is_error(
+        h.store.execution_result(&borrowed, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+}
+
+#[tokio::test]
+async fn source_pending_operations_hold_claim_even_if_report_omits_them() {
+    let h = Harness::new().await;
+    let task = Uuid::new_v4();
+    let offer = source_offer(&h, task).await;
+    let retained = source_receipt(&h, &offer, true).await;
+    let _unknown = source_receipt(&h, &offer, false).await;
+    let mut r = report(&offer);
+    r.artifacts.push(retained);
+    let response = h.store.execution_result(&r, NOW).await.unwrap();
+    assert!(!response.retention_release);
+    is_error(
+        h.store
+            .execution_offer(task, &make_offer(&h.identity))
+            .await,
+        ErrorCode::IdConflict,
+    );
+}
+
+#[tokio::test]
+async fn source_nonstart_exception_requires_no_prior_execution_evidence() {
+    let h = Harness::new().await;
+    let offer = source_offer(&h, Uuid::new_v4()).await;
+    let mut r = report(&offer);
+    r.stop_certainty = StopCertainty::NotStarted;
+    r.outcome = ProcessOutcome::Expired;
+    r.claimed_success = false;
+    assert!(
+        h.store
+            .execution_result(&r, NOW)
+            .await
+            .unwrap()
+            .retention_release
+    );
+    let offer = source_offer(&h, Uuid::new_v4()).await;
+    h.store
+        .execution_observe(&Observation {
+            identity: h.identity.clone(),
+            operation_id: Uuid::new_v4(),
+            attempt: offer.attempt.clone(),
+            sequence: 1,
+            phase: Phase::Running,
+            stop_certainty: StopCertainty::Running,
+            detail: "started".into(),
+        })
+        .await
+        .unwrap();
+    let mut r = report(&offer);
+    r.stop_certainty = StopCertainty::NotStarted;
+    r.outcome = ProcessOutcome::Expired;
+    r.claimed_success = false;
+    is_error(
+        h.store.execution_result(&r, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+}
+
+#[tokio::test]
+async fn launch_uncertain_evidence_cannot_be_downgraded_to_nonstart_release() {
+    let h = Harness::new().await;
+    let task = Uuid::new_v4();
+    let offer = source_offer(&h, task).await;
+    let observation = Observation {
+        identity: h.identity.clone(),
+        operation_id: Uuid::new_v4(),
+        attempt: offer.attempt.clone(),
+        sequence: 1,
+        phase: Phase::LaunchUncertain,
+        stop_certainty: StopCertainty::NotStarted,
+        detail: "launch acknowledgement missing despite caller nonstart assertion".into(),
+    };
+    h.store.execution_observe(&observation).await.unwrap();
+    let mut downgrade = report(&offer);
+    downgrade.stop_certainty = StopCertainty::NotStarted;
+    downgrade.claimed_success = false;
+    is_error(
+        h.store.execution_result(&downgrade, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+    let pool = h.db.pool().await;
+    let (holds,marked):(bool,bool)=sqlx::query_as("SELECT holds_task,(state->>'may_have_started')::boolean FROM execution_attempts WHERE attempt_id=$1").bind(offer.attempt.attempt_id).fetch_one(&pool).await.unwrap();
+    assert!(holds && marked);
+    // A legacy projection lacking the marker still retains its latest uncertain
+    // observation, which must be sufficient to preserve the same hold.
+    sqlx::query("UPDATE execution_attempts SET state=state-'may_have_started' WHERE attempt_id=$1")
+        .bind(offer.attempt.attempt_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    is_error(
+        h.store.execution_result(&downgrade, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+    is_error(
+        h.store
+            .execution_offer(task, &make_offer(&h.identity))
+            .await,
+        ErrorCode::IdConflict,
+    );
+}
+
+#[tokio::test]
+async fn legacy_report_history_prevents_nonstart_release_after_projection_downgrade() {
+    let h = Harness::new().await;
+    let task = Uuid::new_v4();
+    let offer = source_offer(&h, task).await;
+    let original = report(&offer);
+    assert!(
+        !h.store
+            .execution_result(&original, NOW)
+            .await
+            .unwrap()
+            .retention_release
+    );
+    // Reproduce a pre-marker projection whose latest correction erased the
+    // earlier stopped evidence; the immutable execution_reports row survives.
+    let mut latest = report(&offer);
+    latest.stop_certainty = StopCertainty::NotStarted;
+    latest.claimed_success = false;
+    latest.supersedes_report_id = Some(original.report_id);
+    let pool = h.db.pool().await;
+    sqlx::query("UPDATE execution_attempts SET state=jsonb_set(state-'may_have_started','{report}',$2) WHERE attempt_id=$1").bind(offer.attempt.attempt_id).bind(serde_json::to_value(&latest).unwrap()).execute(&pool).await.unwrap();
+    let mut correction = report(&offer);
+    correction.stop_certainty = StopCertainty::NotStarted;
+    correction.claimed_success = false;
+    correction.supersedes_report_id = Some(latest.report_id);
+    is_error(
+        h.store.execution_result(&correction, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+    let observation = Observation {
+        identity: h.identity.clone(),
+        operation_id: Uuid::new_v4(),
+        attempt: offer.attempt.clone(),
+        sequence: 1,
+        phase: Phase::Reporting,
+        stop_certainty: StopCertainty::NotStarted,
+        detail: "legacy reconciliation cannot erase historical start evidence".into(),
+    };
+    h.store.execution_observe(&observation).await.unwrap();
+    let marked: bool = sqlx::query_scalar(
+        "SELECT (state->>'may_have_started')::boolean FROM execution_attempts WHERE attempt_id=$1",
+    )
+    .bind(offer.attempt.attempt_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert!(
+        marked,
+        "next successful save upgrades the legacy projection"
+    );
+    is_error(
+        h.store.execution_result(&correction, NOW).await,
+        ErrorCode::InvalidRequest,
+    );
+    is_error(
+        h.store
+            .execution_offer(task, &make_offer(&h.identity))
+            .await,
+        ErrorCode::IdConflict,
+    );
 }

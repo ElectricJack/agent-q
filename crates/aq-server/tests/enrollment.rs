@@ -68,6 +68,8 @@ async fn harness() -> Harness {
     );
     let clock: Clock = Arc::new(t0);
     let state = AppState {
+        agent_access: None,
+        source_retention: None,
         config: Arc::new(config()),
         store: store.clone(),
         identity: Arc::new(verifier),
@@ -460,6 +462,8 @@ enabled = true
     .unwrap();
     let clock: Clock = Arc::new(t0);
     let state = AppState {
+        agent_access: None,
+        source_retention: None,
         config: Arc::new(cfg),
         store,
         identity: Arc::new(DevIdentity::new("dev@example.com".into())),

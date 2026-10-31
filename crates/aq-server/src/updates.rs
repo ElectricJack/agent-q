@@ -69,8 +69,9 @@ pub async fn admin_maintenance_gate(
     next: Next,
 ) -> Response {
     let read_only = matches!(*req.method(), Method::GET | Method::HEAD | Method::OPTIONS);
-    let cancelling =
-        req.method() == Method::POST && crate::admission::execution_cancel_path(req.uri().path());
+    let cancelling = req.method() == Method::POST
+        && (crate::admission::execution_cancel_path(req.uri().path())
+            || crate::admission::agent_revoke_path(req.uri().path()));
     if !read_only && !cancelling && under_maintenance(&state) {
         return maintenance_error();
     }
@@ -84,8 +85,10 @@ pub async fn worker_maintenance_gate(
     req: Request,
     next: Next,
 ) -> Response {
-    if matches!(req.uri().path(), "/v1/worker/enroll" | "/v2/worker/accept")
-        && under_maintenance(&state)
+    if matches!(
+        req.uri().path(),
+        "/v1/worker/enroll" | "/v2/worker/accept" | "/v2/worker/agent-session"
+    ) && under_maintenance(&state)
     {
         return maintenance_error();
     }

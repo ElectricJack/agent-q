@@ -1,11 +1,13 @@
 pub mod admin_api;
 pub mod admission;
+pub mod agent_access;
 pub mod authz;
 pub mod config;
 pub mod error;
 pub mod execution;
 pub mod identity;
 pub mod readiness;
+pub mod source_retention;
 pub mod store;
 #[cfg(any(test, feature = "test-support"))]
 pub mod test_support;
@@ -32,9 +34,9 @@ use std::sync::Arc;
 /// every migration is a state-format change (`store` tests enforce it). The
 /// updater restores the pre-update backup on rollback only when the format
 /// changes, so a migration without a bump would strand the old release.
-pub const STATE_FORMAT_VERSION: u32 = 2;
+pub const STATE_FORMAT_VERSION: u32 = 4;
 /// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
-pub const READABLE_STATE_FORMATS: &[u32] = &[1, 2];
+pub const READABLE_STATE_FORMATS: &[u32] = &[1, 2, 3, 4];
 /// Versions that may be upgraded to this release.
 pub const UPGRADE_FROM: &str = ">=0.1.0";
 
@@ -64,6 +66,8 @@ pub fn system_clock() -> Clock {
 
 #[derive(Clone)]
 pub struct AppState {
+    pub agent_access: Option<Arc<agent_access::Runtime>>,
+    pub source_retention: Option<Arc<source_retention::Runtime>>,
     pub config: Arc<Config>,
     pub store: Store,
     pub identity: Arc<dyn IdentityVerifier>,
@@ -114,6 +118,8 @@ async fn method_not_allowed() -> Response {
 pub fn build_admin_router(state: AppState) -> Router {
     Router::new()
         .merge(admin_api::admin_routes())
+        .merge(agent_access::admin_routes(state.clone()))
+        .merge(source_retention::admin_routes())
         .merge(execution::api::admin_routes(state.clone()))
         .route("/healthz", get(healthz))
         .route("/readyz", get(readiness::readyz))
@@ -136,6 +142,8 @@ pub fn build_admin_router(state: AppState) -> Router {
 pub fn build_worker_router(state: AppState) -> Router {
     Router::new()
         .merge(worker_api::worker_routes(state.clone()))
+        .merge(agent_access::machine_routes(state.clone()))
+        .merge(source_retention::machine_routes(state.clone()))
         .merge(execution::api::worker_routes(state.clone()))
         .route("/healthz", get(healthz))
         .route("/readyz", get(readiness::readyz))
@@ -218,7 +226,17 @@ pub async fn run(config: Config, store: Store) -> anyhow::Result<()> {
     let admin = tokio::net::TcpListener::bind(config.server.admin_bind).await?;
     let worker = tokio::net::TcpListener::bind(config.server.worker_bind).await?;
     tracing::info!(admin = %admin.local_addr()?, worker = %worker.local_addr()?, "listening");
+    let agent_access = match &config.agent_access {
+        Some(settings) => Some(Arc::new(agent_access::Runtime::new(settings).await?)),
+        None => None,
+    };
+    let source_retention = match &config.source_retention {
+        Some(settings) => Some(Arc::new(source_retention::Runtime::new(settings.clone())?)),
+        None => None,
+    };
     let state = AppState {
+        agent_access,
+        source_retention,
         identity: identity::verifier_from_config(&config.auth, http),
         config: Arc::new(config),
         store,

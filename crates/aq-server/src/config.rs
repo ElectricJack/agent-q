@@ -21,6 +21,10 @@ pub struct Config {
     /// Absent in development: the update API then answers `updates_unavailable`.
     #[serde(default)]
     pub updates: Option<UpdatesConfig>,
+    #[serde(default)]
+    pub agent_access: Option<crate::agent_access::AgentAccessConfig>,
+    #[serde(default)]
+    pub source_retention: Option<crate::source_retention::SourceRetentionConfig>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -185,6 +189,43 @@ fn validate(c: &Config) -> Result<(), (String, String)> {
     {
         return invalid("updates.spool_dir", "must be an absolute path".into());
     }
+    if let Some(settings) = &c.source_retention {
+        settings
+            .validate()
+            .map_err(|e| ("source_retention".into(), e.to_string()))?;
+    }
+    if let Some(settings) = &c.agent_access {
+        if !settings.graph_token_file.is_absolute() {
+            return invalid(
+                "agent_access.graph_token_file",
+                "must be an absolute path".into(),
+            );
+        }
+        if !(1000..=120_000).contains(&settings.credential_ttl_ms) {
+            return invalid(
+                "agent_access.credential_ttl_ms",
+                "must be between 1000 and 120000".into(),
+            );
+        }
+        let url = reqwest::Url::parse(&settings.graph_url).map_err(|_| {
+            (
+                "agent_access.graph_url".into(),
+                "must be an HTTP origin".into(),
+            )
+        })?;
+        if !matches!(url.scheme(), "http" | "https")
+            || url.path() != "/"
+            || !url.username().is_empty()
+            || url.password().is_some()
+            || url.query().is_some()
+            || url.fragment().is_some()
+        {
+            return invalid(
+                "agent_access.graph_url",
+                "must be an HTTP origin without credentials".into(),
+            );
+        }
+    }
     if c.bootstrap.enabled && c.bootstrap.owner_email.is_none() {
         return invalid(
             "bootstrap.owner_email",
@@ -244,6 +285,8 @@ mod tests {
             enrollment: Default::default(),
             workers: Default::default(),
             updates: None,
+            agent_access: None,
+            source_retention: None,
         }
     }
 

@@ -85,7 +85,7 @@ async fn authenticate(
     }
     Ok(())
 }
-pub(super) fn now(state: &AppState) -> u64 {
+pub(crate) fn now(state: &AppState) -> u64 {
     let now = (state.clock)().timestamp_millis().max(0) as u64;
     #[cfg(feature = "recovery-test-support")]
     if matches!(state.config.auth, AuthConfig::Dev { .. }) {

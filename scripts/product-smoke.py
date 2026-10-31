@@ -139,7 +139,7 @@ class Fixture:
         for name in ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "Dockerfile", "Dockerfile.worker",
                      ".dockerignore", "compose.yaml"]:
             shutil.copy2(ROOT / name, snapshot / name)
-        for name in ["crates", "vendor"]:
+        for name in ["crates", "vendor", "protocol"]:
             shutil.copytree(ROOT / name, snapshot / name)
         inventory = {str(p.relative_to(snapshot)): sha(p.read_bytes()) for p in sorted(snapshot.rglob("*")) if p.is_file()}
         self.record["source_inventory"] = inventory
@@ -178,6 +178,28 @@ class Fixture:
         self.record["worker_binary_sha256"] = self.run([
             "docker", "run", "--rm", "--entrypoint", "sha256sum", worker,
             "/usr/local/bin/aq-worker", "/usr/local/bin/aq-fixture-agent"], name="worker-binary-identities")
+        git_candidate = json.loads((snapshot / "vendor/git-candidate.json").read_text())
+        self.record["git_candidate"] = git_candidate
+        self.record["git_runtime"] = {}
+        # The recovery-only server intentionally omits product components.
+        roles = [("worker", worker)] if "recovery_build" in self.record else [("server", server), ("worker", worker)]
+        for role, image in roles:
+            embedded_git = json.loads(self.run(["docker", "run", "--rm", "--entrypoint", "cat", image,
+                "/usr/share/agent-q/git-candidate.json"], name=role + "-git-provenance"))
+            if embedded_git != git_candidate:
+                raise ValueError(role + " aq-git provenance differs from immutable candidate")
+            git_version = self.run(["docker", "run", "--rm", "--entrypoint", "/usr/bin/git", image,
+                "--version"], name=role + "-git-version").strip()
+            if git_version != "git version " + git_candidate["git"]["version"]:
+                raise ValueError(role + " default Git executable differs from pinned runtime")
+            capabilities = json.loads(self.run(["docker", "run", "--rm", "--entrypoint", "aq-git", image,
+                "--state-dir", "/tmp/aq-git-smoke", "--json", "capabilities"], name=role + "-git-capabilities"))
+            assert capabilities["ok"] and capabilities["result"]["protocol_version"] == git_candidate["protocol_version"]
+            assert capabilities["result"]["git"]["verification"]["status"] in ("unverified", "verified")
+            binary = self.run(["docker", "run", "--rm", "--entrypoint", "sha256sum", image,
+                "/usr/local/bin/aq-git", "/opt/aq-git-runtime/bin/git"], name=role + "-git-binary-identities")
+            self.record["git_runtime"][role] = {"version": git_version, "binary_sha256": binary,
+                                               "capabilities": capabilities}
         for name in ["vault", "secrets", "spool/requests", "spool/status"]:
             (self.temp / name).mkdir(parents=True, exist_ok=True)
         shutil.copy2(ROOT / "vault.example/config.toml", self.temp / "vault/config.toml")

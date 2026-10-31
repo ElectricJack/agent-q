@@ -72,6 +72,8 @@ async fn harness(with_spool: bool) -> Harness {
     std::fs::create_dir_all(spool.path().join("status")).unwrap();
     let clock: Clock = Arc::new(Utc::now);
     let state = AppState {
+        agent_access: None,
+        source_retention: None,
         config: Arc::new(config(with_spool.then(|| spool.path()))),
         store,
         identity: Arc::new(verifier),
