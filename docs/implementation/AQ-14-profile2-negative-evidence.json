@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "source_revision": "cfe9730c4df829336c4ba5a72e48d213033dcabe",
+  "status": "incomplete candidate; expected negative reproducer, not green qualification",
+  "old_runner_source_revision": "a463e5918f914c8365a04dfe1b6778831cfebb95",
+  "old_source_archive_sha256": "48f19b80fc0734c403ef04e7181d570b9fe675597f35caf08f0b94571ca8cc70",
+  "old_host_version": "0.1.1 unchanged",
+  "positive_test_counts": [
+    11,
+    2,
+    4,
+    11
+  ],
+  "negative": {
+    "test": "protected_engine_question_waits_for_real_owner_and_exact_completion_event",
+    "expected_exit_code": 101,
+    "failure": "Blocked after confirmed Unknown\u2192Accepted recovery; expected Waiting",
+    "actual_question_sql_committed": true,
+    "manual_unblock_used": false,
+    "ignored": false
+  },
+  "runtime_gates": {
+    "candidate026_registered": false,
+    "production_mount": false,
+    "actual_native_git_qualification": false,
+    "full_AQ14_complete": false
+  },
+  "source_files": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "215420c82e7f7f93b42cbe817dfafcabcbee65659c5ec5955098f95db2c8a125"
+    },
+    {
+      "path": "crates/aq-server/Cargo.toml",
+      "sha256": "4f703efa61195e57d8b6d1144bb48fcc1d27aaaa34419f52068991b8a2c0e14c"
+    },
+    {
+      "path": "crates/aq-server/examples/playbook_review_contract.rs",
+      "sha256": "f7824d8f2911083f7bda10bc04f9c50072ecf26c322c3d92b3a7e06c925f0780"
+    },
+    {
+      "path": "crates/aq-server/migrations/0026_review_owners.sql",
+      "sha256": "1f2999baeca7caf48e23a08cb74e1970ea2c1725d15d6a88c6258b32e4ae392e"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/domain.rs",
+      "sha256": "6e19a8ecf659f9ed4b38454aa486cd5b9ad8133c1347ab983663f3f408cb4c4f"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/driver.rs",
+      "sha256": "da120222039831301b6f5e5219d2da4c40f567902e8f7151b926a28ef45a777f"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/mod.rs",
+      "sha256": "993c0bb356dc10d4d5bc24f2058c4db90686c0bd8169928f68d3b210f5f77e68"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/review_domain.rs",
+      "sha256": "12cc8c4d1c04b2dc0dbcbcc8e82c559bf71f5aa28193bec3f2a16a958afa61d0"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/service.rs",
+      "sha256": "ac8601d198cba3ac7639b6e5f4d0302eb3f5c9377616cad48f951d856c42dc00"
+    },
+    {
+      "path": "crates/aq-server/src/reviews.rs",
+      "sha256": "adea5390b0d1ce99158542094b688680264f9c8a019b3a69f5e17d31fc44a769"
+    },
+    {
+      "path": "crates/aq-server/tests/playbook_review_contract.rs",
+      "sha256": "effa45abc155ec411f373578c8663f4eb9c7646b39f70a28e99763ebabc23b25"
+    },
+    {
+      "path": "crates/aq-server/tests/profiled_results.rs",
+      "sha256": "9efd64d6018ddf93bfed61f233dc61909585aa046d72c930979145512b824ba2"
+    },
+    {
+      "path": "docs/implementation/AQ-14-profile2-recovery-regression.md",
+      "sha256": "293bc5edc979f8fe8f80add8a2d4305c8d026a57c0c7569a43ec3c38bd704a48"
+    },
+    {
+      "path": "protocol/playbook-host/v2/registry.json",
+      "sha256": "3bfe746eb3b209aa9f720acce6f98bd6df302ab49f2e66b3c9163b34893fcc81"
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-cfe9730/accepted-negative.log",
+      "sha256": "43df5ad98b0c59abb6626bd9dc18400e51a7b840e191f136da222379e6476220"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-profile2-cfe9730/positive.log",
+      "sha256": "68c39aab7a3c66af78f37bc934a014cd4b5ba9d752862d958fec719908d051d5"
+    }
+  ]
+}
