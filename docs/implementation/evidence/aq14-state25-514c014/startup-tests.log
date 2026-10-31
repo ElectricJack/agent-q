@@ -1,0 +1,10 @@
+   Compiling aq-server v0.1.0 (/tmp/aq14-integration/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.25s
+     Running tests/playbook_integration_startup.rs (/tmp/aq14-decisions/target/debug/deps/playbook_integration_startup-46e5351e5d056c40)
+
+running 2 tests
+test ordinary_human_router_keeps_review_and_playbook_owners_unmounted ... ok
+test absent_review_schema_refuses_namespace_without_starting_engine_or_reseeding ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+

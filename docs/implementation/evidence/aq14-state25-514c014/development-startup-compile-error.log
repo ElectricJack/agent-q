@@ -1,0 +1,9 @@
+   Compiling aq-server v0.1.0 (/tmp/aq14-integration/crates/aq-server)
+error[E0432]: unresolved import `aq_server::playbooks::domain::Namespace`
+ --> crates/aq-server/tests/playbook_integration_startup.rs:5:17
+  |
+5 |     playbooks::{domain::Namespace, driver::Driver, service::Service},
+  |                 ^^^^^^^^^^^^^^^^^ no `Namespace` in `playbooks::domain`
+
+For more information about this error, try `rustc --explain E0432`.
+error: could not compile `aq-server` (test "playbook_integration_startup") due to 1 previous error
