@@ -33,6 +33,7 @@ services:
   # Only used by scripts/smoke: the worker image, run as a container.
   # scripts/smoke sets AQ_WORKER_IMAGE when it tests a prebuilt image.
   worker:
+    init: true
     build:
       context: .
       dockerfile: Dockerfile.worker
@@ -40,6 +41,7 @@ services:
       args:
         AQ_SOURCE_REVISION: ${AQ_WORKER_SOURCE_REVISION:-}
         AQ_WORKER_ARCHIVE_SHA256: ${AQ_WORKER_ARCHIVE_SHA256:-}
+        AQ_VERSION: ${AQ_WORKER_VERSION:-0.2.0}
     image: ${AQ_WORKER_IMAGE:-agent-q-worker:dev}
     profiles: [smoke]
     networks: [edge]

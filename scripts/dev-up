@@ -21,7 +21,8 @@ mkdir -p state.dev/updater-spool/requests state.dev/updater-spool/status
 
 AQ_WORKER_SOURCE_REVISION=$(python3 scripts/check-worker-candidate.py --revision)
 AQ_WORKER_ARCHIVE_SHA256=$(python3 -c 'import json; print(json.load(open("vendor/worker-candidate.json"))["archive_sha256"])')
-export AQ_WORKER_SOURCE_REVISION AQ_WORKER_ARCHIVE_SHA256
+AQ_WORKER_VERSION=$(python3 -c 'import json; print(json.load(open("vendor/worker-candidate.json"))["version"])')
+export AQ_WORKER_SOURCE_REVISION AQ_WORKER_ARCHIVE_SHA256 AQ_WORKER_VERSION
 
 export AQ_SERVER_IMAGE=${AQ_SERVER_IMAGE:-agent-q-server:dev}
 export AQ_VAULT_DIR="$PWD/vault.example"
