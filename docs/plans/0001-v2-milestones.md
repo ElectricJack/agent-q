@@ -646,7 +646,7 @@ Acceptance:
 
 Requirement links: D1, D6, D9, W3, W4, W5, W13, P2, P4, P5, P6, P7.
 
-Evidence: [AQ-08-stage1.md](../implementation/AQ-08-stage1.md), [AQ-08-stage1.json](../implementation/AQ-08-stage1.json), [AQ-08-contract-0.1.1.json](../implementation/AQ-08-contract-0.1.1.json), [AQ-08-execution-spec-0.1.2.json](../implementation/AQ-08-execution-spec-0.1.2.json), [AQ-08-hot-authority-qualification.json](../implementation/AQ-08-hot-authority-qualification.json), [AQ-08-source-grant-gate-qualification.json](../implementation/AQ-08-source-grant-gate-qualification.json).
+Evidence: [AQ-08-stage1.md](../implementation/AQ-08-stage1.md), [AQ-08-stage1.json](../implementation/AQ-08-stage1.json), [AQ-08-contract-0.1.1.json](../implementation/AQ-08-contract-0.1.1.json), [AQ-08-execution-spec-0.1.2.json](../implementation/AQ-08-execution-spec-0.1.2.json), [AQ-08-hot-authority-qualification.json](../implementation/AQ-08-hot-authority-qualification.json), [AQ-08-source-grant-gate-qualification.json](../implementation/AQ-08-source-grant-gate-qualification.json), [AQ-08-never-granted-closure.md](../implementation/AQ-08-never-granted-closure.md), [AQ-08-policy-principals.md](../implementation/AQ-08-policy-principals.md), [AQ-08-policy-install-qualification.json](../implementation/AQ-08-policy-install-qualification.json), [AQ-08-AQ-22-state17-qualification.json](../implementation/AQ-08-AQ-22-state17-qualification.json).
 
 ### WRK-05
 
@@ -1105,7 +1105,7 @@ Requirement links: S1, S2, S3, S5.
 
 Outside this task: Inferring semantic progress from token count or retaining unlimited transcripts.
 
-Evidence: [AQ-22-plan.md](../implementation/AQ-22-plan.md), [AQ-22-ledger.md](../implementation/AQ-22-ledger.md), [AQ-22-inspection.md](../implementation/AQ-22-inspection.md), [AQ-22-observation-api.json](../implementation/AQ-22-observation-api.json), [AQ-22-mounted-qualification.json](../implementation/AQ-22-mounted-qualification.json).
+Evidence: [AQ-22-plan.md](../implementation/AQ-22-plan.md), [AQ-22-ledger.md](../implementation/AQ-22-ledger.md), [AQ-22-inspection.md](../implementation/AQ-22-inspection.md), [AQ-22-observation-api.json](../implementation/AQ-22-observation-api.json), [AQ-22-mounted-qualification.json](../implementation/AQ-22-mounted-qualification.json), [AQ-22-transport-ownership.md](../implementation/AQ-22-transport-ownership.md), [AQ-22-transport-qualification.json](../implementation/AQ-22-transport-qualification.json), [AQ-08-AQ-22-state17-qualification.json](../implementation/AQ-08-AQ-22-state17-qualification.json).
 
 ### AQ-23
 
