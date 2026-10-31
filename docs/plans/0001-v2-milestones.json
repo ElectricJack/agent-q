@@ -1560,7 +1560,7 @@
       "repo": "aq-worker",
       "milestone": "M5",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "CON-03",
         "WRK-10"
