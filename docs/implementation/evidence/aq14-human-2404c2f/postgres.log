@@ -1,0 +1,19 @@
+   Compiling aq-server v0.1.0 (/tmp/aq14-decisions/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.91s
+     Running tests/profiled_results.rs (target/debug/deps/profiled_results-83330ddc2d29a0f6)
+
+running 11 tests
+test internal_owner_read_is_historical_exact_and_marks_a_superseded_head_without_eligibility ... ok
+test cancellation_is_retained_without_turning_claim_into_success ... ok
+test internal_owner_read_rejects_a_changed_report_even_with_recomputed_stored_digest ... ok
+test internal_owner_read_rejects_receipt_outcome_and_stored_spec_corruption ... ok
+test recording_retains_claims_replays_and_serializes_corrections_without_settlement ... ok
+test report_quota_preserves_exact_replay_and_immutable_heads ... ok
+test result_http_uses_current_machine_auth_and_bounded_work_admission ... ok
+test rotated_credential_after_observed_lock_wait_cannot_record ... ok
+test result_source_owner_requires_a_real_retained_transfer_and_exact_native_binding ... ok
+test sql_requires_exact_stopped_outcome_and_atomic_report_head ... ok
+test stopped_and_pinned_typed_outcome_are_actual_required_owners ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.76s
+
