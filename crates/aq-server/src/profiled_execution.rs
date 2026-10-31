@@ -3,6 +3,7 @@
 //! into authority without the locked project/selection/source/material fences.
 pub mod api;
 pub mod config;
+pub mod material;
 pub mod no_grant;
 pub mod policies;
 

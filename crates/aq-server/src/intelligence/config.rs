@@ -9,18 +9,26 @@ use std::{
     path::PathBuf,
 };
 
+#[derive(Debug, Clone, Copy, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum MaterialDeliveryMode {
+    ServerMaterialV1,
+}
 #[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CredentialConfig {
     pub credential: AuthorizedCredential,
     pub allowed_node_ids: Vec<uuid::Uuid>,
     pub secret_file: Option<PathBuf>,
+    #[serde(default)]
+    pub delivery_mode: Option<MaterialDeliveryMode>,
 }
 impl std::fmt::Debug for CredentialConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CredentialConfig")
             .field("credential", &self.credential)
             .field("allowed_node_ids", &self.allowed_node_ids)
+            .field("delivery_mode", &self.delivery_mode)
             .field(
                 "secret_file",
                 &self.secret_file.as_ref().map(|_| "<protected>"),
@@ -60,6 +68,8 @@ impl IntelligenceConfig {
             if c.revision == 0
                 || c.revision > i64::MAX as u64
                 || c.provisionable
+                || c.material_owner.is_some()
+                || (item.delivery_mode.is_some() && item.secret_file.is_none())
                 || item.allowed_node_ids.len() > 256
                 || item.allowed_node_ids.iter().any(uuid::Uuid::is_nil)
                 || item.allowed_node_ids.iter().collect::<BTreeSet<_>>().len()
@@ -112,7 +122,7 @@ impl IntelligenceConfig {
                         {
                             return Err("credential must be an owner-only regular file".into());
                         }
-                        let mut bytes = Vec::new();
+                        let mut bytes = zeroize::Zeroizing::new(Vec::new());
                         file.take(65_537)
                             .read_to_end(&mut bytes)
                             .map_err(|_| "cannot read protected credential")?;
@@ -125,6 +135,28 @@ impl IntelligenceConfig {
                 },
             };
             credential.provisionable = credential.enabled && fingerprint.is_some();
+            if item.delivery_mode.is_some() && credential.provisionable {
+                // Deliberately excludes local path, secret values and private
+                // fingerprints. The explicit profile revision owns rotation.
+                let descriptor = serde_json::json!({
+                    "schema_version":1,"adapter":"aq.server-material","adapter_version":1,
+                    "profile":credential.profile,"credential_revision":credential.revision,
+                    "provider":credential.provider,"account_reference":credential.account_reference,
+                    "endpoint_reference":credential.endpoint_reference,
+                });
+                let owner_digest =
+                    aq_selection::digest(&descriptor).map_err(|_| "material owner descriptor")?;
+                credential.material_owner = Some(aq_selection::ArtifactRef {
+                    id: aq_selection::Text::new(format!(
+                        "aq.configured-provider-material/{}",
+                        owner_digest.as_str()
+                    ))
+                    .map_err(|_| "material owner identity")?,
+                    version: aq_selection::Text::new("1").map_err(|_| "material owner version")?,
+                    digest: owner_digest,
+                });
+            }
+
             credentials.push(credential);
             fingerprints.push(fingerprint);
         }
