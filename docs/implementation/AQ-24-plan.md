@@ -1,6 +1,6 @@
 # AQ-24 staged notification delivery
 
-Status: implementation in progress in isolated `feat/aq24-notifications`.
+Status: implemented and qualified; see [AQ-24.md](AQ-24.md) and [AQ-24.json](AQ-24.json).
 Migration 0012 is reserved after AQ08 authority 0010 and AQ21 terminal 0011.
 No real destination is configured or contacted during development.
 
@@ -82,8 +82,7 @@ cases and strict all-target lint pass. Tests do not send messages to humans.
 
 Notification migration takes **011** by agreement with AQ21; terminal ledger
 migration is now **012**. Neither migration had been applied outside disposable
-test databases when this ordering changed. Runtime integration and clean full
-qualification remain required before AQ24 is marked complete.
+test databases when this ordering changed. Runtime integration and clean full qualification are recorded in AQ-24.md.
 
 `aq-notify` defaults to Cloudflare human credentials from an owner-only token
 file. Its explicit `loopback-development` build feature permits local test
