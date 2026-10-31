@@ -1,0 +1,305 @@
+{
+  "receipt": {
+    "$defs": {
+      "ArtifactRef": {
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "$ref": "#/$defs/Digest"
+          },
+          "id": {
+            "$ref": "#/$defs/Text"
+          },
+          "version": {
+            "$ref": "#/$defs/Text"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "digest"
+        ],
+        "type": "object"
+      },
+      "Choice": {
+        "enum": [
+          "approve",
+          "reject"
+        ],
+        "type": "string"
+      },
+      "DecisionFinality": {
+        "oneOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "choice": {
+                "$ref": "#/$defs/Choice"
+              },
+              "comment_digest": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Digest"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "kind": {
+                "const": "human_answer",
+                "type": "string"
+              },
+              "operation_id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "owner_user_id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "owner_user_id",
+              "operation_id",
+              "choice"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "expired",
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "kind": {
+                "const": "cancelled",
+                "type": "string"
+              },
+              "operation_id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "operation_id"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "Digest": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "Text": {
+        "description": "Nonempty UTF-8 text, at most 512 bytes; no control characters.",
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "decision_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "decision_revision": {
+        "format": "uint64",
+        "minimum": 0,
+        "type": "integer"
+      },
+      "eligibility_project_revision": {
+        "format": "uint64",
+        "minimum": 0,
+        "type": "integer"
+      },
+      "finality": {
+        "$ref": "#/$defs/DecisionFinality"
+      },
+      "recorded_at_ms": {
+        "format": "uint64",
+        "minimum": 0,
+        "type": "integer"
+      },
+      "request_digest": {
+        "$ref": "#/$defs/Digest"
+      },
+      "review_policy": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "schema_version": {
+        "format": "uint32",
+        "minimum": 0,
+        "type": "integer"
+      },
+      "subject": {
+        "$ref": "#/$defs/ArtifactRef"
+      }
+    },
+    "required": [
+      "schema_version",
+      "decision_id",
+      "decision_revision",
+      "subject",
+      "request_digest",
+      "eligibility_project_revision",
+      "review_policy",
+      "recorded_at_ms",
+      "finality"
+    ],
+    "title": "DecisionReceipt",
+    "type": "object"
+  },
+  "request": {
+    "$defs": {
+      "ArtifactRef": {
+        "additionalProperties": false,
+        "properties": {
+          "digest": {
+            "$ref": "#/$defs/Digest"
+          },
+          "id": {
+            "$ref": "#/$defs/Text"
+          },
+          "version": {
+            "$ref": "#/$defs/Text"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "digest"
+        ],
+        "type": "object"
+      },
+      "Digest": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "Text": {
+        "description": "Nonempty UTF-8 text, at most 512 bytes; no control characters.",
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "decision_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "eligibility_project_revision": {
+        "format": "uint64",
+        "minimum": 0,
+        "type": "integer"
+      },
+      "eligible_owners": {
+        "items": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "expires_at_ms": {
+        "format": "uint64",
+        "minimum": 0,
+        "type": "integer"
+      },
+      "operation_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "review_policy": {
+        "$ref": "#/$defs/ArtifactRef"
+      },
+      "schema_version": {
+        "format": "uint32",
+        "minimum": 0,
+        "type": "integer"
+      },
+      "subject": {
+        "$ref": "#/$defs/ArtifactRef"
+      }
+    },
+    "required": [
+      "schema_version",
+      "operation_id",
+      "decision_id",
+      "subject",
+      "eligible_owners",
+      "eligibility_project_revision",
+      "review_policy",
+      "expires_at_ms"
+    ],
+    "title": "DecisionRequest",
+    "type": "object"
+  },
+  "resolve": {
+    "$defs": {
+      "Choice": {
+        "enum": [
+          "approve",
+          "reject"
+        ],
+        "type": "string"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "properties": {
+      "choice": {
+        "$ref": "#/$defs/Choice"
+      },
+      "comment": {
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      "decision_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "expected_decision_revision": {
+        "format": "uint64",
+        "minimum": 0,
+        "type": "integer"
+      },
+      "operation_id": {
+        "format": "uuid",
+        "type": "string"
+      },
+      "schema_version": {
+        "format": "uint32",
+        "minimum": 0,
+        "type": "integer"
+      }
+    },
+    "required": [
+      "schema_version",
+      "operation_id",
+      "decision_id",
+      "expected_decision_revision",
+      "choice"
+    ],
+    "title": "ResolveRequest",
+    "type": "object"
+  }
+}

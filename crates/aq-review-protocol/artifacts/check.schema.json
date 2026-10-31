@@ -1,0 +1,310 @@
+{
+  "$comment": "Executor evidence is a claim until resolved through the actual registered check owner. No passed:true endpoint or model proof is implemented.",
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "id": {
+          "$ref": "#/$defs/Text"
+        },
+        "version": {
+          "$ref": "#/$defs/Text"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "digest"
+      ],
+      "type": "object"
+    },
+    "CheckDisposition": {
+      "enum": [
+        "passed",
+        "failed",
+        "cancelled",
+        "timed_out",
+        "unknown",
+        "stale"
+      ],
+      "type": "string"
+    },
+    "Digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "ExecutorEvidence": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "checked_artifacts": {
+              "items": {
+                "$ref": "#/$defs/ArtifactRef"
+              },
+              "maxItems": 64,
+              "minItems": 1,
+              "type": "array"
+            },
+            "definition": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "kind": {
+              "const": "in_process_read_only",
+              "type": "string"
+            },
+            "result_artifact": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "definition",
+            "checked_artifacts",
+            "result_artifact"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "binding": {
+              "$ref": "#/$defs/LaunchBinding"
+            },
+            "definition": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "exit_code": {
+              "format": "int32",
+              "type": "integer"
+            },
+            "kind": {
+              "const": "stopped_process",
+              "type": "string"
+            },
+            "result_artifacts": {
+              "items": {
+                "$ref": "#/$defs/ArtifactRef"
+              },
+              "maxItems": 16,
+              "type": "array"
+            },
+            "started_receipt": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "stopped_receipt": {
+              "$ref": "#/$defs/ArtifactRef"
+            }
+          },
+          "required": [
+            "kind",
+            "definition",
+            "binding",
+            "started_receipt",
+            "stopped_receipt",
+            "result_artifacts",
+            "exit_code"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "definition": {
+              "$ref": "#/$defs/ArtifactRef"
+            },
+            "evidence": {
+              "items": {
+                "$ref": "#/$defs/ArtifactRef"
+              },
+              "maxItems": 16,
+              "type": "array"
+            },
+            "kind": {
+              "const": "incomplete",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "definition",
+            "evidence"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "LaunchBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "assignment_generation": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "attempt_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "execution_spec_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "graph_access_profile_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "launch_manifest_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "offer_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "schema_version": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "session": {
+          "$ref": "#/$defs/SessionIdentity"
+        }
+      },
+      "required": [
+        "session",
+        "schema_version",
+        "offer_id",
+        "attempt_id",
+        "assignment_generation",
+        "execution_spec_digest",
+        "launch_manifest_digest",
+        "graph_access_profile_digest"
+      ],
+      "type": "object"
+    },
+    "SessionIdentity": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "assignment_generation": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "attempt_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "boot_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "const": "remote",
+              "type": "string"
+            },
+            "node_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "session_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "node_id",
+            "boot_id",
+            "attempt_id",
+            "assignment_generation",
+            "session_id"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "authority_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "generation": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "central",
+              "type": "string"
+            },
+            "session_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "authority_id",
+            "session_id",
+            "generation"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Text": {
+      "description": "Nonempty UTF-8 text, at most 512 bytes; no control characters.",
+      "maxLength": 512,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "check_id": {
+      "$ref": "#/$defs/Text"
+    },
+    "disposition": {
+      "$ref": "#/$defs/CheckDisposition"
+    },
+    "executor": {
+      "$ref": "#/$defs/ExecutorEvidence"
+    },
+    "operation_id": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "recorded_at_ms": {
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "schema_version": {
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "subject": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "validator": {
+      "$ref": "#/$defs/ArtifactRef"
+    }
+  },
+  "required": [
+    "schema_version",
+    "operation_id",
+    "check_id",
+    "subject",
+    "validator",
+    "recorded_at_ms",
+    "disposition",
+    "executor"
+  ],
+  "title": "CheckReceipt",
+  "type": "object"
+}

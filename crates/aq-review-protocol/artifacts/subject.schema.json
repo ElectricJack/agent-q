@@ -1,0 +1,347 @@
+{
+  "$comment": "Shape claims only. Requires actual B1 report/receipt/outcome and retained source owner resolution; no eligibility, human or source authority is conveyed by wire fields/digests.",
+  "$defs": {
+    "ArtifactRef": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "id": {
+          "$ref": "#/$defs/Text"
+        },
+        "version": {
+          "$ref": "#/$defs/Text"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "digest"
+      ],
+      "type": "object"
+    },
+    "Digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "LaunchBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "assignment_generation": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "attempt_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "execution_spec_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "graph_access_profile_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "launch_manifest_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "offer_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "schema_version": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "session": {
+          "$ref": "#/$defs/SessionIdentity"
+        }
+      },
+      "required": [
+        "session",
+        "schema_version",
+        "offer_id",
+        "attempt_id",
+        "assignment_generation",
+        "execution_spec_digest",
+        "launch_manifest_digest",
+        "graph_access_profile_digest"
+      ],
+      "type": "object"
+    },
+    "ObjectFormat": {
+      "enum": [
+        "sha1",
+        "sha256"
+      ],
+      "type": "string"
+    },
+    "ObjectId": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "$ref": "#/$defs/ObjectFormat"
+        },
+        "hex": {
+          "maxLength": 64,
+          "minLength": 40,
+          "type": "string"
+        }
+      },
+      "required": [
+        "format",
+        "hex"
+      ],
+      "type": "object"
+    },
+    "ResultPin": {
+      "additionalProperties": false,
+      "properties": {
+        "record_receipt": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "report_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "report_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "stopped_receipt": {
+          "$ref": "#/$defs/ArtifactRef"
+        }
+      },
+      "required": [
+        "report_id",
+        "report_digest",
+        "record_receipt",
+        "stopped_receipt"
+      ],
+      "type": "object"
+    },
+    "SessionIdentity": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "assignment_generation": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "attempt_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "boot_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "kind": {
+              "const": "remote",
+              "type": "string"
+            },
+            "node_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "session_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "node_id",
+            "boot_id",
+            "attempt_id",
+            "assignment_generation",
+            "session_id"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "authority_id": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "generation": {
+              "format": "uint64",
+              "minimum": 0,
+              "type": "integer"
+            },
+            "kind": {
+              "const": "central",
+              "type": "string"
+            },
+            "session_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "authority_id",
+            "session_id",
+            "generation"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "SourcePin": {
+      "additionalProperties": false,
+      "properties": {
+        "base": {
+          "$ref": "#/$defs/ObjectId"
+        },
+        "binding_generation": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "input_artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "repository_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "resulting_artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "resulting_object": {
+          "$ref": "#/$defs/ObjectId"
+        },
+        "retention_receipt": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "source_receipt_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository_id",
+        "binding_generation",
+        "base",
+        "resulting_object",
+        "input_artifact",
+        "resulting_artifact",
+        "source_receipt_id",
+        "retention_receipt"
+      ],
+      "type": "object"
+    },
+    "TaskRevision": {
+      "additionalProperties": false,
+      "properties": {
+        "content_revision": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "version": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "workspace_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "workspace_id",
+        "task_id",
+        "version",
+        "content_revision"
+      ],
+      "type": "object"
+    },
+    "Text": {
+      "description": "Nonempty UTF-8 text, at most 512 bytes; no control characters.",
+      "maxLength": 512,
+      "minLength": 1,
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "binding": {
+      "$ref": "#/$defs/LaunchBinding"
+    },
+    "criteria": {
+      "items": {
+        "$ref": "#/$defs/Text"
+      },
+      "maxItems": 32,
+      "minItems": 1,
+      "type": "array"
+    },
+    "execution_spec": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "expected_outcome": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "original_project_revision": {
+      "format": "uint64",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "project_id": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "result": {
+      "$ref": "#/$defs/ResultPin"
+    },
+    "schema_version": {
+      "format": "uint32",
+      "minimum": 0,
+      "type": "integer"
+    },
+    "source": {
+      "$ref": "#/$defs/SourcePin"
+    },
+    "task": {
+      "$ref": "#/$defs/TaskRevision"
+    },
+    "task_context": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "task_observation": {
+      "$ref": "#/$defs/ArtifactRef"
+    },
+    "validation_policy": {
+      "$ref": "#/$defs/ArtifactRef"
+    }
+  },
+  "required": [
+    "schema_version",
+    "project_id",
+    "original_project_revision",
+    "task",
+    "binding",
+    "execution_spec",
+    "expected_outcome",
+    "task_observation",
+    "task_context",
+    "validation_policy",
+    "result",
+    "source",
+    "criteria"
+  ],
+  "title": "ReviewSubject",
+  "type": "object"
+}
