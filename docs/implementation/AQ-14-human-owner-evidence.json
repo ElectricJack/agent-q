@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "source_revision": "2404c2fd8ec9cba522defde95541ffd0e5049edd",
+  "state_format_version": 24,
+  "candidate_migration": {
+    "path": "crates/aq-server/migrations/0026_review_owners.sql",
+    "registered": false,
+    "component_install": "explicit raw SQL without meta update; native025 remains prerequisite"
+  },
+  "qualification": {
+    "actual_disposable_postgres_tests": 11,
+    "new_expanded_source_human_scenario_count": 1,
+    "pure_current_retention_tests": 2,
+    "strict_clippy": "aq-server all-targets features test-support offline -D warnings",
+    "format": true,
+    "source_clean_at_qualification": true,
+    "actual_native_git_qualification": false,
+    "default_runtime_mounted": false,
+    "profile2_adapter": false,
+    "executed_check": false,
+    "eligibility_or_settlement": false
+  },
+  "commands": [
+    "DATABASE_URL=<scripts/test-db loopback55432 disposable URL> cargo test -p aq-server --features test-support --test profiled_results --offline -- --test-threads=2",
+    "DATABASE_URL=<same disposable URL> cargo test -p aq-server --features test-support --lib --offline source_retention::result_retention -- --test-threads=2",
+    "cargo clippy -p aq-server --all-targets --features test-support --offline -- -D warnings",
+    "cargo fmt --package aq-server --check"
+  ],
+  "source_files": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "73fcf2c16b36eb1942aa4fdcd2e5bb4bb1275060f49aa142ebb865dde2f326ec"
+    },
+    {
+      "path": "crates/aq-server/Cargo.toml",
+      "sha256": "5d42d25391fdc0a9bd8780f9dc165ba3a770192bfafec5443bdb8537211649a4"
+    },
+    {
+      "path": "crates/aq-server/migrations/0026_review_owners.sql",
+      "sha256": "faf7e1d86c724521fa2d3a4a5f53b3117b3e88873be3dc632497be73b1b0ad44"
+    },
+    {
+      "path": "crates/aq-server/src/lib.rs",
+      "sha256": "4e892067504012dccd63cfa53de2764b71546dc6a3b61b1ce705767f353c24ff"
+    },
+    {
+      "path": "crates/aq-server/src/reviews.rs",
+      "sha256": "daa40394afa71177240a6a22b0938620741d6c385ce3bf1c931e51431a8e17bb"
+    },
+    {
+      "path": "crates/aq-server/src/source_retention.rs",
+      "sha256": "260b665d82fc78154f314690fbf808e8ccd2ce4b8bf24ee8456a006aa55fd220"
+    },
+    {
+      "path": "crates/aq-server/src/source_retention/result_retention.rs",
+      "sha256": "0326006ba25bab2ea469de38e171eb87ec343e581200a2edcf104b162a3cbda8"
+    },
+    {
+      "path": "crates/aq-server/tests/profiled_results.rs",
+      "sha256": "39b1101a6027bb1fb590d271c4cda1c9c6f41a1448935534c501a556d30a1ecb"
+    },
+    {
+      "path": "docs/implementation/AQ-14-human-owner-checkpoint.md",
+      "sha256": "e003869a5288167fd809b06ed27264bccc94bd93dd70ae49552cbc73e2f6fd9d"
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq14-human-2404c2f/clippy.log",
+      "sha256": "2bc683fb4e4f4f21ee9ee39e2b8ecce2efe20d3b1be57bda5316aa519ab3d30a"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-human-2404c2f/fmt.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-human-2404c2f/postgres.log",
+      "sha256": "c6164bd362a986f5042cbbce0c20c2ee9383554ca8dd206ad7cbc7c2d0ca9796"
+    },
+    {
+      "path": "docs/implementation/evidence/aq14-human-2404c2f/retention.log",
+      "sha256": "99a1d1ce87fda2a1d86e3fc4f95090ec07c5b3be4df77d297c1c6d970c28a948"
+    }
+  ]
+}
