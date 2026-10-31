@@ -10,6 +10,7 @@ pub mod intelligence;
 pub mod notifications;
 pub mod observations;
 pub mod profile_catalog;
+pub mod profiled_execution;
 pub mod project_bindings;
 pub mod protected_storage;
 pub mod readiness;
