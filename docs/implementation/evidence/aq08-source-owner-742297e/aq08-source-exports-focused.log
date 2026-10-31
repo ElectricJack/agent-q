@@ -1,0 +1,32 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-native-producer/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.00s
+     Running tests/profiled_source_exports.rs (/home/jkern/dev/agent-q/target/debug/deps/profiled_source_exports-3dfbcb1fc7cd0465)
+
+running 9 tests
+test completion_retains_original_fact_releases_only_excess_reservation_and_refuses_refresh ... ok
+test linked_attempt_wrapper_has_zero_extra_charge_only_for_exact_verified_export ... ok
+test pending_unknown_export_is_not_pruned_and_stale_observation_cannot_reserve_new_operation ... ok
+test durable_reservation_precedes_io_exact_retry_survives_capacity_without_grant ... ok
+test unknown_source_scope_and_unretained_observation_never_mint_owned_io_token ... ok
+test reservation_clock_is_rechecked_after_observed_quota_lock_wait ... ok
+test retired_policy_allows_only_original_fixed_scope_pending_reconciliation ... ok
+test source_link_rechecks_freshness_after_observed_owned_export_lock_wait ... ok
+test worst_case_pending_metadata_is_bounded_and_original_replay_remains_available ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.76s
+
+     Running tests/source_retention.rs (/home/jkern/dev/agent-q/target/debug/deps/source_retention-1aacfa63e8bae19d)
+
+running 9 tests
+test invalid_pre_dispatch_manifest_is_rejected_without_leaking_quota ... ok
+test pending_import_retries_same_operation_and_rejects_incompatible_receipt ... ok
+test late_attempt_retains_only_verified_receipt_and_releases_transport_budget ... ok
+test exact_replay_offsets_scope_and_upload_is_not_retention ... ok
+test selected_real_aq_git_import_survives_worker_volume_loss_and_base_download_is_scoped ... ignored, qualification requires immutable aq-git and bookworm Git2.56.0 binaries
+test runtime_rejects_symlink_before_changing_target_permissions ... ok
+test stale_upload_cleanup_and_limits_preserve_unknown_imports ... ok
+test released_attempt_refuses_new_intents_but_preserves_owned_transfer_recovery ... ok
+test slow_import_does_not_hold_attempt_or_node_locks_and_control_status_progresses ... ok
+
+test result: ok. 8 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 1.01s
+
