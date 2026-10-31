@@ -36,6 +36,7 @@ impl OwnerKind {
                 | (Self::Selection, ArtifactKind::Selection)
                 | (Self::Outcome, ArtifactKind::Outcome)
                 | (Self::SourceRetention, ArtifactKind::Context)
+                | (Self::SourceRetention, ArtifactKind::Source)
         )
     }
 }
@@ -121,6 +122,9 @@ fn decode(row: sqlx::postgres::PgRow) -> Result<Retained, AppError> {
     {
         return Err(refused());
     }
+    if descriptor.kind == ArtifactKind::Source {
+        super::source::validate_body(&bytes, proof.project_id, descriptor.retained_at_ms)?;
+    }
     descriptor
         .verify(&bytes, descriptor.retained_at_ms)
         .map_err(|_| refused())?;
@@ -154,6 +158,20 @@ pub async fn retain(state: &AppState, request: Retain<'_>) -> Result<RetainedArt
         || Digest::of(request.bytes) != request.artifact.digest
     {
         return Err(refused());
+    }
+    if request.kind == ArtifactKind::Source {
+        let source = super::source::validate_stored_body(request.bytes, request.project_id)?;
+        if request.owner != OwnerKind::SourceRetention
+            || request.artifact.id.as_str()
+                != format!(
+                    "aq.source-admission-observation/{}",
+                    Digest::of(request.bytes).as_str()
+                )
+            || request.artifact.version.as_str() != "1"
+            || source.project_id != request.project_id
+        {
+            return Err(refused());
+        }
     }
     let mut tx = state.store.pool.begin().await.map_err(db)?;
     sqlx::query("SET LOCAL lock_timeout='2s'")
@@ -192,6 +210,9 @@ pub async fn retain(state: &AppState, request: Retain<'_>) -> Result<RetainedArt
         return Ok(old.descriptor);
     }
     let time = now(state)?;
+    if request.kind == ArtifactKind::Source {
+        super::source::validate_body(request.bytes, request.project_id, time)?;
+    }
     let receipt = canonical(&Receipt {
         schema_version: 1,
         artifact_id: request.artifact_id,

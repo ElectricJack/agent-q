@@ -130,3 +130,5 @@ pub async fn serve_jwks(json: Value) -> JwksServer {
 pub mod profiled;
 
 pub mod native_started;
+
+pub mod source_exports;

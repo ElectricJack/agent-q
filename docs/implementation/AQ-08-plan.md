@@ -69,3 +69,11 @@ retries retain generation/history and a finite retry bound. Unsupported aliases,
 source formats, replacements and hard accounting refuse explicitly. Central
 supervisors retain their distinct central authority path and never fabricate a
 worker identity to pass AQ08 eligibility.
+
+The next native checkpoint is the functional state25 source owner and read API,
+described in [native completion plan](AQ-08-native-completion-plan.md#native-source-retrieval-checkpoint-025).
+It supplies actual Source-role inline receipts and current-auth assigned-worker
+status/chunk retrieval across Offered, Preparing and Granted. It does not claim
+that native scheduling/offer/accept/prepare/grant/renew handlers exist. Those
+remain the next integration step using these retained owners and exact 0.1.7
+control envelopes; missing qualified model/counting facts continue to refuse.
