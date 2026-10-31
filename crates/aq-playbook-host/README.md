@@ -55,3 +55,20 @@ PB04's 25ms budget remains unmet: transition count bounds do not imply wall-time
 bounds, and retained namespace snapshots/indexes still have measured history cost.
 See `docs/implementation/AQ-12-through-17-plan.md` for the twelve command owners,
 durable outbox/recovery and later integration gates.
+
+## Explicit registered owner (0.1.1)
+
+The default `Owner::start` still registers nothing. `start_registered` accepts a
+trusted exact finite registry and an owning DomainHost factory after actual
+engine namespace acquisition. It supports only the twelve specified command
+names and reconcilable effects; installation/restart rejects changed or unknown
+contracts. This is not a wire-supplied authority permit. The concrete AQ service
+adapter lives in aq-server and currently registers only message.send.
+
+This version consumes the separately qualified exact a463e59 source publication
+(runner/Postgres0.1.1, unchanged model0.1.0); the original42/0.1.0 vendor source
+remains retained unchanged. `AdmitOnce` uses immutable engine receipts, while
+historical Admission lookup cannot create a run or renew authority. Explicit
+Reconcile and Cancel Host modes separate lookup/stop from fresh dispatch. Public
+inspection uses the existing bounded sanitized projection. Event acceptance,
+fanout and run progress remain separate operations and acknowledgements.

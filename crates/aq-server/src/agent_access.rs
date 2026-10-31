@@ -1,7 +1,7 @@
 //! Online attempt credentials, scoped graph reads, durable graph intent and mail.
 mod contract;
 mod graph;
-mod messaging;
+pub(crate) mod messaging;
 mod mutations;
 pub mod scheduling;
 use crate::{

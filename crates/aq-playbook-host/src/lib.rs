@@ -1,9 +1,9 @@
 //! AQ-owned bounded embedding. Not mounted by the daemon and no domain commands
 //! are registered. Synchronous engine work runs only on one dedicated OS thread.
-use aq_playbooks_model::{Artifact, CommandContract};
+use aq_playbooks_model::{Artifact, CommandContract, EventEnvelope, Registry};
 use aq_playbooks_runner::{
     Authority, CancellationResult, DispatchResult, Engine, EngineConfig, Host, IndexQuery, Intent,
-    Storage,
+    KeyedAdmissionRequest, Storage,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -18,6 +18,30 @@ use std::{
 use tokio::sync::oneshot;
 
 pub mod protected;
+pub use aq_playbooks_model as model;
+pub use aq_playbooks_postgres as postgres_storage;
+pub use aq_playbooks_runner as runner;
+pub use postgres as postgres_client;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum HostMode {
+    Dispatch,
+    Reconcile,
+    Cancel,
+}
+/// Recovery mode authorizes historical lookup only; implementations must never
+/// let it renew a grant or authorize a fresh business effect.
+/// Supplied only after this thread acquires the actual engine namespace. This
+/// callback context is not a serializable credential or HTTP authority proof.
+#[derive(Clone, Debug)]
+pub struct AcquiredOwner {
+    pub namespace: String,
+    pub incarnation: String,
+}
+
+pub trait DomainHost: Host {
+    fn set_mode(&mut self, mode: HostMode);
+}
 pub use aq_playbooks_runner::MemoryStorage;
 
 #[derive(Debug, thiserror::Error)]
@@ -98,6 +122,39 @@ pub enum Request {
         authority: Authority,
         now_ms: i64,
     },
+    AdmitOnce {
+        request: Box<KeyedAdmissionRequest>,
+        now_ms: i64,
+    },
+    Admission {
+        key: String,
+    },
+    Event {
+        authenticated_producer: String,
+        epoch: u64,
+        event: Box<EventEnvelope>,
+        now_ms: i64,
+    },
+    Fanout {
+        event_key: String,
+        limit: usize,
+        now_ms: i64,
+    },
+    CancelEffects {
+        now_ms: i64,
+    },
+    Inspect {
+        query: runner::InspectionQuery,
+    },
+    EventStatus {
+        event_key: String,
+    },
+    Recover {
+        now_ms: i64,
+    },
+    Binding {
+        binding: String,
+    },
     Runs {
         after: Option<String>,
         limit: usize,
@@ -113,18 +170,39 @@ pub enum Request {
 }
 impl Request {
     fn control(&self) -> bool {
-        matches!(self, Self::Cancel { .. } | Self::Stop)
+        matches!(
+            self,
+            Self::Cancel { .. } | Self::CancelEffects { .. } | Self::Stop
+        )
     }
     fn validate(&self) -> Result<(), Error> {
         let valid = |s: &str| !s.is_empty() && s.len() <= 512 && !s.contains('\0');
-        let authority =
-            |a: &Authority| valid(&a.actor) && valid(&a.scope) && a.capabilities.is_empty();
+        let authority = |a: &Authority| {
+            valid(&a.actor)
+                && valid(&a.scope)
+                && a.capabilities.len() <= 64
+                && a.capabilities.iter().all(|s| valid(s))
+        };
         let ok = match self {
-            // Empty production registry until individually owned AQ adapters exist.
-            Self::Install { artifact } => {
-                artifact.content.registry.commands.is_empty()
-                    && artifact.content.registry.events.is_empty()
+            Self::Install { .. } => true,
+            Self::AdmitOnce { request, .. } => {
+                valid(&request.key)
+                    && valid(&request.binding)
+                    && valid(&request.entry)
+                    && authority(&request.authority)
             }
+            Self::Admission { key } => valid(key) && key.len() <= 256,
+            Self::Binding { binding } => valid(binding),
+            Self::Event {
+                authenticated_producer,
+                ..
+            } => valid(authenticated_producer),
+            Self::Fanout {
+                event_key, limit, ..
+            } => valid(event_key) && (1..=64).contains(limit),
+            Self::Recover { .. } | Self::CancelEffects { .. } => true,
+            Self::EventStatus { event_key } => valid(event_key),
+            Self::Inspect { query } => query.validate().is_ok() && query.limit <= 32,
             Self::Activate {
                 binding,
                 artifact,
@@ -161,6 +239,7 @@ struct Shared {
     wake: Condvar,
     clients: AtomicUsize,
     limits: Limits,
+    registry: Registry,
 }
 /// Cloning this handle never creates a second namespace owner. Drop does not join
 /// the thread: a stuck storage call retains its ownership until it really returns.
@@ -202,7 +281,28 @@ impl Owner {
         S: Storage + 'static,
         F: FnOnce() -> Result<S, Error> + Send + 'static,
     {
+        Self::start_registered(namespace, limits, Registry::default(), factory, |_| {
+            Ok(UnavailableHost)
+        })
+        .await
+    }
+    /// Explicit trusted host registration. Exact contracts are checked at install
+    /// and restart; callers must supply the actual owning AQ service adapters.
+    pub async fn start_registered<S, F, H, HF>(
+        namespace: String,
+        limits: Limits,
+        registry: Registry,
+        factory: F,
+        host_factory: HF,
+    ) -> Result<Self, Error>
+    where
+        S: Storage + 'static,
+        F: FnOnce() -> Result<S, Error> + Send + 'static,
+        H: DomainHost + 'static,
+        HF: FnOnce(AcquiredOwner) -> Result<H, Error> + Send + 'static,
+    {
         limits.validate()?;
+        validate_registry(&registry)?;
         if namespace.is_empty() || namespace.len() > 512 || namespace.contains('\0') {
             return Err(Error::Invalid);
         }
@@ -211,6 +311,7 @@ impl Owner {
             wake: Condvar::new(),
             clients: AtomicUsize::new(1),
             limits,
+            registry,
         });
         let owner = Self {
             shared: shared.clone(),
@@ -226,10 +327,11 @@ impl Owner {
                             .map_err(engine_error)?;
                     engine.config = shared.limits.engine.clone();
                     let state = engine.snapshot().map_err(engine_error)?;
-                    if state.artifacts.values().any(|a| {
-                        !a.content.registry.commands.is_empty()
-                            || !a.content.registry.events.is_empty()
-                    }) {
+                    if state
+                        .artifacts
+                        .values()
+                        .any(|a| !accepts(&shared.registry, &a.content.registry))
+                    {
                         let _ = engine.release();
                         return Err(Error::Invalid);
                     }
@@ -242,11 +344,21 @@ impl Owner {
                         return;
                     }
                 };
+                let mut host = match host_factory(AcquiredOwner {
+                    namespace: engine.namespace.clone(),
+                    incarnation: engine.owner.clone(),
+                }) {
+                    Ok(host) => host,
+                    Err(error) => {
+                        let _ = engine.release();
+                        let _ = ready_tx.send(Err(error));
+                        return;
+                    }
+                };
                 if ready_tx.send(Ok(())).is_err() {
                     let _ = engine.release();
                     return;
                 }
-                let mut host = UnavailableHost;
                 loop {
                     let envelope = {
                         let mut q = shared.queues.lock().unwrap_or_else(|e| e.into_inner());
@@ -305,6 +417,11 @@ impl Owner {
     /// Callers must reconcile effects; blindly resubmitting Admit can duplicate runs.
     pub async fn call(&self, request: Request, deadline: Duration) -> Result<Value, Error> {
         request.validate()?;
+        if let Request::Install { artifact } = &request
+            && !accepts(&self.shared.registry, &artifact.content.registry)
+        {
+            return Err(Error::Invalid);
+        }
         if !bounded_json(&request, self.shared.limits.request_bytes) {
             return Err(Error::Invalid);
         }
@@ -335,6 +452,9 @@ fn engine_error(e: impl std::fmt::Display) -> Error {
     Error::Engine(e.to_string())
 }
 struct UnavailableHost;
+impl DomainHost for UnavailableHost {
+    fn set_mode(&mut self, _: HostMode) {}
+}
 impl Host for UnavailableHost {
     fn authorize(&self, _: &Authority, _: &CommandContract) -> bool {
         false
@@ -355,11 +475,69 @@ impl Host for UnavailableHost {
 }
 fn execute<S: Storage>(
     engine: &Engine<S>,
-    host: &mut UnavailableHost,
+    host: &mut impl DomainHost,
     request: Request,
     transitions: usize,
 ) -> Result<Value, Error> {
+    host.set_mode(match request {
+        Request::Recover { .. } => HostMode::Reconcile,
+        Request::Cancel { .. } | Request::CancelEffects { .. } => HostMode::Cancel,
+        _ => HostMode::Dispatch,
+    });
     let value = match request {
+        Request::Inspect { query } => serde_json::to_value(
+            engine
+                .store
+                .inspect(&engine.namespace, &query)
+                .map_err(engine_error)?,
+        )
+        .map_err(engine_error)?,
+        Request::CancelEffects { now_ms } => {
+            serde_json::json!({"cancelled": cancel_effect(engine, host, now_ms)?})
+        }
+        Request::EventStatus { event_key } => {
+            let snapshot = engine.snapshot().map_err(engine_error)?;
+            let event = snapshot.events.get(&event_key).ok_or(Error::Invalid)?;
+            serde_json::json!({"destinations":event.destinations.len(),"pending":event.destinations.iter().filter(|d|d.run.is_none()).count()})
+        }
+        Request::AdmitOnce { request, now_ms } => {
+            serde_json::to_value(engine.admit_once(*request, now_ms).map_err(engine_error)?)
+                .map_err(engine_error)?
+        }
+        Request::Admission { key } => {
+            serde_json::to_value(engine.admission_receipt(&key).map_err(engine_error)?)
+                .map_err(engine_error)?
+        }
+        Request::Binding { binding } => serde_json::to_value(
+            engine
+                .snapshot()
+                .map_err(engine_error)?
+                .bindings
+                .get(&binding)
+                .ok_or(Error::Invalid)?,
+        )
+        .map_err(engine_error)?,
+        Request::Event {
+            authenticated_producer,
+            epoch,
+            event,
+            now_ms,
+        } => serde_json::to_value(
+            engine
+                .admit_event_in_epoch(&authenticated_producer, *event, epoch, now_ms)
+                .map_err(engine_error)?,
+        )
+        .map_err(engine_error)?,
+        Request::Fanout {
+            event_key,
+            limit,
+            now_ms,
+        } => {
+            serde_json::json!({"admitted": engine.fanout(&event_key, limit, now_ms).map_err(engine_error)?})
+        }
+        Request::Recover { now_ms } => {
+            serde_json::json!({"reconciled":engine.recover(host, now_ms).map_err(engine_error)?})
+        }
         Request::Install { artifact } => {
             engine.install(*artifact).map_err(engine_error)?;
             Value::Null
@@ -396,6 +574,7 @@ fn execute<S: Storage>(
         }
         Request::Cancel { run, now_ms } => {
             engine.cancel(&run, now_ms).map_err(engine_error)?;
+            cancel_effect(engine, host, now_ms)?;
             Value::Null
         }
         // Stop acknowledgement proves this thread reached a boundary, not that
@@ -422,4 +601,67 @@ fn bounded_json(value: &impl Serialize, limit: usize) -> bool {
         }
     }
     serde_json::to_writer(Counter(limit), value).is_ok()
+}
+
+fn accepts(registry: &Registry, artifact: &Registry) -> bool {
+    artifact
+        .commands
+        .iter()
+        .all(|(name, contract)| registry.commands.get(name) == Some(contract))
+        && artifact
+            .events
+            .iter()
+            .all(|(name, contract)| registry.events.get(name) == Some(contract))
+}
+fn validate_registry(registry: &Registry) -> Result<(), Error> {
+    const COMMANDS: [&str; 12] = [
+        "context.read",
+        "work.ensure",
+        "work.change",
+        "judgment.request",
+        "decision.request",
+        "check.request",
+        "candidate.prepare",
+        "candidate.publish",
+        "message.send",
+        "findings.reconcile",
+        "operation.get",
+        "operation.cancel",
+    ];
+    if registry.commands.len() > 12
+        || registry.events.len() > 16
+        || !bounded_json(registry, 262_144)
+        || registry.commands.iter().any(|(name, c)| {
+            !COMMANDS.contains(&name.as_str())
+                || name != &c.name
+                || c.recovery != model::Recovery::Reconcilable
+        })
+        || registry.events.iter().any(|(name, c)| name != &c.name)
+    {
+        return Err(Error::Invalid);
+    }
+    Ok(())
+}
+
+fn cancel_effect<S: Storage>(
+    engine: &Engine<S>,
+    host: &mut impl DomainHost,
+    now_ms: i64,
+) -> Result<bool, Error> {
+    let page = engine
+        .query(&IndexQuery::Effects {
+            kind: runner::EffectQueueKind::Cancel,
+            scope_after: None,
+            limit: 1,
+        })
+        .map_err(engine_error)?;
+    if page.items.is_empty() {
+        return Ok(false);
+    }
+    // This owner serializes all engine calls. Do not invoke dispatch_next in
+    // cancellation mode unless its cancellation queue is known nonempty.
+    Ok(engine
+        .dispatch_next(host, now_ms)
+        .map_err(engine_error)?
+        .is_some())
 }

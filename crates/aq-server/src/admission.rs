@@ -140,6 +140,7 @@ pub fn classify(path: &str) -> Class {
             | "/api/execution/test-control"
     ) || execution_cancel_path(path)
         || agent_revoke_path(path)
+        || crate::playbooks::api::cancellation_path(path)
     {
         Class::Control
     } else {
