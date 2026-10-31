@@ -1,0 +1,36 @@
+{
+  "source_revision": "40573b710837ebb58d628c8bb81b71e64c92caae",
+  "qualification": {
+    "project_resolver_postgres_passed": 11,
+    "declared_real_peer_ignored": 1,
+    "all_target_all_feature_clippy": "passed",
+    "workspace_format": "passed"
+  },
+  "worktree": "/tmp/aq17-installer-clean",
+  "shared_build_cache": "/tmp/aq22-observations/target",
+  "source_sha256": {
+    "crates/aq-server/src/profiled_execution/policies.rs": "6b79122092660e378b16273882609aff3d719ebd7fc9ee3f6e4670b887f1eeee",
+    "crates/aq-server/src/profiled_execution.rs": "d8e0f1d47c689d6026019f5c895cc4e4cdd420841c92755810c9a46d5c169628",
+    "crates/aq-server/src/profiled_execution/config.rs": "50e2737cb0a7bc2ba9cae7edcd2c005cfb872707070da4be8e32300194ea6ecf",
+    "crates/aq-server/src/intelligence/principal.rs": "300d7365f76190789a83a74c68aac31ec9a2ed7c64b9ab867541aab21e2f2cc1",
+    "crates/aq-server/tests/project_bindings.rs": "814ee4597de11035f0c8966ec7e9d573552a8ab7e4b61677b7fcc193f7b68679",
+    "crates/aq-server/migrations/0017_policy_decision_principals.sql": "2733cc9bad30b9cb77a4964a15810ba04e40e3535ab37b3f2587f090233c3d95"
+  },
+  "logs_sha256": {
+    "docs/implementation/evidence/aq08-policy-install-40573b7/tests.log": "069e96b9f6945720707daedcd7de07a092240cadda1ba996ed4fb1eecf7d7185",
+    "docs/implementation/evidence/aq08-policy-install-40573b7/clippy.log": "4d36f09fee21fc9a083a7a335e7cf0832fed680da5e2c9ddc57188861e07c697",
+    "docs/implementation/evidence/aq08-policy-install-40573b7/format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "coverage": [
+    "Atomic multi-project policy installation and rollback on injected write failure",
+    "Disabled tombstones retain omitted project policies",
+    "Global revision anchor prevents old configuration restoring policies even after an empty configuration",
+    "Changed content at the same revision is refused; missing project bindings remain unbound",
+    "Policy-owned resolution has no human actor and rechecks exact installed policy before publication"
+  ],
+  "limitations": [
+    "Migration017 is explicitly installed in tests, pending ordered runtime registration.",
+    "Installer is a trusted internal service; startup/dispatch and project-binding runtime wiring remains separate.",
+    "Tests use actual AQ project/resolver services with designated fake graph/git/provider facts; no live model calls."
+  ]
+}
