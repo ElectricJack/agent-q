@@ -1082,7 +1082,7 @@ Requirement links: S2, S3, S5, H4.
 
 Outside this task: Guessing tokens from terminal characters or owning central cost rates/budgets.
 
-Evidence: [WRK-15-component.md](../../../aq-worker/docs/implementation/WRK-15-component.md), [WRK-15-component.json](../../../aq-worker/docs/implementation/WRK-15-component.json).
+Evidence: [WRK-15-component.md](../../../aq-worker/docs/implementation/WRK-15-component.md), [WRK-15-component.json](../../../aq-worker/docs/implementation/WRK-15-component.json), [WRK-15-delta.md](../../../aq-worker/docs/implementation/WRK-15-delta.md), [WRK-15-local-intent.md](../../../aq-worker/docs/implementation/WRK-15-local-intent.md), [WRK-15-http-owner.md](../../../aq-worker/docs/implementation/WRK-15-http-owner.md), [WRK-15-integration.md](../../../aq-worker/docs/implementation/WRK-15-integration.md), [WRK-15-integration.json](../../../aq-worker/docs/implementation/WRK-15-integration.json).
 
 ### AQ-22
 
@@ -1104,7 +1104,7 @@ Requirement links: S1, S2, S3, S5.
 
 Outside this task: Inferring semantic progress from token count or retaining unlimited transcripts.
 
-Evidence: [AQ-22-plan.md](../implementation/AQ-22-plan.md), [AQ-22-ledger.md](../implementation/AQ-22-ledger.md), [AQ-22-inspection.md](../implementation/AQ-22-inspection.md), [AQ-22-observation-api.json](../implementation/AQ-22-observation-api.json), [AQ-22-mounted-qualification.json](../implementation/AQ-22-mounted-qualification.json), [AQ-22-transport-ownership.md](../implementation/AQ-22-transport-ownership.md), [AQ-22-transport-qualification.json](../implementation/AQ-22-transport-qualification.json), [AQ-08-AQ-22-state17-qualification.json](../implementation/AQ-08-AQ-22-state17-qualification.json), [AQ-08-AQ-21-state19-qualification.json](../implementation/AQ-08-AQ-21-state19-qualification.json).
+Evidence: [AQ-22-plan.md](../implementation/AQ-22-plan.md), [AQ-22-ledger.md](../implementation/AQ-22-ledger.md), [AQ-22-inspection.md](../implementation/AQ-22-inspection.md), [AQ-22-observation-api.json](../implementation/AQ-22-observation-api.json), [AQ-22-mounted-qualification.json](../implementation/AQ-22-mounted-qualification.json), [AQ-22-transport-ownership.md](../implementation/AQ-22-transport-ownership.md), [AQ-22-transport-qualification.json](../implementation/AQ-22-transport-qualification.json), [AQ-08-AQ-22-state17-qualification.json](../implementation/AQ-08-AQ-22-state17-qualification.json), [AQ-08-AQ-21-state19-qualification.json](../implementation/AQ-08-AQ-21-state19-qualification.json), [AQ-22-owner-state19-qualification.json](../implementation/AQ-22-owner-state19-qualification.json).
 
 ### AQ-23
 
