@@ -1,0 +1,23 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.21s
+     Running tests/profiled_results.rs (target/debug/deps/profiled_results-efa55520747915a3)
+
+running 1 test
+test protected_engine_question_waits_for_real_owner_and_exact_completion_event ... FAILED
+
+failures:
+
+---- protected_engine_question_waits_for_real_owner_and_exact_completion_event stdout ----
+
+thread 'protected_engine_question_waits_for_real_owner_and_exact_completion_event' (4092217) panicked at crates/aq-server/tests/profiled_results.rs:1289:5:
+assertion `left == right` failed
+  left: String("blocked")
+ right: "waiting"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    protected_engine_question_waits_for_real_owner_and_exact_completion_event
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 11 filtered out; finished in 2.66s
+
+error: test failed, to rerun pass `-p aq-server --test profiled_results`
