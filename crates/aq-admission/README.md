@@ -1,4 +1,4 @@
-# AQ admission contracts 0.1.0
+# AQ admission contracts 0.1.1
 
 Pure versioned preparation contracts and bounded placement proposals. This crate
 contains no daemon, database, network client, provider call or secret delivery.
@@ -51,3 +51,28 @@ cargo package -p aq-admission --allow-dirty --offline \
 Publication generation: `cargo run -p aq-admission --example export -- schema`
 and `... -- fixtures`. New incompatible fields/semantics require a new immutable
 contract version and coordinated consumers; do not edit pinned session bytes.
+
+The additive 0.1.1 `transport` module publishes separate
+`artifacts/transport.schema.json` and `transport.fixtures.json`; the original
+preparation publication remains byte-identical. These envelopes describe future
+handlers. Register/poll/accept/prepare/grant/renew and private material transfer
+still require authenticated assigned-worker admission by the actual daemon.
+PreparationPlan permits preparation only; it is not a launch grant. The initial
+transport frame is capped at 1 MiB, with at most 8 offers, 16 material leases,
+32 reconciliation records and 128 artifact descriptors. Larger otherwise-valid
+shared manifests must be refused under this narrower profile.
+
+The server recomputes remaining delivery TTL on every replay from the same
+absolute expiry. Workers charge the entire request interval against that TTL.
+A retry never restarts execution, extends a reservation, or extends a grant.
+Stop evidence requires the qualified assigned host's durable guardian journal;
+NotStarted closes an exact durable no-launch reservation, and Unknown never
+satisfies release. The pure journal ledger detects changed replay and monotonic
+conflicts; it does not prove remote process stop. Central source/effect owners
+must separately verify their actual release receipts before claim release.
+
+OfferedLaunch carries the exact lifecycle Binding. Its lineage UUID is UUIDv5
+under frozen namespace `43c0fccf-eb6e-5357-949c-0bc68fbf51ea` with raw 48 network-order
+UUID bytes project, workspace, task. Independent Python vectors are packaged in
+`artifacts/task-lineage-v1.json`. Server task aggregate identity owns the mapping;
+a worker-supplied lineage never resets retry/time/cost accounting.

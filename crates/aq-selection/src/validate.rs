@@ -154,6 +154,10 @@ pub(crate) fn validate(
         text(&credential.provider)?;
         text(&credential.account_reference)?;
         text(&credential.endpoint_reference)?;
+        if let Some(owner) = &credential.material_owner {
+            text(owner.id.as_str())?;
+            text(owner.version.as_str())?;
+        }
         ensure(
             credential.revision > 0
                 && credentials.insert(format!(
@@ -164,8 +168,32 @@ pub(crate) fn validate(
             "credential revision/identity conflict",
         )?;
     }
+    if let Some(delivery) = &input.node.material_delivery {
+        text(delivery.adapter.id.as_str())?;
+        text(delivery.adapter.version.as_str())?;
+        ensure(delivery.version > 0, "delivery protocol version")?;
+    }
     let mut installed_credentials = BTreeSet::new();
     for binding in &input.node.credential_bindings {
+        if let Some(preparation) = &binding.preparation {
+            for reference in [
+                &preparation.owner,
+                &preparation.credential_profile,
+                &preparation.delivery.adapter,
+            ] {
+                text(reference.id.as_str())?;
+                text(reference.version.as_str())?;
+            }
+            target(&preparation.target)?;
+            ensure(
+                preparation.credential_revision > 0
+                    && preparation.delivery.version > 0
+                    && preparation.observed_at_ms > 0
+                    && preparation.expires_at_ms > preparation.observed_at_ms
+                    && preparation.expires_at_ms - preparation.observed_at_ms <= 120_000,
+                "preparation evidence bounds",
+            )?;
+        }
         ensure(
             binding.credential_revision > 0
                 && installed_credentials.insert((

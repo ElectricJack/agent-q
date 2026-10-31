@@ -411,17 +411,13 @@ pub fn select(
                                     "credential_not_provisionable",
                                 ));
                             }
-                            if !input.node.credential_bindings.iter().any(|b| {
-                                b.credential_profile == credential.profile
-                                    && b.credential_revision == credential.revision
-                                    && b.available
-                                    && fresh(b.observed_at_ms, b.expires_at_ms, input.now_ms)
-                            }) {
-                                return Err((
-                                    CandidateState::MissingCredentials,
-                                    "installed_credential_missing_or_stale",
-                                ));
-                            }
+                            let missing = if credential.material_owner.is_some() {
+                                "credential_preparation_missing_or_stale"
+                            } else {
+                                "installed_credential_missing_or_stale"
+                            };
+                            let delivery = credential_delivery(input, credential)
+                                .ok_or((CandidateState::MissingCredentials, missing))?;
                             require_capabilities(
                                 &policy.required_capabilities,
                                 &harness.capabilities,
@@ -499,6 +495,10 @@ pub fn select(
                             if state != CandidateState::Eligible {
                                 return Ok(());
                             }
+                            if delivery.is_some() {
+                                row.reason_codes
+                                    .push("material_preparation_required".into());
+                            }
                             choice = Some(ConcreteChoice {
                                 candidate_id: row.candidate_id.clone(),
                                 profile_candidate_id: candidate.id.clone(),
@@ -515,6 +515,7 @@ pub fn select(
                                 qualification: harness.qualification.clone(),
                                 failure_classifier: harness.failure_classifier.clone(),
                                 credential_profile: credential.profile.clone(),
+                                credential_delivery: delivery,
                                 account_reference: credential.account_reference.clone(),
                                 endpoint_reference: credential.endpoint_reference.clone(),
                                 composition_digest: composition.digest.clone(),
@@ -580,8 +581,15 @@ pub fn select(
             .min(input.project.expires_at_ms)
             .min(input.now_ms.saturating_add(2000));
         for binding in &input.node.credential_bindings {
-            if binding.credential_profile == choice.as_ref().unwrap().credential_profile {
+            if binding.credential_profile == choice.as_ref().unwrap().credential_profile
+                && binding.credential_revision == *credential_revision
+            {
                 expires = expires.min(binding.expires_at_ms);
+                if choice.as_ref().unwrap().credential_delivery.is_some()
+                    && let Some(preparation) = &binding.preparation
+                {
+                    expires = expires.min(preparation.expires_at_ms);
+                }
             }
         }
         // Relevant availability changes are fenced by the server; expiration of
@@ -637,4 +645,45 @@ pub fn select(
         resolved,
         traces,
     })
+}
+
+fn credential_delivery(
+    input: &SelectionInputs,
+    credential: &AuthorizedCredential,
+) -> Option<Option<CredentialDelivery>> {
+    let mut installed = false;
+    for binding in &input.node.credential_bindings {
+        if binding.credential_profile != credential.profile
+            || binding.credential_revision != credential.revision
+            || !fresh(binding.observed_at_ms, binding.expires_at_ms, input.now_ms)
+        {
+            continue;
+        }
+        installed |= binding.available;
+        if let (Some(preparation), Some(owner), Some(supported)) = (
+            &binding.preparation,
+            &credential.material_owner,
+            &input.node.material_delivery,
+        ) && preparation.owner == *owner
+            && preparation.credential_profile == credential.profile
+            && preparation.credential_revision == credential.revision
+            && preparation.target == input.project.target
+            && matches!(preparation.target, ExecutionTarget::Worker { .. })
+            && preparation.delivery.adapter == supported.adapter
+            && preparation.delivery.version == 1
+            && supported.version == 1
+            && fresh(
+                preparation.observed_at_ms,
+                preparation.expires_at_ms,
+                input.now_ms,
+            )
+        {
+            return Some(Some(CredentialDelivery::ServerLease {
+                owner: owner.clone(),
+                adapter: supported.adapter.clone(),
+                version: 1,
+            }));
+        }
+    }
+    installed.then_some(None)
 }

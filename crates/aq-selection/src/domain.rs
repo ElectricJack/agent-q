@@ -83,6 +83,8 @@ pub struct CredentialBinding {
     pub credential_revision: u64,
     pub credential_profile: ArtifactRef,
     pub available: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub preparation: Option<ProvisioningReadiness>,
     pub observed_at_ms: u64,
     pub expires_at_ms: u64,
 }
@@ -95,6 +97,8 @@ pub struct CapabilitySnapshot {
     pub expires_at_ms: u64,
     pub harnesses: Vec<InstalledHarness>,
     pub credential_bindings: Vec<CredentialBinding>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub material_delivery: Option<DeliveryCapability>,
 }
 /// Operator authority to provision a specific profile/account/endpoint. Presence
 /// is separate from the node's installed binding and provider availability.
@@ -108,6 +112,8 @@ pub struct AuthorizedCredential {
     pub revision: u64,
     pub enabled: bool,
     pub provisionable: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub material_owner: Option<ArtifactRef>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -262,6 +268,8 @@ pub struct ConcreteChoice {
     pub qualification: ArtifactRef,
     pub failure_classifier: Option<ArtifactRef>,
     pub credential_profile: ArtifactRef,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub credential_delivery: Option<CredentialDelivery>,
     pub account_reference: String,
     pub endpoint_reference: String,
     pub composition_digest: Digest,
@@ -307,4 +315,34 @@ pub trait ReplacementEvidenceProvider {
         lineage: &TaskLineage,
         now_ms: u64,
     ) -> Result<Option<ReplacementEvidence>, String>;
+}
+
+/// Supported delivery is independent of credential presence or authorization.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DeliveryCapability {
+    pub adapter: ArtifactRef,
+    pub version: u32,
+}
+/// Daemon-derived readiness for later exact-attempt material preparation. This
+/// is not an installed key, delivery receipt or runnable grant.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ProvisioningReadiness {
+    pub owner: ArtifactRef,
+    pub credential_profile: ArtifactRef,
+    pub credential_revision: u64,
+    pub target: ExecutionTarget,
+    pub delivery: DeliveryCapability,
+    pub observed_at_ms: u64,
+    pub expires_at_ms: u64,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum CredentialDelivery {
+    ServerLease {
+        owner: ArtifactRef,
+        adapter: ArtifactRef,
+        version: u32,
+    },
 }
