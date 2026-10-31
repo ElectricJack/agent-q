@@ -233,7 +233,10 @@ harness and adapter version; required capabilities; environment identity;
 instruction/context references and delivery plan; requested/effective scopes;
 resource and termination limits; terminal policy; selection explanation reference;
 and existing assignment/source/outcome bindings. Secret material is provisioned
-separately. Use the published canonical serialization/digest algorithm, with
+separately. Retrieval leases and installed private bindings have distinct lifetimes;
+running renewals follow the exact-owner/current-fingerprint rules in the
+[execution contract](0002-execution-and-recovery.md), preserving the original hard
+deadline. Delivery receipts do not renew authority. Use the published canonical serialization/digest algorithm, with
 bounded strings/arrays and integer units instead of ambiguous floating budgets.
 
 This is an extension of the existing immutable execution specification, not a

@@ -94,6 +94,27 @@ The daemon stores each immutable final report and its stable disposition. Reusin
 
 Heartbeats describe node liveness; grants authorize a particular attempt. Initial proposed defaults remain a 15-second heartbeat, offline classification after 60 seconds, and a 120-second execution grant renewed about every 15 seconds. They are configurable pilot values. Renewal deadlines conservatively account for transport time and use a local clock that advances across suspend. A response received after expiry cannot revive the old grant. Restart or uncertain time requires reconciliation.
 
+Private-material delivery leases authorize bounded retrieval and installation;
+they do not independently authorize execution. Initial GrantedLaunch keeps its
+existing rule that material delivery expires no earlier than the initial grant.
+After verified installation, a running renewal uses a separately versioned
+RenewedAuthority reply: the exact grant/binding/reservation/owner, monotonic
+authority and grant revisions, a fresh conservative delivery clock, and the
+original immutable execution hard deadline. It does not redeliver credentials
+or extend the old material lease. The daemon rechecks current machine/agent
+scope, registry/profile and the original installed material fingerprint before
+renewing; rotation or revocation refuses renewal. The worker rejects stale or
+out-of-order authority and cannot reanchor a cached TTL to a later retry.
+
+Expiry of retrieval permission does not invalidate an already admitted private
+binding by itself. Installed material remains bound to that execution only and
+is removed on confirmed stop or once revocation/hard-deadline stopping has
+proved writers stopped. Uncertain writers retain their protected recovery state;
+no credential replacement, new process or silent extension follows. This is a
+native renewal design requirement, not a claim that the current worker implements
+it. The original0.1.6 initial-grant bytes and semantics remain frozen.
+
+
 The baseline stops execution and preserves work when authority expires. Short disconnections are tolerated within the existing grant. The runtime must not continue indefinitely on cached permission. New agent API mutations are refused once daemon authority is expired, cancelled or superseded. Already admitted operations follow their recorded recovery rules; revocation cannot undo a committed graph write or a dispatched external effect.
 
 Lease expiry does not prove physical termination. Retry policy distinguishes:
