@@ -7,6 +7,7 @@ pub mod error;
 pub mod execution;
 pub mod identity;
 pub mod intelligence;
+pub mod notifications;
 pub mod profile_catalog;
 pub mod project_bindings;
 pub mod readiness;
@@ -37,9 +38,9 @@ use std::sync::Arc;
 /// every migration is a state-format change (`store` tests enforce it). The
 /// updater restores the pre-update backup on rollback only when the format
 /// changes, so a migration without a bump would strand the old release.
-pub const STATE_FORMAT_VERSION: u32 = 10;
+pub const STATE_FORMAT_VERSION: u32 = 11;
 /// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
-pub const READABLE_STATE_FORMATS: &[u32] = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+pub const READABLE_STATE_FORMATS: &[u32] = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 /// Versions that may be upgraded to this release.
 pub const UPGRADE_FROM: &str = ">=0.1.0";
 
@@ -121,6 +122,7 @@ async fn method_not_allowed() -> Response {
 pub fn build_admin_router(state: AppState) -> Router {
     Router::new()
         .merge(admin_api::admin_routes())
+        .merge(notifications::api::routes(state.clone()))
         .merge(profile_catalog::admin_routes())
         .merge(project_bindings::admin_routes())
         .merge(intelligence::admin_routes())
@@ -175,7 +177,16 @@ pub async fn run_with_listeners(
     worker: tokio::net::TcpListener,
     shutdown: impl std::future::Future<Output = ()> + Send + 'static,
 ) -> anyhow::Result<()> {
+    let notification_dispatcher = uuid::Uuid::new_v4();
+    notifications::api::service(&state)
+        .install(notification_dispatcher)
+        .await?;
     let (tx, rx) = tokio::sync::watch::channel(false);
+    let notification_task = tokio::spawn(notifications::runtime::run(
+        state.clone(),
+        notification_dispatcher,
+        rx.clone(),
+    ));
     tokio::spawn(async move {
         shutdown.await;
         let _ = tx.send(true);
@@ -185,7 +196,7 @@ pub async fn run_with_listeners(
     };
     let admin_app = build_admin_router(state.clone());
     let worker_app = build_worker_router(state);
-    tokio::try_join!(
+    let serving = tokio::try_join!(
         async {
             axum::serve(
                 admin,
@@ -202,7 +213,10 @@ pub async fn run_with_listeners(
             .with_graceful_shutdown(wait(rx.clone()))
             .await
         },
-    )?;
+    );
+    notification_task.abort();
+    let _ = notification_task.await;
+    serving?;
     Ok(())
 }
 

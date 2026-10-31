@@ -106,6 +106,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-human-http"
+version = "0.1.0"
+dependencies = [
+ "nix",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+ "tokio",
+ "zeroize",
+]
+
+[[package]]
 name = "aq-lifecycle-api"
 version = "0.1.0"
 dependencies = [
@@ -124,6 +138,37 @@ dependencies = [
  "schemars",
  "serde",
  "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "aq-notifications"
+version = "0.1.0"
+dependencies = [
+ "aq-lifecycle-api",
+ "aq-notifications",
+ "axum",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "aq-notify"
+version = "0.1.0"
+dependencies = [
+ "aq-human-http",
+ "aq-notifications",
+ "axum",
+ "clap",
+ "nix",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
  "uuid",
 ]
 
@@ -185,6 +230,8 @@ dependencies = [
  "anyhow",
  "aq-admission",
  "aq-agent-api",
+ "aq-lifecycle-api",
+ "aq-notifications",
  "aq-profiles",
  "aq-protocol",
  "aq-release",
