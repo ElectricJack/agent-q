@@ -459,3 +459,99 @@ fn source_sequence_precedes_wall_clock_when_history_contains_clock_correction() 
         "fixture-b"
     );
 }
+#[test]
+fn installed_only_v010_snapshots_and_decisions_roundtrip_byte_semantics_unchanged() {
+    let golden: serde_json::Value =
+        serde_json::from_str(include_str!("fixtures/installed-selection-v0.1.0.json")).unwrap();
+    let (catalog, _) = fixture();
+    let input: SelectionInputs = serde_json::from_value(golden["inputs"].clone()).unwrap();
+    assert_eq!(serde_json::to_value(&input).unwrap(), golden["inputs"]);
+    let outcome = select(&catalog, &input).unwrap();
+    assert_eq!(serde_json::to_value(outcome).unwrap(), golden["outcome"]);
+}
+fn prepared_credentials(input: &mut SelectionInputs) {
+    let delivery = DeliveryCapability {
+        adapter: artifact("qualified-private-delivery-adapter"),
+        version: 1,
+    };
+    input.node.material_delivery = Some(delivery.clone());
+    for (credential, binding) in input
+        .credentials
+        .iter_mut()
+        .zip(&mut input.node.credential_bindings)
+    {
+        let owner = artifact(&format!(
+            "daemon-file-owner:{}",
+            credential.profile.id.as_str()
+        ));
+        credential.material_owner = Some(owner.clone());
+        binding.available = false;
+        binding.preparation = Some(ProvisioningReadiness {
+            owner,
+            credential_profile: credential.profile.clone(),
+            credential_revision: credential.revision,
+            target: input.project.target.clone(),
+            delivery: delivery.clone(),
+            observed_at_ms: input.now_ms - 1,
+            expires_at_ms: input.now_ms + 1000,
+        });
+    }
+}
+#[test]
+fn cold_node_selects_only_explicit_owned_preparation_and_preserves_material_provenance() {
+    let (catalog, mut input) = fixture();
+    prepared_credentials(&mut input);
+    let outcome = select(&catalog, &input).unwrap();
+    let choice = outcome.resolved.unwrap();
+    assert!(matches!(
+        choice.choice.credential_delivery,
+        Some(CredentialDelivery::ServerLease { version: 1, .. })
+    ));
+    assert!(
+        choice.traces[0]
+            .reason_codes
+            .contains(&"material_preparation_required".into())
+    );
+    assert!(
+        !input.node.credential_bindings[0].available,
+        "readiness never claims installed bytes"
+    );
+    assert!(
+        choice.expires_at_ms
+            <= input.node.credential_bindings[0]
+                .preparation
+                .as_ref()
+                .unwrap()
+                .expires_at_ms
+    );
+}
+#[test]
+fn arbitrary_node_delivery_claims_cannot_manufacture_keys_owner_identity_or_current_boot() {
+    let (catalog, mut input) = fixture();
+    prepared_credentials(&mut input);
+    for credential in &mut input.credentials {
+        credential.provisionable = false;
+    }
+    assert!(select(&catalog, &input).unwrap().resolved.is_none());
+    for credential in &mut input.credentials {
+        credential.provisionable = true;
+        credential.material_owner = None;
+    }
+    assert!(select(&catalog, &input).unwrap().resolved.is_none());
+    prepared_credentials(&mut input);
+    for binding in &mut input.node.credential_bindings {
+        binding.preparation.as_mut().unwrap().target = ExecutionTarget::Worker {
+            node_id: Uuid::from_u128(9301),
+            boot_id: Uuid::from_u128(9302),
+        };
+    }
+    assert!(select(&catalog, &input).unwrap().resolved.is_none());
+    prepared_credentials(&mut input);
+    input.node.material_delivery.as_mut().unwrap().adapter = artifact("unqualified-node-choice");
+    assert!(select(&catalog, &input).unwrap().resolved.is_none());
+    prepared_credentials(&mut input);
+    for binding in &mut input.node.credential_bindings {
+        binding.preparation.as_mut().unwrap().expires_at_ms = input.now_ms;
+    }
+    assert!(select(&catalog, &input).unwrap().resolved.is_none());
+}

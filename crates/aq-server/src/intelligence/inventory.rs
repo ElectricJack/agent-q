@@ -127,11 +127,13 @@ pub(super) async fn report(
             credential_revision: presence.credential_revision,
             credential_profile: presence.profile,
             available: presence.available,
+            preparation: None,
             observed_at_ms: time,
             expires_at_ms: expires,
         });
     }
     let snapshot = CapabilitySnapshot {
+        material_delivery: None,
         target: ExecutionTarget::Worker {
             node_id: node.id,
             boot_id: request.boot_id,

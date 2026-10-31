@@ -135,6 +135,7 @@ pub fn fixture() -> (ValidatedCatalog, SelectionInputs) {
             revision: 1,
             enabled: true,
             provisionable: true,
+            material_owner: None,
         })
         .collect();
     let models = vec![
@@ -152,6 +153,7 @@ pub fn fixture() -> (ValidatedCatalog, SelectionInputs) {
         },
     ];
     let node = CapabilitySnapshot {
+        material_delivery: None,
         target: target.clone(),
         revision: 1,
         observed_at_ms: 1000,
@@ -181,6 +183,7 @@ pub fn fixture() -> (ValidatedCatalog, SelectionInputs) {
                 credential_revision: 1,
                 credential_profile: c.profile.clone(),
                 available: true,
+                preparation: None,
                 observed_at_ms: 1000,
                 expires_at_ms: 20000,
             })

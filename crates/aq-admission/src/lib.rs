@@ -1,6 +1,7 @@
 //! Pure preparation contracts. Validation never establishes authorization,
 //! retention, secret ownership, a capacity reservation, or an execution grant.
 mod placement;
+pub mod transport;
 use aq_session_protocol::Validate;
 pub use aq_session_protocol::{
     ArtifactRef, Digest, LaunchBinding, ProfiledOffer, SessionIdentity, Text,

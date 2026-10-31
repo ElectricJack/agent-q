@@ -31,6 +31,7 @@ fn credential() -> AuthorizedCredential {
         revision: 1,
         enabled: true,
         provisionable: false,
+        material_owner: None,
     }
 }
 fn registry(path: Option<std::path::PathBuf>) -> IntelligenceConfig {
