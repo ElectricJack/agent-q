@@ -364,6 +364,24 @@ async fn actual_profiled_source_adapter_accepts_scoped_late_retention_and_refuse
             (status, serde_json::from_slice::<Value>(&bytes).unwrap())
         }
     };
+    assert_eq!(call(body.clone()).await.0, StatusCode::FORBIDDEN);
+    f.profiled.status = Status::Granted;
+    f.profiled.execution_deadline_ms = Some(NOW + 60000);
+    f.profiled.grant = Some(ProfiledGrant {
+        binding: f.profiled.offer.binding.clone(),
+        grant_id: Uuid::new_v4(),
+        expires_at_ms: NOW,
+    });
+
+    sqlx::query(
+        "UPDATE execution_attempts SET state=$2,execution_deadline_ms=$3 WHERE attempt_id=$1",
+    )
+    .bind(attempt)
+    .bind(json!(f.profiled))
+    .bind((NOW + 60000) as i64)
+    .execute(&f.db.pool().await)
+    .await
+    .unwrap();
     let (status, first) = call(body.clone()).await;
     assert_eq!(status, StatusCode::OK, "{first}");
     let mut foreign = body.clone();

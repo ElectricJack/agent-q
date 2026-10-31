@@ -221,6 +221,12 @@ fn check_manifest(
     m: &TransferManifest,
 ) -> Result<()> {
     m.validate().map_err(|_| bad("invalid transfer manifest"))?;
+    if a.kind == crate::execution::authority::Kind::ProfiledV1 && a.grant_id.is_none() {
+        return Err(AppError::Forbidden(
+            "checkpoint transfer requires an issued execution grant".into(),
+        ));
+    }
+
     if m.role != aq_worker_protocol::SourceRole::Checkpoint
         || &m.source != binding(a)?
         || m.resolved_spec_digest != a.execution_spec_digest
