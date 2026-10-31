@@ -1039,6 +1039,7 @@ async fn project_policy_decisions_have_no_human_actor_and_recheck_installed_poli
             .is_err()
     );
     let policy = ProfiledConfig {
+        definition_bodies: vec![],
         context_qualifications: vec![],
         revision: 1,
         qualified_runtimes: vec![],
@@ -1234,6 +1235,7 @@ async fn policy_install_is_atomic_retains_tombstones_and_refuses_configuration_r
         },
     };
     let configured = ProfiledConfig {
+        definition_bodies: vec![],
         context_qualifications: vec![],
         revision: 1,
         qualified_runtimes: vec![],
@@ -1267,6 +1269,7 @@ async fn policy_install_is_atomic_retains_tombstones_and_refuses_configuration_r
         .unwrap();
     assert_eq!(count, 1);
     let newer = ProfiledConfig {
+        definition_bodies: vec![],
         context_qualifications: vec![],
         revision: 2,
         qualified_runtimes: vec![],
@@ -1326,6 +1329,7 @@ async fn empty_policy_configuration_still_retains_global_revision_owner() {
     let mut env = setup(false).await;
     let mut config = (*env.state.config).clone();
     config.profiled_execution = Some(Arc::new(ProfiledConfig {
+        definition_bodies: vec![],
         context_qualifications: vec![],
         revision: 10,
         qualified_runtimes: vec![],
@@ -1338,6 +1342,7 @@ async fn empty_policy_configuration_still_retains_global_revision_owner() {
     );
     let mut config = (*env.state.config).clone();
     config.profiled_execution = Some(Arc::new(ProfiledConfig {
+        definition_bodies: vec![],
         context_qualifications: vec![],
         revision: 9,
         qualified_runtimes: vec![],
@@ -1355,6 +1360,7 @@ async fn committed_binding_installs_pending_policy_and_historical_ack_survives_r
     };
     let mut env = setup(false).await;
     let configured = ProfiledConfig {
+        definition_bodies: vec![],
         context_qualifications: vec![],
         revision: 1,
         qualified_runtimes: vec![],
@@ -1393,6 +1399,7 @@ async fn committed_binding_installs_pending_policy_and_historical_ack_survives_r
     let mut newer = env.state.clone();
     let mut cfg = (*newer.config).clone();
     cfg.profiled_execution = Some(Arc::new(ProfiledConfig {
+        definition_bodies: vec![],
         context_qualifications: vec![],
         revision: 2,
         qualified_runtimes: vec![],
