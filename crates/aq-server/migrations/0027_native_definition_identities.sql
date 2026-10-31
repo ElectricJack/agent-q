@@ -1,3 +1,7 @@
+-- Compiler-owned literal startup constituent/final-payload retention.
+ALTER TABLE admission_artifacts DROP CONSTRAINT admission_artifacts_owner_kind_check;
+ALTER TABLE admission_artifacts ADD CONSTRAINT admission_artifacts_owner_kind_check
+ CHECK(owner_kind IN ('catalog','graph_snapshot','composition','selection','outcome','source_retention','startup'));
 -- Public definition identity/version names are immutable across configuration
 -- revisions and project retention operations. Existing rows remain immutable.
 CREATE INDEX admission_definition_identity ON admission_artifacts
