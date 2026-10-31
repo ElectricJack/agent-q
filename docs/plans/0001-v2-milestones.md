@@ -172,7 +172,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [REL-01](#rel-01): Version the composite product manifest and component inventory | agent-q | [INT-01](#int-01), [GRAPH-01](#graph-01), [GIT-01](#git-01), [PB-01](#pb-01) | planned |
 | [REL-02](#rel-02): Implement multi-component update and recovery orchestration | agent-q | [REL-01](#rel-01), [GATE-05](#gate-05) | planned |
 | [REL-03](#rel-03): Package and verify the dashboard in the server release | agent-q | [REL-01](#rel-01), [UI-02](#ui-02), [UI-03](#ui-03), [UI-04](#ui-04) | planned |
-| [PERF-01](#perf-01): Run the complete product capacity and recovery profile | agent-q | [GATE-05](#gate-05), [PB-02](#pb-02), [REL-03](#rel-03), [INT-02](#int-02), [INT-03](#int-03) | planned |
+| [PERF-01](#perf-01): Run the complete product capacity and recovery profile | agent-q | [GATE-05](#gate-05), [PB-02](#pb-02), [REL-03](#rel-03), [INT-02](#int-02), [INT-03](#int-03), [PB-04](#pb-04) | planned |
 | [OPS-01](#ops-01): Qualify the deployment target and component recovery profile | agent-q | [BASE-01](#base-01), [REL-02](#rel-02), [REL-03](#rel-03), [GIT-01](#git-01), [GRAPH-01](#graph-01), [INT-02](#int-02), [INT-03](#int-03) | planned |
 | [AQ-21](#aq-21): Implement authorized terminal relay and controller leasing | agent-q | [CON-02](#con-02), [AQ-03](#aq-03), [AQ-06](#aq-06) | planned |
 | [WRK-11](#wrk-11): Qualify the Claude Code harness adapter | aq-worker | [CON-02](#con-02), [WRK-05](#wrk-05), [WRK-06](#wrk-06), [WRK-10](#wrk-10) | planned |
@@ -184,6 +184,8 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [UI-04](#ui-04): Expose session health, accounting, waits and notification delivery | aq-dashboard | [UI-01](#ui-01), [CON-03](#con-03) | planned |
 | [INT-03](#int-03): Qualify session operations, external delivery and cross-node hibernation | agent-q | [GATE-05](#gate-05), [INT-02](#int-02), [AQ-22](#aq-22), [AQ-23](#aq-23), [AQ-24](#aq-24), [AQ-25](#aq-25), [AQ-26](#aq-26), [AQ-27](#aq-27), [WRK-15](#wrk-15), [WRK-16](#wrk-16), [UI-04](#ui-04) | planned |
 | [GATE-06](#gate-06): Accept a usable, measured and upgradeable AQ product candidate | agent-q | [GATE-05](#gate-05), [REL-02](#rel-02), [REL-03](#rel-03), [PERF-01](#perf-01), [OPS-01](#ops-01), [INT-02](#int-02), [INT-03](#int-03) | planned |
+| [PB-03](#pb-03): Remove redundant immutable-artifact work from playbook storage commits | aq-playbooks | [PB-02](#pb-02) | planned |
+| [PB-04](#pb-04): Bound playbook transition persistence costs as history grows | aq-playbooks | [PB-03](#pb-03) | planned |
 
 ## Task contracts
 
@@ -1360,7 +1362,7 @@ Requirement links: E2, E6, U7, U8, U9, U10, U11, U12, U13, U14.
 
 Owner: `agent-q`. Milestone: M6. Kind: qualification. Status: planned.
 
-Hard prerequisites: [GATE-05](#gate-05), [PB-02](#pb-02), [REL-03](#rel-03), [INT-02](#int-02), [INT-03](#int-03).
+Hard prerequisites: [GATE-05](#gate-05), [PB-02](#pb-02), [REL-03](#rel-03), [INT-02](#int-02), [INT-03](#int-03), [PB-04](#pb-04).
 
 Exercise 500 simulated agents across 50 logical workers for the declared duration, graph fixture, sustained/burst rates and network conditions, with real product adapters and measured background/UI traffic.
 
@@ -1596,6 +1598,45 @@ Acceptance:
 - Require qualified CLI peek/attach/nudge, transcript and honest usage/cost accounting, stall ladder, actual external human delivery and dependency-driven hibernation/cross-node wake. Terminal support or a designed outbox alone cannot waive INT-03.
 
 Requirement links: E1, E2, E3, E4, E5, E6, E7, E8, U7, U8, P1, P3, P5, P6, P7, H1, H2, H3, R1, R2, R3, R4, R5, R6, U9, U10, U11, S1, S2, S3, S4, S5, N1, N2, N3, N4, C1, C2, C3, C4, C5, C6, U12, U13, U14.
+
+### PB-03
+
+**Remove redundant immutable-artifact work from playbook storage commits**
+
+Owner: `aq-playbooks`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [PB-02](#pb-02).
+
+Instrument PostgreSQL round trips, artifact verification, snapshot and index work; avoid repeated immutable-artifact work only with valid ownership/revision/address evidence. Retain PB-02 workload definitions and budgets.
+
+Acceptance:
+
+- Preserve immutable-address conflicts, integrity validation, artifact garbage-collection races, namespace references, ownership/CAS, rollback and protected key rotation/cold restart.
+- Repeat the declared five-artifact and reduced PB-02 profiles with durable PostgreSQL settings; retain raw timings and failures rather than claiming broader scale from an empty namespace.
+
+Requirement links: E8, D7.
+
+Outside this task: New external caches/services, weaker integrity/retention checks, widening limits to pass benchmarks.
+
+### PB-04
+
+**Bound playbook transition persistence costs as history grows**
+
+Owner: `aq-playbooks`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [PB-03](#pb-03).
+
+Use measured allocation/serialization/SQL costs to design and implement versioned incremental persistence or another bounded alternative to whole-namespace transition work. Preserve one authoritative storage owner and atomic domain boundaries.
+
+Acceptance:
+
+- Prove crash/rollback/restart equivalence to the reference snapshot model for events, receipts, waits, children, effects, indexes and quotas, including ownership/incarnation fences and replay.
+- Provide migration and protection/rotation behavior; retain fair ready/effect discovery and refuse overload without dropping unresolved work or silently resetting bounded retries.
+- Repeat all PB-02 history, child, concurrent admission and backlog profiles with explicit synchronous costs and memory; missed budgets remain release blockers.
+
+Requirement links: E8, D7.
+
+Outside this task: A second editable workflow-state store, arbitrary eviction of unresolved work, a 500-agent claim from component microbenchmarks.
 
 ## Validation and updates
 

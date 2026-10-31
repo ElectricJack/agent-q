@@ -2055,7 +2055,8 @@
         "PB-02",
         "REL-03",
         "INT-02",
-        "INT-03"
+        "INT-03",
+        "PB-04"
       ],
       "requirements": [
         "E8",
@@ -2543,6 +2544,55 @@
         "Require qualified CLI peek/attach/nudge, transcript and honest usage/cost accounting, stall ladder, actual external human delivery and dependency-driven hibernation/cross-node wake. Terminal support or a designed outbox alone cannot waive INT-03."
       ],
       "out_of_scope": [],
+      "evidence": []
+    },
+    {
+      "id": "PB-03",
+      "title": "Remove redundant immutable-artifact work from playbook storage commits",
+      "repo": "aq-playbooks",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "PB-02"
+      ],
+      "requirements": [
+        "E8",
+        "D7"
+      ],
+      "scope": "Instrument PostgreSQL round trips, artifact verification, snapshot and index work; avoid repeated immutable-artifact work only with valid ownership/revision/address evidence. Retain PB-02 workload definitions and budgets.",
+      "acceptance": [
+        "Preserve immutable-address conflicts, integrity validation, artifact garbage-collection races, namespace references, ownership/CAS, rollback and protected key rotation/cold restart.",
+        "Repeat the declared five-artifact and reduced PB-02 profiles with durable PostgreSQL settings; retain raw timings and failures rather than claiming broader scale from an empty namespace."
+      ],
+      "out_of_scope": [
+        "New external caches/services, weaker integrity/retention checks, widening limits to pass benchmarks"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "PB-04",
+      "title": "Bound playbook transition persistence costs as history grows",
+      "repo": "aq-playbooks",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "PB-03"
+      ],
+      "requirements": [
+        "E8",
+        "D7"
+      ],
+      "scope": "Use measured allocation/serialization/SQL costs to design and implement versioned incremental persistence or another bounded alternative to whole-namespace transition work. Preserve one authoritative storage owner and atomic domain boundaries.",
+      "acceptance": [
+        "Prove crash/rollback/restart equivalence to the reference snapshot model for events, receipts, waits, children, effects, indexes and quotas, including ownership/incarnation fences and replay.",
+        "Provide migration and protection/rotation behavior; retain fair ready/effect discovery and refuse overload without dropping unresolved work or silently resetting bounded retries.",
+        "Repeat all PB-02 history, child, concurrent admission and backlog profiles with explicit synchronous costs and memory; missed budgets remain release blockers."
+      ],
+      "out_of_scope": [
+        "A second editable workflow-state store, arbitrary eviction of unresolved work, a 500-agent claim from component microbenchmarks"
+      ],
       "evidence": []
     }
   ],
