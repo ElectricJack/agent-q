@@ -150,6 +150,18 @@ pub async fn retain_required(
             .ok_or_else(unavailable)?;
         bodies.push(body);
     }
+    let schema: String =
+        sqlx::query_scalar("SELECT value FROM meta WHERE key='state_format_version'")
+            .fetch_one(&state.store.pool)
+            .await
+            .map_err(|_| AppError::Internal)?;
+    if schema
+        .parse::<u32>()
+        .ok()
+        .is_none_or(|version| version < 27)
+    {
+        return Err(unavailable());
+    }
     let mut receipts = Vec::new();
     for definition in bodies {
         // Retention expiry belongs to the immutable operation identity: retries
