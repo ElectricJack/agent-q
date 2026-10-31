@@ -209,6 +209,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         19,
         include_str!("../migrations/0019_native_registration.sql"),
     ),
+    (
+        20,
+        include_str!("../migrations/0020_inline_artifact_owner.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
