@@ -39,9 +39,11 @@ Continuing work:
 - Result recording, independent eligibility evaluation and actual source/effect
   settlement before claim release or expected-version graph completion.
 - Bounded terminal tail qualification, followed by renderer/full baseline and
-  snapshot/live barriers. A sole-observer stall test had one diagnostic-poor
-  timeout among later passing reruns; retain that failure and qualify the final
-  diagnostic revision before making a complete adapter claim.
+  snapshot/live barriers. Negative candidate14354e7 confirmed that a sole SIGSTOPped
+  tmux control observer can block the harness write despite pause-after. Input was
+  Applied and the guardian remained Running. A guardian-owned reader lease with
+  bounded drain heartbeats is now the correction design; no tail acceptance claim
+  is made until independent cutoff/progress and regression tests pass.
 - Keyed playbook admission and actual AQ adapters. Upstream adds atomic run/receipt
   creation and an old-writer fence; central durable bridge adoption is separate.
   PB04's25ms latency target remains unmet and is not relaxed.

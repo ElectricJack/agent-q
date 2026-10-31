@@ -857,7 +857,9 @@
         "../implementation/AQ-08-inline-artifacts-qualification.json",
         "../implementation/AQ-08-artifact-phases-qualification.md",
         "../implementation/AQ-08-artifact-phases-qualification.json",
-        "../implementation/AQ-08-native-completion-plan.md"
+        "../implementation/AQ-08-native-completion-plan.md",
+        "../implementation/evidence/aq08-context-5510d3d/qualification.json",
+        "../implementation/evidence/aq08-startup-c3f49fd/qualification.json"
       ]
     },
     {
@@ -1070,7 +1072,9 @@
       ],
       "out_of_scope": [],
       "evidence": [
-        "../implementation/AQ-10-result-settlement-plan.md"
+        "../implementation/AQ-10-result-settlement-plan.md",
+        "../implementation/AQ-10-stopped-owner-qualification.md",
+        "../implementation/AQ-10-outcome-contract-qualification.md"
       ]
     },
     {
@@ -1425,7 +1429,8 @@
       ],
       "out_of_scope": [],
       "evidence": [
-        "../implementation/AQ-12-through-17-plan.md"
+        "../implementation/AQ-12-through-17-plan.md",
+        "../implementation/AQ-12.foundation.md"
       ]
     },
     {
@@ -1434,7 +1439,7 @@
       "repo": "agent-q",
       "milestone": "M5",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "AQ-12",
         "AQ-08",
@@ -1466,7 +1471,8 @@
       ],
       "out_of_scope": [],
       "evidence": [
-        "../implementation/AQ-12-through-17-plan.md"
+        "../implementation/AQ-12-through-17-plan.md",
+        "../implementation/AQ-13-durable-bridge-design.md"
       ]
     },
     {
@@ -2394,7 +2400,8 @@
         "../../../aq-worker/docs/implementation/WRK-14-stage1.md",
         "../../../aq-worker/docs/implementation/WRK-14-integration.md",
         "../../../aq-worker/docs/implementation/WRK-14-integration.json",
-        "../../../aq-worker/docs/implementation/WRK-14-output-plan.md"
+        "../../../aq-worker/docs/implementation/WRK-14-output-plan.md",
+        "../../../aq-worker/docs/implementation/WRK-14-reader-lease-plan.md"
       ]
     },
     {
@@ -2711,6 +2718,10 @@
     {
       "source": "../architecture/0004-session-operations-waits-and-notifications.md",
       "summary": "Required session peek/attach/nudge, transcript and usage accounting, bounded stall recovery, Discord notification delivery, escalation/digest policy and verified agent suspension/hibernation with cross-node wake. M5 mechanisms and M6 product qualification are mandatory; earlier completed evidence remains unchanged."
+    },
+    {
+      "source": "2026-10-31-execution-sessions-policy-progress.md",
+      "summary": "Current three-area design/implementation reconciliation, state21 integration717tests, actual stopped owner and pinned outcome/startup boundaries, playbook durable admission, and confirmed terminal observer backpressure with independent reader-lease correction. Product acceptance gates remain open."
     }
   ],
   "implementation_reference_maps": [

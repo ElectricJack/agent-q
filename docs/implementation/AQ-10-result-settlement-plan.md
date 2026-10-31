@@ -1,6 +1,7 @@
 # AQ-10 native stop, result disposition and graph settlement
 
-Status: Stage A implemented as a state21 candidate, under qualification, 2026-10-31.
+Status: Stage A state21 qualified and integrated, 2026-10-31.
+See [stopped-owner evidence](AQ-10-stopped-owner-qualification.md).
 Stages B/C remain planned and do not follow automatically from a stopped receipt.
 Root owns this lane; AQ-08 owns native assignment/preparation/grants, and aq-worker
 owns actual journal/host/source producers. The shared
