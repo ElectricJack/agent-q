@@ -94,7 +94,7 @@ is separate from the128 MiB normalized-event quota and is not a physical-disk
 claim. Receipt insertion failure rolls back the entire state transition.
 
 Migration016 and the bootstrap/status router are staged in this checkpoint.
-Tests explicitly install the migration and construct its router. Ordered
-registration, production listener mounting, mandatory source/ingest activation
-gates and the worker's durable filesystem handshake remain required before
-runtime use. This checkpoint does not silently migrate old unowned sources.
+Tests explicitly install the migration and construct its router. Source registration and batch ingestion now require an activated owner;
+new sources additionally match its current registered boot. Ordered registration,
+production listener mounting and the worker's durable filesystem handshake remain
+required before runtime use. This checkpoint does not silently migrate old unowned sources.

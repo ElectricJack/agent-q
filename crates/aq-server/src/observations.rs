@@ -166,6 +166,7 @@ pub async fn register_source(state: &AppState, source: &OwnerSource) -> Result<(
     .await?;
     let old:Option<String>=sqlx::query_scalar("SELECT authority_digest FROM observation_sources WHERE node_id=$1 AND source_id=$2 AND generation=$3").bind(node).bind(source.source_id).bind(integer(source.generation)?).fetch_optional(&mut *tx).await?;
     let digest = source.digest()?;
+    transport::require_active_locked(&mut tx, node, None).await?;
     if let Some(old) = old {
         if old != digest.as_str() {
             return Err(Error::Conflict);
@@ -173,6 +174,10 @@ pub async fn register_source(state: &AppState, source: &OwnerSource) -> Result<(
         tx.commit().await?;
         return Ok(());
     }
+    let SessionIdentity::Remote { boot_id, .. } = &source.binding.session else {
+        return Err(Error::Refused);
+    };
+    transport::require_active_locked(&mut tx, node, Some(*boot_id)).await?;
     authority::load_locked(
         state,
         &mut tx,
@@ -228,6 +233,7 @@ pub async fn ingest(
         verify_binding(&view, binding)?;
     }
     let row=sqlx::query("SELECT through_sequence,retained_bytes,event_count FROM observation_nodes WHERE node_id=$1 FOR UPDATE").bind(authenticated_node).fetch_optional(&mut *tx).await?.ok_or(Error::Refused)?;
+    transport::require_active_locked(&mut tx, authenticated_node, None).await?;
     let old: Option<Value> = sqlx::query_scalar(
         "SELECT receipt FROM observation_packets WHERE node_id=$1 AND message_id=$2",
     )

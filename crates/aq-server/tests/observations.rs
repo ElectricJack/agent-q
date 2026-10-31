@@ -21,8 +21,39 @@ use uuid::Uuid;
 fn text(s: &str) -> Text {
     Text::new(s).unwrap()
 }
-async fn setup() -> (Fixture, OwnerSource) {
+async fn seeded(transport_active: Option<bool>) -> (Fixture, OwnerSource) {
     let mut f = fixture().await;
+    sqlx::raw_sql(include_str!("../migrations/0016_observation_transport.sql"))
+        .execute(&f.db.pool().await)
+        .await
+        .unwrap();
+    if let Some(active) = transport_active {
+        let request = aq_observation_admission::Request {
+            version: 1,
+            operation_id: Uuid::new_v4(),
+            node_id: f.node.node_id,
+            operation: aq_observation_admission::Operation::Prepare {
+                boot_id: f.node.boot_id,
+                store_id: Uuid::new_v4(),
+            },
+        };
+        let prepared = observations::transport::mutate(&f.state, f.node.node_id, &request)
+            .await
+            .unwrap();
+        if active {
+            let activation = aq_observation_admission::Request {
+                version: 1,
+                operation_id: Uuid::new_v4(),
+                node_id: f.node.node_id,
+                operation: aq_observation_admission::Operation::Activate {
+                    marker: prepared.current_owner.marker,
+                },
+            };
+            observations::transport::mutate(&f.state, f.node.node_id, &activation)
+                .await
+                .unwrap();
+        }
+    }
     f.profiled.status = Status::Granted;
     f.profiled.execution_deadline_ms = Some(NOW + 60_000);
     f.profiled.grant = Some(ProfiledGrant {
@@ -60,6 +91,10 @@ async fn setup() -> (Fixture, OwnerSource) {
             }],
         },
     };
+    (f, source)
+}
+async fn setup() -> (Fixture, OwnerSource) {
+    let (f, source) = seeded(Some(true)).await;
     observations::register_source(&f.state, &source)
         .await
         .unwrap();
@@ -745,4 +780,69 @@ async fn inspection_uses_exact_acl_and_stable_bounded_snapshot_pages() {
         StatusCode::FORBIDDEN
     );
     drop(f);
+}
+
+#[tokio::test]
+async fn source_enrollment_and_batch_ingress_require_activated_store() {
+    for initial in [None, Some(false)] {
+        let (f, source) = seeded(initial).await;
+        assert!(
+            observations::register_source(&f.state, &source)
+                .await
+                .is_err()
+        );
+        assert!(
+            observations::ingest(
+                &f.state,
+                f.node.node_id,
+                &packet(&f, vec![event(&source, 1, 10)])
+            )
+            .await
+            .is_err()
+        );
+        if initial.is_none() {
+            let exists: bool = sqlx::query_scalar(
+                "SELECT EXISTS(SELECT 1 FROM observation_nodes WHERE node_id=$1)",
+            )
+            .bind(f.node.node_id)
+            .fetch_one(&f.db.pool().await)
+            .await
+            .unwrap();
+            assert!(
+                !exists,
+                "refused registration must roll back ledger creation"
+            );
+        } else {
+            assert_eq!(counts(&f).await, (0, 0));
+        }
+        if initial.is_some() {
+            let owner = observations::transport::status(&f.state, f.node.node_id)
+                .await
+                .unwrap()
+                .owner
+                .unwrap();
+            let activation = aq_observation_admission::Request {
+                version: 1,
+                operation_id: Uuid::new_v4(),
+                node_id: f.node.node_id,
+                operation: aq_observation_admission::Operation::Activate {
+                    marker: owner.marker,
+                },
+            };
+            observations::transport::mutate(&f.state, f.node.node_id, &activation)
+                .await
+                .unwrap();
+            observations::register_source(&f.state, &source)
+                .await
+                .unwrap();
+            observations::ingest(
+                &f.state,
+                f.node.node_id,
+                &packet(&f, vec![event(&source, 1, 10)]),
+            )
+            .await
+            .unwrap();
+            assert_eq!(counts(&f).await, (1, 1));
+        }
+    }
 }

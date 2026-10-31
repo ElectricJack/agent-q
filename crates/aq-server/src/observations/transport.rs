@@ -138,3 +138,24 @@ pub async fn status(state: &AppState, authenticated_node: Uuid) -> Result<Status
     tx.commit().await?;
     Ok(status)
 }
+
+/// Source/ingress barrier, called with the common node and ledger locks held.
+/// Only new source enrollment requires the exact currently admitted boot. Late
+/// facts from retained sources stay observation-only across a boot transition.
+pub(super) async fn require_active_locked(
+    tx: &mut Transaction<'_, Postgres>,
+    node: Uuid,
+    new_source_boot: Option<Uuid>,
+) -> Result<()> {
+    let owner = load(tx, node).await?.ok_or(Error::Refused)?;
+    if owner.phase != contract::Phase::Active {
+        return Err(Error::Refused);
+    }
+    if let Some(source_boot) = new_source_boot {
+        let registered = boot(tx, node).await?;
+        if owner.current_boot_id != source_boot || registered != source_boot {
+            return Err(Error::Refused);
+        }
+    }
+    Ok(())
+}
