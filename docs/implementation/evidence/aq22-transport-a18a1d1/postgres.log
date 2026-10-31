@@ -1,0 +1,29 @@
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq22-transport-clean/vendor/aq-session-protocol-0.1.0)
+   Compiling aq-worker-protocol v0.2.0 (/tmp/aq22-transport-clean/vendor/aq-worker-protocol-0.2.0)
+   Compiling aq-agent-api v0.1.0 (/tmp/aq22-transport-clean/crates/aq-agent-api)
+   Compiling aq-release v0.1.0 (/tmp/aq22-transport-clean/crates/aq-release)
+   Compiling aq-protocol v0.1.0 (/tmp/aq22-transport-clean/vendor/aq-protocol-0.1.0)
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/aq22-transport-clean/vendor/aq-lifecycle-protocol-0.1.0)
+   Compiling aq-session-api v0.1.0 (/tmp/aq22-transport-clean/crates/aq-session-api)
+   Compiling aq-profiles v0.1.0 (/tmp/aq22-transport-clean/crates/aq-profiles)
+   Compiling aq-lifecycle-api v0.1.0 (/tmp/aq22-transport-clean/crates/aq-lifecycle-api)
+   Compiling aq-admission v0.1.2 (/tmp/aq22-transport-clean/crates/aq-admission)
+   Compiling aq-observation-admission v0.1.0 (/tmp/aq22-transport-clean/crates/aq-observation-admission)
+   Compiling aq-accounting v0.1.0 (/tmp/aq22-transport-clean/crates/aq-accounting)
+   Compiling aq-selection v0.1.1 (/tmp/aq22-transport-clean/crates/aq-selection)
+   Compiling aq-notifications v0.1.0 (/tmp/aq22-transport-clean/crates/aq-notifications)
+   Compiling aq-observation-api v0.1.0 (/tmp/aq22-transport-clean/crates/aq-observation-api)
+   Compiling aq-server v0.1.0 (/tmp/aq22-transport-clean/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.64s
+     Running tests/observation_transport.rs (/tmp/aq22-observations/target/debug/deps/observation_transport-67772a4640f1f76f)
+
+running 6 tests
+test receipt_failure_rolls_back_owner_and_monotonic_guards_refuse_resurrection ... ok
+test http_transport_admission_uses_current_node_credentials_and_bounded_private_documents ... ok
+test lost_prepare_and_activation_replies_never_reseed_even_at_zero_cursor ... ok
+test boot_transition_preserves_unacknowledged_distance_and_old_receipt_cannot_restore_boot ... ok
+test concurrent_prepares_choose_one_owner_and_same_id_changed_bytes_conflict ... ok
+test foreign_identity_revocation_and_prior_history_refuse_without_allocating ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.20s
+

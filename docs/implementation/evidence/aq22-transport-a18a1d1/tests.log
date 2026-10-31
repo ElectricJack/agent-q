@@ -1,0 +1,65 @@
+     Locking 44 packages to latest Rust 1.96.1 compatible versions
+      Adding sha2 v0.10.9 (available: v0.11.1)
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling version_check v0.9.5
+   Compiling serde_core v1.0.229
+   Compiling typenum v1.20.1
+   Compiling libc v0.2.191
+   Compiling getrandom v0.4.3
+   Compiling zmij v1.0.23
+   Compiling cfg-if v1.0.5
+   Compiling serde_json v1.0.154
+   Compiling serde v1.0.229
+   Compiling ref-cast v1.0.27
+   Compiling memchr v2.8.3
+   Compiling itoa v1.0.18
+   Compiling thiserror v2.0.21
+   Compiling cpufeatures v0.2.17
+   Compiling dyn-clone v1.0.20
+   Compiling generic-array v0.14.7
+   Compiling syn v3.0.9
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling serde_derive_internals v0.30.0
+   Compiling uuid v1.29.0
+   Compiling ref-cast-impl v1.0.27
+   Compiling serde_derive v1.0.229
+   Compiling thiserror-impl v2.0.21
+   Compiling schemars_derive v1.2.3
+   Compiling schemars v1.2.3
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq22-transport-extracted/aq-session-protocol-0.1.0)
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/aq22-transport-extracted/aq-lifecycle-protocol-0.1.0)
+   Compiling aq-observation-admission v0.1.0 (/tmp/aq22-transport-extracted/aq-observation-admission-0.1.0)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 6.64s
+     Running unittests src/lib.rs (/tmp/aq22-transport-extracted-target/debug/deps/aq_observation_admission-ca19041cbb567869)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ownership.rs (/tmp/aq22-transport-extracted-target/debug/deps/ownership-20382e4323f445e5)
+
+running 10 tests
+test hashes_match_public_canonical_json_and_invalid_receipts_cannot_be_digest_proofs ... ok
+test late_prepare_reply_on_replaced_node_boot_cannot_create ... ok
+test lost_prepare_reply_retains_one_owner_and_changes_conflict ... ok
+test activated_zero_cursor_never_becomes_permission_to_create ... ok
+test scope_markers_history_and_boot_quota_refuse ... ok
+test strict_bounded_decoders_and_status_cannot_replace_create_receipt ... ok
+test pending_old_packets_allow_boot_transition_without_acknowledging_them ... ok
+test equal_revision_requires_identical_owner_and_boot_revision_is_exact ... ok
+test old_boot_receipt_cannot_roll_back_current_owner ... ok
+test published_schemas_examples_and_python_digest_vectors_match ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aq_observation_admission
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

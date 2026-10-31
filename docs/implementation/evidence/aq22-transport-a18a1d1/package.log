@@ -1,0 +1,5 @@
+warning: manifest has no license, license-file, documentation, homepage or repository
+  |
+  = note: see https://doc.rust-lang.org/cargo/reference/manifest.html#package-metadata for more info
+   Packaging aq-observation-admission v0.1.0 (/tmp/aq22-transport-clean/crates/aq-observation-admission)
+    Packaged 10 files, 57.5KiB (10.0KiB compressed)

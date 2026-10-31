@@ -1,0 +1,45 @@
+{
+  "source_revision": "a18a1d1760d79213271d14881d4ab4bd95c4cb62",
+  "archive": "/tmp/aq22-transport-package-target/package/aq-observation-admission-0.1.0.crate",
+  "archive_sha256": "7de84f372c0a963c8f61d8e075e4744779bb2b125676ed1df90c165dd982fab6",
+  "standalone_root": "/tmp/aq22-transport-extracted",
+  "dependencies": {
+    "/tmp/con03-producer-target/package/aq-lifecycle-protocol-0.1.0.crate": "945b03a99701035eb7cf6679bd9baa9ad2b50a7cb6329b9ca8de2cf8bd58b92b",
+    "/home/jkern/dev/.aq-qualification/session-host-2026-10-31/aq-session-protocol-0.1.0.crate": "479778d8ea76f0605b9a20460e0bd3fda73b699337b1e80783ada0d291a68090"
+  },
+  "qualification": "10 pure tests, strict all-target clippy, format and schema/fixture drift; independent Python digest vectors in fixtures",
+  "limitations": [
+    "SQL/HTTP and filesystem handshake are separate qualification; package grants no source/execution authority."
+  ],
+  "source_sha256": {
+    "Cargo.lock": "abf7d9122103cd902b2bec947ed1797e94a999b905a674a99d3a8f3f2e1d931f",
+    "Cargo.toml": "8bc44367eea113c95b2e3d39a338be11cb97fdd7a6a1e6fb75ace2d11df059b9",
+    "crates/aq-observation-admission/Cargo.toml": "0f9de8fe7cde4d5b08f5de032fb6eb5c4100dc0c2d6ddc614f51b24015faf0dd",
+    "crates/aq-observation-admission/README.md": "30c69b5e91588329ac2a74a9177c3f5e575f2a9e60e078214eeaeec4a9570bae",
+    "crates/aq-observation-admission/artifacts/python-digest-vectors.json": "95f9297b0dd23c350d19b27b1204f8daa4f14b811b4c16089bb1fec05a1a6488",
+    "crates/aq-observation-admission/artifacts/transport.fixture.json": "7cfcca89f1358e5315f7e0115cc3e61e8409e24048b791f1ace38c62c1574fd8",
+    "crates/aq-observation-admission/artifacts/transport.schema.json": "0ee4af3d0b9b3cd957e5592bf0aa81d9e6776f5fa4b7abd96f424fd0ccde9ec4",
+    "crates/aq-observation-admission/examples/export.rs": "c5da36522b82cfa79659ee3041965df0c32d17097b51f55c170a93329ea93cb5",
+    "crates/aq-observation-admission/src/lib.rs": "f85b79a42e32262ba1265b5a525d0949362622b30f48e11621d659bfa7d764d3",
+    "crates/aq-observation-admission/tests/ownership.rs": "7143c4da91432b76f16e056b9a67602d7a901f0038b1f6f755ccd057605cb585",
+    "crates/aq-server/Cargo.toml": "271073f5e723c8b6924fd3dcd76c71cfaa103c2d02aea88330fe045ebd11dd56",
+    "crates/aq-server/migrations/0016_observation_transport.sql": "291cbd932a2011a002bde0fb28bc12d49f09fb2292ef55a2da6e2b5765c42285",
+    "crates/aq-server/src/observations.rs": "ab340433eca69684a5e79c3891700416e6808a4faddae4eff602e52a94b86387",
+    "crates/aq-server/src/observations/api.rs": "ca8d6d7abb1f5df0a6f4a540da8fee91c0f4010473fb1a76c5a65a9eb27a730d",
+    "crates/aq-server/src/observations/inspection.rs": "2d31a0992a9299cb97292a7a1c2619217662fb9b1130c27a97b84b319e7da03e",
+    "crates/aq-server/src/observations/transport.rs": "42968d66ecc5f250af941b7411487dc37294805ebd1605deebf0167467b8cb88",
+    "crates/aq-server/tests/observation_transport.rs": "5671c66fdb81b4f931a9c62b44e657c532018ff083bf088e337b8e281353097e"
+  },
+  "retained_logs_sha256": {
+    "docs/implementation/evidence/aq22-transport-a18a1d1/package.log": "30e8252d3f1c955fd72ceaea7e7a41397e9aec82267976b93834163222ccee36",
+    "docs/implementation/evidence/aq22-transport-a18a1d1/tests.log": "a1f0b8694b98df92b444d96a9f6f51d3ae4c3935ecbb54e34aaa3320457248de",
+    "docs/implementation/evidence/aq22-transport-a18a1d1/clippy.log": "d0b4028b220f742822fcc1615dc5b5f4cdeee155c7a2e2fce630237fcf27d56a",
+    "docs/implementation/evidence/aq22-transport-a18a1d1/format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/implementation/evidence/aq22-transport-a18a1d1/postgres.log": "64e20fbe19e83037c97277eb161c26c220ab8711b55254b896c3e49d1d3cf1ac",
+    "docs/implementation/evidence/aq22-transport-a18a1d1/server-clippy.log": "46266cc778dc9a355a9a413263259fa3bab0581b7a883eaea125dbfb0231cfa6",
+    "docs/implementation/evidence/aq22-transport-a18a1d1/server-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "clean_server_qualification": "6 actual disposable PostgreSQL/API tests; strict all-feature/all-target server Clippy and workspace formatting",
+  "staging": "Migration016 explicitly installed in tests; transport router not yet mounted on production listener; worker filesystem handshake and source/ingest activation gates pending",
+  "consumer_review": "aq-worker v1_evidence reviewed before freeze; same-revision body binding, revision CAS, boot reuse and canonical digest issues fixed before sourcea18a1d1"
+}
