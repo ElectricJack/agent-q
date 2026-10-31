@@ -44,7 +44,6 @@ Read the mapped source and regression cases before implementing an affected task
 | [AQ-22](#aq-22) | agent-q | Implement session observations, transcript inspection and usage accounting |
 | [AQ-24](#aq-24) | agent-q | Implement durable external notification delivery with Discord |
 | [REL-01](#rel-01) | agent-q | Version the composite product manifest and component inventory |
-| [AQ-21](#aq-21) | agent-q | Implement authorized terminal relay and controller leasing |
 | [WRK-14](#wrk-14) | aq-worker | Implement the bounded outbound terminal bridge |
 
 The daemon authority track can start after BASE-01 and CON-01. The worker runtime track follows connector extraction. Graph, Git and playbook qualification are independent early tracks; they are not artificial prerequisites for fake-agent execution. Dashboard work waits for a versioned inspection/action API, but does not wait for production deployment.
@@ -129,7 +128,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [WRK-05](#wrk-05): Provision the AQ agent client and bounded context cache | aq-worker | [WRK-04](#wrk-04), [AQ-06](#aq-06), [CON-02](#con-02), [AQ-18](#aq-18) | in_progress |
 | [WRK-06](#wrk-06): Integrate local aq-git workspaces and storage admission | aq-worker | [WRK-04](#wrk-04), [GIT-01](#git-01) | complete |
 | [AQ-09](#aq-09): Implement authenticated source transfer and central retention | agent-q | [AQ-03](#aq-03), [GIT-01](#git-01) | complete |
-| [WRK-07](#wrk-07): Implement resumable artifact handoff and retention release | aq-worker | [WRK-06](#wrk-06), [AQ-09](#aq-09) | in_progress |
+| [WRK-07](#wrk-07): Implement resumable artifact handoff and retention release | aq-worker | [WRK-06](#wrk-06), [AQ-09](#aq-09) | complete |
 | [WRK-08](#wrk-08): Qualify Codex CLI as the first real tmux harness | aq-worker | [WRK-05](#wrk-05), [WRK-06](#wrk-06), [GATE-03](#gate-03), [CON-02](#con-02), [WRK-10](#wrk-10), [AQ-20](#aq-20) | planned |
 | [AQ-10](#aq-10): Apply evidence-based result disposition and graph completion | agent-q | [AQ-05](#aq-05), [AQ-07](#aq-07), [AQ-09](#aq-09) | planned |
 | [CON-02](#con-02): Publish profile launch, harness capability and terminal contracts | aq-worker | [CON-01](#con-01), [API-01](#api-01) | complete |
@@ -176,7 +175,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [REL-03](#rel-03): Package and verify the dashboard in the server release | agent-q | [REL-01](#rel-01), [UI-02](#ui-02), [UI-03](#ui-03), [UI-04](#ui-04) | planned |
 | [PERF-01](#perf-01): Run the complete product capacity and recovery profile | agent-q | [GATE-05](#gate-05), [PB-02](#pb-02), [REL-03](#rel-03), [INT-02](#int-02), [INT-03](#int-03), [PB-04](#pb-04) | planned |
 | [OPS-01](#ops-01): Qualify the deployment target and component recovery profile | agent-q | [BASE-01](#base-01), [REL-02](#rel-02), [REL-03](#rel-03), [GIT-01](#git-01), [GRAPH-01](#graph-01), [INT-02](#int-02), [INT-03](#int-03) | planned |
-| [AQ-21](#aq-21): Implement authorized terminal relay and controller leasing | agent-q | [CON-02](#con-02), [AQ-03](#aq-03), [AQ-06](#aq-06) | planned |
+| [AQ-21](#aq-21): Implement authorized terminal relay and controller leasing | agent-q | [CON-02](#con-02), [AQ-03](#aq-03), [AQ-06](#aq-06) | in_progress |
 | [WRK-11](#wrk-11): Qualify the Claude Code harness adapter | aq-worker | [CON-02](#con-02), [WRK-05](#wrk-05), [WRK-06](#wrk-06), [WRK-10](#wrk-10) | planned |
 | [WRK-12](#wrk-12): Qualify the Gemini CLI harness adapter | aq-worker | [CON-02](#con-02), [WRK-05](#wrk-05), [WRK-06](#wrk-06), [WRK-10](#wrk-10) | planned |
 | [WRK-13](#wrk-13): Qualify the OpenCode harness adapter | aq-worker | [CON-02](#con-02), [WRK-05](#wrk-05), [WRK-06](#wrk-06), [WRK-10](#wrk-10) | planned |
@@ -705,7 +704,7 @@ Evidence: [m4-foundations.md](../implementation/m4-foundations.md), [m4-qualific
 
 **Implement resumable artifact handoff and retention release**
 
-Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: in_progress.
+Owner: `aq-worker`. Milestone: M4. Kind: implementation. Status: complete.
 
 Hard prerequisites: [WRK-06](#wrk-06), [AQ-09](#aq-09).
 
@@ -717,6 +716,8 @@ Acceptance:
 - Central retention survives deletion of stopped worker storage; full pending-result storage blocks admission without blocking control.
 
 Requirement links: W7, W8, W9, W14, W15, X4, X12, X14.
+
+Evidence: [WRK-07.md](../../../aq-worker/docs/implementation/WRK-07.md), [WRK-07.json](../../../aq-worker/docs/implementation/WRK-07.json).
 
 ### WRK-08
 
@@ -1412,7 +1413,7 @@ Outside this task: Automatic production deployment; Changing live credentials or
 
 **Implement authorized terminal relay and controller leasing**
 
-Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [CON-02](#con-02), [AQ-03](#aq-03), [AQ-06](#aq-06).
 

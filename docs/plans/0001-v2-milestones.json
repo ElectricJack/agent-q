@@ -945,7 +945,7 @@
       "repo": "aq-worker",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "in_progress",
+      "status": "complete",
       "depends_on": [
         "WRK-06",
         "AQ-09"
@@ -966,7 +966,10 @@
         "Central retention survives deletion of stopped worker storage; full pending-result storage blocks admission without blocking control."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../../../aq-worker/docs/implementation/WRK-07.md",
+        "../../../aq-worker/docs/implementation/WRK-07.json"
+      ]
     },
     {
       "id": "WRK-08",
@@ -2145,7 +2148,7 @@
       "repo": "agent-q",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "CON-02",
         "AQ-03",
