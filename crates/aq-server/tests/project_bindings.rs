@@ -750,6 +750,7 @@ async fn selection_fixture() -> SelectionFixture {
                 credential: c,
                 allowed_node_ids: vec![env.node],
                 secret_file: Some(key.clone()),
+                delivery_mode: None,
             }
         })
         .collect();
@@ -765,6 +766,7 @@ async fn selection_fixture() -> SelectionFixture {
         credential: unrelated.clone(),
         allowed_node_ids: vec![],
         secret_file: Some(key.clone()),
+        delivery_mode: None,
     });
     let config = IntelligenceConfig {
         revision: 1,

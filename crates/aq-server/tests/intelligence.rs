@@ -41,6 +41,7 @@ fn registry(path: Option<std::path::PathBuf>) -> IntelligenceConfig {
             credential: credential(),
             allowed_node_ids: vec![Uuid::from_u128(10)],
             secret_file: path,
+            delivery_mode: None,
         }],
         qualified_harnesses: vec![],
     }
@@ -509,4 +510,40 @@ async fn installed_inventory_is_current_boot_bound_does_not_authorize_keys_and_l
         .0,
         StatusCode::UNAUTHORIZED
     );
+}
+
+#[test]
+fn server_material_owner_is_derived_only_for_explicit_safe_configured_delivery() {
+    use aq_server::intelligence::config::MaterialDeliveryMode;
+    let dir = tempfile::tempdir().unwrap();
+    let file = dir.path().join("private-provider-material");
+    let mut configured = registry(Some(file.clone()));
+    configured.credentials[0].delivery_mode = Some(MaterialDeliveryMode::ServerMaterialV1);
+    let missing = configured.load().unwrap();
+    assert!(!missing.credentials[0].provisionable);
+    assert!(missing.credentials[0].material_owner.is_none());
+    std::fs::write(&file, b"synthetic-only-key").unwrap();
+    std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o600)).unwrap();
+    let installed = registry(Some(file.clone())).load().unwrap();
+    assert!(installed.credentials[0].material_owner.is_none());
+    let delivery = configured.load().unwrap();
+    let owner = delivery.credentials[0].material_owner.clone().unwrap();
+    let public = serde_json::to_string(&delivery.credentials).unwrap();
+    assert!(!public.contains("synthetic-only-key"));
+    assert!(!public.contains(file.to_str().unwrap()));
+    assert!(!format!("{configured:?}").contains("synthetic-only-key"));
+    configured.credentials[0].credential.revision += 1;
+    assert_ne!(
+        configured.load().unwrap().credentials[0]
+            .material_owner
+            .as_ref()
+            .unwrap()
+            .digest,
+        owner.digest
+    );
+    configured.credentials[0].credential.material_owner = Some(owner);
+    assert!(configured.load().is_err());
+    configured.credentials[0].credential.material_owner = None;
+    configured.credentials[0].secret_file = None;
+    assert!(configured.load().is_err());
 }
