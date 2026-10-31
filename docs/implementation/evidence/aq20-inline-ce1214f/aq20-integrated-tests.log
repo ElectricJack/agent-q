@@ -1,0 +1,495 @@
+warning: output filename collision at /tmp/aq22-observations/target/debug/examples/export
+  |
+  = note: the example target `export` in package `aq-lifecycle-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-lifecycle-api)` has the same output filename as the example target `export` in package `aq-admission v0.1.3 (/tmp/aq08-artifacts/crates/aq-admission)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /tmp/aq22-observations/target/debug/examples/export.dwp
+  |
+  = note: the example target `export` in package `aq-lifecycle-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-lifecycle-api)` has the same output filename as the example target `export` in package `aq-admission v0.1.3 (/tmp/aq08-artifacts/crates/aq-admission)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /tmp/aq22-observations/target/debug/examples/export
+  |
+  = note: the example target `export` in package `aq-observation-admission v0.1.0 (/tmp/aq08-artifacts/crates/aq-observation-admission)` has the same output filename as the example target `export` in package `aq-lifecycle-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-lifecycle-api)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /tmp/aq22-observations/target/debug/examples/export.dwp
+  |
+  = note: the example target `export` in package `aq-observation-admission v0.1.0 (/tmp/aq08-artifacts/crates/aq-observation-admission)` has the same output filename as the example target `export` in package `aq-lifecycle-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-lifecycle-api)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /tmp/aq22-observations/target/debug/examples/export
+  |
+  = note: the example target `export` in package `aq-observation-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-observation-api)` has the same output filename as the example target `export` in package `aq-observation-admission v0.1.0 (/tmp/aq08-artifacts/crates/aq-observation-admission)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /tmp/aq22-observations/target/debug/examples/export.dwp
+  |
+  = note: the example target `export` in package `aq-observation-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-observation-api)` has the same output filename as the example target `export` in package `aq-observation-admission v0.1.0 (/tmp/aq08-artifacts/crates/aq-observation-admission)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /tmp/aq22-observations/target/debug/examples/export
+  |
+  = note: the example target `export` in package `aq-profiles v0.1.1 (/tmp/aq08-artifacts/crates/aq-profiles)` has the same output filename as the example target `export` in package `aq-observation-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-observation-api)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /tmp/aq22-observations/target/debug/examples/export.dwp
+  |
+  = note: the example target `export` in package `aq-profiles v0.1.1 (/tmp/aq08-artifacts/crates/aq-profiles)` has the same output filename as the example target `export` in package `aq-observation-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-observation-api)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /tmp/aq22-observations/target/debug/examples/publish
+  |
+  = note: the example target `publish` in package `aq-terminal-relay v0.1.0 (/tmp/aq08-artifacts/crates/aq-terminal-relay)` has the same output filename as the example target `publish` in package `aq-session-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-session-api)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /tmp/aq22-observations/target/debug/examples/publish.dwp
+  |
+  = note: the example target `publish` in package `aq-terminal-relay v0.1.0 (/tmp/aq08-artifacts/crates/aq-terminal-relay)` has the same output filename as the example target `publish` in package `aq-session-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-session-api)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+   Compiling aq-profiles v0.1.1 (/tmp/aq08-artifacts/crates/aq-profiles)
+   Compiling aq-observation-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-observation-api)
+   Compiling aq-observation-admission v0.1.0 (/tmp/aq08-artifacts/crates/aq-observation-admission)
+   Compiling aq-admission v0.1.3 (/tmp/aq08-artifacts/crates/aq-admission)
+   Compiling aq-terminal-relay v0.1.0 (/tmp/aq08-artifacts/crates/aq-terminal-relay)
+   Compiling aq-lifecycle-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-lifecycle-api)
+   Compiling aq-accounting v0.1.0 (/tmp/aq08-artifacts/crates/aq-accounting)
+   Compiling aq-notifications v0.1.0 (/tmp/aq08-artifacts/crates/aq-notifications)
+   Compiling aq-updater v0.1.0 (/tmp/aq08-artifacts/crates/aq-updater)
+   Compiling aq-human-http v0.1.0 (/tmp/aq08-artifacts/crates/aq-human-http)
+   Compiling aq-release v0.1.0 (/tmp/aq08-artifacts/crates/aq-release)
+   Compiling aq-terminal-relay-protocol v0.1.0 (/tmp/aq08-artifacts/crates/aq-terminal-relay-protocol)
+   Compiling aq-session-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-session-api)
+   Compiling aq-session-cli v0.1.0 (/tmp/aq08-artifacts/crates/aq-session-cli)
+   Compiling aq-notify v0.1.0 (/tmp/aq08-artifacts/crates/aq-notify)
+   Compiling aq-agent-api v0.1.0 (/tmp/aq08-artifacts/crates/aq-agent-api)
+   Compiling aq-selection v0.1.2 (/tmp/aq08-artifacts/crates/aq-selection)
+   Compiling aq-server v0.1.0 (/tmp/aq08-artifacts/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 13s
+     Running unittests src/lib.rs (/tmp/aq22-observations/target/debug/deps/aq_accounting-dbe515e417fb5d2f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/accounting.rs (/tmp/aq22-observations/target/debug/deps/accounting-e5f85a358b26f66a)
+
+running 20 tests
+test cumulative_baseline_cannot_be_borrowed_from_another_counter ... ok
+test deterministic_pricing_uses_explicit_disjoint_billing_rules_not_all_raw_fields ... ok
+test empty_projection_and_unresolved_events_do_not_look_like_reported_zero ... ok
+test canonical_fact_pricing_requires_its_pinned_card_and_category_semantics ... ok
+test cumulative_usage_requires_a_verified_baseline_and_preserves_it_on_updates ... ok
+test cumulative_reset_mixed_model_and_unknown_baselines_cannot_manufacture_new_spending ... ok
+test exact_call_replay_and_cross_source_precedence_do_not_add_two_bills ... ok
+test explicit_correction_replaces_prior_contribution_and_rejects_stale_target ... ok
+test partial_pricing_exposes_lower_bound_currency_and_unknown_cost ... ok
+test history_import_preserves_original_lineage_and_namespace_separates_unrelated_calls ... ok
+test parser_revision_and_model_attribution_are_not_new_call_identity ... ok
+test pricing_rounds_once_per_contribution_and_refuses_overflow ... ok
+test projection_corrects_in_place_without_resetting_other_attempts_or_unknown_categories ... ok
+test reported_zero_is_distinct_from_unknown_and_overlap_is_not_double_counted ... ok
+test parser_artifact_category_claims_map_to_stable_owner_layout_during_reparse ... ok
+test stored_fact_mutation_and_unknown_policy_are_refused ... ok
+test partial_source_stays_unknown_until_exact_complete_correction ... ok
+test price_reference_is_pinned_and_unverified_reported_cost_does_not_change_tokens ... ok
+test unknown_corrections_and_equal_precedence_conflicts_remain_incomplete ... ok
+test worker_complete_claim_requires_owner_parser_qualification ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (/tmp/aq22-observations/target/debug/deps/aq_admission-717bebe695e5c4a5)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/common.rs (/tmp/aq22-observations/target/debug/deps/common-9359bae8cad93ccc)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contracts.rs (/tmp/aq22-observations/target/debug/deps/contracts-ab5ba27201d544b0)
+
+running 7 tests
+test material_bytes_and_receipts_are_exact_attempt_binding_not_presence_claims ... ok
+test artifact_requires_real_matching_bytes_and_current_retention_metadata ... ok
+test mutations_reject_unknown_duplicate_nil_unbounded_and_wrong_versions ... ok
+test source_requires_explicit_safe_ref_or_matching_immutable_object_and_freshness ... ok
+test shipped_shared_offer_uses_exact_existing_launch_binding_bridge ... ok
+test retained_role_and_byte_coverage_validates_against_resealed_public_offer ... ok
+test published_schema_and_fixtures_drift_test_packaged_artifacts ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/execution_spec.rs (/tmp/aq22-observations/target/debug/deps/execution_spec-1fb030dd89469cd1)
+
+running 3 tests
+test publication_is_independent_and_decode_rejects_caller_secret_unknown_duplicate_fields ... ok
+test typed_worker_artifact_is_digest_bound_without_a_manifest_cycle ... ok
+test spec_observation_context_and_canonical_bytes_must_all_be_retained ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/placement.rs (/tmp/aq22-observations/target/debug/deps/placement-796c5f7c872c9bac)
+
+running 5 tests
+test bounded_project_round_robin_preserves_priority_then_advances_cursor ... ok
+test oversized_head_does_not_hide_later_fit_and_resources_are_reserved_in_proposal ... ok
+test stable_ties_and_snapshot_bounds_are_explicit ... ok
+test stale_boot_capacity_candidate_and_duplicate_subjects_never_become_authority ... ok
+test warmth_is_only_after_eligibility_and_cold_nodes_can_prepare ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/spec_common.rs (/tmp/aq22-observations/target/debug/deps/spec_common-f77bb3ba566dd34b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/started.rs (/tmp/aq22-observations/target/debug/deps/started-1a2ef909387407a9)
+
+running 3 tests
+test receipt_is_exact_historical_ack_and_strict_boundaries_refuse_unsupported_input ... ok
+test public_artifacts_and_independent_python_canonical_vectors_match ... ok
+test started_identity_is_original_owner_bound_not_a_renewal_or_physical_stop ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/started_common.rs (/tmp/aq22-observations/target/debug/deps/started_common-2b3948877dd1c88e)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/task_lineage.rs (/tmp/aq22-observations/target/debug/deps/task_lineage-f99ba401561aca51)
+
+running 2 tests
+test independent_python_raw_uuid_vectors_are_stable ... ok
+test namespace_cannot_be_reset_by_attempt_and_nil_scope_refuses ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/transport.rs (/tmp/aq22-observations/target/debug/deps/transport-8a3750136700735c)
+
+running 4 tests
+test roundtrip_budget_is_charged_and_replay_cannot_restart_ttl ... ok
+test stop_journal_requires_durable_closed_reservation_and_unknown_never_releases ... ok
+test exact_stop_replay_is_immutable_and_journal_order_is_launch_scoped ... ok
+test published_transport_replays_and_mutations_reject_duplicate_unknown_and_scope ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/tmp/aq22-observations/target/debug/deps/aq_agent_api-f81af206e60efbf1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contract.rs (/tmp/aq22-observations/target/debug/deps/contract-5003dda29ac2cb9d)
+
+running 4 tests
+test duplicate_keys_fractions_and_unknown_schema_never_validate_by_accident ... ok
+test canonical_fixture_digests_and_scope_binding_are_preserved ... ok
+test published_wire_vectors_keep_their_original_dispositions ... ok
+test public_artifacts_match_inventory ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/tmp/aq22-observations/target/debug/deps/aq_human_http-36e7b113d1404b20)
+
+running 5 tests
+test tests::private_jwt_files_refuse_symlinks_hardlinks_permissions_fifo_and_node_tokens ... ok
+test tests::unsafe_origins_paths_and_nonloopback_dev_are_refused ... ok
+test tests::responses_requests_and_error_material_are_bounded ... ok
+test tests::mutation_sends_same_origin_and_csrf_headers_and_never_follows_redirect ... ok
+test tests::transport_timeout_attempts_a_mutation_only_once ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.12s
+
+     Running unittests src/lib.rs (/tmp/aq22-observations/target/debug/deps/aq_lifecycle_api-a065dcb2cbbc8bc2)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/conformance.rs (/tmp/aq22-observations/target/debug/deps/conformance-59a1d031208dd207)
+
+running 12 tests
+test capability_and_node_refusals ... ok
+test any_uses_declared_order_and_immutable_outcome ... ok
+test exact_successor_ack_interoperates_with_public_attachment ... ok
+test no_ack_without_current_admitted_attachment ... ok
+test invalid_source_digest_cannot_change_predicate ... ok
+test refuses_self_wait_and_duplicate_predicates ... ok
+test exact_replay_age_and_changed_payload ... ok
+test pending_any_cannot_become_failure ... ok
+test transport_acceptance_does_not_answer_human_question ... ok
+test strict_decoding_and_envelope_bounds ... ok
+test rejects_wrong_source_owner ... ok
+test fixtures_and_schema_drift ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/tmp/aq22-observations/target/debug/deps/aq_notifications-27a78afa89409a3b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/delivery.rs (/tmp/aq22-observations/target/debug/deps/delivery-5a6dd80654b57ee8)
+
+running 5 tests
+test payload_disables_mentions_and_embeds_and_refuses_unbounded_or_foreign_scope ... ok
+test current_route_visibility_and_time_are_required_at_dispatch ... ok
+test lost_dispatch_response_never_automatically_requeues_or_acknowledges_a_human ... ok
+test provider_delays_are_never_shortened_and_expired_budgets_refuse ... ok
+test explicit_duplicate_risk_retry_preserves_identity_and_cumulative_budget ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/discord.rs (/tmp/aq22-observations/target/debug/deps/discord-9e059ca287c57800)
+
+running 3 tests
+test protected_endpoint_is_fixed_origin_path_and_has_no_arbitrary_query_or_redirect ... ok
+test provider_delays_round_up_and_success_can_throttle_next_delivery ... ok
+test acceptance_requires_real_receipt_association_not_status_alone ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/main.rs (/tmp/aq22-observations/target/debug/deps/aq_notify-d05e9106d8d83992)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli.rs (/tmp/aq22-observations/target/debug/deps/cli-756d11fc6d151458)
+
+running 2 tests
+test actual_cli_posts_saved_identity_once_with_csrf_and_preserves_unknown_error ... ok
+test actual_cli_refuses_malformed_or_oversized_saved_requests_without_http ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (/tmp/aq22-observations/target/debug/deps/aq_observation_admission-7fa87202e4454f52)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/ownership.rs (/tmp/aq22-observations/target/debug/deps/ownership-08704e7faffe516c)
+
+running 10 tests
+test hashes_match_public_canonical_json_and_invalid_receipts_cannot_be_digest_proofs ... ok
+test late_prepare_reply_on_replaced_node_boot_cannot_create ... ok
+test activated_zero_cursor_never_becomes_permission_to_create ... ok
+test equal_revision_requires_identical_owner_and_boot_revision_is_exact ... ok
+test lost_prepare_reply_retains_one_owner_and_changes_conflict ... ok
+test scope_markers_history_and_boot_quota_refuse ... ok
+test pending_old_packets_allow_boot_transition_without_acknowledging_them ... ok
+test old_boot_receipt_cannot_roll_back_current_owner ... ok
+test strict_bounded_decoders_and_status_cannot_replace_create_receipt ... ok
+test published_schemas_examples_and_python_digest_vectors_match ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/tmp/aq22-observations/target/debug/deps/aq_observation_api-dc46eda042a2a60c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/views.rs (/tmp/aq22-observations/target/debug/deps/views-f1667e213d1d3505)
+
+running 4 tests
+test raw_usage_claims_do_not_become_complete_projection_or_contribution ... ok
+test unknown_duplicate_fields_versions_and_oversize_are_refused ... ok
+test published_examples_and_schemas_are_stable ... ok
+test exact_scope_and_continuation_are_not_caller_selected ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/tmp/aq22-observations/target/debug/deps/aq_profiles-49ef9941051777e8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/tmp/aq22-observations/target/debug/deps/aq-c862b8dbd468acbb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/cli.rs (/tmp/aq22-observations/target/debug/deps/cli-f0c5855e2d950195)
+
+running 3 tests
+test request_fifo_refuses_without_waiting_for_a_writer ... ok
+test canonical_artifact_export_is_not_an_activation ... ok
+test requested_aq_profile_commands_work_without_db_and_separate_selection_pending ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running tests/compiler.rs (/tmp/aq22-observations/target/debug/deps/compiler-c02f12bed34ef4fa)
+
+running 11 tests
+test cycles_missing_refs_conflicting_versions_and_protected_overrides_refuse ... ok
+test adding_candidates_does_not_duplicate_role_or_module_text ... ok
+test adapters_and_optional_wait_pack_never_claim_working_support ... ok
+test each_permission_ceiling_and_required_tool_support_is_enforced ... ok
+test explicit_narrowing_override_is_explained_and_cannot_broaden ... ok
+test golden_composition_is_deterministic_and_shared_rules_appear_once ... ok
+test required_context_overflow_refuses_optional_context_drops_in_declared_order ... ok
+test optional_dependency_failure_and_budget_omission_remove_dependents_and_grants ... ok
+test required_dependents_transitively_require_optional_dependencies ... ok
+test untrusted_content_never_changes_structured_grants_and_provenance_is_checked ... ok
+test roles_and_harnesses_reuse_module_identity_without_prompt_copies ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/registry.rs (/tmp/aq22-observations/target/debug/deps/registry-15a3590fd55f6cde)
+
+running 8 tests
+test duplicate_artifact_maps_and_mutation_fields_are_not_canonicalized_away ... ok
+test fifo_and_nonregular_catalog_inputs_refuse_without_blocking ... ok
+test artifact_identity_hashes_cannot_be_forged ... ok
+test atomic_revision_activation_keeps_last_good_and_rejects_changed_identity ... ok
+test pre_selection_policy_artifact_roundtrips_identically_and_policy_edits_need_new_identity ... ok
+test catalog_loader_refuses_paths_hooks_symlinks_and_partial_edits ... ok
+test oversized_catalog_and_deep_graphs_refuse_before_activation ... ok
+test retained_attempts_keep_exact_catalog_across_activation_and_rollback ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (/tmp/aq22-observations/target/debug/deps/aq_release-5620e76b12054b06)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/manifest.rs (/tmp/aq22-observations/target/debug/deps/manifest-ac89dcf0f8a61890)
+
+running 17 tests
+test downgrade_refused ... ok
+test canonical_json_golden_bytes ... ok
+test canonical_json_roundtrips_byte_identical ... ok
+test digest_refs_allow_a_registry_port_but_no_tags ... ok
+test first_install_allowed ... ok
+test outside_upgrade_from_refused ... ok
+test parses_valid_manifest ... ok
+test rejects_inverted_protocol_range_and_bad_manifest_version ... ok
+test rejects_state_format_not_readable ... ok
+test protocol_ranges_must_overlap ... ok
+test rejects_tag_reference_without_digest ... ok
+test rejects_unknown_field ... ok
+test rejects_malformed_digests_for_both_images ... ok
+test restore_needed_when_state_format_changes ... ok
+test restore_uses_observed_state_format ... ok
+test same_version_refused ... ok
+test unreadable_state_refused ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/spool.rs (/tmp/aq22-observations/target/debug/deps/spool-3c292a6c57afc446)
+
+running 5 tests
+test readiness_report_roundtrip ... ok
+test request_rejects_unknown_fields ... ok
+test status_json_roundtrip ... ok
+test step_order_is_declared_order ... ok
+test status_tolerates_unknown_fields_and_variants ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/tmp/aq22-observations/target/debug/deps/aq_selection-fa2f9eff947225c7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/selection.rs (/tmp/aq22-observations/target/debug/deps/selection-a5f0d01f12f732f6)
+
+running 23 tests
+test cold_node_selects_only_explicit_owned_preparation_and_preserves_material_provenance ... ok
+test classified_worker_failure_is_bound_to_exact_sealed_choice_and_current_boot ... ok
+test explicit_fallback_and_cooldown_do_not_implicitly_downgrade ... ok
+test arbitrary_node_delivery_claims_cannot_manufacture_keys_owner_identity_or_current_boot ... ok
+test graph_policy_refuses_uncovered_mixed_context_and_wrong_owner_scope_before_selection ... ok
+test fallback_unsupported_is_explicit_and_provider_specific_reasoning_remains_native ... ok
+test independent_matching_source_cannot_clear_another_sources_live_restriction ... ok
+test installed_only_v010_snapshots_and_decisions_roundtrip_byte_semantics_unchanged ... ok
+test installed_credential_and_central_authorization_are_independent ... ok
+test lineage_retry_cost_and_replacement_budgets_cannot_reset_on_fallback ... ok
+test ledger_unknown_is_not_zero_and_hard_cost_requires_qualified_provider_and_adapter ... ok
+test project_environment_allowlist_cannot_be_widened_by_installed_qualified_adapter ... ok
+test missing_policy_old_catalog_is_explicitly_ineligible_and_snapshots_are_bound ... ok
+test native_policy_binding_does_not_allow_rehashed_instruction_or_permission_forgery ... ok
+test observations_scope_account_endpoint_model_node_and_credential_revision_exactly ... ok
+test source_sequence_precedes_wall_clock_when_history_contains_clock_correction ... ok
+test published_human_selection_preserves_exact_provenance_and_refuses_changed_decisions ... ok
+test stable_order_chooses_exact_native_configuration_without_equating_reasoning_controls ... ok
+test two_models_on_one_harness_share_acyclic_policy_but_resolve_distinct_actual_profiles ... ok
+test unknown_availability_can_only_allow_bounded_attempt_with_present_credentials ... ok
+test unknown_cost_never_bypasses_known_exhaustion_or_incompatible_currency ... ok
+test stale_node_and_unsupported_native_settings_never_become_unknown_availability_attempts ... ok
+test worker_failure_cannot_claim_account_wide_availability_or_survive_boot_reuse ... ok
+
+test result: ok. 23 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running unittests src/lib.rs (/tmp/aq22-observations/target/debug/deps/aq_server-b7bd0bfbd6e47ee0)
+
+running 35 tests
+test agent_access::graph::tests::http_adapter_never_exposes_graph_errors_or_follows_redirects ... ok
+test agent_access::graph::tests::http_adapter_refuses_missing_or_changed_response_version ... ok
+test agent_access::graph::tests::edge_projection_requires_both_endpoints_and_allowed_type ... ok
+test agent_access::graph::tests::projection_removes_metadata_and_enforces_workspace ... ok
+test agent_access::mutations::tests::retained_admission_count_and_byte_boundaries_are_exact ... ok
+test agent_access::mutations::tests::oversized_postadmission_status_reports_unknown_with_existing_identity ... ok
+test agent_access::tests::canonical_digest_matches_published_profile_and_context ... ok
+test agent_access::tests::query_digest_omits_cursor_but_binds_authority ... ok
+test agent_access::tests::strict_json_rejects_duplicate_and_fractional_values ... ok
+test agent_access::tests::context_and_issuance_budgets_include_profile_binding_and_credentials ... ok
+test config::tests::other_deployments_accept_dev_vault ... ok
+test config::tests::production_deployment_accepts_production_vault ... ok
+test agent_access::mutations::dispatch::tests::native_draft_defaults_preserve_exact_plan_but_extra_meaning_is_refused ... ok
+test config::tests::production_deployment_rejects_dev_auth_in_production_env ... ok
+test config::tests::production_deployment_rejects_dev_vault ... ok
+test config::tests::production_deployment_rejects_development_env_with_access_auth ... ok
+test profiled_execution::material_api::tests::valid_public_metadata_can_exceed_the_explicit_http_header_profile ... ok
+test profiled_execution::source::tests::reference_observation_requires_original_complete_fresh_exact_generation ... ok
+test profiled_execution::source::tests::retention_is_exact_active_complete_and_never_inferred_from_missing_fields ... ok
+test notifications::config::tests::protected_configuration_refuses_unsafe_files_and_keeps_credentials_opaque ... ok
+test agent_access::tests::contract_enforces_unknown_fields_uuid_integer_and_conditional_rules ... ok
+test project_bindings::domain::tests::external_absence_staleness_forbidden_and_cross_identity_never_admit ... ok
+test project_bindings::domain::tests::operator_groups_and_environment_profile_ceilings_fail_closed ... ok
+test project_bindings::domain::tests::pure_gate_freezes_exact_revision_and_never_rewrites_old_snapshots ... ok
+test project_bindings::external::tests::repository_reply_rejects_duplicate_subject_and_envelope_fields ... ok
+test project_bindings::domain::tests::request_fields_cannot_install_urls_credentials_or_worker_claimed_groups ... ok
+test protected_storage::tests::typed_domains_are_independent_and_aad_is_bounded ... ok
+test store::tests::state_format_is_the_latest_migration ... FAILED
+test profiled_execution::material::tests::delivery_requires_exact_scope_and_current_bounded_file_bytes ... ok
+test terminal::protection::tests::unsafe_key_files_and_duplicate_ids_refuse_without_reading_fifo ... ok
+test terminal::protection::tests::ciphertext_is_randomized_and_bound_to_exact_row_purpose_revision_and_key ... ok
+test terminal::protection::tests::rotation_requires_retained_old_key_and_missing_keys_never_fall_back ... ok
+test updates::tests::stamped_binary_refuses_other_revision ... ok
+test updates::tests::unstamped_binary_accepts_any_revision ... ok
+test updates::tests::unreadable_marker_dir_counts_as_maintenance ... ok
+
+failures:
+
+---- store::tests::state_format_is_the_latest_migration stdout ----
+
+thread 'store::tests::state_format_is_the_latest_migration' (3645228) panicked at crates/aq-server/src/store.rs:713:13:
+migration 20 must set meta.state_format_version to '20'
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    store::tests::state_format_is_the_latest_migration
+
+test result: FAILED. 34 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+error: test failed, to rerun pass `-p aq-server --lib`
