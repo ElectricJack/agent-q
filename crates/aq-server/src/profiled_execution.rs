@@ -44,4 +44,6 @@ pub mod renewal;
 pub mod accepted_preparation;
 pub mod presence;
 
+pub mod phase_execution;
+
 pub(crate) mod initial_authority;

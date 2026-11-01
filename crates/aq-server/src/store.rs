@@ -245,6 +245,7 @@ const MIGRATIONS: &[(i32, &str)] = &[
         31,
         include_str!("../migrations/0031_presence_binding_barrier.sql"),
     ),
+    (32, include_str!("../migrations/0032_phase_execution.sql")),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -338,6 +339,15 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         if !complete {
             return Err(StoreError::Corrupt(
                 "scoped presence binding barrier missing from current schema".into(),
+            ));
+        }
+    }
+    if supported >= 32 {
+        let complete: bool = sqlx::query_scalar("SELECT to_regclass('profiled_phase_execution_grants') IS NOT NULL AND to_regprocedure('profiled_phase_execution_guard()') IS NOT NULL AND EXISTS(SELECT 1 FROM pg_trigger WHERE tgname='profiled_phase_execution_immutable' AND tgrelid=to_regclass('profiled_phase_execution_grants') AND NOT tgisinternal AND tgenabled='O')")
+            .fetch_one(&mut *tx).await?;
+        if !complete {
+            return Err(StoreError::Corrupt(
+                "phase execution history storage missing from current schema".into(),
             ));
         }
     }

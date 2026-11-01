@@ -10,7 +10,9 @@ pub use accept::accept;
 mod history;
 mod proposal;
 use crate::{AppState, error::AppError};
-pub(crate) use history::{AcceptedHistory, load_accepted_history_locked};
+pub(crate) use history::{
+    AcceptedHistory, load_accepted_history_locked, require_live_accepted_locked,
+};
 pub use policy::{PolicyDefinition, policy_for};
 pub use proposal::{ProposalRequest, propose};
 use sqlx::{Postgres, Transaction};

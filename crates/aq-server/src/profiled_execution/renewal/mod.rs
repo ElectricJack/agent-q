@@ -20,3 +20,10 @@ pub use api::routes;
 pub use service::renew;
 
 pub(crate) use history::{Issuance, issuance_locked};
+
+pub(crate) use current::choice_supported_by_harness;
+pub(crate) use health::{
+    Evidence as HealthEvidence, State as HealthState, Subject as HealthSubject,
+    evaluate as evaluate_health,
+};
+pub(crate) use private_read::{Fingerprint, verify_phase as verify_phase_material_backing};

@@ -467,5 +467,8 @@ pub(super) async fn retained_quota_locked(
     let extra = super::accepted_preparation::retained_bytes_locked(tx, node).await?;
     quota.2 = quota.2.checked_add(extra.0).ok_or_else(refused)?;
     quota.3 = quota.3.checked_add(extra.1).ok_or_else(refused)?;
+    let phase = super::phase_execution::retained_bytes_locked(tx, node).await?;
+    quota.2 = quota.2.checked_add(phase.0).ok_or_else(refused)?;
+    quota.3 = quota.3.checked_add(phase.1).ok_or_else(refused)?;
     Ok(quota)
 }

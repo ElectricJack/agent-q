@@ -10,6 +10,7 @@ pub(crate) struct AcceptedHistory {
     pub proposal: Proposal,
     pub request: AcceptRequest,
     pub receipt: AcceptedReceipt,
+    pub policy: ArtifactRef,
 }
 pub(crate) async fn load_accepted_history_locked(
     tx: &mut Transaction<'_, Postgres>,
@@ -61,5 +62,14 @@ pub(crate) async fn load_accepted_history_locked(
         proposal,
         request,
         receipt,
+        policy,
     })
+}
+pub(crate) async fn require_live_accepted_locked(
+    state: &AppState,
+    tx: &mut Transaction<'_, Postgres>,
+    auth: &crate::worker_api::AuthenticatedNode,
+    h: &AcceptedHistory,
+) -> Result<(), AppError> {
+    authority::live_locked(state, tx, auth, &h.proposal, &h.request, &h.receipt).await
 }

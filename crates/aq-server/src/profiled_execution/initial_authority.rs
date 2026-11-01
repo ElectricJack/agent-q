@@ -12,6 +12,7 @@ use uuid::Uuid;
 pub(crate) enum InitialAuthorityHistory {
     Legacy(Box<initial_grant::OriginalGrant>),
     AcceptedNoLaunch(Box<accepted_preparation::AcceptedHistory>),
+    PhaseExecution(Box<super::phase_execution::history::PhaseExecutionHistory>),
 }
 fn unsupported() -> AppError {
     AppError::Conflict("execution protocol origin is not supported by this owner".into())
@@ -50,6 +51,12 @@ pub(crate) async fn load_locked(
         {
             return Err(unsupported());
         }
+        if let Some(execution) =
+            super::phase_execution::history::load_optional_locked(tx, node, binding, grant_id)
+                .await?
+        {
+            return Ok(InitialAuthorityHistory::PhaseExecution(Box::new(execution)));
+        }
         return Ok(InitialAuthorityHistory::AcceptedNoLaunch(Box::new(history)));
     }
     Ok(InitialAuthorityHistory::Legacy(Box::new(
@@ -64,6 +71,10 @@ pub(crate) async fn load_legacy_initial_grant_locked(
 ) -> Result<initial_grant::OriginalGrant, AppError> {
     match load_locked(tx, node, binding, grant_id).await? {
         InitialAuthorityHistory::Legacy(grant) => Ok(*grant),
+        InitialAuthorityHistory::PhaseExecution(history) => {
+            let _original_receipt = history.receipt;
+            Err(unsupported())
+        }
         InitialAuthorityHistory::AcceptedNoLaunch(history) => {
             // Read the actual typed origin rather than accepting a caller tag.
             let _original_receipt = history.receipt;
