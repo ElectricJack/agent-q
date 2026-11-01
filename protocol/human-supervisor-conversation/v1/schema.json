@@ -39,7 +39,8 @@
         "context",
         "attachments"
       ],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "description": "operation_id and message_id must be nonnil and must differ; body must be nonblank and cannot contain NUL."
     },
     "Discovery": {
       "type": "object",

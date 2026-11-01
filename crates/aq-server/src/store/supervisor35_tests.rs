@@ -1,9 +1,14 @@
 //! Ordered upgrade and destructive-drift qualification for the sole conversation identity.
-use super::{MIGRATIONS, StoreError, migrate, migrate_known};
+use super::{MIGRATIONS, StoreError, migrate_known};
 use crate::test_support::TestDb;
 use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
+// The exact state35 reader remains qualified after later state versions exist.
+async fn migrate(pool: &PgPool) -> Result<(), StoreError> {
+    migrate_known(pool, &MIGRATIONS[..35], 35).await
+}
+
 async fn database(version: u32) -> (TestDb, PgPool) {
     let db = TestDb::create().await;
     let pool = db.pool().await;
