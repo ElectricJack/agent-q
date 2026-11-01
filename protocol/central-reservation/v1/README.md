@@ -111,3 +111,12 @@ receipt's reservation, separately from the immutable receipt. Inspect actor to
 resolve the actor's currently active reservation; they may differ after history.
 The complete command/result row binds the original reserve/cancel operation and
 its exact snapshot/revisions, so a configure receipt cannot witness cancellation.
+
+
+The generated `schema.json` describes typed artifacts under the `Document`
+envelope (`document`, `data`); mutation methods accept the inner request data,
+not that documentation envelope. `examples.json` contains twelve normative
+schema/digest vectors, including original receipt versus current cancelled view.
+They are illustrative contract records, not claims of an authenticated live run.
+The actual service performs the separate current-principal, source, byte-budget
+and cross-field checks required by this document.

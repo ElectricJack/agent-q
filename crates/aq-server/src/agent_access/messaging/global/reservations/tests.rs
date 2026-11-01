@@ -160,6 +160,20 @@ impl Fixture {
 #[tokio::test]
 async fn actual_mail_reservation_recovers_replays_and_cancels_without_runtime() {
     let f = Fixture::new(true).await;
+    let empty = f.preview(0).await;
+    assert_eq!(empty.status, PreviewStatus::NoEligibleMail);
+    assert_eq!(empty.coverage, Coverage::Complete);
+    assert!(empty.batch.is_none());
+    sqlx::query("INSERT INTO mailbox_heads(mailbox_key,next_cursor) VALUES($1,1)")
+        .bind(key(f.conversation).unwrap())
+        .execute(&f.state.store.pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        f.preview(0).await,
+        empty,
+        "an empty head and absent empty head are the same logical mailbox"
+    );
     let message = f.seed("Hello ☃\nKeep actual mailbox truth.").await;
     f.seed("Second message.").await;
     let before: Value =
@@ -170,8 +184,10 @@ async fn actual_mail_reservation_recovers_replays_and_cancels_without_runtime() 
     let (raw, receipt) = f.reserve().await;
     let saved = receipt.reservation.clone().unwrap();
     assert_eq!(saved.batch.messages[0].message_id, message);
-    assert_eq!(saved.session, ());
-    assert_eq!(saved.runtime, Unavailable::Unavailable);
+    let wire = serde_json::to_value(&saved).unwrap();
+    assert!(wire["session"].is_null());
+    assert!(wire["prepared_plan"].is_null());
+    assert_eq!(wire["runtime"], "unavailable");
     assert!(
         !serde_json::to_string(&saved)
             .unwrap()
@@ -435,13 +451,17 @@ async fn immutable_original_global_rows_and_receipts_preserve_remote_behavior() 
             .await
             .is_err()
     );
+    let key_alias = sqlx::query("UPDATE mailbox_messages SET mailbox_key=$2 WHERE message_id=$1")
+        .bind(legacy)
+        .bind(key(f.conversation).unwrap())
+        .execute(&f.state.store.pool)
+        .await
+        .unwrap_err();
     assert!(
-        sqlx::query("UPDATE mailbox_messages SET mailbox_key=$2 WHERE message_id=$1")
-            .bind(legacy)
-            .bind(key(f.conversation).unwrap())
-            .execute(&f.state.store.pool)
-            .await
-            .is_err()
+        key_alias
+            .to_string()
+            .contains("global supervisor original mail is immutable"),
+        "guard must refuse before a cursor/unique collision: {key_alias}"
     );
     assert_eq!(f.preview(0).await.status, PreviewStatus::Ready);
 }
@@ -543,13 +563,15 @@ async fn sql_requires_exact_original_reserve_and_cancel_operation_views() {
         reason: None,
         reservation: Some(wrong),
     };
-    writes::audit_finish_for_test(
+    writes::finish(
         &mut tx,
         &a,
         &f.user,
-        "reserve",
-        &raw,
-        &result,
+        writes::Mutation {
+            kind: "reserve",
+            request: &raw,
+            receipt: &result,
+        },
         Some(request.reservation_id),
         None,
     )
@@ -588,13 +610,15 @@ async fn sql_requires_exact_original_reserve_and_cancel_operation_views() {
         reason: None,
         reservation: None,
     };
-    writes::audit_finish_for_test(
+    writes::finish(
         &mut tx,
         &a,
         &f.user,
-        "configure",
-        &raw,
-        &result,
+        writes::Mutation {
+            kind: "configure",
+            request: &raw,
+            receipt: &result,
+        },
         None,
         Some(&configure.policy),
     )
@@ -811,4 +835,45 @@ fn closed_commands_reject_fake_execution_fields_duplicates_and_fractional_revisi
     bad["expected_actor_revision"] = json!(0.5);
     assert!(parse::<Configure>(&serde_json::to_vec(&bad).unwrap()).is_err());
     assert!(parse::<Configure>(&vec![b' '; 16385]).is_err());
+}
+
+#[test]
+fn normative_documents_decode_and_bind_exact_reservation_request_and_batch() {
+    let examples: Value = serde_json::from_slice(
+        &std::fs::read(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../protocol/central-reservation/v1/examples.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    for value in examples.as_object().unwrap().values() {
+        let _: Document = serde_json::from_value(value.clone()).unwrap();
+    }
+    let user = User {
+        id: Uuid::from_u128(7),
+        email: "owner@localhost".into(),
+        role: Role::Owner,
+        issuer: Some("dev".into()),
+        subject: Some("owner@localhost".into()),
+    };
+    let request: Reserve = serde_json::from_value(examples["reserve"]["data"].clone()).unwrap();
+    let receipt: Receipt =
+        serde_json::from_value(examples["reserve_receipt"]["data"].clone()).unwrap();
+    assert_eq!(
+        command("reserve", &user, &request).unwrap().1,
+        receipt.request_digest
+    );
+    let saved = receipt.reservation.unwrap();
+    assert_eq!(saved.batch.digest().unwrap(), saved.batch_digest);
+    let mut preview = examples["preview"]["data"].clone();
+    let digest: Digest = serde_json::from_value(
+        preview
+            .as_object_mut()
+            .unwrap()
+            .remove("selection_digest")
+            .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(hash(&preview).unwrap(), digest);
 }

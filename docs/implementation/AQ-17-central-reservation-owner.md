@@ -239,3 +239,46 @@ Original reserve and cancel records are explicitly linked to exact immutable
 request/result views and admission/cancellation operation sequence, not just an
 operation kind. The per-actor sequence is contiguous and agrees with the lifetime
 operation budget. Reservations have no message-body, profile or session fields.
+
+
+## Source qualification, disposable state 37
+
+This source is based on accepted media owner `01e09b6`; design/API were committed
+before the owner and DDL. Qualification used the repository's existing disposable
+PostgreSQL 17 test service and exclusive existing SERVER target with jobs 2,
+debug info 0 and incremental compilation disabled. No canonical migration,
+provider call, runtime startup, HTTP registration or dashboard promotion occurred.
+
+- Twelve focused reservation tests passed in 6.68 seconds: nine actual persisted
+  database cases and three pure contract/schema cases. The exact-error global
+  mailbox identity-alias guard assertion additionally passed in 0.63 seconds.
+- Six actual Store 37 groups passed in 18.71 seconds, including fresh/36 upgrade,
+  old-36 reader refusal, pre-upgrade body/orphan/duplicate-original-proof refusal,
+  exact schema/guard/FK/CHECK/index drift, retained reserve/cancel proof checks,
+  re-enabled guards after corruption, and orphan associations outside actor loops.
+  The frozen read-only predicate checker also passed independently.
+- Existing AQ-11 messaging passed all eleven cases in 4.97 seconds. Existing
+  global-supervisor HTTP/authorization/CSRF/retention/paging passed all six cases
+  in 2.00 seconds under the registered 37 schema. Their public wire bytes and
+  receipt semantics are unchanged.
+- Generated version-1 schema stays frozen; all twelve normative documents decode
+  and pin canonical request/batch/selection digests. Independent Draft 2020-12
+  schema/example validation passed. Normative examples are not runtime evidence.
+- Final warning-free Clippy on the complete library/test source passed in 21.47
+  seconds after the last targeted assertion change.
+
+Focused reproduction uses `cargo test -p aq-server --lib --features test-support
+--offline agent_access::messaging::global::reservations::tests::`,
+`cargo test -p aq-server --lib --features test-support --offline
+store::central37_tests::`, and the existing `--test messaging --test
+supervisor_conversation` targets. Strict validation is `cargo clippy -p aq-server
+--lib --tests --features test-support --offline -- -D warnings`. Schema updates
+require the explicit test-only `AQ_UPDATE_RESERVATION_SCHEMA=1`; normal tests
+refuse drift. Tests require DATABASE_URL from the repository test service.
+
+The 36-to-37 preservation fixture covers existing media owner identity and budget
+records, not a previously retained PNG/receipt on disk. Actual media-file upgrade
+qualification belongs to its existing media fixture. The reservation evidence
+proves durable ownership before plan assembly; it does not qualify execution,
+all-generation dispatch history, stopped writers, model replies or a production
+compaction policy. Runtime and execution history remain unavailable.

@@ -56,16 +56,24 @@ async fn insert_operation(
     sqlx::query("INSERT INTO central_supervisor_operations(actor_id,operation_id,kind,actor_revision,initiating_user_id,request_bytes,request_digest,result_bytes,charged_bytes) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)").bind(receipt.actor_id).bind(receipt.operation_id).bind(kind).bind(positive(receipt.actor_revision)?).bind(user.id).bind(request).bind(receipt.request_digest.as_str()).bind(result).bind(charge).execute(&mut **tx).await.map_err(db)?;
     Ok(())
 }
-async fn finish(
+pub(super) struct Mutation<'a> {
+    pub(super) kind: &'a str,
+    pub(super) request: &'a str,
+    pub(super) receipt: &'a Receipt,
+}
+pub(super) async fn finish(
     tx: &mut Transaction<'_, Postgres>,
     a: &Actor,
     user: &User,
-    kind: &str,
-    request: &str,
-    receipt: &Receipt,
+    mutation: Mutation<'_>,
     current: Option<Uuid>,
     policy: Option<&LocalPolicy>,
 ) -> Result<()> {
+    let Mutation {
+        kind,
+        request,
+        receipt,
+    } = mutation;
     let result = result_bytes(receipt)?;
     let charged = charge(request, &result, receipt)?;
     if charged > CONTROL_BYTES {
@@ -286,9 +294,11 @@ impl ReservationOwner {
                 &mut tx,
                 &a,
                 user,
-                "configure",
-                &request,
-                &result,
+                Mutation {
+                    kind: "configure",
+                    request: &request,
+                    receipt: &result,
+                },
                 a.current,
                 if matches { Some(&r.policy) } else { None },
             )
@@ -432,7 +442,16 @@ impl ReservationOwner {
             current = Some(r.reservation_id);
         }
         finish(
-            &mut tx, &a, user, "reserve", &request, &result, current, None,
+            &mut tx,
+            &a,
+            user,
+            Mutation {
+                kind: "reserve",
+                request: &request,
+                receipt: &result,
+            },
+            current,
+            None,
         )
         .await?;
         tx.commit().await.map_err(db)?;
@@ -491,7 +510,19 @@ impl ReservationOwner {
             result.reservation = Some(saved);
             next = None;
         }
-        finish(&mut tx, &a, user, "cancel", &request, &result, next, None).await?;
+        finish(
+            &mut tx,
+            &a,
+            user,
+            Mutation {
+                kind: "cancel",
+                request: &request,
+                receipt: &result,
+            },
+            next,
+            None,
+        )
+        .await?;
         tx.commit().await.map_err(db)?;
         Ok(result)
     }
@@ -525,24 +556,13 @@ pub(super) async fn disable_for_test(
         tx,
         a,
         user,
-        "configure",
-        &raw,
-        &result,
+        Mutation {
+            kind: "configure",
+            request: &raw,
+            receipt: &result,
+        },
         a.current,
         Some(&r.policy),
     )
     .await
-}
-#[cfg(test)]
-pub(super) async fn audit_finish_for_test(
-    tx: &mut Transaction<'_, Postgres>,
-    a: &Actor,
-    user: &User,
-    kind: &str,
-    request: &str,
-    result: &Receipt,
-    current: Option<Uuid>,
-    policy: Option<&LocalPolicy>,
-) -> Result<()> {
-    finish(tx, a, user, kind, request, result, current, policy).await
 }
