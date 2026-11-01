@@ -1,0 +1,84 @@
+   Compiling aq-admission v0.1.9 (/tmp/aq08-installed-presence/crates/aq-admission)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.38s
+     Running unittests src/lib.rs (/tmp/aq08-native-producer-target/debug/deps/aq_admission-35e46e34897a5a7b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/common.rs (/tmp/aq08-native-producer-target/debug/deps/common-d74a618491d5bb7b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contracts.rs (/tmp/aq08-native-producer-target/debug/deps/contracts-21e45970c7749c7c)
+
+running 7 tests
+test material_bytes_and_receipts_are_exact_attempt_binding_not_presence_claims ... ok
+test source_requires_explicit_safe_ref_or_matching_immutable_object_and_freshness ... ok
+test artifact_requires_real_matching_bytes_and_current_retention_metadata ... ok
+test shipped_shared_offer_uses_exact_existing_launch_binding_bridge ... ok
+test mutations_reject_unknown_duplicate_nil_unbounded_and_wrong_versions ... ok
+test retained_role_and_byte_coverage_validates_against_resealed_public_offer ... ok
+test published_schema_and_fixtures_drift_test_packaged_artifacts ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/control.rs (/tmp/aq08-native-producer-target/debug/deps/control-d2aea4dd7cba7078)
+
+running 10 tests
+test initial_revision_cannot_change_expiry_and_new_revision_extends_only_live_prior_permit ... ok
+test reconciliation_is_readonly_complete_scoped_and_cannot_hide_unknown_attempts ... ok
+test renewal_outlives_delivery_lease_only_for_exact_same_grant_owner_and_hard_deadline ... ok
+test material_receipt_time_is_server_watermark_not_unqualified_worker_wall_clock ... ok
+test native_poll_refuses_scope_duplicate_cancellation_and_requested_limit_overflow ... ok
+test typed_decode_rejects_nil_versions_scope_unknown_duplicates_and_oversized_bodies ... ok
+test immutable_six_receipts_have_fresh_nonce_clocks_without_retiming_history ... ok
+test frozen_six_source_and_publication_bytes_match_the_exact_archived_baseline ... ok
+test mismatched_original_owner_material_and_historical_clocks_never_get_positive_delivery ... ok
+test published_control_fixtures_schema_and_independent_hashes_do_not_drift ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/control_common.rs (/tmp/aq08-native-producer-target/debug/deps/control_common-8655e0068f8354ec)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/execution_spec.rs (/tmp/aq08-native-producer-target/debug/deps/execution_spec-f77a5b4a9a7746e0)
+
+running 3 tests
+test publication_is_independent_and_decode_rejects_caller_secret_unknown_duplicate_fields ... ok
+test typed_worker_artifact_is_digest_bound_without_a_manifest_cycle ... ok
+test spec_observation_context_and_canonical_bytes_must_all_be_retained ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/granted_closure.rs (/tmp/aq08-native-producer-target/debug/deps/granted_closure-f6011cac98d06f45)
+
+running 5 tests
+test frozen_017_source_and_artifacts_are_preserved ... FAILED
+test actual_host_optional_shape_does_not_weaken_the_post_started_contract ... ok
+test serialization_is_not_original_owner_or_current_authority ... ok
+test strict_decode_rejects_duplicates_floats_oversize_and_release_semantics ... ok
+test synthetic_fixtures_schemas_and_independent_vectors_do_not_drift ... ok
+
+failures:
+
+---- frozen_017_source_and_artifacts_are_preserved stdout ----
+
+thread 'frozen_017_source_and_artifacts_are_preserved' (261597) panicked at crates/aq-admission/tests/granted_closure.rs:156:9:
+assertion `left == right` failed: "README.md"
+  left: "1a9c5f7d5e07caeeb54a7787de56eeef35445c698c0bea3e3ef8cf5a0cdd620c"
+ right: String("ae71d67964881a993d3a2f04277bc193e58e4ad9422c9d752ddcc41c0f352f95")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    frozen_017_source_and_artifacts_are_preserved
+
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+error: test failed, to rerun pass `-p aq-admission --test granted_closure`
