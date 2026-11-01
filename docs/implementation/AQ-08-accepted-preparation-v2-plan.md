@@ -1,7 +1,11 @@
 # AQ-08 accepted preparation v2: minimal cross-component plan
 
-**Status: design plus pure-contract implementation lane; no owner or runtime
-activation.** Preserve admission 0.1.7/0.1.8 archives and every old clock/fixture.
+**Status: joint0.1.9 contract, ordered30 accepted-preparation owner, ordered31
+scoped inventory, and worker format8 input/execution components integrated.
+Ordered32 fresh issuance and worker format9 host adoption are in qualification;
+production phase execution remains inactive.** Preserve admission0.1.7/0.1.8
+archives and every old clock/fixture. Current source and evidence are tracked in
+the [integration checkpoint](../plans/2026-10-31-native-integration-checkpoint.md).
 The worker [phase proposal](../../../aq-worker/docs/implementation/WRK-08-preparation-phase-separation.md)
 records the authority distinction. Worker smoke source `532ec8c` with optimized
 binary `b5ae2e3e8b7d2ca8166a30df75e88f40d7999733a96f3040f3e81a707c1f88ee`
@@ -43,7 +47,9 @@ and an appended module export. No registry/network publication is authorized.
 
 ## 2. Central accepted-preparation owner, separate later slice
 
-Coordinate the next migration number; this plan reserves none. Add an immutable
+Ordered30 now owns the accepted phase records; ordered31 owns the inventory
+binding barrier. The fresh execution issuer uses a separate ordered32 migration.
+The accepted owner maintains an immutable
 accepted-preparation record keyed by attempt and admission operation with exact
 request digest, accepted receipt/digest, original proposal/source clocks, resource
 hold and policy references, owner revisions, bounded deadline and terminal state.
@@ -102,8 +108,8 @@ Reuse the bounded two-transaction inline batch, actual private installation pins
 streamed whole-file verification and finite Git import/create intents. Recheck
 actual source/materials and full context before sending the exact durable Prepare.
 Persist the actual execution receipt/delivery before any physical host hook;
-launch intent must precede every adapter/host preparation callback. No host or
-provider activation belongs to the current pure-contract slice.
+launch intent must precede every adapter/host preparation callback. Host adoption requires separate physical qualification; component receipt
+validation does not activate a provider or production runtime.
 
 Keep current grant-unknown recovery explicit: server commit/HTTP 200 plus rejected
 or lost delivery is ever-issued authority with held task/source resources, not
@@ -134,3 +140,49 @@ legacy InitialGrantDelivery or retime an old preparation plan to reuse validator
 Same-grant renewal and terminal closure must consume and test that explicit
 boundary before any phase-v2 activation. This is a later owner integration gate,
 not authority provided by the pure package.
+
+
+## First fresh issuer qualification profile
+
+The first owner requires an explicit protected execution qualification in addition
+to the accepted-preparation policy. It resolves actual retained proposal, accepted
+lease, runtime registration, artifact bytes, source export and installation receipt
+before issuing authority. Its current registry/principal/inventory/project checks
+run under authority locks; bounded Graph, retained Git and central private-file reads
+run outside those locks and are revalidated before the atomic grant commit. The
+private-file read lane is independent of continuing renewal's reserved lane.
+
+Keep runtime capabilities separate from installed harness support. Original offer
+and launch-required capabilities/features must be supported by both the admitted
+worker registration and its current qualified runtime. The installed harness must
+still support the exact selected model, configuration, limits and selection-policy
+capabilities. A harness inventory entry cannot stand in for runtime qualification.
+
+Source export reservation and final publication can contain two different actual
+observations of the same object. Preserve both original records and their clocks.
+Require their exact repository/project/binding generation/object and retained export
+associations; do not require equal observation artifacts when they were genuinely
+produced at different stages, and do not fabricate a single replacement record.
+
+The bounded first budget profile admits only a proven previously unissued lineage:
+actual attempt counts, absent prior grant/hard deadline, and the original known-zero
+elapsed observation must agree. Configured cost budgets, mandatory complete cost
+accounting, hard-cost enforcement, and prior charged/unknown execution lineages
+remain unsupported until their actual budget owner is qualified. No missing ledger
+row is interpreted as free or zero-cost execution.
+
+Current source availability retains the configured selection-policy age bound;
+the short fresh-confirmation window does not reset that source's age. The first
+profile also preserves the original exact registry pin, so a later observation
+that advances that registry revision cannot be silently accepted as the original
+pin. Longer preparation needs a separately specified refresh/revision boundary or
+an explicitly configured qualified policy, not timestamp edits or widened old
+fixtures. Independent process evidence must state which profile it exercises.
+
+A new immutable phase receipt/provenance table participates in shared retained-byte
+quotas. Hot grant state, journal transition, installation receipt and immutable grant
+must commit together. Final insertion faults must roll them back together; replay
+must return the same grant without extending its cap. Schema32 startup refuses
+missing mandatory history rather than undercharging or rebuilding it. Legacy
+Started, renewal and closure consumers stay fenced until separately updated to
+consume actual typed phase history. A test-only issuer route is not activation.
