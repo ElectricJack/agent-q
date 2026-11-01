@@ -1,0 +1,12 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-native-producer/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 8.84s
+     Running tests/native_offers.rs (/tmp/aq08-native-producer-target/debug/deps/native_offers-c1fc7e3088b8de0a)
+
+running 4 tests
+test actual_native_offer_seals_real_owner_artifacts_source_and_graph_without_grant ... ok
+test missing_qualified_capacity_never_invents_zero_or_exports_source ... ok
+test task_cas_and_same_cas_content_mismatch_never_publish_an_offer ... ok
+test poll_rejects_chosen_scope_duplicate_fields_and_oversized_body_before_admission ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.88s
+

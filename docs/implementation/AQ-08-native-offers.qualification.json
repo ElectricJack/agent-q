@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "source_commit": "2e598836b4f4278ed35686acf488741d968b7ca1",
+  "source_tree": "95bc8a00fee2093b9b66a823ea04fa6f489d597a",
+  "prerequisite_reader_commit": "9d243bc",
+  "worktree": "/tmp/aq08-native-producer",
+  "qualification_kind": "synthetic-owner component qualification; actual PostgreSQL and mounted HTTP; not production CLI/model or full migration qualification",
+  "counts": {
+    "native_offer_sql_http": 4,
+    "read_provenance_unit": 2,
+    "preparation_regressions": 11,
+    "native_source_regressions": 6,
+    "source_export_regressions": 9,
+    "passed_total": 32,
+    "failed": 0,
+    "ignored": 0
+  },
+  "commands": [
+    "DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres RUST_TEST_THREADS=4 CARGO_TARGET_DIR=/tmp/aq08-native-producer-target CARGO_BUILD_JOBS=2 cargo test -p aq-server --all-features --test native_offers --locked --offline",
+    "DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres RUST_TEST_THREADS=4 CARGO_TARGET_DIR=/tmp/aq08-native-producer-target CARGO_BUILD_JOBS=2 cargo test -p aq-server --all-features --test native_preparation --test native_source --test profiled_source_exports --locked --offline",
+    "CARGO_TARGET_DIR=/tmp/aq08-native-producer-target CARGO_BUILD_JOBS=2 cargo test -p aq-server --all-features --lib native_offer --locked --offline",
+    "CARGO_TARGET_DIR=/tmp/aq08-native-producer-target CARGO_BUILD_JOBS=2 cargo clippy -p aq-server --all-targets --all-features --locked --offline -- -D warnings",
+    "cargo fmt --package aq-server --check"
+  ],
+  "measured_timing_seconds": {
+    "native_offer_tests": 3.88,
+    "native_offer_compile": 8.84,
+    "preparation_regressions": 14.2,
+    "native_source_regressions": 1.92,
+    "source_export_regressions": 2.5,
+    "regression_compile": 16.6,
+    "read_provenance_compile": 67,
+    "clippy": 48.77
+  },
+  "claims": [
+    "Actual public ready/context reads drive composition/selection/counting and owned source/artifact publication",
+    "Atomic native Offered common task claim plus hot authority, protected API01 bootstrap without credential",
+    "Poll redelivery preserves binding/absolute expiry; actual Accept on producer-created rows enters Preparing with one lease and no grant",
+    "Task CAS/content disagreement, missing capacity, selected-scope/duplicate/oversized request and admin route refusal",
+    "Historical original NativeOffer verifies linked owner bodies, spec/manifest and expiry ceilings"
+  ],
+  "limits": [
+    "Synthetic authoritative Graph/Git/model/runtime/counting facts; fake bundle bytes are not a real Git export qualification",
+    "Local component fixture normal migration chain is25 plus explicit27 guard; ordered26->27 qualification belongs schema integration",
+    "One worker slot, first priority project and first ready task can starve later candidates; not fleet/capacity scheduler qualification",
+    "At most30s and often shorter initial offer/preparation TTL; no slow cold-hydration guarantee",
+    "126 inline descriptors/16MiB logical body bytes,500000 compact wrapper bytes; conservative envelope support, no RSS claim",
+    "No Prepare->Grant/Renew/Reconcile, cancellation or expiry runtime wiring in this checkpoint",
+    "No physical host/provider/model execution, paid calls or public schema/archive changes",
+    "Poll admission-class Control arm is coordinated with the separate initial-grant checkpoint; no reserved-lane performance claim here",
+    "No automatic release on missing/unknown physical stop or source/effect evidence"
+  ],
+  "git_show_source_inventory": [
+    {
+      "path": "crates/aq-server/src/agent_access.rs",
+      "sha256": "2b899bab1671b91555675b2d1e5cec6d41ee17c1a160caf437e02097980e895d",
+      "bytes": 28469,
+      "git_blob": "5dc3d7e7dc944274de48f72dc2ef75440686b5cc"
+    },
+    {
+      "path": "crates/aq-server/src/agent_access/native_binding.rs",
+      "sha256": "8a1df89c4789b332bea3e3ff8f3680f20c311e3e97a05f8ccfa9ab6e639feebe",
+      "bytes": 3625,
+      "git_blob": "46cdfc5346288d112056728834864f5aa1149580"
+    },
+    {
+      "path": "crates/aq-server/src/lib.rs",
+      "sha256": "cb780709552a861fe3ad771a44db2c9191c0201777cb1a36b52a8baa722a8020",
+      "bytes": 11923,
+      "git_blob": "f61c7644d0ef0ec4f816a2d2a99eb752773aa95c"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution.rs",
+      "sha256": "8e5aede213f886f8304017691d93861dd2918e6bb7e159500168201e80db9cd9",
+      "bytes": 697,
+      "git_blob": "900fab3fd2c04bc66cb20f5533d8ffcc034a2048"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/control_api.rs",
+      "sha256": "aae812b02b77a88b6c54093dfb47bdab33338d5ef35a123e0fd4f29acd23d084",
+      "bytes": 3068,
+      "git_blob": "4a0d3ce734e3839707f9853c9c0c2980a0d2295a"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/native_offer/mod.rs",
+      "sha256": "b43971ab44f2c8276d96641ab8e66de00741278f176feaf4cd58e9ad45a9072d",
+      "bytes": 4930,
+      "git_blob": "b4884062456992a1d5b814a4d53a90b034680822"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/native_offer/observation.rs",
+      "sha256": "e1174e4dd74bec9b816b00c428f79e435157de190d9ae164d6b6b12758732e4b",
+      "bytes": 8146,
+      "git_blob": "ff7bf8907b87aaaa8a103c4a9a45963ec46c6d08"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/producer/api.rs",
+      "sha256": "b4329ee32ccabba900dd63c01a7dc9fb60ce58295feec09d65f3f85c3a577bba",
+      "bytes": 1561,
+      "git_blob": "a9786f87ce334f4181f30d82905f5068722d3852"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/producer/artifacts.rs",
+      "sha256": "7d1867f6c340f9d18d769fa3127dd9fcec659029e13272baf076848591987ed5",
+      "bytes": 3060,
+      "git_blob": "94c0953f4dc1592a71235619551481a6e8a36314"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/producer/build.rs",
+      "sha256": "f8e11ecffc7f37693d6a33fadc68241c0788bf95d455cc2d26f7757430bfe066",
+      "bytes": 23947,
+      "git_blob": "97a01628178edd224d6ffc6fb849b2b454d6d5ae"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/producer/compose.rs",
+      "sha256": "dfe6722b35bcb59a81e0cf82ea1f53986d89d5da4cd929fa2577807d633f6d27",
+      "bytes": 10012,
+      "git_blob": "2896df947f260c7276aa58c31ea7eb10aa200f0f"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/producer/mod.rs",
+      "sha256": "6aedaa46a70defd2b1ecad2ba90d1df69813bb2fe4259ac2b0ce78fa4167c101",
+      "bytes": 716,
+      "git_blob": "054449689f445e0b970988feac4a5b5403b2aa50"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/producer/publication.rs",
+      "sha256": "69f2bf0d37d13889e0c83088986db421f742142a84ae6c7d3036ebf5b7c42989",
+      "bytes": 8559,
+      "git_blob": "b96b49a720d49e4f5f1854b2187aea3843159a35"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/producer/redelivery.rs",
+      "sha256": "170944a73acbf5d5e49da68e9cb0a44749729c6b6ca83cf90d0aa9557d33aba8",
+      "bytes": 2612,
+      "git_blob": "f0515bc9a04513216e8012dd5180a510d04cfd63"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/producer/startup.rs",
+      "sha256": "0c017c6ae2a88b8318210a0c15d5c7fa2040d14212063866fedc514dd7e9ceef",
+      "bytes": 5544,
+      "git_blob": "68ed8fd222bd193bf0b180019ddde5960b0291c3"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/producer/workflow.rs",
+      "sha256": "dcb722ce8a454956867ea74222ef33dde9dedd88047b914d0d8feae15111c8ad",
+      "bytes": 14058,
+      "git_blob": "050747e1a11100bc62343f823a0b54f331f2599d"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/source.rs",
+      "sha256": "44e00129150417e8752fc94d222798c6243e6386117c73b885a8bf4c57c66418",
+      "bytes": 13600,
+      "git_blob": "44e41777d962ce0127bcf371166d755278cff4f2"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/source_exports.rs",
+      "sha256": "017fe64e35770285a5456612a02979e2ce30cf0cda9445596d4503e379f3cf51",
+      "bytes": 17097,
+      "git_blob": "849ed670c866ce93b2727c94bd25db6162cf2fcd"
+    },
+    {
+      "path": "crates/aq-server/src/project_bindings.rs",
+      "sha256": "95ac209713f883103f715be964335b05252657f83783f8fb0f627f233493d1d2",
+      "bytes": 23757,
+      "git_blob": "0a1de669b4971bb1275e3476e790328fab941282"
+    },
+    {
+      "path": "crates/aq-server/tests/common/mod.rs",
+      "sha256": "9ff496b9c8b8fa2a9e7349c2b21f84124a456d4da47c851820a2925377250811",
+      "bytes": 4117,
+      "git_blob": "b559f054fd81ca89d7fe8ddef27183c37baa4293"
+    },
+    {
+      "path": "crates/aq-server/tests/common/native_offer.rs",
+      "sha256": "d9fc21fa8a5fd3a3b2758c9199fe50153625d1360e12444f4938a989f67979ce",
+      "bytes": 18390,
+      "git_blob": "e1b18631ed61a98a6b8b46b20e8ee69d617fd0f5"
+    },
+    {
+      "path": "crates/aq-server/tests/native_offers.rs",
+      "sha256": "3c57b9a475a903481680f43e92294678f0696bb2b691179a6d096a017e787ed8",
+      "bytes": 7431,
+      "git_blob": "83ea176fc961b02225fd2cdbec534956ab8814d9"
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-native-offers-2e59883/tests.log",
+      "bytes": 705,
+      "sha256": "1fe4d19b45de0d51b977df9abc4036b0bef5d6b14b90611fa25c9e31e7dbcc2d"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-offers-2e59883/regressions.log",
+      "bytes": 3118,
+      "sha256": "49f69058c0f4932f901704d6b9843dea40ceefa41673b0c525c6e8b9bbf438b6"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-offers-2e59883/unit.log",
+      "bytes": 618,
+      "sha256": "d9a7f569d625f7ee6e9dc25c76e1ad97b137145bc5733195e295771db258e7c7"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-offers-2e59883/clippy.log",
+      "bytes": 148,
+      "sha256": "53f3667352bb98f3cb8c30f5e25a62fc29ba09c7f94e253113c23b93226b8ec4"
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-offers-2e59883/format.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}
