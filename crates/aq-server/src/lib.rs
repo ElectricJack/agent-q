@@ -203,6 +203,7 @@ fn build_admin_router_with_optional_dashboard(
         session_usage: true,
         results: true,
         notifications: true,
+        supervisor_conversation: true,
         reviews: reviews.is_some(),
         playbook_owner: playbooks
             .as_ref()
@@ -222,6 +223,7 @@ fn build_admin_router_with_optional_dashboard(
         .merge(admin_api::admin_routes())
         .merge(dashboard_api::routes(state.clone()))
         .merge(agent_access::human::routes(&state))
+        .merge(agent_access::supervisor_conversation::routes(&state))
         .merge(profiled_execution::human_results::routes())
         .merge(notifications::api::routes(state.clone()))
         .merge(observations::api::admin_routes(state.clone()))

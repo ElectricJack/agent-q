@@ -23,6 +23,7 @@ pub(crate) struct MountedOwners {
     pub(crate) session_usage: bool,
     pub(crate) results: bool,
     pub(crate) notifications: bool,
+    pub(crate) supervisor_conversation: bool,
     pub(crate) reviews: bool,
     pub(crate) playbook_owner: Option<Uuid>,
 }

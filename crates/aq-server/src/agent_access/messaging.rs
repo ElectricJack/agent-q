@@ -1,6 +1,7 @@
 //! Durable scoped mail. No terminal, node delivery or human-notification effects.
 use super::*;
 use axum::routing::post;
+pub mod global;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
@@ -243,28 +244,61 @@ async fn send(
     if !known {
         return Err(Error("not_found"));
     }
-    let key = request.recipient.key()?;
+    let cursor = append(
+        tx,
+        Envelope {
+            message_id: request.message_id,
+            thread_id: request.thread_id,
+            recipient: serde_json::to_value(&request.recipient)?,
+            mailbox_key: request.recipient.key()?,
+            body: &request.body,
+        },
+        &sender,
+        &payload,
+        at,
+    )
+    .await?;
+    let response = json!({"api_version":1,"operation_id":request.operation_id,"message_id":request.message_id,"recipient":request.recipient,"thread_id":request.thread_id,"cursor":cursor.to_string(),"disposition":"queued","node_delivery":"not_attempted","harness_delivery":"not_attempted","notification_delivery":"not_attempted"});
+    receipt(tx, &actor, request.operation_id, &payload, &response).await?;
+    Ok(response)
+}
+// The caller must first authorize its exact recipient domain. This primitive
+// owns the one mailbox order/body boundary; it has no public request surface.
+struct Envelope<'a> {
+    message_id: Uuid,
+    thread_id: Uuid,
+    recipient: Value,
+    mailbox_key: String,
+    body: &'a str,
+}
+async fn append(
+    tx: &mut Transaction<'_, Postgres>,
+    mail: Envelope<'_>,
+    sender: &Value,
+    payload: &str,
+    at: u64,
+) -> Result<i64> {
+    let key = &mail.mailbox_key;
     sqlx::query("INSERT INTO mailbox_heads(mailbox_key) VALUES($1) ON CONFLICT DO NOTHING")
-        .bind(&key)
+        .bind(key)
         .execute(&mut **tx)
         .await?;
     let cursor: i64 =
         sqlx::query_scalar("SELECT next_cursor FROM mailbox_heads WHERE mailbox_key=$1 FOR UPDATE")
-            .bind(&key)
+            .bind(key)
             .fetch_one(&mut **tx)
             .await?;
-    // A global message identity cannot be rebound by another actor or operation.
-    let inserted=sqlx::query("INSERT INTO mailbox_messages(message_id,mailbox_key,cursor,thread_id,sender,recipient,payload_digest,body,created_at_ms) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(message_id) DO NOTHING").bind(request.message_id).bind(&key).bind(cursor).bind(request.thread_id).bind(&sender).bind(serde_json::to_value(&request.recipient)?).bind(&payload).bind(&request.body).bind(at as i64).execute(&mut **tx).await?.rows_affected();
+    let inserted = sqlx::query("INSERT INTO mailbox_messages(message_id,mailbox_key,cursor,thread_id,sender,recipient,payload_digest,body,created_at_ms) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(message_id) DO NOTHING")
+        .bind(mail.message_id).bind(key).bind(cursor).bind(mail.thread_id).bind(sender).bind(mail.recipient).bind(payload).bind(mail.body).bind(at as i64)
+        .execute(&mut **tx).await?.rows_affected();
     if inserted == 0 {
         return Err(Error("id_conflict"));
     }
     sqlx::query("UPDATE mailbox_heads SET next_cursor=next_cursor+1 WHERE mailbox_key=$1")
-        .bind(&key)
+        .bind(key)
         .execute(&mut **tx)
         .await?;
-    let response = json!({"api_version":1,"operation_id":request.operation_id,"message_id":request.message_id,"recipient":request.recipient,"thread_id":request.thread_id,"cursor":cursor.to_string(),"disposition":"queued","node_delivery":"not_attempted","harness_delivery":"not_attempted","notification_delivery":"not_attempted"});
-    receipt(tx, &actor, request.operation_id, &payload, &response).await?;
-    Ok(response)
+    Ok(cursor)
 }
 /// Crate-internal service seam for an already scoped, derived owner principal.
 /// The caller's transaction owns the current grant and domain outbox boundary.
