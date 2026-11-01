@@ -1576,7 +1576,8 @@
         "../implementation/backend-composed-5d445a5-qualification.md",
         "../implementation/AQ-17-central-selection-pure.md",
         "../implementation/evidence/aq17-central-selection-7014549/qualification.json",
-        "../implementation/composed-central-empty-511ee99-qualification.md"
+        "../implementation/composed-central-empty-511ee99-qualification.md",
+        "../implementation/evidence/canonical-uds-empty-owner-live/README.md"
       ]
     },
     {
@@ -3068,7 +3069,8 @@
         "../implementation/backend-composed-5d445a5-qualification.md",
         "../implementation/evidence/private-uds-current-catalog-37/README.md",
         "../implementation/evidence/empty-playbooks-owner-2baa8e7/README.md",
-        "../implementation/composed-central-empty-511ee99-qualification.md"
+        "../implementation/composed-central-empty-511ee99-qualification.md",
+        "../implementation/evidence/canonical-uds-empty-owner-live/README.md"
       ]
     },
     {

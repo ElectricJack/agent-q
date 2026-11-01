@@ -125,7 +125,7 @@ def inspect(root, data):
         require(methods == "peer", "Unexpected local authentication policy")
         after = directory.lstat()
         require((after.st_dev, after.st_ino) == (before.st_dev, before.st_ino) == (os.fstat(held).st_dev, os.fstat(held).st_ino), "UDS directory changed")
-        result = {"passed": True, "scope": "isolated PostgreSQL transport only; no AQ/runtime/namespace startup yet", "image": IMAGE, "container_id": info["Id"], "peer_pid": pid, "peer_uid": uid, "peer_gid": gid, "socket_uid": point.st_uid, "socket_mode": "0600", "directory_mode": "0700", "postgres": identity, "local_auth": methods, "tcp_listener": False, "published_ports": False}
+        result = {"passed": True, "scope": "PostgreSQL transport only; AQ runtime and namespace state are not inspected", "promoted_consumer_protected": os.path.lexists(root / PROMOTED_MARKER), "image": IMAGE, "container_id": info["Id"], "peer_pid": pid, "peer_uid": uid, "peer_gid": gid, "socket_uid": point.st_uid, "socket_mode": "0600", "directory_mode": "0700", "postgres": identity, "local_auth": methods, "tcp_listener": False, "published_ports": False}
         save(root, data)
         temp = root / f".transport-{secrets.token_hex(8)}"
         private(temp, json.dumps(result, indent=2) + "\n")
