@@ -251,6 +251,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         34,
         include_str!("../migrations/0034_human_graph_operations.sql"),
     ),
+    (
+        35,
+        include_str!("../migrations/0035_supervisor_conversation.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -403,6 +407,22 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         if !complete {
             return Err(StoreError::Corrupt(
                 "human Graph intent journal storage missing from current schema".into(),
+            ));
+        }
+    }
+    if supported >= 35 {
+        let complete: bool = sqlx::query_scalar("SELECT to_regclass('global_supervisor_conversation') IS NOT NULL AND to_regprocedure('guard_global_supervisor_conversation()') IS NOT NULL AND NOT EXISTS(SELECT 1 FROM (VALUES ('global_supervisor_conversation_identity_guard',19),('global_supervisor_conversation_delete_guard',11),('global_supervisor_conversation_truncate_guard',34)) expected(name,kind) WHERE NOT EXISTS(SELECT 1 FROM pg_trigger t WHERE t.tgrelid=to_regclass('global_supervisor_conversation') AND t.tgname=expected.name AND t.tgtype=expected.kind AND NOT t.tgisinternal AND t.tgenabled IN ('O','A') AND t.tgfoid=to_regprocedure('guard_global_supervisor_conversation()')))")
+            .fetch_one(&mut *tx).await?;
+        if !complete {
+            return Err(StoreError::Corrupt(
+                "global supervisor conversation storage missing or disabled".into(),
+            ));
+        }
+        let singleton: bool = sqlx::query_scalar("SELECT count(*)=1 AND COALESCE(bool_and(singleton AND revision=1 AND conversation_id<>'00000000-0000-0000-0000-000000000000'::uuid),FALSE) FROM global_supervisor_conversation")
+            .fetch_one(&mut *tx).await?;
+        if !singleton {
+            return Err(StoreError::Corrupt(
+                "global supervisor conversation singleton missing or invalid".into(),
             ));
         }
     }
