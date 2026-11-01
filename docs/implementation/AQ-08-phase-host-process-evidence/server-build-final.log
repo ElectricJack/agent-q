@@ -1,0 +1,5 @@
+    Blocking waiting for file lock on package cache
+    Blocking waiting for file lock on package cache
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 4.12s
+  Executable tests/native_initial_grant.rs (/tmp/aq-native-union-target/debug/deps/native_initial_grant-558c34c1fc7a7ac5)
