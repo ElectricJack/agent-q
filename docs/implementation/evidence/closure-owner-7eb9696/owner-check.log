@@ -1,0 +1,32 @@
+    Blocking waiting for file lock on build directory
+    Checking aq-session-protocol v0.1.0 (/tmp/aq-granted-closure-server/vendor/aq-session-protocol-0.1.0)
+    Checking aq-playbooks-model v0.1.0 (/tmp/aq-granted-closure-server/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-model)
+    Checking aq-lifecycle-protocol v0.1.0 (/tmp/aq-granted-closure-server/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking aq-session-api v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-session-api)
+    Checking aq-playbooks-runner v0.1.2 (/tmp/aq-granted-closure-server/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-runner)
+    Checking aq-lifecycle-api v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-lifecycle-api)
+    Checking aq-agent-api v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-agent-api)
+    Checking aq-playbooks-postgres v0.1.2 (/tmp/aq-granted-closure-server/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-postgres)
+    Checking aq-profiles v0.1.1 (/tmp/aq-granted-closure-server/crates/aq-profiles)
+    Checking aq-terminal-relay-protocol v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-terminal-relay-protocol)
+    Checking aq-release v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-release)
+    Checking aq-selection v0.1.2 (/tmp/aq-granted-closure-server/crates/aq-selection)
+    Checking aq-terminal-relay v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-terminal-relay)
+    Checking aq-playbook-host v0.1.2 (/tmp/aq-granted-closure-server/crates/aq-playbook-host)
+    Checking aq-notifications v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-notifications)
+    Checking aq-observation-api v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-observation-api)
+    Checking aq-admission v0.1.8 (/tmp/aq-granted-closure-server/crates/aq-admission)
+    Checking aq-accounting v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-accounting)
+    Checking aq-observation-admission v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-observation-admission)
+    Checking aq-review-protocol v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-review-protocol)
+    Checking aq-protocol v0.1.0 (/tmp/aq-granted-closure-server/vendor/aq-protocol-0.1.0)
+    Checking aq-worker-protocol v0.2.0 (/tmp/aq-granted-closure-server/vendor/aq-worker-protocol-0.2.0)
+    Checking aq-server v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-server)
+error[E0433]: cannot find `renewal` in `super`
+   --> crates/aq-server/src/profiled_execution/closure/service.rs:168:48
+    |
+168 |         latest_renewal_revision: super::super::renewal::latest_renewal_revision_locked(
+    |                                                ^^^^^^^ could not find `renewal` in `super`
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `aq-server` (lib) due to 1 previous error
