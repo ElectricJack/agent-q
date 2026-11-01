@@ -17,7 +17,13 @@ fn invalid() -> AppError {
     AppError::Conflict("continuing choice is not currently authorized or supported".into())
 }
 fn harness_supports(h: &InstalledHarness, p: &Pinned) -> bool {
-    let c = &p.selection.choice;
+    choice_supported_by_harness(h, &p.selection.choice, &p.policy)
+}
+pub(crate) fn choice_supported_by_harness(
+    h: &InstalledHarness,
+    c: &aq_selection::ConcreteChoice,
+    policy: &aq_profiles::SelectionPolicy,
+) -> bool {
     let limits = &h.limits;
     h.harness == c.harness
         && h.cli_version == c.cli_version
@@ -36,11 +42,8 @@ fn harness_supports(h: &InstalledHarness, p: &Pinned) -> bool {
         && limits.cpu_millis >= c.resources.cpu_millis
         && limits.process_limit >= c.resources.process_limit
         && limits.max_output_tokens >= c.max_output_tokens
-        && aq_session_protocol::require_capabilities(
-            &p.policy.required_capabilities,
-            &h.capabilities,
-        )
-        .is_ok()
+        && aq_session_protocol::require_capabilities(&policy.required_capabilities, &h.capabilities)
+            .is_ok()
 }
 pub async fn fence_locked(
     state: &AppState,

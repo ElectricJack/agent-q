@@ -1,0 +1,383 @@
+//! Actual phase issuance SQL/owners; synthetic Graph, Git and worker installation.
+//! No physical host, real provider, or production route qualification.
+mod common;
+#[path = "common/presence.rs"]
+mod presence_fixture;
+use aq_admission::{
+    ArtifactKind, ArtifactRef, Digest, Resources, Text,
+    control::{ControlReply, decode_reply},
+    preparation_v2::{
+        self as phase, AcceptRequest, FactKind, OwnerAuthority, PhasePolicy, ResourceHold,
+    },
+};
+use aq_server::profiled_execution::phase_execution;
+use aq_server::{
+    profiled_execution::{
+        accepted_preparation::{self as owner, PolicyDefinition, ProposalRequest},
+        definitions::Definition,
+        policies,
+    },
+    worker_api,
+};
+use axum::body::to_bytes;
+use base64::Engine;
+use common::native_offer::{self, Case};
+use serde_json::Value;
+use sqlx::Row;
+use uuid::Uuid;
+fn reference(id: &str) -> ArtifactRef {
+    ArtifactRef {
+        id: Text::new(id).unwrap(),
+        version: Text::new("1").unwrap(),
+        digest: Digest::of(id.as_bytes()),
+    }
+}
+async fn configure(c: &mut Case) {
+    let mut config = (*c.env.env.state.config).clone();
+    let mut p = (**config.profiled_execution.as_ref().unwrap()).clone();
+    let r = p.qualified_runtimes[0].clone();
+    let policy = PolicyDefinition {
+        schema_version: 1,
+        contract: phase::contract_artifact().unwrap(),
+        runtime: r.runtime.clone(),
+        qualification: r.qualification.clone(),
+        phase: PhasePolicy {
+            schema_version: 2,
+            maximum_preparation_ms: 10000,
+            maximum_execution_lease_ms: 10000,
+            maximum_observation_ms: 2000,
+        },
+        source_profile: reference("synthetic-source-profile"),
+        source_disk_bytes: 1 << 20,
+        owners: FactKind::all()
+            .iter()
+            .map(|k| OwnerAuthority {
+                kind: *k,
+                authority: reference(&format!("synthetic-owner/{k:?}")),
+            })
+            .collect(),
+    };
+    let body = serde_json::to_string(&policy).unwrap();
+    let a = ArtifactRef {
+        id: Text::new("aq.accepted-preparation-policy/synthetic-test").unwrap(),
+        version: Text::new("1").unwrap(),
+        digest: Digest::of(body.as_bytes()),
+    };
+    p.definition_bodies
+        .push(Definition::new(a.clone(), ArtifactKind::Definition, body).unwrap());
+    let execution = serde_json::json!({
+        "schema_version":1,"contract":phase::contract_artifact().unwrap(),
+        "runtime":r.runtime,"runtime_qualification":r.qualification,
+        "proposal_policy":a,
+        "adapters":"current_project_registry_principal_inventory_health_unissued_graph_retention_private_v1"
+    });
+    p.definition_bodies.push(presence_fixture::definition(
+        "aq.phase-execution-qualification/test",
+        execution.to_string(),
+    ));
+    p.revision += 1;
+    p.validate().unwrap();
+    config.profiled_execution = Some(std::sync::Arc::new(p));
+    c.env.env.state.config = std::sync::Arc::new(config);
+    policies::install(&c.env.env.state).await.unwrap();
+    let format: String =
+        sqlx::query_scalar("SELECT value FROM meta WHERE key='state_format_version'")
+            .fetch_one(&c.env.env.pool)
+            .await
+            .unwrap();
+    assert_eq!(format, aq_server::STATE_FORMAT_VERSION.to_string());
+    let present:bool=sqlx::query_scalar("SELECT to_regclass('profiled_v2_proposals') IS NOT NULL AND to_regclass('profiled_v2_accepts') IS NOT NULL").fetch_one(&c.env.env.pool).await.unwrap();
+    assert!(
+        present,
+        "current ordered schema must already contain both v2 tables"
+    );
+}
+async fn auth(c: &Case) -> worker_api::AuthenticatedNode {
+    let mut h = axum::http::HeaderMap::new();
+    h.insert(
+        "authorization",
+        format!("Bearer {}", c.env.env.credential).parse().unwrap(),
+    );
+    worker_api::authenticate_context(&c.env.env.state, &h)
+        .await
+        .unwrap()
+}
+async fn setup_with_inventory(v2: bool) -> (Case, phase::Proposal, AcceptRequest) {
+    let ready = presence_fixture::setup().await;
+    let mut c = ready.c;
+    configure(&mut c).await;
+    if v2 {
+        let receipt = aq_server::profiled_execution::presence::inventory::record(
+            &c.env.env.state,
+            &auth(&c).await,
+            &ready.request,
+        )
+        .await
+        .unwrap();
+        receipt.validate_for(&ready.request).unwrap();
+        c.request.inventory_sequence = ready.request.sequence;
+    }
+    let revision: i64 =
+        sqlx::query_scalar("SELECT revision FROM intelligence_registry WHERE singleton")
+            .fetch_one(&c.env.env.pool)
+            .await
+            .unwrap();
+    let mut observation = c.env.manual.clone();
+    observation["operation_id"] = serde_json::json!(Uuid::new_v4());
+    observation["expected_revision"] = serde_json::json!(revision);
+    observation["sequence"] = serde_json::json!(2);
+    let (status, body) = common::selection::call(
+        &aq_server::build_admin_router(c.env.env.state.clone()),
+        "/api/intelligence/observations",
+        Some(observation),
+        "owner@localhost",
+    )
+    .await;
+    assert_eq!(status, 200, "{body}");
+    let (status, body) = native_offer::poll(&c).await;
+    assert_eq!(status, 200, "{body}");
+    let ControlReply::Poll(mut page) = decode_reply(&serde_json::to_vec(&body).unwrap()).unwrap()
+    else {
+        panic!("{body}")
+    };
+    assert_eq!(page.offers.len(), 1, "{body}");
+    let offer = page.offers.remove(0);
+    let negotiation = phase::Negotiation {
+        contract: phase::contract_artifact().unwrap(),
+        features: phase::required_features(),
+    };
+    let q = ProposalRequest {
+        identity: c.request.identity.clone(),
+        binding: offer.offered.offer.binding.clone(),
+        negotiation: negotiation.clone(),
+    };
+    let p = owner::propose(&c.env.env.state, &auth(&c).await, &q)
+        .await
+        .unwrap();
+    let mut original = native_offer::acceptance(&c, &offer);
+    original.reservation_remaining_ms = 1000;
+    let request = AcceptRequest {
+        schema_version: 2,
+        negotiation,
+        proposal_digest: p.digest().unwrap(),
+        hold: ResourceHold {
+            maximum_preparation_ms: 10000,
+            reservation: original.reservation.clone(),
+            resources: Resources {
+                slots: 1,
+                memory_bytes: offer.offered.offer.manifest.resources.memory_bytes,
+                cpu_millis: offer.offered.offer.manifest.resources.cpu_millis,
+                disk_bytes: 1 << 20,
+            },
+            source_profile: reference("synthetic-source-profile"),
+            source_disk_bytes: 1 << 20,
+        },
+        original,
+    };
+    (c, p, request)
+}
+struct Prepared {
+    c: Case,
+    p: phase::Proposal,
+    q: AcceptRequest,
+    a: phase::AcceptedReceipt,
+    prepared: phase::PrepareRequest,
+}
+async fn prepared(v2: bool) -> Prepared {
+    let (c, p, q) = setup_with_inventory(v2).await;
+    let a = owner::accept(&c.env.env.state, &auth(&c).await, &q, Uuid::new_v4())
+        .await
+        .unwrap()
+        .receipt;
+    let mut artifacts = p
+        .original
+        .offered
+        .artifacts
+        .iter()
+        .map(|d| aq_admission::transport::ArtifactReceipt {
+            artifact: d.artifact.clone(),
+            bytes: d.bytes,
+            digest: d.artifact.digest.clone(),
+        })
+        .collect::<Vec<_>>();
+    let manifest: Value =
+        sqlx::query_scalar("SELECT manifest FROM source_bases WHERE attempt_id=$1")
+            .bind(q.original.acceptance.binding.attempt_id)
+            .fetch_one(&c.env.env.pool)
+            .await
+            .unwrap();
+    let manifest: aq_worker_protocol::TransferManifest = serde_json::from_value(manifest).unwrap();
+    for (name, digest, bytes) in [
+        (
+            "manifest",
+            manifest.manifest_digest.as_str(),
+            manifest.manifest_bytes,
+        ),
+        (
+            "bundle",
+            manifest.bundle_digest.as_deref().unwrap(),
+            manifest.bundle_bytes,
+        ),
+    ] {
+        let digest: Digest = serde_json::from_value(serde_json::json!(digest)).unwrap();
+        artifacts.push(aq_admission::transport::ArtifactReceipt {
+            artifact: ArtifactRef {
+                id: Text::new(format!("aq.source-{name}/{}", manifest.transfer_id)).unwrap(),
+                version: Text::new("1").unwrap(),
+                digest: digest.clone(),
+            },
+            bytes,
+            digest,
+        });
+    }
+
+    let fetch = aq_admission::transport::MaterialFetch {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        identity: q.original.identity.clone(),
+        binding: q.original.acceptance.binding.clone(),
+        lease_id: a.lease.materials[0].lease_id,
+    };
+    let response = native_offer::post(
+        &c.env.env.state,
+        &c.env.env.credential,
+        "/v1/worker/profiled/material",
+        serde_json::to_vec(&fetch).unwrap(),
+    )
+    .await;
+    assert_eq!(response.status(), 200);
+    let delivery: aq_admission::transport::MaterialDelivery = serde_json::from_slice(
+        &base64::engine::general_purpose::URL_SAFE_NO_PAD
+            .decode(
+                response
+                    .headers()
+                    .get("aq-material-delivery")
+                    .unwrap()
+                    .as_bytes(),
+            )
+            .unwrap(),
+    )
+    .unwrap();
+    let bytes = to_bytes(response.into_body(), 65536).await.unwrap();
+    assert_eq!(Digest::of(&bytes), a.lease.materials[0].material_digest);
+    let record = aq_admission::scoped_presence::PrivateInstallationRecord {
+        schema_version: 1,
+        operation_id: fetch.operation_id,
+        preparation_digest: a.digest().unwrap(),
+        worker: q.original.identity.clone(),
+        kernel_boot_id: Uuid::new_v4(),
+        clock_source: aq_admission::scoped_presence::ClockSource::Boottime,
+        sent_ns: 1_000_000_000,
+        received_ns: 1_001_000_000,
+        material_synced_ns: 1_002_000_000,
+        retrieval_deadline_ns: delivery
+            .clock
+            .client_deadline_ns(1_000_000_000, 1_001_000_000)
+            .unwrap(),
+        delivery,
+    };
+    let materials = vec![record.receipt().unwrap()];
+    let prepared = phase::PrepareRequest {
+        schema_version: 2,
+        negotiation: q.negotiation.clone(),
+        accepted_receipt_digest: a.digest().unwrap(),
+        expected_preparation_revision: a.lease.revision,
+        original: aq_admission::transport::Prepare {
+            schema_version: 1,
+            operation_id: Uuid::new_v4(),
+            identity: q.original.identity.clone(),
+            binding: q.original.acceptance.binding.clone(),
+            reservation: q.original.reservation.clone(),
+            guardian_id: q.original.guardian_id,
+            launch_id: q.original.launch_id,
+            journal_revision: q.original.journal_revision + 1,
+            journal_digest: Digest::of(b"synthetic durable Prepared record"),
+            artifacts,
+            materials,
+        },
+    };
+
+    prepared.validate_for(&a, &q, &p).unwrap();
+    Prepared {
+        c,
+        p,
+        q,
+        a,
+        prepared,
+    }
+}
+async fn assert_unissued(c: &Case) {
+    let row=sqlx::query("SELECT (SELECT count(*) FROM profiled_phase_execution_grants) AS grants,(SELECT count(*) FROM admission_material_receipts) AS materials,state FROM profiled_authority_hot").fetch_one(&c.env.env.pool).await.unwrap();
+    assert_eq!(row.get::<i64, _>("grants"), 0);
+    assert_eq!(row.get::<i64, _>("materials"), 0);
+    let hot: Value = row.get("state");
+    assert_eq!(hot["status"], "preparing");
+    assert!(hot["grant"].is_null());
+}
+#[tokio::test]
+async fn actual_phase_issuer_commits_exact_receipt_and_replay_without_extension() {
+    let f = prepared(true).await;
+    let auth = auth(&f.c).await;
+    let nonce = Uuid::new_v4();
+    let first = phase_execution::prepare(&f.c.env.env.state, &auth, &f.prepared, nonce)
+        .await
+        .unwrap();
+    first
+        .validate_for(&f.prepared, &f.a, &f.q, &f.p, nonce)
+        .unwrap();
+    let replay = phase_execution::prepare(&f.c.env.env.state, &auth, &f.prepared, Uuid::new_v4())
+        .await
+        .unwrap();
+    assert_eq!(
+        first.receipt.digest().unwrap(),
+        replay.receipt.digest().unwrap()
+    );
+    let counts:(i64,i64,i64)=sqlx::query_as("SELECT (SELECT count(*) FROM profiled_phase_execution_grants),(SELECT count(*) FROM admission_material_receipts),(SELECT count(*) FROM profiled_execution_receipts WHERE kind='prepare')").fetch_one(&f.c.env.env.pool).await.unwrap();
+    assert_eq!(counts, (1, 1, 0));
+}
+#[tokio::test]
+async fn absent_execution_qualification_refuses_without_mutation() {
+    let mut f = prepared(true).await;
+    let mut config = (*f.c.env.env.state.config).clone();
+    let mut profiled = (**config.profiled_execution.as_ref().unwrap()).clone();
+    profiled.definition_bodies.retain(|d| {
+        !d.artifact()
+            .id
+            .as_str()
+            .starts_with("aq.phase-execution-qualification/")
+    });
+    config.profiled_execution = Some(std::sync::Arc::new(profiled));
+    f.c.env.env.state.config = std::sync::Arc::new(config);
+    assert!(
+        phase_execution::prepare(
+            &f.c.env.env.state,
+            &auth(&f.c).await,
+            &f.prepared,
+            Uuid::new_v4()
+        )
+        .await
+        .is_err()
+    );
+    assert_unissued(&f.c).await;
+}
+#[tokio::test]
+async fn original_legacy_inventory_is_not_relabelled_as_phase_qualification() {
+    let f = prepared(false).await;
+    assert!(
+        phase_execution::prepare(
+            &f.c.env.env.state,
+            &auth(&f.c).await,
+            &f.prepared,
+            Uuid::new_v4()
+        )
+        .await
+        .is_err()
+    );
+    assert_unissued(&f.c).await;
+}
+
+#[path = "phase_execution/atomicity.rs"]
+mod atomicity;
+
+#[path = "phase_execution/refusals.rs"]
+mod refusals;

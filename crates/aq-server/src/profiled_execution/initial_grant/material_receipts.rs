@@ -50,7 +50,7 @@ pub(crate) async fn load_installed_receipt_locked(
 /// Under the same lease lock and shared quota lock as first grant. Each retained
 /// row is included once in the shared actual retained JSONB aggregate; exact
 /// existing bytes neither rotate installation identity nor add another row.
-pub(super) async fn retain(
+pub(crate) async fn retain(
     tx: &mut Transaction<'_, Postgres>,
     lease: &MaterialLease,
     receipt: &MaterialReceipt,

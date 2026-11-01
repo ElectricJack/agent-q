@@ -26,7 +26,9 @@ use aq_admission::{
 };
 pub(crate) use history::OriginalGrant;
 pub(crate) use history::load_original_grant_locked as load_legacy_original_grant_locked;
-pub(crate) use material_receipts::load_installed_receipt_locked;
+pub(crate) use material_receipts::{
+    load_installed_receipt_locked, retain as retain_installation_locked,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{Postgres, Row, Transaction};

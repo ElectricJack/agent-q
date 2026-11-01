@@ -33,15 +33,24 @@ impl Readers {
     fn start() -> Result<Self, ()> {
         Self::with_reader(read)
     }
+    fn start_phase() -> Result<Self, ()> {
+        Self::with_reader_named(read, "aq-phase-material")
+    }
     fn with_reader(
         reader: fn(&Input) -> Result<Fingerprint, material::MaterialError>,
+    ) -> Result<Self, ()> {
+        Self::with_reader_named(reader, "aq-renew-material")
+    }
+    fn with_reader_named(
+        reader: fn(&Input) -> Result<Fingerprint, material::MaterialError>,
+        name: &str,
     ) -> Result<Self, ()> {
         let (send, receive) = mpsc::sync_channel::<Job>(2);
         let receive = Arc::new(Mutex::new(receive));
         for index in 0..2 {
             let receive = receive.clone();
             std::thread::Builder::new()
-                .name(format!("aq-renew-material-{index}"))
+                .name(format!("{name}-{index}"))
                 .spawn(move || {
                     loop {
                         let job = match receive.lock() {
@@ -105,6 +114,27 @@ pub async fn verify(
         .get_or_init(Readers::start)
         .as_ref()
         .map_err(|_| unavailable())?;
+    verify_with(readers, registry, lease, node).await
+}
+/// Separate initial-phase pool; initial Grant work never consumes renewal reserve.
+pub(crate) async fn verify_phase(
+    registry: Arc<LoadedRegistry>,
+    lease: MaterialLease,
+    node: Uuid,
+) -> Result<Fingerprint, AppError> {
+    static READERS: OnceLock<Result<Readers, ()>> = OnceLock::new();
+    let readers = READERS
+        .get_or_init(Readers::start_phase)
+        .as_ref()
+        .map_err(|_| unavailable())?;
+    verify_with(readers, registry, lease, node).await
+}
+async fn verify_with(
+    readers: &Readers,
+    registry: Arc<LoadedRegistry>,
+    lease: MaterialLease,
+    node: Uuid,
+) -> Result<Fingerprint, AppError> {
     let reply = readers.submit(Input {
         registry,
         lease,
