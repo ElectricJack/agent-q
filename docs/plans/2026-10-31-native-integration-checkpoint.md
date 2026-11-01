@@ -428,3 +428,12 @@ closure owners, and additive033 compatibility fencing tested with already-open
 old-style SQL writers. The schema32 preview stays current while these candidates
 are isolated. No route, capability, renewal, task settlement or provider execution
 is activated by that design.
+
+The [standalone phase terminal contract](../implementation/AQ-08-phase-terminal-contract.md)
+is integrated at `3a90ef3` with exact-archive evidence at `1766040`. Its12 source
+and12 extracted tests pass, including strict negotiation, phase origin, bounded
+Started/Stopped/closure envelopes and lost-first-Grant history lookup. History and
+ACKs carry no live execution authority. Root independently verified18 source and26
+evidence files. The format9 process evidence above also has independently verified
+source, binary and log hashes. Worker producer, paired daemon owner and033 migration
+qualification continue separately; this pure contract activates none of them.
