@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "source_revision": "f1ece57e1806882019638fac4114d5582babc25f",
+  "source_prerequisite": "ac56455",
+  "test_prerequisite": "f1ece57",
+  "default_activation": false,
+  "state_format_version": 31,
+  "migration_032_registered": false,
+  "scope": "Immutable accepted no-launch origin and explicit refusal by legacy Started/original Grant readers; no phase execution issuer or route.",
+  "source_files": [
+    {
+      "path": "crates/aq-server/src/profiled_execution.rs",
+      "sha256": "306b33bd5d5ab74b1a6f6736fff38865deda89ce2d9d96763f664c1a8a7084af"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/accepted_preparation.rs",
+      "sha256": "3020167a8f688c42efc81a8e68254494d002d96ebac753fbc2cd23995b5be33e"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/accepted_preparation/history.rs",
+      "sha256": "16a2e4b9417cf30d3ec18232bf8557720b211d163096c6753ac0250a362c7400"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/initial_authority.rs",
+      "sha256": "b4e4e5679eb9de22791bb75a54bebfe333afcc31436538db5b51376b5bdfee4d"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/initial_grant.rs",
+      "sha256": "3623da4fbaf337dddee602f2ea91f1e7438ef1085acbbc9e8aa680d033dcd1f8"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/started.rs",
+      "sha256": "5d6dae53c8c35b0858d54e5e6c22ef863af42fb8d65cf659206eb49684c6d65b"
+    },
+    {
+      "path": "crates/aq-server/tests/native_accepted_preparation.rs",
+      "sha256": "99fb0a68ac5e1d65a2f2c9b998fc2b5cad5b002bb012ef6cc3db6eb52f3acc48"
+    },
+    {
+      "path": "crates/aq-server/tests/native_accepted_preparation/unsupported_history.rs",
+      "sha256": "c66b76ec727d5fd4e98133f65e7fac12709aa388f715fd08954073e9e71daca0"
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/AQ-08-phase-origin-evidence/aq-phase-origin-negative-before.log",
+      "sha256": "daee82c1114a3e5e7c04881948d813127d5d53592024f544bf9caa6acf43c8e0"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-origin-evidence/aq-phase-origin-negative-after.log",
+      "sha256": "72aca80a29bd0b6bdde5d527f25f1b562a42a5c739d7dd7cbd919b1b8ecfd43f"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-origin-evidence/aq-phase-origin-negative-clippy.log",
+      "sha256": "ef305eeb2ee666c492c51455cac845605ddfbead1edf3ee3915c1e8b4ac65cee"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-origin-evidence/aq-phase-history-clippy.log",
+      "sha256": "fcaa0572a863aabb26d3d26986c370fbf129220fcf47daff5c7d9933c4d0a63f"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-origin-evidence/aq-phase-history-regressions.log",
+      "sha256": "c372a39e2af34b53367074e208b908e68ce0d9befa076b95290fba5b01104c35"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-origin-evidence/aq-phase-history-concurrent-focused.log",
+      "sha256": "298fdd14c0526f686e2fbfc4905a5b495651eef0454949145ce9a02cab1cbef8"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-origin-evidence/aq-phase-history-presence-focused.log",
+      "sha256": "31c09ac12782e945c3822934ab2b0fb6c4010e4f78dab939493bd28df570a492"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-origin-evidence/aq-phase-history-started.log",
+      "sha256": "4b285fcbc0180580ccab122a05ce4a4fede242f7d40a2a97d66d5d9b1e8981b1"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-origin-evidence/aq-phase-history-origin-focused.log",
+      "sha256": "6d00b1143706c55b4bc322881890fe7d8cfa0336a60238f29cb2d79d278368b6"
+    }
+  ],
+  "results": {
+    "strict_all_targets_all_features_clippy": "pass, 46.93s",
+    "origin_negative_before": "1 pass, 1 fail; Started incorrectly accepted shaped hot Grant under actual Accepted origin",
+    "origin_after": "2 pass, 2.80s on exact source revision",
+    "granted_closure": "10 pass",
+    "accepted_preparation": "14 pass before added origin tests",
+    "profiled_started": "6 pass",
+    "initial_grant_aggregate": "35 pass, 2 safe-expiry failures, 5 declared ignores",
+    "same_two_individual_reruns": "2 pass without clock or TTL changes; 1.64s and 1.51s"
+  },
+  "limitations": [
+    "Aggregate initial-grant qualification was not all green: original 2-second selection/execution expiry refusals under concurrent load are retained.",
+    "All PostgreSQL fixtures use scripts/test-db disposable server with synthetic Graph/Git/runtime qualifications unless a log explicitly says otherwise; five explicit actual-Git/process cases were not run here.",
+    "No phase execution Grant, migration032, Started adapter, renewal adaptation, closure adaptation, provider launch or production activation claim."
+  ]
+}

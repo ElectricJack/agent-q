@@ -1,0 +1,20 @@
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 35.31s
+     Running tests/native_accepted_preparation.rs (/tmp/aq-native-union-target/debug/deps/native_accepted_preparation-0088f350c1faf147)
+
+running 2 tests
+
+thread 'unsupported_history::accepted_phase_origin_cannot_enter_legacy_started_through_shaped_hot_grant' (390223) panicked at crates/aq-server/tests/native_accepted_preparation/unsupported_history.rs:96:5:
+phase origin must not acquire legacy Started: Ok(Receipt { schema_version: 1, operation_id: 424fc2df-1ab8-4b57-9c67-fd727678a010, binding: LaunchBinding { session: Remote { node_id: f359935b-1cc8-442c-9824-7b83543ab677, boot_id: 2c3d26c8-e632-442b-9163-dad5ad633b4d, attempt_id: a47823f0-f2d7-52e8-9bc3-7e10dbb68f8d, assignment_generation: 1, session_id: 239697e5-c650-5d0d-b3a3-a75cd7bd041b }, schema_version: 1, offer_id: 6ecdacf0-d7d9-5c78-b228-eb2ac5873284, attempt_id: a47823f0-f2d7-52e8-9bc3-7e10dbb68f8d, assignment_generation: 1, execution_spec_digest: Digest("a27ec948a43679116fc8c654a7830cdea3bccfabd12fac3268a30c1b03290961"), launch_manifest_digest: Digest("1d56e42c2da154825cb99b2a1402b7d0b7d5ae09852391fdcbfd0fe4ecde86d3"), graph_access_profile_digest: Digest("4ce19465993b86b925a3e6f204c1e926389fe54c5730fed6c0a102933fbace6e") }, grant_id: f2cb6d8f-3557-44ae-97f1-42ccda45e320, request_digest: Digest("272cf12b0c847f2162385b7d97dd105ce148939aeecb6c25400d1ce54a98973e"), recorded_at_ms: 1793505642859, authority_revision_at_record: 4 })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test unsupported_history::accepted_phase_origin_cannot_enter_legacy_started_through_shaped_hot_grant ... FAILED
+test unsupported_history::accepted_phase_origin_cannot_acquire_legacy_original_grant_through_renewal ... ok
+
+failures:
+
+failures:
+    unsupported_history::accepted_phase_origin_cannot_enter_legacy_started_through_shaped_hot_grant
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 14 filtered out; finished in 2.62s
+
+error: test failed, to rerun pass `-p aq-server --test native_accepted_preparation`
