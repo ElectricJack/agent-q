@@ -77,3 +77,9 @@ immutable original clocks, and exact Grant replay. It does not widen existing
 fixtures or qualify a provider, tokenizer, sandbox, hard-cost ledger or real CLI.
 
 The [installed adapter input boundary](../../../aq-worker/docs/implementation/WRK-08-installed-adapter-handoff.md) is now implemented and independently reviewed. It validates an operator-pinned manifest and installed executables, and borrows exact retained private material without adding a store or journal. Four adapter tests, five material tests, strict lint and default library checks pass. It deliberately has no command constructor or launcher; ordinary native orchestration and the concrete harness handoff remain next.
+
+## Eight-subagent execution allocation
+
+The [current parallel delivery plan](../../../aq-dashboard/docs/plans/0003-live-dashboard-delivery.md) assigns two independent native owners alongside six dashboard owners and root integration. WRK-17 owns the concrete adapter, startup/private configuration, observed readiness and launch/host boundary. WRK-18 owns installed preflight, command/configuration and production orchestration. Root and both owners agree a narrow executor/preflight interface before implementations depend on it; isolated executor peers allow orchestration tests while the concrete adapter progresses.
+
+Both tasks have completed foundation prerequisites and can begin independently. WRK-08 remains the final concrete join and real runtime qualification gate. An executor peer never establishes advertised runtime eligibility. Once native work becomes sequential, one owner can complete the join while the freed slot takes ready dashboard work. Shared target caches and heavy test windows are assigned separately from source ownership.

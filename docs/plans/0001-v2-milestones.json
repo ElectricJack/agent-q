@@ -1085,7 +1085,9 @@
         "GATE-03",
         "CON-02",
         "WRK-10",
-        "AQ-20"
+        "AQ-20",
+        "WRK-17",
+        "WRK-18"
       ],
       "requirements": [
         "W1",
@@ -2165,7 +2167,7 @@
         "E6",
         "P3"
       ],
-      "scope": "Publish bounded browser/client contracts for tasks, attempts, workers, messages, runs and permitted actions with freshness, revision, pending-operation and reason metadata. API-03 through API-12 subdivide the dashboard read, conversation, evidence and command owners; their independent delivery does not wait for this parent to close.",
+      "scope": "Publish bounded browser/client contracts for tasks, attempts, workers, messages, runs and permitted actions with freshness, revision, pending-operation and reason metadata. API-03 through API-13 subdivide the dashboard read, conversation, evidence and command owners; their independent delivery does not wait for this parent to close.",
       "acceptance": [
         "UI mocks derive from versioned schemas; authoritative state and last observations are distinct.",
         "CLI and dashboard routes share domain operations and authorization; every pending/unknown result is representable.",
@@ -2232,7 +2234,7 @@
       "kind": "implementation",
       "status": "planned",
       "depends_on": [
-        "UI-05",
+        "UI-13",
         "UI-06",
         "UI-07",
         "API-10"
@@ -2646,7 +2648,7 @@
       "kind": "implementation",
       "status": "in_progress",
       "depends_on": [
-        "UI-05",
+        "UI-17",
         "CON-02"
       ],
       "requirements": [
@@ -2737,7 +2739,7 @@
       "kind": "implementation",
       "status": "planned",
       "depends_on": [
-        "UI-05",
+        "UI-13",
         "CON-03",
         "UI-12"
       ],
@@ -2969,7 +2971,7 @@
         "U3",
         "U6"
       ],
-      "scope": "Publish scoped human task list/detail/dependency and knowledge search/document/revision projections over the existing Graph client. Reuse current domain readers without borrowing an agent principal or creating a second task database. Include an early bounded task/project contribution to Overview, preserving unknown review/result coverage rather than waiting for the full aggregate owner.",
+      "scope": "Publish scoped human task list/detail/dependency and knowledge search/document/revision projections over the existing Graph client. Reuse current domain readers without borrowing an agent principal or creating a second task database. Supply reusable task/project facts and DTOs to the separate API-13 Overview owner; this task does not edit Overview aggregation.",
       "acceptance": [
         "Mounted routes test current Owner/project authorization, revoked scope, revision identity, pagination and bounded graph neighborhoods against actual Graph data. Existing session ACL alone grants no project-wide document access.",
         "Publish DTOs, validators, fixtures and capabilities; supported unavailable/partial states never become empty success. Work and Knowledge can qualify without a live harness."
@@ -3102,7 +3104,7 @@
       "kind": "implementation",
       "status": "planned",
       "depends_on": [
-        "API-03",
+        "API-13",
         "API-04",
         "API-06",
         "AQ-24",
@@ -3245,7 +3247,7 @@
       "kind": "implementation",
       "status": "planned",
       "depends_on": [
-        "AQ-01"
+        "UI-13"
       ],
       "requirements": [
         "U1",
@@ -3272,7 +3274,7 @@
       "kind": "implementation",
       "status": "planned",
       "depends_on": [
-        "UI-05",
+        "UI-13",
         "API-03"
       ],
       "requirements": [
@@ -3281,7 +3283,7 @@
         "U3",
         "U6"
       ],
-      "scope": "Connect existing task list/detail/dependency graph/search and build knowledge document/revision inspection against published human Graph adapters. Deliver selected-inspector desktop and single-pane mobile compositions. Populate the early partial Overview from that actual contribution; full aggregation/layout remain UI-11.",
+      "scope": "Connect existing task list/detail/dependency graph/search and build knowledge document/revision inspection against published human Graph adapters. Deliver selected-inspector desktop and single-pane mobile compositions. Overview implementation belongs to UI-15/UI-11; this owner supplies working Work/Knowledge/Search links and does not edit Overview components.",
       "acceptance": [
         "Live browser tests navigate actual Graph tasks, dependency neighborhoods and knowledge revisions, including scope/pagination/deep links and current versus pinned history.",
         "Named Work/Knowledge mockup comparisons cover filters, graph controls, document metadata and responsive layout; component tests remain independent of Graph.",
@@ -3301,7 +3303,7 @@
       "kind": "implementation",
       "status": "planned",
       "depends_on": [
-        "UI-05",
+        "UI-13",
         "API-04"
       ],
       "requirements": [
@@ -3331,7 +3333,7 @@
       "kind": "implementation",
       "status": "planned",
       "depends_on": [
-        "UI-05",
+        "UI-13",
         "API-05"
       ],
       "requirements": [
@@ -3360,10 +3362,9 @@
       "kind": "implementation",
       "status": "planned",
       "depends_on": [
-        "UI-05",
-        "API-06",
-        "API-11",
-        "API-12"
+        "UI-14",
+        "UI-18",
+        "UI-19"
       ],
       "requirements": [
         "U1",
@@ -3392,8 +3393,7 @@
       "kind": "implementation",
       "status": "planned",
       "depends_on": [
-        "UI-05",
-        "API-07",
+        "UI-16",
         "AQ-17"
       ],
       "requirements": [
@@ -3423,7 +3423,7 @@
       "kind": "implementation",
       "status": "planned",
       "depends_on": [
-        "UI-05",
+        "UI-15",
         "API-08",
         "API-09"
       ],
@@ -3453,7 +3453,7 @@
       "kind": "implementation",
       "status": "planned",
       "depends_on": [
-        "UI-05",
+        "UI-13",
         "CON-03",
         "AQ-24"
       ],
@@ -3475,6 +3475,294 @@
         "New hibernation/stall lifecycle owners",
         "Claiming account quota from usage",
         "Full terminal rendering/control"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "WRK-17",
+      "title": "Implement concrete pinned native harness adapter and exec boundary",
+      "repo": "aq-worker",
+      "milestone": "M4",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "WRK-05",
+        "WRK-06",
+        "CON-02",
+        "WRK-10",
+        "AQ-20"
+      ],
+      "requirements": [
+        "H1",
+        "H2",
+        "H3",
+        "H4",
+        "W2",
+        "W9"
+      ],
+      "scope": "Implement the concrete harness mapping, exact startup delivery, private configuration/material handoff, final executable verification, observed readiness and guarded process ownership. Agree a narrow executor/preflight interface with WRK-18; own adapter/launch integration.",
+      "acceptance": [
+        "Pinned local offline programs prove exact startup bytes, isolated configuration, private material handling, process ownership, readiness-event parsing and stop behavior. Wrapper PID alone is not readiness.",
+        "The production runner can consume the reviewed executor interface; no synthetic type promotion or runtime capability advertisement substitutes for qualification. Actual provider/model qualification remains WRK-08."
+      ],
+      "out_of_scope": [
+        "Completing live provider qualification from offline tests",
+        "Native runner command/orchestration owned by WRK-18"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "WRK-18",
+      "title": "Implement production native runner orchestration and preflight",
+      "repo": "aq-worker",
+      "milestone": "M4",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "WRK-05",
+        "WRK-06",
+        "GATE-03",
+        "CON-02",
+        "WRK-10",
+        "AQ-20"
+      ],
+      "requirements": [
+        "W2",
+        "W9",
+        "X8",
+        "X9"
+      ],
+      "scope": "Implement native configuration/preflight, foreground command and registration/poll/preparation/admission lifecycle, exact Started/Stopped/output delivery and graceful stop/history. Own main/configuration/runner files; develop against the executor interface jointly reviewed with WRK-17.",
+      "acceptance": [
+        "Explicit executor peers test orchestration, capacity, deadlines, duplicate/lost responses, cleanup and historical restart without granting fake runtime eligibility.",
+        "Production configuration refuses unsupported or unqualified adapters before admission; final concrete adapter join and actual run remain WRK-08 acceptance."
+      ],
+      "out_of_scope": [
+        "Concurrent edits to adapter/launch owner files",
+        "Reopened-journal live adoption or implicit renewal"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "UI-13",
+      "title": "Freeze reusable dashboard layout and component interfaces",
+      "repo": "aq-dashboard",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "AQ-01"
+      ],
+      "requirements": [
+        "U1",
+        "U3",
+        "U6"
+      ],
+      "scope": "Publish the shared panel/control/layout interfaces and feature integration conventions early, reusing existing tokens and component code. This bounded handoff releases feature work while UI-05 continues visual refinement.",
+      "acceptance": [
+        "Document exports and responsive behavior with representative feature fixtures; feature owners can implement independently without copying shared styles.",
+        "Contract/auth/query integration remains single-owned; unavailable/partial/error presentations remain expressible."
+      ],
+      "out_of_scope": [
+        "Requiring every page to finish before the handoff"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "UI-14",
+      "title": "Deliver live result metadata and exact revision inspection",
+      "repo": "aq-dashboard",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "UI-13",
+        "API-06"
+      ],
+      "requirements": [
+        "U1",
+        "U2",
+        "U3",
+        "U6"
+      ],
+      "scope": "Deliver the first Results increment: real bounded metadata cards, exact result revision/source/report associations and evidence references. Declare the visual subset and deferred media/comment panels.",
+      "acceptance": [
+        "Actual authorized result records are discoverable and deep-linkable with distinct recorded/reviewed/settled facts and safe unavailable evidence links.",
+        "Metadata card/detail layout passes desktop/mobile review; this increment does not claim full Results completion."
+      ],
+      "out_of_scope": [
+        "Waiting for media or feedback owners",
+        "Synthetic production media"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "API-13",
+      "title": "Expose early bounded Overview task and project contributions",
+      "repo": "agent-q",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "API-03"
+      ],
+      "requirements": [
+        "D9",
+        "U2",
+        "U3"
+      ],
+      "scope": "Expose bounded actual task/project contributions to Overview as soon as human Graph reads qualify. Publish source coverage and timestamps; review/result/availability contributions remain independently optional until their owners join.",
+      "acceptance": [
+        "Actual nonempty task/project data is visible through current human authorization; partial coverage and unavailable counts remain explicit.",
+        "Bound and batch read work; never turn page-local rows into global totals or infer readiness from a task label."
+      ],
+      "out_of_scope": [
+        "Waiting for all review/result owners",
+        "Full quota aggregation"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "UI-15",
+      "title": "Deliver core Overview layout and actual partial summaries",
+      "repo": "aq-dashboard",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "UI-13",
+        "API-13"
+      ],
+      "requirements": [
+        "U1",
+        "U2",
+        "U3",
+        "U6"
+      ],
+      "scope": "Deliver the core Overview two-column composition and available actual task/project contributions with independent section coverage. Quota and missing result/decision sources do not gate this increment.",
+      "acceptance": [
+        "Live data produces working authorized links and useful partial summaries; unavailable source sections retain their intended layout and honest state.",
+        "Desktop/phone screenshots demonstrate the declared core Overview visual subset; full UI-11 remains open for its remaining sources."
+      ],
+      "out_of_scope": [
+        "Waiting for provider quota",
+        "Fabricated totals"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "UI-16",
+      "title": "Build supervisor conversation presentation and history increment",
+      "repo": "aq-dashboard",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "UI-13",
+        "API-07"
+      ],
+      "requirements": [
+        "U1",
+        "U2",
+        "U3",
+        "U4",
+        "U5",
+        "U6"
+      ],
+      "scope": "Implement shared dock/full/mobile conversation history, draft/context and recoverable submission presentation using the actual conversation owner. Actor availability and delivery remain explicit; actual reply qualification stays UI-10/AQ-17.",
+      "acceptance": [
+        "Actual conversation/history and durable submission are exercised without inventing supervisor replies; absent actor preserves the draft and stable recipient.",
+        "Responsive composition, IME and one-message recovery tests pass; the increment is labelled separately from full real-reply acceptance."
+      ],
+      "out_of_scope": [
+        "Waiting for central harness hosting to build history/composer",
+        "Presenting mailbox acceptance as completed reasoning"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "UI-17",
+      "title": "Deliver the focused live read-only Agents workspace",
+      "repo": "aq-dashboard",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "UI-13",
+        "CON-02"
+      ],
+      "requirements": [
+        "U1",
+        "U3",
+        "U6",
+        "U9",
+        "U10",
+        "U11"
+      ],
+      "scope": "Implement the focused session switcher, large actual literal output tail, status footer and details disclosure using existing session/terminal APIs. Declare the read-only visual subset; complete renderer/control remains UI-03.",
+      "acceptance": [
+        "Existing actual worker/daemon/browser output path is preserved with incomplete/gap/disconnect/expiry and authorization semantics.",
+        "Reviewed desktop/mobile composition provides readable focused output; no full screen, input or controller qualification is inferred."
+      ],
+      "out_of_scope": [
+        "Waiting for production native runner",
+        "Interactive renderer/control"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "UI-18",
+      "title": "Deliver retained result media browsing",
+      "repo": "aq-dashboard",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "UI-14",
+        "API-11"
+      ],
+      "requirements": [
+        "U1",
+        "U2",
+        "U3",
+        "U6"
+      ],
+      "scope": "Add actual retained image/clip evidence to the Results feed/detail with bounded thumbnails/cards and exact result/artifact revision associations.",
+      "acceptance": [
+        "Actual upload/finalize/retrieval data is visible with expired/withheld/missing states and scope checks.",
+        "Desktop/mobile media layout, accessible playback and stable reading position pass; comments are a separate increment."
+      ],
+      "out_of_scope": [
+        "Waiting for feedback-task creation"
+      ],
+      "evidence": []
+    },
+    {
+      "id": "UI-19",
+      "title": "Deliver result comments and explicit feedback task UI",
+      "repo": "aq-dashboard",
+      "milestone": "M6",
+      "kind": "implementation",
+      "status": "planned",
+      "depends_on": [
+        "UI-18",
+        "API-12"
+      ],
+      "requirements": [
+        "U1",
+        "U2",
+        "U3",
+        "U4",
+        "U5",
+        "U6"
+      ],
+      "scope": "Add revision-pinned discussion/anchors and explicit feedback-task draft/create/link/resolution to Results using the durable owner.",
+      "acceptance": [
+        "Posting comments schedules nothing; repeated feedback submission and response-loss recovery yield one actual linked task.",
+        "Accepted comments/feedback layouts and mobile flows preserve artifact anchors and distinguish fix submitted from resolved."
+      ],
+      "out_of_scope": [
+        "Implicit feedback creation"
       ],
       "evidence": []
     }
@@ -3510,7 +3798,7 @@
     },
     {
       "source": "../../../aq-dashboard/docs/plans/0003-live-dashboard-delivery.md",
-      "summary": "Reconcile every tab against the accepted mockups and actual human APIs; add API-03\u2013API-12 and UI-05\u2013UI-12 leaf tasks so dashboard reads and visual completion proceed alongside the native runner. Preserve full product, supervisor, media and terminal acceptance gates."
+      "summary": "Eight-subagent delivery: two independent native adapter/runner lanes and six dashboard lanes, root integration, early shared/DTO handoffs, independent Results/Overview/Supervisor/read-only Agents increments, and separately bounded build concurrency. Parent product gates retain full qualification."
     }
   ],
   "implementation_reference_maps": [
