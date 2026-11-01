@@ -877,7 +877,8 @@
         "../implementation/AQ-08-grant-expiry-dashboard-integration.md",
         "../implementation/AQ-08-actual-git-grant-qualification.md",
         "../implementation/AQ-08-initial-grant-current-graph.md",
-        "../implementation/AQ-08-reconciliation-qualification.md"
+        "../implementation/AQ-08-reconciliation-qualification.md",
+        "../implementation/AQ-08-initial-budget-material-receipts-evidence.md"
       ]
     },
     {
@@ -1071,7 +1072,8 @@
         "../implementation/AQ-08-granted-launch-closure-plan.md",
         "../../../aq-worker/docs/implementation/WRK-08-native-preparation-slice.md",
         "../../../aq-worker/docs/implementation/WRK-08-native-inputs-qualification.md",
-        "../../../aq-worker/docs/implementation/WRK-08-native-hydration-qualification.md"
+        "../../../aq-worker/docs/implementation/WRK-08-native-hydration-qualification.md",
+        "../../../aq-worker/docs/implementation/WRK-08-native-prepare-qualification.md"
       ]
     },
     {

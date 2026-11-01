@@ -9,7 +9,7 @@ its historical test results and source pins.
 | Area | Integrated behavior | Remaining product work |
 | --- | --- | --- |
 | Daemon schema and preparation | Ordered state25→27 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, read-only reconciliation, automatic ungranted expiry | Renewal, multi-project fairness, granted-before-Started closure and full settlement |
-| Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, independent material installation pins and actual Git hydration/workspace ownership | Prepare, grant/renewal and launch/stop callbacks, result/release |
+| Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, independent material installation pins and actual Git hydration/workspace ownership and durable Prepare input join | Grant/renewal and launch/stop callbacks, result/release |
 | tmux host | Durable blank terminal baseline before sealed-image exec; original physical server/pane ownership checks | Native driver adoption, selected real harness qualification and operational load envelope |
 | Playbooks | Catalog2 human decision adapter, lost-Accepted-reply recovery and explicit optional startup/drive/shutdown | Broader real adapters, workflow pilots and verified network database transport |
 | Dashboard | Live daemon overview/projects/sessions/workers with capability gates and verified static assets | Live terminals, interaction and remaining task/workflow/domain views |
@@ -81,8 +81,21 @@ retains these limitations. Journal format3 refuses older layouts unchanged.
 The pure additive granted-closure contract0.1.8 is packaged and integrated;
 58 source and58 extracted-package tests pass, with old0.1.7 compatibility checked.
 This does not enable a server closure owner or worker proof producer. Parallel
-implementation now covers renewal, retained installation evidence/initial lineage
-budgets, and ordered schema28 plus the server closure owner. The [actual Git producer-to-grant checkpoint](../implementation/AQ-08-actual-git-grant-qualification.md)
+implementation now covers renewal and ordered schema28 plus the server closure
+owner. [Initial lineage budgets and retained installation receipts](../implementation/AQ-08-initial-budget-material-receipts-evidence.md)
+are integrated at `876b60b`:57 native tests with zero ignores plus two policy
+helpers passed. The grant's immutable deadline respects the original remaining
+lineage budget. Exact verified installation receipts are atomically retained and
+included in preparation storage quotas; missing history refuses replay/renewal.
+
+The [worker Prepare join](../../../aq-worker/docs/implementation/WRK-08-native-prepare-qualification.md)
+is integrated at `42d0ea8` (source `82d3c07`):146 package tests, four declared
+ignores, a separately enabled actual-Git case, and strict lint/formatting passed.
+It joins actual verified inputs, installed materials and freshly checked source
+ownership into an immutable request before any send. Journal format4 refuses
+older layouts unchanged. These counts overlap the previous hydration suite.
+A separate worker-process/real-daemon assembly test is the next interface check;
+no complete native host execution is yet claimed. The [actual Git producer-to-grant checkpoint](../implementation/AQ-08-actual-git-grant-qualification.md)
 passes14 initial-grant tests including two actual-Git cases. The [fresh pre-grant Graph fence](../implementation/AQ-08-initial-grant-current-graph.md)
 now closes the observed task/context-change gap and passes43 selected checks,
 including both actual-Git cases. It rereads bounded readiness and exact authorized
