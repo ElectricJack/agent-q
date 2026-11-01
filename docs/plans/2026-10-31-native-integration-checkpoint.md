@@ -437,3 +437,13 @@ ACKs carry no live execution authority. Root independently verified18 source and
 evidence files. The format9 process evidence above also has independently verified
 source, binary and log hashes. Worker producer, paired daemon owner and033 migration
 qualification continue separately; this pure contract activates none of them.
+
+The [actual phase host process union](../implementation/AQ-08-phase-host-process-evidence/qualification.md)
+passes in6.99seconds with server test source `75a460e` and worker `2a818f4`
+(original source `b799930`). Actual daemon HTTP/PostgreSQL, independent worker,
+aq-git/Git, production host helper, tmux and the kernel now participate in one
+probe. Execution is durable at revision27; local Running and ECHILD shutdown are
+retained through revision34. Existing execution-only and input/expiry regressions
+pass5.64s and6.97s with the same binary. Targeted strict lint and the binary's two
+unit tests pass. Remote phase terminal ACKs, providers, renewal and task settlement
+remain unqualified; the closed synthetic harness does not activate those gates.
