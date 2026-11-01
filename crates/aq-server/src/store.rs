@@ -905,6 +905,10 @@ impl Store {
 }
 
 #[cfg(test)]
+#[path = "store/human_graph34_tests.rs"]
+mod human_graph34_tests;
+
+#[cfg(test)]
 mod tests {
     use super::MIGRATIONS;
     use crate::{READABLE_STATE_FORMATS, STATE_FORMAT_VERSION};
