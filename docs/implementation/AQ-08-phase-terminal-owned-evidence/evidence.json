@@ -1,0 +1,102 @@
+{
+  "sources": {
+    "started": "7d8426a",
+    "current_schema_legacy": "59b2888",
+    "ordered_schema": "8d52577",
+    "fixture_hook": "c350f9d",
+    "stop_builder": "f6fe239",
+    "candidate33": "6545fba",
+    "paired_owner": "25800b3"
+  },
+  "ddl_sha256": "eb3601ba5d697542d9f422a1965f16a044dde1e8fbce617ad08e912c0b3e42af",
+  "results": {
+    "Started": "10/10 passed25.95s",
+    "schema33": "9/9 passed23.76s",
+    "current33_legacy_parent_focused": "1 passed1.42s",
+    "original_phase_default_wrapper": "14/14 passed33.96s",
+    "root_owned_closure": "4/4 passed9.72s copied byte-exact root source f94e2dbaa68300c9a809caff829f1aef74e6266ee94db68af48d0e824a677b64",
+    "shared_fixture": "1/1 passed2.07s",
+    "compiled_targets": "six targets passed47.56s no warnings; narrow final rebuild2.61s"
+  },
+  "claims": [
+    "Actual phase publication/acceptance/issuance and SQL owners with explicit synthetic host/proof observations; no legacy Grant facade.",
+    "Started atomically retains exact outer request/ACK and inner request/receipt, advances physical journal and Running, preserves original grant/deadline and task claim.",
+    "Exact ACK replay is historical after expiry/retired launch eligibility; altered scope/origin refuses.",
+    "Current credential, cancellation, project and installed principal fences refuse first Started without partial state.",
+    "Observed final INSERT wait crossing expiry or moving server clock backward rolls back all changes; receipt cannot predate issuance.",
+    "Actual32-issued history upgrades through registered candidate33; missing mandatory schema/FKs/disabled trigger gates refuse reopen without auto repair.",
+    "Current33 real legacy closure parent cannot be deleted/key-updated; old32\u219233 legacy preservation remains separately retained earlier proof.",
+    "Original14 test bodies/default clocks preserved after callback hook; qualified terminal definition installed before Poll."
+  ],
+  "development_failures": [
+    "Initial Started aggregate9pass/1failure was fixture cancellation_id-only UPDATE rejected by hot status/claim invariant before owner; corrected fixture uses cancelling+revoked, final10green.",
+    "Initial candidate33 schema aggregate8pass/1failure was deliberate compiled-version policy guard rejecting prefix32 legacy policy installation before migration. New case uses genuine current33 legacy closure, accurately renamed; no metadata or production guard relaxation."
+  ],
+  "limitations": [
+    "Synthetic Graph/runtime/proof qualification does not authorize production provider/model execution. Actual remote process proof belongs to separate root integration evidence.",
+    "No renewal, result acceptance, graph settlement or task/source/effect release added.",
+    "Logical variable-byte capacity excludes row/index/WAL/RSS overhead.",
+    "Final combined strict all-target gate is parent-owned/pending; prior narrow schema lint evidence retained separately."
+  ],
+  "commands": {
+    "build": "CARGO_TARGET_DIR=/tmp/aq-native-union-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=2 cargo test -p aq-server --test phase_terminal_started --test phase_terminal_closure --test phase_terminal_stopped --test phase_terminal_fixture --test phase_execution --test schema33_phase_terminal --all-features --locked --offline --no-run",
+    "runtime": "DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres RUST_TEST_THREADS=1 <copied exact test binary> --test-threads=1"
+  },
+  "frozen_binaries": {
+    "/tmp/aq-phase-terminal-state33-frozen/started": "629065e5b530afe7c9cd268b87c796e3d6aa594b591fc3b05ac53dce53fba6fa",
+    "/tmp/aq-phase-terminal-state33-frozen/phase-execution": "614a9cba37b0c1ad42a622f7682f1ba1a628083cdcb3f45e0e98e8d10ebbaa8c",
+    "/tmp/aq-phase-terminal-state33-frozen/schema33": "38d12a184ac7914b5dac5c374509660d4da1e6d2d57009776d2ac4f306bfbcd0"
+  },
+  "source_sha256": {
+    "crates/aq-server/src/profiled_execution/phase_terminal/started.rs": {
+      "commit": "7d8426a",
+      "sha256": "36faff15a0338ffb7da5b19211c26f9e59bc29e4d43bb7d71cb64cfa86c3bed9"
+    },
+    "crates/aq-server/tests/phase_terminal_started.rs": {
+      "commit": "7d8426a",
+      "sha256": "8e70040b93f6928cb884a2f1ded0461620ecb41fd149832ac5c4b292f70f6177"
+    },
+    "crates/aq-server/tests/phase_terminal_started/clock.rs": {
+      "commit": "7d8426a",
+      "sha256": "ee53f55165abcc8fb2fb7ce364cc59c5c2c3271996fe1361f8288cd08d1796c5"
+    },
+    "crates/aq-server/tests/schema33_phase_terminal.rs": {
+      "commit": "8d52577",
+      "sha256": "82a60101b47685dd96bc2c56fed382d4092ff79dd50845b16ccacb2ec9f67385"
+    },
+    "crates/aq-server/tests/schema33_phase_terminal/ordered.rs": {
+      "commit": "8d52577",
+      "sha256": "b92d8379dd37a1ca0f679d16749fd2df6230ec3c2c4622f4705ac785c1a2017e"
+    },
+    "crates/aq-server/tests/schema33_phase_terminal/legacy_parent.rs": {
+      "commit": "59b2888",
+      "sha256": "539e9d8c233fe2ac64a3d4157b41439a6a506292cedef146dd78fb5e92fc9546"
+    },
+    "crates/aq-server/tests/common/phase_execution.rs": {
+      "commit": "c350f9d",
+      "sha256": "05dbb6bc780ab7d9c662ff50ea15600ccc32a6d968d8eea418ef6dc625d217bf"
+    },
+    "crates/aq-server/tests/common/phase_terminal.rs": {
+      "commit": "f6fe239",
+      "sha256": "bf585174f5561db8b552fd7af3bdf84dbd05173a0ab67f3c8b692314936b2e48"
+    },
+    "crates/aq-server/tests/phase_terminal_fixture.rs": {
+      "commit": "c350f9d",
+      "sha256": "ae865469831516b2d84e237d0bdbb8059433432eee7a274cee96c224a0dfb524"
+    }
+  },
+  "logs": {
+    "aq-phase-terminal-final-target-build.log": "2cad6da81bea24a25c010561361f6c171b55177cc9f1bc6c3d84fc611308927e",
+    "aq-phase-terminal-state33-build.log": "11a760eaff0e1f9127fd15df60862b84869d0a64f1bd405c3d3e7966c5d68cbf",
+    "aq-phase-terminal-current33-legacy-fk.log": "04ad118f53f3afb3e84e62839a3fa8b8e4fd5e3fa7feca580de029b185adc9b4",
+    "aq-phase-terminal-schema33-ordered-tests.log": "9122809fd42f1e83db7ac61c3a98553e9a2aa1b8dd068aef161d8bc282a9afbe",
+    "aq-phase-terminal-started-cancel-fixed.log": "2023af263236ac33deacf5a800a9f08dd6f8ee8edea87a3f5fe24a87f56a6963",
+    "aq-phase-terminal-schema33-final-tests.log": "d024ff1cd327d8f8334da0708c4cf2a0928781df3c4f8fe053e8a032a6f24408",
+    "aq-phase-terminal-closure-tests.log": "b6445d42cb473c159b2c1485bb27c85c4bb9f6ba5e69f2fa1d9397d672c19433",
+    "aq-phase-terminal-default14-regression.log": "3fe1c154edcceda1b8fbececd9081fc7690435a6b33d664416c5474e929df712",
+    "aq-phase-terminal-started-build.log": "19597132ed8f7085aeb3770b98bbd70ea35580c1256d03953271602eec70a097",
+    "aq-phase-terminal-fixture-tests.log": "54ed148e154b9e924fe3929c91b944e5bb930955f25cf0b8959d02e61cae0408",
+    "aq-phase-terminal-started-tests.log": "858314ba9e21cc60b2668f9b1a6db18ecff471656c2e4c7a325838c1203db944",
+    "aq-phase-terminal-started-final-tests.log": "0d8eb8b0b88f2f22a7346f4eb782f88fd03844e6f80cdf84574e72106836031d"
+  }
+}

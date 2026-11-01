@@ -1,0 +1,6 @@
+
+running 1 test
+test expired_or_cancelled_current_authority_cannot_record_first_started ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 2.43s
+

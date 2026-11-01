@@ -1,0 +1,6 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-phase-terminal-schema/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 43.64s
+  Executable tests/phase_execution.rs (/tmp/aq-native-union-target/debug/deps/phase_execution-b3a41af5e60f0a46)
+  Executable tests/phase_terminal_closure.rs (/tmp/aq-native-union-target/debug/deps/phase_terminal_closure-9a1df66ec8ffe93a)
+  Executable tests/phase_terminal_fixture.rs (/tmp/aq-native-union-target/debug/deps/phase_terminal_fixture-86199035d86aadd2)
+  Executable tests/phase_terminal_started.rs (/tmp/aq-native-union-target/debug/deps/phase_terminal_started-6440845e72bf5e09)

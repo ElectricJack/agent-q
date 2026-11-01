@@ -1,0 +1,27 @@
+
+running 10 tests
+test actual_phase_started_records_original_ack_without_extending_grant_and_replays_after_expiry ... ok
+test changed_project_and_current_principal_cannot_gain_started_authority ... ok
+test clock_tests::final_insert_expiry_and_backward_clock_each_roll_back_actual_started ... ok
+test clock_tests::server_clock_regression_before_receipt_stamp_cannot_precede_issuance ... ok
+test exact_ack_survives_retired_launch_eligibility_but_new_start_does_not ... ok
+test expired_or_cancelled_current_authority_cannot_record_first_started ... FAILED
+test receipt_failure_rolls_back_journal_hot_and_allows_same_original_retry ... ok
+test retired_installed_policy_refuses_first_started_even_with_current_configuration ... ok
+test stale_authenticated_context_is_rechecked_before_any_started_mutation ... ok
+test wrong_outer_origin_or_inner_scope_refuses_without_partial_state ... ok
+
+failures:
+
+---- expired_or_cancelled_current_authority_cannot_record_first_started stdout ----
+
+thread 'expired_or_cancelled_current_authority_cannot_record_first_started' (477446) panicked at crates/aq-server/tests/phase_terminal_started.rs:148:184:
+called `Result::unwrap()` on an `Err` value: Database(PgDatabaseError { severity: Error, code: "23514", message: "inconsistent hot status/claim/owner", detail: None, hint: None, position: None, where: Some("PL/pgSQL function profiled_hot_guard() line 76 at RAISE"), schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("pl_exec.c"), line: Some(3897), routine: Some("exec_stmt_raise") })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    expired_or_cancelled_current_authority_cannot_record_first_started
+
+test result: FAILED. 9 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 25.01s
+

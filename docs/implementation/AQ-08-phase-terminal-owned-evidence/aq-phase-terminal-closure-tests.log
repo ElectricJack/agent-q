@@ -1,0 +1,9 @@
+
+running 4 tests
+test failed_closure_insert_rolls_back_permission_revocation_and_retains_retry_identity ... ok
+test pre_started_host_stop_can_omit_pane_and_root_status_without_inventing_started ... ok
+test suppressed_phase_closure_after_expiry_and_retirement_is_historical_and_held ... ok
+test wrong_origin_checkpoint_or_current_credential_cannot_change_phase_authority ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 9.72s
+
