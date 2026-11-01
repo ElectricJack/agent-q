@@ -19,6 +19,8 @@ pub const BULK_LIMIT: usize = 2;
 pub struct Admission {
     control: Semaphore,
     renewal: Semaphore,
+    material_presence: Semaphore,
+    material_inventory: Semaphore,
     general: Semaphore,
     bulk: Semaphore,
     notification: Semaphore,
@@ -34,6 +36,8 @@ impl Default for Admission {
         Self {
             control: Semaphore::new(CONTROL_LIMIT),
             renewal: Semaphore::new(8),
+            material_presence: Semaphore::new(4),
+            material_inventory: Semaphore::new(2),
             general: Semaphore::new(GENERAL_LIMIT),
             bulk: Semaphore::new(BULK_LIMIT),
             notification: Semaphore::new(4),
@@ -50,6 +54,8 @@ impl Default for Admission {
 pub enum Class {
     Control,
     Renewal,
+    MaterialPresence,
+    MaterialInventory,
     General,
     Bulk,
     Notification,
@@ -71,6 +77,13 @@ pub(crate) fn agent_revoke_path(path: &str) -> bool {
         .is_some_and(|id| uuid::Uuid::parse_str(id).is_ok())
 }
 pub fn classify(path: &str) -> Class {
+    if path == "/v1/worker/profiled/material-presence" {
+        return Class::MaterialPresence;
+    }
+    if path == "/v1/worker/profiled/inventory-v2" {
+        return Class::MaterialInventory;
+    }
+
     if path == "/v1/worker/profiled/renew" {
         return Class::Renewal;
     }
@@ -212,6 +225,14 @@ fn busy(path: &str, message: &str) -> Response {
         )
             .into_response()
     };
+    if matches!(
+        path,
+        "/v1/worker/profiled/material-presence" | "/v1/worker/profiled/inventory-v2"
+    ) {
+        response
+            .headers_mut()
+            .insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    }
     response
         .headers_mut()
         .insert(header::RETRY_AFTER, HeaderValue::from_static("1"));
@@ -226,6 +247,8 @@ pub async fn gate(
     let (slots, timeout) = match classify(&path) {
         Class::Control => (&admission.control, Duration::from_secs(5)),
         Class::Renewal => (&admission.renewal, Duration::from_secs(8)),
+        Class::MaterialPresence => (&admission.material_presence, Duration::from_secs(4)),
+        Class::MaterialInventory => (&admission.material_inventory, Duration::from_secs(4)),
         Class::General => (&admission.general, Duration::from_secs(15)),
         Class::Bulk => (&admission.bulk, Duration::from_secs(30)),
         Class::Notification => (&admission.notification, Duration::from_secs(10)),

@@ -42,13 +42,15 @@ pub async fn record(
     auth: &AuthenticatedNode,
     request: &InventoryV2,
 ) -> Result<InventoryReceipt, AppError> {
+    let reserved = state.presence_view();
+    let state = &reserved;
     request
         .validate()
         .map_err(|_| AppError::BadRequest("invalid typed inventory".into()))?;
     if auth.id() != request.identity.node_id {
         return Err(changed());
     }
-    let mut tx = state.store.pool.begin().await.map_err(|_| unavailable())?;
+    let mut tx = super::begin(state).await?;
     crate::worker_api::lock_current_node(&mut tx, auth).await?;
     if let Some(old) = replay(&mut tx, request).await? {
         tx.commit().await.map_err(|_| unavailable())?;
@@ -133,7 +135,7 @@ pub async fn record(
     {
         return Err(changed());
     }
-    let mut tx = state.store.pool.begin().await.map_err(|_| unavailable())?;
+    let mut tx = super::begin(state).await?;
     crate::worker_api::lock_current_node(&mut tx, auth).await?;
     if let Some(old) = replay(&mut tx, request).await? {
         tx.commit().await.map_err(|_| unavailable())?;
@@ -161,7 +163,6 @@ pub async fn record(
     } else {
         1
     };
-    let epoch = storage::expected_epoch(&mut tx, request).await?;
     let snapshot = CapabilitySnapshot {
         target: ExecutionTarget::Worker {
             node_id: auth.id(),
@@ -185,6 +186,7 @@ pub async fn record(
                 .ok_or_else(changed)?,
         ),
     };
+    let epoch = storage::expected_epoch(&mut tx, request, &snapshot).await?;
     let bytes = canonical(&snapshot)?;
     if bytes.len() > 131072 {
         return Err(AppError::PayloadTooLarge(

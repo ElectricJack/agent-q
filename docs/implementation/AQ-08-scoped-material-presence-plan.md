@@ -1,10 +1,10 @@
 # AQ-08 scoped installed-material presence
 
 This additive delivery plan follows native renewal `c5438d3` and its four-test
-ordering followup `202b9f8`. Migration029 is reserved;028 remains immutable.
-The new pure contract is part of the jointly unpublished admission0.1.9 with
-accepted-preparation v2. Existing0.1.8 schemas, fixtures and wire modules retain
-exact bytes. Root owns the combined package pin after both candidates freeze.
+ordering followup `202b9f8`. Migration029 is registered and immutable; the current integration base is state30.
+The pure contract is published in the jointly qualified admission0.1.9 archive
+(SHA256 `30f4cfca11ff6840eab325026dfea33dd55c23e25099dedb303b52a1ede75b49`).
+Existing0.1.8 schemas, fixtures and wire modules retain exact bytes.
 
 ## Separate facts and authority
 
@@ -14,7 +14,7 @@ grant. A scoped presence fact cannot make any credential globally installed or
 available, satisfy new placement/provider availability, grant/renew execution,
 change choice, adopt a new boot, or release a claim.
 
-Two negotiated APIs are proposed on the machine listener:
+Two negotiated APIs are implemented on the machine listener:
 
 - Inventory v2 reports fresh qualified harness/model support and explicit
   `ProvisionableOnly` server-material profile/revisions. It has a node-wide
@@ -87,7 +87,7 @@ other attempt on a busy node ineligible.
 
 ## Storage, locks and bounded work
 
-Migration029 will own immutable inventory semantic receipts, immutable scoped
+Migration029 owns immutable inventory semantic receipts, immutable scoped
 operation receipts and bounded latest pointers. Exact replay is checked before
 quota/new-current eligibility. Initial bounds:16 harness qualifications,
 32 provisionable profile references, one attempt/lease per report,64KiB request,
@@ -127,3 +127,50 @@ Application-owned rows and their immutable guards are tested directly.
 
 The current newer-negative policy stays unchanged until the reviewed typed
 inventory and scoped-presence owners are present. AQ-08 remains in progress.
+
+## Current server delivery
+
+`POST /v1/worker/profiled/inventory-v2` returns the immutable InventoryReceipt;
+`POST /v1/worker/profiled/material-presence` returns the immutable PresenceReceipt.
+Both accept only the frozen typed JSON, require the current machine credential,
+and return no-store responses. They do not return an execution DeliveryClock.
+Four presence and two inventory admission slots have an independent two-connection
+PG lane; lock/statement/transaction bounds are150ms/750ms/2s, with a4s HTTP bound.
+The existing private inventory reader retains its two threads, two queued jobs
+and four total owned jobs through cancellation and zeroization.
+
+An empty `provisionable_only` list makes no worker credential assertion. The
+daemon derives only current authorized server-material bindings with real private
+backing. A nonempty list restricts that set exactly; an unbacked or unauthorized
+requested profile refuses rather than broadening it. Normalized snapshot digests
+pin the actual derived set, and every binding remains globally unavailable.
+
+A compatibility epoch advances on a newly accepted legacy, runtime or qualification
+barrier. Exact retry does not advance it. Restoring V2 cannot restore a pre-barrier
+Present; the worker must make a new qualified read. The current locked inventory
+accessor validates actual normalized snapshot digest/revision, retained typed
+operation, runtime, qualification and freshness, without consuming scoped presence.
+It may support phase initial Grant as global provisionability provenance only.
+
+Server HTTP fixtures use actual artifact/material/offer/Accept/Grant owners and
+explicitly synthetic qualified worker observations. They do not qualify physical
+worker reads, multi-slot placement, provider execution or the overall native path.
+
+## Additive state31 binding-set barrier
+
+State29 and30 migration bytes remain unchanged. State31 adds a normalized binding
+set to the semantic head and replaces its SQL guard. The SQL projection strips
+only observation/expiry clocks (including preparation clocks), sorts binding
+objects, and compares actual normalized provisionability. Refresh timestamps,
+request list formatting/order and exact retry cannot cause a false barrier.
+A changed authorized/backed binding set advances the compatibility epoch, so
+remove→restore requires a new scoped read. This intentionally invalidates unrelated
+attempts after a real global binding-set change; ordinary same-set inventory
+refreshes and per-attempt reports remain independent. No new public wire version
+or schema is introduced.
+
+The current qualification exercises one actual public placement slot. Independent
+same-node simultaneous-attempt storage/owner fixtures and sustained control-lane
+load remain followup qualification; separate heads and pools alone are not
+capacity evidence. Existing renewal regressions retain current task/source,
+principal, registry and private-byte fences. No provider calls are made.

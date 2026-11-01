@@ -27,3 +27,34 @@ fn canonical(value: &impl serde::Serialize) -> Result<Vec<u8>, crate::error::App
 pub mod inventory;
 mod private_inventory;
 pub(crate) use storage::legacy as record_legacy_inventory_locked;
+
+pub(super) async fn begin(
+    state: &crate::AppState,
+) -> Result<sqlx::Transaction<'_, sqlx::Postgres>, crate::error::AppError> {
+    let mut tx = state.store.pool.begin().await.map_err(|_| unavailable())?;
+    sqlx::query("SET LOCAL lock_timeout='150ms'")
+        .execute(&mut *tx)
+        .await
+        .map_err(|_| unavailable())?;
+    sqlx::query("SET LOCAL statement_timeout='750ms'")
+        .execute(&mut *tx)
+        .await
+        .map_err(|_| unavailable())?;
+    sqlx::query("SET LOCAL idle_in_transaction_session_timeout='2s'")
+        .execute(&mut *tx)
+        .await
+        .map_err(|_| unavailable())?;
+    Ok(tx)
+}
+
+mod anchor;
+pub mod report;
+
+mod continuation;
+pub(crate) use continuation::{HeldMaterial, scoped_locked};
+
+mod api;
+pub use api::routes;
+
+mod current_inventory;
+pub(crate) use current_inventory::{current_inventory_locked, inventory_epoch_locked};

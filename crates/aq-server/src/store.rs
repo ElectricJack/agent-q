@@ -241,6 +241,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         30,
         include_str!("../migrations/0030_accepted_preparation_v2.sql"),
     ),
+    (
+        31,
+        include_str!("../migrations/0031_presence_binding_barrier.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -337,6 +341,7 @@ pub struct Store {
     pub(crate) pool: PgPool,
     control_pool: PgPool,
     renewal_pool: PgPool,
+    presence_pool: PgPool,
     pub(crate) notification_pool: PgPool,
     pub(crate) observation_pool: PgPool,
     terminal_pool: PgPool,
@@ -388,6 +393,16 @@ impl Store {
     }
 
     /// Dedicated permit-maintenance connections; initial admission/bulk never use them.
+    pub(crate) fn presence_view(&self) -> Self {
+        Self {
+            pool: self.presence_pool.clone(),
+            ..self.clone()
+        }
+    }
+    #[cfg(feature = "test-support")]
+    pub fn presence_pool_for_testing(&self) -> PgPool {
+        self.presence_pool.clone()
+    }
     pub(crate) fn renewal_view(&self) -> Self {
         Self {
             pool: self.renewal_pool.clone(),
@@ -427,6 +442,7 @@ impl Store {
         self.pool.close().await;
         self.control_pool.close().await;
         self.renewal_pool.close().await;
+        self.presence_pool.close().await;
         self.notification_pool.close().await;
         self.observation_pool.close().await;
         self.terminal_pool.close().await;
@@ -474,6 +490,29 @@ impl Store {
                     .as_ref()
                     .clone()
                     .application_name("aq-native-renewal"),
+            );
+        let presence_pool = PgPoolOptions::new()
+            .max_connections(2)
+            .acquire_timeout(Duration::from_millis(250))
+            .after_connect(|connection, _| {
+                Box::pin(async move {
+                    sqlx::query("SET statement_timeout='750ms'")
+                        .execute(&mut *connection)
+                        .await?;
+                    sqlx::query("SET lock_timeout='150ms'")
+                        .execute(&mut *connection)
+                        .await?;
+                    sqlx::query("SET idle_in_transaction_session_timeout='2s'")
+                        .execute(&mut *connection)
+                        .await?;
+                    Ok(())
+                })
+            })
+            .connect_lazy_with(
+                pool.connect_options()
+                    .as_ref()
+                    .clone()
+                    .application_name("aq-material-presence"),
             );
         let notification_pool = PgPoolOptions::new()
             .max_connections(4)
@@ -559,6 +598,7 @@ impl Store {
             pool,
             control_pool,
             renewal_pool,
+            presence_pool,
             admission: std::sync::Arc::new(crate::admission::Admission::default()),
             verified_profiled_facts: Default::default(),
             #[cfg(feature = "recovery-test-support")]
