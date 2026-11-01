@@ -1090,7 +1090,8 @@
         "../../../aq-worker/docs/implementation/WRK-08-native-prepare-qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-native-artifact-batch-qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-preparation-phase-separation.md",
-        "../implementation/AQ-08-worker-prepare-assembly.md"
+        "../implementation/AQ-08-worker-prepare-assembly.md",
+        "../../../aq-worker/docs/implementation/WRK-08-durable-initial-grant-plan.md"
       ]
     },
     {
