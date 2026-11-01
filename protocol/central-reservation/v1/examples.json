@@ -1,0 +1,330 @@
+{
+  "policy": {
+    "document": "policy",
+    "data": {
+      "schema_version": 1,
+      "kind": "global_supervisor_reservation",
+      "actor_id": "00000000-0000-0000-0000-000000000001",
+      "conversation_id": "00000000-0000-0000-0000-000000000002",
+      "enabled": true
+    }
+  },
+  "configure": {
+    "document": "configure",
+    "data": {
+      "operation_id": "00000000-0000-0000-0000-000000000006",
+      "actor_id": "00000000-0000-0000-0000-000000000001",
+      "expected_actor_revision": 0,
+      "policy": {
+        "schema_version": 1,
+        "kind": "global_supervisor_reservation",
+        "actor_id": "00000000-0000-0000-0000-000000000001",
+        "conversation_id": "00000000-0000-0000-0000-000000000002",
+        "enabled": true
+      }
+    }
+  },
+  "configure_receipt": {
+    "document": "receipt",
+    "data": {
+      "contract": "central-reservation-1",
+      "actor_id": "00000000-0000-0000-0000-000000000001",
+      "conversation_id": "00000000-0000-0000-0000-000000000002",
+      "operation_id": "00000000-0000-0000-0000-000000000006",
+      "initiating_user_id": "00000000-0000-0000-0000-000000000007",
+      "request_digest": "4d9deb96a3cbcf220690c459a1a6832a44a10b2687ff8c978a32d8a01ceefb80",
+      "actor_revision": 1,
+      "policy_revision": 1,
+      "disposition": "configured",
+      "reason": null,
+      "reservation": null
+    }
+  },
+  "preview_request": {
+    "document": "preview_request",
+    "data": {
+      "actor_id": "00000000-0000-0000-0000-000000000001",
+      "expected_actor_revision": 1,
+      "scan_after": 0,
+      "through_cursor": null
+    }
+  },
+  "preview": {
+    "document": "preview",
+    "data": {
+      "actor_id": "00000000-0000-0000-0000-000000000001",
+      "conversation_id": "00000000-0000-0000-0000-000000000002",
+      "actor_revision": 1,
+      "policy_revision": 1,
+      "scan_after": 0,
+      "through_cursor": 1,
+      "scanned_through_cursor": 1,
+      "batch": {
+        "conversation_id": "00000000-0000-0000-0000-000000000002",
+        "through_cursor": 1,
+        "messages": [
+          {
+            "message_id": "00000000-0000-0000-0000-000000000005",
+            "cursor": 1,
+            "payload_digest": "ea70961c2bbbea75a769ec0bf10b49224982ae50d731b54c7f2da565a174db88"
+          }
+        ]
+      },
+      "body_bytes": 12,
+      "coverage": "complete",
+      "has_more": false,
+      "status": "ready",
+      "execution_history": "unavailable",
+      "history_scope": "reservation_only",
+      "selection_digest": "b9a8c6c7a33c0c208319b79c10b5da93db8ecdd63c67e537394aba2ed15bfa2d"
+    }
+  },
+  "reserve": {
+    "document": "reserve",
+    "data": {
+      "operation_id": "00000000-0000-0000-0000-000000000003",
+      "reservation_id": "00000000-0000-0000-0000-000000000004",
+      "actor_id": "00000000-0000-0000-0000-000000000001",
+      "expected_actor_revision": 1,
+      "expected_policy_revision": 1,
+      "scan_after": 0,
+      "through_cursor": 1,
+      "selection_digest": "b9a8c6c7a33c0c208319b79c10b5da93db8ecdd63c67e537394aba2ed15bfa2d"
+    }
+  },
+  "reserve_receipt": {
+    "document": "receipt",
+    "data": {
+      "contract": "central-reservation-1",
+      "actor_id": "00000000-0000-0000-0000-000000000001",
+      "conversation_id": "00000000-0000-0000-0000-000000000002",
+      "operation_id": "00000000-0000-0000-0000-000000000003",
+      "initiating_user_id": "00000000-0000-0000-0000-000000000007",
+      "request_digest": "59a985b0ee2540ede3862ea589943632e0dca6fb531fcf35cd926f864add01bc",
+      "actor_revision": 2,
+      "policy_revision": 1,
+      "disposition": "reserved",
+      "reason": null,
+      "reservation": {
+        "id": "00000000-0000-0000-0000-000000000004",
+        "actor_id": "00000000-0000-0000-0000-000000000001",
+        "conversation_id": "00000000-0000-0000-0000-000000000002",
+        "revision": 1,
+        "admission_actor_revision": 2,
+        "reserve_operation_id": "00000000-0000-0000-0000-000000000003",
+        "cancel_operation_id": null,
+        "policy_revision": 1,
+        "batch": {
+          "conversation_id": "00000000-0000-0000-0000-000000000002",
+          "through_cursor": 1,
+          "messages": [
+            {
+              "message_id": "00000000-0000-0000-0000-000000000005",
+              "cursor": 1,
+              "payload_digest": "ea70961c2bbbea75a769ec0bf10b49224982ae50d731b54c7f2da565a174db88"
+            }
+          ]
+        },
+        "batch_digest": "8ee6a4becc567ae4931fd2b885cbcccf48a7e8caaac8ce580934116f46f75d64",
+        "body_bytes": 12,
+        "state": "awaiting_prepared_plan",
+        "runtime": "unavailable",
+        "prepared_plan": null,
+        "session": null,
+        "execution_history": "unavailable",
+        "history_scope": "reservation_only"
+      }
+    }
+  },
+  "cancel": {
+    "document": "cancel",
+    "data": {
+      "operation_id": "00000000-0000-0000-0000-000000000009",
+      "actor_id": "00000000-0000-0000-0000-000000000001",
+      "reservation_id": "00000000-0000-0000-0000-000000000004",
+      "expected_reservation_revision": 1
+    }
+  },
+  "cancel_receipt": {
+    "document": "receipt",
+    "data": {
+      "contract": "central-reservation-1",
+      "actor_id": "00000000-0000-0000-0000-000000000001",
+      "conversation_id": "00000000-0000-0000-0000-000000000002",
+      "operation_id": "00000000-0000-0000-0000-000000000009",
+      "initiating_user_id": "00000000-0000-0000-0000-000000000007",
+      "request_digest": "88240d3b6989a1d6bd4500bd4c23c2d2e431c755696d7352d0d87ad4d9fc817d",
+      "actor_revision": 3,
+      "policy_revision": 1,
+      "disposition": "cancelled_before_plan",
+      "reason": null,
+      "reservation": {
+        "id": "00000000-0000-0000-0000-000000000004",
+        "actor_id": "00000000-0000-0000-0000-000000000001",
+        "conversation_id": "00000000-0000-0000-0000-000000000002",
+        "revision": 2,
+        "admission_actor_revision": 2,
+        "reserve_operation_id": "00000000-0000-0000-0000-000000000003",
+        "cancel_operation_id": "00000000-0000-0000-0000-000000000009",
+        "policy_revision": 1,
+        "batch": {
+          "conversation_id": "00000000-0000-0000-0000-000000000002",
+          "through_cursor": 1,
+          "messages": [
+            {
+              "message_id": "00000000-0000-0000-0000-000000000005",
+              "cursor": 1,
+              "payload_digest": "ea70961c2bbbea75a769ec0bf10b49224982ae50d731b54c7f2da565a174db88"
+            }
+          ]
+        },
+        "batch_digest": "8ee6a4becc567ae4931fd2b885cbcccf48a7e8caaac8ce580934116f46f75d64",
+        "body_bytes": 12,
+        "state": "cancelled_before_plan",
+        "runtime": "unavailable",
+        "prepared_plan": null,
+        "session": null,
+        "execution_history": "unavailable",
+        "history_scope": "reservation_only"
+      }
+    }
+  },
+  "lookup_after_cancel": {
+    "document": "lookup",
+    "data": {
+      "receipt": {
+        "contract": "central-reservation-1",
+        "actor_id": "00000000-0000-0000-0000-000000000001",
+        "conversation_id": "00000000-0000-0000-0000-000000000002",
+        "operation_id": "00000000-0000-0000-0000-000000000003",
+        "initiating_user_id": "00000000-0000-0000-0000-000000000007",
+        "request_digest": "59a985b0ee2540ede3862ea589943632e0dca6fb531fcf35cd926f864add01bc",
+        "actor_revision": 2,
+        "policy_revision": 1,
+        "disposition": "reserved",
+        "reason": null,
+        "reservation": {
+          "id": "00000000-0000-0000-0000-000000000004",
+          "actor_id": "00000000-0000-0000-0000-000000000001",
+          "conversation_id": "00000000-0000-0000-0000-000000000002",
+          "revision": 1,
+          "admission_actor_revision": 2,
+          "reserve_operation_id": "00000000-0000-0000-0000-000000000003",
+          "cancel_operation_id": null,
+          "policy_revision": 1,
+          "batch": {
+            "conversation_id": "00000000-0000-0000-0000-000000000002",
+            "through_cursor": 1,
+            "messages": [
+              {
+                "message_id": "00000000-0000-0000-0000-000000000005",
+                "cursor": 1,
+                "payload_digest": "ea70961c2bbbea75a769ec0bf10b49224982ae50d731b54c7f2da565a174db88"
+              }
+            ]
+          },
+          "batch_digest": "8ee6a4becc567ae4931fd2b885cbcccf48a7e8caaac8ce580934116f46f75d64",
+          "body_bytes": 12,
+          "state": "awaiting_prepared_plan",
+          "runtime": "unavailable",
+          "prepared_plan": null,
+          "session": null,
+          "execution_history": "unavailable",
+          "history_scope": "reservation_only"
+        }
+      },
+      "current_reservation": {
+        "id": "00000000-0000-0000-0000-000000000004",
+        "actor_id": "00000000-0000-0000-0000-000000000001",
+        "conversation_id": "00000000-0000-0000-0000-000000000002",
+        "revision": 2,
+        "admission_actor_revision": 2,
+        "reserve_operation_id": "00000000-0000-0000-0000-000000000003",
+        "cancel_operation_id": "00000000-0000-0000-0000-000000000009",
+        "policy_revision": 1,
+        "batch": {
+          "conversation_id": "00000000-0000-0000-0000-000000000002",
+          "through_cursor": 1,
+          "messages": [
+            {
+              "message_id": "00000000-0000-0000-0000-000000000005",
+              "cursor": 1,
+              "payload_digest": "ea70961c2bbbea75a769ec0bf10b49224982ae50d731b54c7f2da565a174db88"
+            }
+          ]
+        },
+        "batch_digest": "8ee6a4becc567ae4931fd2b885cbcccf48a7e8caaac8ce580934116f46f75d64",
+        "body_bytes": 12,
+        "state": "cancelled_before_plan",
+        "runtime": "unavailable",
+        "prepared_plan": null,
+        "session": null,
+        "execution_history": "unavailable",
+        "history_scope": "reservation_only"
+      }
+    }
+  },
+  "actor_after_cancel": {
+    "document": "actor",
+    "data": {
+      "actor_id": "00000000-0000-0000-0000-000000000001",
+      "conversation_id": "00000000-0000-0000-0000-000000000002",
+      "revision": 3,
+      "policy_revision": 1,
+      "policy": {
+        "schema_version": 1,
+        "kind": "global_supervisor_reservation",
+        "actor_id": "00000000-0000-0000-0000-000000000001",
+        "conversation_id": "00000000-0000-0000-0000-000000000002",
+        "enabled": true
+      },
+      "policy_digest": "2441d3904fc4fd5688aac9e7b19c00e6f7bcba6b6c4510602dbd073b33187fa4",
+      "retained_operations": 3,
+      "retained_bytes": 31320,
+      "current_reservation": null,
+      "execution_history": "unavailable",
+      "history_scope": "reservation_only"
+    }
+  },
+  "history": {
+    "document": "history",
+    "data": {
+      "actor_id": "00000000-0000-0000-0000-000000000001",
+      "items": [
+        {
+          "id": "00000000-0000-0000-0000-000000000004",
+          "actor_id": "00000000-0000-0000-0000-000000000001",
+          "conversation_id": "00000000-0000-0000-0000-000000000002",
+          "revision": 2,
+          "admission_actor_revision": 2,
+          "reserve_operation_id": "00000000-0000-0000-0000-000000000003",
+          "cancel_operation_id": "00000000-0000-0000-0000-000000000009",
+          "policy_revision": 1,
+          "batch": {
+            "conversation_id": "00000000-0000-0000-0000-000000000002",
+            "through_cursor": 1,
+            "messages": [
+              {
+                "message_id": "00000000-0000-0000-0000-000000000005",
+                "cursor": 1,
+                "payload_digest": "ea70961c2bbbea75a769ec0bf10b49224982ae50d731b54c7f2da565a174db88"
+              }
+            ]
+          },
+          "batch_digest": "8ee6a4becc567ae4931fd2b885cbcccf48a7e8caaac8ce580934116f46f75d64",
+          "body_bytes": 12,
+          "state": "cancelled_before_plan",
+          "runtime": "unavailable",
+          "prepared_plan": null,
+          "session": null,
+          "execution_history": "unavailable",
+          "history_scope": "reservation_only"
+        }
+      ],
+      "next_before": null,
+      "has_more": false,
+      "execution_history": "unavailable",
+      "history_scope": "reservation_only"
+    }
+  }
+}

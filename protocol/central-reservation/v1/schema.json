@@ -1,0 +1,966 @@
+{
+  "$defs": {
+    "ActorView": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "conversation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "current_reservation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReservationView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "execution_history": {
+          "$ref": "#/$defs/Unavailable"
+        },
+        "history_scope": {
+          "$ref": "#/$defs/ReservationOnly"
+        },
+        "policy": {
+          "$ref": "#/$defs/LocalPolicy"
+        },
+        "policy_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "policy_revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "retained_bytes": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "retained_operations": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "actor_id",
+        "conversation_id",
+        "revision",
+        "policy_revision",
+        "policy",
+        "policy_digest",
+        "retained_operations",
+        "retained_bytes",
+        "execution_history",
+        "history_scope"
+      ],
+      "type": "object"
+    },
+    "Cancel": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "expected_reservation_revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "reservation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_id",
+        "actor_id",
+        "reservation_id",
+        "expected_reservation_revision"
+      ],
+      "type": "object"
+    },
+    "Configure": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "expected_actor_revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/$defs/LocalPolicy"
+        }
+      },
+      "required": [
+        "operation_id",
+        "actor_id",
+        "expected_actor_revision",
+        "policy"
+      ],
+      "type": "object"
+    },
+    "Coverage": {
+      "enum": [
+        "complete",
+        "partial"
+      ],
+      "type": "string"
+    },
+    "Digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "Disposition": {
+      "enum": [
+        "configured",
+        "not_configured",
+        "reserved",
+        "not_reserved",
+        "cancelled_before_plan",
+        "not_cancelled"
+      ],
+      "type": "string"
+    },
+    "History": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "execution_history": {
+          "$ref": "#/$defs/Unavailable"
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "history_scope": {
+          "$ref": "#/$defs/ReservationOnly"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/ReservationView"
+          },
+          "maxItems": 16,
+          "type": "array"
+        },
+        "next_before": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "actor_id",
+        "items",
+        "has_more",
+        "execution_history",
+        "history_scope"
+      ],
+      "type": "object"
+    },
+    "LocalPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "conversation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "kind": {
+          "$ref": "#/$defs/PolicyKind"
+        },
+        "schema_version": {
+          "format": "uint32",
+          "maximum": 1,
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "schema_version",
+        "kind",
+        "actor_id",
+        "conversation_id",
+        "enabled"
+      ],
+      "type": "object"
+    },
+    "Lookup": {
+      "additionalProperties": false,
+      "properties": {
+        "current_reservation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReservationView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "receipt": {
+          "$ref": "#/$defs/Receipt"
+        }
+      },
+      "required": [
+        "receipt"
+      ],
+      "type": "object"
+    },
+    "MailBatch": {
+      "additionalProperties": false,
+      "properties": {
+        "conversation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "messages": {
+          "items": {
+            "$ref": "#/$defs/MailRef"
+          },
+          "maxItems": 16,
+          "minItems": 1,
+          "type": "array"
+        },
+        "through_cursor": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "conversation_id",
+        "through_cursor",
+        "messages"
+      ],
+      "type": "object"
+    },
+    "MailRef": {
+      "additionalProperties": false,
+      "properties": {
+        "cursor": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "message_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "payload_digest": {
+          "$ref": "#/$defs/Digest"
+        }
+      },
+      "required": [
+        "message_id",
+        "cursor",
+        "payload_digest"
+      ],
+      "type": "object"
+    },
+    "PolicyKind": {
+      "enum": [
+        "global_supervisor_reservation"
+      ],
+      "type": "string"
+    },
+    "Preview": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "actor_revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "batch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MailBatch"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "body_bytes": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "conversation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "execution_history": {
+          "$ref": "#/$defs/Unavailable"
+        },
+        "has_more": {
+          "type": "boolean"
+        },
+        "history_scope": {
+          "$ref": "#/$defs/ReservationOnly"
+        },
+        "policy_revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "scan_after": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "scanned_through_cursor": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "selection_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "status": {
+          "$ref": "#/$defs/PreviewStatus"
+        },
+        "through_cursor": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "actor_id",
+        "conversation_id",
+        "actor_revision",
+        "policy_revision",
+        "scan_after",
+        "through_cursor",
+        "scanned_through_cursor",
+        "body_bytes",
+        "coverage",
+        "has_more",
+        "status",
+        "selection_digest",
+        "execution_history",
+        "history_scope"
+      ],
+      "type": "object"
+    },
+    "PreviewRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "expected_actor_revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "scan_after": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "through_cursor": {
+          "default": null,
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "actor_id",
+        "expected_actor_revision",
+        "scan_after"
+      ],
+      "type": "object"
+    },
+    "PreviewStatus": {
+      "enum": [
+        "ready",
+        "no_eligible_mail",
+        "partial_scan",
+        "reservation_outstanding",
+        "disabled"
+      ],
+      "type": "string"
+    },
+    "Reason": {
+      "enum": [
+        "revision_changed",
+        "policy_disabled",
+        "reservation_outstanding",
+        "selection_changed",
+        "no_eligible_mail",
+        "reservation_not_current",
+        "reservation_id_conflict"
+      ],
+      "type": "string"
+    },
+    "Receipt": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "actor_revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "contract": {
+          "const": "central-reservation-1",
+          "type": "string"
+        },
+        "conversation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "disposition": {
+          "$ref": "#/$defs/Disposition"
+        },
+        "initiating_user_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "policy_revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "request_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "reservation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReservationView"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "contract",
+        "actor_id",
+        "conversation_id",
+        "operation_id",
+        "initiating_user_id",
+        "request_digest",
+        "actor_revision",
+        "policy_revision",
+        "disposition"
+      ],
+      "type": "object"
+    },
+    "ReservationOnly": {
+      "enum": [
+        "reservation_only"
+      ],
+      "type": "string"
+    },
+    "ReservationState": {
+      "enum": [
+        "awaiting_prepared_plan",
+        "cancelled_before_plan"
+      ],
+      "type": "string"
+    },
+    "ReservationView": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "admission_actor_revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "batch": {
+          "$ref": "#/$defs/MailBatch"
+        },
+        "batch_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "body_bytes": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "cancel_operation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "conversation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "execution_history": {
+          "$ref": "#/$defs/Unavailable"
+        },
+        "history_scope": {
+          "$ref": "#/$defs/ReservationOnly"
+        },
+        "id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "policy_revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "prepared_plan": {
+          "type": "null"
+        },
+        "reserve_operation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "runtime": {
+          "$ref": "#/$defs/Unavailable"
+        },
+        "session": {
+          "type": "null"
+        },
+        "state": {
+          "$ref": "#/$defs/ReservationState"
+        }
+      },
+      "required": [
+        "id",
+        "actor_id",
+        "conversation_id",
+        "revision",
+        "admission_actor_revision",
+        "reserve_operation_id",
+        "policy_revision",
+        "batch",
+        "batch_digest",
+        "body_bytes",
+        "state",
+        "runtime",
+        "prepared_plan",
+        "session",
+        "execution_history",
+        "history_scope"
+      ],
+      "type": "object"
+    },
+    "Reserve": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "expected_actor_revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "expected_policy_revision": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "reservation_id": {
+          "format": "uuid",
+          "not": {
+            "const": "00000000-0000-0000-0000-000000000000"
+          },
+          "type": "string"
+        },
+        "scan_after": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "selection_digest": {
+          "$ref": "#/$defs/Digest"
+        },
+        "through_cursor": {
+          "format": "uint64",
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "operation_id",
+        "reservation_id",
+        "actor_id",
+        "expected_actor_revision",
+        "expected_policy_revision",
+        "scan_after",
+        "through_cursor",
+        "selection_digest"
+      ],
+      "type": "object"
+    },
+    "Unavailable": {
+      "enum": [
+        "unavailable"
+      ],
+      "type": "string"
+    }
+  },
+  "$id": "urn:agent-q:central-reservation:1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "oneOf": [
+    {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/LocalPolicy"
+        },
+        "document": {
+          "const": "policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document",
+        "data"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Configure"
+        },
+        "document": {
+          "const": "configure",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document",
+        "data"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Reserve"
+        },
+        "document": {
+          "const": "reserve",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document",
+        "data"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Cancel"
+        },
+        "document": {
+          "const": "cancel",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document",
+        "data"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/PreviewRequest"
+        },
+        "document": {
+          "const": "preview_request",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document",
+        "data"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Preview"
+        },
+        "document": {
+          "const": "preview",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document",
+        "data"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Receipt"
+        },
+        "document": {
+          "const": "receipt",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document",
+        "data"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/ActorView"
+        },
+        "document": {
+          "const": "actor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document",
+        "data"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/Lookup"
+        },
+        "document": {
+          "const": "lookup",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document",
+        "data"
+      ],
+      "type": "object"
+    },
+    {
+      "additionalProperties": false,
+      "properties": {
+        "data": {
+          "$ref": "#/$defs/History"
+        },
+        "document": {
+          "const": "history",
+          "type": "string"
+        }
+      },
+      "required": [
+        "document",
+        "data"
+      ],
+      "type": "object"
+    }
+  ],
+  "title": "Document",
+  "x-execution-authority": false,
+  "x-required-validation": "Current Owner, source, cross-field and encoded byte-budget validation by the owning service"
+}

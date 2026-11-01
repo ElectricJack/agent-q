@@ -395,6 +395,7 @@ dependencies = [
  "aq-accounting",
  "aq-admission",
  "aq-agent-api",
+ "aq-central-authority",
  "aq-lifecycle-api",
  "aq-notifications",
  "aq-observation-admission",
