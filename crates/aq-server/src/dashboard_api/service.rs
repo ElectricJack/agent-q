@@ -197,6 +197,11 @@ pub(super) async fn bootstrap(
             "Task inspection requires an owner account and configured Graph runtime",
         ),
         capability(
+            "tasks.create",
+            graph && crate::agent_access::human::task_create_available(state),
+            "Task creation requires an owner account and configured Graph mutation identity",
+        ),
+        capability(
             "knowledge.read",
             graph,
             "Knowledge inspection requires an owner account and configured Graph runtime",
