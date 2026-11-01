@@ -1,0 +1,9 @@
+
+running 4 tests
+test profiled_execution::phase_terminal::qualification::tests::oversized_policy_body_refuses_before_owner_lookup ... ok
+test profiled_execution::phase_terminal::qualification::tests::retired_runtime_cleanup_profile_remains_explicit_and_unambiguous ... ok
+test profiled_execution::phase_terminal::qualification::tests::unsupported_contract_and_unknown_policy_fields_refuse ... ok
+test profiled_execution::phase_terminal::routes::tests::version_and_content_type_must_be_single_and_exact ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 79 filtered out; finished in 0.01s
+

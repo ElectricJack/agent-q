@@ -1,0 +1,8 @@
+
+running 3 tests
+test cleanup_authentication_uses_control_connections_with_general_saturated ... ok
+test current_bearer_and_inclusive_body_limit_are_enforced_on_all_reports ... ok
+test exact_single_version_and_json_type_required_before_owner_dispatch ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.65s
+

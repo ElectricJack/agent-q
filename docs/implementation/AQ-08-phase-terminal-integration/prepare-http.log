@@ -1,0 +1,9 @@
+
+running 4 tests
+test absent_qualified_cleanup_keeps_transport_inactive_without_legacy_fallback ... ok
+test actual_production_prepare_issues_once_and_replay_keeps_independent_execution_deadline ... ok
+test auth_exact_nonce_type_negotiation_and_body_bounds_refuse_before_issuance ... ok
+test genuine_old_schema_cannot_issue_production_grant_without_reserved_cleanup_capacity ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.28s
+

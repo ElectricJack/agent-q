@@ -467,3 +467,10 @@ General pool and cannot reconstruct live permission or claim NeverGranted from
 absence. Strict targeted lint passes. Daemon Started/Stopped/closure consumers and
 registered033 migration qualification continue in parallel; no default route is
 activated by this read owner.
+
+
+## Registered phase lifecycle and live dashboard update
+
+The [integrated lifecycle result](../implementation/AQ-08-phase-terminal-integration/README.md) supersedes the earlier pending format-10 union and migration-33 statements above. Qualified production Prepare and authenticated terminal/history routes are mounted. The real worker/Git/tmux process now receives and persists both daemon ACKs; closure, upgrade, refusal and rollback checks pass. The refreshed local dashboard displays the resulting stopped test session and its recorded timestamps. Four live browser checks pass.
+
+This is a synthetic-harness integration, not a real-provider or fleet qualification. Native phase renewal, no-Started worker publication, settlement/release and interactive terminals remain open. The implementation tasks retain their in-progress status.

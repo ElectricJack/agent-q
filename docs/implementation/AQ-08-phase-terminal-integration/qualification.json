@@ -1,0 +1,125 @@
+{
+  "source": {
+    "server_integrated": "039f28b",
+    "process_source": "b3de351",
+    "worker_source": "118dfdd",
+    "worker_integrated": "dc555e2",
+    "dashboard_feature": "241191d",
+    "dashboard_live_tests": "41da7e5"
+  },
+  "schema": 33,
+  "worker_journal": 10,
+  "binaries": [
+    {
+      "path": "/tmp/aq-phase-terminal-ack-pin/native-prepare-smoke",
+      "sha256": "5826e423f6b5d64fc044bd5ebb1e950492b942faf7c8b3cb123101ac9aeb7c5b",
+      "bytes": 11168312
+    },
+    {
+      "path": "/tmp/aq-phase-terminal-composite-pin/native_initial_grant",
+      "sha256": "aaf1abdc021e6a8ed70757a3cf11591d4b1972cd9cdb2610490475f64118283b",
+      "bytes": 384808472
+    },
+    {
+      "path": "/tmp/aq-dashboard-schema33-preview/aq-server",
+      "sha256": "5f741e0829ea1a8d26c4f71bb521bc7d7a73f18615c5512be4efed3446a3b19c",
+      "bytes": 391398136
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/all-target-clippy.log",
+      "sha256": "74c8d78f23c4d5f01fb13080f366c17925ddd40ef64cf91d0968b9723d9a5414",
+      "bytes": 211
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/cleanup-http.log",
+      "sha256": "191a7d4bcbe13bd033c1676875219b54ffdfaf55169cd030a80b331d20fb971b",
+      "bytes": 354
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/closure.log",
+      "sha256": "b6445d42cb473c159b2c1485bb27c85c4bb9f6ba5e69f2fa1d9397d672c19433",
+      "bytes": 473
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/dashboard.log",
+      "sha256": "98973b59caf694fb23158665bd0a88dd043e533f6f2848ff5f526cec47d6fd94",
+      "bytes": 4353
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/history.log",
+      "sha256": "bceeccd3472283dc9604f81d4f0dc231da685dee565ec77f0a7d6d5efc6ddffa",
+      "bytes": 718
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/inputs.log",
+      "sha256": "cad0ec7daa2542f59352d6a9a3a349b0420f8ed404e3c4ce9c60c8f2e01dcbcd",
+      "bytes": 606
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/live-browser.log",
+      "sha256": "16dc26db88b5dd54c716dbfb96e6b5613ba03c3d24c6ac72d413db8f04b40bb8",
+      "bytes": 872
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/phase-regressions.log",
+      "sha256": "3fe1c154edcceda1b8fbececd9081fc7690435a6b33d664416c5474e929df712",
+      "bytes": 1362
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/prepare-envelope.log",
+      "sha256": "059da2e1aa210cbc9f2baeb8d94e9d41ec57882ec1eb42829b1cf848ae7aca9f",
+      "bytes": 477
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/prepare-http.log",
+      "sha256": "4e4c027f26f198d82218553b929a37c624155e0fb4c35c1a70d41d68b203d221",
+      "bytes": 477
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/process.log",
+      "sha256": "c8bb40c225a1539baf52fc4bda1e434ab104a394d5e6f9799a2fee4d07bf4921",
+      "bytes": 1140
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/protocol-policy.log",
+      "sha256": "d623a86ccbb73057743743ae2d41c8fd63cc6e6570647024e91dca6ce03448f6",
+      "bytes": 606
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/schema33.log",
+      "sha256": "d024ff1cd327d8f8334da0708c4cf2a0928781df3c4f8fe053e8a032a6f24408",
+      "bytes": 857
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/started.log",
+      "sha256": "0d8eb8b0b88f2f22a7346f4eb782f88fd03844e6f80cdf84574e72106836031d",
+      "bytes": 977
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-integration/prepare-envelope-clippy.log",
+      "sha256": "3b25f92f9ac15fc0c835d53b72c40abe4e820c65a433de6cb1b8642615fe6b83",
+      "bytes": 158
+    }
+  ],
+  "preview": {
+    "url": "http://127.0.0.1:4188",
+    "session_id": "a3493b73-56e0-5186-aea1-af548a9ae036",
+    "kind": "actual worker process with synthetic harness/provider qualification",
+    "original_database_retained": true
+  },
+  "limits": [
+    "No real provider/model execution",
+    "No phase renewal or settlement/resource release",
+    "No worker no-Started closure publisher",
+    "No live terminal/attach/nudge dashboard capability",
+    "No fleet load qualification",
+    "Private database backups are not repository artifacts"
+  ]
+}

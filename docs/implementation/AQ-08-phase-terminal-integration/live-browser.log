@@ -1,0 +1,15 @@
+
+> aq-dashboard@0.0.0 test:live /tmp/aq-dashboard-lifecycle-live
+> playwright test --config playwright.live.config.ts
+
+
+Running 4 tests using 1 worker
+
+(node:496371) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › tests/live/framework.spec.ts:5:1 › production dashboard connects to AQ and supports direct navigation (583ms)
+  ✓  2 [chromium] › tests/live/framework.spec.ts:31:1 › unsupported features are explicit and unknown API routes stay JSON errors (202ms)
+  ✓  3 [chromium] › tests/live/framework.spec.ts:43:1 › live settings remains usable on a narrow screen (209ms)
+  ✓  4 [chromium] › tests/live/framework.spec.ts:88:1 › visible sessions connect roster, exact detail and deep-link refresh (729ms)
+
+  4 passed (2.5s)

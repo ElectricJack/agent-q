@@ -1,6 +1,6 @@
 # Phase terminal Stage A prerequisite
 
-This checkpoint contains an unregistered migration033 candidate and an immutable borrowed initial-authority view. No terminal owner or production route is enabled. SQL028–032 and admission019 remain unchanged. The separately qualified terminal protocol is `aq-phase-terminal-protocol0.1.0`, source `baabe2e`, archive SHA256 `1b3e4afbd9356f6d7027b0a4be3fe37e2231b55bdfa10269c87a84bf9568f0bb`.
+This historical Stage A checkpoint introduced the migration 033 candidate and an immutable borrowed initial-authority view. The migration, terminal owners and qualified production transport are now integrated; see [the integration result](AQ-08-phase-terminal-integration/README.md). SQL028–032 and admission019 remain unchanged. The separately qualified terminal protocol is `aq-phase-terminal-protocol0.1.0`, source `baabe2e`, archive SHA256 `1b3e4afbd9356f6d7027b0a4be3fe37e2231b55bdfa10269c87a84bf9568f0bb`.
 
 The view preserves distinct receipt kinds. A legacy identity hashes the actual canonical stored legacy response; a phase identity is the actual validated state32 ExecutionReceipt digest. The view has no Serde implementation and returns historical grant data, not a delivery sample or live permission. The legacy adapter still refuses accepted no-launch and phase execution origins.
 

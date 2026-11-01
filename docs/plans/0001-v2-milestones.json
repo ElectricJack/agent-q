@@ -928,7 +928,8 @@
         "../implementation/AQ-08-phase-terminal-contract.md",
         "../implementation/AQ-08-phase-host-process-evidence/qualification.md",
         "../implementation/AQ-08-phase-history-evidence/qualification.md",
-        "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md"
+        "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md",
+        "../implementation/AQ-08-phase-terminal-integration/README.md"
       ]
     },
     {
@@ -1157,7 +1158,8 @@
         "../implementation/AQ-08-phase-terminal-contract.md",
         "../implementation/AQ-08-phase-host-process-evidence/qualification.md",
         "../implementation/AQ-08-phase-history-evidence/qualification.md",
-        "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md"
+        "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md",
+        "../implementation/AQ-08-phase-terminal-integration/README.md"
       ]
     },
     {
@@ -2597,7 +2599,8 @@
         "../implementation/AQ-08-phase-terminal-contract.md",
         "../implementation/AQ-08-phase-host-process-evidence/qualification.md",
         "../implementation/AQ-08-phase-history-evidence/qualification.md",
-        "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md"
+        "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md",
+        "../implementation/AQ-08-phase-terminal-integration/README.md"
       ]
     },
     {
@@ -2631,7 +2634,8 @@
         "Direct browser-to-worker connections, a separate dashboard backend"
       ],
       "evidence": [
-        "../implementation/AQ-08-dashboard-schema32.json"
+        "../implementation/AQ-08-dashboard-schema32.json",
+        "../implementation/AQ-08-phase-terminal-integration/README.md"
       ]
     },
     {
@@ -2931,7 +2935,7 @@
     },
     {
       "source": "2026-10-31-native-integration-checkpoint.md",
-      "summary": "Ordered state25→27, native preparation and explicit optional playbook lifecycle are integrated. Worker no-launch journal/observed tmux host passed retained Git/host/relay checks; one concurrent-load deadline failure remains explicit. The assembled daemon passed45 selected tests and4livebrowser checks after fixture upgrade. Native offers/grants and full driver continue in parallel; product gates stay open."
+      "summary": "Ordered state25\u219227, native preparation and explicit optional playbook lifecycle are integrated. Worker no-launch journal/observed tmux host passed retained Git/host/relay checks; one concurrent-load deadline failure remains explicit. The assembled daemon passed45 selected tests and4livebrowser checks after fixture upgrade. Native offers/grants and full driver continue in parallel; product gates stay open."
     },
     {
       "source": "../implementation/AQ-08-granted-launch-closure-plan.md",
