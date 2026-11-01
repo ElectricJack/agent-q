@@ -706,3 +706,6 @@ mod material_receipts;
 
 #[path = "published/renewal.rs"]
 mod renewal;
+
+#[path = "published/presence.rs"]
+mod presence;
