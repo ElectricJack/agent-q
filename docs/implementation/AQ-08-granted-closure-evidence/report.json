@@ -1,0 +1,47 @@
+{
+  "source_revision": "f5f61b3da04a601a6fff80c1069404aadd7d0c90",
+  "archive": "/tmp/granted-closure-package-target/package/aq-admission-0.1.8.crate",
+  "archive_sha256": "97fa3874794a47dcbcff5af60df37d7fce16e67eaa4971771887f6643b7a7587",
+  "consumer_root": "/tmp/granted-closure-extracted",
+  "dependencies": {
+    "/tmp/con03-producer-target/package/aq-lifecycle-protocol-0.1.0.crate": "945b03a99701035eb7cf6679bd9baa9ad2b50a7cb6329b9ca8de2cf8bd58b92b",
+    "/home/jkern/dev/.aq-qualification/session-host-2026-10-31/aq-session-protocol-0.1.0.crate": "479778d8ea76f0605b9a20460e0bd3fda73b699337b1e80783ada0d291a68090"
+  },
+  "old017_archive": {
+    "path": "/home/jkern/dev/aq-worker/vendor/aq-admission-0.1.7.crate",
+    "sha256": "46283490c98c5b082aa8dbfd4ccde230db3d97828fcbd71ff5b0526837bae545"
+  },
+  "scope": "Pure DTO/schema/digest/correlation only. No opaque worker proof producer, SQL owner, current authorization, release, runtime adoption or provider execution.",
+  "workspace_pure_tests": {
+    "passed": 58,
+    "failed": 0,
+    "ignored": 0,
+    "exit": 0
+  },
+  "portable_pure_tests": {
+    "passed": 58,
+    "failed": 0,
+    "ignored": 0,
+    "exit": 0
+  },
+  "strict_alltarget_allfeature_clippy": "pass in workspace and extracted package",
+  "format": "pass in workspace and extracted package",
+  "external_jsonschema_valid_fixtures": 8,
+  "compatibility": {
+    "exact017_archive_sha256": "46283490c98c5b082aa8dbfd4ccde230db3d97828fcbd71ff5b0526837bae545",
+    "files_verified": 63,
+    "lib_rs_prefix_only": true,
+    "intentional_exceptions": [
+      "Cargo.toml",
+      "Cargo.toml.orig",
+      "Cargo.lock",
+      ".cargo_vcs_info.json"
+    ]
+  },
+  "development_history": [
+    "Initial compile lacked a local canonical helper; fixed before tests.",
+    "First strict lint reported large enum variant; boxed DriverIntent with identical JSON shape, then strict lint passed.",
+    "Nullable omission hardening and exact archived017 compatibility inventory were followed by focused and extracted-package tests."
+  ],
+  "host_shape_scope": "Synthetic full-pane, server-only and no-child fixtures mirror inspected aq-session-host0.1.4 JSON. No actual pre-start opaque proof producer or syscall attestation qualified here."
+}

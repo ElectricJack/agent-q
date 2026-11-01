@@ -1,0 +1,22 @@
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq-granted-closure-contract/vendor/aq-session-protocol-0.1.0)
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/aq-granted-closure-contract/vendor/aq-lifecycle-protocol-0.1.0)
+   Compiling aq-admission v0.1.8 (/tmp/aq-granted-closure-contract/crates/aq-admission)
+error[E0425]: cannot find function `canonical_digest` in this scope
+   --> crates/aq-admission/src/granted_closure.rs:17:5
+    |
+ 17 |     canonical_digest(&(domain, value))
+    |     ^^^^^^^^^^^^^^^^ not found in this scope
+    |
+note: these functions exist but are inaccessible
+   --> crates/aq-admission/src/started.rs:222:1
+    |
+222 | fn canonical_digest(value: &impl Serialize) -> Result<Digest> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `crate::started::canonical_digest`: not accessible
+    |
+   ::: crates/aq-admission/src/stopped.rs:212:1
+    |
+212 | fn canonical_digest(value: &impl Serialize) -> Result<Digest> {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ `crate::stopped::canonical_digest`: not accessible
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `aq-admission` (lib) due to 1 previous error

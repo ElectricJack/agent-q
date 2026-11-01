@@ -1,0 +1,7 @@
+{
+  "result": "pass",
+  "valid_requests": 4,
+  "valid_receipts": 4,
+  "validator": "Python jsonschema Draft202012Validator with FormatChecker",
+  "scope": "Structural schemas only; correlation/proof/current-authority validation is separate."
+}
