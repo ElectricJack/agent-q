@@ -903,7 +903,11 @@
         "../implementation/AQ-08-presence-029.qualification.md",
         "../implementation/AQ-08-proposal-scope-main29.json",
         "../../../aq-worker/docs/implementation/WRK-08-preparation-v2-http.md",
-        "../../../aq-worker/docs/implementation/WRK-08-phase-journal-qualification.md"
+        "../../../aq-worker/docs/implementation/WRK-08-phase-journal-qualification.md",
+        "../implementation/AQ-08-ordered30.qualification.md",
+        "../implementation/AQ-08-phase-worker-integration.md",
+        "../implementation/AQ-08-dashboard-schema30.md",
+        "../../../aq-worker/docs/implementation/WRK-08-scoped-presence-evidence.md"
       ]
     },
     {
@@ -1109,7 +1113,11 @@
         "../implementation/AQ-08-durable-worker-integration.md",
         "../../../aq-worker/docs/implementation/WRK-08-preparation-v2-http.md",
         "../../../aq-worker/docs/implementation/WRK-08-phase-journal-qualification.md",
-        "../../../aq-worker/docs/implementation/WRK-08-scoped-presence-producer-plan.md"
+        "../../../aq-worker/docs/implementation/WRK-08-scoped-presence-producer-plan.md",
+        "../implementation/AQ-08-ordered30.qualification.md",
+        "../implementation/AQ-08-phase-worker-integration.md",
+        "../implementation/AQ-08-dashboard-schema30.md",
+        "../../../aq-worker/docs/implementation/WRK-08-scoped-presence-evidence.md"
       ]
     },
     {

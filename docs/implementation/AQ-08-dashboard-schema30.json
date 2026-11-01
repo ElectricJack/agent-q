@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "daemon_source": "94893a3",
+  "daemon_binary_sha256": "f98e6ed5794275c600f6492a2590ba80a191c4486eac2be0e4f9c2dc085f1af2",
+  "dashboard_source": "956d587",
+  "state_format_before": 28,
+  "state_format_after": 30,
+  "browser_passed": 4,
+  "browser_failed": 0,
+  "browser_seconds": 2.2,
+  "build_seconds": 33.77,
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-dashboard-schema30/build.log",
+      "sha256": "c1e49864b2c9a43864a1bb53f0cf80eac5623281bd714ca63a3f3b08889801b1",
+      "bytes": 213
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-dashboard-schema30/browser.log",
+      "sha256": "913c48c22498506c117a06ef323284d6568017517a50751d489a11a90a9de1ee",
+      "bytes": 868
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-dashboard-schema30/readiness.json",
+      "sha256": "ccd7183ca7b75dfe7d1e3c794fbe20b9abcc187380e1d19a2a675f9267670b35",
+      "bytes": 129
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-dashboard-schema30/schema.log",
+      "sha256": "dc412fccbc50dd374584a77b5b163d6d46800e0d3d6c2f818cdb5c6f4d7dfe28",
+      "bytes": 27
+    }
+  ],
+  "limitations": [
+    "Local disposable fixture database only; no live agent or model launch.",
+    "Optional native owners and playbooks remain inactive; terminal and unsupported domain views remain capability gated.",
+    "Private pre-upgrade archive retained locally with mode0600 and excluded from repository."
+  ]
+}

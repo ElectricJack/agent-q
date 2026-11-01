@@ -8,8 +8,8 @@ its historical test results and source pins.
 
 | Area | Integrated behavior | Remaining product work |
 | --- | --- | --- |
-| Daemon schema and preparation | Ordered state25→28 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Cold preparation phase separation, installed-material presence reporting, multi-project fairness, worker granted-before-Started proof production and full settlement |
-| Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, material installation pins, actual Git workspace ownership, durable Prepare join and received initial Grant history | Continuing renewal owner, launch/stop callbacks, result/release, combined durable-grant process qualification |
+| Daemon schema and preparation | Ordered state25→30 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Phase worker input adoption and fresh execution issuance, server installed-material presence reporting, multi-project fairness, worker granted-before-Started proof production and full settlement |
+| Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, material installation pins, actual Git workspace ownership, durable Prepare join and received initial Grant history | Continuing renewal owner, launch/stop callbacks, result/release, phase input/execution process qualification |
 | tmux host | Durable blank terminal baseline before sealed-image exec; original physical server/pane ownership checks | Native driver adoption, selected real harness qualification and operational load envelope |
 | Playbooks | Catalog2 human decision adapter, lost-Accepted-reply recovery and explicit optional startup/drive/shutdown | Broader real adapters, workflow pilots and verified network database transport |
 | Dashboard | Live daemon overview/projects/sessions/workers with capability gates and verified static assets | Live terminals, interaction and remaining task/workflow/domain views |
@@ -208,9 +208,9 @@ now requires durable received-grant evidence. Its first run at daemon `82d386f`
 no central Grant was issued and the new durable assertions were not reached.
 This negative is retained alongside the earlier format4 success. The
 [accepted-preparation owner plan](../implementation/AQ-08-accepted-preparation-owner-plan.md)
-addresses this measured limitation; its schema030 registration depends on the
-separate schema029 presence owner. Both owners and worker presence adoption
-remain active parallel work. The dashboard preview remains pinned to `8f1adcc`.
+addresses this measured limitation. The schema029 prerequisite and ordered030
+installation are now integrated; their qualifications are recorded below. The
+newer dashboard preview is pinned to `94893a3` with state30.
 
 
 The [accepted-preparation owner candidate](../implementation/AQ-08-accepted-preparation-owner.qualification.md)
@@ -229,7 +229,7 @@ are integrated at `a523888` (source `85160a7`):11 actual PostgreSQL checks plus 
 lint/formatting pass. Independent inventory snapshots and semantic compatibility
 epochs prevent a legacy/incompatible publication from reviving old installed facts.
 This prerequisite does not yet mount presence-report routes or change renewal to
-consume them. Ordered030 installation is undergoing separate qualification.
+consume them. Ordered030 installation is now separately qualified below.
 A review-found proposal node/boot-scope gap is corrected at `a271649`; the
 [independent two-node regression](../implementation/AQ-08-proposal-scope-main29.json)
 passes on29. Optional phase runtime configuration remains absent from the preview.
@@ -246,4 +246,37 @@ live authority after restart. Redelivered offer clocks are associated with the
 unchanged original publication without extending deadlines. These counts overlap.
 A lost reply with no opaque observation remains unknown/held; phase input adoption,
 execution issuance and recovery are still required. The new real-process phase
-probe is built but awaits ordered030 integration; no passing result is claimed yet.
+probe now passes on ordered030, as recorded below.
+
+
+[Ordered030 qualification](../implementation/AQ-08-ordered30.qualification.md)
+is integrated at `94893a3` (source `66e83be`, integrated source `4fa0dce`). It
+records19 owner/scope/schema cases,84 related checks with four declared ignores,
+one metadata check and one separately enabled actual-Git case. These total105
+distinct passing cases at that frozen source; they are not added to older suites.
+Rollback and missing-table refusal tests use actual ordered Store installation.
+One functional route fixture uses a fixed post-publication clock; real-expiry and
+actual-Git/process qualification retain actual clocks.
+
+The [real worker phase probe](../implementation/AQ-08-phase-worker-integration.md)
+passes in4.27seconds at daemon `4fa0dce` / worker `cf943ff`. The independent worker
+process persists its exact Accept, waits beyond the original proposal expiry and
+replays under the separately issued no-launch preparation lease. Durable history
+and journal revision remain unchanged. This does not yet test phase worker input
+hydration, execution Grant or host launch. Earlier legacy preparation refusals
+remain separately recorded.
+
+The worker [scoped presence producer](../../../aq-worker/docs/implementation/WRK-08-scoped-presence-evidence.md)
+is integrated at `54c6468` (source `04e2a32`):196 package tests with five declared
+ignores,17 final focused checks and two actual-Git checks pass, with strict lint
+and formatting. Positive reports require an actual current opaque grant and a
+bounded descriptor-based read of the installed material. Unsafe/changed files,
+cancellation and lost acknowledgements retain their distinct outcomes. These
+counts overlap; server report/renewal consumption remains separate active work.
+
+The [schema30 live preview](../implementation/AQ-08-dashboard-schema30.md) now runs
+daemon `94893a3`, after a private backup and actual28→30 fixture database upgrade.
+All four actual browser checks pass in2.2seconds, with the existing session
+preserved. Optional native execution and playbooks stay inactive. Current
+parallel work is phase input adoption, scoped presence consumption and the fresh
+phase execution-grant owner. Product gates remain in progress.
