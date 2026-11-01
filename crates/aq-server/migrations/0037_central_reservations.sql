@@ -30,7 +30,9 @@ $$;
 DO $$ BEGIN
  IF EXISTS(SELECT 1 FROM mailbox_messages m WHERE
   (m.mailbox_key=central_global_mailbox_key() OR m.recipient->>'kind'='global_supervisor')
-  AND NOT central_global_mail_source_valid(m.message_id)) THEN
+  AND NOT central_global_mail_source_valid(m.message_id))
+  OR EXISTS(SELECT 1 FROM mailbox_operations o WHERE o.response->>'contract'='human-supervisor-conversation-1' AND o.response->>'state'='queued'
+   AND NOT EXISTS(SELECT 1 FROM mailbox_messages m WHERE m.message_id::text=o.response->>'message_id' AND central_global_mail_source_valid(m.message_id))) THEN
   RAISE EXCEPTION 'global supervisor original mail proof is inconsistent';
  END IF;
 END $$;
@@ -91,14 +93,20 @@ CREATE TABLE central_supervisor_reservations (
  actor_id UUID NOT NULL REFERENCES central_supervisor_actors(actor_id),
  reserve_operation_id UUID NOT NULL CHECK(reserve_operation_id<>reservation_id AND reserve_operation_id<>'00000000-0000-0000-0000-000000000000'::uuid),
  policy_revision BIGINT NOT NULL CHECK(policy_revision>0), revision BIGINT NOT NULL CHECK(revision>0),
+ admission_actor_revision BIGINT NOT NULL CHECK(admission_actor_revision>0 AND policy_revision<=admission_actor_revision),
+ cancel_operation_id UUID, cancel_actor_revision BIGINT,
  state TEXT NOT NULL CHECK(state IN ('awaiting_prepared_plan','cancelled_before_plan')),
  through_cursor BIGINT NOT NULL CHECK(through_cursor>0),
  batch_digest TEXT NOT NULL CHECK(batch_digest ~ '^[0-9a-f]{64}$'),
  message_count SMALLINT NOT NULL CHECK(message_count BETWEEN 1 AND 16),
  body_bytes BIGINT NOT NULL CHECK(body_bytes BETWEEN 1 AND 65536),
- CHECK((state='awaiting_prepared_plan' AND revision=1) OR (state='cancelled_before_plan' AND revision=2)),
+ CHECK((state='awaiting_prepared_plan' AND revision=1 AND cancel_operation_id IS NULL AND cancel_actor_revision IS NULL)
+  OR (state='cancelled_before_plan' AND revision=2 AND cancel_operation_id IS NOT NULL
+   AND cancel_operation_id<>'00000000-0000-0000-0000-000000000000'::uuid AND cancel_operation_id<>reserve_operation_id
+   AND cancel_actor_revision IS NOT NULL AND cancel_actor_revision>admission_actor_revision)),
  UNIQUE(actor_id,reservation_id), UNIQUE(actor_id,reserve_operation_id)
 );
+CREATE INDEX central_supervisor_reservation_history ON central_supervisor_reservations(actor_id,admission_actor_revision DESC);
 CREATE UNIQUE INDEX central_supervisor_one_active ON central_supervisor_reservations(actor_id) WHERE state='awaiting_prepared_plan';
 ALTER TABLE central_supervisor_actors ADD CONSTRAINT central_supervisor_current_reservation FOREIGN KEY(actor_id,current_reservation) REFERENCES central_supervisor_reservations(actor_id,reservation_id);
 CREATE TABLE central_supervisor_mail_members (
@@ -116,12 +124,13 @@ CREATE TABLE central_supervisor_operations (
  actor_id UUID NOT NULL REFERENCES central_supervisor_actors(actor_id),
  operation_id UUID NOT NULL CHECK(operation_id<>'00000000-0000-0000-0000-000000000000'::uuid),
  kind TEXT NOT NULL CHECK(kind IN ('configure','reserve','cancel')),
+ actor_revision BIGINT NOT NULL CHECK(actor_revision BETWEEN 1 AND 4096),
  initiating_user_id UUID NOT NULL REFERENCES users(id),
  request_bytes TEXT NOT NULL CHECK(octet_length(request_bytes) BETWEEN 1 AND 16384),
  request_digest TEXT NOT NULL CHECK(request_digest=encode(sha256(convert_to(request_bytes,'UTF8')),'hex')),
  result_bytes TEXT NOT NULL CHECK(octet_length(result_bytes) BETWEEN 1 AND 65536),
  charged_bytes BIGINT NOT NULL CHECK(charged_bytes BETWEEN octet_length(request_bytes)+octet_length(result_bytes)+8192 AND 131072),
- PRIMARY KEY(actor_id,operation_id),
+ PRIMARY KEY(actor_id,operation_id), UNIQUE(actor_id,actor_revision),
  CHECK ((jsonb_typeof(request_bytes::jsonb)='object' AND request_bytes::jsonb->>'contract'='central-reservation-1'
   AND request_bytes::jsonb->>'kind'=kind AND request_bytes::jsonb#>>'{request,actor_id}'=actor_id::text
   AND request_bytes::jsonb#>>'{request,operation_id}'=operation_id::text
@@ -129,11 +138,13 @@ CREATE TABLE central_supervisor_operations (
  CHECK ((jsonb_typeof(result_bytes::jsonb)='object' AND result_bytes::jsonb->>'contract'='central-reservation-1'
   AND result_bytes::jsonb->>'actor_id'=actor_id::text AND result_bytes::jsonb->>'operation_id'=operation_id::text
   AND result_bytes::jsonb->>'initiating_user_id'=initiating_user_id::text
-  AND result_bytes::jsonb->>'request_digest'=request_digest
-  AND ((kind='configure' AND result_bytes::jsonb->>'disposition'='configured')
+  AND result_bytes::jsonb->>'request_digest'=request_digest AND result_bytes::jsonb->'actor_revision'=to_jsonb(actor_revision)
+  AND ((kind='configure' AND result_bytes::jsonb->>'disposition' IN ('configured','not_configured'))
    OR (kind='reserve' AND result_bytes::jsonb->>'disposition' IN ('reserved','not_reserved'))
    OR (kind='cancel' AND result_bytes::jsonb->>'disposition' IN ('cancelled_before_plan','not_cancelled')))) IS TRUE)
 );
+ALTER TABLE central_supervisor_reservations ADD CONSTRAINT central_reservation_admit_operation FOREIGN KEY(actor_id,reserve_operation_id) REFERENCES central_supervisor_operations(actor_id,operation_id) DEFERRABLE INITIALLY DEFERRED;
+ALTER TABLE central_supervisor_reservations ADD CONSTRAINT central_reservation_cancel_operation FOREIGN KEY(actor_id,cancel_operation_id) REFERENCES central_supervisor_operations(actor_id,operation_id) DEFERRABLE INITIALLY DEFERRED;
 CREATE FUNCTION guard_central_reservation_actor() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
  IF TG_OP IN ('DELETE','TRUNCATE') THEN RAISE EXCEPTION 'central actor history cannot be removed'; END IF;
@@ -151,8 +162,9 @@ END $$;
 CREATE FUNCTION guard_central_reservation_state() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN
  IF TG_OP IN ('DELETE','TRUNCATE') THEN RAISE EXCEPTION 'central reservation history cannot be removed'; END IF;
- IF (to_jsonb(NEW)-ARRAY['state','revision']) IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['state','revision'])
-  OR OLD.state<>'awaiting_prepared_plan' OR NEW.state<>'cancelled_before_plan' OR NEW.revision<>OLD.revision+1 THEN
+ IF (to_jsonb(NEW)-ARRAY['state','revision','cancel_operation_id','cancel_actor_revision']) IS DISTINCT FROM (to_jsonb(OLD)-ARRAY['state','revision','cancel_operation_id','cancel_actor_revision'])
+  OR OLD.state<>'awaiting_prepared_plan' OR NEW.state<>'cancelled_before_plan' OR NEW.revision<>OLD.revision+1
+  OR OLD.cancel_operation_id IS NOT NULL OR OLD.cancel_actor_revision IS NOT NULL THEN
   RAISE EXCEPTION 'central reservation is immutable except one pre-plan cancellation';
  END IF;
  RETURN NEW;
@@ -160,7 +172,7 @@ END $$;
 CREATE FUNCTION guard_central_reservation_immutable() RETURNS TRIGGER LANGUAGE plpgsql AS $$
 BEGIN RAISE EXCEPTION 'central reservation reference/operation history is immutable'; END $$;
 CREATE FUNCTION check_central_reservation_consistency() RETURNS TRIGGER LANGUAGE plpgsql AS $$
-DECLARE a central_supervisor_actors; r central_supervisor_reservations; actual_count BIGINT; actual_bytes BIGINT; actual_digest TEXT;
+DECLARE a central_supervisor_actors; r central_supervisor_reservations; actual_count BIGINT; actual_bytes BIGINT; actual_digest TEXT; last_revision BIGINT; original_view JSONB; current_view JSONB;
 BEGIN
  SELECT * INTO a FROM central_supervisor_actors WHERE actor_id=NEW.actor_id;
  IF (SELECT count(*) FROM central_supervisor_reservations WHERE actor_id=a.actor_id AND state='awaiting_prepared_plan')
@@ -169,8 +181,8 @@ BEGIN
   RAISE EXCEPTION 'central current reservation is inconsistent';
  END IF;
  IF TG_TABLE_NAME IN ('central_supervisor_actors','central_supervisor_operations') THEN
-  SELECT count(*),COALESCE(sum(charged_bytes),0) INTO actual_count,actual_bytes FROM central_supervisor_operations WHERE actor_id=a.actor_id;
-  IF actual_count<>a.retained_operations OR actual_bytes<>a.retained_bytes THEN
+  SELECT count(*),COALESCE(sum(charged_bytes),0),COALESCE(max(actor_revision),0) INTO actual_count,actual_bytes,last_revision FROM central_supervisor_operations WHERE actor_id=a.actor_id;
+  IF actual_count<>a.retained_operations OR actual_bytes<>a.retained_bytes OR last_revision<>a.revision THEN
    RAISE EXCEPTION 'central retained operation budget is inconsistent';
   END IF;
   RETURN NULL;
@@ -187,8 +199,30 @@ BEGIN
   OR EXISTS(SELECT 1 FROM central_supervisor_mail_members b JOIN mailbox_messages m ON m.message_id=b.message_id
    WHERE b.reservation_id=r.reservation_id AND (b.ordinal>=r.message_count OR b.actor_id<>r.actor_id OR b.mailbox_key<>m.mailbox_key OR b.cursor<>m.cursor OR b.payload_digest<>m.payload_digest
     OR b.mailbox_key<>central_global_mailbox_key() OR b.cursor>r.through_cursor OR NOT central_global_mail_source_valid(m.message_id)))
-  OR NOT EXISTS(SELECT 1 FROM central_supervisor_operations o WHERE o.actor_id=r.actor_id AND o.operation_id=r.reserve_operation_id AND o.kind='reserve' AND o.result_bytes::jsonb->>'disposition'='reserved') THEN
-  RAISE EXCEPTION 'central original reservation member proof is inconsistent';
+  THEN RAISE EXCEPTION 'central original reservation member proof is inconsistent'; END IF;
+ SELECT jsonb_build_object('id',r.reservation_id::text,'actor_id',r.actor_id::text,'conversation_id',a.conversation_id::text,
+  'revision',1,'admission_actor_revision',r.admission_actor_revision,'reserve_operation_id',r.reserve_operation_id::text,'cancel_operation_id',NULL,'policy_revision',r.policy_revision,
+  'batch',jsonb_build_object('conversation_id',a.conversation_id::text,'through_cursor',r.through_cursor,
+   'messages',jsonb_agg(jsonb_build_object('message_id',b.message_id::text,'cursor',b.cursor,'payload_digest',b.payload_digest) ORDER BY b.ordinal)),
+  'batch_digest',r.batch_digest,'body_bytes',r.body_bytes,'state','awaiting_prepared_plan',
+  'runtime','unavailable','prepared_plan',NULL,'session',NULL,'execution_history','unavailable','history_scope','reservation_only')
+  INTO original_view FROM central_supervisor_mail_members b WHERE b.reservation_id=r.reservation_id;
+ IF NOT EXISTS(SELECT 1 FROM central_supervisor_operations o WHERE o.actor_id=r.actor_id AND o.operation_id=r.reserve_operation_id AND o.kind='reserve'
+  AND o.actor_revision=r.admission_actor_revision AND o.request_bytes::jsonb#>>'{request,reservation_id}'=r.reservation_id::text
+  AND o.request_bytes::jsonb#>>'{request,expected_actor_revision}'=(r.admission_actor_revision-1)::text
+  AND o.request_bytes::jsonb#>>'{request,expected_policy_revision}'=r.policy_revision::text
+  AND o.request_bytes::jsonb#>>'{request,through_cursor}'=r.through_cursor::text
+  AND o.result_bytes::jsonb->>'disposition'='reserved' AND o.result_bytes::jsonb->'reservation'=original_view
+  AND o.result_bytes::jsonb->'reason'='null'::jsonb AND o.result_bytes::jsonb->'policy_revision'=to_jsonb(r.policy_revision)) THEN
+  RAISE EXCEPTION 'central original reserve operation proof is inconsistent';
+ END IF;
+ IF r.state='cancelled_before_plan' THEN
+  current_view=original_view||jsonb_build_object('revision',2,'state','cancelled_before_plan','cancel_operation_id',r.cancel_operation_id::text);
+  IF NOT EXISTS(SELECT 1 FROM central_supervisor_operations o WHERE o.actor_id=r.actor_id AND o.operation_id=r.cancel_operation_id AND o.kind='cancel'
+   AND o.actor_revision=r.cancel_actor_revision AND o.request_bytes::jsonb#>>'{request,reservation_id}'=r.reservation_id::text
+   AND o.request_bytes::jsonb#>>'{request,expected_reservation_revision}'='1'
+   AND o.result_bytes::jsonb->>'disposition'='cancelled_before_plan' AND o.result_bytes::jsonb->'reservation'=current_view
+   AND o.result_bytes::jsonb->'reason'='null'::jsonb) THEN RAISE EXCEPTION 'central original cancel operation proof is inconsistent'; END IF;
  END IF;
  RETURN NULL;
 END $$;
