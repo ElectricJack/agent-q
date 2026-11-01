@@ -1,0 +1,13 @@
+    Finished `test` profile [unoptimized] target(s) in 0.16s
+     Running tests/schema33_phase_terminal.rs (/tmp/aq-native-union-target/debug/deps/schema33_phase_terminal-3b4cbe2d496d146c)
+
+running 6 tests
+test actual32_history_survives33_and_reserves_cleanup_without_terminal_effects ... ok
+test actual_grant_cannot_commit_without_reserved_terminal_capacity ... ok
+test already_open_writer_cannot_insert_legacy_started_for_actual_phase_grant ... ok
+test collision_rolls_back33_without_changing_actual32_history ... ok
+test old_snapshot_classifies_actual030_origin_even_without_visible032_grant ... ok
+test relational_only_over_budget_backfill_rolls_back_entire_migration ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.90s
+

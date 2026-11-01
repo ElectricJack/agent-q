@@ -1,0 +1,25 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-phase-terminal-schema/crates/aq-server)
+warning: fields `p`, `q`, and `a` are never read
+   --> crates/aq-server/tests/common/phase_execution.rs:180:9
+    |
+178 | pub struct Prepared {
+    |            -------- fields in this struct
+179 |     pub c: Case,
+180 |     pub p: phase::Proposal,
+    |         ^
+181 |     pub q: AcceptRequest,
+    |         ^
+182 |     pub a: phase::AcceptedReceipt,
+    |         ^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `assert_unissued` is never used
+   --> crates/aq-server/tests/common/phase_execution.rs:308:14
+    |
+308 | pub async fn assert_unissued(c: &Case) {
+    |              ^^^^^^^^^^^^^^^
+
+warning: `aq-server` (test "schema33_phase_terminal") generated 2 warnings
+    Finished `test` profile [unoptimized] target(s) in 2.25s
+  Executable tests/schema33_phase_terminal.rs (/tmp/aq-native-union-target/debug/deps/schema33_phase_terminal-3b4cbe2d496d146c)

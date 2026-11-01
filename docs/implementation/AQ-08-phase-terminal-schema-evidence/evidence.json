@@ -1,0 +1,50 @@
+{
+  "source": "5d519ad",
+  "fixture_source": "534d981",
+  "base": "71eb244",
+  "draft_ddl": {
+    "owner": "v1_evidence",
+    "path": "crates/aq-server/migrations/0033_phase_terminal.sql",
+    "sha256": "9b3c4b3ca6af0d7a19e7f5578995480f3845111300a61951a9c7728d8ba112cd",
+    "status": "Exact peer draft copied untracked for qualification; not registered, changed or committed by this lane."
+  },
+  "claims": [
+    "Actual schema32 accepted+issued owner history survives manual33 migration byte-exact with reserved cleanup capacity and no terminal effects.",
+    "Pre-migration open SQL connection cannot insert old-style Started/Stopped; new origin guard specifically refuses.",
+    "Repeatable-read snapshot sees actual030 accepted history but not concurrently issued032grant; new origin guard rejects P0002 rather than misclassifying legacy.",
+    "Late function-name collision rolls back earlier DDL/backfill/columns.",
+    "17 relational-only grant rows refuse node-capacity backfill and preserve32 history/schema.",
+    "Actual owner grant rolls back hot/journal/material/grant mutation when16 relational-only capacity rows fill node reservation.",
+    "SQL variable-byte accounting includes generated digests; conservative sum of all3event maxima fits1MiB."
+  ],
+  "limitations": [
+    "Synthetic Graph/Git/worker installation observations; no physical producer/runtime/provider qualification.",
+    "Relational-only capacity rows explicitly bypass disposable fixture trigger/FK execution, are not runnable grants or scheduler/fleet qualification.",
+    "Not registered33/missing mandatory object Store-reopen qualification; pending real fixed-prefix32 Store helper and owner metadata.",
+    "No valid phase closure fixture or closure route qualification in this test target.",
+    "Logical variable-byte budget excludes row/index/WAL/RSS overhead."
+  ],
+  "results": {
+    "six_tests": "6 passed,0failed,11.90s",
+    "strict_affected_clippy": "passed1.19s",
+    "rustfmt_and_diff": "passed"
+  },
+  "commands": [
+    "CARGO_TARGET_DIR=/tmp/aq-native-union-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=2 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres RUST_TEST_THREADS=1 cargo test -p aq-server --test schema33_phase_terminal --all-features --locked --offline -- --test-threads=1",
+    "CARGO_TARGET_DIR=/tmp/aq-native-union-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=2 cargo clippy -p aq-server --test schema33_phase_terminal --all-features --locked --offline -- -D warnings",
+    "rustfmt --edition 2024 --check crates/aq-server/tests/schema33_phase_terminal.rs",
+    "git diff --check"
+  ],
+  "source_sha256": {
+    "crates/aq-server/tests/schema33_phase_terminal.rs": "b3e79a05f747b859393cbde7cb146d261ffbc4fed26153645ac6a509a4e3fb0b"
+  },
+  "logs": {
+    "aq-schema33-capacity-tests.log": "bc285f9c591b6631ead52d2fb659aa5bc60fc1e058b4e1ec12a32649bb3b3fe3",
+    "aq-schema33-draft-clippy.log": "ae313e22751aeb61bdf545acae93a3d790828da39b73ae6d5b75a48c496aa869",
+    "aq-schema33-capacity-clippy.log": "58c07270816c894ab9d855aa7a5d965ad3c18de5aeec7882bf8d0b27becdd263",
+    "aq-schema33-capacity-build.log": "bca66ca146f767c43a4900d34f6c63331202ec0688b1959344472363f00510fa",
+    "aq-schema33-draft-build.log": "90055f06c1d27d803a6daf3dc19c76e5e2c6bf9c47ba5460549e0dd766816947",
+    "aq-schema33-draft-tests.log": "5de9a8657efb28e394bea55b53da300c6068bdad0c0672ba5c5be7ac6a965354"
+  },
+  "earlier_run": "Initial4tests passed8.04s against earlier draft6f912a40 before generated digest byte charge/VOLATILE correction; final6test result above supersedes it."
+}
