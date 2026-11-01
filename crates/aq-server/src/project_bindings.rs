@@ -450,6 +450,23 @@ pub async fn check_eligibility(
     id: Uuid,
     request: &EligibilityRequest,
 ) -> Result<Eligibility> {
+    check_eligibility_current(state, id, request, false).await
+}
+/// Fresh current binding facts for continuing a pinned execution. This chooses
+/// no model and does not reuse an original admission observation or decision.
+pub(crate) async fn check_execution_eligibility(
+    state: &AppState,
+    id: Uuid,
+    request: &EligibilityRequest,
+) -> Result<Eligibility> {
+    check_eligibility_current(state, id, request, true).await
+}
+async fn check_eligibility_current(
+    state: &AppState,
+    id: Uuid,
+    request: &EligibilityRequest,
+    execution_read: bool,
+) -> Result<Eligibility> {
     if request.expected_project_revision == 0
         || request.expected_catalog_revision == 0
         || request.node_id.is_nil()
@@ -474,7 +491,11 @@ pub async fn check_eligibility(
             frozen_binding: None,
         });
     }
-    let observation = external::observe(state, &record.binding).await;
+    let observation = if execution_read {
+        external::observe_execution(state, &record.binding).await
+    } else {
+        external::observe(state, &record.binding).await
+    };
     // Read local admission-sensitive revisions after external I/O.
     let latest = current(state, id).await?;
     let (revision, active) = active_catalog(state).await?;

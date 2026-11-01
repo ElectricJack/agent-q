@@ -18,6 +18,7 @@ pub const BULK_LIMIT: usize = 2;
 
 pub struct Admission {
     control: Semaphore,
+    renewal: Semaphore,
     general: Semaphore,
     bulk: Semaphore,
     notification: Semaphore,
@@ -32,6 +33,7 @@ impl Default for Admission {
     fn default() -> Self {
         Self {
             control: Semaphore::new(CONTROL_LIMIT),
+            renewal: Semaphore::new(8),
             general: Semaphore::new(GENERAL_LIMIT),
             bulk: Semaphore::new(BULK_LIMIT),
             notification: Semaphore::new(4),
@@ -47,6 +49,7 @@ impl Default for Admission {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Class {
     Control,
+    Renewal,
     General,
     Bulk,
     Notification,
@@ -68,6 +71,9 @@ pub(crate) fn agent_revoke_path(path: &str) -> bool {
         .is_some_and(|id| uuid::Uuid::parse_str(id).is_ok())
 }
 pub fn classify(path: &str) -> Class {
+    if path == "/v1/worker/profiled/renew" {
+        return Class::Renewal;
+    }
     if path.starts_with("/v1/worker/profiled/source/")
         || matches!(
             path,
@@ -154,7 +160,23 @@ pub fn classify(path: &str) -> Class {
     }
 }
 fn busy(path: &str, message: &str) -> Response {
-    let mut response = if path.starts_with("/v1/agent/") {
+    let mut response = if matches!(
+        path,
+        "/v1/worker/profiled/renew" | "/v1/worker/profiled/reconcile"
+    ) {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            [("Cache-Control", "no-store")],
+            Json(aq_admission::control::ControlReply::Failure(
+                aq_admission::control::Failure {
+                    schema_version: 1,
+                    code: aq_admission::control::FailureCode::Capacity,
+                    operation_id: None,
+                },
+            )),
+        )
+            .into_response()
+    } else if path.starts_with("/v1/agent/") {
         (
             StatusCode::SERVICE_UNAVAILABLE,
             [
@@ -202,6 +224,7 @@ pub async fn gate(
     let path = request.uri().path().to_owned();
     let (slots, timeout) = match classify(&path) {
         Class::Control => (&admission.control, Duration::from_secs(5)),
+        Class::Renewal => (&admission.renewal, Duration::from_secs(8)),
         Class::General => (&admission.general, Duration::from_secs(15)),
         Class::Bulk => (&admission.bulk, Duration::from_secs(30)),
         Class::Notification => (&admission.notification, Duration::from_secs(10)),

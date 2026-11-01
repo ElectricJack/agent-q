@@ -703,3 +703,6 @@ async fn initial_deadline_respects_actual_pinned_lineage_policy_shorter_than_wal
 
 #[path = "published/material_receipts.rs"]
 mod material_receipts;
+
+#[path = "published/renewal.rs"]
+mod renewal;

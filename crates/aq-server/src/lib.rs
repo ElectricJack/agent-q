@@ -103,6 +103,12 @@ impl AppState {
             ..self.clone()
         }
     }
+    pub(crate) fn renewal_view(&self) -> Self {
+        Self {
+            store: self.store.renewal_view(),
+            ..self.clone()
+        }
+    }
     pub(crate) fn control_view(&self) -> Self {
         Self {
             store: self.store.control_view(),
@@ -227,6 +233,7 @@ pub fn build_worker_router(state: AppState) -> Router {
         .merge(profiled_execution::api::routes(state.clone()))
         .merge(profiled_execution::control_api::routes(state.clone()))
         .merge(profiled_execution::reconciliation::routes(state.clone()))
+        .merge(profiled_execution::renewal::routes(state.clone()))
         .merge(profiled_execution::producer::api::routes(state.clone()))
         .merge(profiled_execution::started::routes(state.clone()))
         .merge(profiled_execution::stopped::routes(state.clone()))

@@ -336,9 +336,36 @@ pub async fn inspect_retained(
     token: &ReservedExport,
     fact: &VerifiedExport,
 ) -> Result<RetentionObservation> {
-    fact.validate_for(token)?;
     let rt = runtime(state)?;
     let _bulk = rt.bulk.try_acquire().map_err(|_| pending())?;
+    inspect_retained_inner(state, token, fact).await
+}
+/// Read-only continuing-execution proof. Cold exports cannot consume this gate.
+/// The caller still owns current assignment/auth and post-lock freshness fences.
+pub(crate) async fn inspect_retained_for_execution(
+    state: &AppState,
+    token: &ReservedExport,
+    fact: &VerifiedExport,
+) -> Result<RetentionObservation> {
+    static READS: OnceLock<Semaphore> = OnceLock::new();
+    let _slot = READS
+        .get_or_init(|| Semaphore::new(2))
+        .try_acquire()
+        .map_err(|_| pending())?;
+    tokio::time::timeout(
+        Duration::from_secs(2),
+        inspect_retained_inner(state, token, fact),
+    )
+    .await
+    .map_err(|_| pending())?
+}
+async fn inspect_retained_inner(
+    state: &AppState,
+    token: &ReservedExport,
+    fact: &VerifiedExport,
+) -> Result<RetentionObservation> {
+    fact.validate_for(token)?;
+    let rt = runtime(state)?;
     let start = stamp(state)?;
     let inspection = inspect(&rt, token.request()).await?;
     let end = stamp(state)?;
