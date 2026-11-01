@@ -1,0 +1,34 @@
+    Blocking waiting for file lock on build directory
+    Checking aq-session-protocol v0.1.0 (/tmp/aq-granted-closure-contract/vendor/aq-session-protocol-0.1.0)
+    Checking aq-lifecycle-protocol v0.1.0 (/tmp/aq-granted-closure-contract/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking aq-admission v0.1.8 (/tmp/aq-granted-closure-contract/crates/aq-admission)
+error: large size difference between variants
+   --> crates/aq-admission/src/granted_closure.rs:226:1
+    |
+226 | /   pub enum Evidence {
+227 | | /     Suppressed {
+228 | | |         record: SuppressionRecord,
+229 | | |         record_digest: Digest,
+230 | | |     },
+    | | |_____- the second-largest variant contains at least 400 bytes
+231 | | /     HostStopped {
+232 | | |         driver_intent: DriverIntent,
+233 | | |         proof: HostStoppedProof,
+234 | | |         proof_digest: Digest,
+235 | | |     },
+    | | |_____- the largest variant contains at least 816 bytes
+236 | |   }
+    | |___^ the entire enum is at least 816 bytes
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.96.0/index.html#large_enum_variant
+    = note: `-D clippy::large-enum-variant` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::large_enum_variant)]`
+help: consider boxing the large fields or introducing indirection in some other way to reduce the total size of the enum
+    |
+232 -         driver_intent: DriverIntent,
+232 +         driver_intent: Box<DriverIntent>,
+    |
+
+error: could not compile `aq-admission` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `aq-admission` (lib test) due to 1 previous error

@@ -1,0 +1,13 @@
+   Compiling aq-admission v0.1.8 (/tmp/aq-granted-closure-contract/crates/aq-admission)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.63s
+     Running tests/granted_closure.rs (/home/jkern/dev/agent-q/target/debug/deps/granted_closure-8895c8221297c7be)
+
+running 5 tests
+test actual_host_optional_shape_does_not_weaken_the_post_started_contract ... ok
+test serialization_is_not_original_owner_or_current_authority ... ok
+test frozen_017_source_and_artifacts_are_preserved ... ok
+test strict_decode_rejects_duplicates_floats_oversize_and_release_semantics ... ok
+test synthetic_fixtures_schemas_and_independent_vectors_do_not_drift ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+

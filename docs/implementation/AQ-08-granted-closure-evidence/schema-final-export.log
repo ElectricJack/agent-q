@@ -1,0 +1,4 @@
+    Blocking waiting for file lock on build directory
+   Compiling aq-admission v0.1.8 (/tmp/aq-granted-closure-contract/crates/aq-admission)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 30.66s
+     Running `/home/jkern/dev/agent-q/target/debug/examples/export_granted_closure schema`
