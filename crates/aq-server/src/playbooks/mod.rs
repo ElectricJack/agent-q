@@ -1,8 +1,11 @@
-//! Optional AQ-owned playbook bridge. No production router/startup mount yet.
-//! Candidate migration0023 is deliberately unregistered until native0022 exists.
+//! Optional AQ-owned bridge and explicitly configured protected local owner.
+//! Default construction remains inactive; runtime validates ordered review schema.
 pub mod api;
 pub mod domain;
 pub mod driver;
 pub mod service;
 
 pub mod review_domain;
+
+pub mod config;
+pub mod runtime;

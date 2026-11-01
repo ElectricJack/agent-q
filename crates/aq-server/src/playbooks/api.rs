@@ -36,6 +36,7 @@ async fn gate(State(budget): State<Arc<Budget>>, request: Request, next: Next) -
 pub fn routes(driver: Arc<Driver>) -> Router<AppState> {
     Router::new()
         .route("/api/playbooks/status", get(status))
+        .route("/api/playbooks/bindings/{id}", get(binding))
         .route("/api/playbooks/grants", post(grant))
         .route("/api/playbooks/grants/{id}/revoke", post(revoke))
         .route("/api/playbooks/admissions", post(prepare))
@@ -98,9 +99,18 @@ async fn status(
     Extension(d): Extension<Arc<Driver>>,
 ) -> Result<Json<Value>> {
     owner(&d, user.id)?;
+    let registry = d.service.profile.registry();
     Ok(Json(
-        json!({"namespace":d.service.namespace,"catalog_digest":digest(&registry())?,"registered_commands":["message.send"],"automatic_driver":false,"synchronous_calls_interruptible":false}),
+        json!({"namespace":d.service.namespace,"catalog_digest":digest(&registry)?,"registered_commands":registry.commands.keys().collect::<Vec<_>>(),"automatic_driver":d.automatic_state()!="manual","automatic_driver_state":d.automatic_state(),"synchronous_calls_interruptible":false}),
     ))
+}
+async fn binding(
+    RequireOwner(user): RequireOwner,
+    Extension(d): Extension<Arc<Driver>>,
+    Path(id): Path<String>,
+) -> Result<Json<Value>> {
+    owner(&d, user.id)?;
+    Ok(Json(d.inspect_binding(id).await?))
 }
 async fn grant(
     RequireOwner(user): RequireOwner,
