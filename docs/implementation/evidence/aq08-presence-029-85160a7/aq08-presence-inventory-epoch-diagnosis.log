@@ -1,0 +1,33 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-installed-presence/crates/aq-server)
+warning: field `epoch` is never read
+  --> crates/aq-server/src/profiled_execution/presence/storage.rs:14:9
+   |
+11 | pub(super) struct Inventory {
+   |                   --------- field in this struct
+...
+14 |     pub epoch: u64,
+   |         ^^^^^
+   |
+   = note: `Inventory` has a derived impl for the trait `Clone`, but this is intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `aq-server` (lib) generated 1 warning
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 21.99s
+     Running tests/scoped_presence_inventory.rs (/tmp/aq08-native-producer-target/debug/deps/scoped_presence_inventory-599a71547969605f)
+
+running 1 test
+test compatible_revisions_preserve_epoch_but_new_legacy_and_restore_create_barriers ... PRESENCE storage SQL: error returned from database: inventory semantic epoch differs from immutable receipt
+
+thread 'compatible_revisions_preserve_epoch_but_new_legacy_and_restore_create_barriers' (298822) panicked at crates/aq-server/tests/scoped_presence_inventory.rs:99:32:
+inventory seq5 failed: Internal
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    compatible_revisions_preserve_epoch_but_new_legacy_and_restore_create_barriers
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.80s
+
+error: test failed, to rerun pass `-p aq-server --test scoped_presence_inventory`

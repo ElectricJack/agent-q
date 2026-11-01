@@ -1,0 +1,37 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-installed-presence/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 11.50s
+     Running tests/native_inventory.rs (/tmp/aq08-native-producer-target/debug/deps/native_inventory-76dd74ecd0ccca76)
+
+running 1 test
+test cold_native_inventory_requires_exact_qualified_delivery_and_fresh_owner_file ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.55s
+
+     Running tests/schema28_closure.rs (/tmp/aq08-native-producer-target/debug/deps/schema28_closure-6d70f4f352f4c363)
+
+running 2 tests
+test fresh_closure_schema_is_empty_and_default_router_has_no_owner ... ok
+test actual27_upgrades_to28_and_collision_rolls_back_before_explicit_retry ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+
+     Running tests/schema29_presence.rs (/tmp/aq08-native-producer-target/debug/deps/schema29_presence-27caa9a178459716)
+
+running 2 tests
+test fresh_scoped_storage_is_empty_and_quotas_start_at_zero ... ok
+test actual28_upgrade_collision_rolls_back_all29_then_explicit_retry_succeeds ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+
+     Running tests/scoped_presence_inventory.rs (/tmp/aq08-native-producer-target/debug/deps/scoped_presence_inventory-599a71547969605f)
+
+running 6 tests
+test actual_qualified_private_owner_records_provisionability_and_exact_replay_never_retimes ... ok
+test empty_inventory_derives_only_actual_authorized_backing_and_never_installed ... ok
+test compatible_revisions_preserve_epoch_but_new_legacy_and_restore_create_barriers ... ok
+test immutable_operation_bytes_and_derived_head_revisions_cannot_be_retimed_by_sql ... ok
+test missing_exact_qualification_or_referenced_body_is_not_capability_inference ... ok
+test qualification_change_then_restore_retains_barrier_and_exact_retry_cannot_reset_it ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.08s
+
