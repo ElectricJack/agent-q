@@ -148,7 +148,25 @@ pub(super) async fn fence(
     tx: &mut Transaction<'_, Postgres>,
     decision: &Decision,
 ) -> Result<()> {
-    let row=sqlx::query("SELECT actor_id,authority_kind,authority_project_id,authority_policy_ref,authority_policy_revision,authority_policy_digest FROM intelligence_decisions WHERE decision_id=$1 FOR SHARE").bind(decision.decision_id).fetch_one(&mut **tx).await.map_err(db)?;
+    fence_subject(
+        state,
+        tx,
+        decision.decision_id,
+        decision.inputs.project.lineage.project_id,
+        decision.project.project.binding.project_id,
+    )
+    .await
+}
+/// Current authority only, over an exact already-sealed decision/project scope.
+/// Does not refresh its selection, budget or original admission snapshots.
+pub(super) async fn fence_subject(
+    state: &AppState,
+    tx: &mut Transaction<'_, Postgres>,
+    decision_id: Uuid,
+    input_project: Uuid,
+    binding_project: Uuid,
+) -> Result<()> {
+    let row=sqlx::query("SELECT actor_id,authority_kind,authority_project_id,authority_policy_ref,authority_policy_revision,authority_policy_digest FROM intelligence_decisions WHERE decision_id=$1 FOR SHARE").bind(decision_id).fetch_one(&mut **tx).await.map_err(db)?;
     let principal = match row.get::<String, _>("authority_kind").as_str() {
         "human_owner" => Principal::human(
             row.get::<Option<Uuid>, _>("actor_id")
@@ -158,9 +176,7 @@ pub(super) async fn fence(
             let project = row
                 .get::<Option<Uuid>, _>("authority_project_id")
                 .ok_or(AppError::Internal)?;
-            if project != decision.inputs.project.lineage.project_id
-                || project != decision.project.project.binding.project_id
-            {
+            if project != input_project || project != binding_project {
                 return Err(conflict("decision policy project mismatch"));
             }
             let reference: ArtifactRef = serde_json::from_value(

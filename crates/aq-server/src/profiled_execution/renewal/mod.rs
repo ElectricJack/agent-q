@@ -1,0 +1,20 @@
+//! Same-choice continuing authority; no admission replay or provider RPC.
+mod health;
+mod history;
+mod private_read;
+pub(crate) use history::latest_renewal_revision_locked;
+mod pinned;
+
+fn now(state: &crate::AppState) -> Result<u64, crate::error::AppError> {
+    u64::try_from((state.clock)().timestamp_millis())
+        .ok()
+        .filter(|n| *n > 0)
+        .ok_or_else(|| crate::error::AppError::Conflict("invalid current execution clock".into()))
+}
+mod current;
+mod observations;
+
+mod api;
+mod service;
+pub use api::routes;
+pub use service::renew;

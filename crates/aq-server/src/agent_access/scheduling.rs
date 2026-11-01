@@ -89,7 +89,17 @@ impl Runtime {
         query: &[(String, String)],
         max_bytes: usize,
     ) -> Result<(Value, GraphReadStamp, Vec<u8>)> {
-        let requested = now()?;
+        self.scheduling_get_clock(path, query, max_bytes, &now)
+            .await
+    }
+    async fn scheduling_get_clock(
+        &self,
+        path: &str,
+        query: &[(String, String)],
+        max_bytes: usize,
+        clock: &(dyn Fn() -> Result<u64> + Sync),
+    ) -> Result<(Value, GraphReadStamp, Vec<u8>)> {
+        let requested = clock()?;
         let mut response = self
             .client
             .get(
@@ -137,7 +147,7 @@ impl Runtime {
             }
             bytes.extend_from_slice(&chunk);
         }
-        let received = now()?;
+        let received = clock()?;
         let expires = requested
             .checked_add(30_000)
             .ok_or(SchedulingReadError::Unavailable)?;
@@ -227,6 +237,36 @@ impl Runtime {
         limit: u16,
         max_bytes: u32,
     ) -> Result<TaskContext> {
+        self.scheduling_context_clock(expected, depth, limit, max_bytes, &now)
+            .await
+    }
+    /// Trusted daemon clock around a genuinely new request/body receive. This
+    /// does not retime a saved graph response or accept a clock from HTTP input.
+    pub(crate) async fn scheduling_context_current(
+        &self,
+        expected: &TaskRevision,
+        depth: u8,
+        limit: u16,
+        max_bytes: u32,
+        clock: &(dyn Fn() -> chrono::DateTime<chrono::Utc> + Send + Sync),
+    ) -> Result<TaskContext> {
+        let observed_now = || {
+            u64::try_from(clock().timestamp_millis())
+                .ok()
+                .filter(|n| *n > 0)
+                .ok_or(SchedulingReadError::Unavailable)
+        };
+        self.scheduling_context_clock(expected, depth, limit, max_bytes, &observed_now)
+            .await
+    }
+    async fn scheduling_context_clock(
+        &self,
+        expected: &TaskRevision,
+        depth: u8,
+        limit: u16,
+        max_bytes: u32,
+        clock: &(dyn Fn() -> Result<u64> + Sync),
+    ) -> Result<TaskContext> {
         expected
             .validate()
             .map_err(|_| SchedulingReadError::InvalidRequest)?;
@@ -240,13 +280,14 @@ impl Runtime {
             ("direction".into(), "both".into()),
         ];
         let (value, stamp, bytes) = self
-            .scheduling_get(
+            .scheduling_get_clock(
                 &format!(
                     "/v1/workspaces/{}/nodes/{}/context",
                     expected.workspace_id, expected.task_id
                 ),
                 &query,
                 max_bytes as usize,
+                clock,
             )
             .await?;
         if !contract::upstream_valid("Context", &value) {
