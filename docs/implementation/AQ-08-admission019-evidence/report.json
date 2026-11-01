@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "source_revision": "b9451cb81972e80acbcc61119bb65592f594b15b",
+  "package": "aq-admission",
+  "version": "0.1.9",
+  "archive_sha256": "30f4cfca11ff6840eab325026dfea33dd55c23e25099dedb303b52a1ede75b49",
+  "archive_bytes": 159702,
+  "source_package_files_verified": 100,
+  "workspace_tests": {
+    "passed": 83,
+    "ignored": 0
+  },
+  "extracted_tests": {
+    "passed": 83,
+    "ignored": 0
+  },
+  "strict_all_target_all_feature_clippy": {
+    "workspace": true,
+    "extracted": true
+  },
+  "format": {
+    "workspace": true,
+    "extracted": true
+  },
+  "external_schema_fixtures": {
+    "phase_documents": 7,
+    "presence_documents": 3
+  },
+  "independent_python_vectors": true,
+  "legacy_018_files_preserved": 72,
+  "legacy_018_sha256": "97fa3874794a47dcbcff5af60df37d7fce16e67eaa4971771887f6643b7a7587",
+  "compatibility_exceptions": [
+    "Cargo.toml",
+    "Cargo.toml.orig",
+    "Cargo.lock",
+    ".cargo_vcs_info.json",
+    "src/lib.rs only permits exact old prefix plus new module exports"
+  ],
+  "scope": "Pure typed protocol/schema/canonical association arithmetic only; no server owner, runtime activation, remote attestation, host permission, cleanup, source release or worker adoption.",
+  "development_history": [
+    "Initial offline package attempt omitted an explicit package-time session-protocol patch and refused registry resolution; no online fallback. Both frozen dependency patches were supplied for final packaging.",
+    "Earlier joint82-test candidate preceded explicit new-phase worker hold bound. Final source and extracted package83-test runs supersede it.",
+    "New maximum_preparation_ms is independent of tiny legacy reservation remaining; both original proposal freshness and separate new phase limits remain explicit."
+  ],
+  "artifacts": [
+    {
+      "path": "aq-admission-0.1.9.crate",
+      "bytes": 159702,
+      "sha256": "30f4cfca11ff6840eab325026dfea33dd55c23e25099dedb303b52a1ede75b49"
+    },
+    {
+      "path": "aq-lifecycle-protocol-0.1.0.crate",
+      "bytes": 28934,
+      "sha256": "945b03a99701035eb7cf6679bd9baa9ad2b50a7cb6329b9ca8de2cf8bd58b92b"
+    },
+    {
+      "path": "aq-session-protocol-0.1.0.crate",
+      "bytes": 22099,
+      "sha256": "479778d8ea76f0605b9a20460e0bd3fda73b699337b1e80783ada0d291a68090"
+    },
+    {
+      "path": "archive-manifest.json",
+      "bytes": 470,
+      "sha256": "4233aeeb492246efd3a3363745e4007ea08cd26d1e6afd77ef63ba49a0fea2fb"
+    },
+    {
+      "path": "compatibility018.json",
+      "bytes": 12263,
+      "sha256": "d5205ef606e1c14866920b01c2900d08db36e44788e0156b57891921a2b71a28"
+    },
+    {
+      "path": "source-inventory.json",
+      "bytes": 22086,
+      "sha256": "4cc40add74bc3ed60611c908dddf79d4a6130bc8b5cd3a3035b52b579f912632"
+    },
+    {
+      "path": "consumer-Cargo.toml",
+      "bytes": 246,
+      "sha256": "c9a443d82ac5caee7f6ccc181d1322401de2f518265ae41ae20dd2b1a13c9d24"
+    },
+    {
+      "path": "consumer-Cargo.lock",
+      "bytes": 10521,
+      "sha256": "324c5c7e4c80ff770680d97ad254dc23c41ed7f4ac2ee096d0108e823471c971"
+    },
+    {
+      "path": "package-vcs.json",
+      "bytes": 113,
+      "sha256": "ba183fddb017b2ba0d5d6d5b996306562a54f36d99eb1c930e5b6f8765713690"
+    },
+    {
+      "path": "package.log",
+      "bytes": 699,
+      "sha256": "aaf4676d31672a4de449e9e960f13ac0f4ce0b17800c967a2a846928eb8f3afe"
+    },
+    {
+      "path": "package-final.log",
+      "bytes": 328,
+      "sha256": "70ddb38007546936209b61d8445a2db00079a96c64815853f248ea5371624cb7"
+    },
+    {
+      "path": "final-package.log",
+      "bytes": 334,
+      "sha256": "efc06bb4eb3eefa689e5c3061632637a5e5ac51766b799ef5974076ab4662232"
+    },
+    {
+      "path": "joint-tests.log",
+      "bytes": 13073,
+      "sha256": "58a766baea4ee4a71ef8cc688fe3b8aea95985e537adcca26f28a15082a3e195"
+    },
+    {
+      "path": "joint-final-tests.log",
+      "bytes": 12006,
+      "sha256": "3404ba4b40b777c4c5bc2929e84762ee6a3c1d09254a633ed06fd86d88601eb6"
+    },
+    {
+      "path": "joint-final-clippy.log",
+      "bytes": 139,
+      "sha256": "4e39c7a51356eab1e21cdd2f67e1c991aaf53ac694591ecec207e80e5b421741"
+    },
+    {
+      "path": "joint-final-format.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "extracted-lock.log",
+      "bytes": 114,
+      "sha256": "d6e57a2fdca63e8a7c100c6b635b7a3eaed11b4a16104bbfd3c49c0ca18a5111"
+    },
+    {
+      "path": "extracted-tests.log",
+      "bytes": 13242,
+      "sha256": "b029499f71931ff7027a7cff1e3cfd12212367893502538bfe83b5de310728d5"
+    },
+    {
+      "path": "extracted-clippy.log",
+      "bytes": 944,
+      "sha256": "229c00982f87d824d318231bdfec17dde1fa81ff4dc01f84daa90a82f22caebd"
+    },
+    {
+      "path": "extracted-format.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "extracted-phase-vectors.log",
+      "bytes": 30,
+      "sha256": "1b0255f4a60e483b764a39512c814de8eaa6ab73376c6017ea0ab6557fe977b6"
+    },
+    {
+      "path": "extracted-presence-vectors.log",
+      "bytes": 145,
+      "sha256": "3bdc51fb3c88fe3e9232c901330969580447b05b313a8cf1b93cb5926d15ced8"
+    },
+    {
+      "path": "extracted-schema.log",
+      "bytes": 147,
+      "sha256": "948b20a7cefcf99d7a5eb2fb0970902ef6eac1a394d983ede68be78d5e5b0c92"
+    }
+  ]
+}

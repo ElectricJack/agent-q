@@ -1,0 +1,6 @@
+[workspace]
+resolver="3"
+members=["aq-admission-0.1.9","aq-lifecycle-protocol-0.1.0","aq-session-protocol-0.1.0"]
+[patch.crates-io]
+aq-lifecycle-protocol={path="aq-lifecycle-protocol-0.1.0"}
+aq-session-protocol={path="aq-session-protocol-0.1.0"}
