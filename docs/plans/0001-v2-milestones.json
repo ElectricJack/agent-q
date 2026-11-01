@@ -1532,7 +1532,7 @@
       "repo": "agent-q",
       "milestone": "M5",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "AQ-11",
         "AQ-06",
@@ -1567,7 +1567,8 @@
         "General supervisor autonomy or all v1 profiles"
       ],
       "evidence": [
-        "../implementation/AQ-12-through-17-plan.md"
+        "../implementation/AQ-12-through-17-plan.md",
+        "../implementation/AQ-17-central-authority-core.md"
       ]
     },
     {
@@ -3866,6 +3867,10 @@
     {
       "source": "../implementation/dashboard-canonical-state35-2026-11-01.md",
       "summary": "Canonical state35 serves exact 2b3d assets: durable human Supervisor history/text mailbox foundation and compact 114px phone header, with canonical read-only Graph/Overview checks. API-07/UI-16/API-11 remain in progress; loaded startup metadata is isolated-qualified, PNG is pure core only, and production native capsule/key/context gates remain open."
+    },
+    {
+      "source": "../implementation/AQ-17-central-authority-core.md",
+      "summary": "The isolated taskless central-session model is implemented with 16 fast tests and retained-history replay fences. Authenticated mailbox/storage ownership, central host startup and replies remain pending; structural data validation grants no runtime authority."
     }
   ],
   "implementation_reference_maps": [
