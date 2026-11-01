@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Isolated cached-PG17 transport proof. No canonical endpoint/config/database inputs."""
+"""Owned cached-PG17 transport proof; promoted consumers are protected from cleanup."""
 import argparse
 import json
 import os
@@ -18,6 +18,7 @@ IMAGE = "sha256:99445113a4a19e82dd3713c65bd9f6fb5bf972065ab043df8d1e1c93e957da9a
 PREFIX = "aq-private-uds-"
 LABEL = "aq.proof.optional-uds"
 PGDATA = "/var/lib/postgresql/data"
+PROMOTED_MARKER = "canonical-use.json"
 
 
 def require(value, message):
@@ -177,8 +178,14 @@ exec /usr/lib/postgresql/17/bin/postgres -D /var/lib/postgresql/data -c listen_a
 
 
 def stop(root, data):
+    # Any entry protects the root, including an unreadable or broken marker.
+    # Promotion transfers lifecycle ownership out of this isolated-proof helper.
+    require(not os.path.lexists(root / PROMOTED_MARKER), "PostgreSQL has a promoted consumer; use its owning AQ lifecycle")
     info = container(root, data)
     if info is not None:
+        if info["State"]["Running"]:
+            databases = json.loads(sql(data, "SELECT json_agg(datname ORDER BY datname)::text FROM pg_database", database="postgres"))
+            require(set(databases) <= {"postgres", "template0", "template1", data["database"]}, "PostgreSQL contains additional databases; isolated-proof cleanup is refused")
         run(["docker", "stop", "--timeout=10", info["Id"]])
         run(["docker", "rm", info["Id"]])
     data["state"] = "stopped"; save(root, data)
