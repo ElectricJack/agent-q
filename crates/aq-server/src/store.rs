@@ -259,6 +259,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         36,
         include_str!("../migrations/0036_result_media_owner.sql"),
     ),
+    (
+        37,
+        include_str!("../migrations/0037_central_reservations.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -432,6 +436,9 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
     }
     if supported >= 36 {
         media36_storage_guard(&mut tx).await?;
+    }
+    if supported >= 37 {
+        central37::central37_storage_guard(&mut tx).await?;
     }
     tx.commit().await?;
     Ok(())
@@ -981,3 +988,9 @@ use media36::media36_storage_guard;
 #[cfg(test)]
 #[path = "store/media36_tests.rs"]
 mod media36_tests;
+
+#[path = "store/central37.rs"]
+mod central37;
+#[cfg(test)]
+#[path = "store/central37_tests.rs"]
+mod central37_tests;
