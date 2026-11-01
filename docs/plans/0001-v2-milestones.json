@@ -885,7 +885,8 @@
         "../implementation/AQ-08-closure28-prerequisite-integration.md",
         "../implementation/AQ-08-native-renewal.qualification.md",
         "../implementation/AQ-08-renew-reconcile-plan.md",
-        "../../../aq-worker/docs/implementation/WRK-08-preparation-phase-separation.md"
+        "../../../aq-worker/docs/implementation/WRK-08-preparation-phase-separation.md",
+        "../implementation/AQ-08-worker-prepare-assembly.md"
       ]
     },
     {
@@ -1082,7 +1083,8 @@
         "../../../aq-worker/docs/implementation/WRK-08-native-hydration-qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-native-prepare-qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-native-artifact-batch-qualification.md",
-        "../../../aq-worker/docs/implementation/WRK-08-preparation-phase-separation.md"
+        "../../../aq-worker/docs/implementation/WRK-08-preparation-phase-separation.md",
+        "../implementation/AQ-08-worker-prepare-assembly.md"
       ]
     },
     {

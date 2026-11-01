@@ -98,12 +98,15 @@ ignores, a separately enabled actual-Git case, and strict lint/formatting passed
 It joins actual verified inputs, installed materials and freshly checked source
 ownership into an immutable request before any send. Journal format4 refuses
 older layouts unchanged. These counts overlap the previous hydration suite.
-The independent worker-process/real-daemon probe now crosses actual HTTP, SQL,
-private material installation and separate central/worker Git processes. Its
-latest optimized batch run reaches a committed server Grant, then rejects the
-delivery after its conservative preparation deadline. This is an ever-issued
-held grant, not NeverGranted, and is not a passing execution qualification.
-No complete native host execution is yet claimed. The [actual Git producer-to-grant checkpoint](../implementation/AQ-08-actual-git-grant-qualification.md)
+The [independent worker-process/real-daemon probe](../implementation/AQ-08-worker-prepare-assembly.md)
+now passes its tiny fixture at source `b411421`, crossing actual HTTP, SQL, private
+material installation and separate central/worker Git processes through usable
+initial Grant. The run takes3.10seconds including fixture setup. An earlier run
+of the same pinned batch worker reached a committed server Grant, then rejected
+the delivery after its conservative preparation deadline. That is an ever-issued
+held grant, not NeverGranted. Both results remain retained; the passing profile
+does not qualify cold preparation or load. No complete native host execution is
+yet claimed. The [actual Git producer-to-grant checkpoint](../implementation/AQ-08-actual-git-grant-qualification.md)
 passes14 initial-grant tests including two actual-Git cases. The [fresh pre-grant Graph fence](../implementation/AQ-08-initial-grant-current-graph.md)
 now closes the observed task/context-change gap and passes43 selected checks,
 including both actual-Git cases. It rereads bounded readiness and exact authorized
