@@ -1,0 +1,34 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-native-renewal/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 24.04s
+     Running unittests src/lib.rs (/tmp/aq08-native-producer-target/debug/deps/aq_server-c8c270682c9f2c1a)
+
+running 26 tests
+test profiled_execution::context_projection::tests::expired_partial_forged_and_foreign_observations_refuse ... ok
+test profiled_execution::renewal::current::tests::newer_missing_unavailable_and_expired_positive_cannot_be_rewritten ... ok
+test profiled_execution::native_offer::observation::tests::each_read_has_its_own_freshness_and_workspace ... ok
+test profiled_execution::native_offer::observation::tests::same_authorized_context_digest_does_not_replace_exact_read_provenance ... ok
+test profiled_execution::material_api::tests::valid_public_metadata_can_exceed_the_explicit_http_header_profile ... ok
+test profiled_execution::renewal::current::tests::original_cold_inventory_requires_actual_installation ... ok
+test profiled_execution::renewal::health::tests::fresh_exact_negative_and_active_cooldown_deny_but_unrelated_scope_does_not ... ok
+test profiled_execution::renewal::health::tests::source_sequence_wins_clock_correction_and_conflicting_same_sequence_refuses ... ok
+test profiled_execution::renewal::health::tests::unknown_never_becomes_available_or_missing_credentials ... ok
+test profiled_execution::source::tests::reference_observation_requires_original_complete_fresh_exact_generation ... ok
+test profiled_execution::source::tests::retention_is_exact_active_complete_and_never_inferred_from_missing_fields ... ok
+test profiled_execution::source_exports::tests::export_identity_is_exact_and_no_execution_binding_is_fabricated ... ok
+test profiled_execution::continuation_policy::tests::actual_pinned_policy_keeps_known_elapsed_and_refuses_missing_or_exhausted ... ok
+test profiled_execution::continuation_policy::tests::mismatched_definition_and_unsupported_legacy_policy_never_get_defaults ... ok
+test profiled_execution::initial_grant::tests::initial_grant_history_requires_an_actual_positive_grant_revision ... ok
+test profiled_execution::material::tests::delivery_requires_exact_scope_and_current_bounded_file_bytes ... ok
+test profiled_execution::context_projection::tests::only_authorized_api01_fields_enter_startup_and_original_age_is_preserved ... ok
+test profiled_execution::context_projection::tests::mixed_context_never_expands_task_only_or_knowledge_only_permission ... ok
+test profiled_execution::context_budget::tests::optional_config_defaults_preserve_old_digest_and_facts_require_owned_runtime ... ok
+test profiled_execution::context_projection::tests::scoped_edges_require_exact_authorized_endpoints_and_pinned_revisions ... ok
+test profiled_execution::context_budget::tests::on_demand_content_is_not_claimed_as_zero_token_startup_and_tampering_refuses ... ok
+test profiled_execution::context_budget::tests::qualified_count_binds_actual_utf8_rendering_overhead_and_reserved_output ... ok
+test profiled_execution::renewal::private_read::tests::real_private_read_ignores_saturated_tokio_blocking_pool_and_old_retrieval_expiry ... ok
+test profiled_execution::context_budget::tests::capacity_overflow_zero_unknown_and_ambiguous_definitions_refuse ... ok
+test profiled_execution::renewal::private_read::tests::cancelled_waiters_keep_actual_jobs_bounded_until_read_returns ... ok
+test profiled_execution::context_budget::tests::missing_expired_or_wrong_exact_subject_never_infers_model_facts_from_bytes ... ok
+
+test result: ok. 26 passed; 0 failed; 0 ignored; 0 measured; 47 filtered out; finished in 0.01s
+

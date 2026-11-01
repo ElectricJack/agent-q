@@ -1,0 +1,209 @@
+{
+  "source_revision": "c5438d3d0daa71c66bfce1bd04ea4668311e9d40",
+  "changed_paths": 21,
+  "files": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "1ec46dc99271d9a24680a2fc9e2be15f6aa9d88a2c7d0f01ef84d9b5bc30b2af",
+      "bytes": 88659,
+      "source": "git-show",
+      "changed_in_checkpoint": false
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "42bcbada166090885b1fd7c5da190aa8022bcedf1770885b6f0c111e1f1ef6cc",
+      "bytes": 2574,
+      "source": "git-show",
+      "changed_in_checkpoint": false
+    },
+    {
+      "path": "crates/aq-server/migrations/0028_profiled_launch_closure.sql",
+      "sha256": "23b4b732f787138ec06a93deeffa21a010e41d6d704c7ddb547f5948d1e01225",
+      "bytes": 12328,
+      "source": "git-show",
+      "changed_in_checkpoint": false
+    },
+    {
+      "path": "crates/aq-server/src/admission.rs",
+      "sha256": "859305a6fbee11b940213da6b390f3d69c4016c0d4508530b2016bd33dfe90c9",
+      "bytes": 8259,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/agent_access/scheduling.rs",
+      "sha256": "7154ca700e534f3d64e2641b6fd449afe56900ae0516698f614a2c8d6626aa9b",
+      "bytes": 14474,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/intelligence.rs",
+      "sha256": "a53e7ebef7dc3526dead23e9c1772b22a8f2849168429da3575a3918a99cfdd2",
+      "bytes": 9412,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/intelligence/principal.rs",
+      "sha256": "00a88904e165fb347f4852740b711aef5b5967b9a348c806f08bbad0aa39a1f8",
+      "bytes": 8614,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/lib.rs",
+      "sha256": "f70c2e38f27c4fe9422e677f3f7aea0dfbb11669d830437470481e553caf3754",
+      "bytes": 14660,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution.rs",
+      "sha256": "5b92205d74f8a8a7bba5caadf3cf16939ab525b74a6017123a8fd11d68f80740",
+      "bytes": 832,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/closure/mod.rs",
+      "sha256": "02955a72600d9fbf72fcb0022b04c4eb51becb7fdb69673fa8fe8377f86a76ce",
+      "bytes": 1345,
+      "source": "git-show",
+      "changed_in_checkpoint": false
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/continuation_policy.rs",
+      "sha256": "6ef3ffd88a688a6c64c1584ad64be5dc63c871d94abd22f76270bbd20bfefd61",
+      "bytes": 6806,
+      "source": "git-show",
+      "changed_in_checkpoint": false
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/initial_grant.rs",
+      "sha256": "28536b434234ec7a9d864304256077f46e58a3be5cd7297152864696d0ed2abf",
+      "bytes": 26150,
+      "source": "git-show",
+      "changed_in_checkpoint": false
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/initial_grant/history.rs",
+      "sha256": "37d2f25f2f1ce12364bf63994bc37559aafecca33d15abe9dbfa9c990c224ed6",
+      "bytes": 2179,
+      "source": "git-show",
+      "changed_in_checkpoint": false
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/initial_grant/material_receipts.rs",
+      "sha256": "776e59d69e97df356e64771d17f2255f7c8848817ce7a979dee19362d85b53b0",
+      "bytes": 3310,
+      "source": "git-show",
+      "changed_in_checkpoint": false
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/api.rs",
+      "sha256": "80f85c01f33820d826c2539bb331c161f3a9866b65aa24746b3f69393e7841e6",
+      "bytes": 1442,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/current.rs",
+      "sha256": "16ed1641ec6ad8d9fa4cc7caae116198c5354a0b3b9c98d1f09c2704b7248984",
+      "bytes": 9227,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/health.rs",
+      "sha256": "c2d9fe162b7deca96dc837c09cb9ba9b09624e81ae719c2924093304e5c8dc0e",
+      "bytes": 7950,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/history.rs",
+      "sha256": "a74f7f40f99f1fa30944c7b0d638b74ca00b203d5d0154ba869edb859669028b",
+      "bytes": 10402,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/mod.rs",
+      "sha256": "ddcaa431d6db0d9ccf0813d0f597eb44d877b8e60dd5fb5a96dfdb298208ea17",
+      "bytes": 556,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/observations.rs",
+      "sha256": "4ea6e35fe35e9584707f00d11b784a3c90243aa38a90c2e85488fb01cbc2d1d4",
+      "bytes": 7472,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/pinned.rs",
+      "sha256": "baeb4092ca9621e2f6b614f7af93a212c04c49d3268724f387dc2e9f4edc3b67",
+      "bytes": 13436,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/private_read.rs",
+      "sha256": "e3e459bfa4240f5cf15cf969282839c34345b4911d0b2b19615ee198c4feef83",
+      "bytes": 11934,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/service.rs",
+      "sha256": "bf55a9d860705af06d3e65053546f91f20a9aef5dbeec38a71c9b1339ccacae8",
+      "bytes": 7700,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/project_bindings.rs",
+      "sha256": "bfa82c6c2f13b5beb05c0f3ec398983c52c995e2244eb0df83f308b0dc3dd0f1",
+      "bytes": 24463,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/project_bindings/external.rs",
+      "sha256": "9b4a25ca9664e29d1efd1be712fb55f5b9cae6b313aaa9f622b719c400c16542",
+      "bytes": 8661,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/source_retention/profiled_base.rs",
+      "sha256": "190bd756b3986f4be77913a4f188148584503118711252e6cae4afdd097e3936",
+      "bytes": 43807,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/src/store.rs",
+      "sha256": "3d58274b71577dff7ce31161d05913e2ab3ee06a714ffa1a1b4e075263449924",
+      "bytes": 26582,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/tests/native_initial_grant/published.rs",
+      "sha256": "eea89326411367412ac053bd2c619a28d640fe90a848bae3339b8decfd298936",
+      "bytes": 27523,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    },
+    {
+      "path": "crates/aq-server/tests/native_initial_grant/published/renewal.rs",
+      "sha256": "a92cef2190c0e82663a0f4ab8f964d7291e4d1d2eaf8e0b40e2137fa8c11ed60",
+      "bytes": 9998,
+      "source": "git-show",
+      "changed_in_checkpoint": true
+    }
+  ]
+}

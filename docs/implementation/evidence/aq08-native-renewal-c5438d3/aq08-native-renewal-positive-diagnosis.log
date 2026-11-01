@@ -1,0 +1,21 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-native-renewal/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 22.29s
+     Running tests/native_initial_grant.rs (/tmp/aq08-native-producer-target/debug/deps/native_initial_grant-4286447f1def1467)
+
+running 1 test
+test published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals ... 
+thread 'published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals' (198893) panicked at crates/aq-server/tests/native_initial_grant/published/renewal.rs:52:5:
+assertion `left == right` failed: Failure(Failure { schema_version: 1, code: Unavailable, operation_id: None })
+  left: 500
+ right: 200
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 26 filtered out; finished in 1.49s
+
+error: test failed, to rerun pass `-p aq-server --test native_initial_grant`
