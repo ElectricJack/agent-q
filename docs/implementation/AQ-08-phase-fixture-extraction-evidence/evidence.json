@@ -1,0 +1,33 @@
+{
+  "source": "534d981",
+  "scope": "Test fixture extraction only; actual SQL owners, synthetic Graph/Git/installation; no host/provider qualification",
+  "results": {
+    "same_clock_existing_tests": "14 passed,32.72s",
+    "strict_affected_clippy": "passed,28.97s",
+    "rustfmt": "passed"
+  },
+  "environment": {
+    "CARGO_TARGET_DIR": "/tmp/aq-native-union-target",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "2",
+    "DATABASE_URL": "postgres://postgres:test@127.0.0.1:55432/postgres",
+    "RUST_TEST_THREADS": "1"
+  },
+  "commands": [
+    "cargo test -p aq-server --test phase_execution --all-features --locked --offline -- --test-threads=1",
+    "cargo clippy -p aq-server --test phase_execution --all-features --locked --offline -- -D warnings",
+    "rustfmt --edition 2024 --check crates/aq-server/tests/phase_execution.rs crates/aq-server/tests/common/phase_execution.rs"
+  ],
+  "source_sha256": {
+    "crates/aq-server/tests/phase_execution.rs": "9c3ea2b63a988d11f7419db3a1a73f9ae3fc2c287f6200989d5873df0d0d14a1",
+    "crates/aq-server/tests/common/phase_execution.rs": "e7a5d9c5bd83b5da6d0adc6183bd654c51341fc48c88417af611c4c0a1bbf801"
+  },
+  "logs": {
+    "aq-phase-fixture-extraction-tests.log": "176bf2e150c7940267085afe44b8617516702ef56aa8f0e2d22c389bdceaae77",
+    "aq-phase-fixture-extraction-build.log": "6e1e5f21fb122cd4d9c093e1f8468da21debc878d8cfb94cf317964b5e8a1595",
+    "aq-phase-fixture-extraction-clippy.log": "d7d8d1ea0550d77699d4a63a1f68f3c8e62d1abbb802cfdfbc8b2e9ce402c76d",
+    "aq-phase-fixture-extraction-build-final.log": "e2316fc9dc3a38f2d827f577db9acf49def36443759ad550c4dfa85b2bf3d124"
+  },
+  "development_failure": "Initial no-run compile lacked inherited to_bytes import; retained failed log, corrected import only before final qualification."
+}
