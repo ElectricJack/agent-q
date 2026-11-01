@@ -1,0 +1,45 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-native-renewal/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 34.33s
+     Running tests/native_initial_grant.rs (/tmp/aq08-native-producer-target/debug/deps/native_initial_grant-4286447f1def1467)
+
+running 6 tests
+test published::renewal::expired_server_permit_cannot_be_resurrected_by_fresh_observations ... ok
+test published::renewal::missing_actual_installation_receipt_cannot_be_reconstructed_from_preparation ... ok
+test published::renewal::exact_renewal_operation_cannot_mutate_journal_or_become_superseded_authority ... FAILED
+test published::renewal::changed_private_material_and_revoked_agent_scope_cannot_extend_a_permit ... ok
+test published::renewal::newer_unavailable_inventory_cannot_be_rewritten_by_original_installation ... FAILED
+test published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals ... FAILED
+
+failures:
+
+---- published::renewal::exact_renewal_operation_cannot_mutate_journal_or_become_superseded_authority stdout ----
+
+thread 'published::renewal::exact_renewal_operation_cannot_mutate_journal_or_become_superseded_authority' (196926) panicked at crates/aq-server/tests/native_initial_grant/published/renewal.rs:134:5:
+assertion `left == right` failed: Failure(Failure { schema_version: 1, code: Unavailable, operation_id: None })
+  left: 500
+ right: 200
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- published::renewal::newer_unavailable_inventory_cannot_be_rewritten_by_original_installation stdout ----
+
+thread 'published::renewal::newer_unavailable_inventory_cannot_be_rewritten_by_original_installation' (196932) panicked at crates/aq-server/tests/native_initial_grant/published/renewal.rs:96:5:
+assertion `left == right` failed: Failure(Failure { schema_version: 1, code: Unavailable, operation_id: None })
+  left: 500
+ right: 409
+
+---- published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals stdout ----
+
+thread 'published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals' (196972) panicked at crates/aq-server/tests/native_initial_grant/published/renewal.rs:52:5:
+assertion `left == right` failed: Failure(Failure { schema_version: 1, code: Unavailable, operation_id: None })
+  left: 500
+ right: 200
+
+
+failures:
+    published::renewal::exact_renewal_operation_cannot_mutate_journal_or_become_superseded_authority
+    published::renewal::newer_unavailable_inventory_cannot_be_rewritten_by_original_installation
+    published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals
+
+test result: FAILED. 3 passed; 3 failed; 0 ignored; 0 measured; 21 filtered out; finished in 9.53s
+
+error: test failed, to rerun pass `-p aq-server --test native_initial_grant`

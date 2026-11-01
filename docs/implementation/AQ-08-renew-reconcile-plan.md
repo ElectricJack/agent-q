@@ -120,7 +120,7 @@ original receipt.
 
 A new operation requires a journal revision newer than the accepted launch/renew
 heads. Renewal counters are not physical start/stop evidence and do not advance
-Reserved→Prepared→Started→Stopped transition history. Exact operation replay must
+Reserved→Prepared→Started→Stopped transition history. A delayed actual Started event may predate a later acknowledged renewal counter. It retains its original physical checkpoint identity and cannot reset that independent counter; later renewal and terminal closure use the maximum actually acknowledged revision, without inventing a newer journal digest. Exact operation replay must
 match its original request digest and original versions/absolute expiry. It may
 freshly stamp only the same still-current, live permit under current facts. A
 superseded or expired operation returns conflict/recovery rather than masquerading
@@ -133,6 +133,31 @@ for application-owned execution receipts, and no unsolicited migration028 is
 introduced. Finite global/node/attempt row and raw JSONB byte quotas include the
 incoming request/response and exact replay is considered before quota admission.
 No unknown or expired history is silently pruned.
+
+## Installed credentials and bounded private observations
+
+The original node inventory can truthfully describe a provisionable credential
+as missing before preparation. For the exact original inventory revision only,
+an actual retained matching MaterialReceipt supersedes that pre-install report.
+The receipt is loaded and validated at the original issuance time; its digest is
+never inferred from a Prepare request digest. A newer missing/unavailable binding,
+an expired positive binding, or a missing installation receipt refuses renewal.
+The inventory itself must still be fresh and support the exact harness/model.
+The current inventory endpoint has no typed installed-material receipt input and
+rejects a bare available=true claim for server-material credentials. Therefore
+the first supported continuation remains bounded by the original inventory's
+expiry. A newer preparation-only/missing report blocks renewal; indefinite
+periodic continuation is not qualified until an actual receipt-bound installed
+inventory producer/owner exists. This is an explicit integration limit, not
+permission to reinterpret a newer negative as positive.
+No report or provider-health timestamp is rewritten by this causal exception.
+
+Private material verification uses two dedicated threads, a two-entry queue and
+four owned jobs. Cancellation drops the waiter but keeps the ownership permit
+until the real read and zeroization finish. Only size/digest leave the reader.
+The two-second observation age bounds issuance after SQL waits; it does not turn
+an observation into a two-second execution deadline. Actual current material
+fingerprint, registry/principal fences and finite permit TTL remain required.
 
 ## Read-only reconciliation
 

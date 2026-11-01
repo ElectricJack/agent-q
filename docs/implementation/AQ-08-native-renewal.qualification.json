@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "source_revision": "c5438d3d0daa71c66bfce1bd04ea4668311e9d40",
+  "source_inventory": "docs/implementation/evidence/aq08-native-renewal-c5438d3/source-inventory.json",
+  "source_inventory_sha256": "35a3c1ed9a11b424ac13c9545e6a06a1ca54d414bda75aa6376738bf7e21287e",
+  "final_checks": [
+    {
+      "name": "native-and-schema",
+      "passed": 27,
+      "ignored": 2,
+      "log": "aq08-native-renewal-combined-tests.log"
+    },
+    {
+      "name": "profiled-execution-library",
+      "passed": 26,
+      "ignored": 0,
+      "log": "aq08-native-renewal-lib-tests.log"
+    },
+    {
+      "name": "strict-server-all-targets-all-features-clippy",
+      "passed": true,
+      "log": "aq08-native-renewal-clippy.log"
+    },
+    {
+      "name": "workspace-format",
+      "passed": true,
+      "log": "aq08-native-renewal-format.log"
+    }
+  ],
+  "claims": [
+    "Actual published offer, authenticated cold inventory, Accept, retained installation and initial Grant precede renewal.",
+    "Renewal can outlive original admission/retrieval clocks without changing original bodies, grant identity or hard deadline.",
+    "Current authorization, private fingerprint, inventory, scoped health, root task and source retention are reobserved; no selector or provider call.",
+    "Closure fence is mandatory for renewal and replay; expiry cannot be resurrected."
+  ],
+  "limitations": [
+    "Synthetic harness/model/counting/runtime facts; no real provider or physical execution qualification.",
+    "First supported continuation remains bounded by original inventory expiry until receipt-bound installed inventory owner exists.",
+    "No full-workspace, fleet throughput or remote-kernel attestation claim.",
+    "Late-lock/quota rollback, cancellation/closure race and delayed Started additional adversarial tests remain followup qualification.",
+    "Application-owned receipts use append-only API trust; same-privilege SQL operators remain trusted."
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-c5438d3/aq08-native-renewal-combined-tests.log",
+      "sha256": "2f0577c1e8725e49212d2b011411a7343336bd968341962e1afe0f1b10dcece8",
+      "bytes": 3659
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-c5438d3/aq08-native-renewal-lib-tests.log",
+      "sha256": "c5973f852cdaf900538db9207a113cbe551299d835b725cae957d9b8fef3634d",
+      "bytes": 3607
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-c5438d3/aq08-native-renewal-clippy.log",
+      "sha256": "ae79498c7be63c7e831f261e588d40f0a5708d489c059ff5b0440c482c67524c",
+      "bytes": 1457
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-c5438d3/aq08-native-renewal-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-c5438d3/aq08-native-renewal-http-first.log",
+      "sha256": "39078bad4de4e0dc8fde7acbac7234e88320f3d9bb1650ad78003eb4c2f26827",
+      "bytes": 2875
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-c5438d3/aq08-native-renewal-positive-diagnosis.log",
+      "sha256": "59e77e7231ac0949867ea80969ce6c2b9e1a3fc699b2854ad09650cdfcef3bfd",
+      "bytes": 1130
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-c5438d3/aq08-native-renewal-positive-diagnosis2.log",
+      "sha256": "8df9ccfdc31dfef0d5dc77a5b66bc1f7a2671cff4f1beb3101cb24a252ae6fa0",
+      "bytes": 501
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-c5438d3/aq08-native-renewal-http-second.log",
+      "sha256": "ce6c5fe6296e041becad1026c50ef11b34e7bd250ccbafa51cb7ff3bf26c4be4",
+      "bytes": 1705
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-c5438d3/aq08-native-renewal-cold-inventory.log",
+      "sha256": "6b03cdf1c07c29e1d64ecc1f16052290cd721ab41529c76ee135ea82b5548ce6",
+      "bytes": 495
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-c5438d3/aq08-native-renewal-cold-inventory-final.log",
+      "sha256": "ab7a732d3204aa4ddd4b88ae7639441d2f35c74bae1b93aa3fbc5170a954be8c",
+      "bytes": 1136
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-c5438d3/aq08-native-renewal-http-third.log",
+      "sha256": "b1c7af4b2e9dafbf8a7b25bc06a9eb9515e9c67dbec7fa36561dfd80d825125a",
+      "bytes": 1026
+    }
+  ]
+}

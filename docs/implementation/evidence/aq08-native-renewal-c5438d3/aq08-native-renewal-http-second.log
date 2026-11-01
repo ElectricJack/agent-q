@@ -1,0 +1,28 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-native-renewal/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 20.05s
+     Running tests/native_initial_grant.rs (/tmp/aq08-native-producer-target/debug/deps/native_initial_grant-4286447f1def1467)
+
+running 6 tests
+test published::renewal::missing_actual_installation_receipt_cannot_be_reconstructed_from_preparation ... ok
+test published::renewal::exact_renewal_operation_cannot_mutate_journal_or_become_superseded_authority ... ok
+test published::renewal::expired_server_permit_cannot_be_resurrected_by_fresh_observations ... ok
+test published::renewal::changed_private_material_and_revoked_agent_scope_cannot_extend_a_permit ... ok
+test published::renewal::newer_unavailable_inventory_cannot_be_rewritten_by_original_installation ... ok
+test published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals ... FAILED
+
+failures:
+
+---- published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals stdout ----
+
+thread 'published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals' (202718) panicked at crates/aq-server/tests/native_initial_grant/published/renewal.rs:50:5:
+assertion `left == right` failed: {"body":{"code":"conflict","operation_id":null,"schema_version":1},"kind":"failure"}
+  left: 409
+ right: 200
+
+
+failures:
+    published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals
+
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 21 filtered out; finished in 7.92s
+
+error: test failed, to rerun pass `-p aq-server --test native_initial_grant`
