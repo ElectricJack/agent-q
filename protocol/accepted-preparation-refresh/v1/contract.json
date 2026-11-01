@@ -1,0 +1,18 @@
+{
+  "artifact": {
+    "digest": "e41c08e3c8200f84b75824bff779833c9b8e5279ac63d2d91af12d9879deef56",
+    "id": "aq.admission.preparation-registry-refresh-v1-contract",
+    "version": "1"
+  },
+  "manifest": {
+    "publication": "aq-admission/0.1.10",
+    "required_features": [
+      "accepted_preparation_v2",
+      "fresh_initial_confirmation_v2",
+      "independent_execution_delivery_v2",
+      "registry_observation_continuity_v1"
+    ],
+    "schema_digest": "16f7ff45151238e684181e322846ea0a3a2fed6f07afd86fc29725968c5f1a41",
+    "schema_version": 2
+  }
+}
