@@ -1,0 +1,30 @@
+    Blocking waiting for file lock on build directory
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 23s
+     Running tests/native_expiry.rs (target/debug/deps/native_expiry-405850062cfa44b7)
+
+running 6 tests
+test fresh_offer_remains_held_then_cursor_wrap_closes_exact_expired_owner_once ... ok
+test configured_runtime_closes_offline_offer_and_obeys_shutdown ... ok
+test granted_without_started_remains_held_even_after_grant_and_wall_expiry ... ok
+test node_lock_refusal_advances_cursor_and_does_not_drop_claim_or_poison_pool ... ok
+test unconfigured_runtime_returns_without_closing_fixture_claims ... ok
+test published_offer_actual_accept_and_expiry_preserve_source_while_revoking_material ... FAILED
+
+failures:
+
+---- published_offer_actual_accept_and_expiry_preserve_source_while_revoking_material stdout ----
+
+thread 'published_offer_actual_accept_and_expiry_preserve_source_while_revoking_material' (127764) panicked at crates/aq-server/tests/native_expiry.rs:161:5:
+assertion `left == right` failed
+  left: (1, 0, 0)
+ right: (1, 1, 0)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    published_offer_actual_accept_and_expiry_preserve_source_while_revoking_material
+
+test result: FAILED. 5 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.61s
+
+error: test failed, to rerun pass `-p aq-server --test native_expiry`

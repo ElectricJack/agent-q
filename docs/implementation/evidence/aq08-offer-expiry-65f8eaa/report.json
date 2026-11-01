@@ -1,0 +1,31 @@
+{
+  "source_revision": "65f8eaa19f806c8bc73049989d1c54f3fbe9a4ea",
+  "prerequisites": {
+    "producer": "2e59883",
+    "expiry": "cd5c00c",
+    "optional_owner": "bc6ac06",
+    "schema": "eacdc05"
+  },
+  "tests": {
+    "passed": 28,
+    "failed": 0,
+    "ignored": 0,
+    "targets": 4,
+    "shell_exit": 0
+  },
+  "checks": {
+    "strict_lib_offer_expiry_allfeatures_clippy": 0,
+    "workspace_format": 0
+  },
+  "commands": [
+    "DATABASE_URL=<disposable-loopback-postgres> CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target CARGO_BUILD_JOBS=2 CARGO_INCREMENTAL=0 cargo test -p aq-server --test native_expiry --test native_offers --test native_preparation --test never_granted --locked --offline -- --test-threads=2",
+    "CARGO_TARGET_DIR=/home/jkern/dev/agent-q/target CARGO_BUILD_JOBS=2 CARGO_INCREMENTAL=0 cargo clippy -p aq-server --lib --test native_expiry --test native_offers --all-features --locked --offline -- -D warnings",
+    "cargo fmt --all -- --check"
+  ],
+  "limits": [
+    "Actual PostgreSQL/router owners with synthetic Graph/Git/model/runtime facts; no live provider or physical worker execution.",
+    "Preflight cross-slice test advanced obsolete fixture AtomicI64 afterpublication fixture had installed Utc::now; ownercorrectlykept fresh preparation held. Finaltest clonescleanupstate atoriginalplanabsoluteexpiry, notretiminganyreceipt. Negative5pass/1fail retained separately.",
+    "Fullworkerdriver, nativegrants/renew/reconcile andever-grantedclosure are notqualified bythischeckpoint.",
+    "Localpreviewstillruns077a0ad source; thisnewproducer/expiryassembly has focusedtests, notanewlivepreviewbinary."
+  ]
+}
