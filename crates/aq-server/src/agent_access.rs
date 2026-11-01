@@ -3,6 +3,7 @@ mod contract;
 mod graph;
 pub mod human;
 pub(crate) mod messaging;
+pub use messaging::global as supervisor_conversation;
 mod mutations;
 pub(crate) mod native_binding;
 pub mod scheduling;

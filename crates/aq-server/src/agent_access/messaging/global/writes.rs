@@ -1,0 +1,216 @@
+use super::*;
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Create {
+    operation_id: Uuid,
+    message_id: Uuid,
+    expected_conversation_revision: String,
+    body: String,
+    context: Vec<Value>,
+    attachments: Vec<Value>,
+}
+impl Create {
+    fn parse(bytes: &[u8]) -> Result<Self> {
+        if bytes.is_empty() || bytes.len() > 131072 {
+            return Err(invalid());
+        }
+        let raw = aq_agent_api::parse(bytes).map_err(|_| invalid())?;
+        let v: Self = serde_json::from_value(raw).map_err(|_| invalid())?;
+        if v.operation_id == v.message_id
+            || v.operation_id.is_nil()
+            || v.message_id.is_nil()
+            || positive(&v.expected_conversation_revision).is_err()
+            || v.body.trim().is_empty()
+            || v.body.len() > 16384
+            || v.body.contains('\0')
+            || !v.context.is_empty()
+            || !v.attachments.is_empty()
+        {
+            return Err(invalid());
+        }
+        Ok(v)
+    }
+    fn request_digest(&self) -> Result<String> {
+        Ok(hash(
+            &aq_agent_api::canonical(&json!(self)).map_err(|_| unavailable())?,
+        ))
+    }
+}
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct Receipt {
+    contract: String,
+    conversation: Conversation,
+    runtime: Runtime,
+    operation_id: Uuid,
+    message_id: Uuid,
+    actor_id: Uuid,
+    request_digest: String,
+    body_digest: String,
+    state: String,
+    cursor: Option<String>,
+    reason: Option<String>,
+    host_delivery: String,
+    agent_receipt: Option<Value>,
+}
+impl Receipt {
+    fn decode(raw: Value, user: Uuid, conversation: Uuid, op: Uuid) -> Result<Self> {
+        let r: Self = serde_json::from_value(raw).map_err(|_| unavailable())?;
+        let digest_valid = |s: &str| {
+            s.strip_prefix("sha256:").is_some_and(|h| {
+                h.len() == 64
+                    && h.bytes()
+                        .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            })
+        };
+        if r.contract != CONTRACT
+            || r.conversation.id != conversation
+            || r.conversation.revision != "1"
+            || r.conversation.label != "Global supervisor"
+            || r.actor_id != user
+            || r.operation_id != op
+            || r.operation_id == r.message_id
+            || r.operation_id.is_nil()
+            || r.message_id.is_nil()
+            || !digest_valid(&r.request_digest)
+            || !digest_valid(&r.body_digest)
+            || r.runtime != runtime()
+            || r.host_delivery != "not_attempted"
+            || r.agent_receipt.is_some()
+        {
+            return Err(unavailable());
+        }
+        match r.state.as_str() {
+            "queued"
+                if r.cursor.as_deref().is_some_and(|v| positive(v).is_ok())
+                    && r.reason.is_none() => {}
+            "not_queued"
+                if r.cursor.is_none()
+                    && matches!(
+                        r.reason.as_deref(),
+                        Some("conversation_revision_changed" | "message_id_conflict")
+                    ) => {}
+            _ => return Err(unavailable()),
+        }
+        Ok(r)
+    }
+    fn outcome(self) -> Response {
+        let code = if self.state == "queued" {
+            axum::http::StatusCode::OK
+        } else {
+            axum::http::StatusCode::CONFLICT
+        };
+        (code, Json(self)).into_response()
+    }
+}
+pub(super) async fn enqueue(
+    State(state): State<AppState>,
+    Extension(service): Extension<Arc<Service>>,
+    RequireOwner(user): RequireOwner,
+    Path(id): Path<Uuid>,
+    bytes: Bytes,
+) -> Result<Response> {
+    let request = Create::parse(&bytes)?;
+    if id.is_nil() {
+        return Err(invalid());
+    }
+    let at = stamp(&state)?;
+    let mut tx = service.tx().await?;
+    owner(&mut tx, &user).await?;
+    let conversation = definition(&mut tx, Some(id), true).await?;
+    let sender = author(user.id);
+    let sender_key = sender_key(&sender).map_err(|_| unavailable())?;
+    let payload=digest(&json!({"kind":"global_supervisor_send","conversation_id":id,"request":&request,"sender":&sender})).map_err(|_|unavailable())?;
+    if let Some(old) = replay(&mut tx, &sender_key, request.operation_id, &payload)
+        .await
+        .map_err(|e| {
+            if e.0 == "id_conflict" {
+                conflict()
+            } else {
+                unavailable()
+            }
+        })?
+    {
+        let receipt = Receipt::decode(old, user.id, id, request.operation_id)?;
+        tx.commit().await.map_err(db)?;
+        return Ok(receipt.outcome());
+    }
+    let reserved = i64::try_from(request.body.len() + 4096).map_err(|_| invalid())?;
+    let row=sqlx::query("UPDATE global_supervisor_conversation SET retained_operations=retained_operations+1,retained_bytes=retained_bytes+$1 WHERE singleton AND retained_operations<$2 AND retained_bytes<=$3-$1 RETURNING conversation_id")
+  .bind(reserved).bind(MAX_OPERATIONS).bind(MAX_BYTES).fetch_optional(&mut *tx).await.map_err(db)?;
+    if row.is_none() {
+        return Err(AppError::Maintenance(
+            "supervisor mailbox retention capacity exhausted".into(),
+        ));
+    }
+    let mut result = Receipt {
+        contract: CONTRACT.into(),
+        conversation,
+        runtime: runtime(),
+        operation_id: request.operation_id,
+        message_id: request.message_id,
+        actor_id: user.id,
+        request_digest: request.request_digest()?,
+        body_digest: hash(request.body.as_bytes()),
+        state: "not_queued".into(),
+        cursor: None,
+        reason: None,
+        host_delivery: "not_attempted".into(),
+        agent_receipt: None,
+    };
+    if result.conversation.revision != request.expected_conversation_revision {
+        result.reason = Some("conversation_revision_changed".into());
+    } else {
+        let appended = append(
+            &mut tx,
+            Mail {
+                message_id: request.message_id,
+                thread_id: id,
+                recipient: recipient(id),
+                mailbox_key: key(id)?,
+                body: &request.body,
+            },
+            &sender,
+            &payload,
+            at,
+        )
+        .await;
+        match appended {
+            Ok(cursor) => {
+                result.state = "queued".into();
+                result.cursor = Some(cursor.to_string());
+            }
+            Err(e) if e.0 == "id_conflict" => result.reason = Some("message_id_conflict".into()),
+            Err(_) => return Err(unavailable()),
+        }
+    }
+    receipt(
+        &mut tx,
+        &sender_key,
+        request.operation_id,
+        &payload,
+        &json!(result),
+    )
+    .await
+    .map_err(|_| unavailable())?;
+    tx.commit().await.map_err(db)?;
+    Ok(result.outcome())
+}
+pub(super) async fn lookup(
+    Extension(service): Extension<Arc<Service>>,
+    RequireOwner(user): RequireOwner,
+    Path((id, op)): Path<(Uuid, Uuid)>,
+) -> Result<Json<Receipt>> {
+    if id.is_nil() || op.is_nil() {
+        return Err(invalid());
+    }
+    let mut tx = service.tx().await?;
+    owner(&mut tx, &user).await?;
+    definition(&mut tx, Some(id), false).await?;
+    let sender_key = sender_key(&author(user.id)).map_err(|_| unavailable())?;
+    let raw:Value=sqlx::query_scalar("SELECT response FROM mailbox_operations WHERE sender_key=$1 AND operation_id=$2 AND response->>'contract'=$3")
+ .bind(sender_key).bind(op).bind(CONTRACT).fetch_optional(&mut *tx).await.map_err(db)?.ok_or_else(missing)?;
+    let response = Receipt::decode(raw, user.id, id, op)?;
+    tx.commit().await.map_err(db)?;
+    Ok(Json(response))
+}

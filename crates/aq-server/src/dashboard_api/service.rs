@@ -232,6 +232,16 @@ pub(super) async fn bootstrap(
             "Provider account usage is unavailable",
         ),
         capability(
+            "supervisor.history.read",
+            mounted.supervisor_conversation && a.owner,
+            "Global supervisor history requires an owner account and mounted conversation owner",
+        ),
+        capability(
+            "supervisor.message.enqueue",
+            mounted.supervisor_conversation && a.owner,
+            "Global supervisor enqueue requires an owner account and mounted conversation owner",
+        ),
+        capability(
             "supervisor.conversation",
             false,
             "The global supervisor is not connected yet",
