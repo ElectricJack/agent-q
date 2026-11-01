@@ -83,8 +83,8 @@ async fn columns(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
             if row.get::<String, _>("name") != *name
                 || row.get::<String, _>("kind") != *kind
                 || row.get::<bool, _>("attnotnull") != *notnull
-                || row.get::<String, _>("attgenerated") != ""
-                || row.get::<String, _>("attidentity") != ""
+                || !row.get::<String, _>("attgenerated").is_empty()
+                || !row.get::<String, _>("attidentity").is_empty()
                 || row.get::<bool, _>("atthasdef")
             {
                 return Err(corrupt());
