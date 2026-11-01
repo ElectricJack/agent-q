@@ -218,6 +218,8 @@ pub async fn register(
         sqlx::query("INSERT INTO execution_nodes(node_id,state) VALUES($1,$2) ON CONFLICT(node_id) DO UPDATE SET state=excluded.state")
             .bind(auth.id()).bind(body).execute(&mut *tx).await.map_err(|_|AppError::Internal)?;
     }
+    let actual = admitted_runtime_locked(&mut tx, auth.id(), request.identity.boot_id).await?;
+    super::closure::history::capture_locked(&mut tx, &actual).await?;
     sqlx::query("INSERT INTO native_registration_receipts(node_id,operation_id,request_digest,response) VALUES($1,$2,$3,$4)")
         .bind(auth.id()).bind(request.operation_id).bind(digest.as_str()).bind(serde_json::to_value(request).map_err(|_|AppError::Internal)?)
         .execute(&mut *tx).await.map_err(|_|AppError::Internal)?;

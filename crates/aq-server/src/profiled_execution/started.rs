@@ -87,6 +87,7 @@ pub async fn record(
     {
         return Err(conflict());
     }
+    super::closure::ensure_launch_open_locked(&mut tx, &request.binding).await?;
     let digest = request.digest().map_err(|_| AppError::Internal)?;
     let existing=sqlx::query("SELECT attempt_id,operation_id,request_digest,receipt_bytes FROM profiled_started_receipts WHERE attempt_id=$1 OR(node_id=$2 AND operation_id=$3) FOR SHARE").bind(request.binding.attempt_id).bind(node_id).bind(request.operation_id).fetch_all(&mut *tx).await.map_err(db)?;
     if !existing.is_empty() {
