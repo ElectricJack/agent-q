@@ -1,0 +1,51 @@
+    Checking aq-server v0.1.0 (/tmp/aq-phase-terminal-schema/crates/aq-server)
+error[E0425]: cannot find function `fixture_store_state_version` in module `aq_server::test_support`
+  --> crates/aq-server/tests/common/phase_execution.rs:89:34
+   |
+89 |         aq_server::test_support::fixture_store_state_version().to_string()
+   |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `aq_server::test_support`
+
+error[E0425]: cannot find function `with_state32_store` in module `aq_server::test_support`
+  --> crates/aq-server/tests/schema33_phase_terminal.rs:40:38
+   |
+40 |     let f = aq_server::test_support::with_state32_store(Box::pin(prepared(true))).await;
+   |                                      ^^^^^^^^^^^^^^^^^^ not found in `aq_server::test_support`
+
+error[E0425]: cannot find function `with_state32_store` in module `aq_server::test_support`
+  --> crates/aq-server/tests/schema33_phase_terminal.rs:81:38
+   |
+81 |     let f = aq_server::test_support::with_state32_store(Box::pin(prepared(true))).await;
+   |                                      ^^^^^^^^^^^^^^^^^^ not found in `aq_server::test_support`
+
+error[E0425]: cannot find function `with_state32_store` in module `aq_server::test_support`
+   --> crates/aq-server/tests/schema33_phase_terminal.rs:105:38
+    |
+105 |     let f = aq_server::test_support::with_state32_store(Box::pin(prepared(true))).await;
+    |                                      ^^^^^^^^^^^^^^^^^^ not found in `aq_server::test_support`
+
+error[E0425]: cannot find function `with_state32_store` in module `aq_server::test_support`
+   --> crates/aq-server/tests/schema33_phase_terminal.rs:148:38
+    |
+148 |     let f = aq_server::test_support::with_state32_store(Box::pin(prepared(true))).await;
+    |                                      ^^^^^^^^^^^^^^^^^^ not found in `aq_server::test_support`
+
+error[E0425]: cannot find function `with_state32_store` in module `aq_server::test_support`
+   --> crates/aq-server/tests/schema33_phase_terminal.rs:179:38
+    |
+179 |     let f = aq_server::test_support::with_state32_store(Box::pin(prepared(true))).await;
+    |                                      ^^^^^^^^^^^^^^^^^^ not found in `aq_server::test_support`
+
+error[E0425]: cannot find function `with_state32_store` in module `aq_server::test_support`
+   --> crates/aq-server/tests/schema33_phase_terminal.rs:208:38
+    |
+208 |     let f = aq_server::test_support::with_state32_store(Box::pin(prepared(true))).await;
+    |                                      ^^^^^^^^^^^^^^^^^^ not found in `aq_server::test_support`
+
+error[E0425]: cannot find function `with_state32_store` in module `aq_server::test_support`
+  --> crates/aq-server/tests/schema33_phase_terminal/legacy_parent.rs:82:38
+   |
+82 |     let c = aq_server::test_support::with_state32_store(Box::pin(closure::setup())).await;
+   |                                      ^^^^^^^^^^^^^^^^^^ not found in `aq_server::test_support`
+
+For more information about this error, try `rustc --explain E0425`.
+error: could not compile `aq-server` (test "schema33_phase_terminal") due to 8 previous errors
