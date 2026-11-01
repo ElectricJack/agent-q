@@ -2958,7 +2958,7 @@
       "repo": "agent-q",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "AQ-06",
         "AQ-19",
@@ -2989,7 +2989,7 @@
       "repo": "agent-q",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "AQ-28",
         "AQ-19"
@@ -3017,7 +3017,7 @@
       "repo": "agent-q",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "PB-01",
         "AQ-01"
@@ -3045,7 +3045,7 @@
       "repo": "agent-q",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "AQ-28",
         "AQ-19"
@@ -3245,7 +3245,7 @@
       "repo": "aq-dashboard",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "UI-13"
       ],
@@ -3272,7 +3272,7 @@
       "repo": "aq-dashboard",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "UI-13",
         "API-03"
@@ -3301,7 +3301,7 @@
       "repo": "aq-dashboard",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "UI-13",
         "API-04"
@@ -3331,7 +3331,7 @@
       "repo": "aq-dashboard",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "UI-13",
         "API-05"
@@ -3484,7 +3484,7 @@
       "repo": "aq-worker",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "WRK-05",
         "WRK-06",
@@ -3517,7 +3517,7 @@
       "repo": "aq-worker",
       "milestone": "M4",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "WRK-05",
         "WRK-06",
@@ -3549,7 +3549,7 @@
       "repo": "aq-dashboard",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "AQ-01"
       ],
@@ -3574,7 +3574,7 @@
       "repo": "aq-dashboard",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "UI-13",
         "API-06"
@@ -3686,7 +3686,7 @@
       "repo": "aq-dashboard",
       "milestone": "M6",
       "kind": "implementation",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "UI-13",
         "CON-02"
