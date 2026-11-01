@@ -43,3 +43,5 @@ pub mod renewal;
 
 pub mod accepted_preparation;
 pub mod presence;
+
+pub(crate) mod initial_authority;
