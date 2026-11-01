@@ -15,7 +15,7 @@ async fn fresh_closure_schema_is_empty_and_default_router_has_no_owner() {
             .fetch_one(&pool)
             .await
             .unwrap(),
-        "28"
+        aq_server::STATE_FORMAT_VERSION.to_string()
     );
     for table in [
         "profiled_native_registration_history",
@@ -92,14 +92,14 @@ async fn actual27_upgrades_to28_and_collision_rolls_back_before_explicit_retry()
             .fetch_one(&pool)
             .await
             .unwrap(),
-        "28"
+        aq_server::STATE_FORMAT_VERSION.to_string()
     );
     assert!(matches!(
         migrate_profile(&pool, 27).await,
         Err(aq_server::store::StoreError::IncompatibleState {
-            found: 28,
+            found,
             supported: 27
-        })
+        }) if found==aq_server::STATE_FORMAT_VERSION
     ));
 }
 

@@ -42,3 +42,4 @@ pub mod closure;
 pub mod renewal;
 
 pub mod accepted_preparation;
+pub mod presence;
