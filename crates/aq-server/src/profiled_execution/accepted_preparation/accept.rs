@@ -1,3 +1,4 @@
+use super::phase::{AcceptRequest, AcceptedDelivery, AcceptedReceipt};
 use super::*;
 use crate::{
     execution::{authority::hot::LaunchOwner, profiled::Status},
@@ -6,7 +7,6 @@ use crate::{
 use aq_admission::{
     Digest, MaterialLease,
     control::{DeliveryStamp, Versions},
-    preparation_v2::{AcceptRequest, AcceptedDelivery, AcceptedPreparationLease, AcceptedReceipt},
     transport::DeliveryClock,
 };
 use sqlx::Row;
@@ -127,6 +127,7 @@ pub async fn accept(
         return Err(refused());
     }
     crate::intelligence::fence_current_registry(state, &mut tx).await?;
+    let registry_at_accept = registry_at_accept(state, &mut tx, &p).await?;
     if let Some(old) = super::authority::accepted_locked(&mut tx, &p, q).await? {
         super::authority::live_locked(state, &mut tx, auth, &p, q, &old).await?;
         let reply = delivery(state, q, &p, old, nonce)?;
@@ -150,21 +151,7 @@ pub async fn accept(
         negotiation: q.negotiation.clone(),
         operation_id: q.original.operation_id,
         request_digest: q.digest().map_err(|_| refused())?,
-        lease: AcceptedPreparationLease {
-            lease_id: Uuid::new_v5(&lease_id, b"accepted-preparation-v2"),
-            revision: 1,
-            identity: q.original.identity.clone(),
-            binding: q.original.acceptance.binding.clone(),
-            guardian_id: q.original.guardian_id,
-            launch_id: q.original.launch_id,
-            hold: q.hold.clone(),
-            proposal_digest: q.proposal_digest.clone(),
-            policy_digest: p.policy.digest().map_err(|_| refused())?,
-            choice_digest: p.choice.digest().map_err(|_| refused())?,
-            issued_at_ms: time,
-            expires_at_ms: expiry,
-            materials: vec![material.clone()],
-        },
+        lease: accepted_lease(q, &p, &material, time, expiry, lease_id, registry_at_accept)?,
         versions: Versions {
             record_revision: row.get::<i64, _>("record_revision") as u64 + 1,
             authority_revision: row.get::<i64, _>("authority_revision") as u64 + 1,
@@ -213,7 +200,7 @@ pub async fn accept(
 fn delivery(
     state: &AppState,
     q: &AcceptRequest,
-    p: &aq_admission::preparation_v2::Proposal,
+    p: &super::phase::Proposal,
     receipt: AcceptedReceipt,
     nonce: Uuid,
 ) -> Result<AcceptedDelivery, AppError> {

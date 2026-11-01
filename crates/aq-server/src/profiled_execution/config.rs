@@ -84,6 +84,7 @@ impl ProfiledConfig {
     pub fn validate(&self) -> Result<(), String> {
         super::definitions::validate_catalog(&self.definition_bodies)?;
         super::accepted_preparation::policy::validate_catalog(self)?;
+        super::accepted_refresh::policy::validate_catalog(self)?;
         super::phase_execution::policy::validate_catalog(self)?;
         super::phase_terminal::qualification::validate_catalog(self)?;
         super::context_budget::validate_catalog(&self.context_qualifications)
