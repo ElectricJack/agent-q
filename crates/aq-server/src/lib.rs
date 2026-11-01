@@ -228,7 +228,27 @@ fn build_admin_router_with_optional_dashboard(
 
 /// Machine routes plus `/healthz`. No human routes are mounted here.
 pub fn build_worker_router(state: AppState) -> Router {
+    build_worker_router_inner(state, None)
+}
+/// Candidate recovery owner is absent unless a trusted caller explicitly
+/// installs and injects a historical verifier policy. This is not activation
+/// of any worker proof producer or of settlement/release.
+pub fn build_worker_router_with_closure_policy(
+    state: AppState,
+    policy: Arc<profiled_execution::closure::policy::InstalledPolicy>,
+) -> Router {
+    build_worker_router_inner(state, Some(policy))
+}
+fn build_worker_router_inner(
+    state: AppState,
+    policy: Option<Arc<profiled_execution::closure::policy::InstalledPolicy>>,
+) -> Router {
+    let closure = match policy {
+        Some(policy) => profiled_execution::closure::api::routes(state.clone(), policy),
+        None => Router::new(),
+    };
     Router::new()
+        .merge(closure)
         .merge(worker_api::worker_routes(state.clone()))
         .merge(profiled_execution::api::routes(state.clone()))
         .merge(profiled_execution::control_api::routes(state.clone()))

@@ -87,6 +87,7 @@ pub fn classify(path: &str) -> Class {
         "/v1/worker/profiled/register"
             | "/v1/worker/profiled/accept"
             | "/v1/worker/profiled/prepare"
+            | "/v1/worker/profiled/launch-closure"
             | "/v1/worker/profiled/poll"
             | "/v1/worker/profiled/started"
             | "/v1/worker/profiled/stopped"
