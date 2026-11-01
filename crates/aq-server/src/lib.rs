@@ -201,6 +201,7 @@ fn build_admin_router_with_optional_dashboard(
     let mounted = dashboard_api::MountedOwners {
         graph: true,
         results: true,
+        notifications: true,
         reviews: reviews.is_some(),
         playbook_owner: playbooks
             .as_ref()

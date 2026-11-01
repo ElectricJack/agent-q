@@ -177,6 +177,11 @@ pub(super) async fn bootstrap(
         capability("status.read", true, ""),
         capability("workers.read", true, ""),
         capability(
+            "notifications.read",
+            mounted.notifications,
+            "Notification inspection requires a mounted notification owner",
+        ),
+        capability(
             "human.graph.read",
             graph,
             "Human Graph inspection requires an owner account and configured Graph runtime",

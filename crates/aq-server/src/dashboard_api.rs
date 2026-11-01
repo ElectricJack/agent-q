@@ -21,6 +21,7 @@ type Result<T> = std::result::Result<T, Error>;
 pub(crate) struct MountedOwners {
     pub(crate) graph: bool,
     pub(crate) results: bool,
+    pub(crate) notifications: bool,
     pub(crate) reviews: bool,
     pub(crate) playbook_owner: Option<Uuid>,
 }
