@@ -1,0 +1,10 @@
+   Compiling aq-worker v0.3.3 (/home/jkern/dev/aq-worker/crates/aq-worker)
+    Finished `test` profile [unoptimized] target(s) in 4.97s
+     Running unittests src/bin/native-prepare-smoke.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/native_prepare_smoke-f24e982756209d03)
+
+running 2 tests
+test tests::input_frames_are_bounded_complete_and_do_not_consume_the_following_frame ... ok
+test tests::existing_owner_children_and_replaced_scope_are_refused_without_cleanup ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

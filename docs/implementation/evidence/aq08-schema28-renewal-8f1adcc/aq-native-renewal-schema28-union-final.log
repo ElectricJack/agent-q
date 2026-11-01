@@ -1,0 +1,90 @@
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 19.09s
+     Running tests/native_expiry.rs (target/debug/deps/native_expiry-8970262f072301f4)
+
+running 6 tests
+test unconfigured_runtime_returns_without_closing_fixture_claims ... ok
+test granted_without_started_remains_held_even_after_grant_and_wall_expiry ... ok
+test fresh_offer_remains_held_then_cursor_wrap_closes_exact_expired_owner_once ... ok
+test node_lock_refusal_advances_cursor_and_does_not_drop_claim_or_poison_pool ... ok
+test published_offer_actual_accept_and_expiry_preserve_source_while_revoking_material ... ok
+test configured_runtime_closes_offline_offer_and_obeys_shutdown ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.17s
+
+     Running tests/native_initial_grant.rs (target/debug/deps/native_initial_grant-fe0d68512c7bfa0b)
+
+running 27 tests
+test prepare_uses_reserved_control_capacity ... ok
+test published::actual_initial_grant_reconciliation_returns_history_without_live_clock_or_mutation ... ok
+test actual_accepted_plan_without_original_native_publication_cannot_issue_a_grant ... ok
+test published::actual_git::actual_released_export_refuses_grant_without_erasing_preparation ... ok
+test published::actual_git::real_git_publication_download_and_initial_grant_share_exact_export ... ok
+test published::ambiguous_historical_grant_receipts_refuse_instead_of_choosing_a_replacement ... ok
+test published::actual_published_prepare_is_atomic_and_replays_original_versions_after_hot_record_changes ... ok
+test published::changed_current_private_material_and_cancellation_never_issue_a_grant ... ok
+test published::credential_rotation_during_actual_private_git_wait_is_rechecked_without_sql_locks_held ... ok
+test published::concurrent_exact_prepare_never_creates_two_grants_or_extends_the_original ... ok
+test published::exact_full_artifact_and_material_receipt_coverage_is_mandatory ... ok
+test published::final_fence_refuses_expiry_after_observed_shared_quota_lock_wait ... ok
+test published::graph_changes_during_preparation_refuse_without_retiming_original_inputs ... ok
+test published::initial_deadline_respects_actual_pinned_lineage_policy_shorter_than_wall_time ... ok
+test published::renewal::changed_private_material_and_revoked_agent_scope_cannot_extend_a_permit ... FAILED
+test published::material_receipts::retained_installation_json_bytes_refuse_new_grant_under_shared_budget ... ok
+test published::material_receipts::grant_failure_rolls_back_new_installation_receipt_with_authority ... ok
+test published::receipt_failure_rolls_back_granted_hot_state_and_prepared_journal_then_exact_retry_succeeds ... ok
+test published::renewal::expired_server_permit_cannot_be_resurrected_by_fresh_observations ... FAILED
+test published::mounted_prepare_uses_typed_outbound_control_and_never_mounts_on_human_listener ... ok
+test published::renewal::missing_actual_installation_receipt_cannot_be_reconstructed_from_preparation ... FAILED
+test published::renewal::exact_renewal_operation_cannot_mutate_journal_or_become_superseded_authority ... FAILED
+test published::material_receipts::installation_receipt_is_atomic_exact_and_replay_never_reconstructs_a_missing_row ... ok
+test published::renewal::newer_unavailable_inventory_cannot_be_rewritten_by_original_installation ... FAILED
+test published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals ... FAILED
+test accept_quota_charges_incoming_jsonb_expansion_at_the_same_retained_byte_boundary ... ok
+test published::material_receipts::existing_or_replayed_changed_installation_claims_are_refused ... ok
+
+failures:
+
+---- published::renewal::changed_private_material_and_revoked_agent_scope_cannot_extend_a_permit stdout ----
+
+thread 'published::renewal::changed_private_material_and_revoked_agent_scope_cannot_extend_a_permit' (214060) panicked at crates/aq-server/tests/native_initial_grant/published/renewal.rs:42:33:
+status=404 Not Found body={"error":"not_found","message":"no such route"}
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- published::renewal::expired_server_permit_cannot_be_resurrected_by_fresh_observations stdout ----
+
+thread 'published::renewal::expired_server_permit_cannot_be_resurrected_by_fresh_observations' (214062) panicked at crates/aq-server/tests/native_initial_grant/published/renewal.rs:42:33:
+status=404 Not Found body={"error":"not_found","message":"no such route"}
+
+---- published::renewal::missing_actual_installation_receipt_cannot_be_reconstructed_from_preparation stdout ----
+
+thread 'published::renewal::missing_actual_installation_receipt_cannot_be_reconstructed_from_preparation' (214063) panicked at crates/aq-server/tests/native_initial_grant/published/renewal.rs:42:33:
+status=404 Not Found body={"error":"not_found","message":"no such route"}
+
+---- published::renewal::exact_renewal_operation_cannot_mutate_journal_or_become_superseded_authority stdout ----
+
+thread 'published::renewal::exact_renewal_operation_cannot_mutate_journal_or_become_superseded_authority' (214061) panicked at crates/aq-server/tests/native_initial_grant/published/renewal.rs:42:33:
+status=404 Not Found body={"error":"not_found","message":"no such route"}
+
+---- published::renewal::newer_unavailable_inventory_cannot_be_rewritten_by_original_installation stdout ----
+
+thread 'published::renewal::newer_unavailable_inventory_cannot_be_rewritten_by_original_installation' (214093) panicked at crates/aq-server/tests/native_initial_grant/published/renewal.rs:42:33:
+status=404 Not Found body={"error":"not_found","message":"no such route"}
+
+---- published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals stdout ----
+
+thread 'published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals' (214108) panicked at crates/aq-server/tests/native_initial_grant/published/renewal.rs:42:33:
+status=404 Not Found body={"error":"not_found","message":"no such route"}
+
+
+failures:
+    published::renewal::changed_private_material_and_revoked_agent_scope_cannot_extend_a_permit
+    published::renewal::exact_renewal_operation_cannot_mutate_journal_or_become_superseded_authority
+    published::renewal::expired_server_permit_cannot_be_resurrected_by_fresh_observations
+    published::renewal::missing_actual_installation_receipt_cannot_be_reconstructed_from_preparation
+    published::renewal::newer_unavailable_inventory_cannot_be_rewritten_by_original_installation
+    published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals
+
+test result: FAILED. 21 passed; 6 failed; 0 ignored; 0 measured; 1 filtered out; finished in 42.01s
+
+error: test failed, to rerun pass `-p aq-server --test native_initial_grant`

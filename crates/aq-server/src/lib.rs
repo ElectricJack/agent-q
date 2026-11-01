@@ -47,11 +47,11 @@ use std::sync::Arc;
 /// every migration is a state-format change (`store` tests enforce it). The
 /// updater restores the pre-update backup on rollback only when the format
 /// changes, so a migration without a bump would strand the old release.
-pub const STATE_FORMAT_VERSION: u32 = 29;
+pub const STATE_FORMAT_VERSION: u32 = 30;
 /// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
 pub const READABLE_STATE_FORMATS: &[u32] = &[
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-    27, 28, 29,
+    27, 28, 29, 30,
 ];
 /// Versions that may be upgraded to this release.
 pub const UPGRADE_FROM: &str = ">=0.1.0";
@@ -228,10 +228,33 @@ fn build_admin_router_with_optional_dashboard(
 
 /// Machine routes plus `/healthz`. No human routes are mounted here.
 pub fn build_worker_router(state: AppState) -> Router {
+    build_worker_router_inner(state, None)
+}
+/// Candidate recovery owner is absent unless a trusted caller explicitly
+/// installs and injects a historical verifier policy. This is not activation
+/// of any worker proof producer or of settlement/release.
+pub fn build_worker_router_with_closure_policy(
+    state: AppState,
+    policy: Arc<profiled_execution::closure::policy::InstalledPolicy>,
+) -> Router {
+    build_worker_router_inner(state, Some(policy))
+}
+fn build_worker_router_inner(
+    state: AppState,
+    policy: Option<Arc<profiled_execution::closure::policy::InstalledPolicy>>,
+) -> Router {
+    let closure = match policy {
+        Some(policy) => profiled_execution::closure::api::routes(state.clone(), policy),
+        None => Router::new(),
+    };
     Router::new()
+        .merge(closure)
         .merge(worker_api::worker_routes(state.clone()))
         .merge(profiled_execution::api::routes(state.clone()))
         .merge(profiled_execution::control_api::routes(state.clone()))
+        .merge(profiled_execution::accepted_preparation::routes(
+            state.clone(),
+        ))
         .merge(profiled_execution::reconciliation::routes(state.clone()))
         .merge(profiled_execution::renewal::routes(state.clone()))
         .merge(profiled_execution::producer::api::routes(state.clone()))

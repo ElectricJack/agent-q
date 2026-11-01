@@ -1,0 +1,46 @@
+   Compiling digest v0.10.7
+   Compiling num-traits v0.2.19
+   Compiling sha2 v0.10.9
+   Compiling aq-session-protocol v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-session-protocol-0.1.0)
+   Compiling bitflags v2.13.2
+   Compiling chrono v0.4.45
+   Compiling aq-lifecycle-protocol v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-lifecycle-protocol-0.1.0)
+   Compiling nix v0.29.0
+   Compiling aq-session-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-session-api)
+   Compiling num-integer v0.1.47
+   Compiling aq-playbooks-model v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-model)
+   Compiling hmac v0.12.1
+   Compiling sqlx-core v0.8.6
+   Compiling aq-playbooks-runner v0.1.2 (/home/jkern/dev/agent-q/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-runner)
+   Compiling hkdf v0.12.4
+   Compiling num-bigint v0.4.8
+   Compiling aq-lifecycle-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-lifecycle-api)
+   Compiling tower-http v0.6.11
+   Compiling aq-agent-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-agent-api)
+   Compiling atoi v2.0.0
+   Compiling md-5 v0.10.6
+   Compiling lazy_static v1.5.1
+   Compiling sqlx-postgres v0.8.6
+   Compiling sharded-slab v0.1.7
+   Compiling aq-profiles v0.1.1 (/home/jkern/dev/agent-q/crates/aq-profiles)
+   Compiling reqwest v0.12.28
+   Compiling aq-playbooks-postgres v0.1.2 (/home/jkern/dev/agent-q/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-postgres)
+   Compiling simple_asn1 v0.6.4
+   Compiling aq-terminal-relay-protocol v0.1.0 (/home/jkern/dev/agent-q/crates/aq-terminal-relay-protocol)
+   Compiling tracing-subscriber v0.3.23
+   Compiling aq-terminal-relay v0.1.0 (/home/jkern/dev/agent-q/crates/aq-terminal-relay)
+   Compiling aq-release v0.1.0 (/home/jkern/dev/agent-q/crates/aq-release)
+   Compiling jsonwebtoken v9.3.1
+   Compiling aq-playbook-host v0.1.2 (/home/jkern/dev/agent-q/crates/aq-playbook-host)
+   Compiling aq-notifications v0.1.0 (/home/jkern/dev/agent-q/crates/aq-notifications)
+   Compiling aq-selection v0.1.2 (/home/jkern/dev/agent-q/crates/aq-selection)
+   Compiling sqlx v0.8.6
+   Compiling aq-observation-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-observation-api)
+   Compiling aq-accounting v0.1.0 (/home/jkern/dev/agent-q/crates/aq-accounting)
+   Compiling aq-admission v0.1.8 (/home/jkern/dev/agent-q/crates/aq-admission)
+   Compiling aq-observation-admission v0.1.0 (/home/jkern/dev/agent-q/crates/aq-observation-admission)
+   Compiling aq-protocol v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-protocol-0.1.0)
+   Compiling aq-review-protocol v0.1.0 (/home/jkern/dev/agent-q/crates/aq-review-protocol)
+   Compiling aq-worker-protocol v0.2.0 (/home/jkern/dev/agent-q/vendor/aq-worker-protocol-0.2.0)
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `dev` profile [unoptimized] target(s) in 56.80s

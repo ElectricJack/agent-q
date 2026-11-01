@@ -1,0 +1,23 @@
+    Finished `test` profile [unoptimized] target(s) in 0.18s
+     Running tests/native_initial_grant.rs (/tmp/aq-native-union-target/debug/deps/native_initial_grant-75d4ef44983dfb89)
+
+running 1 test
+bounded central issued-grant history (not live worker permission): []
+bounded original decision clocks: [{"budget_expiry":1793501350495,"now":1793501348495,"selection_expiry":1793501350495},{"budget_expiry":1793501350314,"now":1793501348314,"selection_expiry":1793501350314}]
+bounded worker timing: {"completed_count":0,"deadline_ns":158496287707802,"download_count":36,"last_completion_ns":null,"preparation_clock":{"expires_at_ms":1793501350495,"server_time_ms":1793501349775,"valid_for_ms":720},"received_ns":158496032639447,"sent_ns":158495930293371,"server_now_ms":1793501350088}
+
+thread 'published::actual_git::worker_assembly::actual_worker_downloads_installs_hydrates_and_prepares_against_real_daemon' (297974) panicked at crates/aq-server/tests/native_initial_grant/published/actual_git/worker_assembly.rs:171:5:
+assertion `left == right` failed: {"phase":"refused","stage":"artifacts"}; HTTP statuses: [("/v1/worker/profiled/register", 200, 46), ("/v1/worker/profiled/poll", 200, 559), ("/v1/worker/profiled/accept", 200, 101), ("/v1/worker/profiled/artifact", 200, 61), ("/v1/worker/profiled/artifact", 200, 76)]
+  left: String("refused")
+ right: "granted"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test published::actual_git::worker_assembly::actual_worker_downloads_installs_hydrates_and_prepares_against_real_daemon ... FAILED
+
+failures:
+
+failures:
+    published::actual_git::worker_assembly::actual_worker_downloads_installs_hydrates_and_prepares_against_real_daemon
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 31 filtered out; finished in 3.65s
+
+error: test failed, to rerun pass `-p aq-server --test native_initial_grant`

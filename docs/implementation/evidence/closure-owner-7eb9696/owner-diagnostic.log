@@ -1,0 +1,22 @@
+    Blocking waiting for file lock on build directory
+   Compiling aq-server v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 43.34s
+     Running tests/granted_closure.rs (/home/jkern/dev/agent-q/target/debug/deps/granted_closure-1c569bebce627ff2)
+
+running 1 test
+
+thread 'actual_grant_closes_once_and_replays_without_release_or_execution_clock' (211350) panicked at crates/aq-server/tests/granted_closure.rs:116:5:
+assertion `left == right` failed: {"kind":"failure","body":{"schema_version":1,"code":"unavailable","operation_id":null}}
+  left: 500
+ right: 200
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test actual_grant_closes_once_and_replays_without_release_or_execution_clock ... FAILED
+
+failures:
+
+failures:
+    actual_grant_closes_once_and_replays_without_release_or_execution_clock
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 1.39s
+
+error: test failed, to rerun pass `-p aq-server --test granted_closure`

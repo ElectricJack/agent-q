@@ -1,0 +1,18 @@
+{
+  "incoming-type-probe.log": "247b76869899621d41d94da573e7e8dbe72d4fba9049930a276286a9b09dbd3b",
+  "owner-check.log": "947abcea920517a850b8d370d1b5b6123b8d4eb4c44093ca0f1812c58f509cd9",
+  "owner-corrected-tests.log": "415bdb4cda97e49824fc92686b5e8e56a2e438a0969b419ac3ae26794449dd0e",
+  "owner-diagnostic.log": "2c329f624428aa4132bde6dac974eda1da3dbdb89ea7f1a2f13bc931a181d6ab",
+  "owner-final-clippy.log": "abd9a11c1e12f891d0621b3a08f5a28ccde35dee150149fdffdff899e26c10bf",
+  "owner-final-tests.log": "0654916bab9e65ac43f733f4a41c22282dce828792452e5051bc9944c380a3e3",
+  "owner-final2-clippy.log": "d2c6a45bfeb38a2a9c14797961df71fd492d0e3e1839e3401238133d126fe997",
+  "owner-first-tests.log": "129347fc9dcaa32f3cb53c1833a99bffa7287af548678072473ceb8a5e38487c",
+  "owner-frozen-fmt.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "owner-frozen-tests.log": "875c01541678c89f93029e0574495decc12301d4190dacb835878e8f40550c7d",
+  "owner-initial-pass-tests.log": "97faec835831fda7aaddf40a4c7502505357e7e413d59786fdcecacc75af1739",
+  "owner-isolated-corrected-tests.log": "b2f67e6ebaaafcd5045fb0cc55114aabaf54b00e62974dbc37676499867d8ba0",
+  "owner-isolated-tests.log": "69436e2555828d6553d5a8eb34faee3087d7ca54bc5f196d7f8ef69f6b5e75f9",
+  "public-contract.json": "74cfb3c955a6b14c06d5f9d9d3421ef046aebc5b8e7fcc2f7b3c316ce26c4af0",
+  "qualification.json": "b42b08e1688189f01b6c262c7a6137681f965c4a9707798e7ff11a6538d138d6",
+  "source-sha256.json": "75d9c545a61c947d941f93b5217e4b2e132360e6e9ec30a2039ce924bcb1bbf0"
+}

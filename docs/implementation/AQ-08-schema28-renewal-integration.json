@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "source_revision": "8f1adcc565c5432e8c8275674441b1b90a7777bb",
+  "native_and_schema": {
+    "passed": 75,
+    "failed": 0,
+    "ignored": 0,
+    "suites": 9,
+    "test_seconds_sum": 78.21,
+    "build_seconds": 108,
+    "explicitly_filtered": "actual_worker_downloads (run separately)"
+  },
+  "strict_all_target_all_feature_server_clippy": true,
+  "format": true,
+  "actual_worker_probe": {
+    "passed": 0,
+    "failed": 1,
+    "stage": "hydrate",
+    "accepted_valid_for_ms": 1143,
+    "central_issued_grants": 0,
+    "original_deadlines_unchanged": true
+  },
+  "preview": {
+    "schema_before": 27,
+    "schema_after": 28,
+    "existing_attempt_count_before": 1,
+    "existing_attempt_count_after": 1,
+    "existing_node_count_before": 1,
+    "existing_node_count_after": 1,
+    "binary_sha256": "541fabf0d9a4e9c3290da02f207e339489b86381c1167098602e8e1612300f1d",
+    "source_revision": "8f1adcc565c5432e8c8275674441b1b90a7777bb",
+    "private_backup_retained": true,
+    "backup_published": false,
+    "browser_passed": 4,
+    "browser_ignored": 0,
+    "browser_seconds": 2.2,
+    "native_optional_owners_enabled": false,
+    "models_launched": 0
+  },
+  "source_inventory": {
+    "path": "docs/implementation/evidence/aq08-schema28-renewal-8f1adcc/source-inventory.json",
+    "sha256": "5ba480e70b18631d3995e8da02cefbcb1aa06dde973b92571a806e077c46adc3",
+    "bytes": 58479
+  },
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-schema28-renewal-8f1adcc/aq-native-renewal-schema28-union.log",
+      "sha256": "5f2af1a538e984b624f737f5749e2dd9702ba20af6ef86f972be7ee9ba49cfc6",
+      "bytes": 1336
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-schema28-renewal-8f1adcc/aq-native-renewal-schema28-union-final.log",
+      "sha256": "02d6f4ef20a311381e54c85fec4c8cb5740e116ea139882b21c990d6d067fa7f",
+      "bytes": 6877
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-schema28-renewal-8f1adcc/aq-native-renewal-schema28-isolated.log",
+      "sha256": "179fe0fbd0e88e0fdeb815eec787d69120ecc91081016fcfd89f937a8dc4f973",
+      "bytes": 19469
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-schema28-renewal-8f1adcc/aq-native-renewal-schema28-clippy.log",
+      "sha256": "8e02d0b3188eda00c41cb3aa5eca0e8f5f4cd2b33e1413cedff8b8d6281375fe",
+      "bytes": 9609
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-schema28-renewal-8f1adcc/aq-native-renewal-schema28-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-schema28-renewal-8f1adcc/aq-native-schema28-worker-assembly.log",
+      "sha256": "4c2d609fd3466f9aec3ea2b856306056a8574dfa94e7bb2550652212a3728fc2",
+      "bytes": 3730
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-schema28-renewal-8f1adcc/aq-schema28-preview-build.log",
+      "sha256": "3164b95e8feba63d4ce27d65b3cac12bd51777060074e4dbe72d551d27f7f482",
+      "bytes": 2833
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-schema28-renewal-8f1adcc/aq-schema28-dashboard-live.log",
+      "sha256": "cb3d8124b270a0aaf238524616165d12a2e7e14ef67db5bc0f4bc35d346ad739",
+      "bytes": 868
+    }
+  ],
+  "limitations": [
+    "Existing actual Git initial-grant tests pass; separate independent worker probe refuses hydration under original short phase on this union. Earlier schema27 tiny-fixture success remains independently attributed.",
+    "First attempted command had a nonexistent test target; second shared-target run linked stale earlier library and renewal routes404. Isolated target freshly builds intended source and passes75. Those failures remain retained.",
+    "Schema28 closure foundations are present; closure owner optional route and presence029 are separate future integration.",
+    "Dashboard stays capability-gated; no native host, live terminal, result/settlement, provider call or fleet throughput qualified."
+  ]
+}

@@ -1,0 +1,9 @@
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 2.36s
+     Running tests/granted_closure.rs (/tmp/aq-native-union-target/debug/deps/granted_closure-999e13d388cce0a3)
+
+running 1 test
+test renewal_counter_fences_old_suppression_and_closure_fences_all_later_authority ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 1.43s
+

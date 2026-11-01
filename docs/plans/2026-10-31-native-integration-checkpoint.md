@@ -8,8 +8,8 @@ its historical test results and source pins.
 
 | Area | Integrated behavior | Remaining product work |
 | --- | --- | --- |
-| Daemon schema and preparation | Ordered state25→28 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Cold preparation phase separation, installed-material presence reporting, multi-project fairness, granted-before-Started closure and full settlement |
-| Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, independent material installation pins and actual Git hydration/workspace ownership and durable Prepare input join | Grant/renewal and launch/stop callbacks, result/release |
+| Daemon schema and preparation | Ordered state25→28 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Cold preparation phase separation, installed-material presence reporting, multi-project fairness, worker granted-before-Started proof production and full settlement |
+| Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, material installation pins, actual Git workspace ownership, durable Prepare join and received initial Grant history | Continuing renewal owner, launch/stop callbacks, result/release, combined durable-grant process qualification |
 | tmux host | Durable blank terminal baseline before sealed-image exec; original physical server/pane ownership checks | Native driver adoption, selected real harness qualification and operational load envelope |
 | Playbooks | Catalog2 human decision adapter, lost-Accepted-reply recovery and explicit optional startup/drive/shutdown | Broader real adapters, workflow pilots and verified network database transport |
 | Dashboard | Live daemon overview/projects/sessions/workers with capability gates and verified static assets | Live terminals, interaction and remaining task/workflow/domain views |
@@ -86,7 +86,7 @@ The [contract evidence](../implementation/AQ-08-granted-closure.qualification.md
 does not enable a server closure owner or worker proof producer.
 [Schema28 and the strict initial-grant terminal fence](../implementation/AQ-08-closure28-prerequisite-integration.md)
 are integrated at `e930d75`:57 native and eight schema checks passed, with strict
-affected lint and formatting. The server closure owner is still being qualified. [Initial lineage budgets and retained installation receipts](../implementation/AQ-08-initial-budget-material-receipts-evidence.md)
+affected lint and formatting. The newer server owner qualification and integration are recorded below. [Initial lineage budgets and retained installation receipts](../implementation/AQ-08-initial-budget-material-receipts-evidence.md)
 are integrated at `876b60b`:57 native tests with zero ignores plus two policy
 helpers passed. The grant's immutable deadline respects the original remaining
 lineage budget. Exact verified installation receipts are atomically retained and
@@ -111,11 +111,12 @@ passes14 initial-grant tests including two actual-Git cases. The [fresh pre-gran
 now closes the observed task/context-change gap and passes43 selected checks,
 including both actual-Git cases. It rereads bounded readiness and exact authorized
 context and checks freshness immediately before commit without retiming original
-inputs. The preview remains the separately pinned `960ffc7` binary.
+inputs. The earlier preview was pinned to `960ffc7`; the newer preview update is recorded below.
 Shared migration27 and public0.1.7 are frozen. No path may fabricate missing
 original requests, convert timeout to release proof, or restore old-boot authority.
 
-Granted-without-Started recovery still needs its server and worker owners: it cannot
+Granted-without-Started recovery still needs its qualified worker producer and
+activation; the explicitly injected server owner is now integrated. It cannot
 reuse NeverGranted or manufacture Started to release a claim. AQ-08, WRK-08,
 WRK-14, AQ-12/13/14 and all related product gates stay in progress. No model call,
 external notification, deployment or publication is claimed by this checkpoint.
@@ -142,12 +143,107 @@ negative facts refuse. This is not fleet-load qualification.
 Two interface gaps are now explicit implementation requirements. First, the
 [preparation phase design](../../../aq-worker/docs/implementation/WRK-08-preparation-phase-separation.md)
 separates timely proposal acceptance, bounded no-launch preparation and a fresh
-execution permit under a newly negotiated contract. It remains a proposal; no
-existing0.1.7/0.1.8 clock was widened. Second, the inventory API cannot yet report
+execution permit under a newly negotiated contract. Its contract and bounded owner now have the separate qualifications recorded
+below; no existing0.1.7/0.1.8 clock was widened. Worker input adoption and fresh
+execution confirmation remain open. Second, the inventory API cannot yet report
 scoped continuing installed-material presence with exact lease/receipt evidence.
 The passing initial renewal profile uses a genuinely fresh original inventory;
 longer continuation needs that owned report seam, rather than invented global
 credential availability or relaxed newer-negative checks. Both remain open.
 
-The live dashboard preview remains pinned to schema27/source `960ffc7`. Newer
-schema28/renewal source tests do not imply that preview has been upgraded.
+The [schema28/renewal union](../implementation/AQ-08-schema28-renewal-integration.md)
+at `8f1adcc` passes75 selected native/schema tests and strict server lint. Its
+separate independent-worker probe refuses at hydration under a1,143ms accepted
+window, so the older schema27 tiny-fixture success is not attributed to this
+newer source. The actual local preview is now rebuilt at `8f1adcc` and upgraded
+to schema28 with the existing fixture preserved; all four live browser checks
+pass. Native optional owners remain off and no agents were launched.
+
+
+[The granted-closure owner](../implementation/AQ-08-closure-owner-evidence.md)
+is integrated at `8ab6d7a` (source `7eb9696`), with nine actual publication/SQL/HTTP
+owner tests and three schema checks. Explicit immutable historical verifier
+policy injection is required; default routes stay unmounted. The
+[combined closure/renewal check](../implementation/AQ-08-closure-renewal-integration.md)
+passes44 selected tests at `fbe90e9`, including a new counter-versus-terminal
+ordering test, under the qualified two-thread profile. A higher-concurrency
+initial-admission fixture expiry remains retained. No original clock changed.
+Worker physical proof and separate settlement are still required.
+
+The next parallel implementation lanes are the
+[accepted preparation protocol](../implementation/AQ-08-accepted-preparation-v2-plan.md),
+[scoped material presence](../implementation/AQ-08-scoped-material-presence-plan.md)
+and worker phase input adoption plus continuing grant ownership before host hooks. Presence facts
+are independent per attempt: refreshing one agent must not invalidate every
+other agent's evidence or advertise its private material globally. These remain
+in progress and do not activate runtime capabilities by documentation alone.
+
+
+[Bounded two-read overlap](../../../aq-worker/docs/implementation/WRK-08-artifact-overlap-qualification.md)
+is integrated in worker `f1e28d9` (source `a39e990`):135 default and152 all-feature
+package tests pass, with four declared ignores, plus the separately enabled
+actual-Git test and strict lint. A deterministic barrier proves two active reads
+and independent control progress with unchanged atomic receipt completion.
+The newer [actual process check](../implementation/AQ-08-overlap-worker-integration.md)
+passes at daemon `6d4b178`/worker `a39e990` in3.17seconds. No original deadline
+changed; earlier refusals are retained and cold preparation is still open.
+
+The joint [0.1.9 contract package](../implementation/AQ-08-admission019.qualification.md)
+is qualified at `1088d10`, with83 source and83 independently extracted tests,
+strict lint and external schema checks. It adds explicit preparation phases and
+scoped material-presence types;72 inherited0.1.8 files remain byte-for-byte intact.
+It is a local package, not a registry publication or runtime activation.
+
+The worker's [durable initial-grant owner](../../../aq-worker/docs/implementation/WRK-08-durable-initial-grant-qualification.md)
+is integrated at `d919e4c` (source `99e793c`), with164 package tests, five explicit
+ignores, two separately enabled actual-Git checks, and strict lint/formatting.
+Format5 retains the actual received Grant before checking present usability;
+expired or changed inputs retain history and holds without live permission.
+Cancellation retains exclusive input owners in a bounded per-attempt map.
+This does not supply a continuing renewal owner or host launch callbacks.
+
+The [updated independent process probe](../implementation/AQ-08-durable-worker-integration.md)
+now requires durable received-grant evidence. Its first run at daemon `82d386f`
+/ worker `30e182f` refused during artifact download with720ms left at Accept;
+no central Grant was issued and the new durable assertions were not reached.
+This negative is retained alongside the earlier format4 success. The
+[accepted-preparation owner plan](../implementation/AQ-08-accepted-preparation-owner-plan.md)
+addresses this measured limitation; its schema030 registration depends on the
+separate schema029 presence owner. Both owners and worker presence adoption
+remain active parallel work. The dashboard preview remains pinned to `8f1adcc`.
+
+
+The [accepted-preparation owner candidate](../implementation/AQ-08-accepted-preparation-owner.qualification.md)
+is integrated at `100d301` (production `9121809`, test follow-up `940b061`).
+Thirteen PostgreSQL/HTTP cases pass, including fresh Store/AppState/config reopen,
+independent no-launch leases and original input retrieval after proposal expiry.
+Seventy-two related checks and two actual-Git legacy regressions pass separately.
+The newer [actual v2 retained-source check](../implementation/AQ-08-accepted-preparation-actual-git.qualification.md)
+passes at `0c74bf4`, integrated at `d96166c`: real Git source reads and exact replay
+succeed after actual proposal expiry, and retired retention refuses reads while
+keeping the task held. Original source eligibility had not itself expired in that
+case. No phase execution Grant or full cold-worker hydration is claimed.
+
+[Schema29 and qualified inventory ownership](../implementation/AQ-08-presence-029.qualification.md)
+are integrated at `a523888` (source `85160a7`):11 actual PostgreSQL checks plus strict
+lint/formatting pass. Independent inventory snapshots and semantic compatibility
+epochs prevent a legacy/incompatible publication from reviving old installed facts.
+This prerequisite does not yet mount presence-report routes or change renewal to
+consume them. Ordered030 installation is undergoing separate qualification.
+A review-found proposal node/boot-scope gap is corrected at `a271649`; the
+[independent two-node regression](../implementation/AQ-08-proposal-scope-main29.json)
+passes on29. Optional phase runtime configuration remains absent from the preview.
+
+Worker [phase HTTP transport](../../../aq-worker/docs/implementation/WRK-08-preparation-v2-http.md)
+is integrated at `8fa989a` with the exact0.1.9 archive;170 package tests and two
+actual-Git regressions pass. The newer
+[format6 phase journal](../../../aq-worker/docs/implementation/WRK-08-phase-journal-qualification.md)
+is integrated at `7823fa3` (source `3326b59`/`08eb15c`), with179 package tests,
+five declared ignores, two separately enabled actual-Git regressions, strict lint
+and formatting. It atomically selects the protocol and stores the exact Accept
+intent before sending; received history survives expiry/replay and cannot restore
+live authority after restart. Redelivered offer clocks are associated with the
+unchanged original publication without extending deadlines. These counts overlap.
+A lost reply with no opaque observation remains unknown/held; phase input adoption,
+execution issuance and recovery are still required. The new real-process phase
+probe is built but awaits ordered030 integration; no passing result is claimed yet.
