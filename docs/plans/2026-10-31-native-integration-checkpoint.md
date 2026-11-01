@@ -384,3 +384,11 @@ phase Started/Stopped/closure consumer or continuing phase renewal is enabled.
 The worker's format8 execution owner and format9 synthetic-host candidate remain
 separately qualified components; the independent actual worker/issuer process
 probe and updated dashboard preview have their own pending assembly checks.
+
+
+The [schema32 dashboard preview](../implementation/AQ-08-dashboard-schema32.json)
+now runs the final-fence daemon implementation `5643966`, built at `ea1ca6e`.
+The actual fixture upgraded31→32 after a private backup and stopping the old
+server; the existing session remains visible. All four live browser checks pass
+in1.9seconds. Current read-only views are connected; native execution, optional
+playbook startup and terminal capabilities remain inactive in this preview.

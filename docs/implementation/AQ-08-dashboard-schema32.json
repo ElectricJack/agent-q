@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "daemon_source": "ea1ca6e",
+  "daemon_implementation_source": "5643966",
+  "daemon_binary_sha256": "4e189dcf1e82aa04c6ac45c3f12abcc909d623b16fbf46855e5cac8545a73c73",
+  "dashboard_source": "956d587",
+  "state_format_before": 31,
+  "state_format_after": 32,
+  "browser_passed": 4,
+  "browser_failed": 0,
+  "browser_seconds": 1.9,
+  "build_seconds": 30.09,
+  "fixture_session_preserved": "70af4b85-eb5d-444e-8c43-4629f30a686c",
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-dashboard-schema32/build.log",
+      "sha256": "8d1e50ffe24c3842fbd44ad18ad869848fd5ea4e7c8d08060851fe0adaa0cef1",
+      "bytes": 134
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-dashboard-schema32/browser.log",
+      "sha256": "300e0be6f2874c1e91c12643db98e95a7fc13b1e6d70d42e8fe2bb1272f34819",
+      "bytes": 868
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-dashboard-schema32/readiness.json",
+      "sha256": "a912965ed997152a3c2666b266357e7d0d9e691d08a4f9b35d0d9d8837036ec6",
+      "bytes": 130
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-dashboard-schema32/schema.log",
+      "sha256": "ffe8307d04e062030b275e8f2ddda3c5738e78c38437db0d48f9aaa4f87bd066",
+      "bytes": 24
+    }
+  ],
+  "limitations": [
+    "Local disposable fixture backed up privately with mode0600 before31\u219232 upgrade; previous daemon stopped before new schema writer started.",
+    "Optional native execution and playbook startup remain inactive in preview; no provider calls, real agents, phase terminal or production route activation.",
+    "Independent worker and host qualifications are separate; these four browser checks cover current read-only framework views."
+  ]
+}
