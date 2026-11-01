@@ -1410,7 +1410,7 @@ Acceptance:
 
 Requirement links: U3, U4, U5, U6, U8.
 
-Evidence: [dashboard-qualified-status-2026-11-01.md](../implementation/dashboard-qualified-status-2026-11-01.md).
+Evidence: [dashboard-qualified-status-2026-11-01.md](../implementation/dashboard-qualified-status-2026-11-01.md), [dashboard-actions-preview-2026-11-01.md](../implementation/dashboard-actions-preview-2026-11-01.md).
 
 ### REL-01
 
@@ -1784,6 +1784,8 @@ Requirement links: D4, D9, U2, U3, U6.
 
 Outside this task: Graph ownership migration; Raw arbitrary Graph proxy; Task or document writes.
 
+Evidence: [dashboard-actions-preview-2026-11-01.md](../implementation/dashboard-actions-preview-2026-11-01.md).
+
 ### API-04
 
 **Expose eligible human review discovery and action descriptors**
@@ -1921,7 +1923,7 @@ Requirement links: D5, D6, U4, U5.
 
 Outside this task: Browser impersonation of agents; Client-owned readiness or scheduling; Implicit task creation from comments.
 
-Evidence: [dashboard-qualified-status-2026-11-01.md](../implementation/dashboard-qualified-status-2026-11-01.md).
+Evidence: [dashboard-qualified-status-2026-11-01.md](../implementation/dashboard-qualified-status-2026-11-01.md), [dashboard-actions-preview-2026-11-01.md](../implementation/dashboard-actions-preview-2026-11-01.md).
 
 ### API-11
 
@@ -2001,6 +2003,8 @@ Acceptance:
 Requirement links: U1, U2, U3, U6.
 
 Outside this task: Typed writes owned by API-10/UI-02; Full Graph downloads.
+
+Evidence: [dashboard-actions-preview-2026-11-01.md](../implementation/dashboard-actions-preview-2026-11-01.md).
 
 ### UI-07
 
@@ -2120,7 +2124,7 @@ Requirement links: U1, U2, U3, U6, U9, U12, U14.
 
 Outside this task: New hibernation/stall lifecycle owners; Claiming account quota from usage; Full terminal rendering/control.
 
-Evidence: [dashboard-qualified-status-2026-11-01.md](../implementation/dashboard-qualified-status-2026-11-01.md).
+Evidence: [dashboard-qualified-status-2026-11-01.md](../implementation/dashboard-qualified-status-2026-11-01.md), [dashboard-actions-preview-2026-11-01.md](../implementation/dashboard-actions-preview-2026-11-01.md).
 
 ### WRK-17
 
@@ -2217,6 +2221,8 @@ Requirement links: D9, U2, U3.
 
 Outside this task: Waiting for all review/result owners; Full quota aggregation.
 
+Evidence: [dashboard-actions-preview-2026-11-01.md](../implementation/dashboard-actions-preview-2026-11-01.md).
+
 ### UI-15
 
 **Deliver core Overview layout and actual partial summaries**
@@ -2235,6 +2241,8 @@ Acceptance:
 Requirement links: U1, U2, U3, U6.
 
 Outside this task: Waiting for provider quota; Fabricated totals.
+
+Evidence: [dashboard-actions-preview-2026-11-01.md](../implementation/dashboard-actions-preview-2026-11-01.md).
 
 ### UI-16
 
@@ -2273,6 +2281,8 @@ Acceptance:
 Requirement links: U1, U3, U6, U9, U10, U11.
 
 Outside this task: Waiting for production native runner; Interactive renderer/control.
+
+Evidence: [dashboard-actions-preview-2026-11-01.md](../implementation/dashboard-actions-preview-2026-11-01.md).
 
 ### UI-18
 
