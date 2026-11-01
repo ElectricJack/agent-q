@@ -930,7 +930,8 @@
         "../implementation/AQ-08-phase-history-evidence/qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md",
         "../implementation/AQ-08-phase-terminal-integration/README.md",
-        "../implementation/AQ-08-terminal-tail-integration/README.md"
+        "../implementation/AQ-08-terminal-tail-integration/README.md",
+        "../implementation/AQ-08-native-runner-delivery.md"
       ]
     },
     {
@@ -1161,7 +1162,9 @@
         "../implementation/AQ-08-phase-history-evidence/qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md",
         "../implementation/AQ-08-phase-terminal-integration/README.md",
-        "../implementation/AQ-08-terminal-tail-integration/README.md"
+        "../implementation/AQ-08-terminal-tail-integration/README.md",
+        "../implementation/AQ-08-native-runner-delivery.md",
+        "../../../aq-worker/docs/implementation/WRK-08-installed-adapter-handoff.md"
       ]
     },
     {
@@ -2202,7 +2205,8 @@
         "../../../aq-dashboard/docs/evidence/d04.md",
         "../../../aq-dashboard/docs/evidence/d05-live-framework.md",
         "../implementation/schema27-activation-dashboard-qualification.md",
-        "../implementation/AQ-08-dashboard-schema32.json"
+        "../implementation/AQ-08-dashboard-schema32.json",
+        "../implementation/AQ-08-terminal-tail-integration/README.md"
       ]
     },
     {

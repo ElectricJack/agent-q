@@ -75,3 +75,5 @@ add no endpoint or table merely to duplicate its policy. The accompanying owner
 regression checks explicit 30-second policy and 120-second policy hard clamping,
 immutable original clocks, and exact Grant replay. It does not widen existing
 fixtures or qualify a provider, tokenizer, sandbox, hard-cost ledger or real CLI.
+
+The [installed adapter input boundary](../../../aq-worker/docs/implementation/WRK-08-installed-adapter-handoff.md) is now implemented and independently reviewed. It validates an operator-pinned manifest and installed executables, and borrows exact retained private material without adding a store or journal. Four adapter tests, five material tests, strict lint and default library checks pass. It deliberately has no command constructor or launcher; ordinary native orchestration and the concrete harness handoff remain next.

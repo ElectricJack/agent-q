@@ -478,3 +478,5 @@ This is a synthetic-harness integration, not a real-provider or fleet qualificat
 ### Actual worker output in the browser (November 1)
 
 The [output-tail integration](../implementation/AQ-08-terminal-tail-integration/README.md) now passes across the independently built worker, actual tmux, production daemon routes and dashboard bundle. The browser displayed three genuine synthetic-harness frames and the disconnected state after physical stop. Output remains bounded, incomplete and volatile; restored databases do not restore it. Interactive control and real-provider execution remain open.
+
+Settings now reads actual configured project bindings, profile restrictions and worker groups from the owner API. Five live browser checks pass against the rebuilt preview. The [next native runner delivery](../implementation/AQ-08-native-runner-delivery.md) uses the existing material owner and explicitly configured initial leases; a new owner regression confirms hard-deadline clamping without changing original clocks.
