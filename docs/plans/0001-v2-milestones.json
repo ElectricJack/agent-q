@@ -831,7 +831,8 @@
       "acceptance": [
         "Readiness alone never claims execution; admitted revisions are recorded and invalidating changes prevent stale settlement.",
         "Multiple projects share capacity, cold eligible nodes can prepare work, and decisions/refusals expose reasons without full Git scans.",
-        "Schedule only against a current explicit project binding and sealed profile/intelligence selection; unsupported or changed inputs refuse without silently selecting a weaker configuration."
+        "Schedule only against a current explicit project binding and sealed profile/intelligence selection; unsupported or changed inputs refuse without silently selecting a weaker configuration.",
+        "Granted attempts without centrally admitted Started need a separately qualified launch-closure path: exact durable pre-intent suppression or real physical-stop evidence, followed by independent source/effect settlement. Missing Started, expiry or timeout never implies NeverGranted, physical stop or release."
       ],
       "out_of_scope": [],
       "evidence": [
@@ -867,7 +868,8 @@
         "../implementation/AQ-08-native-storage-022.md",
         "../implementation/AQ-08-definitions.qualification.md",
         "../implementation/AQ-08-native-preparation.qualification.md",
-        "../implementation/AQ-schema26-native27.qualification.md"
+        "../implementation/AQ-schema26-native27.qualification.md",
+        "../implementation/AQ-08-granted-launch-closure-plan.md"
       ]
     },
     {
@@ -1043,7 +1045,8 @@
         "Mock configuration tests run without live credentials; exact adapter/CLI versions and required/optional capabilities are recorded. No harness-specific copy of shared role instructions is required.",
         "Real Codex CLI compatibility proves launch, terminal-ready tmux hosting, stop with guardian evidence, scoped AQ reads and confined source edits. Live reattachment stays explicitly unsupported unless separately qualified; no token appears in prompts/argv/logs.",
         "Publish session source identities and parser/usage capability fixtures for WRK-15; INT-03 qualifies the extended transcript/accounting matrix without claiming it from launch/terminal evidence alone.",
-        "Integrate the public profiled tmux host with separately typed worker journal/process evidence and any required versioned migration; never coerce new host stop proof into the legacy guardian record. Qualify retention and recovery before advertising profiled launches."
+        "Integrate the public profiled tmux host with separately typed worker journal/process evidence and any required versioned migration; never coerce new host stop proof into the legacy guardian record. Qualify retention and recovery before advertising profiled launches.",
+        "Granted attempts without centrally admitted Started need a separately qualified launch-closure path: exact durable pre-intent suppression or real physical-stop evidence, followed by independent source/effect settlement. Missing Started, expiry or timeout never implies NeverGranted, physical stop or release."
       ],
       "out_of_scope": [
         "Closing all-harness product acceptance (WRK-11/12/13 and INT-02 own it)",
@@ -1056,7 +1059,8 @@
         "../../../aq-worker/docs/implementation/WRK-08-native-http-qualification.json",
         "../../../aq-worker/docs/implementation/WRK-08-codex-adapter-plan.md",
         "../../../aq-worker/docs/implementation/WRK-08-native-journal-plan.md",
-        "../../../aq-worker/docs/implementation/WRK-08-worker-integration-qualification.md"
+        "../../../aq-worker/docs/implementation/WRK-08-worker-integration-qualification.md",
+        "../implementation/AQ-08-granted-launch-closure-plan.md"
       ]
     },
     {
@@ -2821,6 +2825,10 @@
     {
       "source": "2026-10-31-native-integration-checkpoint.md",
       "summary": "Ordered state25\u219227, native preparation and explicit optional playbook lifecycle are integrated. Worker no-launch journal/observed tmux host passed retained Git/host/relay checks; one concurrent-load deadline failure remains explicit. The assembled daemon passed45 selected tests and4livebrowser checks after fixture upgrade. Native offers/grants and full driver continue in parallel; product gates stay open."
+    },
+    {
+      "source": "../implementation/AQ-08-granted-launch-closure-plan.md",
+      "summary": "Proposed missing native recovery boundary for an issued grant without central Started: preserve original authority, qualify durable suppression or actual host stop, and keep claims/resources held until independent settlement. No contract, migration or capability is implemented by this design."
     }
   ],
   "implementation_reference_maps": [
