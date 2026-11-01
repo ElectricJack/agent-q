@@ -1,0 +1,10 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 41.68s
+     Running tests/schema28_closure.rs (/home/jkern/dev/agent-q/target/debug/deps/schema28_closure-4962c7c455ba06f0)
+
+running 2 tests
+test fresh_closure_schema_is_empty_and_default_router_has_no_owner ... ok
+test actual27_upgrades_to28_and_collision_rolls_back_before_explicit_retry ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+
