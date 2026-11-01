@@ -49,14 +49,17 @@ async fn fresh_database_installs_ordered27_without_activating_optional_owners() 
     let db = TestDb::create().await;
     let store = db.store().await;
     let pool = db.pool().await;
-    assert_eq!(format(&pool).await, "27");
+    assert_eq!(
+        format(&pool).await,
+        aq_server::STATE_FORMAT_VERSION.to_string()
+    );
     assert_eq!(
         migrations(&pool)
             .await
             .iter()
             .map(|r| r.0)
             .collect::<Vec<_>>(),
-        (1..=27).collect::<Vec<_>>()
+        (1..=aq_server::STATE_FORMAT_VERSION as i32).collect::<Vec<_>>()
     );
     for table in [
         "review_owner_budget",
@@ -140,7 +143,10 @@ async fn populated25_upgrades_to27_preserving_rows_and_reopening_idempotently() 
     assert!(!installed(&pool, "review_owner_budget").await);
     for _ in 0..2 {
         drop(Store::connect_with(db.options()).await.unwrap());
-        assert_eq!(format(&pool).await, "27");
+        assert_eq!(
+            format(&pool).await,
+            aq_server::STATE_FORMAT_VERSION.to_string()
+        );
         assert_eq!(snapshot(&pool, id).await, before);
         let current = migrations(&pool).await;
         assert_eq!(&current[..25], prior.as_slice());
@@ -180,7 +186,10 @@ async fn failure_in27_rolls_back26_and_all_metadata_then_explicit_retry_succeeds
         .await
         .unwrap();
     drop(Store::connect_with(db.options()).await.unwrap());
-    assert_eq!(format(&pool).await, "27");
+    assert_eq!(
+        format(&pool).await,
+        aq_server::STATE_FORMAT_VERSION.to_string()
+    );
     assert_eq!(snapshot(&pool, id).await, before);
 }
 #[tokio::test]
@@ -194,11 +203,14 @@ async fn old25_reader_profile_refuses27_without_touching_rows_or_migration_metad
     assert!(matches!(
         migrate_profile(&pool, 25).await,
         Err(StoreError::IncompatibleState {
-            found: 27,
+            found: aq_server::STATE_FORMAT_VERSION,
             supported: 25
         })
     ));
-    assert_eq!(format(&pool).await, "27");
+    assert_eq!(
+        format(&pool).await,
+        aq_server::STATE_FORMAT_VERSION.to_string()
+    );
     assert_eq!(migrations(&pool).await, prior);
     assert_eq!(snapshot(&pool, id).await, before);
 }

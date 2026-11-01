@@ -419,6 +419,7 @@ async fn admit(
         return Err(refused());
     }
 
+    super::closure::history::for_attempt_locked(tx, &request.acceptance.binding).await?;
     hot.status = Status::Preparing;
     hot.owner = Some(owner.clone());
     hot.preparation_operation_id = Some(request.operation_id);
