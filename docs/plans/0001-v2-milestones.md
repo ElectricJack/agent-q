@@ -184,7 +184,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [WRK-12](#wrk-12): Qualify the Gemini CLI harness adapter | aq-worker | [CON-02](#con-02), [WRK-05](#wrk-05), [WRK-06](#wrk-06), [WRK-10](#wrk-10) | planned |
 | [WRK-13](#wrk-13): Qualify the OpenCode harness adapter | aq-worker | [CON-02](#con-02), [WRK-05](#wrk-05), [WRK-06](#wrk-06), [WRK-10](#wrk-10) | planned |
 | [WRK-14](#wrk-14): Implement the bounded outbound terminal bridge | aq-worker | [CON-02](#con-02), [WRK-10](#wrk-10) | in_progress |
-| [UI-03](#ui-03): Build profile/session inspection and terminal watch/control | aq-dashboard | [UI-01](#ui-01), [CON-02](#con-02) | planned |
+| [UI-03](#ui-03): Build profile/session inspection and terminal watch/control | aq-dashboard | [UI-01](#ui-01), [CON-02](#con-02) | in_progress |
 | [INT-02](#int-02): Qualify composed profiles, four harnesses and remote terminals | agent-q | [GATE-04](#gate-04), [AQ-17](#aq-17), [AQ-21](#aq-21), [WRK-09](#wrk-09), [WRK-11](#wrk-11), [WRK-12](#wrk-12), [WRK-13](#wrk-13), [WRK-14](#wrk-14), [UI-03](#ui-03) | planned |
 | [UI-04](#ui-04): Expose session health, accounting, waits and notification delivery | aq-dashboard | [UI-01](#ui-01), [CON-03](#con-03) | planned |
 | [INT-03](#int-03): Qualify session operations, external delivery and cross-node hibernation | agent-q | [GATE-05](#gate-05), [INT-02](#int-02), [AQ-22](#aq-22), [AQ-23](#aq-23), [AQ-24](#aq-24), [AQ-25](#aq-25), [AQ-26](#aq-26), [AQ-27](#aq-27), [WRK-15](#wrk-15), [WRK-16](#wrk-16), [UI-04](#ui-04) | planned |
@@ -1042,7 +1042,7 @@ Acceptance:
 
 Requirement links: D2, D3, D6, W1, X6, X7.
 
-Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md), [AQ-14-decision-check-owner-design.md](../implementation/AQ-14-decision-check-owner-design.md), [AQ-14-state25-integration.json](../implementation/AQ-14-state25-integration.json), [AQ-schema26-native27.qualification.md](../implementation/AQ-schema26-native27.qualification.md), [AQ-14-owner-activation.md](../implementation/AQ-14-owner-activation.md), [AQ-14-owner-activation-evidence.md](../implementation/AQ-14-owner-activation-evidence.md), [schema27-activation-dashboard-qualification.md](../implementation/schema27-activation-dashboard-qualification.md), [AQ-08-dashboard-schema32.json](../implementation/AQ-08-dashboard-schema32.json).
+Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md), [AQ-14-decision-check-owner-design.md](../implementation/AQ-14-decision-check-owner-design.md), [AQ-14-state25-integration.json](../implementation/AQ-14-state25-integration.json), [AQ-schema26-native27.qualification.md](../implementation/AQ-schema26-native27.qualification.md), [AQ-14-owner-activation.md](../implementation/AQ-14-owner-activation.md), [AQ-14-owner-activation-evidence.md](../implementation/AQ-14-owner-activation-evidence.md), [schema27-activation-dashboard-qualification.md](../implementation/schema27-activation-dashboard-qualification.md).
 
 ### AQ-15
 
@@ -1355,7 +1355,7 @@ Requirement links: U1, U2, U3, U6.
 
 Outside this task: Separate dashboard backend; Full v1 UI parity.
 
-Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), [README.md](../evidence/dashboard-assets/README.md), [source.json](../evidence/dashboard-assets/source.json), [d04.md](../../../aq-dashboard/docs/evidence/d04.md), [d05-live-framework.md](../../../aq-dashboard/docs/evidence/d05-live-framework.md), [schema27-activation-dashboard-qualification.md](../implementation/schema27-activation-dashboard-qualification.md).
+Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), [README.md](../evidence/dashboard-assets/README.md), [source.json](../evidence/dashboard-assets/source.json), [d04.md](../../../aq-dashboard/docs/evidence/d04.md), [d05-live-framework.md](../../../aq-dashboard/docs/evidence/d05-live-framework.md), [schema27-activation-dashboard-qualification.md](../implementation/schema27-activation-dashboard-qualification.md), [AQ-08-dashboard-schema32.json](../implementation/AQ-08-dashboard-schema32.json).
 
 ### UI-02
 
@@ -1581,7 +1581,7 @@ Evidence: [WRK-14-stage1.md](../../../aq-worker/docs/implementation/WRK-14-stage
 
 **Build profile/session inspection and terminal watch/control**
 
-Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: planned.
+Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [UI-01](#ui-01), [CON-02](#con-02).
 
@@ -1595,6 +1595,8 @@ Acceptance:
 Requirement links: P3, R1, R2, R3, R4, R6, U9, U10, U11.
 
 Outside this task: Direct browser-to-worker connections, a separate dashboard backend.
+
+Evidence: [AQ-08-dashboard-schema32.json](../implementation/AQ-08-dashboard-schema32.json).
 
 ### INT-02
 
