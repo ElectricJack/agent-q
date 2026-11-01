@@ -140,14 +140,37 @@ pub async fn fence_locked(
         binding.credential_profile == c.credential_profile
             && binding.credential_revision == p.selection.credential_revision
     });
-    installation_supports_inventory(
-        revision,
-        p.selection.node_revision,
-        binding.map(|b| (b.available, b.observed_at_ms, b.expires_at_ms)),
-        time,
-        p.installation.lease_id == p.material.lease_id
-            && p.installation.material_digest == p.material.material_digest,
-    )?;
+    let scoped = crate::profiled_execution::presence::scoped_locked(
+        state,
+        tx,
+        crate::profiled_execution::presence::HeldMaterial {
+            binding: &request.binding,
+            grant: request.grant_id,
+            grant_revision: p.versions.grant_revision,
+            original: &p.original,
+            lease: &p.material,
+            installation: &p.installation,
+            snapshot: &snapshot,
+        },
+    )
+    .await?;
+    let inventory_ceiling = if let Some(expiry) = scoped {
+        expiry
+    } else {
+        installation_supports_inventory(
+            revision,
+            p.selection.node_revision,
+            binding.map(|b| (b.available, b.observed_at_ms, b.expires_at_ms)),
+            time,
+            p.installation.lease_id == p.material.lease_id
+                && p.installation.material_digest == p.material.material_digest,
+        )?;
+        binding
+            .filter(|b| b.available)
+            .map_or(snapshot.expires_at_ms, |b| {
+                snapshot.expires_at_ms.min(b.expires_at_ms)
+            })
+    };
     crate::intelligence::fence_continuing_principal(
         state,
         tx,
@@ -188,11 +211,7 @@ pub async fn fence_locked(
         health: evidence,
         registry_revision,
         inventory_revision: revision,
-        inventory_expires_at_ms: binding
-            .filter(|b| b.available)
-            .map_or(snapshot.expires_at_ms, |b| {
-                snapshot.expires_at_ms.min(b.expires_at_ms)
-            }),
+        inventory_expires_at_ms: inventory_ceiling,
     })
 }
 

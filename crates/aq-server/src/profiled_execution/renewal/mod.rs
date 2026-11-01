@@ -18,3 +18,5 @@ mod api;
 mod service;
 pub use api::routes;
 pub use service::renew;
+
+pub(crate) use history::{Issuance, issuance_locked};

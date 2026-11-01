@@ -47,11 +47,11 @@ use std::sync::Arc;
 /// every migration is a state-format change (`store` tests enforce it). The
 /// updater restores the pre-update backup on rollback only when the format
 /// changes, so a migration without a bump would strand the old release.
-pub const STATE_FORMAT_VERSION: u32 = 30;
+pub const STATE_FORMAT_VERSION: u32 = 31;
 /// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
 pub const READABLE_STATE_FORMATS: &[u32] = &[
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-    27, 28, 29, 30,
+    27, 28, 29, 30, 31,
 ];
 /// Versions that may be upgraded to this release.
 pub const UPGRADE_FROM: &str = ">=0.1.0";
@@ -100,6 +100,12 @@ impl AppState {
     pub(crate) fn terminal_view(&self) -> Self {
         Self {
             store: self.store.terminal_view(),
+            ..self.clone()
+        }
+    }
+    pub(crate) fn presence_view(&self) -> Self {
+        Self {
+            store: self.store.presence_view(),
             ..self.clone()
         }
     }
@@ -257,6 +263,7 @@ fn build_worker_router_inner(
         ))
         .merge(profiled_execution::reconciliation::routes(state.clone()))
         .merge(profiled_execution::renewal::routes(state.clone()))
+        .merge(profiled_execution::presence::routes(state.clone()))
         .merge(profiled_execution::producer::api::routes(state.clone()))
         .merge(profiled_execution::started::routes(state.clone()))
         .merge(profiled_execution::stopped::routes(state.clone()))

@@ -258,3 +258,39 @@ pub async fn insert(
     sqlx::query("INSERT INTO profiled_execution_receipts(node_id,operation_id,kind,request_digest,response) VALUES($1,$2,'renew',$3,$4)").bind(node).bind(request.operation_id).bind(aq_selection::digest(request).map_err(|_|AppError::Internal)?.as_str()).bind(response).execute(&mut **tx).await.map_err(|_|AppError::Internal)?;
     Ok(())
 }
+
+/// Actual immutable issuance facts for a retained renewal operation. This is not
+/// current authorization; callers hold node/attempt locks and recheck live Hot.
+pub(crate) struct Issuance {
+    pub issued_at_ms: u64,
+    pub expires_at_ms: u64,
+    pub execution_deadline_ms: u64,
+}
+pub(crate) async fn issuance_locked(
+    tx: &mut Transaction<'_, Postgres>,
+    node: Uuid,
+    binding: &LaunchBinding,
+    grant: Uuid,
+    anchor: &aq_admission::scoped_presence::AuthorityAnchor,
+) -> Result<Issuance, AppError> {
+    anchor.validate().map_err(|_| invalid())?;
+    let row=sqlx::query("SELECT kind,response FROM profiled_execution_receipts WHERE node_id=$1 AND operation_id=$2 FOR SHARE").bind(node).bind(anchor.operation_id).fetch_optional(&mut **tx).await.map_err(|_|AppError::Internal)?.ok_or_else(invalid)?;
+    if row.get::<String, _>("kind") != "renew" {
+        return Err(invalid());
+    }
+    let stored = Stored::decode(row.get("response"))?;
+    let b = stored.body;
+    if b.binding != *binding
+        || b.grant_id != grant
+        || b.operation_id != anchor.operation_id
+        || b.versions.grant_revision != anchor.grant_revision
+        || b.expires_at_ms != anchor.expires_at_ms
+    {
+        return Err(invalid());
+    }
+    Ok(Issuance {
+        issued_at_ms: b.issued_at_ms,
+        expires_at_ms: b.expires_at_ms,
+        execution_deadline_ms: b.execution_deadline_ms,
+    })
+}
