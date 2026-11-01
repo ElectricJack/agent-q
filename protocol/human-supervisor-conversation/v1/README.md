@@ -18,7 +18,7 @@ unavailable with null binding in this foundation.
   at most 16384 UTF-8 bytes, no NUL. Whole literal JSON at most 131072 bytes.
   Context and attachments must both be empty arrays. Positive revision is a
   signed 64-bit decimal string. Operation and message UUIDs are client minted,
-  stable, nonnil and independent; preserve them with the original request.
+  stable, nonnil and different; preserve them with the original request.
 - GET `/api/human/conversations/{id}/operations/{op}`: pure original-actor receipt
   lookup, 200 Receipt or 404. A 404 is not proof an earlier request has finished.
 
