@@ -1,0 +1,6 @@
+   Compiling aq-playbooks-model v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-model)
+   Compiling aq-playbooks-runner v0.1.2 (/home/jkern/dev/agent-q/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-runner)
+   Compiling aq-playbooks-postgres v0.1.2 (/home/jkern/dev/agent-q/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-postgres)
+   Compiling aq-playbook-host v0.1.2 (/home/jkern/dev/agent-q/crates/aq-playbook-host)
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 1m 10s

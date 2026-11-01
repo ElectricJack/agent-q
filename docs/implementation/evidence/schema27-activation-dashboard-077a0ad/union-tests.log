@@ -1,0 +1,90 @@
+    Blocking waiting for file lock on build directory
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2m 43s
+     Running tests/dashboard_assets.rs (target/debug/deps/dashboard_assets-7802fdd05edf53e8)
+
+running 3 tests
+test actual_local_human_http_serves_loaded_bytes_after_source_removal ... ok
+test current_owner_viewer_and_removed_user_authenticate_each_get_and_head ... ok
+test exact_spa_paths_do_not_capture_api_machine_unknown_assets_or_traversal ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s
+
+     Running tests/dashboard_read.rs (target/debug/deps/dashboard_read-22fe3b64f404ac67)
+
+running 5 tests
+test acl_expiry_during_database_wait_refuses_read ... ok
+test live_subset_bootstrap_and_exact_session_scope_are_truthful ... ok
+test malformed_inputs_have_dashboard_error_envelopes ... ok
+test overflow_visibility_refuses_detail_and_wrong_boot_acl_does_not_list_session ... ok
+test viewer_requires_current_exact_acl_and_never_gets_project_catalog ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.95s
+
+     Running tests/native_preparation.rs (target/debug/deps/native_preparation-888bc2e07883003d)
+
+running 11 tests
+test accept_missing_nonce_unknown_and_duplicate_fields_and_body_bound_are_typed_failures ... ok
+test actual_original_plan_lease_mapping_reserved_journal_and_exact_replay_without_grant ... ok
+test changed_private_file_never_admits_lease_or_reservation_journal ... ok
+test concurrent_exact_accept_can_reconcile_original_receipt_without_duplicate_leases ... ok
+test credential_rotation_during_actual_git_io_never_admits_preparation ... ok
+test expiry_after_observed_node_lock_wait_never_commits_preparation ... ok
+test incoming_preparation_bytes_cannot_overshoot_retained_storage_limit ... ok
+test extra_known_worker_capabilities_and_missing_durable_journal_never_qualify_preparation ... ok
+test issued_grant_cannot_be_discounted_as_an_owned_ungranted_reservation ... ok
+test journal_storage_failure_rolls_back_lease_mapping_hot_and_receipt_atomically ... ok
+test mounted_accept_and_actual_private_material_fetch_keep_preparation_separate_from_grant ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 13.76s
+
+     Running tests/playbook_activation.rs (target/debug/deps/playbook_activation-d5fbb49e33c841bb)
+
+running 5 tests
+test config_refuses_disabled_tcp_unsafe_files_unknown_fields_and_changed_socket_directory ... ok
+test changed_bootstrap_binding_is_refused_and_successful_stop_replay_is_exact ... ok
+test lost_engine_connection_does_not_fabricate_shutdown_release_ack ... ok
+test explicit_unix_owner_starts_dispatches_restarts_without_regrant_and_drains ... ok
+test startup_missing_registered_schema_refuses_before_engine_creation ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.41s
+
+     Running tests/playbook_bridge.rs (target/debug/deps/playbook_bridge-fab03b0ac531eae9)
+
+running 11 tests
+test actual_engine_commit_lost_aq_ack_recovers_same_run_after_owner_restart_and_revocation ... ok
+test actual_http_renew_cancel_progress_while_real_mail_host_exhausts_bridge_work_permits ... ok
+test cancel_before_owner_admission_prevents_effect_and_after_queue_is_too_late ... ok
+test actual_protected_engine_host_queues_one_message_and_replays_fixed_event_outbox ... ok
+test expired_admission_page_is_held_without_starving_later_current_grant ... ok
+test expiry_after_mailbox_lock_wait_rolls_back_new_message_and_outbox ... ok
+test mailbox_and_outbox_commit_once_and_reconcile_after_revocation ... ok
+test optional_http_mount_requires_owner_csrf_and_only_finite_controls_survive_maintenance ... ok
+test protected_admission_conflicts_and_engine_receipt_ack_are_separate ... ok
+test quota_refusal_rolls_back_mailbox_and_event_but_retained_exact_replay_works ... ok
+test runtime_adoption_fences_old_sender_and_delayed_old_initializer ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.00s
+
+     Running tests/playbook_review_contract.rs (target/debug/deps/playbook_review_contract-c4757846b4fa7a0d)
+
+running 4 tests
+test catalog1_bytes_and_capabilities_do_not_silently_gain_human_decision_authority ... ok
+test catalog2_snapshot_is_generated_and_operation_lookup_has_no_generic_service_or_url ... ok
+test decision_input_refuses_authority_fields_duplicate_owners_and_mismatched_subject_id ... ok
+test actual_compiler_refuses_old_catalog_and_accepts_explicit_registered_async_owner_contract ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/schema26_27.rs (target/debug/deps/schema26_27-73f0a7abed0e6f01)
+
+running 6 tests
+test format_change_requires_backup_restore_before_rollback ... ok
+test fresh_database_installs_ordered27_without_activating_optional_owners ... ok
+test failure_in27_rolls_back26_and_all_metadata_then_explicit_retry_succeeds ... ok
+test old25_reader_profile_refuses27_without_touching_rows_or_migration_metadata ... ok
+test inconsistent_recorded_format_refuses_without_repair_or_partial_changes ... ok
+test populated25_upgrades_to27_preserving_rows_and_reopening_idempotently ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.60s
+

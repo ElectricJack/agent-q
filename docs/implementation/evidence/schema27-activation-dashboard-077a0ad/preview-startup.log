@@ -1,0 +1,3 @@
+2026-11-01T00:02:51.862498Z  INFO aq_server: connecting to database host="127.0.0.1" database="aq_dashboard_live_20261031_1439"
+2026-11-01T00:02:51.903321Z  INFO sqlx::postgres::notice: relation "schema_migrations" already exists, skipping
+2026-11-01T00:02:51.950533Z  INFO aq_server: listening admin=127.0.0.1:4188 worker=127.0.0.1:4189

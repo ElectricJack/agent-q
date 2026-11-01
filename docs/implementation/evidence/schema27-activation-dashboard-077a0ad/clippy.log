@@ -1,0 +1,16 @@
+    Blocking waiting for file lock on build directory
+    Checking aq-session-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-session-api)
+    Checking aq-lifecycle-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-lifecycle-api)
+    Checking aq-profiles v0.1.1 (/home/jkern/dev/agent-q/crates/aq-profiles)
+    Checking aq-terminal-relay-protocol v0.1.0 (/home/jkern/dev/agent-q/crates/aq-terminal-relay-protocol)
+    Checking aq-selection v0.1.2 (/home/jkern/dev/agent-q/crates/aq-selection)
+    Checking aq-terminal-relay v0.1.0 (/home/jkern/dev/agent-q/crates/aq-terminal-relay)
+    Checking aq-playbook-host v0.1.2 (/home/jkern/dev/agent-q/crates/aq-playbook-host)
+    Checking aq-notifications v0.1.0 (/home/jkern/dev/agent-q/crates/aq-notifications)
+    Checking aq-observation-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-observation-api)
+    Checking aq-accounting v0.1.0 (/home/jkern/dev/agent-q/crates/aq-accounting)
+    Checking aq-admission v0.1.7 (/home/jkern/dev/agent-q/crates/aq-admission)
+    Checking aq-observation-admission v0.1.0 (/home/jkern/dev/agent-q/crates/aq-observation-admission)
+    Checking aq-review-protocol v0.1.0 (/home/jkern/dev/agent-q/crates/aq-review-protocol)
+    Checking aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 51.87s
