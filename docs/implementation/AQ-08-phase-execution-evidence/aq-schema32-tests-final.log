@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.16s
+     Running tests/schema32_phase_execution.rs (/tmp/aq-phase30-qualification-target/debug/deps/schema32_phase_execution-5d84f37ad7b202a4)
+
+running 4 tests
+test current32_missing_execution_history_refuses_reopen_without_repair ... ok
+test failure_after32_sql_meta_transition_rolls_back_table_and_version_together ... ok
+test real31_table_collision_rolls_back32_and_explicit_fixture_repair_allows_retry ... ok
+test ordered32_preserves_prior_metadata_and_creates_no_execution_authority ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.02s
+

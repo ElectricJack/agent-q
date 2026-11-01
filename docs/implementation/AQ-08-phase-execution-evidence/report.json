@@ -1,0 +1,285 @@
+{
+  "schema_version": 1,
+  "source_repository": "agent-q",
+  "source_revision": "3af7741c3a9c7b3e006718dad7980f3904605119",
+  "owner_source_revision": "e934dd4",
+  "fixture_compatibility_revision": "53916d0",
+  "final_fence_revision": "3af7741",
+  "main_owner_counterpart": "8b0708e",
+  "source_files": [
+    {
+      "path": "Dockerfile",
+      "sha256": "9687769133a7de546d0eb8abe49c2c7c0ced9c2e9190e3c9bdf9cb4cc6db20be"
+    },
+    {
+      "path": "crates/aq-server/migrations/0032_phase_execution.sql",
+      "sha256": "cf10eea97ff498ed00341d0a32cb11878d9a1b9f2544f4da2c18311f6740bae5"
+    },
+    {
+      "path": "crates/aq-server/src/lib.rs",
+      "sha256": "c52aea44cfea4e434b76c78606a3be945d02d3eb0a281922a55ae97aa96db5ad"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution.rs",
+      "sha256": "ca8da6c16c1f1c5baa360af7104cebfc5f6fc5e562ab7bd55333fad904a28e6a"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/accepted_preparation.rs",
+      "sha256": "e159b84c7ad5c5af51fc3629f2fd3fd1275525d93df2d87b55b023bb20bac1c1"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/accepted_preparation/history.rs",
+      "sha256": "4aaf313f5924515667201550761612ab006e21007224b3f2e1fa752282c26196"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/config.rs",
+      "sha256": "ba1111f3abef89a29332382dbd45c3a5e71438f86101f931f4b3f46fa4fc4c5d"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/initial_authority.rs",
+      "sha256": "0a057049b3526898c69b8c69cd5470ae47ba86bf00cb315999c879eadcc6b2ad"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/initial_grant.rs",
+      "sha256": "7b8a7edb5d13582a1ea61f9244730987dc7e18896540a19059e8ce731ba087a2"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/initial_grant/material_receipts.rs",
+      "sha256": "d3fdfd369a4dd30270925a1ed28feb297d058182d7309838b336a2a98caaf4fb"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/phase_execution.rs",
+      "sha256": "7b7ee4c1e45eabad73160bc45e1eca358e2be3a81b9151c7c4fc6621d2b38ce4"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/phase_execution/current.rs",
+      "sha256": "8220129870463bcde70604f2ad831475cb5532904ee7f7c7f87704f59bd3313a"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/phase_execution/facts.rs",
+      "sha256": "31484b89a27ae99cac157a4f3219a122f2752046f71699640f8ee7787d169492"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/phase_execution/history.rs",
+      "sha256": "35c6d25f32e31667f0f0dc3c2dafdd66dda65dff15e773e2203d7a3116ec0ceb"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/phase_execution/observations.rs",
+      "sha256": "c1bdca64408cd8068be7e33a1cb7f6d9c45fc885efab19f715056cc07479d656"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/phase_execution/pinned.rs",
+      "sha256": "1567e0d36438751b21d51a2275eef632e906d8614f4c231f6d56980fc4f865da"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/phase_execution/policy.rs",
+      "sha256": "2c55dcd2f0fc29e2c866c8bc695958a06cd7a2ff6e037ab45694352f4df42f39"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/preparation.rs",
+      "sha256": "d96d45f19a6620741bcdda6e5053e9735a4879d8d6cf42242433cd603f4641bd"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/current.rs",
+      "sha256": "08cefd70a901ad4ca4f099e5a7abb751717caf94bae82cb4b1ca9112f82bd061"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/mod.rs",
+      "sha256": "d48f4b1069b38321ba5531b99b2286d281672961670d9e21cd54c93686080706"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/private_read.rs",
+      "sha256": "b2583d84db4f420b76099a0e97dcae79dd235b555c12e16c9d117a6ae9d79e28"
+    },
+    {
+      "path": "crates/aq-server/src/store.rs",
+      "sha256": "7913f4009d34448512d402f7839f911485d1eabba1a24ded714156c9d2ea318a"
+    },
+    {
+      "path": "crates/aq-server/tests/native_accepted_preparation.rs",
+      "sha256": "2794942ddd032bcadc1afa62c8a478de71ad5b10e84d9f92191b9e2224551ac6"
+    },
+    {
+      "path": "crates/aq-server/tests/phase_execution.rs",
+      "sha256": "e88e72e43dda2c554aa68a413a37d293978bc80c6211d6dd8d84487358cb2309"
+    },
+    {
+      "path": "crates/aq-server/tests/phase_execution/atomicity.rs",
+      "sha256": "7c02ba73356ba0a6a5a70b46da950a6d0f395cd897b64d3cfef3616ec51f31e6"
+    },
+    {
+      "path": "crates/aq-server/tests/phase_execution/legacy_origin.rs",
+      "sha256": "389c078966f0f6c033b4ddfba6ddb690d3cd68408f99c6b92fd83c69b9a63c13"
+    },
+    {
+      "path": "crates/aq-server/tests/phase_execution/refusals.rs",
+      "sha256": "c52e1ad967ce06c06159752bad3f34e06ef421bb66dd910f27a5b4fa29058ae2"
+    },
+    {
+      "path": "crates/aq-server/tests/schema32_phase_execution.rs",
+      "sha256": "5d7ca36ca273f33d6edc70fd15d25ab7a430e6842f06ae0a1193f83a3b3cc012"
+    }
+  ],
+  "state_format_version": 32,
+  "public_contract": {
+    "package": "aq-admission",
+    "version": "0.1.9",
+    "archive": "docs/implementation/AQ-08-admission019-evidence/aq-admission-0.1.9.crate",
+    "sha256": "30f4cfca11ff6840eab325026dfea33dd55c23e25099dedb303b52a1ede75b49",
+    "modified": false
+  },
+  "activation": {
+    "production_route_mounted": false,
+    "default_owner_active": false,
+    "entry_point": "profiled_execution::phase_execution::prepare",
+    "qualified_scope": "internal/test-only owning function, protected typed runtime qualification, actual local PostgreSQL owners with synthetic Graph/Git/runtime peers"
+  },
+  "results": {
+    "initial_owner_matrix": {
+      "passed": 12,
+      "failed": 0,
+      "seconds": 30.16,
+      "source": "e934dd4"
+    },
+    "final_owner_matrix": {
+      "passed": 13,
+      "failed": 1,
+      "seconds": 32.2,
+      "failure": "original_proposal_expiry_does_not_limit_new_execution_lease failed in initial fixture Accept, selection expired during admission locks, before issuer",
+      "source_files_match": "3af7741c3a9c7b3e006718dad7980f3904605119"
+    },
+    "same_case_individual": {
+      "passed": 1,
+      "seconds": 3.5,
+      "clocks_or_ttls_changed": false
+    },
+    "necessary_regressions": {
+      "passed": 39,
+      "failed": 0,
+      "groups": {
+        "closure": 10,
+        "accepted_and_origin": 16,
+        "legacy_started": 6,
+        "schema31": 3,
+        "schema32": 4
+      }
+    },
+    "native_initial_grant_aggregate": {
+      "passed": 39,
+      "failed": 2,
+      "ignored": 7,
+      "seconds": 65.04,
+      "source": "e934dd4 + 53916d0; peer test-only worker_assembly files pending separate qualification",
+      "failures": [
+        "quota wait observer elapsed before reaching expected wait",
+        "initial scoped presence report returned409 before changed-backing assertion"
+      ]
+    },
+    "same_native_cases_individual": {
+      "passed": 2,
+      "seconds": [
+        1.32,
+        1.61
+      ],
+      "clocks_or_ttls_changed": false
+    },
+    "current_and_observation_pure": {
+      "passed": 6,
+      "failed": 0
+    },
+    "strict_all_targets_all_features_clippy": {
+      "status": "pass",
+      "seconds": 44.97,
+      "source_files_match": "3af7741c3a9c7b3e006718dad7980f3904605119"
+    },
+    "format_and_diff": "pass"
+  },
+  "qualification_profile": {
+    "database": "scripts/test-db disposable PostgreSQL only",
+    "target": "/tmp/aq-phase30-qualification-target",
+    "incremental": "0",
+    "build_jobs": 2,
+    "dev_debug": "default2",
+    "issuer_test_threads": 1,
+    "necessary_test_threads": 2,
+    "cargo_offline": true,
+    "cargo_locked_flag": false,
+    "cargo_lock_changed": false
+  },
+  "logs": [
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-owner-tests.log",
+      "sha256": "81d1543713afbfb48517d0d81443d22fa3626de8d95b74509669a49f07c1a29a"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-positive-original-admission-expired.log",
+      "sha256": "6f152246afb5ebe4e49e48d78ebcb2e7eacf4291b04b451710183b3f7b0ffedc"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-positive-stage-probe.log",
+      "sha256": "4e31c710acdaa3a7f6d148a84a8c8b6f5cb9e5d65689e5412e55d2ea76ff0452"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-positive-runtime-capability-probe.log",
+      "sha256": "6f2578632cd5c4a9021908de4c01192a2aca7cd9e0f99e0b60b284d350aa435a"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-owner-twelve.log",
+      "sha256": "5d1a13e2a686327e31e8e4a1e152dea8a3fc351adff2ca7380eb087002a2ceaf"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-final-insert-expiry.log",
+      "sha256": "013dffa0fd8b3d76e3f32ba13101d441ef20cacf16978314fb4c12d263e70111"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-owner-fourteen.log",
+      "sha256": "e9c2c8d76ff0bd3cac8b7426acc3aa55d86716186a2ee0b0753493d6003a98ff"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-post-proposal-expiry-individual.log",
+      "sha256": "fafaf1c59287fc5c6c66757c8feffc3ffacbdb39f487382bfa6f81637b776a50"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-necessary-regressions-before-fixture-fk.log",
+      "sha256": "2ecf4f3fbafcc0edb671a60327b94c407e0653315f10b8996c83ec273854fec4"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-necessary-regressions.log",
+      "sha256": "78fc8f01619999470da3a1744d213c36c8e32178b00bf04757a77c54f5e54fe2"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-native-initial-aggregate-negative.log",
+      "sha256": "de04f5921ebd41b780f5511d86212ecd8db9841ef2217ee14a91f70d7cf3094d"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-quota-expiry-individual.log",
+      "sha256": "5da3e2c289bf9ecd69585667ad5378218a8a66398dbcaead3cd5744cd176fb88"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-presence-private-individual.log",
+      "sha256": "d275365b5e23d43df75c410a9ba8459a014059d5c4765d3427c5070a6f99fcf3"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase32-alltargets-clippy.log",
+      "sha256": "33f5de6cdc9db8034470748a8f737d8099e11d54ab8b16d24550bf30b480b604"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-phase-execution-pure-tests.log",
+      "sha256": "dfc0ce3e37b0db28f4e22536030b08d1b6ba3d85c0742d84ab1f247b9ddb03cb"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-execution-evidence/aq-schema32-tests-final.log",
+      "sha256": "f823c3026604aea259a06930b87eead14a62f89944531294b723b97b787dd31e"
+    }
+  ],
+  "limitations": [
+    "Final owner and native aggregate runs were not entirely green; all aggregate failures and unchanged isolated reruns are retained without relabeling as aggregate passes.",
+    "Actual native worker/Git cross-process followup is separately owned and is not claimed by this report.",
+    "Current32 startup/table/trigger checks do not fence an already-open older daemon writer; no mixed-writer deployment qualification.",
+    "Phase Started, renewal, scoped presence consumption, pre-Started closure and result settlement are not enabled by this issuer; legacy original-grant consumers explicitly refuse phase origin.",
+    "No provider/harness execution, deployment, task outcome, invoice, physical disk capacity, production throughput or phase activation claim.",
+    "The first budget profile refuses any prior charged/unknown lineage and cost/completeness/hard-cost requirements; remaining cost is Unknown rather than zero.",
+    "Source input export must include a nonempty bundle; reference-only exports remain unsupported.",
+    "Shared retained limits are logical bytes/counts, and bounded aggregate queries do not establish history-insensitive latency."
+  ]
+}

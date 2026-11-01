@@ -1,0 +1,71 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-phase-execution-owner/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.61s
+     Running tests/granted_closure.rs (/tmp/aq-phase30-qualification-target/debug/deps/granted_closure-7569f2dc32aca630)
+
+running 10 tests
+test actual_host_stopped_variant_retains_absent_prestart_pane_without_inventing_started ... ok
+test actual_grant_closes_once_and_replays_without_release_or_execution_clock ... ok
+test closure_path_is_explicit_reserved_control ... ok
+test closure_http_uses_reserved_control_capacity_and_refuses_at_its_shared_bound ... ok
+test credential_rotation_during_node_lock_wait_cannot_commit_a_closure ... ok
+test expiry_and_active_policy_retirement_do_not_block_historical_closure ... ok
+test failed_receipt_insert_rolls_back_revocation_and_preserves_retry ... ok
+test policy_replacement_fences_old_owner_but_exact_history_can_use_new_current_policy ... ok
+test renewal_counter_fences_old_suppression_and_closure_fences_all_later_authority ... ok
+test started_and_closure_serialize_to_exactly_one_terminal_history ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.50s
+
+     Running tests/native_accepted_preparation.rs (/tmp/aq-phase30-qualification-target/debug/deps/native_accepted_preparation-bee3d72b9007997b)
+
+running 16 tests
+test absent_policy_has_no_route_and_invalid_policy_refuses_configuration ... ok
+test changed_bytes_runtime_scope_and_cancel_refuse_without_new_receipts ... ok
+test changed_current_project_and_private_bytes_cannot_deliver_inputs ... ok
+test current30_missing_both_phase_tables_cannot_undercharge_legacy_admission ... ok
+test failure_after_actual_material_insert_rolls_back_entire_admission ... ok
+test legacy_and_v2_accept_share_one_actual_owner_and_material_scope ... ok
+test mixed_candidate_schema_is_corruption_not_older_profile ... ok
+test mounted_v2_routes_require_machine_auth_negotiation_and_physical_nonce ... ok
+test observed_node_wait_charges_expiry_before_any_new_accept_commit ... ok
+test original_inputs_remain_scoped_after_proposal_expiry_then_expire_held ... ok
+test real_timed_accept_retains_independent_lease_and_exact_replay ... ok
+test reopened_store_and_reloaded_protected_policy_replay_exact_accepted_receipt ... ok
+test structurally_complete_v2_prepare_never_falls_back_to_legacy_execution_issuer ... ok
+test shared_bytes_quota_rolls_back_new_accept_but_never_forgets_exact_replay ... ok
+test unsupported_history::accepted_phase_origin_cannot_acquire_legacy_original_grant_through_renewal ... ok
+test unsupported_history::accepted_phase_origin_cannot_enter_legacy_started_through_shaped_hot_grant ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 22.96s
+
+     Running tests/profiled_started.rs (/tmp/aq-phase30-qualification-target/debug/deps/profiled_started-d89ca80971570515)
+
+running 6 tests
+test journal_heads_preserve_exact_phase_scope_and_require_original_start_record ... ok
+test grant_expiring_while_waiting_for_owner_lock_cannot_become_running ... ok
+test original_started_is_atomic_and_historical_replay_never_revives_stopped_host ... ok
+test receipt_journal_and_running_rollback_together_and_rotated_auth_cannot_replay ... ok
+test missing_prepared_head_foreign_owner_and_unregistered_allowlist_never_make_running ... ok
+test worker_http_start_report_uses_current_node_auth_and_returns_only_historical_ack ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.71s
+
+     Running tests/schema31_presence_barrier.rs (/tmp/aq-phase30-qualification-target/debug/deps/schema31_presence_barrier-7b563a6c2438d6c7)
+
+running 3 tests
+test actual30_collision_rolls_back31_and_retry_upgrades ... ok
+test semantic_projection_ignores_order_and_observation_clocks_but_not_bindings ... ok
+test current31_missing_binding_column_or_function_refuses_reopen_without_repair ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.94s
+
+     Running tests/schema32_phase_execution.rs (/tmp/aq-phase30-qualification-target/debug/deps/schema32_phase_execution-5d84f37ad7b202a4)
+
+running 4 tests
+test current32_missing_execution_history_refuses_reopen_without_repair ... ok
+test failure_after32_sql_meta_transition_rolls_back_table_and_version_together ... ok
+test real31_table_collision_rolls_back32_and_explicit_fixture_repair_allows_retry ... ok
+test ordered32_preserves_prior_metadata_and_creates_no_execution_authority ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.98s
+
