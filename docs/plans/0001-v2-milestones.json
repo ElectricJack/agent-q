@@ -864,7 +864,10 @@
         "../implementation/AQ-08-preoffer-source-export.md",
         "../implementation/AQ-08-preoffer-io-qualification.json",
         "../implementation/AQ-08-native-control-017.md",
-        "../implementation/AQ-08-native-storage-022.md"
+        "../implementation/AQ-08-native-storage-022.md",
+        "../implementation/AQ-08-definitions.qualification.md",
+        "../implementation/AQ-08-native-preparation.qualification.md",
+        "../implementation/AQ-schema26-native27.qualification.md"
       ]
     },
     {
@@ -1051,7 +1054,9 @@
         "../../../aq-worker/docs/implementation/WRK-08-host-union-qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-startup-consumer-qualification.json",
         "../../../aq-worker/docs/implementation/WRK-08-native-http-qualification.json",
-        "../../../aq-worker/docs/implementation/WRK-08-codex-adapter-plan.md"
+        "../../../aq-worker/docs/implementation/WRK-08-codex-adapter-plan.md",
+        "../../../aq-worker/docs/implementation/WRK-08-native-journal-plan.md",
+        "../../../aq-worker/docs/implementation/WRK-08-worker-integration-qualification.md"
       ]
     },
     {
@@ -1557,7 +1562,9 @@
       "out_of_scope": [],
       "evidence": [
         "../implementation/AQ-12-through-17-plan.md",
-        "../implementation/AQ-14-decision-check-owner-design.md"
+        "../implementation/AQ-14-decision-check-owner-design.md",
+        "../implementation/AQ-14-state25-integration.json",
+        "../implementation/AQ-schema26-native27.qualification.md"
       ]
     },
     {
@@ -2471,7 +2478,9 @@
         "../../../aq-worker/docs/implementation/WRK-14-reader-lease-plan.md",
         "../../../aq-worker/docs/implementation/WRK-14-dense-output.md",
         "../../../aq-worker/docs/implementation/WRK-14-renderer-baseline-plan.md",
-        "../../../aq-worker/docs/implementation/WRK-08-host-union-qualification.md"
+        "../../../aq-worker/docs/implementation/WRK-08-host-union-qualification.md",
+        "../../../aq-worker/docs/implementation/WRK-14-observed-baseline.md",
+        "../../../aq-worker/docs/implementation/WRK-08-worker-integration-qualification.md"
       ]
     },
     {
@@ -2799,7 +2808,11 @@
     },
     {
       "source": "../implementation/UI-01-live-dashboard.md",
-      "summary": "First dashboard-read-1 human API and optional verified bundle service merged: bounded current-ACL session/project inspection and explicitly partial overview, with exact backend/static component evidence. API-02/UI-01 remain in progress; assembled daemon/browser smoke and broader domain/product gates remain open."
+      "summary": "First dashboard-read-1 API and verified static bundle are connected to the independent dashboard: 234 unit/component,35 mocked browser/accessibility and4 actual-daemon checks. Exact source and fixture limits are retained; API-02/UI-01 and broader product gates remain open."
+    },
+    {
+      "source": "2026-10-31-native-integration-checkpoint.md",
+      "summary": "Ordered state25\u219227 and native preparation integrated; worker no-launch journal and observed tmux host integrated with retained actual Git/host/relay checks. One concurrent-load startup deadline failure remains explicit. Native offers/grants, optional playbook lifecycle and full driver continue in parallel; product gates stay open."
     }
   ],
   "implementation_reference_maps": [
