@@ -156,8 +156,8 @@ async fn missing_disabled_wrong_or_non_deferred37_guards_refuse_without_repair()
 #[tokio::test]
 async fn same_named37_checks_keys_indexes_fks_and_nullability_cannot_bypass_startup() {
     for sql in [
-        "ALTER TABLE central_supervisor_operations DROP CONSTRAINT central_supervisor_operations_pkey",
-        "ALTER TABLE central_supervisor_operations DROP CONSTRAINT central_supervisor_operations_pkey; ALTER TABLE central_supervisor_operations ADD CONSTRAINT central_supervisor_operations_pkey PRIMARY KEY(actor_id,operation_id,actor_revision)",
+        "ALTER TABLE central_supervisor_operations DROP CONSTRAINT central_supervisor_operations_pkey CASCADE",
+        "ALTER TABLE central_supervisor_mail_members DROP CONSTRAINT central_supervisor_mail_members_pkey; ALTER TABLE central_supervisor_mail_members ADD CONSTRAINT central_supervisor_mail_members_pkey PRIMARY KEY(reservation_id,ordinal,message_id)",
         "ALTER TABLE central_supervisor_actors ALTER COLUMN approved_identity DROP NOT NULL",
         "ALTER TABLE central_supervisor_mail_members DROP CONSTRAINT central_supervisor_mail_members_message_id_fkey; ALTER TABLE central_supervisor_mail_members ADD CONSTRAINT central_supervisor_mail_members_message_id_fkey FOREIGN KEY(message_id) REFERENCES mailbox_messages(message_id) ON DELETE CASCADE",
         "ALTER TABLE central_supervisor_reservations DROP CONSTRAINT central_reservation_cancel_operation; ALTER TABLE central_supervisor_reservations ADD CONSTRAINT central_reservation_cancel_operation FOREIGN KEY(actor_id,cancel_operation_id) REFERENCES central_supervisor_operations(actor_id,operation_id)",
@@ -167,23 +167,114 @@ async fn same_named37_checks_keys_indexes_fks_and_nullability_cannot_bypass_star
         "DROP INDEX mailbox_global_queued_original; CREATE INDEX mailbox_global_queued_original ON mailbox_operations((response->>'message_id')) WHERE response->>'state'='queued'",
         "ALTER TABLE central_supervisor_actors DROP CONSTRAINT central_supervisor_actors_check; ALTER TABLE central_supervisor_actors ADD CONSTRAINT central_supervisor_actors_check CHECK(TRUE)",
         "ALTER TABLE central_supervisor_actors DROP CONSTRAINT central_supervisor_actors_check3; ALTER TABLE central_supervisor_actors ADD CONSTRAINT central_supervisor_actors_check3 CHECK(TRUE)",
-        "ALTER TABLE central_supervisor_operations DROP CONSTRAINT central_supervisor_operations_charged_bytes_check; ALTER TABLE central_supervisor_operations ADD CONSTRAINT central_supervisor_operations_charged_bytes_check CHECK(TRUE)",
+        "ALTER TABLE central_supervisor_actors DROP CONSTRAINT central_supervisor_actors_check4; ALTER TABLE central_supervisor_actors ADD CONSTRAINT central_supervisor_actors_check4 CHECK(TRUE)",
+        "ALTER TABLE central_supervisor_reservations DROP CONSTRAINT central_supervisor_reservations_check2; ALTER TABLE central_supervisor_reservations ADD CONSTRAINT central_supervisor_reservations_check2 CHECK(TRUE)",
+        "ALTER TABLE central_supervisor_operations DROP CONSTRAINT central_supervisor_operations_check2; ALTER TABLE central_supervisor_operations ADD CONSTRAINT central_supervisor_operations_check2 CHECK(TRUE)",
+        "ALTER TABLE central_supervisor_operations DROP CONSTRAINT central_supervisor_operations_check3; ALTER TABLE central_supervisor_operations ADD CONSTRAINT central_supervisor_operations_check3 CHECK(TRUE)",
+        "ALTER TABLE central_supervisor_operations DROP CONSTRAINT central_supervisor_operations_check1; ALTER TABLE central_supervisor_operations ADD CONSTRAINT central_supervisor_operations_check1 CHECK(TRUE)",
     ] {
         drift(sql).await;
     }
 }
 
 #[tokio::test]
+async fn retained_owner_reserve_and_cancel_proofs_are_revalidated_after_guards_reenabled() {
+    use crate::agent_access::supervisor_conversation::reservations::{
+        PreviewRequest, ReservationOwner,
+    };
+    use crate::{AppState, config::Config, identity::verifier_from_config};
+    use chrono::{TimeZone, Utc};
+    use std::sync::Arc;
+    for damage in [
+        "ALTER TABLE central_supervisor_actors DISABLE TRIGGER USER; UPDATE central_supervisor_actors SET retained_bytes=retained_bytes+1; ALTER TABLE central_supervisor_actors ENABLE TRIGGER USER",
+        "ALTER TABLE central_supervisor_operations DISABLE TRIGGER USER; UPDATE central_supervisor_operations SET result_bytes=replace(result_bytes,result_bytes::jsonb#>>'{reservation,batch_digest}',repeat('0',64)) WHERE kind='reserve'; ALTER TABLE central_supervisor_operations ENABLE TRIGGER USER",
+        "ALTER TABLE central_supervisor_mail_members DISABLE TRIGGER USER; UPDATE central_supervisor_mail_members SET payload_digest=repeat('0',64); ALTER TABLE central_supervisor_mail_members ENABLE TRIGGER USER",
+        "ALTER TABLE central_supervisor_reservations DISABLE TRIGGER USER; UPDATE central_supervisor_reservations SET cancel_actor_revision=cancel_actor_revision+1; ALTER TABLE central_supervisor_reservations ENABLE TRIGGER USER",
+    ] {
+        let (db, pool) = database(37).await;
+        seed_original(&pool).await;
+        let store = db.store().await;
+        let user = store
+            .find_user_by_binding("dev", "retained@localhost")
+            .await
+            .unwrap()
+            .unwrap();
+        let config:Config=toml::from_str("format_version=1\nenvironment='development'\n[server]\nadmin_bind='127.0.0.1:0'\nworker_bind='127.0.0.1:0'\npublic_origin='http://127.0.0.1:8080'\n[auth]\nmode='dev'\ndev_email='retained@localhost'\n[bootstrap]\nowner_email='retained@localhost'\nenabled=false\n").unwrap();
+        let now = Utc.timestamp_millis_opt(1_000_000).unwrap();
+        let state = AppState {
+            store,
+            identity: verifier_from_config(&config.auth, reqwest::Client::new()),
+            config: Arc::new(config),
+            clock: Arc::new(move || now),
+            agent_access: None,
+            source_retention: None,
+        };
+        let owner = ReservationOwner::new(&state);
+        let actor = Uuid::new_v4();
+        let conversation: Uuid = sqlx::query_scalar(
+            "SELECT conversation_id FROM global_supervisor_conversation WHERE singleton",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        owner.configure_actor(&user,&serde_json::to_vec(&json!({"operation_id":Uuid::new_v4(),"actor_id":actor,"expected_actor_revision":0,"policy":{"schema_version":1,"kind":"global_supervisor_reservation","actor_id":actor,"conversation_id":conversation,"enabled":true}})).unwrap()).await.unwrap();
+        let preview = owner
+            .preview_batch(
+                &user,
+                PreviewRequest {
+                    actor_id: actor,
+                    expected_actor_revision: 1,
+                    scan_after: 0,
+                    through_cursor: None,
+                },
+            )
+            .await
+            .unwrap();
+        let reservation = Uuid::new_v4();
+        owner.reserve_batch(&user,&serde_json::to_vec(&json!({"operation_id":Uuid::new_v4(),"reservation_id":reservation,"actor_id":actor,"expected_actor_revision":preview.actor_revision,"expected_policy_revision":preview.policy_revision,"scan_after":preview.scan_after,"through_cursor":preview.through_cursor,"selection_digest":preview.selection_digest})).unwrap()).await.unwrap();
+        migrate_known(&pool, &MIGRATIONS[..37], 37).await.unwrap();
+        owner.cancel_reservation(&user,&serde_json::to_vec(&json!({"operation_id":Uuid::new_v4(),"actor_id":actor,"reservation_id":reservation,"expected_reservation_revision":1})).unwrap()).await.unwrap();
+        migrate_known(&pool, &MIGRATIONS[..37], 37).await.unwrap();
+        sqlx::raw_sql(damage).execute(&pool).await.unwrap();
+        let tables = [
+            "central_supervisor_actors",
+            "central_supervisor_reservations",
+            "central_supervisor_mail_members",
+            "central_supervisor_operations",
+            "schema_migrations",
+            "meta",
+        ];
+        let mut before = Vec::new();
+        for table in tables {
+            before.push(rows(&pool, table).await);
+        }
+        assert!(
+            matches!(
+                migrate_known(&pool, &MIGRATIONS[..37], 37).await,
+                Err(StoreError::Corrupt(_))
+            ),
+            "{damage}"
+        );
+        for (table, previous) in tables.into_iter().zip(before) {
+            assert_eq!(rows(&pool, table).await, previous, "{table}");
+        }
+    }
+}
+
+#[tokio::test]
 async fn corrupt_pre37_global_body_or_orphan_original_proof_refuses_atomic_upgrade() {
-    for orphan in [false, true] {
+    for mode in 0..3 {
         let (_db, pool) = database(36).await;
         let (message, _) = seed_original(&pool).await;
-        if orphan {
+        if mode == 1 {
             sqlx::query("DELETE FROM mailbox_messages WHERE message_id=$1")
                 .bind(message)
                 .execute(&pool)
                 .await
                 .unwrap();
+        } else if mode == 2 {
+            sqlx::query("INSERT INTO mailbox_operations(sender_key,operation_id,payload_digest,response) SELECT sender_key,gen_random_uuid(),payload_digest,jsonb_set(response,'{body_digest}',to_jsonb('sha256:'||repeat('0',64))) FROM mailbox_operations")
+                .execute(&pool).await.unwrap();
         } else {
             sqlx::query("UPDATE mailbox_messages SET body='Changed retained global body ☃' WHERE message_id=$1").bind(message).execute(&pool).await.unwrap();
         }
