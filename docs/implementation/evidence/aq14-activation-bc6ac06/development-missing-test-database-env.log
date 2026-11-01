@@ -1,0 +1,50 @@
+   Compiling aq-server v0.1.0 (/tmp/aq14-integration/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.64s
+     Running tests/playbook_activation.rs (/tmp/aq14-decisions/target/debug/deps/playbook_activation-d5fbb49e33c841bb)
+
+running 5 tests
+test changed_bootstrap_binding_is_refused_and_successful_stop_replay_is_exact ... FAILED
+test config_refuses_disabled_tcp_unsafe_files_unknown_fields_and_changed_socket_directory ... FAILED
+test explicit_unix_owner_starts_dispatches_restarts_without_regrant_and_drains ... FAILED
+test lost_engine_connection_does_not_fabricate_shutdown_release_ack ... FAILED
+test startup_missing_registered_schema_refuses_before_engine_creation ... FAILED
+
+failures:
+
+---- changed_bootstrap_binding_is_refused_and_successful_stop_replay_is_exact stdout ----
+
+thread 'changed_bootstrap_binding_is_refused_and_successful_stop_replay_is_exact' (104399) panicked at crates/aq-server/src/test_support.rs:18:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+
+---- config_refuses_disabled_tcp_unsafe_files_unknown_fields_and_changed_socket_directory stdout ----
+
+thread 'config_refuses_disabled_tcp_unsafe_files_unknown_fields_and_changed_socket_directory' (104400) panicked at crates/aq-server/src/test_support.rs:18:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- explicit_unix_owner_starts_dispatches_restarts_without_regrant_and_drains stdout ----
+
+thread 'explicit_unix_owner_starts_dispatches_restarts_without_regrant_and_drains' (104401) panicked at crates/aq-server/src/test_support.rs:18:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+
+---- lost_engine_connection_does_not_fabricate_shutdown_release_ack stdout ----
+
+thread 'lost_engine_connection_does_not_fabricate_shutdown_release_ack' (104402) panicked at crates/aq-server/src/test_support.rs:18:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+
+---- startup_missing_registered_schema_refuses_before_engine_creation stdout ----
+
+thread 'startup_missing_registered_schema_refuses_before_engine_creation' (104403) panicked at crates/aq-server/src/test_support.rs:18:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+
+
+failures:
+    changed_bootstrap_binding_is_refused_and_successful_stop_replay_is_exact
+    config_refuses_disabled_tcp_unsafe_files_unknown_fields_and_changed_socket_directory
+    explicit_unix_owner_starts_dispatches_restarts_without_regrant_and_drains
+    lost_engine_connection_does_not_fabricate_shutdown_release_ack
+    startup_missing_registered_schema_refuses_before_engine_creation
+
+test result: FAILED. 0 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p aq-server --test playbook_activation`

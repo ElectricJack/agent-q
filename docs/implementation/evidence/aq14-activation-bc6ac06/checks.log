@@ -1,0 +1,5 @@
+$ cargo fmt --package aq-server --check
+exit=0
+$ git diff --check
+exit=0
+verified 725 exact retained playbook vendor files

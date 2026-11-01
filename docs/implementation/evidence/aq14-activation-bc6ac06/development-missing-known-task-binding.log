@@ -1,0 +1,23 @@
+   Compiling aq-server v0.1.0 (/tmp/aq14-integration/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 49.12s
+     Running tests/playbook_activation.rs (/tmp/aq14-decisions/target/debug/deps/playbook_activation-d5fbb49e33c841bb)
+
+running 2 tests
+test config_refuses_disabled_tcp_unsafe_files_unknown_fields_and_changed_socket_directory ... ok
+test explicit_unix_owner_starts_dispatches_restarts_without_regrant_and_drains ... FAILED
+
+failures:
+
+---- explicit_unix_owner_starts_dispatches_restarts_without_regrant_and_drains stdout ----
+
+thread 'explicit_unix_owner_starts_dispatches_restarts_without_regrant_and_drains' (55237) panicked at crates/aq-server/tests/playbook_activation.rs:340:5:
+assertion failed: delivered
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    explicit_unix_owner_starts_dispatches_restarts_without_regrant_and_drains
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.32s
+
+error: test failed, to rerun pass `-p aq-server --test playbook_activation`
