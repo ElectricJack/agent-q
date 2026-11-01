@@ -89,3 +89,9 @@ pub async fn migrate_profile(
 ) -> Result<(), crate::store::StoreError> {
     crate::store::migrate_fixture_profile(pool, supported).await
 }
+
+/// Shared request admission instance for reserved-lane saturation fixtures.
+/// Available only with the existing test-support module.
+pub fn admission(store: &Store) -> std::sync::Arc<crate::admission::Admission> {
+    store.admission.clone()
+}

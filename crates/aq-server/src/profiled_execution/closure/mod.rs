@@ -1,5 +1,9 @@
 //! Terminal launch closure is independent of task/source/effect release.
+pub(crate) mod api;
+mod context;
 pub(crate) mod history;
+pub mod policy;
+pub mod service;
 use crate::error::AppError;
 use aq_admission::LaunchBinding;
 use serde::Serialize;
