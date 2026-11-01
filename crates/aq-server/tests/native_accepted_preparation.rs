@@ -838,3 +838,6 @@ async fn current30_missing_both_phase_tables_cannot_undercharge_legacy_admission
         .unwrap();
     assert_eq!(state["status"], "offered");
 }
+
+#[path = "native_accepted_preparation/unsupported_history.rs"]
+mod unsupported_history;
