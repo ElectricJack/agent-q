@@ -1,0 +1,22 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-native-closure-prerequisite/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.80s
+     Running tests/schema26_27.rs (/home/jkern/dev/agent-q/target/debug/deps/schema26_27-8c7925f1229c4f67)
+
+running 6 tests
+test format_change_requires_backup_restore_before_rollback ... ok
+test fresh_database_installs_ordered_current_without_activating_optional_owners ... ok
+test failure_in27_rolls_back26_and_all_metadata_then_explicit_retry_succeeds ... ok
+test old25_reader_profile_refuses_current_without_touching_rows_or_migration_metadata ... ok
+test inconsistent_recorded_format_refuses_without_repair_or_partial_changes ... ok
+test populated25_upgrades_to_current_preserving_rows_and_reopening_idempotently ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.41s
+
+     Running tests/schema28_closure.rs (/home/jkern/dev/agent-q/target/debug/deps/schema28_closure-4962c7c455ba06f0)
+
+running 2 tests
+test fresh_closure_schema_is_empty_and_default_router_has_no_owner ... ok
+test actual27_upgrades_to28_and_collision_rolls_back_before_explicit_retry ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.48s
+

@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "source_revision": "aabbf1891f3e8031800a7167b7e1fa9e19539621",
+  "prerequisite_source": "75015d0",
+  "native_tests_passed": 57,
+  "native_ignored": 0,
+  "schema_tests_passed": 8,
+  "strict_affected_all_feature_clippy": true,
+  "format": true,
+  "source_inventory": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "19456997cb1f8959a6d14d6393320a3b33d880a5f562cbdd71e1415bc4b1acfe",
+      "bytes": 88659
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "42bcbada166090885b1fd7c5da190aa8022bcedf1770885b6f0c111e1f1ef6cc",
+      "bytes": 2574
+    },
+    {
+      "path": "Dockerfile",
+      "sha256": "b51e214575f9a3c54ef4ebe9510d873f9a5b8ef514afa1b9f7bc7da6634a0968",
+      "bytes": 4140
+    },
+    {
+      "path": "crates/aq-server/migrations/0028_profiled_launch_closure.sql",
+      "sha256": "23b4b732f787138ec06a93deeffa21a010e41d6d704c7ddb547f5948d1e01225",
+      "bytes": 12328
+    },
+    {
+      "path": "crates/aq-server/src/lib.rs",
+      "sha256": "85a925844db071d17231b6f5c5802c6e8ea1ca5e3336055b49d0b84908dc2e5f",
+      "bytes": 14441
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution.rs",
+      "sha256": "7c69fb6ce1898574db81e227868c1f4411e6062de5e09f6858d4dfbd375fe655",
+      "bytes": 815
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/closure/history.rs",
+      "sha256": "fceb021b45da5810e942497b6e3115e857a50116330a77b053c27b9c93fb45b3",
+      "bytes": 7669
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/closure/mod.rs",
+      "sha256": "02955a72600d9fbf72fcb0022b04c4eb51becb7fdb69673fa8fe8377f86a76ce",
+      "bytes": 1345
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/initial_grant.rs",
+      "sha256": "28536b434234ec7a9d864304256077f46e58a3be5cd7297152864696d0ed2abf",
+      "bytes": 26150
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/preparation.rs",
+      "sha256": "32657a30dc489a80911854394eb6c11b515fd2f9e6076c1c8fa8eacd0d773701",
+      "bytes": 19168
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/registration.rs",
+      "sha256": "162f0e701cca82951c748d011fbe58bf38f9c22966e648441233283c080a1db0",
+      "bytes": 9569
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/started.rs",
+      "sha256": "e6f748ae7c704b0c4bb0ac57b0558e6cf1bf9fc5e9434ef766438e44e9f0b5dc",
+      "bytes": 7763
+    },
+    {
+      "path": "crates/aq-server/src/store.rs",
+      "sha256": "8256ffe673e2b68383ff600166848c554505b64e5790efbaf9f845aee2617fdb",
+      "bytes": 25174
+    },
+    {
+      "path": "crates/aq-server/tests/schema26_27.rs",
+      "sha256": "950ae5a35d26f8f9907452f75b8b1a28615279c0d67c6b239addd0056db53bf4",
+      "bytes": 10966
+    },
+    {
+      "path": "crates/aq-server/tests/schema28_closure.rs",
+      "sha256": "0eb274fe100b1b5f3fa09dd80393cf1c46161ef8ade7adec72d7ced6a096c5ef",
+      "bytes": 3565
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/closure28-union-aabbf18/native-and-stale-schema.log",
+      "sha256": "71fab75e378e30a2d123fdf0cd20bbb4aaa1fcab50207d5f3888f0c52a775ca7",
+      "bytes": 10955
+    },
+    {
+      "path": "docs/implementation/evidence/closure28-union-aabbf18/schema-final.log",
+      "sha256": "ef576ce7bbba16804e32fdb7fa9a28f7625ad89d2b3d9d06e24dfa1ca0176f94",
+      "bytes": 1264
+    },
+    {
+      "path": "docs/implementation/evidence/closure28-union-aabbf18/clippy.log",
+      "sha256": "7e0cfe7b5a4e594d2498fd59f2a25ebee4166a1302677868d4db3806ca3641f9",
+      "bytes": 2601
+    },
+    {
+      "path": "docs/implementation/evidence/closure28-union-aabbf18/format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "status": "Schema28/history and strict launch-open fence foundation only; closure route/owner disabled",
+  "development": "Initial combined run passed57 native tests then failed2 schema tests retaining literal27 expected counts/manifest values. Test-only current-version expectations corrected; final8schema tests pass. Runtime source unchanged between these runs."
+}
