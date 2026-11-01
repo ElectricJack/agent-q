@@ -2,7 +2,8 @@
 
 **Status: joint0.1.9 contract, ordered30 accepted-preparation owner, ordered31
 scoped inventory, and worker format8 input/execution components integrated.
-Ordered32 fresh issuance and worker format9 host adoption are in qualification;
+Ordered32 fresh issuance is integrated with bounded owner qualification; worker
+format9 host adoption and actual assembly remain in qualification;
 production phase execution remains inactive.** Preserve admission0.1.7/0.1.8
 archives and every old clock/fixture. Current source and evidence are tracked in
 the [integration checkpoint](../plans/2026-10-31-native-integration-checkpoint.md).

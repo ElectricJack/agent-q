@@ -8,7 +8,7 @@ its historical test results and source pins.
 
 | Area | Integrated behavior | Remaining product work |
 | --- | --- | --- |
-| Daemon schema and preparation | Ordered state25→31 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Fresh phase execution issuance/durability and combined physical presence reporting, multi-project fairness, worker granted-before-Started proof production and full settlement |
+| Daemon schema and preparation | Ordered state25→32 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Phase host/report lifecycle integration and combined physical presence reporting, multi-project fairness, worker granted-before-Started proof production and full settlement |
 | Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, material installation pins, actual Git workspace ownership, durable Prepare join and received initial Grant history | Continuing renewal owner, launch/stop callbacks, result/release, phase input/execution process qualification |
 | tmux host | Durable blank terminal baseline before sealed-image exec; original physical server/pane ownership checks | Native driver adoption, selected real harness qualification and operational load envelope |
 | Playbooks | Catalog2 human decision adapter, lost-Accepted-reply recovery and explicit optional startup/drive/shutdown | Broader real adapters, workflow pilots and verified network database transport |
@@ -360,3 +360,27 @@ qualification, its current-owner refusal tests, and the worker's explicitly
 synthetic [observed tmux launch owner](../../../aq-worker/docs/implementation/WRK-08-native-phase-host-plan.md).
 The schema31 dashboard preview remains the latest qualified preview. Runtime,
 terminal and complete task-lifecycle gates stay in progress.
+
+
+The [fresh phase execution owner](../implementation/AQ-08-phase-execution.qualification.md)
+is integrated through `5643966`, with evidence at `e176890` (source `3af7741`).
+Ordered32 retains exact phase receipt/provenance and shared quota charges. Actual
+current owners confirm the original choice; installation receipt, journal and hot
+grant commit atomically. A final post-insert fence checks observation/fact/lease
+expiry and backwards time before commit. Its controlled-clock lock-wait test
+proves rollback after the final awaited insert; it is not a latency measurement.
+
+The initial12-case owner suite passes. The final14-case suite has13 passes and one
+original two-second Accept setup expiry; that unchanged case passes individually.
+Necessary accepted/origin/Started/closure/schema regressions pass39 cases. The
+broader legacy grant suite records39 passes, two timing-boundary failures and seven
+explicit ignores; both failures pass individually with unchanged clocks. Strict
+all-target/all-feature server lint passes. These separate results are retained,
+not combined into an all-green aggregate. Root verified28 owned source hashes
+against both the frozen source and integrated branch and all16 evidence logs.
+
+No production phase execution route, existing-writer deployment fence, paired
+phase Started/Stopped/closure consumer or continuing phase renewal is enabled.
+The worker's format8 execution owner and format9 synthetic-host candidate remain
+separately qualified components; the independent actual worker/issuer process
+probe and updated dashboard preview have their own pending assembly checks.
