@@ -257,3 +257,30 @@ The public contract and synthetic vectors are at
 [`protocol/accepted-preparation-refresh/v1`](../../protocol/accepted-preparation-refresh/v1/README.md).
 Terminal0.1.1 is a coordinated dependency-only manifest increment here; its new
 profile/Context and archive must be completed/frozen by Runner separately.
+
+## Pure qualification and handoff
+
+Source `dda1c21` is independently accepted. All 108 source admission/legacy-terminal
+tests pass, including 12 new refresh cases and the untouched 0.1.9 corpus. Strict
+all-target lint, formatting and independently validated eight-document schema
+vectors pass. The new 0.1.10 Cargo archive is 210,978 bytes, SHA256
+`bd10dda2220bc91a8f0999cbe2a6e12804bdd3137c145c779d690d504c46d78e`;
+all 109 tracked source/test/example payloads byte-match the accepted commit.
+The independently extracted three-archive closure passes 96 admission tests,
+strict all-target lint and formatting offline/locked without a live sibling
+checkout. Frozen lifecycle/session 0.1.0 dependencies and old 0.1.9 archives are
+reused unchanged.
+
+[Qualification](evidence/admission-refresh-dda1c21/qualification.json) and
+[source/archive proof](evidence/admission-refresh-dda1c21/source-proof.json) record
+exact scope, commands, hashes and limits. The
+[public inventory](../../protocol/accepted-preparation-refresh/v1/packages.json)
+and `scripts/test-admission-refresh-packages.py` reproduce the extracted check
+using an explicitly leased existing target. No terminal 0.1.1 archive is frozen
+by this increment; Runner still owns its new profile/Context and consumer work.
+
+The old activation limitation remains true for the old profile. This package
+does not change current.rs, enable an endpoint/profile, issue a real grant or
+claim a successful refreshed static process. Actual server/worker/terminal
+adoption, source facts, rollback/negative races and explicit format-11 ownership
+qualification remain required. No SQL or canonical change was made.

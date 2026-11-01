@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "scope": "pure negotiated refresh contract/package; no runtime adoption",
+  "source_commit": "dda1c2135feeb383b40e90192ac661f67f819abe",
+  "source_review": {
+    "reviewer": "decisions_vertical_v2",
+    "outcome": "accepted; no concrete blocker",
+    "reviewer_ran_builds_or_sql": false
+  },
+  "baseline": {
+    "commit": "a50f672",
+    "untouched_version": "0.1.9",
+    "complete_phase_documents": 8,
+    "refusal_vectors": 29,
+    "source_untouched_before_capture": true,
+    "full_schema_artifact_digests_time_and_errors_compared": true
+  },
+  "contract": {
+    "digest": "e41c08e3c8200f84b75824bff779833c9b8e5279ac63d2d91af12d9879deef56",
+    "id": "aq.admission.preparation-registry-refresh-v1-contract",
+    "version": "1"
+  },
+  "source_tests": {
+    "total": 108,
+    "admission": 96,
+    "refresh_tests": 12,
+    "legacy_terminal_tests": 12,
+    "compile_seconds": 6.41,
+    "outcome": "pass"
+  },
+  "source_strict": {
+    "packages": [
+      "aq-admission",
+      "aq-phase-terminal-protocol"
+    ],
+    "all_targets": true,
+    "seconds": 0.63,
+    "outcome": "pass"
+  },
+  "format": "pass",
+  "independent_schema_vectors": {
+    "validator": "Python jsonschema Draft202012",
+    "documents": 8,
+    "outcome": "pass"
+  },
+  "archive": {
+    "path": "aq-admission-0.1.10.crate",
+    "bytes": 210978,
+    "sha256": "bd10dda2220bc91a8f0999cbe2a6e12804bdd3137c145c779d690d504c46d78e",
+    "tracked_payload_files_byte_exact": 109,
+    "cargo_normalization_exclusions": [
+      "Cargo.toml",
+      "Cargo.lock",
+      ".cargo_vcs_info.json"
+    ]
+  },
+  "standalone_closure": {
+    "command": "CARGO_TARGET_DIR=<explicitly leased existing target> python3 scripts/test-admission-refresh-packages.py",
+    "inventory": "../../../../protocol/accepted-preparation-refresh/v1/packages.json",
+    "packages": 3,
+    "tests": 96,
+    "compile_seconds": 14.19,
+    "strict_seconds": 7.67,
+    "strict_all_targets": true,
+    "format": "pass",
+    "offline_locked": true,
+    "live_sibling_checkout_required": false,
+    "outcome": "pass"
+  },
+  "logs": {
+    "untouched_capture": {
+      "private_path": "/tmp/aq-admission019-before-capture.log",
+      "sha256": "5eb684d7a089b6daafd97a3084c859d97f577cad6f159250cef4290a303743b6"
+    },
+    "source_tests": {
+      "private_path": "/tmp/aq-admission010-focused-tests.log",
+      "sha256": "b7c3a5c2b6626b06eb1d0649c51bdf52cb5292407020847ad39b36a7334faff3"
+    },
+    "source_strict": {
+      "private_path": "/tmp/aq-admission010-strict.log",
+      "sha256": "6c1d736dc79a245779cc4c82b7daccf411ab258f5661ac368075a381cbac3d55"
+    },
+    "archive_closure": {
+      "private_path": "/tmp/aq-admission010-package-closure.log",
+      "sha256": "87af6bbd43907ea1a736731e6b78edfad815aac4fd6bc0b584d55bc66123e931"
+    }
+  },
+  "preservation": {
+    "old019_archives_checkers_and_artifacts": "unchanged",
+    "legacy_terminal_source_schema_artifacts": "unchanged; manifest/dependency only1.1 bump",
+    "runtime_current_rs_and_other_server_source": "unchanged",
+    "sql_migrations": "unchanged",
+    "source_cargo_lock": "only two internal package version bumps"
+  },
+  "terminal_011": "manifest/dependency pins only; new typedContext/profile/archive belongs to Runner, not qualified here",
+  "not_performed": [
+    "server/worker adoption",
+    "SQL/DDL/canonical migration",
+    "workerformat11 journal adoption",
+    "source packet publication",
+    "provider/model calls",
+    "host/tmux launch"
+  ],
+  "future_owner_requirements": [
+    "actual locked proposal/accepted/preflight/current registry refs; no reconstructed historical config ref",
+    "exact contract/runtime/qualification profile dispatch",
+    "current full principal/credential/config/negative/cooldown/source age/backing/runtime fences",
+    "actual fresh positive and negative/cooldown/rollback/rotation/cancellation cases and immutable operation replay",
+    "truthful terminal origin/receipt/Prepared checkpoint under separately qualified bridge",
+    "worker freshformat11 roots with preserved/refusedformat10; no automatic rewrite"
+  ]
+}
