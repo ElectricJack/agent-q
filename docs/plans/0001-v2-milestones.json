@@ -910,7 +910,9 @@
         "../../../aq-worker/docs/implementation/WRK-08-scoped-presence-evidence.md",
         "../implementation/AQ-08-phase-input-worker-integration.md",
         "../../../aq-worker/docs/implementation/WRK-08-phase-input-evidence.md",
-        "../../../aq-worker/docs/implementation/WRK-08-phase-execution-http.md"
+        "../../../aq-worker/docs/implementation/WRK-08-phase-execution-http.md",
+        "../implementation/AQ-08-presence-owner-evidence/qualification.md",
+        "../implementation/AQ-08-phase-presence31-union.json"
       ]
     },
     {
@@ -1123,7 +1125,9 @@
         "../../../aq-worker/docs/implementation/WRK-08-scoped-presence-evidence.md",
         "../implementation/AQ-08-phase-input-worker-integration.md",
         "../../../aq-worker/docs/implementation/WRK-08-phase-input-evidence.md",
-        "../../../aq-worker/docs/implementation/WRK-08-phase-execution-http.md"
+        "../../../aq-worker/docs/implementation/WRK-08-phase-execution-http.md",
+        "../implementation/AQ-08-presence-owner-evidence/qualification.md",
+        "../implementation/AQ-08-phase-presence31-union.json"
       ]
     },
     {

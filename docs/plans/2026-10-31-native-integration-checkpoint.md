@@ -8,7 +8,7 @@ its historical test results and source pins.
 
 | Area | Integrated behavior | Remaining product work |
 | --- | --- | --- |
-| Daemon schema and preparation | Ordered state25→30 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Fresh phase execution issuance/durability, server installed-material presence reporting, multi-project fairness, worker granted-before-Started proof production and full settlement |
+| Daemon schema and preparation | Ordered state25→31 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Fresh phase execution issuance/durability and combined physical presence reporting, multi-project fairness, worker granted-before-Started proof production and full settlement |
 | Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, material installation pins, actual Git workspace ownership, durable Prepare join and received initial Grant history | Continuing renewal owner, launch/stop callbacks, result/release, phase input/execution process qualification |
 | tmux host | Durable blank terminal baseline before sealed-image exec; original physical server/pane ownership checks | Native driver adoption, selected real harness qualification and operational load envelope |
 | Playbooks | Catalog2 human decision adapter, lost-Accepted-reply recovery and explicit optional startup/drive/shutdown | Broader real adapters, workflow pilots and verified network database transport |
@@ -305,3 +305,21 @@ parallel lanes are durable phase execution ownership, server fresh execution
 facts/issuance, and scoped presence/renewal consumption. The latter adds ordered031
 for a normalized provisionable-binding removal/restoration barrier; execution
 provenance reserves032. These migrations are not claimed integrated yet.
+
+
+The [server scoped-presence owner](../implementation/AQ-08-presence-owner-evidence/qualification.md)
+is now integrated at `3b364ab` (source `7a19e0a`, integrated source `c3f2df1`).
+Fifty-four actual SQL/router/grant-renewal/schema checks pass, with five explicit
+artifact-dependent ignores, plus strict all-target/all-feature lint and formatting.
+Ordered031 adds a normalized provisionable-binding-set barrier; removing and
+restoring a binding requires a new read. Ordinary same-set inventory refreshes
+and per-attempt reports remain independent. The evidence uses synthetic qualified
+worker read metadata; it does not claim the actual remote physical producer.
+
+The [schema31 union process check](../implementation/AQ-08-phase-presence31-union.json)
+also passes in7.23seconds with the actual format7 worker preparing inputs after
+proposal expiry. It validates coexistence on31, not a physical scoped-report or
+execution-Grant flow. The local dashboard preview stays on its independently
+qualified schema30 binary. Parallel followups are simultaneous-head/control
+isolation, fresh execution issuance (032) and durable worker phase execution
+(format8); those candidates remain unqualified and unactivated.

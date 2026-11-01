@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "daemon_source": "c3f2df1",
+  "daemon_schema": 31,
+  "worker_source": "cae23c7",
+  "worker_journal_format": 7,
+  "worker_binary_sha256": "d6c472fa2fe876e4ad4008341e4aae97e0c5ad314667e5c2511908cf207f4ab7",
+  "passed": 1,
+  "failed": 0,
+  "ignored": 0,
+  "seconds": 7.23,
+  "scope": "Independent worker actual phase input preparation on integrated presence/schema31 daemon; does not invoke scoped reports or execution Grant",
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-phase-presence31-union/actual-worker.log",
+      "sha256": "0ca1cc90753013d66422579f4e0cefa1daf1ea74d8fc1064c59ccb9f04757006",
+      "bytes": 861
+    }
+  ]
+}
