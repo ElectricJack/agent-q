@@ -1,0 +1,93 @@
+{
+  "source_revision": "dacbd11878a09ad3e9f7768af2c50b2f9f4a61b9",
+  "scope": "working-tree actual PostgreSQL owner checkpoint, frozen subsequently; no clean-package or production-route qualification",
+  "migration_status": "033 unregistered; current Store remains32; paired no-Started closure and ordered33 validation still pending",
+  "tests": [
+    {
+      "target": "phase_terminal_stopped",
+      "passed": 4,
+      "seconds": 11.34
+    },
+    {
+      "target": "phase_terminal_fixture",
+      "passed": 1,
+      "seconds": 2.24
+    }
+  ],
+  "sql_sha256": "eb3601ba5d697542d9f422a1965f16a044dde1e8fbce617ad08e912c0b3e42af",
+  "source_files": [
+    {
+      "path": "crates/aq-server/migrations/0033_phase_terminal.sql",
+      "sha256": "eb3601ba5d697542d9f422a1965f16a044dde1e8fbce617ad08e912c0b3e42af"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/initial_authority.rs",
+      "sha256": "19aedda77a69fac915835ff2eb5815ed0cf47aa964290d70c10f3dfa55e37f16"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/phase_terminal.rs",
+      "sha256": "e5fb53b4f9413273ff734b5e02e2391a90d33acba59e181a8cea23c9b639d7d7"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/phase_terminal/common.rs",
+      "sha256": "6c80485a832e14bfb68d14659acd177056924a5e48b6b3f004560d16ad0f681f"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/phase_terminal/qualification.rs",
+      "sha256": "05556720d4cfc121f020749fed442896149f02b15acb8c661d1b3c12ccd37679"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/phase_terminal/started.rs",
+      "sha256": "b2e17c558d03de90a183612efe98851d15b3a02403cfebb04e86003e7497faab"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/phase_terminal/stopped.rs",
+      "sha256": "2e933348ac2ec18816323a643484092fa9d0bd635f70107b27e2df2c1ffc22c0"
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/phase_terminal/closure.rs",
+      "sha256": "f2bcb7127b8e137bac6073135c8864fdc9b522f581124bde79ac563de38b9634"
+    },
+    {
+      "path": "crates/aq-server/src/store.rs",
+      "sha256": "f48a9c6d9943a6589d1d4253f580321d5050d2e5e35a32ba0200608ad050996f"
+    },
+    {
+      "path": "crates/aq-server/tests/phase_terminal_stopped.rs",
+      "sha256": "80af52c5fbd5b9a0829e4234158adbcb10c2bfbd6f742238d7fb371f42493955"
+    },
+    {
+      "path": "crates/aq-server/tests/common/phase_terminal.rs",
+      "sha256": "bf585174f5561db8b552fd7af3bdf84dbd05173a0ab67f3c8b692314936b2e48"
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-evidence/fixture-tests.log",
+      "sha256": "d3d730bfee5690592da6a21713649baf1c532f64c761aafefecd14c469a97c3c"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-evidence/paired-build.log",
+      "sha256": "dd33527e5ebdee52dcea2f2e4194fe808caf1a3311daa544c3137227b85e839a"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-evidence/policy-development-negative.log",
+      "sha256": "b64f43f018705807fddd58b63148902f63695b5cf2e5977d98103e784b7da4df"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-evidence/stage-a-clippy.log",
+      "sha256": "0328fca013353aa35c82f576c5c6260e771f17da1de1c808351601ba06230634"
+    },
+    {
+      "path": "docs/implementation/AQ-08-phase-terminal-evidence/stopped-tests.log",
+      "sha256": "6f5247fbfeaaf499391ecff16c93a6b6c6fb66cb8083e7515db662c6e182fee2"
+    }
+  ],
+  "limitations": [
+    "Synthetic Graph/Git/private install and synthetic host proof producer in SQL fixture; no provider or physical host evidence here.",
+    "StageA strict lint log precedes later paired handlers; final assembled strict checks pending.",
+    "Policy development negative is a test construction error: frozen Text rejected oversize constructor; replaced by inclusive4096/4097 policy-byte test, rerun pending.",
+    "No production route/capability activation, renewal, result or task/source/effect settlement.",
+    "Old2s original publication/Accept clocks unchanged; no saturated-start performance claim."
+  ]
+}

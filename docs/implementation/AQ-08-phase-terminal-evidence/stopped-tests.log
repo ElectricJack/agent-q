@@ -1,0 +1,9 @@
+
+running 4 tests
+test expired_cancelled_paired_stop_retains_claim_and_exact_ack_after_runtime_retirement ... ok
+test missing_started_and_foreign_proof_refuse_without_authority_mutation ... ok
+test paired_stop_does_not_qualify_old_sql_result_or_release_owners ... ok
+test stopped_insert_failure_rolls_back_journal_and_hot_then_same_intent_retries ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.34s
+

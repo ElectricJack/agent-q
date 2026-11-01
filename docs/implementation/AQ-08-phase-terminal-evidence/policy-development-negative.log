@@ -1,0 +1,48 @@
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq-phase-terminal-consumers/vendor/aq-session-protocol-0.1.0)
+   Compiling aq-playbooks-model v0.1.0 (/tmp/aq-phase-terminal-consumers/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-model)
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/aq-phase-terminal-consumers/vendor/aq-lifecycle-protocol-0.1.0)
+   Compiling aq-session-api v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-session-api)
+   Compiling aq-lifecycle-api v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-lifecycle-api)
+   Compiling aq-playbooks-runner v0.1.2 (/tmp/aq-phase-terminal-consumers/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-runner)
+   Compiling aq-agent-api v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-agent-api)
+   Compiling aq-profiles v0.1.1 (/tmp/aq-phase-terminal-consumers/crates/aq-profiles)
+   Compiling aq-playbooks-postgres v0.1.2 (/tmp/aq-phase-terminal-consumers/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-postgres)
+   Compiling aq-admission v0.1.9 (/tmp/aq-phase-terminal-consumers/crates/aq-admission)
+   Compiling aq-terminal-relay-protocol v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-terminal-relay-protocol)
+   Compiling aq-release v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-release)
+   Compiling aq-phase-terminal-protocol v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-phase-terminal-protocol)
+   Compiling aq-terminal-relay v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-terminal-relay)
+   Compiling aq-playbook-host v0.1.2 (/tmp/aq-phase-terminal-consumers/crates/aq-playbook-host)
+   Compiling aq-notifications v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-notifications)
+   Compiling aq-selection v0.1.2 (/tmp/aq-phase-terminal-consumers/crates/aq-selection)
+   Compiling aq-observation-api v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-observation-api)
+   Compiling aq-accounting v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-accounting)
+   Compiling aq-observation-admission v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-observation-admission)
+   Compiling aq-review-protocol v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-review-protocol)
+   Compiling aq-protocol v0.1.0 (/tmp/aq-phase-terminal-consumers/vendor/aq-protocol-0.1.0)
+   Compiling aq-worker-protocol v0.2.0 (/tmp/aq-phase-terminal-consumers/vendor/aq-worker-protocol-0.2.0)
+   Compiling aq-playbooks-compiler v0.1.0 (/tmp/aq-phase-terminal-consumers/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-compiler)
+   Compiling aq-server v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 42s
+     Running unittests src/lib.rs (/tmp/aq-phase30-qualification-target/debug/deps/aq_server-5408b61d2f791030)
+
+running 3 tests
+test profiled_execution::phase_terminal::qualification::tests::oversized_artifact_identity_refuses_before_owner_lookup ... FAILED
+test profiled_execution::phase_terminal::qualification::tests::unsupported_contract_and_unknown_policy_fields_refuse ... ok
+test profiled_execution::phase_terminal::qualification::tests::retired_runtime_cleanup_profile_remains_explicit_and_unambiguous ... ok
+
+failures:
+
+---- profiled_execution::phase_terminal::qualification::tests::oversized_artifact_identity_refuses_before_owner_lookup stdout ----
+
+thread 'profiled_execution::phase_terminal::qualification::tests::oversized_artifact_identity_refuses_before_owner_lookup' (473539) panicked at crates/aq-server/src/profiled_execution/phase_terminal/qualification.rs:163:58:
+called `Result::unwrap()` on an `Err` value: Invalid("text bounds")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    profiled_execution::phase_terminal::qualification::tests::oversized_artifact_identity_refuses_before_owner_lookup
+
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 79 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p aq-server --lib`

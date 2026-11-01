@@ -1,0 +1,4 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-phase-terminal-consumers/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 45.34s
+  Executable tests/phase_terminal_fixture.rs (/tmp/aq-phase30-qualification-target/debug/deps/phase_terminal_fixture-0464cd971930d015)
+  Executable tests/phase_terminal_stopped.rs (/tmp/aq-phase30-qualification-target/debug/deps/phase_terminal_stopped-2953cff855ded5cc)
