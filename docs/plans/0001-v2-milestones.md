@@ -35,6 +35,7 @@ The original planning baseline completed AUD-00; current statuses below record s
 - [0003-live-dashboard-delivery.md](../../../aq-dashboard/docs/plans/0003-live-dashboard-delivery.md): Eight-subagent delivery: two independent native adapter/runner lanes and six dashboard lanes, root integration, early shared/DTO handoffs, independent Results/Overview/Supervisor/read-only Agents increments, and separately bounded build concurrency. Parent product gates retain full qualification.
 - [visual-acceptance.md](../../../aq-dashboard/docs/design/visual-acceptance.md): User reaffirmed visual fidelity while real infrastructure is connected. Named mockups, page composition, independent desktop/phone captures and reviewed visual subsets are acceptance requirements; API success does not establish design completion.
 - [dashboard-canonical-state35-2026-11-01.md](../implementation/dashboard-canonical-state35-2026-11-01.md): Canonical state35 serves exact 2b3d assets: durable human Supervisor history/text mailbox foundation and compact 114px phone header, with canonical read-only Graph/Overview checks. API-07/UI-16/API-11 remain in progress; loaded startup metadata is isolated-qualified, PNG is pure core only, and production native capsule/key/context gates remain open.
+- [AQ-17-central-authority-core.md](../implementation/AQ-17-central-authority-core.md): The isolated taskless central-session model is implemented with 16 fast tests and retained-history replay fences. Authenticated mailbox/storage ownership, central host startup and replies remain pending; structural data validation grants no runtime authority.
 
 ### V1 implementation evidence
 
@@ -155,7 +156,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [PB-01](#pb-01): Qualify the existing playbook implementation as a library candidate | aq-playbooks | [AUD-00](#aud-00) | complete |
 | [AQ-11](#aq-11): Implement durable supervisor and agent messaging | agent-q | [AQ-03](#aq-03), [API-01](#api-01) | complete |
 | [WRK-09](#wrk-09): Deliver messages through the real harness safely | aq-worker | [WRK-08](#wrk-08), [AQ-11](#aq-11) | planned |
-| [AQ-17](#aq-17): Host bounded supervisor sessions centrally | agent-q | [AQ-11](#aq-11), [AQ-06](#aq-06), [AQ-18](#aq-18), [AQ-20](#aq-20), [WRK-08](#wrk-08), [WRK-10](#wrk-10) | planned |
+| [AQ-17](#aq-17): Host bounded supervisor sessions centrally | agent-q | [AQ-11](#aq-11), [AQ-06](#aq-06), [AQ-18](#aq-18), [AQ-20](#aq-20), [WRK-08](#wrk-08), [WRK-10](#wrk-10) | in_progress |
 | [AQ-12](#aq-12): Embed the qualified playbook runner with bounded execution | agent-q | [PB-01](#pb-01), [AQ-07](#aq-07) | in_progress |
 | [AQ-13](#aq-13): Implement core work, context and operation host adapters | agent-q | [AQ-12](#aq-12), [AQ-08](#aq-08), [AQ-05](#aq-05), [AQ-11](#aq-11), [AQ-20](#aq-20) | in_progress |
 | [AQ-14](#aq-14): Implement judgment, decision and check host adapters | agent-q | [AQ-13](#aq-13), [AQ-28](#aq-28), [AQ-17](#aq-17), [WRK-09](#wrk-09) | in_progress |
@@ -998,7 +999,7 @@ Requirement links: W1, W9, W11, W17, X13, X14, H2, R2, R3, S1, S5, C2.
 
 **Host bounded supervisor sessions centrally**
 
-Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: planned.
+Owner: `agent-q`. Milestone: M5. Kind: implementation. Status: in_progress.
 
 Hard prerequisites: [AQ-11](#aq-11), [AQ-06](#aq-06), [AQ-18](#aq-18), [AQ-20](#aq-20), [WRK-08](#wrk-08), [WRK-10](#wrk-10).
 
@@ -1015,7 +1016,7 @@ Requirement links: D4, W1, X11, X13, P2, P4, P5, H1, H3, H4, C6, S1, S2.
 
 Outside this task: General supervisor autonomy or all v1 profiles.
 
-Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md).
+Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md), [AQ-17-central-authority-core.md](../implementation/AQ-17-central-authority-core.md).
 
 ### AQ-12
 
