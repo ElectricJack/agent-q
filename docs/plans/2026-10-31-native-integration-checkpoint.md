@@ -46,7 +46,7 @@ at `a7f7665` passed45 selected daemon checks and four browser checks on its rebu
 preview. [Native publication](../implementation/AQ-08-native-offers.qualification.md)
 and [initial grants](../implementation/AQ-08-native-initial-grant.qualification.md)
 retain their independent32- and153-test component qualifications. The publisher
-currently selects one slot, the first eligible project and its first ready task;
+currently selects one slot, the highest-priority enabled project and its first ready task;
 this is not fleet fairness. Its original preparation window is at most30seconds
 and can be shorter. Large cold hydration remains an explicit limitation.
 [Automatic expiry](../implementation/AQ-08-offer-expiry-integration.md) closes only
@@ -63,7 +63,9 @@ test counts above are not attributed to this newer source.
 
 Parallel implementation now covers central renewal/reconciliation, additive
 pre-Started closure contracts, and actual worker source hydration/workspace
-ownership. Root integration is qualifying the actual Git producer-to-grant path.
+ownership. The [actual Git producer-to-grant checkpoint](../implementation/AQ-08-actual-git-grant-qualification.md)
+passes14 initial-grant tests including two actual-Git cases. Root is closing the
+separate fresh pre-grant Graph observation gap found during review.
 Shared migration27 and public0.1.7 are frozen. No path may fabricate missing
 original requests, convert timeout to release proof, or restore old-boot authority.
 

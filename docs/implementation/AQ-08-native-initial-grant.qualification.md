@@ -13,3 +13,10 @@ Actual publication and mounted Accept use the real clock. Grant tests then insta
 The daemon freshly checks Git retention and immutable export facts/receipt coverage. Whole source-bundle verification belongs to the qualified downloader; grant does not perform an unbounded rehash or silently repair/re-export a corrupt original. Inline artifact bodies and current private credential bytes are reverified. No Started, granted-but-unstarted recovery, Renew/Reconcile, task/resource release or live runtime adoption is implemented here.
 
 [Evidence inventory](AQ-08-native-initial-grant-evidence/artifact-sha256.json) binds 20 artifacts, including final and earlier raw logs, commands, 1,292 source/dependency hashes, ten owned-file hashes and the scope report. The first quota test preflight held the selection fixture's process-environment gate while asking for a second fixture; that owned hung test was terminated, its log retained, and the fixture lifetime corrected. An earlier CLI filter ran only the reader unit cases and is not counted as integration evidence. Final test/lint invocations before the last metadata hardening were intentionally interrupted and retained. Only the completed final checks qualify the frozen source; no production retry or TTL widening was used.
+
+Review clarification: this frozen source revalidates original bounded Graph read
+provenance but performs no fresh public Graph read between the grant's SQL phases.
+It therefore does not detect task/context changes during an otherwise unexpired
+original observation. Fresh pre-grant readiness/CAS/authorized-context validation
+is a separate followup; the completion-plan requirement is not fulfilled by this
+historical checkpoint alone.
