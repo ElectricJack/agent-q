@@ -474,3 +474,7 @@ activated by this read owner.
 The [integrated lifecycle result](../implementation/AQ-08-phase-terminal-integration/README.md) supersedes the earlier pending format-10 union and migration-33 statements above. Qualified production Prepare and authenticated terminal/history routes are mounted. The real worker/Git/tmux process now receives and persists both daemon ACKs; closure, upgrade, refusal and rollback checks pass. The refreshed local dashboard displays the resulting stopped test session and its recorded timestamps. Four live browser checks pass.
 
 This is a synthetic-harness integration, not a real-provider or fleet qualification. Native phase renewal, no-Started worker publication, settlement/release and interactive terminals remain open. The implementation tasks retain their in-progress status.
+
+### Actual worker output in the browser (November 1)
+
+The [output-tail integration](../implementation/AQ-08-terminal-tail-integration/README.md) now passes across the independently built worker, actual tmux, production daemon routes and dashboard bundle. The browser displayed three genuine synthetic-harness frames and the disconnected state after physical stop. Output remains bounded, incomplete and volatile; restored databases do not restore it. Interactive control and real-provider execution remain open.

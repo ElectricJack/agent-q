@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "url": "http://127.0.0.1:44649/agents/9767942b-b7f8-5ae4-be04-136f81509cce",
+  "elapsed_ms": 613,
+  "screenshot": "/tmp/aq-native-tail-browser/resident-tail-desktop.png",
+  "reads": [
+    {
+      "status": 200,
+      "terminal_id": "e0e2f83e-f5ed-4147-8aad-2f4a076b6229",
+      "availability": "resident_tail",
+      "initial_incomplete": true,
+      "disconnected": true,
+      "next_sequence": 3,
+      "frame_count": 3,
+      "expected_text": true
+    }
+  ],
+  "watch_mutations": 1,
+  "note": "Actual same-runtime resident bytes; incomplete literal tail, disconnected after physical stop. No terminal screen or provider claim."
+}

@@ -929,7 +929,8 @@
         "../implementation/AQ-08-phase-host-process-evidence/qualification.md",
         "../implementation/AQ-08-phase-history-evidence/qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md",
-        "../implementation/AQ-08-phase-terminal-integration/README.md"
+        "../implementation/AQ-08-phase-terminal-integration/README.md",
+        "../implementation/AQ-08-terminal-tail-integration/README.md"
       ]
     },
     {
@@ -1159,7 +1160,8 @@
         "../implementation/AQ-08-phase-host-process-evidence/qualification.md",
         "../implementation/AQ-08-phase-history-evidence/qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md",
-        "../implementation/AQ-08-phase-terminal-integration/README.md"
+        "../implementation/AQ-08-phase-terminal-integration/README.md",
+        "../implementation/AQ-08-terminal-tail-integration/README.md"
       ]
     },
     {
@@ -2600,7 +2602,8 @@
         "../implementation/AQ-08-phase-host-process-evidence/qualification.md",
         "../implementation/AQ-08-phase-history-evidence/qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md",
-        "../implementation/AQ-08-phase-terminal-integration/README.md"
+        "../implementation/AQ-08-phase-terminal-integration/README.md",
+        "../implementation/AQ-08-terminal-tail-integration/README.md"
       ]
     },
     {
@@ -2635,7 +2638,8 @@
       ],
       "evidence": [
         "../implementation/AQ-08-dashboard-schema32.json",
-        "../implementation/AQ-08-phase-terminal-integration/README.md"
+        "../implementation/AQ-08-phase-terminal-integration/README.md",
+        "../implementation/AQ-08-terminal-tail-integration/README.md"
       ]
     },
     {
