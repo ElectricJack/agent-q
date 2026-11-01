@@ -214,3 +214,6 @@ async fn changed_private_material_and_revoked_agent_scope_cannot_extend_a_permit
     let expiry:i64=sqlx::query_scalar("SELECT (state#>>'{grant,expires_at_ms}')::bigint FROM profiled_authority_hot WHERE attempt_id=$1").bind(c.request.binding.attempt_id).fetch_one(&c.case.env.env.pool).await.unwrap();
     assert_eq!(expiry as u64, initial.original.clock.expires_at_ms);
 }
+
+#[path = "renewal/races.rs"]
+mod races;
