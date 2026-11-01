@@ -1,0 +1,199 @@
+{
+  "schema_version": 1,
+  "source_commit": "7a19e0a0a77f7a2faceb4470c20f05d2ea1b2bcb",
+  "base_state30_merge": "c1158ba",
+  "tests": {
+    "passed": 54,
+    "failed": 0,
+    "ignored": 5,
+    "native_initial_grant_seconds": 58.35,
+    "scope": "actual daemon SQL/router owners, synthetic qualified worker observations",
+    "ignored_requirements": "explicit pinned actual Git or worker process artifacts"
+  },
+  "checks": {
+    "strict_all_target_all_feature_server_clippy": "passed",
+    "package_format": "passed"
+  },
+  "commands": {
+    "tests": "CARGO_TARGET_DIR=/tmp/aq08-native-producer-target CARGO_BUILD_JOBS=2 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres RUST_TEST_THREADS=2 cargo test -p aq-server --all-features --locked --offline --test native_initial_grant --test scoped_presence_inventory --test schema28_closure --test schema29_presence --test schema30_preparation --test schema31_presence_barrier",
+    "clippy": "CARGO_TARGET_DIR=/tmp/aq08-native-producer-target CARGO_BUILD_JOBS=2 cargo clippy -p aq-server --all-targets --all-features --locked --offline -- -D warnings",
+    "format": "cargo fmt --package aq-server --check"
+  },
+  "source_files": [
+    {
+      "path": "Dockerfile",
+      "sha256": "252ecef9b00d3ccadd15f49398563519f28081115bb10fa7585f16cbddaeb145",
+      "bytes": 4140
+    },
+    {
+      "path": "crates/aq-server/migrations/0031_presence_binding_barrier.sql",
+      "sha256": "66855ab6941db04d8482b2c7904501d4d782c22a2383e1bdcd2767cd3d69e8c0",
+      "bytes": 4301
+    },
+    {
+      "path": "crates/aq-server/src/admission.rs",
+      "sha256": "4cf827ef3e1f9d0861f6b0f6dd5f4b72d6fdcde03b5c5334b67b4ea882ca0e96",
+      "bytes": 9168
+    },
+    {
+      "path": "crates/aq-server/src/lib.rs",
+      "sha256": "f5d432e1cb24810b066ef9e74d8633717d99a8a1f67d31d02b9a5bc7c4b737c9",
+      "bytes": 15788
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/presence/anchor.rs",
+      "sha256": "750c531770d947120094be0f3188af7050fffd6ed033d0cfb5f4fd760817cd4a",
+      "bytes": 1218
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/presence/api.rs",
+      "sha256": "db0cab998b136a02cda86d330b5bb6eb1d7e485208af972822dabac8bea6ab98",
+      "bytes": 2416
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/presence/continuation.rs",
+      "sha256": "098852aa9727b9cd1b22c1b24fb6fbed96b672b59dafb53eaa4257164aebf3ce",
+      "bytes": 4663
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/presence/current_inventory.rs",
+      "sha256": "81f1e3fcf215171f95b581b0d1800097833d0d62d3426389908b0523aff37755",
+      "bytes": 3775
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/presence/inventory.rs",
+      "sha256": "4f58c09f181c6e0410d78bc8eb3a0f4ce6d0ed1c26eeeb4d5fdc5ec328fe71b5",
+      "bytes": 8843
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/presence/mod.rs",
+      "sha256": "c5355fa39b666ad2dae450706b79ac102db823f93c32e2e1b9fd713d84fa0209",
+      "bytes": 2027
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/presence/report.rs",
+      "sha256": "f09c1846980e183985a55cbfd956537d5afdb46d04d29efee8dca1b8ce126dfe",
+      "bytes": 9453
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/presence/storage.rs",
+      "sha256": "594edd5ddc7faab0af46d6442f0f2ee82bcb7bf8a77d54e96c8270443dc5f370",
+      "bytes": 12098
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/current.rs",
+      "sha256": "77b79fa118574434895ecb15868c49f2f85b4cc3ea31d93325b4c5302093dbb6",
+      "bytes": 9839
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/history.rs",
+      "sha256": "7a5a59570d47a5b1f067c69c8b8b12c9ad81dce431fe57958ac4eada1755cb1a",
+      "bytes": 11812
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/mod.rs",
+      "sha256": "27fef37adb37966ef89936264252482af0df913e28693670dcf6b48bff9bc3cd",
+      "bytes": 610
+    },
+    {
+      "path": "crates/aq-server/src/store.rs",
+      "sha256": "cb2690440323c0e1712da6fb72b0b3f52139f7f73fa9398a8f8969549edb4093",
+      "bytes": 28598
+    },
+    {
+      "path": "crates/aq-server/tests/common/presence.rs",
+      "sha256": "96462304432d952fc8fe99615e2dfcdd554cdf49e4cee1992860255750375121",
+      "bytes": 2955
+    },
+    {
+      "path": "crates/aq-server/tests/native_initial_grant/published.rs",
+      "sha256": "b1accb6fee01e30bef63523a2029e2be6eb9df31a5a1ac8e26ed4da5bb452a9e",
+      "bytes": 27572
+    },
+    {
+      "path": "crates/aq-server/tests/native_initial_grant/published/presence.rs",
+      "sha256": "6bedf2de490ae68630fac9972ef1466d72e0461b01151d1a340e60c3c11b85cd",
+      "bytes": 18248
+    },
+    {
+      "path": "crates/aq-server/tests/schema30_preparation.rs",
+      "sha256": "21972be4dcc2f896343c0b527a955de82d7daf2527b89e1945e9f80db1e2ece5",
+      "bytes": 5446
+    },
+    {
+      "path": "crates/aq-server/tests/schema31_presence_barrier.rs",
+      "sha256": "e530013fa522b314687621e17ac2884ddae603e6af82d1459eb313b6ab773dca",
+      "bytes": 2904
+    },
+    {
+      "path": "crates/aq-server/tests/scoped_presence_inventory.rs",
+      "sha256": "ae4733d78b845887430bb8f324879f3d4760239be85275f280aa7d7b52ba763e",
+      "bytes": 9770
+    },
+    {
+      "path": "docs/implementation/AQ-08-presence-owner-checkpoint.md",
+      "sha256": "1448047666f4f7751423b216d7f58c5277c2acb8afe5456c38f1798fe04f9e95",
+      "bytes": 3121
+    },
+    {
+      "path": "docs/implementation/AQ-08-scoped-material-presence-plan.md",
+      "sha256": "4bffd58e71d92cd75870fd88eea52a094c22f5baedeb0a0c2657f48d7a54f980",
+      "bytes": 10888
+    }
+  ],
+  "logs": [
+    {
+      "path": "final-tests.log",
+      "sha256": "c1dca37970ca2d46668a22830fd380572045435edeed8a254d878fcde398d618",
+      "bytes": 7833
+    },
+    {
+      "path": "final-clippy.log",
+      "sha256": "ab30829abf981c0696718a8bb38831493fd1c323f4149f815888d13fd909c00c",
+      "bytes": 151
+    },
+    {
+      "path": "final-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "development-missing-state31-meta.log",
+      "sha256": "74b77a0df6bf02cc311e8013b1ed9d3b6f34d8572da0546df2001e4cbaf4a82e",
+      "bytes": 5071
+    },
+    {
+      "path": "development-stale-schema30-assertions.log",
+      "sha256": "9ded42e9c99ead035ac00f8c6270adab1f0c7b6a565b70ac3851e2a6b99d3ad1",
+      "bytes": 8356
+    },
+    {
+      "path": "development-invalid-test-target.log",
+      "sha256": "ff5a297af53a74fe8282e1cb858ef4a2d836744b2295bdfc90452ff6933044c0",
+      "bytes": 1486
+    },
+    {
+      "path": "development-raw-sql-send.log",
+      "sha256": "2be799f87a9cd4345d9ae84049da3eaf73008d2e3b7ba0efb802139f0af4161d",
+      "bytes": 3708
+    }
+  ],
+  "preserved_migrations": [
+    {
+      "path": "crates/aq-server/migrations/0029_scoped_material_presence.sql",
+      "sha256": "c469b29384e9377ef4bd7460e8cf928e82b57efe8bcd3d61de9ebefa84a6f5ec"
+    },
+    {
+      "path": "crates/aq-server/migrations/0030_accepted_preparation_v2.sql",
+      "sha256": "e08e7e713bd62c203e7f0467ae1c7bbdbf00a84c669e556d1fea6f6e826e08b7"
+    }
+  ],
+  "public_admission_019_unchanged": true,
+  "limitations": [
+    "No physical worker presence read qualification",
+    "No provider/model calls",
+    "One public placement slot; simultaneous-attempt owner fixture and sustained load followup",
+    "No full workspace qualification claimed",
+    "No execution authority returned by report acknowledgments"
+  ]
+}

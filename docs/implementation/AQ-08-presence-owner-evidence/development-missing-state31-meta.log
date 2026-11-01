@@ -1,0 +1,71 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-installed-presence/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 30.34s
+     Running tests/native_initial_grant.rs (/tmp/aq08-native-producer-target/debug/deps/native_initial_grant-d7a833cd4412f572)
+
+running 8 tests
+test published::presence::expired_permit_cannot_make_a_delayed_positive_fresh_on_receipt ... FAILED
+test published::presence::legacy_barrier_then_v2_restoration_requires_new_private_observation ... FAILED
+test published::presence::newer_scoped_negative_survives_renew_race_and_expiry_never_falls_back_to_present ... FAILED
+test published::presence::normalized_binding_removal_then_restore_requires_new_scoped_read ... FAILED
+test published::presence::present_fact_never_bypasses_current_private_backing_or_agent_revocation ... FAILED
+test published::presence::scoped_head_failure_rolls_back_receipt_and_exact_retry_can_succeed ... FAILED
+test published::presence::scoped_receipt_and_authority_forgery_refuse_without_retaining_a_head ... FAILED
+test published::presence::scoped_record_is_not_a_grant_and_compatible_new_inventory_preserves_renewal_fact ... FAILED
+
+failures:
+
+---- published::presence::expired_permit_cannot_make_a_delayed_positive_fresh_on_receipt stdout ----
+
+thread 'published::presence::expired_permit_cannot_make_a_delayed_positive_fresh_on_receipt' (365651) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Corrupt("state format metadata does not match applied migrations")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- published::presence::legacy_barrier_then_v2_restoration_requires_new_private_observation stdout ----
+
+thread 'published::presence::legacy_barrier_then_v2_restoration_requires_new_private_observation' (365652) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Corrupt("state format metadata does not match applied migrations")
+
+---- published::presence::newer_scoped_negative_survives_renew_race_and_expiry_never_falls_back_to_present stdout ----
+
+thread 'published::presence::newer_scoped_negative_survives_renew_race_and_expiry_never_falls_back_to_present' (365676) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Corrupt("state format metadata does not match applied migrations")
+
+---- published::presence::normalized_binding_removal_then_restore_requires_new_scoped_read stdout ----
+
+thread 'published::presence::normalized_binding_removal_then_restore_requires_new_scoped_read' (365690) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Corrupt("state format metadata does not match applied migrations")
+
+---- published::presence::present_fact_never_bypasses_current_private_backing_or_agent_revocation stdout ----
+
+thread 'published::presence::present_fact_never_bypasses_current_private_backing_or_agent_revocation' (365692) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Corrupt("state format metadata does not match applied migrations")
+
+---- published::presence::scoped_head_failure_rolls_back_receipt_and_exact_retry_can_succeed stdout ----
+
+thread 'published::presence::scoped_head_failure_rolls_back_receipt_and_exact_retry_can_succeed' (365694) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Corrupt("state format metadata does not match applied migrations")
+
+---- published::presence::scoped_receipt_and_authority_forgery_refuse_without_retaining_a_head stdout ----
+
+thread 'published::presence::scoped_receipt_and_authority_forgery_refuse_without_retaining_a_head' (365696) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Corrupt("state format metadata does not match applied migrations")
+
+---- published::presence::scoped_record_is_not_a_grant_and_compatible_new_inventory_preserves_renewal_fact stdout ----
+
+thread 'published::presence::scoped_record_is_not_a_grant_and_compatible_new_inventory_preserves_renewal_fact' (365705) panicked at crates/aq-server/src/test_support.rs:48:14:
+connect store: Corrupt("state format metadata does not match applied migrations")
+
+
+failures:
+    published::presence::expired_permit_cannot_make_a_delayed_positive_fresh_on_receipt
+    published::presence::legacy_barrier_then_v2_restoration_requires_new_private_observation
+    published::presence::newer_scoped_negative_survives_renew_race_and_expiry_never_falls_back_to_present
+    published::presence::normalized_binding_removal_then_restore_requires_new_scoped_read
+    published::presence::present_fact_never_bypasses_current_private_backing_or_agent_revocation
+    published::presence::scoped_head_failure_rolls_back_receipt_and_exact_retry_can_succeed
+    published::presence::scoped_receipt_and_authority_forgery_refuse_without_retaining_a_head
+    published::presence::scoped_record_is_not_a_grant_and_compatible_new_inventory_preserves_renewal_fact
+
+test result: FAILED. 0 passed; 8 failed; 0 ignored; 0 measured; 34 filtered out; finished in 2.96s
+
+error: test failed, to rerun pass `-p aq-server --test native_initial_grant`

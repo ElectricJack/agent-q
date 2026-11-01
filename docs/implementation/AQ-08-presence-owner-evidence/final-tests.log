@@ -1,0 +1,97 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-installed-presence/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 5.34s
+     Running tests/native_initial_grant.rs (/tmp/aq08-native-producer-target/debug/deps/native_initial_grant-d7a833cd4412f572)
+
+running 42 tests
+test actual_accepted_plan_without_original_native_publication_cannot_issue_a_grant ... ok
+test prepare_uses_reserved_control_capacity ... ok
+test published::actual_git::accepted_v2::actual_retained_source_reads_after_proposal_expiry_use_only_owned_v2_lease ... ignored, qualification requires explicit pinned actual aq-git and Git executable paths
+test published::actual_git::actual_released_export_refuses_grant_without_erasing_preparation ... ignored, qualification requires explicit actual aq-git and Git executable paths
+test published::actual_git::real_git_publication_download_and_initial_grant_share_exact_export ... ignored, qualification requires explicit actual aq-git and Git executable paths
+test published::actual_git::worker_assembly::actual_worker_downloads_installs_hydrates_and_prepares_against_real_daemon ... ignored, requires explicit pinned native worker smoke binary and actual aq-git/Git
+test published::actual_git::worker_assembly::actual_worker_durably_accepts_new_phase_and_replays_after_proposal_expiry ... ignored, requires explicit pinned phase-capable worker smoke binary and actual aq-git/Git
+test published::actual_initial_grant_reconciliation_returns_history_without_live_clock_or_mutation ... ok
+test accept_quota_charges_incoming_jsonb_expansion_at_the_same_retained_byte_boundary ... ok
+test published::actual_published_prepare_is_atomic_and_replays_original_versions_after_hot_record_changes ... ok
+test published::ambiguous_historical_grant_receipts_refuse_instead_of_choosing_a_replacement ... ok
+test published::changed_current_private_material_and_cancellation_never_issue_a_grant ... ok
+test published::concurrent_exact_prepare_never_creates_two_grants_or_extends_the_original ... ok
+test published::credential_rotation_during_actual_private_git_wait_is_rechecked_without_sql_locks_held ... ok
+test published::exact_full_artifact_and_material_receipt_coverage_is_mandatory ... ok
+test published::final_fence_refuses_expiry_after_observed_shared_quota_lock_wait ... ok
+test published::graph_changes_during_preparation_refuse_without_retiming_original_inputs ... ok
+test published::initial_deadline_respects_actual_pinned_lineage_policy_shorter_than_wall_time ... ok
+test published::material_receipts::grant_failure_rolls_back_new_installation_receipt_with_authority ... ok
+test published::material_receipts::installation_receipt_is_atomic_exact_and_replay_never_reconstructs_a_missing_row ... ok
+test published::material_receipts::retained_installation_json_bytes_refuse_new_grant_under_shared_budget ... ok
+test published::material_receipts::existing_or_replayed_changed_installation_claims_are_refused ... ok
+test published::mounted_prepare_uses_typed_outbound_control_and_never_mounts_on_human_listener ... ok
+test published::presence::expired_permit_cannot_make_a_delayed_positive_fresh_on_receipt ... ok
+test published::presence::legacy_barrier_then_v2_restoration_requires_new_private_observation ... ok
+test published::presence::newer_scoped_negative_survives_renew_race_and_expiry_never_falls_back_to_present ... ok
+test published::presence::normalized_binding_removal_then_restore_requires_new_scoped_read ... ok
+test published::presence::present_fact_never_bypasses_current_private_backing_or_agent_revocation ... ok
+test published::presence::scoped_head_failure_rolls_back_receipt_and_exact_retry_can_succeed ... ok
+test published::presence::scoped_receipt_and_authority_forgery_refuse_without_retaining_a_head ... ok
+test published::presence::scoped_record_is_not_a_grant_and_compatible_new_inventory_preserves_renewal_fact ... ok
+test published::receipt_failure_rolls_back_granted_hot_state_and_prepared_journal_then_exact_retry_succeeds ... ok
+test published::renewal::changed_private_material_and_revoked_agent_scope_cannot_extend_a_permit ... ok
+test published::renewal::exact_renewal_operation_cannot_mutate_journal_or_become_superseded_authority ... ok
+test published::renewal::expired_server_permit_cannot_be_resurrected_by_fresh_observations ... ok
+test published::renewal::missing_actual_installation_receipt_cannot_be_reconstructed_from_preparation ... ok
+test published::renewal::newer_unavailable_inventory_cannot_be_rewritten_by_original_installation ... ok
+test published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals ... ok
+test published::renewal::races::changed_task_cas_and_content_refuse_without_reusing_admission_observation ... ok
+test published::renewal::races::delayed_actual_started_keeps_physical_checkpoint_separate_from_latest_renew_counter ... ok
+test published::renewal::races::observed_final_quota_wait_crossing_old_expiry_rolls_back_extension_and_receipt ... ok
+test published::renewal::races::receipt_insert_failure_rolls_back_hot_extension_and_exact_retry_can_succeed ... ok
+
+test result: ok. 37 passed; 0 failed; 5 ignored; 0 measured; 0 filtered out; finished in 58.35s
+
+     Running tests/schema28_closure.rs (/tmp/aq08-native-producer-target/debug/deps/schema28_closure-6d70f4f352f4c363)
+
+running 3 tests
+test fresh_closure_schema_is_empty_and_default_router_has_no_owner ... ok
+test actual27_upgrades_to28_and_collision_rolls_back_before_explicit_retry ... ok
+test read_committed_history_quota_resamples_after_global_lock_wait_across_nodes ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.86s
+
+     Running tests/schema29_presence.rs (/tmp/aq08-native-producer-target/debug/deps/schema29_presence-27caa9a178459716)
+
+running 2 tests
+test fresh_scoped_storage_is_empty_and_quotas_start_at_zero ... ok
+test actual28_upgrade_collision_rolls_back_all29_then_explicit_retry_succeeds ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.46s
+
+     Running tests/schema30_preparation.rs (/tmp/aq08-native-producer-target/debug/deps/schema30_preparation-b51f50368532172b)
+
+running 4 tests
+test failure_after_sql_metadata_transition_rolls_back_tables_and_meta_before_commit ... ok
+test current30_missing_one_or_both_tables_refuses_reopen_without_repair ... ok
+test fresh_ordered30_is_empty_and_reopens_without_activating_any_owner ... ok
+test real29_collision_rolls_back_all30_and_explicit_repair_allows_exact_upgrade ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.97s
+
+     Running tests/schema31_presence_barrier.rs (/tmp/aq08-native-producer-target/debug/deps/schema31_presence_barrier-71a87a90ffd54dcd)
+
+running 2 tests
+test semantic_projection_ignores_order_and_observation_clocks_but_not_bindings ... ok
+test actual30_collision_rolls_back31_and_retry_upgrades ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+
+     Running tests/scoped_presence_inventory.rs (/tmp/aq08-native-producer-target/debug/deps/scoped_presence_inventory-599a71547969605f)
+
+running 6 tests
+test compatible_revisions_preserve_epoch_but_new_legacy_and_restore_create_barriers ... ok
+test actual_qualified_private_owner_records_provisionability_and_exact_replay_never_retimes ... ok
+test empty_inventory_derives_only_actual_authorized_backing_and_never_installed ... ok
+test immutable_operation_bytes_and_derived_head_revisions_cannot_be_retimed_by_sql ... ok
+test missing_exact_qualification_or_referenced_body_is_not_capability_inference ... ok
+test qualification_change_then_restore_retains_barrier_and_exact_retry_cannot_reset_it ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.58s
+

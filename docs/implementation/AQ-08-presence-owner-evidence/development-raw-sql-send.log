@@ -1,0 +1,56 @@
+    Checking aq-server v0.1.0 (/tmp/aq08-installed-presence/crates/aq-server)
+error: implementation of `std::marker::Send` is not general enough
+  --> crates/aq-server/src/profiled_execution/presence/api.rs:43:19
+   |
+43 |     let receipt = sending(super::inventory::record(&state, &auth, &request)).await?;
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ implementation of `std::marker::Send` is not general enough
+   |
+   = note: `std::marker::Send` would have to be implemented for the type `&AppState`
+   = note: ...but `std::marker::Send` is actually implemented for the type `&'0 AppState`, for some specific lifetime `'0`
+
+error: implementation of `Executor` is not general enough
+  --> crates/aq-server/src/profiled_execution/presence/api.rs:43:19
+   |
+43 |     let receipt = sending(super::inventory::record(&state, &auth, &request)).await?;
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ implementation of `Executor` is not general enough
+   |
+   = note: `Executor<'0>` would have to be implemented for the type `&mut PgConnection`, for any lifetime `'0`...
+   = note: ...but `Executor<'1>` is actually implemented for the type `&'1 mut PgConnection`, for some specific lifetime `'1`
+
+error: implementation of `std::marker::Send` is not general enough
+  --> crates/aq-server/src/profiled_execution/presence/api.rs:43:19
+   |
+43 |     let receipt = sending(super::inventory::record(&state, &auth, &request)).await?;
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ implementation of `std::marker::Send` is not general enough
+   |
+   = note: `std::marker::Send` would have to be implemented for the type `&AuthenticatedNode`
+   = note: ...but `std::marker::Send` is actually implemented for the type `&'0 AuthenticatedNode`, for some specific lifetime `'0`
+
+error: implementation of `std::marker::Send` is not general enough
+  --> crates/aq-server/src/profiled_execution/presence/api.rs:55:19
+   |
+55 |     let receipt = sending(super::report::record(&state, &auth, &request)).await?;
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ implementation of `std::marker::Send` is not general enough
+   |
+   = note: `std::marker::Send` would have to be implemented for the type `&AppState`
+   = note: ...but `std::marker::Send` is actually implemented for the type `&'0 AppState`, for some specific lifetime `'0`
+
+error: implementation of `Executor` is not general enough
+  --> crates/aq-server/src/profiled_execution/presence/api.rs:55:19
+   |
+55 |     let receipt = sending(super::report::record(&state, &auth, &request)).await?;
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ implementation of `Executor` is not general enough
+   |
+   = note: `Executor<'0>` would have to be implemented for the type `&mut PgConnection`, for any lifetime `'0`...
+   = note: ...but `Executor<'1>` is actually implemented for the type `&'1 mut PgConnection`, for some specific lifetime `'1`
+
+error: implementation of `std::marker::Send` is not general enough
+  --> crates/aq-server/src/profiled_execution/presence/api.rs:55:19
+   |
+55 |     let receipt = sending(super::report::record(&state, &auth, &request)).await?;
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ implementation of `std::marker::Send` is not general enough
+   |
+   = note: `std::marker::Send` would have to be implemented for the type `&AuthenticatedNode`
+   = note: ...but `std::marker::Send` is actually implemented for the type `&'0 AuthenticatedNode`, for some specific lifetime `'0`
+
+error: could not compile `aq-server` (lib) due to 6 previous errors
