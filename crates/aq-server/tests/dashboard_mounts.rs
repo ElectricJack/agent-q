@@ -63,6 +63,18 @@ async fn mounted_routes_and_absent_owners_have_granular_truthful_capabilities() 
         assert!(!cap(&b, name), "{name}")
     }
     assert!(cap(&b, "results.read"));
+    assert!(cap(&b, "session.events.read"));
+    let binding = aq_admission::transport::lifecycle_binding(&f.profiled.offer).unwrap();
+    let events_path = format!("/api/observations/sessions/{}/events", binding.attempt_id);
+    let (status, events) = read(&app, &events_path, "owner@localhost").await;
+    assert_eq!(status, StatusCode::OK, "{events}");
+    let events = aq_observation_api::decode_events(&serde_json::to_vec(&events).unwrap()).unwrap();
+    assert!(events.events.is_empty());
+    assert!(events.complete_for_snapshot);
+    assert_eq!(events.binding, binding);
+    let standalone = aq_server::dashboard_api::routes(f.state.clone()).with_state(f.state.clone());
+    let (_, standalone_bootstrap) = read(&standalone, "/api/v1/bootstrap", "owner@localhost").await;
+    assert!(!cap(&standalone_bootstrap, "session.events.read"));
     assert_eq!(
         read(&app, "/api/human/results", "owner@localhost").await.0,
         StatusCode::OK

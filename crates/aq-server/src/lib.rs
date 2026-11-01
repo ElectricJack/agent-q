@@ -201,6 +201,7 @@ fn build_admin_router_with_optional_dashboard(
     let mounted = dashboard_api::MountedOwners {
         graph: true,
         session_usage: true,
+        session_events: true,
         results: true,
         notifications: true,
         supervisor_conversation: true,

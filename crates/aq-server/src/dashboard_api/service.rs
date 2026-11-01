@@ -175,6 +175,11 @@ pub(super) async fn bootstrap(
             "Session usage inspection requires a mounted observation owner and bounded session visibility",
         ),
         capability(
+            "session.events.read",
+            mounted.session_events && a.visibility_complete,
+            "Session event inspection requires a mounted observation owner and bounded session visibility",
+        ),
+        capability(
             "projects.read",
             a.owner,
             "Project inspection requires an owner account",
