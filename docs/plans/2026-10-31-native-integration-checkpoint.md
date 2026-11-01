@@ -8,7 +8,7 @@ its historical test results and source pins.
 
 | Area | Integrated behavior | Remaining product work |
 | --- | --- | --- |
-| Daemon schema and preparation | Ordered state25→27 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, read-only reconciliation, automatic ungranted expiry | Renewal, multi-project fairness, granted-before-Started closure and full settlement |
+| Daemon schema and preparation | Ordered state25→28 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Cold preparation phase separation, installed-material presence reporting, multi-project fairness, granted-before-Started closure and full settlement |
 | Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, independent material installation pins and actual Git hydration/workspace ownership and durable Prepare input join | Grant/renewal and launch/stop callbacks, result/release |
 | tmux host | Durable blank terminal baseline before sealed-image exec; original physical server/pane ownership checks | Native driver adoption, selected real harness qualification and operational load envelope |
 | Playbooks | Catalog2 human decision adapter, lost-Accepted-reply recovery and explicit optional startup/drive/shutdown | Broader real adapters, workflow pilots and verified network database transport |
@@ -47,8 +47,10 @@ preview. [Native publication](../implementation/AQ-08-native-offers.qualificatio
 and [initial grants](../implementation/AQ-08-native-initial-grant.qualification.md)
 retain their independent32- and153-test component qualifications. The publisher
 currently selects one slot, the highest-priority enabled project and its first ready task;
-this is not fleet fairness. Its original preparation window is at most30seconds
-and can be shorter. Large cold hydration remains an explicit limitation.
+this is not fleet fairness. Its outer publication window is at most30seconds, but the original selection
+and budget observations cap actual preparation at2seconds from observation.
+Measured Accept deliveries leave about1.3seconds. Large cold hydration remains
+an explicit limitation; the outer bound is not a usable30second preparation lease.
 [Automatic expiry](../implementation/AQ-08-offer-expiry-integration.md) closes only
 proven never-granted attempts and preserves retained source/effect ownership.
 
@@ -80,9 +82,11 @@ retains these limitations. Journal format3 refuses older layouts unchanged.
 
 The pure additive granted-closure contract0.1.8 is packaged and integrated;
 58 source and58 extracted-package tests pass, with old0.1.7 compatibility checked.
-This does not enable a server closure owner or worker proof producer. Parallel
-implementation now covers renewal and ordered schema28 plus the server closure
-owner. [Initial lineage budgets and retained installation receipts](../implementation/AQ-08-initial-budget-material-receipts-evidence.md)
+The [contract evidence](../implementation/AQ-08-granted-closure.qualification.md)
+does not enable a server closure owner or worker proof producer.
+[Schema28 and the strict initial-grant terminal fence](../implementation/AQ-08-closure28-prerequisite-integration.md)
+are integrated at `e930d75`:57 native and eight schema checks passed, with strict
+affected lint and formatting. The server closure owner is still being qualified. [Initial lineage budgets and retained installation receipts](../implementation/AQ-08-initial-budget-material-receipts-evidence.md)
 are integrated at `876b60b`:57 native tests with zero ignores plus two policy
 helpers passed. The grant's immutable deadline respects the original remaining
 lineage budget. Exact verified installation receipts are atomically retained and
@@ -94,8 +98,12 @@ ignores, a separately enabled actual-Git case, and strict lint/formatting passed
 It joins actual verified inputs, installed materials and freshly checked source
 ownership into an immutable request before any send. Journal format4 refuses
 older layouts unchanged. These counts overlap the previous hydration suite.
-A separate worker-process/real-daemon assembly test is the next interface check;
-no complete native host execution is yet claimed. The [actual Git producer-to-grant checkpoint](../implementation/AQ-08-actual-git-grant-qualification.md)
+The independent worker-process/real-daemon probe now crosses actual HTTP, SQL,
+private material installation and separate central/worker Git processes. Its
+latest optimized batch run reaches a committed server Grant, then rejects the
+delivery after its conservative preparation deadline. This is an ever-issued
+held grant, not NeverGranted, and is not a passing execution qualification.
+No complete native host execution is yet claimed. The [actual Git producer-to-grant checkpoint](../implementation/AQ-08-actual-git-grant-qualification.md)
 passes14 initial-grant tests including two actual-Git cases. The [fresh pre-grant Graph fence](../implementation/AQ-08-initial-grant-current-graph.md)
 now closes the observed task/context-change gap and passes43 selected checks,
 including both actual-Git cases. It rereads bounded readiness and exact authorized
@@ -108,3 +116,35 @@ Granted-without-Started recovery still needs its server and worker owners: it ca
 reuse NeverGranted or manufacture Started to release a claim. AQ-08, WRK-08,
 WRK-14, AQ-12/13/14 and all related product gates stay in progress. No model call,
 external notification, deployment or publication is claimed by this checkpoint.
+
+
+[Atomic inline batching](../../../aq-worker/docs/implementation/WRK-08-native-artifact-batch-qualification.md)
+is integrated at worker `6c339bc` (source `de8fa62`):149 package tests passed with
+four declared ignores, plus a separately enabled actual-Git test and strict lint.
+The36 original inputs now need two journal publications instead of72. All request
+IDs remain stable, failed downloads create no partial completion receipts, and
+eight fsync fault cuts preserve either the old or complete new journal state.
+The independent smoke process uses this API at worker `1ed243c`. These component
+counts overlap earlier worker suites and do not establish cold preparation.
+
+[Native renewal](../implementation/AQ-08-native-renewal.qualification.md)
+is integrated at daemon `660080c` (source `c5438d3`):27 SQL/HTTP/schema checks and
+26 focused library checks pass, with two declared existing actual-Git ignores
+and strict lint/formatting. It refreshes current owner facts for the same live
+grant and immutable hard deadline, supports exact replay and rejects superseded
+operations. Original retrieval and proposal expiry does not rewrite historical
+installation or selection. Missing/changed installed receipts and fresh matching
+negative facts refuse. This is not fleet-load qualification.
+
+Two interface gaps are now explicit implementation requirements. First, the
+[preparation phase design](../../../aq-worker/docs/implementation/WRK-08-preparation-phase-separation.md)
+separates timely proposal acceptance, bounded no-launch preparation and a fresh
+execution permit under a newly negotiated contract. It remains a proposal; no
+existing0.1.7/0.1.8 clock was widened. Second, the inventory API cannot yet report
+scoped continuing installed-material presence with exact lease/receipt evidence.
+The passing initial renewal profile uses a genuinely fresh original inventory;
+longer continuation needs that owned report seam, rather than invented global
+credential availability or relaxed newer-negative checks. Both remain open.
+
+The live dashboard preview remains pinned to schema27/source `960ffc7`. Newer
+schema28/renewal source tests do not imply that preview has been upgraded.

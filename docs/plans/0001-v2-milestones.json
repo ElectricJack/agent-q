@@ -832,7 +832,9 @@
         "Readiness alone never claims execution; admitted revisions are recorded and invalidating changes prevent stale settlement.",
         "Multiple projects share capacity, cold eligible nodes can prepare work, and decisions/refusals expose reasons without full Git scans.",
         "Schedule only against a current explicit project binding and sealed profile/intelligence selection; unsupported or changed inputs refuse without silently selecting a weaker configuration.",
-        "Granted attempts without centrally admitted Started need a separately qualified launch-closure path: exact durable pre-intent suppression or real physical-stop evidence, followed by independent source/effect settlement. Missing Started, expiry or timeout never implies NeverGranted, physical stop or release."
+        "Granted attempts without centrally admitted Started need a separately qualified launch-closure path: exact durable pre-intent suppression or real physical-stop evidence, followed by independent source/effect settlement. Missing Started, expiry or timeout never implies NeverGranted, physical stop or release.",
+        "Cold preparation requires a separately versioned accepted no-launch lease and strict fresh confirmation of the exact sealed choice before Grant. Original proposal, budget and source clocks are never retimed; an issued Grant with unusable delivery remains held and needs reconciliation/closure.",
+        "Continuing execution requires fresh inventory and scoped installed-material presence evidence; a global credential-availability report cannot invent delivery receipt proof or reset a held grant."
       ],
       "out_of_scope": [],
       "evidence": [
@@ -878,7 +880,12 @@
         "../implementation/AQ-08-actual-git-grant-qualification.md",
         "../implementation/AQ-08-initial-grant-current-graph.md",
         "../implementation/AQ-08-reconciliation-qualification.md",
-        "../implementation/AQ-08-initial-budget-material-receipts-evidence.md"
+        "../implementation/AQ-08-initial-budget-material-receipts-evidence.md",
+        "../implementation/AQ-08-granted-closure.qualification.md",
+        "../implementation/AQ-08-closure28-prerequisite-integration.md",
+        "../implementation/AQ-08-native-renewal.qualification.md",
+        "../implementation/AQ-08-renew-reconcile-plan.md",
+        "../../../aq-worker/docs/implementation/WRK-08-preparation-phase-separation.md"
       ]
     },
     {
@@ -1073,7 +1080,9 @@
         "../../../aq-worker/docs/implementation/WRK-08-native-preparation-slice.md",
         "../../../aq-worker/docs/implementation/WRK-08-native-inputs-qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-native-hydration-qualification.md",
-        "../../../aq-worker/docs/implementation/WRK-08-native-prepare-qualification.md"
+        "../../../aq-worker/docs/implementation/WRK-08-native-prepare-qualification.md",
+        "../../../aq-worker/docs/implementation/WRK-08-native-artifact-batch-qualification.md",
+        "../../../aq-worker/docs/implementation/WRK-08-preparation-phase-separation.md"
       ]
     },
     {
