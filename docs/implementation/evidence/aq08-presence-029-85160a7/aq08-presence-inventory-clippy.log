@@ -1,0 +1,47 @@
+    Checking aq-session-protocol v0.1.0 (/tmp/aq08-installed-presence/vendor/aq-session-protocol-0.1.0)
+    Checking aq-playbooks-model v0.1.0 (/tmp/aq08-installed-presence/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-model)
+    Checking aq-lifecycle-protocol v0.1.0 (/tmp/aq08-installed-presence/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking aq-session-api v0.1.0 (/tmp/aq08-installed-presence/crates/aq-session-api)
+    Checking aq-playbooks-runner v0.1.2 (/tmp/aq08-installed-presence/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-runner)
+    Checking aq-lifecycle-api v0.1.0 (/tmp/aq08-installed-presence/crates/aq-lifecycle-api)
+    Checking aq-agent-api v0.1.0 (/tmp/aq08-installed-presence/crates/aq-agent-api)
+    Checking aq-profiles v0.1.1 (/tmp/aq08-installed-presence/crates/aq-profiles)
+    Checking aq-playbooks-postgres v0.1.2 (/tmp/aq08-installed-presence/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-postgres)
+    Checking aq-terminal-relay-protocol v0.1.0 (/tmp/aq08-installed-presence/crates/aq-terminal-relay-protocol)
+    Checking aq-release v0.1.0 (/tmp/aq08-installed-presence/crates/aq-release)
+    Checking aq-terminal-relay v0.1.0 (/tmp/aq08-installed-presence/crates/aq-terminal-relay)
+    Checking aq-selection v0.1.2 (/tmp/aq08-installed-presence/crates/aq-selection)
+    Checking aq-playbook-host v0.1.2 (/tmp/aq08-installed-presence/crates/aq-playbook-host)
+    Checking aq-notifications v0.1.0 (/tmp/aq08-installed-presence/crates/aq-notifications)
+    Checking aq-observation-api v0.1.0 (/tmp/aq08-installed-presence/crates/aq-observation-api)
+    Checking aq-accounting v0.1.0 (/tmp/aq08-installed-presence/crates/aq-accounting)
+    Checking aq-admission v0.1.9 (/tmp/aq08-installed-presence/crates/aq-admission)
+    Checking aq-observation-admission v0.1.0 (/tmp/aq08-installed-presence/crates/aq-observation-admission)
+    Checking aq-review-protocol v0.1.0 (/tmp/aq08-installed-presence/crates/aq-review-protocol)
+    Checking aq-protocol v0.1.0 (/tmp/aq08-installed-presence/vendor/aq-protocol-0.1.0)
+    Checking aq-worker-protocol v0.2.0 (/tmp/aq08-installed-presence/vendor/aq-worker-protocol-0.2.0)
+    Checking aq-playbooks-compiler v0.1.0 (/tmp/aq08-installed-presence/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-compiler)
+    Checking aq-server v0.1.0 (/tmp/aq08-installed-presence/crates/aq-server)
+error: this boolean expression can be simplified
+  --> crates/aq-server/src/profiled_execution/presence/qualification.rs:15:12
+   |
+15 |           if !reference
+   |  ____________^
+16 | |             .id
+17 | |             .as_str()
+18 | |             .strip_prefix(QUALIFICATION_PREFIX)
+19 | |             .is_some_and(|s| !s.is_empty())
+   | |___________________________________________^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.96.0/index.html#nonminimal_bool
+   = note: `-D clippy::nonminimal-bool` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::nonminimal_bool)]`
+help: try
+   |
+15 ~         if reference
+16 +             .id
+17 +             .as_str()
+18 +             .strip_prefix(QUALIFICATION_PREFIX).is_none_or(|s| s.is_empty())
+   |
+
+error: could not compile `aq-server` (lib) due to 1 previous error

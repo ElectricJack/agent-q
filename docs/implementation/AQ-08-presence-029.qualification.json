@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "source_revision": "85160a7a5155f64a7b9775c067ade2711865e100",
+  "registered_state_format": 29,
+  "passed": 11,
+  "ignored": 0,
+  "strict_server_all_targets_all_features_clippy": true,
+  "format": true,
+  "paths": [
+    {
+      "path": "Dockerfile",
+      "sha256": "f4745c9451e1272818bc17f010e9657dfae7ef190f8d8845a076e54c6feb1fca",
+      "bytes": 4140
+    },
+    {
+      "path": "crates/aq-server/migrations/0029_scoped_material_presence.sql",
+      "sha256": "c469b29384e9377ef4bd7460e8cf928e82b57efe8bcd3d61de9ebefa84a6f5ec",
+      "bytes": 12361
+    },
+    {
+      "path": "crates/aq-server/src/intelligence/inventory.rs",
+      "sha256": "33cafaf6dadafd4bee8d8ca2b0c91c39700daf3d9c12583c45eaed494c3dcd86",
+      "bytes": 10596
+    },
+    {
+      "path": "crates/aq-server/src/lib.rs",
+      "sha256": "d409b142279df1f9b53c7cff20ec0bec0e4416675740e14d1ad252e334168070",
+      "bytes": 14664
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution.rs",
+      "sha256": "d9188e9bdbff8a80599ead61e89e760e79ae86f8e30048af1c888961e07f5d5c",
+      "bytes": 851
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/presence/inventory.rs",
+      "sha256": "b8a21904cb8187218bdc638141a5d28ab639e58a86029178c8e35dcde8cc45ff",
+      "bytes": 8827
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/presence/mod.rs",
+      "sha256": "81541e4c7470e5d8181f5a8b17c30a36bd78529759d427d178ed639c9de15289",
+      "bytes": 1139
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/presence/private_inventory.rs",
+      "sha256": "cd200a7fe527ef4365373a5b0b1b6a7deab5aef88f2eac8c223601ec1cc00a3d",
+      "bytes": 2992
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/presence/qualification.rs",
+      "sha256": "4466dc826164bd3184f491e5c302b9c0970606d91290a826a4ffc3dbace3d341",
+      "bytes": 1892
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/presence/storage.rs",
+      "sha256": "d7f8a3628666fc248226e9b151df83778405bbaec25015c9328bcd41b3e26229",
+      "bytes": 6985
+    },
+    {
+      "path": "crates/aq-server/src/store.rs",
+      "sha256": "05abfa2a6641a36e46e58578b07510809d22ef8a596bdaea5c7567e03b7b450a",
+      "bytes": 26680
+    },
+    {
+      "path": "crates/aq-server/tests/schema28_closure.rs",
+      "sha256": "92285e67aced71b5de2bd3335af8551815c90f94674f7c772e5d47ace9adb391",
+      "bytes": 3681
+    },
+    {
+      "path": "crates/aq-server/tests/schema29_presence.rs",
+      "sha256": "1f8173ac057dd1061bf49447e4fa8942a19933d753c447bf5bd16569b14c266a",
+      "bytes": 2651
+    },
+    {
+      "path": "crates/aq-server/tests/scoped_presence_inventory.rs",
+      "sha256": "6a1b39593b638738754e1ae625013549ad813d4178f159e21bd5b60082a8d1fc",
+      "bytes": 12399
+    },
+    {
+      "path": "docs/implementation/AQ-08-presence-029-checkpoint.md",
+      "sha256": "b001f99ba533b82c113c6813daa5e4f4ad53ad6eaaa6a1cc4c3d964fa59349ae",
+      "bytes": 2907
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-presence-029-85160a7/aq08-presence-029-frozen-tests.log",
+      "sha256": "2282358ed8c8147e50443d6745a5a7ed252982eacc5454793694f21d70199e76",
+      "bytes": 2044
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-presence-029-85160a7/aq08-presence-inventory-final-clippy.log",
+      "sha256": "54755c459294bf2d1eed0594ca3eb8d5a984eb1852957812ea89d1594aac5ea3",
+      "bytes": 151
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-presence-029-85160a7/aq08-presence-inventory-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-presence-029-85160a7/aq08-presence-inventory-first-tests.log",
+      "sha256": "69af71460426f9dd81803a4434176131f0492113754ca2606a625f1ce2b9c4f3",
+      "bytes": 4057
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-presence-029-85160a7/aq08-presence-inventory-epoch-diagnosis.log",
+      "sha256": "52505ab1e44e5c699daea2b56fc856cfa60d62829c81020777803e57980f1071",
+      "bytes": 1576
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-presence-029-85160a7/aq08-presence-inventory-clippy.log",
+      "sha256": "c8732eeecd7913766635b0b1c4b6c5cbf1002d3a6db2edf615352a9c92e26846",
+      "bytes": 3261
+    }
+  ],
+  "claims": [
+    "Actual authenticated InventoryV2 library owner observes actual protected files without SQL locks and records only provisionability.",
+    "Compatible node revisions preserve semantic epoch; new legacy/qualification change and restoration retain barriers; exact replay never moves current snapshot/epoch.",
+    "Ordered actual28-to29 migration rollback and current29 bootstrap passed.",
+    "Raw canonical/uncompressed operation quotas and derived revisions are protected in029."
+  ],
+  "limitations": [
+    "No new HTTP route installed in this prerequisite; per-attempt report and renewal-consumption owners remain pending.",
+    "Per-attempt table guards require their later actual-owner test matrix.",
+    "Synthetic qualified runtime/adapter evidence; no physical worker/provider execution acceptance.",
+    "Global/node finite retention quotas are admission bounds, not continuous-fleet/RSS acceptance."
+  ]
+}
