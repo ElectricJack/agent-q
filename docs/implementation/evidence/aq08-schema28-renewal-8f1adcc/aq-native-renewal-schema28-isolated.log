@@ -1,0 +1,419 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling unicode-ident v1.0.27
+   Compiling libc v0.2.191
+   Compiling syn v3.0.9
+   Compiling cfg-if v1.0.5
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling typenum v1.20.1
+   Compiling getrandom v0.2.17
+   Compiling memchr v2.8.3
+   Compiling serde_derive v1.0.229
+   Compiling version_check v0.9.5
+   Compiling itoa v1.0.18
+   Compiling generic-array v0.14.7
+   Compiling rand_core v0.6.4
+   Compiling subtle v2.6.1
+   Compiling crypto-common v0.1.7
+   Compiling zmij v1.0.23
+   Compiling const-oid v0.9.6
+   Compiling serde_json v1.0.154
+   Compiling getrandom v0.4.3
+   Compiling rand_core v0.10.1
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling smallvec v1.16.4
+   Compiling cpufeatures v0.2.17
+   Compiling thiserror v2.0.21
+   Compiling thiserror-impl v2.0.21
+   Compiling bytes v1.12.1
+   Compiling pin-project-lite v0.2.17
+   Compiling sha2 v0.10.9
+   Compiling sha1_smol v1.0.1
+   Compiling zeroize v1.9.1
+   Compiling uuid v1.29.0
+   Compiling parking_lot_core v0.9.12
+   Compiling futures-core v0.3.34
+   Compiling synstructure v0.14.0
+   Compiling scopeguard v1.2.0
+   Compiling lock_api v0.4.14
+   Compiling zerofrom-derive v0.1.8
+   Compiling parking_lot v0.12.5
+   Compiling errno v0.3.14
+   Compiling autocfg v1.5.1
+   Compiling libm v0.2.16
+   Compiling zerofrom v0.1.8
+   Compiling num-traits v0.2.19
+   Compiling signal-hook-registry v1.4.8
+   Compiling yoke-derive v0.8.4
+   Compiling tokio-macros v2.7.2
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.4
+   Compiling stable_deref_trait v1.2.1
+   Compiling yoke v0.8.4
+   Compiling tokio v1.54.1
+   Compiling ref-cast v1.0.27
+   Compiling once_cell v1.21.4
+   Compiling log v0.4.34
+   Compiling zerovec-derive v0.11.7
+   Compiling ref-cast-impl v1.0.27
+   Compiling serde_derive_internals v0.30.0
+   Compiling futures-sink v0.3.34
+   Compiling schemars_derive v1.2.3
+   Compiling zerovec v0.11.9
+   Compiling displaydoc v0.2.7
+   Compiling dyn-clone v1.0.20
+   Compiling percent-encoding v2.3.2
+   Compiling schemars v1.2.3
+   Compiling find-msvc-tools v0.1.15
+   Compiling futures-task v0.3.34
+   Compiling futures-io v0.3.34
+   Compiling slab v0.4.12
+   Compiling shlex v2.0.1
+   Compiling cc v1.10.0
+   Compiling futures-util v0.3.34
+   Compiling tracing-core v0.1.36
+   Compiling syn v2.0.119
+   Compiling ring v0.17.14
+   Compiling aq-session-protocol v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-session-protocol-0.1.0)
+   Compiling tinystr v0.8.5
+   Compiling litemap v0.8.3
+   Compiling utf_types v1.0.0
+   Compiling base64 v0.22.1
+   Compiling writeable v0.6.4
+   Compiling tracing-attributes v0.1.31
+   Compiling icu_locale_core v2.4.0
+   Compiling tracing v0.1.44
+   Compiling utf8_iter v1.1.0
+   Compiling zerotrie v0.2.5
+   Compiling potential_utf v0.1.6
+   Compiling hybrid-array v0.4.15
+   Compiling icu_normalizer_data v2.4.0
+   Compiling icu_properties_data v2.4.0
+   Compiling icu_collections v2.4.0
+   Compiling icu_provider v2.4.0
+   Compiling futures-channel v0.3.34
+   Compiling rustls-pki-types v1.15.1
+   Compiling cmov v0.5.4
+   Compiling bitflags v2.13.2
+   Compiling untrusted v0.9.0
+   Compiling ctutils v0.4.7
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling http v1.5.0
+   Compiling const-oid v0.10.2
+   Compiling equivalent v1.0.3
+   Compiling tinyvec v1.13.3
+   Compiling http-body v1.1.0
+   Compiling unicode-normalization v0.1.26
+   Compiling digest v0.11.3
+   Compiling icu_properties v2.4.0
+   Compiling icu_normalizer v2.4.0
+   Compiling form_urlencoded v1.2.2
+   Compiling zerocopy v0.8.63
+   Compiling unicode-bidi v0.3.18
+   Compiling cpufeatures v0.3.1
+   Compiling unicode-properties v0.1.4
+   Compiling rustls v0.23.46
+   Compiling iana-time-zone v0.1.65
+   Compiling stringprep v0.1.5
+   Compiling chrono v0.4.45
+   Compiling idna_adapter v1.2.2
+   Compiling rustls-webpki v0.103.16
+   Compiling hashbrown v0.17.1
+   Compiling byteorder v1.5.0
+   Compiling httparse v1.10.1
+   Compiling tower-service v0.3.3
+   Compiling indexmap v2.14.2
+   Compiling idna v1.1.0
+   Compiling chacha20 v0.10.2
+   Compiling webpki-roots v1.0.11
+   Compiling try-lock v0.2.5
+   Compiling want v0.3.2
+   Compiling rand v0.10.3
+   Compiling url v2.5.8
+   Compiling ppv-lite86 v0.2.21
+   Compiling sha2 v0.11.1
+   Compiling md-5 v0.11.0
+   Compiling hmac v0.13.0
+   Compiling aq-lifecycle-protocol v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-lifecycle-protocol-0.1.0)
+   Compiling num-integer v0.1.47
+   Compiling sync_wrapper v1.0.2
+   Compiling tower-layer v0.3.3
+   Compiling atomic-waker v1.1.2
+   Compiling crossbeam-utils v0.8.23
+   Compiling cfg_aliases v0.2.2
+   Compiling utf8parse v0.2.2
+   Compiling siphasher v1.0.4
+   Compiling httpdate v1.0.3
+   Compiling fallible-iterator v0.2.0
+   Compiling postgres-protocol v0.6.12
+   Compiling hyper v1.12.0
+   Compiling phf_shared v0.13.1
+   Compiling anstyle-parse v1.0.0
+   Compiling nix v0.29.0
+   Compiling rand_chacha v0.3.1
+   Compiling inout v0.1.4
+   Compiling aho-corasick v1.1.5
+   Compiling anstyle-query v1.1.5
+   Compiling colorchoice v1.0.5
+   Compiling ipnet v2.12.2
+   Compiling foldhash v0.1.5
+   Compiling allocator-api2 v0.2.21
+   Compiling base64 v0.23.1
+   Compiling anstyle v1.0.14
+   Compiling regex-syntax v0.8.11
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling spin v0.9.9
+   Compiling lazy_static v1.5.1
+   Compiling anstream v1.0.0
+   Compiling hyper-util v0.1.21
+   Compiling regex-automata v0.4.18
+   Compiling hashbrown v0.15.5
+   Compiling rand v0.8.8
+   Compiling cipher v0.4.4
+   Compiling phf v0.13.1
+   Compiling postgres-types v0.2.14
+   Compiling tower v0.5.3
+   Compiling http-body-util v0.1.5
+   Compiling tokio-util v0.7.20
+   Compiling aq-playbooks-model v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-model)
+   Compiling toml_datetime v0.6.11
+   Compiling serde_spanned v0.6.9
+   Compiling universal-hash v0.5.1
+   Compiling async-trait v0.1.92
+   Compiling whoami v2.1.3
+   Compiling heck v0.5.0
+   Compiling base64ct v1.8.3
+   Compiling parking v2.2.1
+   Compiling time-core v0.1.9
+   Compiling opaque-debug v0.3.1
+   Compiling crc-catalog v2.5.0
+   Compiling num-conv v0.2.2
+   Compiling ryu v1.0.23
+   Compiling strsim v0.11.1
+   Compiling toml_write v0.1.2
+   Compiling winnow v0.7.15
+   Compiling clap_lex v1.1.1
+   Compiling clap_builder v4.6.7
+   Compiling toml_edit v0.22.27
+   Compiling serde_urlencoded v0.7.1
+   Compiling time-macros v0.2.32
+   Compiling crc v3.4.0
+   Compiling poly1305 v0.8.0
+   Compiling event-listener v5.4.2
+   Compiling pem-rfc7468 v0.7.0
+   Compiling clap_derive v4.6.7
+   Compiling tokio-postgres v0.7.18
+   Compiling crossbeam-queue v0.3.14
+   Compiling chacha20 v0.9.1
+   Compiling hashlink v0.10.0
+   Compiling webpki-roots v0.26.11
+   Compiling tokio-rustls v0.26.6
+   Compiling aq-session-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-session-api)
+   Compiling tokio-stream v0.1.19
+   Compiling futures-intrusive v0.5.0
+   Compiling hmac v0.12.1
+   Compiling either v1.19.0
+   Compiling aead v0.5.2
+   Compiling hex v0.4.3
+   Compiling powerfmt v0.2.1
+   Compiling deranged v0.5.9
+   Compiling chacha20poly1305 v0.10.1
+   Compiling sqlx-core v0.8.6
+   Compiling time v0.3.55
+   Compiling hkdf v0.12.4
+   Compiling hyper-rustls v0.27.10
+   Compiling postgres v0.19.14
+   Compiling clap v4.6.7
+   Compiling der v0.7.10
+   Compiling toml v0.8.23
+   Compiling aq-playbooks-runner v0.1.2 (/home/jkern/dev/agent-q/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-runner)
+   Compiling tower-http v0.6.11
+   Compiling aq-lifecycle-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-lifecycle-api)
+   Compiling num-bigint v0.4.8
+   Compiling aq-agent-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-agent-api)
+   Compiling atoi v2.0.0
+   Compiling md-5 v0.10.6
+   Compiling anyhow v1.0.104
+   Compiling dotenvy v0.15.7
+   Compiling whoami v1.6.1
+   Compiling home v0.5.12
+   Compiling mime v0.3.17
+   Compiling sqlx-postgres v0.8.6
+   Compiling axum-core v0.5.6
+   Compiling simple_asn1 v0.6.4
+   Compiling aq-profiles v0.1.1 (/home/jkern/dev/agent-q/crates/aq-profiles)
+   Compiling aq-playbooks-postgres v0.1.2 (/home/jkern/dev/agent-q/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-postgres)
+   Compiling reqwest v0.12.28
+   Compiling spki v0.7.3
+   Compiling matchers v0.2.0
+   Compiling regex v1.13.1
+   Compiling sharded-slab v0.1.7
+   Compiling pem v3.0.6
+   Compiling aq-terminal-relay-protocol v0.1.0 (/home/jkern/dev/agent-q/crates/aq-terminal-relay-protocol)
+   Compiling tracing-log v0.2.0
+   Compiling serde_path_to_error v0.1.20
+   Compiling semver v1.0.28
+   Compiling thread_local v1.1.10
+   Compiling rustix v1.1.6
+   Compiling num-bigint-dig v0.8.6
+   Compiling matchit v0.8.4
+   Compiling nu-ansi-term v0.50.3
+   Compiling tracing-subscriber v0.3.23
+   Compiling axum v0.8.9
+   Compiling aq-terminal-relay v0.1.0 (/home/jkern/dev/agent-q/crates/aq-terminal-relay)
+   Compiling aq-release v0.1.0 (/home/jkern/dev/agent-q/crates/aq-release)
+   Compiling jsonwebtoken v9.3.1
+   Compiling pkcs8 v0.10.2
+   Compiling aq-notifications v0.1.0 (/home/jkern/dev/agent-q/crates/aq-notifications)
+   Compiling aq-playbook-host v0.1.2 (/home/jkern/dev/agent-q/crates/aq-playbook-host)
+   Compiling aq-selection v0.1.2 (/home/jkern/dev/agent-q/crates/aq-selection)
+   Compiling sqlx v0.8.6
+   Compiling aq-observation-api v0.1.0 (/home/jkern/dev/agent-q/crates/aq-observation-api)
+   Compiling aq-admission v0.1.8 (/home/jkern/dev/agent-q/crates/aq-admission)
+   Compiling aq-accounting v0.1.0 (/home/jkern/dev/agent-q/crates/aq-accounting)
+   Compiling aq-observation-admission v0.1.0 (/home/jkern/dev/agent-q/crates/aq-observation-admission)
+   Compiling num-iter v0.1.46
+   Compiling aq-protocol v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-protocol-0.1.0)
+   Compiling aq-review-protocol v0.1.0 (/home/jkern/dev/agent-q/crates/aq-review-protocol)
+   Compiling aq-worker-protocol v0.2.0 (/home/jkern/dev/agent-q/vendor/aq-worker-protocol-0.2.0)
+   Compiling linux-raw-sys v0.12.1
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+   Compiling pkcs1 v0.7.5
+   Compiling signature v2.2.0
+   Compiling fastrand v2.5.0
+   Compiling tempfile v3.27.0
+   Compiling rsa v0.9.10
+   Compiling aq-playbooks-compiler v0.1.0 (/home/jkern/dev/agent-q/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-compiler)
+    Finished `test` profile [unoptimized] target(s) in 1m 48s
+     Running tests/native_expiry.rs (/tmp/aq-native-union-target/debug/deps/native_expiry-fbb6e77cd34557f9)
+
+running 6 tests
+test unconfigured_runtime_returns_without_closing_fixture_claims ... ok
+test fresh_offer_remains_held_then_cursor_wrap_closes_exact_expired_owner_once ... ok
+test granted_without_started_remains_held_even_after_grant_and_wall_expiry ... ok
+test node_lock_refusal_advances_cursor_and_does_not_drop_claim_or_poison_pool ... ok
+test published_offer_actual_accept_and_expiry_preserve_source_while_revoking_material ... ok
+test configured_runtime_closes_offline_offer_and_obeys_shutdown ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.11s
+
+     Running tests/native_initial_grant.rs (/tmp/aq-native-union-target/debug/deps/native_initial_grant-7d9669b9583ab410)
+
+running 31 tests
+test prepare_uses_reserved_control_capacity ... ok
+test actual_accepted_plan_without_original_native_publication_cannot_issue_a_grant ... ok
+test published::actual_git::actual_released_export_refuses_grant_without_erasing_preparation ... ok
+test published::actual_git::real_git_publication_download_and_initial_grant_share_exact_export ... ok
+test published::actual_initial_grant_reconciliation_returns_history_without_live_clock_or_mutation ... ok
+test published::actual_published_prepare_is_atomic_and_replays_original_versions_after_hot_record_changes ... ok
+test published::changed_current_private_material_and_cancellation_never_issue_a_grant ... ok
+test published::ambiguous_historical_grant_receipts_refuse_instead_of_choosing_a_replacement ... ok
+test published::credential_rotation_during_actual_private_git_wait_is_rechecked_without_sql_locks_held ... ok
+test published::concurrent_exact_prepare_never_creates_two_grants_or_extends_the_original ... ok
+test published::final_fence_refuses_expiry_after_observed_shared_quota_lock_wait ... ok
+test published::initial_deadline_respects_actual_pinned_lineage_policy_shorter_than_wall_time ... ok
+test published::graph_changes_during_preparation_refuse_without_retiming_original_inputs ... ok
+test published::exact_full_artifact_and_material_receipt_coverage_is_mandatory ... ok
+test published::mounted_prepare_uses_typed_outbound_control_and_never_mounts_on_human_listener ... ok
+test published::material_receipts::retained_installation_json_bytes_refuse_new_grant_under_shared_budget ... ok
+test published::renewal::missing_actual_installation_receipt_cannot_be_reconstructed_from_preparation ... ok
+test published::renewal::changed_private_material_and_revoked_agent_scope_cannot_extend_a_permit ... ok
+test published::renewal::exact_renewal_operation_cannot_mutate_journal_or_become_superseded_authority ... ok
+test published::renewal::expired_server_permit_cannot_be_resurrected_by_fresh_observations ... ok
+test published::material_receipts::grant_failure_rolls_back_new_installation_receipt_with_authority ... ok
+test published::receipt_failure_rolls_back_granted_hot_state_and_prepared_journal_then_exact_retry_succeeds ... ok
+test published::material_receipts::installation_receipt_is_atomic_exact_and_replay_never_reconstructs_a_missing_row ... ok
+test published::renewal::newer_unavailable_inventory_cannot_be_rewritten_by_original_installation ... ok
+test published::renewal::original_cold_inventory_actual_installation_can_renew_without_retiming_originals ... ok
+test published::renewal::races::changed_task_cas_and_content_refuse_without_reusing_admission_observation ... ok
+test accept_quota_charges_incoming_jsonb_expansion_at_the_same_retained_byte_boundary ... ok
+test published::renewal::races::delayed_actual_started_keeps_physical_checkpoint_separate_from_latest_renew_counter ... ok
+test published::renewal::races::observed_final_quota_wait_crossing_old_expiry_rolls_back_extension_and_receipt ... ok
+test published::renewal::races::receipt_insert_failure_rolls_back_hot_extension_and_exact_retry_can_succeed ... ok
+test published::material_receipts::existing_or_replayed_changed_installation_claims_are_refused ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 48.22s
+
+     Running tests/native_material_issuance.rs (/tmp/aq-native-union-target/debug/deps/native_material_issuance-67578f465d259885)
+
+running 1 test
+test selected_account_node_and_current_private_bytes_are_required ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
+
+     Running tests/native_offers.rs (/tmp/aq-native-union-target/debug/deps/native_offers-b6cfed4a9f355679)
+
+running 4 tests
+test task_cas_and_same_cas_content_mismatch_never_publish_an_offer ... ok
+test actual_native_offer_seals_real_owner_artifacts_source_and_graph_without_grant ... ok
+test missing_qualified_capacity_never_invents_zero_or_exports_source ... ok
+test poll_rejects_chosen_scope_duplicate_fields_and_oversized_body_before_admission ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.53s
+
+     Running tests/native_preparation.rs (/tmp/aq-native-union-target/debug/deps/native_preparation-27e27f6a6f4c31ee)
+
+running 11 tests
+test changed_private_file_never_admits_lease_or_reservation_journal ... ok
+test accept_missing_nonce_unknown_and_duplicate_fields_and_body_bound_are_typed_failures ... ok
+test actual_original_plan_lease_mapping_reserved_journal_and_exact_replay_without_grant ... ok
+test credential_rotation_during_actual_git_io_never_admits_preparation ... ok
+test concurrent_exact_accept_can_reconcile_original_receipt_without_duplicate_leases ... ok
+test expiry_after_observed_node_lock_wait_never_commits_preparation ... ok
+test incoming_preparation_bytes_cannot_overshoot_retained_storage_limit ... ok
+test journal_storage_failure_rolls_back_lease_mapping_hot_and_receipt_atomically ... ok
+test issued_grant_cannot_be_discounted_as_an_owned_ungranted_reservation ... ok
+test mounted_accept_and_actual_private_material_fetch_keep_preparation_separate_from_grant ... ok
+test extra_known_worker_capabilities_and_missing_durable_journal_never_qualify_preparation ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.27s
+
+     Running tests/native_reconciliation.rs (/tmp/aq-native-union-target/debug/deps/native_reconciliation-05f009cf9e336bd3)
+
+running 7 tests
+test actual_started_and_stopped_receipts_remain_readable_after_launch_configuration_retires ... ok
+test mounted_contract_requires_current_auth_exact_nonce_and_bounded_strict_body ... ok
+test unsupported_history_advances_cursor_without_synthesizing_missing_receipts ... ok
+test credential_rotation_during_observed_node_lock_wait_refuses_old_authentication ... ok
+test actual_publication_and_preparation_are_read_without_adopting_input_journal ... ok
+test explicit_scope_owner_refusals_and_cursor_progress_do_not_leak_other_bindings ... ok
+test expired_snapshot_does_not_close_and_actual_never_granted_receipt_is_required ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.31s
+
+     Running tests/never_granted.rs (/tmp/aq-native-union-target/debug/deps/never_granted-d488f895fd55726e)
+
+running 7 tests
+test missing_or_unsupported_empty_material_plan_is_unknown_not_fake_preparation_authority ... ok
+test offline_expired_offer_closes_without_guardian_and_preserves_history_budget_and_replay ... ok
+test observed_node_lock_race_issued_authority_wins_and_closure_cannot_erase_it ... ok
+test contradictory_effects_are_never_absence_proofs ... ok
+test repeated_unissued_offers_keep_lineage_generation_and_finite_retry_budget ... ok
+test preparing_deadline_revokes_actual_material_and_ever_issued_grant_never_closes ... ok
+test queued_mail_becomes_stale_but_received_or_unknown_mail_refuses_closure ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.21s
+
+     Running tests/schema26_27.rs (/tmp/aq-native-union-target/debug/deps/schema26_27-4c4db1c8ee97893e)
+
+running 6 tests
+test format_change_requires_backup_restore_before_rollback ... ok
+test fresh_database_installs_ordered_current_without_activating_optional_owners ... ok
+test old25_reader_profile_refuses_current_without_touching_rows_or_migration_metadata ... ok
+test inconsistent_recorded_format_refuses_without_repair_or_partial_changes ... ok
+test failure_in27_rolls_back26_and_all_metadata_then_explicit_retry_succeeds ... ok
+test populated25_upgrades_to_current_preserving_rows_and_reopening_idempotently ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.59s
+
+     Running tests/schema28_closure.rs (/tmp/aq-native-union-target/debug/deps/schema28_closure-a48ffaf0f2ae300e)
+
+running 2 tests
+test fresh_closure_schema_is_empty_and_default_router_has_no_owner ... ok
+test actual27_upgrades_to28_and_collision_rolls_back_before_explicit_retry ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.47s
+

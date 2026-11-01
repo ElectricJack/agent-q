@@ -111,7 +111,7 @@ passes14 initial-grant tests including two actual-Git cases. The [fresh pre-gran
 now closes the observed task/context-change gap and passes43 selected checks,
 including both actual-Git cases. It rereads bounded readiness and exact authorized
 context and checks freshness immediately before commit without retiming original
-inputs. The preview remains the separately pinned `960ffc7` binary.
+inputs. The earlier preview was pinned to `960ffc7`; the newer preview update is recorded below.
 Shared migration27 and public0.1.7 are frozen. No path may fabricate missing
 original requests, convert timeout to release proof, or restore old-boot authority.
 
@@ -149,5 +149,10 @@ The passing initial renewal profile uses a genuinely fresh original inventory;
 longer continuation needs that owned report seam, rather than invented global
 credential availability or relaxed newer-negative checks. Both remain open.
 
-The live dashboard preview remains pinned to schema27/source `960ffc7`. Newer
-schema28/renewal source tests do not imply that preview has been upgraded.
+The [schema28/renewal union](../implementation/AQ-08-schema28-renewal-integration.md)
+at `8f1adcc` passes75 selected native/schema tests and strict server lint. Its
+separate independent-worker probe refuses at hydration under a1,143ms accepted
+window, so the older schema27 tiny-fixture success is not attributed to this
+newer source. The actual local preview is now rebuilt at `8f1adcc` and upgraded
+to schema28 with the existing fixture preserved; all four live browser checks
+pass. Native optional owners remain off and no agents were launched.
