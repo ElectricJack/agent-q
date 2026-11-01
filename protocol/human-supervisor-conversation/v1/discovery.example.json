@@ -1,0 +1,19 @@
+{
+  "contract": "human-supervisor-conversation-1",
+  "conversation": {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "revision": "1",
+    "label": "Global supervisor"
+  },
+  "runtime": {
+    "state": "unavailable",
+    "binding": null,
+    "reason": "central_runtime_not_connected"
+  },
+  "limits": {
+    "body_bytes": 16384,
+    "context_refs": 0,
+    "attachments": 0,
+    "history_page": 16
+  }
+}

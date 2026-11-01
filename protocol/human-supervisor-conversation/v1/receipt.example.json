@@ -1,0 +1,23 @@
+{
+  "contract": "human-supervisor-conversation-1",
+  "conversation": {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "revision": "1",
+    "label": "Global supervisor"
+  },
+  "runtime": {
+    "state": "unavailable",
+    "binding": null,
+    "reason": "central_runtime_not_connected"
+  },
+  "operation_id": "00000000-0000-0000-0000-000000000002",
+  "message_id": "00000000-0000-0000-0000-000000000003",
+  "actor_id": "00000000-0000-0000-0000-000000000004",
+  "request_digest": "sha256:dc0faf8427d9fc07b7cd0570cab83c9ca04c8b6ffa3baaf3c9d91c5a723c612c",
+  "body_digest": "sha256:673934a5cf3aad0ea91196911a5596bed123a51a7bc4a52a914f0e43a78bf73f",
+  "state": "queued",
+  "cursor": "1",
+  "reason": null,
+  "host_delivery": "not_attempted",
+  "agent_receipt": null
+}
