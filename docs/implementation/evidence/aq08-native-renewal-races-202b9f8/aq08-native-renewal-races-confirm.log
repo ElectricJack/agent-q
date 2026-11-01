@@ -1,0 +1,12 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-native-renewal/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.87s
+     Running tests/native_initial_grant.rs (/tmp/aq08-native-producer-target/debug/deps/native_initial_grant-4286447f1def1467)
+
+running 4 tests
+test published::renewal::races::changed_task_cas_and_content_refuse_without_reusing_admission_observation ... ok
+test published::renewal::races::delayed_actual_started_keeps_physical_checkpoint_separate_from_latest_renew_counter ... ok
+test published::renewal::races::observed_final_quota_wait_crossing_old_expiry_rolls_back_extension_and_receipt ... ok
+test published::renewal::races::receipt_insert_failure_rolls_back_hot_extension_and_exact_retry_can_succeed ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 27 filtered out; finished in 6.71s
+
