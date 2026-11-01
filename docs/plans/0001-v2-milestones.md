@@ -32,6 +32,7 @@ The original planning baseline completed AUD-00; current statuses below record s
 - [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md): First dashboard-read-1 API and verified static bundle are connected to the independent dashboard: 234 unit/component,35 mocked browser/accessibility and4 actual-daemon checks. Exact source and fixture limits are retained; API-02/UI-01 and broader product gates remain open.
 - [2026-10-31-native-integration-checkpoint.md](2026-10-31-native-integration-checkpoint.md): Ordered state25→27, native preparation and explicit optional playbook lifecycle are integrated. Worker no-launch journal/observed tmux host passed retained Git/host/relay checks; one concurrent-load deadline failure remains explicit. The assembled daemon passed45 selected tests and4livebrowser checks after fixture upgrade. Native offers/grants and full driver continue in parallel; product gates stay open.
 - [AQ-08-granted-launch-closure-plan.md](../implementation/AQ-08-granted-launch-closure-plan.md): Proposed missing native recovery boundary for an issued grant without central Started: preserve original authority, qualify durable suppression or actual host stop, and keep claims/resources held until independent settlement. No contract, migration or capability is implemented by this design.
+- [0003-live-dashboard-delivery.md](../../../aq-dashboard/docs/plans/0003-live-dashboard-delivery.md): Reconcile every tab against the accepted mockups and actual human APIs; add API-03–API-12 and UI-05–UI-12 leaf tasks so dashboard reads and visual completion proceed alongside the native runner. Preserve full product, supervisor, media and terminal acceptance gates.
 
 ### V1 implementation evidence
 
@@ -48,6 +49,13 @@ Read the mapped source and regression cases before implementing an affected task
 | [WRK-11](#wrk-11) | aq-worker | Qualify the Claude Code harness adapter |
 | [WRK-12](#wrk-12) | aq-worker | Qualify the Gemini CLI harness adapter |
 | [WRK-13](#wrk-13) | aq-worker | Qualify the OpenCode harness adapter |
+| [API-03](#api-03) | agent-q | Expose human-authorized task and knowledge graph reads |
+| [API-04](#api-04) | agent-q | Expose eligible human review discovery and action descriptors |
+| [API-05](#api-05) | agent-q | Expose configured playbook discovery and pinned run views |
+| [API-06](#api-06) | agent-q | Expose retained result metadata and exact evidence associations |
+| [API-07](#api-07) | agent-q | Own global supervisor conversation history and dispatch association |
+| [API-09](#api-09) | agent-q | Collect and expose supported provider account quota |
+| [UI-05](#ui-05) | aq-dashboard | Complete shared dashboard composition and visual baselines |
 
 The daemon authority track can start after BASE-01 and CON-01. The worker runtime track follows connector extraction. Graph, Git and playbook qualification are independent early tracks; they are not artificial prerequisites for fake-agent execution. Dashboard work waits for a versioned inspection/action API, but does not wait for production deployment.
 
@@ -171,12 +179,12 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | Task | Owner | Hard prerequisites | Status |
 | --- | --- | --- | --- |
 | [PB-02](#pb-02): Establish the playbook storage and scheduling operating envelope | aq-playbooks | [PB-01](#pb-01) | complete |
-| [API-02](#api-02): Expose task, attempt and workflow explanation views | agent-q | [AQ-10](#aq-10), [AQ-11](#aq-11), [AQ-12](#aq-12), [AQ-18](#aq-18), [AQ-20](#aq-20) | in_progress |
-| [UI-01](#ui-01): Create the independent dashboard application and mock suite | aq-dashboard | [API-02](#api-02) | in_progress |
-| [UI-02](#ui-02): Implement pending-safe actions and browser compatibility | aq-dashboard | [UI-01](#ui-01) | planned |
+| [API-02](#api-02): Expose task, attempt and workflow explanation views | agent-q | [AQ-10](#aq-10), [AQ-11](#aq-11), [AQ-12](#aq-12), [AQ-18](#aq-18), [AQ-20](#aq-20), [API-03](#api-03), [API-04](#api-04), [API-05](#api-05), [API-06](#api-06), [API-07](#api-07), [API-08](#api-08), [API-09](#api-09), [API-10](#api-10), [API-11](#api-11), [API-12](#api-12) | in_progress |
+| [UI-01](#ui-01): Create the independent dashboard application and mock suite | aq-dashboard | [UI-05](#ui-05), [UI-06](#ui-06), [UI-11](#ui-11), [UI-12](#ui-12) | in_progress |
+| [UI-02](#ui-02): Implement pending-safe actions and browser compatibility | aq-dashboard | [UI-05](#ui-05), [UI-06](#ui-06), [UI-07](#ui-07), [API-10](#api-10) | planned |
 | [REL-01](#rel-01): Version the composite product manifest and component inventory | agent-q | [INT-01](#int-01), [GRAPH-01](#graph-01), [GIT-01](#git-01), [PB-01](#pb-01) | planned |
 | [REL-02](#rel-02): Implement multi-component update and recovery orchestration | agent-q | [REL-01](#rel-01), [GATE-05](#gate-05) | planned |
-| [REL-03](#rel-03): Package and verify the dashboard in the server release | agent-q | [REL-01](#rel-01), [UI-02](#ui-02), [UI-03](#ui-03), [UI-04](#ui-04) | planned |
+| [REL-03](#rel-03): Package and verify the dashboard in the server release | agent-q | [REL-01](#rel-01), [UI-02](#ui-02), [UI-03](#ui-03), [UI-04](#ui-04), [API-02](#api-02), [UI-01](#ui-01), [UI-07](#ui-07), [UI-08](#ui-08), [UI-09](#ui-09), [UI-10](#ui-10), [UI-11](#ui-11) | planned |
 | [PERF-01](#perf-01): Run the complete product capacity and recovery profile | agent-q | [GATE-05](#gate-05), [PB-02](#pb-02), [REL-03](#rel-03), [INT-02](#int-02), [INT-03](#int-03), [PB-04](#pb-04) | planned |
 | [OPS-01](#ops-01): Qualify the deployment target and component recovery profile | agent-q | [BASE-01](#base-01), [REL-02](#rel-02), [REL-03](#rel-03), [GIT-01](#git-01), [GRAPH-01](#graph-01), [INT-02](#int-02), [INT-03](#int-03) | planned |
 | [AQ-21](#aq-21): Implement authorized terminal relay and controller leasing | agent-q | [CON-02](#con-02), [AQ-03](#aq-03), [AQ-06](#aq-06) | in_progress |
@@ -184,13 +192,31 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [WRK-12](#wrk-12): Qualify the Gemini CLI harness adapter | aq-worker | [CON-02](#con-02), [WRK-05](#wrk-05), [WRK-06](#wrk-06), [WRK-10](#wrk-10) | planned |
 | [WRK-13](#wrk-13): Qualify the OpenCode harness adapter | aq-worker | [CON-02](#con-02), [WRK-05](#wrk-05), [WRK-06](#wrk-06), [WRK-10](#wrk-10) | planned |
 | [WRK-14](#wrk-14): Implement the bounded outbound terminal bridge | aq-worker | [CON-02](#con-02), [WRK-10](#wrk-10) | in_progress |
-| [UI-03](#ui-03): Build profile/session inspection and terminal watch/control | aq-dashboard | [UI-01](#ui-01), [CON-02](#con-02) | in_progress |
+| [UI-03](#ui-03): Build profile/session inspection and terminal watch/control | aq-dashboard | [UI-05](#ui-05), [CON-02](#con-02) | in_progress |
 | [INT-02](#int-02): Qualify composed profiles, four harnesses and remote terminals | agent-q | [GATE-04](#gate-04), [AQ-17](#aq-17), [AQ-21](#aq-21), [WRK-09](#wrk-09), [WRK-11](#wrk-11), [WRK-12](#wrk-12), [WRK-13](#wrk-13), [WRK-14](#wrk-14), [UI-03](#ui-03) | planned |
-| [UI-04](#ui-04): Expose session health, accounting, waits and notification delivery | aq-dashboard | [UI-01](#ui-01), [CON-03](#con-03) | planned |
+| [UI-04](#ui-04): Expose session health, accounting, waits and notification delivery | aq-dashboard | [UI-05](#ui-05), [CON-03](#con-03), [UI-12](#ui-12) | planned |
 | [INT-03](#int-03): Qualify session operations, external delivery and cross-node hibernation | agent-q | [GATE-05](#gate-05), [INT-02](#int-02), [AQ-22](#aq-22), [AQ-23](#aq-23), [AQ-24](#aq-24), [AQ-25](#aq-25), [AQ-26](#aq-26), [AQ-27](#aq-27), [WRK-15](#wrk-15), [WRK-16](#wrk-16), [UI-04](#ui-04) | planned |
 | [GATE-06](#gate-06): Accept a usable, measured and upgradeable AQ product candidate | agent-q | [GATE-05](#gate-05), [REL-02](#rel-02), [REL-03](#rel-03), [PERF-01](#perf-01), [OPS-01](#ops-01), [INT-02](#int-02), [INT-03](#int-03) | planned |
 | [PB-03](#pb-03): Remove redundant immutable-artifact work from playbook storage commits | aq-playbooks | [PB-02](#pb-02) | complete |
 | [PB-04](#pb-04): Bound playbook transition persistence costs as history grows | aq-playbooks | [PB-03](#pb-03) | in_progress |
+| [API-03](#api-03): Expose human-authorized task and knowledge graph reads | agent-q | [AQ-06](#aq-06), [AQ-19](#aq-19), [GRAPH-01](#graph-01) | planned |
+| [API-04](#api-04): Expose eligible human review discovery and action descriptors | agent-q | [AQ-28](#aq-28), [AQ-19](#aq-19) | planned |
+| [API-05](#api-05): Expose configured playbook discovery and pinned run views | agent-q | [PB-01](#pb-01), [AQ-01](#aq-01) | planned |
+| [API-06](#api-06): Expose retained result metadata and exact evidence associations | agent-q | [AQ-28](#aq-28), [AQ-19](#aq-19) | planned |
+| [API-07](#api-07): Own global supervisor conversation history and dispatch association | agent-q | [AQ-11](#aq-11), [AQ-19](#aq-19) | planned |
+| [API-08](#api-08): Populate scoped Overview and Search from actual owners | agent-q | [API-03](#api-03), [API-04](#api-04), [API-06](#api-06), [AQ-24](#aq-24), [AQ-20](#aq-20) | planned |
+| [API-09](#api-09): Collect and expose supported provider account quota | agent-q | [AQ-20](#aq-20) | planned |
+| [API-10](#api-10): Expose typed human task and knowledge commands with recovery | agent-q | [API-03](#api-03), [AQ-07](#aq-07) | planned |
+| [API-11](#api-11): Retain result media and evaluate capture requirements | agent-q | [API-06](#api-06), [AQ-09](#aq-09) | planned |
+| [API-12](#api-12): Own result comments and explicit feedback task creation | agent-q | [API-11](#api-11), [API-10](#api-10) | planned |
+| [UI-05](#ui-05): Complete shared dashboard composition and visual baselines | aq-dashboard | [AQ-01](#aq-01) | planned |
+| [UI-06](#ui-06): Connect real Work and Knowledge with contextual inspection | aq-dashboard | [UI-05](#ui-05), [API-03](#api-03) | planned |
+| [UI-07](#ui-07): Build the live decision inbox and evidence workspace | aq-dashboard | [UI-05](#ui-05), [API-04](#api-04) | planned |
+| [UI-08](#ui-08): Build live playbook discovery and run timelines | aq-dashboard | [UI-05](#ui-05), [API-05](#api-05) | planned |
+| [UI-09](#ui-09): Deliver Results metadata, media and feedback in usable increments | aq-dashboard | [UI-05](#ui-05), [API-06](#api-06), [API-11](#api-11), [API-12](#api-12) | planned |
+| [UI-10](#ui-10): Deliver docked full-page and mobile supervisor conversation | aq-dashboard | [UI-05](#ui-05), [API-07](#api-07), [AQ-17](#aq-17) | planned |
+| [UI-11](#ui-11): Complete Overview composition real summaries and provider strip | aq-dashboard | [UI-05](#ui-05), [API-08](#api-08), [API-09](#api-09) | planned |
+| [UI-12](#ui-12): Connect existing worker profile observation and notification panels | aq-dashboard | [UI-05](#ui-05), [CON-03](#con-03), [AQ-24](#aq-24) | planned |
 
 ## Task contracts
 
@@ -1321,9 +1347,9 @@ Evidence: [PB-02.md](../../../aq-playbooks/docs/implementation/PB-02.md), [PB-02
 
 Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: in_progress.
 
-Hard prerequisites: [AQ-10](#aq-10), [AQ-11](#aq-11), [AQ-12](#aq-12), [AQ-18](#aq-18), [AQ-20](#aq-20).
+Hard prerequisites: [AQ-10](#aq-10), [AQ-11](#aq-11), [AQ-12](#aq-12), [AQ-18](#aq-18), [AQ-20](#aq-20), [API-03](#api-03), [API-04](#api-04), [API-05](#api-05), [API-06](#api-06), [API-07](#api-07), [API-08](#api-08), [API-09](#api-09), [API-10](#api-10), [API-11](#api-11), [API-12](#api-12).
 
-Publish bounded browser/client contracts for tasks, attempts, workers, messages, runs and permitted actions with freshness, revision, pending-operation and reason metadata.
+Publish bounded browser/client contracts for tasks, attempts, workers, messages, runs and permitted actions with freshness, revision, pending-operation and reason metadata. API-03 through API-12 subdivide the dashboard read, conversation, evidence and command owners; their independent delivery does not wait for this parent to close.
 
 Acceptance:
 
@@ -1331,6 +1357,7 @@ Acceptance:
 - CLI and dashboard routes share domain operations and authorization; every pending/unknown result is representable.
 - Include versioned resolved-profile and selection-explanation views; terminal contracts are independently published by CON-02 so relay/bridge development need not wait for this broader API task.
 - Publish session observation/usage, wait/continuation and notification inspection contracts coordinated with CON-03; UI-04 may develop against fixtures before runtime integration.
+- Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence.
 
 Requirement links: D9, U2, U3, U4, E6, P3.
 
@@ -1342,14 +1369,15 @@ Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), 
 
 Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: in_progress.
 
-Hard prerequisites: [API-02](#api-02).
+Hard prerequisites: [UI-05](#ui-05), [UI-06](#ui-06), [UI-11](#ui-11), [UI-12](#ui-12).
 
-Initialize the component repository, select a frontend framework, and implement authenticated task/attempt and worker inspection against contract-derived mocks.
+Complete the independent dashboard application and mock suite, with real task/knowledge and worker inspection plus the accepted responsive composition. Leaf UI-05/UI-06/UI-11/UI-12 tasks may progress independently; this parent is a completion rollup.
 
 Acceptance:
 
 - Build/component/accessibility checks need no AQ daemon, graph or workers.
 - Large paginated views render stale/unknown/truncated states and untrusted content safely.
+- Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence.
 
 Requirement links: U1, U2, U3, U6.
 
@@ -1363,7 +1391,7 @@ Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), 
 
 Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: planned.
 
-Hard prerequisites: [UI-01](#ui-01).
+Hard prerequisites: [UI-05](#ui-05), [UI-06](#ui-06), [UI-07](#ui-07), [API-10](#api-10).
 
 Add one decision/cancellation/message flow through the public API, operation recovery, conflict-preserving drafts and stale-tab compatibility handling.
 
@@ -1371,6 +1399,7 @@ Acceptance:
 
 - Repeated clicks and lost responses do not duplicate actions or fabricate success; authorization failures are displayed accurately.
 - Session changes clear protected caches, revision conflicts preserve drafts and incompatible API prompts safe reload.
+- Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence.
 
 Requirement links: U3, U4, U5, U6, U8.
 
@@ -1416,7 +1445,7 @@ Requirement links: E4, E5, W16, X8, X9.
 
 Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: planned.
 
-Hard prerequisites: [REL-01](#rel-01), [UI-02](#ui-02), [UI-03](#ui-03), [UI-04](#ui-04).
+Hard prerequisites: [REL-01](#rel-01), [UI-02](#ui-02), [UI-03](#ui-03), [UI-04](#ui-04), [API-02](#api-02), [UI-01](#ui-01), [UI-07](#ui-07), [UI-08](#ui-08), [UI-09](#ui-09), [UI-10](#ui-10), [UI-11](#ui-11).
 
 Verify the static bundle digest/provenance/API metadata, embed it in the server image, and serve same-origin authenticated application assets.
 
@@ -1426,6 +1455,8 @@ Acceptance:
 - An existing tab detects changed API compatibility and refreshes matching assets without a stale success claim.
 - The embedded bundle includes the qualified session inspector and terminal UI; old browser/terminal protocol combinations refuse or resynchronize explicitly.
 - Embedded bundle includes the required session operations, wait/continuation and external-delivery views.
+- All nine dashboard destinations satisfy the live-delivery plan: actual human-authorized flows plus reviewed desktop/mobile composition against accepted mockups. Granular increments do not stand in for full Results, supervisor or terminal capability.
+- Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence.
 
 Requirement links: E2, E6, U7, U8, U9, U10, U11, U12, U13, U14.
 
@@ -1583,7 +1614,7 @@ Evidence: [WRK-14-stage1.md](../../../aq-worker/docs/implementation/WRK-14-stage
 
 Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: in_progress.
 
-Hard prerequisites: [UI-01](#ui-01), [CON-02](#con-02).
+Hard prerequisites: [UI-05](#ui-05), [CON-02](#con-02).
 
 Add resolved profile/intelligence/execution explanations and an accessible terminal inspector using published central contracts and mock streams. Keep watch, exclusive control, durable messages and typed cancellation distinct.
 
@@ -1591,6 +1622,7 @@ Acceptance:
 
 - Mock browser tests cover multi-viewer/control handoff, revoked scope, stale tabs/epochs, reconnect, gaps, unknown input and resize without replaying stale keystrokes or relaunching an agent.
 - Render full-screen/alternate-screen/Unicode output safely with bounded memory, safe escape/link/clipboard handling and a plain-text accessible view. No worker credentials, socket paths or terminal content persist in browser storage by default.
+- Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence.
 
 Requirement links: P3, R1, R2, R3, R4, R6, U9, U10, U11.
 
@@ -1624,7 +1656,7 @@ Outside this task: Inferring all-harness support from one adapter, live process 
 
 Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: planned.
 
-Hard prerequisites: [UI-01](#ui-01), [CON-03](#con-03).
+Hard prerequisites: [UI-05](#ui-05), [CON-03](#con-03), [UI-12](#ui-12).
 
 Extend session/task views with bounded transcript/usage provenance, stall recovery, typed wait/parking/wake status, retained resources, external message delivery and escalation/digest history. Use versioned central APIs and contract-derived mocks.
 
@@ -1633,6 +1665,7 @@ Acceptance:
 - Component tests display unknown usage versus zero, estimated cost basis/corrections, stale telemetry, deferred nudge, hibernated versus resume_pending, failed/stale wake and released compute versus protected disk.
 - Actions preserve stable identity/expected revisions and clarify cancel-wait versus cancel-task, early-resume override, ambiguous external delivery and revision-bound human decision. No optimistic proof of successful send/wake/stop.
 - Safe scoped rendering, accessible status/control and pagination tests run without live workers, providers or PostgreSQL; actual assembled flows are INT-03 evidence.
+- Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence.
 
 Requirement links: S1, S3, S4, N2, N3, C3, C4, U12, U13, U14.
 
@@ -1720,6 +1753,350 @@ Requirement links: E8, D7.
 Outside this task: A second editable workflow-state store, arbitrary eviction of unresolved work, a 500-agent claim from component microbenchmarks.
 
 Evidence: [PB-04.stage-a.md](../../../aq-playbooks/docs/implementation/PB-04.stage-a.md), [PB-04.stage-a.json](../../../aq-playbooks/docs/implementation/PB-04.stage-a.json), [PB-04.proposal.md](../../../aq-playbooks/docs/implementation/PB-04.proposal.md), [PB-04.prototype.md](../../../aq-playbooks/docs/implementation/PB-04.prototype.md), [PB-04.prototype.json](../../../aq-playbooks/docs/implementation/PB-04.prototype.json), [PB-04.lookahead.md](../../../aq-playbooks/docs/implementation/PB-04.lookahead.md), [PB-04.lookahead.json](../../../aq-playbooks/docs/implementation/PB-04.lookahead.json).
+
+### API-03
+
+**Expose human-authorized task and knowledge graph reads**
+
+Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [AQ-06](#aq-06), [AQ-19](#aq-19), [GRAPH-01](#graph-01).
+
+Publish scoped human task list/detail/dependency and knowledge search/document/revision projections over the existing Graph client. Reuse current domain readers without borrowing an agent principal or creating a second task database. Include an early bounded task/project contribution to Overview, preserving unknown review/result coverage rather than waiting for the full aggregate owner.
+
+Acceptance:
+
+- Mounted routes test current Owner/project authorization, revoked scope, revision identity, pagination and bounded graph neighborhoods against actual Graph data. Existing session ACL alone grants no project-wide document access.
+- Publish DTOs, validators, fixtures and capabilities; supported unavailable/partial states never become empty success. Work and Knowledge can qualify without a live harness.
+
+Requirement links: D4, D9, U2, U3, U6.
+
+Outside this task: Graph ownership migration; Raw arbitrary Graph proxy; Task or document writes.
+
+### API-04
+
+**Expose eligible human review discovery and action descriptors**
+
+Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [AQ-28](#aq-28), [AQ-19](#aq-19).
+
+Add bounded eligible-user inbox/list and safe subject/evidence discovery around the existing conditional review owner; reuse its exact-ID inspect/resolve/cancel operations and publish their browser contract.
+
+Acceptance:
+
+- Discovery and detail apply current actor/subject authorization; absent configured owner differs from an empty inbox.
+- Actual mounted tests cover exact-revision resolution, superseded result heads, duplicate/lost-response recovery and preservation of existing receipt semantics.
+
+Requirement links: U2, U3, U4, U5.
+
+Outside this task: Model judgment execution; Replacing the review owner.
+
+### API-05
+
+**Expose configured playbook discovery and pinned run views**
+
+Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [PB-01](#pb-01), [AQ-01](#aq-01).
+
+Add bounded run/admission and installed definition/binding/activation discovery plus safe timeline projections beside the existing optional playbook API. Inspect the configured owner rather than requiring completion of all policy pilots.
+
+Acceptance:
+
+- Test an actual configured runtime/run and an absent runtime; enforce namespace ownership, immutable dependency pins and bounded discovery.
+- Timeline exposes waits, children and operations separately; supported actions reuse their owner and cannot bypass an outstanding human decision.
+
+Requirement links: U2, U3, U4.
+
+Outside this task: New workflow editor; Pretending configured bindings establish an unimplemented activation owner; Completing AQ-12 through AQ-16 pilots.
+
+### API-06
+
+**Expose retained result metadata and exact evidence associations**
+
+Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [AQ-28](#aq-28), [AQ-19](#aq-19).
+
+Publish bounded human result list/detail from validated retained claims and historical result readers, with project/attempt scope, correction head, source and exact revision/evidence references. This read slice does not wait for full graph settlement.
+
+Acceptance:
+
+- Actual retained result claims can be discovered and inspected with current human authorization; foreign scope and mismatched receipt/revision links refuse.
+- Recorded, reviewed, accepted, settled and published facts stay distinct. A process exit or Stopped receipt does not fabricate a result.
+
+Requirement links: D9, U2, U3.
+
+Outside this task: Media upload and playback; Comments and feedback; Completing AQ-10 settlement.
+
+### API-07
+
+**Own global supervisor conversation history and dispatch association**
+
+Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [AQ-11](#aq-11), [AQ-19](#aq-19).
+
+Define a stable global conversation identity, ordered references to durable AQ messages, contextual submissions, operation recovery and dispatch/reply associations. Reuse mailbox delivery authority; actual actor availability is an explicit separate fact.
+
+Acceptance:
+
+- History and send/recovery test stable recipient identity, scoped context, ordering and one message after response loss.
+- Unavailable supervisor is representable without worker fallback or fabricated reply. Runtime reply qualification remains dependent on AQ-17.
+
+Requirement links: U2, U3, U4, U5.
+
+Outside this task: Duplicating message delivery state; Hosting the central harness; Routing global chat to an arbitrary worker.
+
+### API-08
+
+**Populate scoped Overview and Search from actual owners**
+
+Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [API-03](#api-03), [API-04](#api-04), [API-06](#api-06), [AQ-24](#aq-24), [AQ-20](#aq-20).
+
+Aggregate authorized attention, task/readiness facts, result outcomes, project summaries and worker observations; add scoped search from available human read adapters. Preserve source timestamps and per-section coverage.
+
+Acceptance:
+
+- Nonempty real owner records produce linked attention/outcome/search entries; partial unavailable sources never yield invented totals or readiness.
+- Bound and batch SQL/Graph work, inspect query plans and page limits, and keep reads off worker control/cleanup lanes; test scope and authorization-change invalidation.
+
+Requirement links: D9, U2, U3.
+
+Outside this task: General event-stream infrastructure; Provider quota inferred from availability; A second editable task database.
+
+### API-09
+
+**Collect and expose supported provider account quota**
+
+Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [AQ-20](#aq-20).
+
+Implement one explicitly supported provider/account quota source and human projection with window, reset, source and freshness. Keep additional sources capability-gated and protect provider credentials.
+
+Acceptance:
+
+- Contract tests distinguish measured, stale, unsupported and unavailable windows, with bounded collection and no double-counted accounts.
+- A configured supported source is exercised before enabling it; no token/cost total or availability signal is substituted for quota percentage.
+
+Requirement links: U2, U3.
+
+Outside this task: Requiring all providers before other dashboard reads; Unqualified quota scraping; Browser provider credentials.
+
+### API-10
+
+**Expose typed human task and knowledge commands with recovery**
+
+Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [API-03](#api-03), [AQ-07](#aq-07).
+
+Add a human actor adapter for task creation/edit and supported knowledge author/correct/verify/retire commands over the existing durable Graph operation owner. Preserve expected versions, provenance, stable request identities and lookup after response loss.
+
+Acceptance:
+
+- Mounted human routes reject foreign scope and stale revisions; repeated requests and restart/lost-response recovery produce one logical mutation.
+- Publish permitted operations and conflict/unknown receipts; typed domain commands do not become an arbitrary Graph or JSON editor.
+
+Requirement links: D5, D6, U4, U5.
+
+Outside this task: Browser impersonation of agents; Client-owned readiness or scheduling; Implicit task creation from comments.
+
+### API-11
+
+**Retain result media and evaluate capture requirements**
+
+Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [API-06](#api-06), [AQ-09](#aq-09).
+
+Implement evidence upload/finalize/authorized retrieval and versioned capture-policy checks bound to exact result revisions. Start with managed local storage plus existing database metadata; retain expiry/tombstones and explicit waiver identity.
+
+Acceptance:
+
+- Actual image/clip bytes pass bounded upload, digest/type validation, finalize, range retrieval and scope tests; missing/expired evidence remains explicit.
+- Configured completion checks require finalized applicable evidence or an exact authorized waiver; artifact presence does not itself establish acceptance.
+
+Requirement links: U2, U3, U4, U6.
+
+Outside this task: Mandatory external object-storage service; Arbitrary capture of operator desktop; Historical media synthesized from result metadata.
+
+### API-12
+
+**Own result comments and explicit feedback task creation**
+
+Owner: `agent-q`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [API-11](#api-11), [API-10](#api-10).
+
+Persist revision-pinned result comments and optional image/time anchors; implement explicit create/link-feedback operations and exact-revision resolution with durable task-link reconciliation.
+
+Acceptance:
+
+- Commenting alone never creates work; repeated feedback creation after lost response or restart yields one linked task.
+- Anchors retain original artifact/revision identity; fix submitted differs from resolved, and current authorization plus version guards apply to linking/resolution.
+
+Requirement links: U2, U3, U4, U5.
+
+Outside this task: Implicit agent authorization from discussion; Generic arbitrary annotations without bounds.
+
+### UI-05
+
+**Complete shared dashboard composition and visual baselines**
+
+Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [AQ-01](#aq-01).
+
+Implement shared shell, panel/inspector composition, controls, responsive hierarchy and loading/empty/partial/unavailable states using accepted mockups and product specification 0002. Preserve existing real adapters and independent frontend tests.
+
+Acceptance:
+
+- Compare actual desktop/phone layouts to named reference PNGs for hierarchy, density, proportions and navigation; retain reviewed screenshots and accessible reflow checks.
+- A consistent visual system is usable before new APIs; unavailable data stays honest and mock fixtures remain excluded from live builds.
+- Each increment names delivered visual subsets and deferred panels; read-only Agents and metadata-only Results do not claim full-tab design completion.
+
+Requirement links: U1, U3, U6.
+
+Outside this task: Counting placeholder pages as completed destinations; New visual direction replacing accepted references.
+
+### UI-06
+
+**Connect real Work and Knowledge with contextual inspection**
+
+Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [UI-05](#ui-05), [API-03](#api-03).
+
+Connect existing task list/detail/dependency graph/search and build knowledge document/revision inspection against published human Graph adapters. Deliver selected-inspector desktop and single-pane mobile compositions. Populate the early partial Overview from that actual contribution; full aggregation/layout remain UI-11.
+
+Acceptance:
+
+- Live browser tests navigate actual Graph tasks, dependency neighborhoods and knowledge revisions, including scope/pagination/deep links and current versus pinned history.
+- Named Work/Knowledge mockup comparisons cover filters, graph controls, document metadata and responsive layout; component tests remain independent of Graph.
+- New links reach working authorized detail views or clearly identify unsupported destinations; page-local counts never become global totals.
+
+Requirement links: U1, U2, U3, U6.
+
+Outside this task: Typed writes owned by API-10/UI-02; Full Graph downloads.
+
+### UI-07
+
+**Build the live decision inbox and evidence workspace**
+
+Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [UI-05](#ui-05), [API-04](#api-04).
+
+Replace the Decisions placeholder with eligible review discovery, selected evidence/context and exact-revision decision controls using existing domain owners and recoverable pending state.
+
+Acceptance:
+
+- An actual decision can be discovered, inspected and resolved; duplicate click/response loss does not duplicate action and stale revisions preserve drafts.
+- Desktop evidence/action layout and phone evidence-first navigation match the accepted design; configured absence and unauthorized state are distinct.
+
+Requirement links: U1, U2, U3, U4, U5, U6.
+
+Outside this task: Model judgment execution; Treating approval as merge or deployment.
+
+### UI-08
+
+**Build live playbook discovery and run timelines**
+
+Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [UI-05](#ui-05), [API-05](#api-05).
+
+Replace the Playbooks placeholder with Runs/Definitions/Activations inspection using actual configured discovery, pinned manifests, wait/child/receipt timelines and supported owner actions.
+
+Acceptance:
+
+- A real configured runtime/run is navigable from discovery to exact pinned detail; missing runtime is not shown as an empty successful list.
+- Reviewed desktop/mobile layouts follow the playbook mockup; no action bypasses a decision and unsupported editing/activation is explicit.
+
+Requirement links: U1, U2, U3, U4, U6.
+
+Outside this task: Arbitrary workflow editor; Implicit policy compilation/installation from source editing.
+
+### UI-09
+
+**Deliver Results metadata, media and feedback in usable increments**
+
+Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [UI-05](#ui-05), [API-06](#api-06), [API-11](#api-11), [API-12](#api-12).
+
+Replace Results placeholder in three staged increments: real result metadata/evidence links, retained media feed/detail, and revision-pinned comments/explicit feedback tasks. Full completion requires all backend owners; metadata can be delivered once API-06 is ready.
+
+Acceptance:
+
+- Live flows verify exact revision/source/acceptance state, actual retained media and missing/expired placeholders, then one feedback task under response loss.
+- Desktop feed/comments and phone cards match named mockups, with bounded thumbnails/visible cards, stable reading position and accessible evidence.
+
+Requirement links: U1, U2, U3, U4, U5, U6.
+
+Outside this task: Fake media to populate production cards; Marking metadata-only increment as full Results completion.
+
+### UI-10
+
+**Deliver docked full-page and mobile supervisor conversation**
+
+Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [UI-05](#ui-05), [API-07](#api-07), [AQ-17](#aq-17).
+
+Implement one shared conversation, draft/history/context and reading position across docked/full/mobile presentations, with explicit message delivery and central actor availability.
+
+Acceptance:
+
+- Actual configured supervisor dispatch/reply is demonstrated before full completion; absent actor preserves draft and never redirects to a worker.
+- Mockup composition and keyboard/IME behavior pass; response-loss recovery preserves one logical submission across navigation.
+
+Requirement links: U1, U2, U3, U4, U5, U6.
+
+Outside this task: Using mailbox acceptance as proof of reasoning or completed work; Hosting a supervisor on a worker node.
+
+### UI-11
+
+**Complete Overview composition real summaries and provider strip**
+
+Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [UI-05](#ui-05), [API-08](#api-08), [API-09](#api-09).
+
+Restore the Overview attention/work/outcomes and secondary capacity/health/session composition, link real scoped aggregates and search, and connect supported provider quota sources. Aggregates can ship before quota; full completion requires the declared sources.
+
+Acceptance:
+
+- Actual nonempty data links to working detail views, with independent source coverage and unavailable quota remaining unknown.
+- Desktop two-column and phone layouts match product references and bounded refresh/interaction budgets; absent sources do not remove the intended page structure.
+
+Requirement links: U1, U2, U3, U6.
+
+Outside this task: Heartbeat-derived capacity or eligibility; Fabricated quota percentages; Whole-product event stream.
+
+### UI-12
+
+**Connect existing worker profile observation and notification panels**
+
+Owner: `aq-dashboard`. Milestone: M6. Kind: implementation. Status: planned.
+
+Hard prerequisites: [UI-05](#ui-05), [CON-03](#con-03), [AQ-24](#aq-24).
+
+Use existing human worker/status/project/catalog, session observation/usage and notification APIs to make Agents/Settings useful. Present profile/configuration, historical checks, event provenance and delivery status with granular capabilities.
+
+Acceptance:
+
+- Real endpoint browser checks cover worker heartbeat, profile/binding inspection and available notification/session data; absent observations do not become zero or healthy.
+- Organized panels/disclosures and responsive focused-output integration match the shared design. Reads confer no terminal control, task readiness or wake authority.
+
+Requirement links: U1, U2, U3, U6, U9, U12, U14.
+
+Outside this task: New hibernation/stall lifecycle owners; Claiming account quota from usage; Full terminal rendering/control.
 
 ## Validation and updates
 
