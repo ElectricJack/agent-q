@@ -926,7 +926,9 @@
         "../../../aq-worker/docs/implementation/WRK-08-native-phase-host-evidence.md",
         "../implementation/AQ-08-phase-terminal-consumers-plan.md",
         "../implementation/AQ-08-phase-terminal-contract.md",
-        "../implementation/AQ-08-phase-host-process-evidence/qualification.md"
+        "../implementation/AQ-08-phase-host-process-evidence/qualification.md",
+        "../implementation/AQ-08-phase-history-evidence/qualification.md",
+        "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md"
       ]
     },
     {
@@ -1153,7 +1155,9 @@
         "../../../aq-worker/docs/implementation/WRK-08-native-phase-host-evidence.md",
         "../implementation/AQ-08-phase-terminal-consumers-plan.md",
         "../implementation/AQ-08-phase-terminal-contract.md",
-        "../implementation/AQ-08-phase-host-process-evidence/qualification.md"
+        "../implementation/AQ-08-phase-host-process-evidence/qualification.md",
+        "../implementation/AQ-08-phase-history-evidence/qualification.md",
+        "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md"
       ]
     },
     {
@@ -2591,7 +2595,9 @@
         "../../../aq-worker/docs/implementation/WRK-08-native-phase-host-evidence.md",
         "../implementation/AQ-08-phase-terminal-consumers-plan.md",
         "../implementation/AQ-08-phase-terminal-contract.md",
-        "../implementation/AQ-08-phase-host-process-evidence/qualification.md"
+        "../implementation/AQ-08-phase-host-process-evidence/qualification.md",
+        "../implementation/AQ-08-phase-history-evidence/qualification.md",
+        "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md"
       ]
     },
     {

@@ -447,3 +447,23 @@ retained through revision34. Existing execution-only and input/expiry regression
 pass5.64s and6.97s with the same binary. Targeted strict lint and the binary's two
 unit tests pass. Remote phase terminal ACKs, providers, renewal and task settlement
 remain unqualified; the closed synthetic harness does not activate those gates.
+
+The [worker paired lifecycle outbox](../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md)
+is integrated at `e805bb4` (source `66aa5c8`, integrated `19cb8b8`). Format10
+reserves bounded history space before launch and commits original physical facts
+with their phase envelopes. Exact ACKs survive lost replies and restart; Stopped
+has a separate HTTP lane. The bounded two-thread package profile passes227 tests
+with21 opt-in ignores;15 top-level actual host cases and three separate real-Git
+cases pass. A default-parallel timing failure remains recorded separately. Root
+verified1299 frozen source hashes,19 artifacts and18 extracted contract members.
+The format9 combined process proof above remains separate until a format10 union
+runs. No-Started closure publication and production capability remain deferred.
+
+The [authenticated historical lookup](../implementation/AQ-08-phase-history-evidence/qualification.md)
+is integrated at `d11f6b4` (source `c8af391`). Four actual SQL cases pass in7.95s,
+including lost-first-reply lookup, exact original phase identity, retired eligibility,
+credential rotation, corruption refusal and bounded reader admission. It uses the
+General pool and cannot reconstruct live permission or claim NeverGranted from
+absence. Strict targeted lint passes. Daemon Started/Stopped/closure consumers and
+registered033 migration qualification continue in parallel; no default route is
+activated by this read owner.
