@@ -1,0 +1,20 @@
+{
+  "source_commit": "dda1c2135feeb383b40e90192ac661f67f819abe",
+  "archive_sha256": "bd10dda2220bc91a8f0999cbe2a6e12804bdd3137c145c779d690d504c46d78e",
+  "all_tracked_source_test_example_payloads_exact": true,
+  "tracked_payload_files": 109,
+  "normalization_exclusions": [
+    "Cargo.toml",
+    "Cargo.lock",
+    ".cargo_vcs_info.json"
+  ],
+  "manifest_proof": "Cargo.toml.orig byte-identical to source Cargo.toml",
+  "old019_archives": "unchanged",
+  "independent_source_review": "decisions_vertical_v2 accepted dda1c21; no reviewer builds or SQL",
+  "actual_cargo_vcs_info": {
+    "git": {
+      "sha1": "dda1c2135feeb383b40e90192ac661f67f819abe"
+    },
+    "path_in_vcs": "crates/aq-admission"
+  }
+}
