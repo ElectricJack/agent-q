@@ -24,7 +24,14 @@ pub(super) async fn configure(case: &mut Case) -> Value {
             .fetch_one(&case.env.env.pool)
             .await
             .unwrap();
-    assert_eq!(version, "30", "actual ordered preparation owner required");
+    assert_eq!(
+        version.parse::<u32>().unwrap(),
+        aq_server::STATE_FORMAT_VERSION
+    );
+    assert!(
+        aq_server::STATE_FORMAT_VERSION >= 30,
+        "actual ordered preparation owner required"
+    );
     let mut config = (*case.env.env.state.config).clone();
     let mut p = (**config.profiled_execution.as_ref().unwrap()).clone();
     let runtime = &p.qualified_runtimes[0];
@@ -98,8 +105,8 @@ pub(super) async fn verify(
     assert_eq!(result["first_history"], result["history"]);
     let snapshot: Value =
         serde_json::from_slice(&std::fs::read(root.join("journal/journal.json")).unwrap()).unwrap();
-    assert_eq!(snapshot["state"]["format"], 6);
-    assert_eq!(result["journal_format"], 6);
+    assert_eq!(snapshot["state"]["format"], 7);
+    assert_eq!(result["journal_format"], 7);
     let attempt =
         &snapshot["state"]["attempts"][q.original.acceptance.binding.attempt_id.to_string()];
     assert_eq!(attempt["phase_acceptance"]["request"], result["request"]);
@@ -109,11 +116,16 @@ pub(super) async fn verify(
         attempt["phase_preparation"]["delivery"],
         result["initial_delivery"]
     );
-    assert_eq!(snapshot["state"]["revision"], result["journal_revision"]);
     assert_eq!(
-        snapshot["state"]["revision"],
+        result["journal_revision"],
         attempt["phase_preparation"]["record_revision"]
     );
+    if result["phase"] == "prepared_phase_inputs" {
+        verify_inputs(root, result, attempt, &q, &p, &initial, &snapshot);
+    } else {
+        assert_eq!(snapshot["state"]["revision"], result["journal_revision"]);
+        assert!(attempt["phase_prepared"].is_null());
+    }
     assert!(
         attempt["phase_preparation"]["record_revision"]
             .as_u64()
@@ -169,5 +181,61 @@ pub(super) async fn verify(
     eprintln!(
         "bounded phase clocks: {}",
         json!({"proposal_expiry_ms":p.original.offered.clock.expires_at_ms,"accepted_issued_ms":initial.receipt.lease.issued_at_ms,"accepted_expiry_ms":initial.receipt.lease.expires_at_ms,"replay_server_ms":replay.delivery.clock.server_time_ms,"journal_format":snapshot["state"]["format"],"journal_revision":snapshot["state"]["revision"]})
+    );
+}
+
+fn verify_inputs(
+    root: &std::path::Path,
+    result: &Value,
+    attempt: &Value,
+    acceptance: &AcceptRequest,
+    proposal: &Proposal,
+    accepted: &AcceptedDelivery,
+    snapshot: &Value,
+) {
+    let prepare: wire::PrepareRequest =
+        serde_json::from_value(result["prepare_request"].clone()).unwrap();
+    prepare
+        .validate_for(&accepted.receipt, acceptance, proposal)
+        .unwrap();
+    assert_eq!(
+        attempt["phase_prepared"]["request"],
+        result["prepare_request"]
+    );
+    assert_eq!(snapshot["state"]["revision"], result["prepared_revision"]);
+    assert!(
+        result["prepared_revision"].as_u64().unwrap()
+            > result["journal_revision"].as_u64().unwrap()
+    );
+    assert!(
+        result["prepared_at_ns"].as_u64().unwrap()
+            > result["original_deadline_ns"].as_u64().unwrap()
+    );
+    assert!(result["prepared_at_ns"].as_u64().unwrap() < result["deadline_ns"].as_u64().unwrap());
+    assert_eq!(
+        serde_json::to_value(&prepare.original.materials).unwrap(),
+        result["material_receipts"]
+    );
+    assert_eq!(
+        prepare.original.artifacts.len(),
+        proposal.original.offered.artifacts.len() + 2
+    );
+    let workspace = std::path::PathBuf::from(result["workspace_path"].as_str().unwrap());
+    assert!(workspace.starts_with(root.join("git/workspaces")));
+    assert_eq!(
+        std::fs::read(workspace.join("source")).unwrap(),
+        b"actual source bytes\n"
+    );
+    assert!(
+        attempt["downloads"]
+            .as_object()
+            .unwrap()
+            .values()
+            .all(|d| !d["receipt"].is_null())
+    );
+    assert!(attempt["source"]["verified"].is_object());
+    eprintln!(
+        "bounded phase inputs: {}",
+        json!({"artifacts":prepare.original.artifacts.len(),"materials":prepare.original.materials.len(),"prepared_revision":result["prepared_revision"],"prepared_at_ns":result["prepared_at_ns"],"original_deadline_ns":result["original_deadline_ns"],"deadline_ns":result["deadline_ns"]})
     );
 }

@@ -23,18 +23,25 @@ async fn read_frame(reader: &mut BufReader<tokio::process::ChildStdout>) -> Valu
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "requires explicit pinned native worker smoke binary and actual aq-git/Git"]
 async fn actual_worker_downloads_installs_hydrates_and_prepares_against_real_daemon() {
-    run_worker(false).await;
+    run_worker(false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "requires explicit pinned phase-capable worker smoke binary and actual aq-git/Git"]
 async fn actual_worker_durably_accepts_new_phase_and_replays_after_proposal_expiry() {
-    run_worker(true).await;
+    run_worker(true, false).await;
 }
-async fn run_worker(use_phase: bool) {
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "requires explicit pinned phase-input worker smoke binary and actual aq-git/Git"]
+async fn actual_worker_prepares_phase_inputs_after_proposal_expiry() {
+    run_worker(true, true).await;
+}
+async fn run_worker(use_phase: bool, prepare_phase_inputs: bool) {
     let mut a = setup_actual_unpublished().await;
     let case = &mut a.case;
     let phase_config = if use_phase {
-        Some(phase::configure(case).await)
+        let mut config = phase::configure(case).await;
+        config["prepare_inputs"] = json!(prepare_phase_inputs);
+        Some(config)
     } else {
         None
     };
@@ -156,7 +163,9 @@ async fn run_worker(use_phase: bool) {
         .bind(identity.node_id).bind(identity.boot_id).bind(json!(snapshot)).execute(&case.env.env.pool).await.unwrap();
     input.write_all(b"{\"continue\":true}\n").await.unwrap();
     let result = read_frame(&mut output).await;
-    let expected_phase = if use_phase {
+    let expected_phase = if prepare_phase_inputs {
+        "prepared_phase_inputs"
+    } else if use_phase {
         "accepted_preparation"
     } else {
         "granted"
@@ -208,7 +217,7 @@ async fn run_worker(use_phase: bool) {
             &std::fs::read(worker_root.join("journal/journal.json")).unwrap(),
         )
         .unwrap();
-        assert_eq!(snapshot["state"]["format"], 6);
+        assert_eq!(snapshot["state"]["format"], 7);
         let attempt = &snapshot["state"]["attempts"][prepare.binding.attempt_id.to_string()];
         let record = &attempt["initial_grant"];
         assert_eq!(record["delivery"], result["grant"]);
