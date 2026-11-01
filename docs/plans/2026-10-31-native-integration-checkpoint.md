@@ -64,8 +64,11 @@ test counts above are not attributed to this newer source.
 Parallel implementation now covers central renewal/reconciliation, additive
 pre-Started closure contracts, and actual worker source hydration/workspace
 ownership. The [actual Git producer-to-grant checkpoint](../implementation/AQ-08-actual-git-grant-qualification.md)
-passes14 initial-grant tests including two actual-Git cases. Root is closing the
-separate fresh pre-grant Graph observation gap found during review.
+passes14 initial-grant tests including two actual-Git cases. The [fresh pre-grant Graph fence](../implementation/AQ-08-initial-grant-current-graph.md)
+now closes the observed task/context-change gap and passes43 selected checks,
+including both actual-Git cases. It rereads bounded readiness and exact authorized
+context and checks freshness immediately before commit without retiming original
+inputs. The preview remains the separately pinned `960ffc7` binary.
 Shared migration27 and public0.1.7 are frozen. No path may fabricate missing
 original requests, convert timeout to release proof, or restore old-boot authority.
 
