@@ -1,11 +1,14 @@
 # Phase-aware fresh execution confirmation and original authority
 
 Status: approved bounded design; implementation starts from ordered30. Migration
-031 is reserved for this lane but is not registered until its actual owner and
+032 is reserved for this lane but is not registered until its actual owner and
 upgrade tests are qualified. Admission0.1.9 stays byte-frozen. No legacy plan,
 initial delivery or receipt row is fabricated to satisfy existing consumers.
 
 ## First supported profile and activation boundary
+
+Additive031 belongs to the inventory remove/restore barrier and is a prerequisite.
+Frozen029/030 bytes are not changed by this owner.
 
 The first owner supports one exact already-accepted worker choice, no previously
 charged/issued execution in that task lineage, and no configured cost/hard-cost/
@@ -34,7 +37,7 @@ provenance. A new evaluation timestamp never extends the underlying evidence.
 | Project | `project_bindings::check_execution_eligibility`, then `fence_for_offer` over its genuinely fresh frozen result; exact original project revision/catalog/permissions/source binding. |
 | Registry | `intelligence::fence_current_registry` plus exact configured credential profile/revision/provider/account/endpoint/node authorization and actual private fingerprint. The original registry artifact pin must still match; no reselection or unrequested registry-pin replacement. |
 | Principal | Actual immutable decision principal plus current owner/project-policy authorization under existing principal locks; exact Graph access profile/context binding and current revocation state. |
-| Inventory | Actual locked normalized snapshot plus `presence::current_inventory_locked` returning verified InventoryV2 request/receipt/epoch/qualification. Full harness/CLI/adapter/environment/model/reasoning/capabilities/limits must still support the exact choice. Global semantics remain ProvisionableOnly, not an installation claim; legacy false cannot acquire a v2 meaning. |
+| Inventory | Actual locked normalized snapshot plus `presence::current_inventory_locked` returning verified InventoryV2 request/receipt/epoch/qualification. Full harness/CLI/adapter/environment/model/reasoning/capabilities/limits must still support the exact choice. Global semantics remain ProvisionableOnly, not an installation claim; legacy false cannot acquire a v2 meaning. Match the sealed original snapshot through `inventory_epoch_locked` to the fresh current compatibility epoch, allowing compatible heartbeats but refusing a remove/restore or legacy barrier. |
 | Availability | Existing scoped health owner over actual latest retained observations. Require ObservedAvailable with finite original expiry/age, no overriding negative/cooldown. Unknown refuses initial execution; no provider availability is inferred from an enabled credential. |
 | Budget | Newly locked actual task-lineage attempt/NoIssue history and current policy. First profile requires only the current ungranted claim counted as charged and no previous issued/unknown execution. No copied/re-dated initial BudgetSnapshot or invented invoice estimate. |
 | Context | Genuinely new bounded ready page and full context read for the exact original CAS/content revision. Compare the original full raw-context digest and authorized semantic context, removing only the documented observation timestamp from temporary comparisons. No read-new/overwrite-old or root-only continuation shortcut. |
@@ -89,7 +92,7 @@ GrantedLaunch or InitialGrantDelivery for the phase variant. Missing, mixed,
 ambiguous, changed or structurally inconsistent indexed/body history refuses.
 Historical reads carry no new nonce, fresh permission or renewed clock.
 
-031 stores immutable canonical request/receipt/provenance bytes with finite caps,
+032 stores immutable canonical request/receipt/provenance bytes with finite caps,
 node/attempt/operation/grant identities, exact digests and issuance/expiry columns.
 It references the actual030 acceptance and actual registration history; no fake
 legacy receipt satisfies a foreign key. Its retained bytes and material-receipt
