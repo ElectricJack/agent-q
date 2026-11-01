@@ -229,6 +229,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         27,
         include_str!("../migrations/0027_native_definition_identities.sql"),
     ),
+    (
+        28,
+        include_str!("../migrations/0028_profiled_launch_closure.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.

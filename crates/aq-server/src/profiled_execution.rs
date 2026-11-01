@@ -37,3 +37,5 @@ pub mod producer;
 
 pub(crate) mod continuation_policy;
 pub mod reconciliation;
+
+pub mod closure;
