@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "source_commit": "2297616e524f1d5badba02b63b24f98f4037eab1",
+  "worker_source_commit": "8c813d664e33477c53155d29fc328d43e3a3795f",
+  "host_source_commit": "40d6e36057456e9f58c63dd2b2509ccf412e38db",
+  "journal_format": 9,
+  "code_scope": "exactly three literal assertions8\u21929 in two test files",
+  "source_files": [
+    {
+      "path": "crates/aq-server/tests/native_initial_grant/published/actual_git/worker_assembly.rs",
+      "sha256": "8300ea479478c133bbd6a3759c2c3f4910cf82ac7bed63ee36cfd43a11dd068f",
+      "bytes": 15462
+    },
+    {
+      "path": "crates/aq-server/tests/native_initial_grant/published/actual_git/worker_assembly/phase.rs",
+      "sha256": "94696a7af8eba483a8dbe8f46368b8cd2783a6824a4396f23cb316979f65bbb4",
+      "bytes": 23586
+    }
+  ],
+  "external_artifacts": [
+    {
+      "kind": "worker",
+      "path": "/tmp/aq-native-prepare-smoke-artifact/phase9-execution-release/native-prepare-smoke",
+      "sha256": "42f7a940f8c71b1b3771c50a5125f782158d1b1bd66a6ea8f7f050dd763b18d8",
+      "bytes": 9111248
+    },
+    {
+      "kind": "aq-git",
+      "path": "/tmp/aq-wrk08-git-pin/aq-git",
+      "sha256": "c2ff26f5e63008aec0fbd4082a547e87825e651d4aba0744c4b9fdf752d58c39",
+      "bytes": 45338176
+    },
+    {
+      "kind": "git",
+      "path": "/usr/bin/git",
+      "sha256": "eb54b535467e0975c1284d4c4d08eea779aeb248a5d34b02e2ee171382e22201",
+      "bytes": 4066232
+    }
+  ],
+  "logs": [
+    {
+      "path": "server-no-run.log",
+      "sha256": "532196b59c6ba8da6458eaa71b9d519461d5bf0f5b8963f7103f082c157f6448",
+      "bytes": 257
+    },
+    {
+      "path": "worker-build.log",
+      "sha256": "6ca1295c1ffb472da7f33f8879b937ef4f13d675cdd2a8aab9c0ee8ba1b868aa",
+      "bytes": 225
+    },
+    {
+      "path": "execution-process.log",
+      "sha256": "f4d1d352860d249670616f2ce110c66467e54ffeb08b44d466e39b74694f8088",
+      "bytes": 1051
+    },
+    {
+      "path": "input-process.log",
+      "sha256": "3fb2d4179f1b026ff53a2c32f94e0264794173cf7d130f38d823d55af5e14ed2",
+      "bytes": 787
+    },
+    {
+      "path": "format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "commands": {
+    "no_run": "CARGO_TARGET_DIR=/tmp/aq-native-union-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=2 cargo test -p aq-server --test native_initial_grant --all-features --locked --offline --no-run",
+    "execution": "CARGO_TARGET_DIR=/tmp/aq-native-union-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=2 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres RUST_TEST_THREADS=1 AQ_TEST_GIT_CANDIDATE=/tmp/aq-wrk08-git-pin/aq-git AQ_TEST_GIT_EXECUTABLE=/usr/bin/git AQ_TEST_NATIVE_WORKER=/tmp/aq-native-prepare-smoke-artifact/phase9-execution-release/native-prepare-smoke AQ_TEST_NATIVE_WORKER_SHA256=42f7a940f8c71b1b3771c50a5125f782158d1b1bd66a6ea8f7f050dd763b18d8 cargo test -p aq-server --test native_initial_grant --all-features --locked --offline published::actual_git::worker_assembly::actual_worker_receives_durable_phase_execution_from_actual_issuer -- --exact --ignored --test-threads=1 --nocapture",
+    "input": "CARGO_TARGET_DIR=/tmp/aq-native-union-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=2 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres RUST_TEST_THREADS=1 AQ_TEST_GIT_CANDIDATE=/tmp/aq-wrk08-git-pin/aq-git AQ_TEST_GIT_EXECUTABLE=/usr/bin/git AQ_TEST_NATIVE_WORKER=/tmp/aq-native-prepare-smoke-artifact/phase9-execution-release/native-prepare-smoke AQ_TEST_NATIVE_WORKER_SHA256=42f7a940f8c71b1b3771c50a5125f782158d1b1bd66a6ea8f7f050dd763b18d8 cargo test -p aq-server --test native_initial_grant --all-features --locked --offline published::actual_git::worker_assembly::actual_worker_prepares_phase_inputs_after_proposal_expiry -- --exact --ignored --test-threads=1 --nocapture",
+    "format": "rustfmt --edition 2024 --check crates/aq-server/tests/native_initial_grant/published/actual_git/worker_assembly.rs crates/aq-server/tests/native_initial_grant/published/actual_git/worker_assembly/phase.rs"
+  },
+  "checks": {
+    "server_no_run": {
+      "passed": true,
+      "seconds": 33.86
+    },
+    "worker_release_build": {
+      "passed": true,
+      "seconds": 46.36
+    },
+    "execution_process": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 5.78
+    },
+    "input_process": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "seconds": 7.15
+    },
+    "explicit_rustfmt": "passed"
+  },
+  "measured": {
+    "execution": {
+      "inputs": {
+        "artifacts": 38,
+        "deadline_ns": 166710359796169,
+        "materials": 1,
+        "original_deadline_ns": 166681788818342,
+        "prepared_at_ns": 166683507141126,
+        "prepared_revision": 26
+      },
+      "execution": {
+        "checked_at_ns": 166684042561248,
+        "execution_deadline_ns": 166693425909230,
+        "execution_revision": 27,
+        "grant_expires_at_ms": 1793509936475,
+        "hard_deadline_ms": 1793509986475,
+        "hard_deadline_ns": 166743425909230,
+        "issued_at_ms": 1793509926475
+      },
+      "clocks": {
+        "accepted_expiry_ms": 1793509953105,
+        "accepted_issued_ms": 1793509923218,
+        "journal_format": 9,
+        "journal_revision": 27,
+        "proposal_expiry_ms": 1793509924728,
+        "replay_server_ms": 1793509923344
+      }
+    },
+    "input": {
+      "inputs": {
+        "artifacts": 38,
+        "deadline_ns": 166766545841184,
+        "materials": 1,
+        "original_deadline_ns": 166737986677828,
+        "prepared_at_ns": 166741620825731,
+        "prepared_revision": 26
+      },
+      "clocks": {
+        "accepted_expiry_ms": 1793510012636,
+        "accepted_issued_ms": 1793509982753,
+        "journal_format": 9,
+        "journal_revision": 26,
+        "proposal_expiry_ms": 1793509984272,
+        "replay_server_ms": 1793509984825
+      }
+    }
+  },
+  "execution_issued_after_original_expiry_ms": 1747,
+  "unchanged_policy": {
+    "phase_observation_ms": 2000,
+    "selection_source_age_ms": 5000
+  },
+  "old_format8_evidence_modified": false,
+  "limits": [
+    "No legacy suite rerun or new full-suite/lint claim",
+    "No production route changes, host start, provider activation or paid calls",
+    "Actual worker process/daemon HTTP-SQL/aq-git-Git, synthetic Graph/model/provider/runtime qualification",
+    "Existing phase input-only late replay assertions retained",
+    "Root preview fromea1 unchanged"
+  ]
+}
