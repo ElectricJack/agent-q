@@ -1,0 +1,39 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-server)
+error[E0433]: cannot find `closure` in `profiled_execution`
+ --> crates/aq-server/tests/granted_closure.rs:8:36
+  |
+8 | use aq_server::profiled_execution::closure::{
+  |                                    ^^^^^^^ could not find `closure` in `profiled_execution`
+
+error[E0432]: unresolved import `aq_server::profiled_execution::closure`
+ --> crates/aq-server/tests/granted_closure.rs:8:36
+  |
+8 | use aq_server::profiled_execution::closure::{
+  |                                    ^^^^^^^ could not find `closure` in `profiled_execution`
+
+error[E0425]: cannot find function `build_worker_router_with_closure_policy` in crate `aq_server`
+  --> crates/aq-server/tests/granted_closure.rs:87:20
+   |
+87 |         aq_server::build_worker_router_with_closure_policy(c.case.env.env.state.clone(), p)
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `aq_server`
+
+error[E0425]: cannot find function `admission` in module `aq_server::test_support`
+   --> crates/aq-server/tests/granted_closure.rs:429:42
+    |
+429 |                 aq_server::test_support::admission(&c.case.env.env.state.store),
+    |                                          ^^^^^^^^^ not found in `aq_server::test_support`
+    |
+help: consider importing this function
+    |
+  4 + use crate::common::selection::admission;
+    |
+help: if you import `admission`, refer to it directly
+    |
+429 -                 aq_server::test_support::admission(&c.case.env.env.state.store),
+429 +                 admission(&c.case.env.env.state.store),
+    |
+
+Some errors have detailed explanations: E0425, E0432, E0433.
+For more information about an error, try `rustc --explain E0425`.
+error: could not compile `aq-server` (test "granted_closure") due to 4 previous errors
+warning: build failed, waiting for other jobs to finish...

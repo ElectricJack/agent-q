@@ -1,0 +1,70 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 39.83s
+     Running tests/granted_closure.rs (/home/jkern/dev/agent-q/target/debug/deps/granted_closure-1c569bebce627ff2)
+
+running 9 tests
+test actual_host_stopped_variant_retains_absent_prestart_pane_without_inventing_started ... FAILED
+test actual_grant_closes_once_and_replays_without_release_or_execution_clock ... FAILED
+test closure_path_is_explicit_reserved_control ... ok
+test closure_http_uses_reserved_control_capacity_and_refuses_at_its_shared_bound ... FAILED
+test credential_rotation_during_node_lock_wait_cannot_commit_a_closure ... ok
+test expiry_and_active_policy_retirement_do_not_block_historical_closure ... FAILED
+test failed_receipt_insert_rolls_back_revocation_and_preserves_retry ... FAILED
+test policy_replacement_fences_old_owner_but_exact_history_can_use_new_current_policy ... FAILED
+test started_and_closure_serialize_to_exactly_one_terminal_history ... ok
+
+failures:
+
+---- actual_host_stopped_variant_retains_absent_prestart_pane_without_inventing_started stdout ----
+
+thread 'actual_host_stopped_variant_retains_absent_prestart_pane_without_inventing_started' (210345) panicked at crates/aq-server/tests/granted_closure.rs:388:5:
+assertion `left == right` failed: {"kind":"failure","body":{"schema_version":1,"code":"unavailable","operation_id":null}}
+  left: 500
+ right: 200
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- actual_grant_closes_once_and_replays_without_release_or_execution_clock stdout ----
+
+thread 'actual_grant_closes_once_and_replays_without_release_or_execution_clock' (210344) panicked at crates/aq-server/tests/granted_closure.rs:116:5:
+assertion `left == right` failed: {"kind":"failure","body":{"schema_version":1,"code":"unavailable","operation_id":null}}
+  left: 500
+ right: 200
+
+---- closure_http_uses_reserved_control_capacity_and_refuses_at_its_shared_bound stdout ----
+
+thread 'closure_http_uses_reserved_control_capacity_and_refuses_at_its_shared_bound' (210348) panicked at crates/aq-server/tests/granted_closure.rs:454:9:
+assertion `left == right` failed: {"kind":"failure","body":{"schema_version":1,"code":"unavailable","operation_id":null}}
+  left: 500
+ right: 200
+
+---- expiry_and_active_policy_retirement_do_not_block_historical_closure stdout ----
+
+thread 'expiry_and_active_policy_retirement_do_not_block_historical_closure' (210375) panicked at crates/aq-server/tests/granted_closure.rs:279:6:
+called `Result::unwrap()` on an `Err` value: Database(PgDatabaseError { severity: Error, code: "42703", message: "column \"execution_deadline_ms\" does not exist", detail: None, hint: None, position: Some(Original(8)), where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("parse_relation.c"), line: Some(3716), routine: Some("errorMissingColumn") })
+
+---- failed_receipt_insert_rolls_back_revocation_and_preserves_retry stdout ----
+
+thread 'failed_receipt_insert_rolls_back_revocation_and_preserves_retry' (210390) panicked at crates/aq-server/tests/granted_closure.rs:265:5:
+assertion `left == right` failed
+  left: 500
+ right: 200
+
+---- policy_replacement_fences_old_owner_but_exact_history_can_use_new_current_policy stdout ----
+
+thread 'policy_replacement_fences_old_owner_but_exact_history_can_use_new_current_policy' (210393) panicked at crates/aq-server/tests/granted_closure.rs:218:5:
+assertion `left == right` failed: {"kind":"failure","body":{"schema_version":1,"code":"unavailable","operation_id":null}}
+  left: 500
+ right: 200
+
+
+failures:
+    actual_grant_closes_once_and_replays_without_release_or_execution_clock
+    actual_host_stopped_variant_retains_absent_prestart_pane_without_inventing_started
+    closure_http_uses_reserved_control_capacity_and_refuses_at_its_shared_bound
+    expiry_and_active_policy_retirement_do_not_block_historical_closure
+    failed_receipt_insert_rolls_back_revocation_and_preserves_retry
+    policy_replacement_fences_old_owner_but_exact_history_can_use_new_current_policy
+
+test result: FAILED. 3 passed; 6 failed; 0 ignored; 0 measured; 0 filtered out; finished in 10.72s
+
+error: test failed, to rerun pass `-p aq-server --test granted_closure`
