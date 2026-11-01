@@ -3,6 +3,7 @@
 mod graph;
 mod history;
 mod material_receipts;
+pub(crate) use super::initial_authority::load_legacy_initial_grant_locked as load_original_grant_locked;
 use super::{artifacts, journal, material, registration, source_exports};
 use crate::{
     AppState,
@@ -23,7 +24,8 @@ use aq_admission::{
         TransportDocument,
     },
 };
-pub(crate) use history::{OriginalGrant, load_original_grant_locked};
+pub(crate) use history::OriginalGrant;
+pub(crate) use history::load_original_grant_locked as load_legacy_original_grant_locked;
 pub(crate) use material_receipts::load_installed_receipt_locked;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
