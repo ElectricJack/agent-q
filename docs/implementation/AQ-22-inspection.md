@@ -9,4 +9,13 @@ The human read surface uses the shared migration012 exact-session ACL and curren
 
 Both routes are mounted on the human listener, separate from the node batch route on the worker listener. Two read admissions and two ingest admissions share four dedicated observation SQL connections, independently of control traffic. Ordered migration014 installs the ledger and advances the state format. Source catalog admission, raw transcript retention, cumulative baseline owner, rate-card/budget adapter and actual harness qualification remain pending.
 
+Dashboard discovery advertises `session.events.read@1` separately from
+`session.usage.read@1`. Each requires the actual mounted observation router and
+bounded current session visibility; mounting dashboard routes alone advertises
+neither interface. A capability describes an available read interface, not access
+to every attempt. Every event request still passes the exact-session ACL above.
+The Agents Details consumer loads source events on demand and retains the first
+page's watermark for continuation. Reported tool/turn/gap facts are historical
+source reports, not live terminal state, control permission or current health.
+
 `aq-observation-api0.1.0` provides the small portable DTOs and strict decoders for the CLI. Existing lifecycle API and notification packages remain pinned unchanged. Its clean archive independently passed four tests, strict all-target clippy and formatting against only the three exact public lifecycle/session archives. The server candidate passed nine PostgreSQL/API tests plus20 accounting tests. Evidence remains tied to each specific source checkpoint; these are not full AQ22 completion claims.
