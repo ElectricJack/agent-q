@@ -45,7 +45,7 @@ async fn installed(pool: &PgPool, table: &str) -> bool {
         .unwrap()
 }
 #[tokio::test]
-async fn fresh_database_installs_ordered27_without_activating_optional_owners() {
+async fn fresh_database_installs_ordered_current_without_activating_optional_owners() {
     let db = TestDb::create().await;
     let store = db.store().await;
     let pool = db.pool().await;
@@ -135,7 +135,7 @@ enabled=false
     }
 }
 #[tokio::test]
-async fn populated25_upgrades_to27_preserving_rows_and_reopening_idempotently() {
+async fn populated25_upgrades_to_current_preserving_rows_and_reopening_idempotently() {
     let (db, pool) = old25().await;
     let id = seed(&pool).await;
     let before = snapshot(&pool, id).await;
@@ -150,7 +150,7 @@ async fn populated25_upgrades_to27_preserving_rows_and_reopening_idempotently() 
         assert_eq!(snapshot(&pool, id).await, before);
         let current = migrations(&pool).await;
         assert_eq!(&current[..25], prior.as_slice());
-        assert_eq!(current.len(), 27);
+        assert_eq!(current.len(), aq_server::STATE_FORMAT_VERSION as usize);
         assert_eq!(
             sqlx::query_scalar::<_, i16>(
                 "SELECT catalog_profile FROM playbook_namespaces WHERE namespace_id=$1"
@@ -193,7 +193,7 @@ async fn failure_in27_rolls_back26_and_all_metadata_then_explicit_retry_succeeds
     assert_eq!(snapshot(&pool, id).await, before);
 }
 #[tokio::test]
-async fn old25_reader_profile_refuses27_without_touching_rows_or_migration_metadata() {
+async fn old25_reader_profile_refuses_current_without_touching_rows_or_migration_metadata() {
     let db = TestDb::create().await;
     drop(db.store().await);
     let pool = db.pool().await;
@@ -217,7 +217,7 @@ async fn old25_reader_profile_refuses27_without_touching_rows_or_migration_metad
 #[test]
 fn format_change_requires_backup_restore_before_rollback() {
     let mut target=aq_server::updates::build_manifest("ghcr.io/fixture/server@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","ghcr.io/fixture/worker@sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",env!("CARGO_PKG_VERSION"),"synthetic-schema-check").unwrap();
-    assert_eq!(target.state_format, 27);
+    assert_eq!(target.state_format, aq_server::STATE_FORMAT_VERSION);
     assert!(target.readable_state_formats.contains(&25));
     assert!(target.readable_state_formats.contains(&26));
     let mut old = target.clone();
@@ -231,7 +231,7 @@ fn format_change_requires_backup_restore_before_rollback() {
             .needs_restore_on_rollback
     );
     assert!(
-        !aq_release::check_upgrade(None, Some(27), &target)
+        !aq_release::check_upgrade(None, Some(aq_server::STATE_FORMAT_VERSION), &target)
             .unwrap()
             .needs_restore_on_rollback
     );
