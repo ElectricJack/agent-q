@@ -19,6 +19,15 @@ owns cursor order and `mailbox_operations` owns original send idempotency. New
 central tables must not copy bodies, increment that cursor, create another send
 receipt, or modify schema-35 retention counters.
 
+Before selection, validate global source against its actual original queued
+API-07 operation receipt. Match original actor/sender, message, conversation,
+cursor and mailbox envelope payload digest; compare the receipt's original
+body_digest with SHA-256 of the current source body. Use an indexed global
+queued-receipt message lookup and refuse missing/ambiguous/mismatched proof. This
+catches same-length body substitution already present before migration 37.
+Protect those original global operation receipts against mutation/deletion too.
+Do not trust a newly computed body hash alone as evidence of original bytes.
+
 `migrations/0005_messaging.sql` requires an execution-attempt FK for both
 `mailbox_deliveries` and `mailbox_receipts`. Central reservations never use those
 tables or fabricate an attempt. `mailbox_messages.payload_digest` is the original
@@ -53,6 +62,18 @@ refuse before insertion. No counter decreases, row deletion, reset, compaction o
 physical disk-size guarantee is implied. The future execution owner additionally
 needs a finite bound on bound-turn attempts per message (proposed maximum eight).
 That is not eight automatic retries and is not yet an executable capability.
+
+An active reservation always retains cancellation headroom: one of the 4,096
+operation slots and 128 KiB of the 64 MiB logical budget remain unused and
+protected. Reserve admission must leave that space, and every other new mutation
+(including configuration/refusals) must preserve it while a hold exists. Only a
+new exact successful cancellation of the current reservation may consume it;
+a stale/incorrect cancel cannot consume the protected slot. Bound the complete
+retained cancel request plus receipt and fixed row overhead below 128 KiB. A
+current-reservation/counter constraint enforces this invariant in the actor row.
+Counters never decrease when the reservation clears. Thus even the last admitted
+reservation remains releasable at capacity; read/replay exceptions alone would
+not provide that guarantee.
 
 ## Four storage responsibilities
 
@@ -89,9 +110,18 @@ Later execution admission gets its own reviewed schema and source owner. New
 records reject identity mutation/deletion/truncation; revision/counter transitions
 are guarded. Cross-field source references are validated against the actual
 mailbox row in the admitting transaction, including original recipient/thread and
-human author shape. Preserve existing AQ-11 bytes and behavior. If selective
-append-only protection of global mailbox rows is necessary, add it in the new
-migration without editing frozen 5/35 or weakening legacy agent semantics.
+human author shape. Preserve existing AQ-11 bytes and behavior. Selective append-only protection of global mailbox rows and original queued
+operation receipts is mandatory in the new migration. UPDATE/DELETE guards
+recognize OLD OR NEW global recipient/actual global mailbox key so changing a
+remote row into global mail cannot bypass the fence. Relevant TRUNCATE refuses.
+Preserve remote task/session behavior; do not edit frozen 5/35. Derive the actual
+global key with the exact frozen canonical-recipient digest and qualify that
+mapping against the existing owner, not a second naming convention.
+
+Each preview/reserve locks the actual mailbox head and checks indexed
+MAX(cursor)+1 equals next_cursor (with the true empty mailbox beginning at 1).
+A missing/inconsistent head with retained source rows is unavailable, not empty.
+Do not silently hide history after a head rewind or bless a changed source.
 
 ## Lock order and authority
 
@@ -109,7 +139,9 @@ reservation `FOR UPDATE`, mailbox head `FOR SHARE`, exact source rows in cursor
 order `FOR SHARE`, member/operation/receipt writes. An initial configuration
 serializes creation on the already existing singleton conversation row; it does
 not race two different actors into that conversation. All policy/revoke/cancel
-paths use the same prefix. Existing human enqueue locks user, conversation,
+paths use the same prefix. Read-only methods take SHARE locks in that same order;
+choose the required lock strength initially, never upgrade a held SHARE lock
+while acquiring another domain lock. Existing human enqueue locks user, conversation,
 human-sender operation, then mailbox head; central never acquires them in reverse
 or borrows a human sender lock as a machine identity.
 
@@ -192,7 +224,9 @@ Unicode/body-byte bounded selection and partial scans; exact metadata/no copied
 bodies; concurrent reservation CAS; response-loss replay and changed bytes/kind/
 principal; retained refusal; pure lookup; cancellation/disable/replay/restart;
 all-reservation UUID+cursor aliases/cross-kind operation reuse; capacity refusal
-with reads/replay retained; guard/upgrade/drift/old-reader refusal; and unchanged
+with reads/replay retained and protected cancellation at exact count/byte limits;
+pre-upgrade same-length source substitution, original-receipt mismatch,
+post-upgrade row/receipt alias mutations and head rewind; guard/upgrade/drift/old-reader refusal; and unchanged
 existing AQ-11 agent digest/receipt behavior. Future execution history must remain
 explicitly unavailable. These tests prove durable pre-plan ownership, not a live
 supervisor, a stopped process, delivery, a reply or provider isolation.
