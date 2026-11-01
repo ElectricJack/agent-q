@@ -398,7 +398,7 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         }
     }
     if supported >= 34 {
-        let complete: bool = sqlx::query_scalar("SELECT to_regclass('human_graph_operations') IS NOT NULL AND to_regclass('human_graph_operation_actor') IS NOT NULL AND to_regprocedure('guard_human_graph_operation_identity()') IS NOT NULL AND EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid=to_regclass('human_graph_operations') AND tgname='human_graph_operation_identity_guard' AND NOT tgisinternal AND tgenabled IN ('O','A') AND tgfoid=to_regprocedure('guard_human_graph_operation_identity()'))")
+        let complete: bool = sqlx::query_scalar("SELECT to_regclass('human_graph_operations') IS NOT NULL AND to_regclass('human_graph_operation_actor') IS NOT NULL AND to_regprocedure('guard_human_graph_operation_identity()') IS NOT NULL AND NOT EXISTS(SELECT 1 FROM (VALUES ('human_graph_operation_identity_guard',19),('human_graph_operation_delete_guard',11),('human_graph_operation_truncate_guard',34)) expected(name,kind) WHERE NOT EXISTS(SELECT 1 FROM pg_trigger t WHERE t.tgrelid=to_regclass('human_graph_operations') AND t.tgname=expected.name AND t.tgtype=expected.kind AND NOT t.tgisinternal AND t.tgenabled IN ('O','A') AND t.tgfoid=to_regprocedure('guard_human_graph_operation_identity()')))")
             .fetch_one(&mut *tx).await?;
         if !complete {
             return Err(StoreError::Corrupt(
