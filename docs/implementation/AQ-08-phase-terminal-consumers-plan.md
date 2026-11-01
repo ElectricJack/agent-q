@@ -12,6 +12,8 @@ Current Stopped validates a retained Started request/receipt and the exact hot g
 
 The first functioning profile should include Started, matching Stopped, and granted-no-Started closure. It advertises no renewal. The host guardian stops at the original independently sampled execution expiry/hard cap. A closed launch or verified physical stop continues to hold task, source, result and external-effect claims until their owners settle them. It is not ordinary success or failure.
 
+New Started work uses general admission with a finite work permit bound. Stopped and no-Started closure use the existing reserved control view and a separate finite control bound, leaving capacity for execution cancellation; renewal keeps its dedicated reserve. Historical reads use general inspection capacity. No external Graph/Git/private-file I/O occurs under terminal authority locks. Existing authentication, CSRF where applicable, maintenance cancellation/revocation allowances and pool limits remain in force.
+
 ## Portable contract proposal
 
 Prefer a new `aq-phase-terminal-protocol` package, version 0.1.0, exactly depending on frozen `aq-admission =0.1.9`. Keep all existing admission 0.1.7/0.1.8/0.1.9 archives and module bytes unchanged. This avoids mutating a published Feature enum or implying that existing HostStopEvidenceV1 peers support phase history.
@@ -57,7 +59,7 @@ Add explicit origin kind/digest and bounded phase-envelope identity to Started a
 
 Before accepting a phase terminal insert, a SQL trigger resolves the actual state32 grant and requires exact node/boot/attempt/grant/receipt associations plus a transaction-local writer marker bound to that receipt. The new owner sets the marker only after loading actual history and qualifying the request, using `set_config(...,true)` or equivalent SET LOCAL. A marker is not authorization and is never accepted from an HTTP body. It is not sticky pooled-session state.
 
-An older writer omits the new origin and marker and is rejected. Its entire Started/Stopped transaction rolls back, including journal/hot changes. A new legacy path also cannot label a phase row as legacy. Direct database administrators remain trusted; this is a compatibility fence, not remote attestation or protection against a database owner.
+Origin classification includes actual state30 accepted ownership, so a missing state32 Grant cannot fall through to a legacy writer path. An older writer omits the new origin and marker and is rejected. Its entire Started/Stopped transaction rolls back, including journal/hot changes. A new legacy path also cannot label a phase row as legacy. Direct database administrators remain trusted; this is a compatibility fence, not remote attestation or protection against a database owner.
 
 Extend the closure SQL guard with a separate strict phase branch resolving the actual phase record and typed context. Keep its legacy branch unchanged. The terminal hot-state fence continues to prohibit resurrection or owner/grant replacement. No caller-provided `kind` or digest suffices without its actual owning row.
 
