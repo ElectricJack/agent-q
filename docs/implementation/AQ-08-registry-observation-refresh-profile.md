@@ -216,7 +216,7 @@ credential or real model launch is part of this initial contract work.
 
 ## Qualification before adoption
 
-1. Capture actual untouched0.1.9 schema/artifact/manifest, representative complete
+1. Capture actual untouched 0.1.9 schema/artifact/manifest, representative complete
    phase documents, digest/time results and invalid-case error strings before
    shared-core edits. New package preserves every old vector and checker.
 2. Pure positive: same configuration, actual selected/accepted/preflight/current
@@ -239,3 +239,21 @@ credential or real model launch is part of this initial contract work.
    qualify terminal 0.1.1 and worker/server exact pins. Rerun bounded deterministic
    static processes with explicit profile name, no provider availability claim
    and no TTL widening. Production runtime qualification remains independent.
+
+## Approved pure implementation source increment
+
+Root approved the pure 0.1.10 implementation and narrow terminal 0.1.1/server
+manifest pins, with fresh format-11 worker roots and explicit format-10 refusal
+for later Runner adoption. Actual untouched 0.1.9 behavior was captured in commit
+`a50f672` before compiler/fact source edits: all eight full phase documents,
+schema/artifact/manifest/digests, clock results and 29 error cases. The capture
+remains immutable and cannot be regenerated under 0.1.10.
+
+The implementation uses one private declarative typed template for the phase/fact
+algorithms. Each public module has its exact original/new schema names, domains
+and registry hooks; no runtime value or old receipt conversion is involved.
+Actual legacy output/error/schema comparison passes under the shared core.
+The public contract and synthetic vectors are at
+[`protocol/accepted-preparation-refresh/v1`](../../protocol/accepted-preparation-refresh/v1/README.md).
+Terminal0.1.1 is a coordinated dependency-only manifest increment here; its new
+profile/Context and archive must be completed/frozen by Runner separately.
