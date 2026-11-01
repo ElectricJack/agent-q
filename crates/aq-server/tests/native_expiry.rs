@@ -153,11 +153,13 @@ async fn published_offer_actual_accept_and_expiry_preserve_source_while_revoking
     let preparation = common::native_offer::accept(&case, &request).await;
     let pool = &case.env.env.pool;
     let attempt = offer.offered.offer.binding.attempt_id;
-    case.env.env.time.store(
-        preparation.original.clock.expires_at_ms as i64,
-        Ordering::SeqCst,
-    );
-    let closed = Sweep::default().tick(&case.env.env.state).await.unwrap();
+    // Publication uses a real clock for actual Graph HTTP read stamps. Switch
+    // only the subsequent cleanup owner to the original plan's exact expiry.
+    let mut state = case.env.env.state.clone();
+    let expires = preparation.original.clock.expires_at_ms as i64;
+    state.clock =
+        std::sync::Arc::new(move || chrono::DateTime::from_timestamp_millis(expires).unwrap());
+    let closed = Sweep::default().tick(&state).await.unwrap();
     assert_eq!((closed.inspected, closed.closed, closed.refused), (1, 1, 0));
     assert!(!held(pool, attempt).await);
     let material: String =
