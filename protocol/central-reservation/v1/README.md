@@ -28,6 +28,11 @@ a real durable actor, not a placeholder task/session. Fixed installed limits are
 16 messages, 65,536 raw body bytes, 128 examined mailbox rows, 4,096 lifetime owner
 operations and 64 MiB reserved logical bytes. Policy bytes are at most 4 KiB.
 No profile/catalog/credential references are accepted or invented at this stage.
+While a reservation is active, every mutator protects one operation slot and
+128 KiB of the logical budget for its exact successful cancellation. New reserve
+admission must leave this headroom. Invalid/stale cancels cannot consume it.
+Counters remain monotonic after cancellation; neither reads nor old replays need
+new capacity.
 
 The internal methods and retained requests are:
 
@@ -52,7 +57,11 @@ selection_digest, `coverage: complete|partial`, `has_more`, and an explicit stat
 `ready|no_eligible_mail|reservation_outstanding|disabled`. A partial scan is never
 reported complete/empty. The scan cursor is not an acknowledgement or proof of
 processing. Selection digest binds all of these source facts and installed
-policy identity. Reserve re-queries; a digest supplied by a caller proves nothing.
+policy identity. Reserve re-queries; a digest supplied by a caller proves nothing. The source head
+must equal indexed MAX(cursor)+1. Each source row must still match its original
+queued API-07 receipt, including original body SHA-256 and envelope payload
+digest; absent/ambiguous proof or changed body/head fails unavailable. New guards
+protect original global rows/receipts, including OLD/NEW mailbox identity aliases.
 
 Immutable mutation receipts identify contract, actor/conversation, operation ID,
 initiating human user ID, request digest, resulting actor/policy revisions and a
