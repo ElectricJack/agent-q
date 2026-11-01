@@ -929,6 +929,12 @@ impl Service {
         Ok(())
     }
     pub async fn retire_runtime(&self, owner: &RuntimeOwner) -> Result<()> {
+        self.retire(owner, true).await
+    }
+    pub(crate) async fn retire_for_shutdown(&self, owner: &RuntimeOwner) -> Result<()> {
+        self.retire(owner, false).await
+    }
+    async fn retire(&self, owner: &RuntimeOwner, current_user: bool) -> Result<()> {
         let mut tx = self.tx().await?;
         let ns = self.namespace_locked(&mut tx).await?;
         let next = owner.revision.checked_add(1).ok_or(Error::Overloaded)?;
@@ -939,7 +945,9 @@ impl Service {
             return Ok(());
         }
         self.runtime(&ns, owner)?;
-        Self::owner(&mut tx, self.namespace.owner_user_id).await?;
+        if current_user {
+            Self::owner(&mut tx, self.namespace.owner_user_id).await?;
+        }
         sqlx::query("UPDATE playbook_namespaces SET runtime_revision=$2,runtime_incarnation=NULL WHERE namespace_id=$1").bind(self.namespace.namespace_id).bind(next).execute(&mut *tx).await?;
         tx.commit().await?;
         Ok(())
@@ -1356,6 +1364,32 @@ impl Service {
         } else {
             CancellationResult::TooLate
         })
+    }
+    /// Only this namespace's retained accepted questions; expiry admits no new
+    /// vote. Release namespace locks before taking the review budget lock.
+    pub(super) async fn expire_decisions(&self, owner: &RuntimeOwner, limit: u32) -> Result<usize> {
+        if self.profile == CatalogProfile::Mail1 {
+            return Ok(0);
+        }
+        if !(1..=2).contains(&limit) {
+            return Err(Error::Invalid);
+        }
+        let mut tx = self.tx().await?;
+        let ns = self.namespace_locked(&mut tx).await?;
+        self.runtime(&ns, owner)?;
+        let ids: Vec<Uuid> = sqlx::query_scalar("SELECT d.decision_id FROM human_decision_requests d JOIN playbook_effects e ON e.receipt->>'handle'=d.decision_id::text WHERE e.namespace_id=$1 AND e.generation=$2 AND e.command_name='decision.request' AND e.status='accepted' AND d.state='pending' AND d.expires_at_ms<=$3 ORDER BY d.expires_at_ms,d.decision_id LIMIT $4")
+            .bind(self.namespace.namespace_id).bind(self.namespace.generation).bind(self.now()?).bind(limit as i64).fetch_all(&mut *tx).await?;
+        tx.commit().await?;
+        let reviews = self.reviews.as_ref().ok_or(Error::Forbidden)?;
+        let mut expired = 0;
+        for id in ids {
+            match reviews.expire(id).await {
+                Ok(_) => expired += 1,
+                Err(crate::error::AppError::Conflict(_)) => {}
+                Err(e) => return Err(review_error(e)),
+            }
+        }
+        Ok(expired)
     }
     /// Bounded copy to the existing engine outbox; owner-copy ACK and insert
     /// share SQL, engine acceptance/fanout ACK is a later independent boundary.

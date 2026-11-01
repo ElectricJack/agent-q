@@ -1517,3 +1517,135 @@ fn review_engine_factory(
         )
     }
 }
+
+#[tokio::test]
+async fn bounded_owner_quantum_expires_its_accepted_question_and_delivers_exact_finality() {
+    use aq_server::playbooks::{
+        domain::{GrantScope, Recipient},
+        driver::Driver,
+        service::{Namespace, PrepareRequest, Service},
+    };
+    use std::collections::BTreeSet;
+    let ReviewEnv {
+        f,
+        report,
+        operation,
+        prepared,
+        keys,
+        peer,
+        _directory,
+        ..
+    } = review_env(2).await;
+    let pool = f.db.pool().await;
+    let namespace = Namespace {
+        namespace_id: Uuid::new_v4(),
+        generation: 1,
+        name: "expiry-v2".into(),
+        workspace_id: f.selection.lineage.workspace_id,
+        project_id: f.selection.lineage.project_id,
+        owner_user_id: f.actor,
+    };
+    let service = Service::new_profile2(&f.state, namespace, keys)
+        .await
+        .unwrap();
+    service.initialize(f.actor).await.unwrap();
+    let recipient = Recipient::Task {
+        workspace_id: f.selection.lineage.workspace_id,
+        project_id: f.selection.lineage.project_id,
+        task_id: f.selection.lineage.task_id,
+    };
+    let grant = Uuid::new_v4();
+    service
+        .grant(
+            f.actor,
+            grant,
+            GrantScope {
+                workspace_id: f.selection.lineage.workspace_id,
+                project_id: f.selection.lineage.project_id,
+                recipients: vec![recipient.clone()],
+                capabilities: BTreeSet::from(["decision.request".into()]),
+            },
+            (NOW + 60000) as i64,
+        )
+        .await
+        .unwrap();
+    let mut url = reqwest::Url::parse(&std::env::var("DATABASE_URL").unwrap()).unwrap();
+    assert_eq!(url.host_str(), Some("127.0.0.1"));
+    assert_eq!(url.port(), Some(55432));
+    url.set_path(f.db.options().get_database().unwrap());
+    let driver = Driver::start(
+        service.clone(),
+        aq_playbook_host::Limits::default(),
+        review_engine_factory(url.to_string()),
+    )
+    .await
+    .unwrap();
+    let input = aq_server::playbooks::review_domain::DecisionInput {
+        recipient,
+        report_id: report.report_id,
+        source_operation_id: operation,
+        expected_subject: prepared.subject().artifact().unwrap(),
+        eligible_owners: vec![f.actor],
+        eligibility_project_revision: 1,
+        expires_at_ms: NOW + 100,
+    };
+    let artifact = review_policy_artifact(json!(input));
+    let digest = artifact.digest.clone();
+    driver.install(artifact).await.unwrap();
+    let binding = driver
+        .activate("expiry".into(), digest, grant, 1)
+        .await
+        .unwrap();
+    let request = PrepareRequest {
+        request_id: Uuid::new_v4(),
+        grant_id: grant,
+        grant_revision: 1,
+        binding: "expiry".into(),
+        expected_activation_revision: binding["revision"].as_u64().unwrap(),
+        entry: "main".into(),
+        input: serde_json::Value::Null,
+    };
+    service.prepare(f.actor, request.clone()).await.unwrap();
+    let admitted = driver
+        .admission(f.actor, request.request_id, false)
+        .await
+        .unwrap();
+    let run = admitted.receipt.unwrap().run_id;
+    driver.quantum().await.unwrap();
+    tokio::time::timeout(std::time::Duration::from_secs(2), peer)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        driver.inspect_run(run.clone()).await.unwrap()["items"][0]["status"],
+        "waiting"
+    );
+    f.time.store((NOW + 100) as i64, Ordering::SeqCst);
+    for _ in 0..3 {
+        driver.quantum().await.unwrap();
+    }
+    let decision_state: String = sqlx::query_scalar("SELECT state FROM human_decision_requests")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(decision_state, "expired");
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM human_decision_finality")
+            .fetch_one(&pool)
+            .await
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM review_owner_outbox")
+            .fetch_one(&pool)
+            .await
+            .unwrap(),
+        1
+    );
+    assert_eq!(
+        driver.inspect_run(run).await.unwrap()["items"][0]["outcome"],
+        "rejected"
+    );
+    driver.stop().await.unwrap();
+}

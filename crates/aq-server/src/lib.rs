@@ -283,6 +283,14 @@ async fn run_with_listeners_and_dashboard(
         .install(notification_dispatcher)
         .await?;
     let (tx, rx) = tokio::sync::watch::channel(false);
+    let mut policy_runtime = match state.config.playbooks.as_ref() {
+        Some(config) => Some(playbooks::runtime::Runtime::start(&state, config.clone()).await?),
+        None => None,
+    };
+    if let Some(runtime) = &mut policy_runtime {
+        runtime.watch_shutdown(rx.clone());
+    }
+
     let notification_task = tokio::spawn(notifications::runtime::run(
         state.clone(),
         notification_dispatcher,
@@ -296,8 +304,12 @@ async fn run_with_listeners_and_dashboard(
     let wait = |mut rx: tokio::sync::watch::Receiver<bool>| async move {
         let _ = rx.wait_for(|stop| *stop).await;
     };
-    let admin_app =
-        build_admin_router_with_optional_dashboard(state.clone(), None, None, dashboard);
+    let admin_app = build_admin_router_with_optional_dashboard(
+        state.clone(),
+        policy_runtime.as_ref().map(|r| r.driver.clone()),
+        policy_runtime.as_ref().map(|r| r.reviews.clone()),
+        dashboard,
+    );
     let worker_app = build_worker_router(state);
     let serving = tokio::try_join!(
         async {
@@ -321,7 +333,12 @@ async fn run_with_listeners_and_dashboard(
     let _ = terminal_task.await;
     notification_task.abort();
     let _ = notification_task.await;
+    let policy_shutdown = match policy_runtime {
+        Some(runtime) => runtime.shutdown().await,
+        None => Ok(()),
+    };
     serving?;
+    policy_shutdown?;
     Ok(())
 }
 

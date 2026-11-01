@@ -195,6 +195,8 @@ pub struct Driver {
     pub service: Service,
     pub(super) runtime: RuntimeOwner,
     gate: tokio::sync::Mutex<i64>,
+    automatic: std::sync::atomic::AtomicU8,
+    stopped_ack: std::sync::atomic::AtomicBool,
     #[cfg(feature = "test-support")]
     lose_decision_reply: Arc<std::sync::atomic::AtomicBool>,
 }
@@ -263,9 +265,24 @@ impl Driver {
             service,
             runtime,
             gate: tokio::sync::Mutex::new(0),
+            automatic: std::sync::atomic::AtomicU8::new(0),
+            stopped_ack: std::sync::atomic::AtomicBool::new(false),
             #[cfg(feature = "test-support")]
             lose_decision_reply,
         })
+    }
+    pub(crate) fn set_automatic_state(&self, state: u8) {
+        self.automatic
+            .store(state, std::sync::atomic::Ordering::SeqCst);
+    }
+    pub(crate) fn automatic_state(&self) -> &'static str {
+        match self.automatic.load(std::sync::atomic::Ordering::SeqCst) {
+            1 => "active",
+            2 => "held",
+            3 => "stopping",
+            4 => "stopped",
+            _ => "manual",
+        }
     }
     pub async fn install(&self, artifact: aq_playbook_host::model::Artifact) -> Result<()> {
         self.owner
@@ -392,6 +409,7 @@ impl Driver {
                 self.service.hold_admission(&self.runtime, *id).await?;
             }
         }
+        self.service.expire_decisions(&self.runtime, 2).await?;
         self.service
             .collect_decision_events(&self.runtime, 2)
             .await?;
@@ -464,6 +482,15 @@ impl Driver {
             serde_json::json!({"admissions_checked":pending.len(),"events_checked":page.len(),"tick":tick}),
         )
     }
+    pub async fn inspect_binding(&self, binding: String) -> Result<serde_json::Value> {
+        if binding.is_empty() || binding.len() > 128 || binding.contains('\0') {
+            return Err(Error::Invalid);
+        }
+        self.owner
+            .call(Request::Binding { binding }, CALL)
+            .await
+            .map_err(|_| Error::Unknown)
+    }
     pub async fn inspect_run(&self, run: String) -> Result<serde_json::Value> {
         if run.is_empty() || run.len() > 256 {
             return Err(Error::Invalid);
@@ -499,10 +526,55 @@ impl Driver {
             .map_err(|_| Error::Unknown)?;
         Ok(())
     }
+    /// Startup replay never changes an existing activation or renews authority.
+    pub(crate) async fn ensure_binding(
+        &self,
+        binding: String,
+        artifact: String,
+        grant: Uuid,
+        scope: &super::domain::GrantScope,
+    ) -> Result<()> {
+        let expected = self.service.profile.authority(grant, 1, scope)?;
+        match self
+            .owner
+            .call(
+                Request::Binding {
+                    binding: binding.clone(),
+                },
+                CALL,
+            )
+            .await
+        {
+            Ok(value) => {
+                let old: aq_playbook_host::runner::Activation = serde_json::from_value(value)?;
+                if old.artifact != artifact || old.authority != expected {
+                    return Err(Error::Conflict);
+                }
+                Ok(())
+            }
+            Err(aq_playbook_host::Error::Invalid) => {
+                self.activate(binding, artifact, grant, 1).await?;
+                Ok(())
+            }
+            Err(_) => Err(Error::Unknown),
+        }
+    }
+    /// Internal shutdown only: closing retained ownership needs no fresh user
+    /// business grant. Stop is attempted even if central fencing is uncertain.
+    pub(crate) async fn shutdown(&self) -> Result<()> {
+        let fence = self.service.retire_for_shutdown(&self.runtime).await;
+        let stop = self.owner.call(Request::Stop, CALL).await;
+        stop_acknowledged(&self.stopped_ack, stop)?;
+        fence
+    }
     pub async fn stop(&self) -> Result<()> {
         self.service.retire_runtime(&self.runtime).await?;
         match self.owner.call(Request::Stop, CALL).await {
-            Ok(_) | Err(aq_playbook_host::Error::Stopped) => {}
+            Ok(_) => {
+                self.stopped_ack
+                    .store(true, std::sync::atomic::Ordering::SeqCst);
+            }
+            Err(aq_playbook_host::Error::Stopped) => {}
             Err(_) => return Err(Error::Unknown),
         }
         Ok(())
@@ -539,5 +611,43 @@ impl Driver {
             .await
             .map_err(|_| Error::Unknown)?;
         serde_json::from_value(value).map_err(|_| Error::Unknown)
+    }
+}
+
+// A closed channel is not engine release evidence. Only an exact successful
+// Stop response, retained for this Driver, permits idempotent closed replay.
+fn stop_acknowledged(
+    known: &std::sync::atomic::AtomicBool,
+    response: std::result::Result<serde_json::Value, aq_playbook_host::Error>,
+) -> Result<()> {
+    match response {
+        Ok(_) => {
+            known.store(true, std::sync::atomic::Ordering::SeqCst);
+            Ok(())
+        }
+        Err(aq_playbook_host::Error::Stopped)
+            if known.load(std::sync::atomic::Ordering::SeqCst) =>
+        {
+            Ok(())
+        }
+        Err(_) => Err(Error::Unknown),
+    }
+}
+#[cfg(test)]
+mod shutdown_tests {
+    use super::*;
+    #[test]
+    fn closed_queue_is_unknown_until_exact_stop_ack_for_this_driver() {
+        let known = std::sync::atomic::AtomicBool::new(false);
+        assert_eq!(
+            stop_acknowledged(&known, Err(aq_playbook_host::Error::Stopped)),
+            Err(Error::Unknown)
+        );
+        stop_acknowledged(&known, Ok(serde_json::Value::Null)).unwrap();
+        stop_acknowledged(&known, Err(aq_playbook_host::Error::Stopped)).unwrap();
+        assert_eq!(
+            stop_acknowledged(&known, Err(aq_playbook_host::Error::Unknown)),
+            Err(Error::Unknown)
+        );
     }
 }
