@@ -513,7 +513,15 @@ async fn verify_execution(
         json!(Digest::of(&serde_json::to_vec(&canonical).unwrap()))
     );
     assert_eq!(record["record_revision"], result["execution_revision"]);
-    assert_eq!(snapshot["state"]["revision"], result["execution_revision"]);
+    if result.get("host_started").is_some() {
+        assert_eq!(snapshot["state"]["revision"], result["host_revision"]);
+        assert!(
+            result["host_revision"].as_u64().unwrap()
+                > result["execution_revision"].as_u64().unwrap()
+        );
+    } else {
+        assert_eq!(snapshot["state"]["revision"], result["execution_revision"]);
+    }
     assert!(
         result["execution_revision"].as_u64().unwrap()
             > result["prepared_revision"].as_u64().unwrap()

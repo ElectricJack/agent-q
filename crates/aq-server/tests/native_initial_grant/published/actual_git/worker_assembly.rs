@@ -5,6 +5,8 @@ use std::os::unix::fs::PermissionsExt;
 use tokio::io::AsyncReadExt;
 #[path = "worker_assembly/phase.rs"]
 mod phase;
+#[path = "worker_assembly/phase_host.rs"]
+mod phase_host;
 async fn read_frame(reader: &mut BufReader<tokio::process::ChildStdout>) -> Value {
     let mut line = String::new();
     let n = tokio::time::timeout(
@@ -23,24 +25,29 @@ async fn read_frame(reader: &mut BufReader<tokio::process::ChildStdout>) -> Valu
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "requires explicit pinned native worker smoke binary and actual aq-git/Git"]
 async fn actual_worker_downloads_installs_hydrates_and_prepares_against_real_daemon() {
-    run_worker(false, false, false).await;
+    run_worker(false, false, false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "requires explicit pinned phase-capable worker smoke binary and actual aq-git/Git"]
 async fn actual_worker_durably_accepts_new_phase_and_replays_after_proposal_expiry() {
-    run_worker(true, false, false).await;
+    run_worker(true, false, false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "requires explicit pinned phase-input worker smoke binary and actual aq-git/Git"]
 async fn actual_worker_prepares_phase_inputs_after_proposal_expiry() {
-    run_worker(true, true, false).await;
+    run_worker(true, true, false, false).await;
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "requires explicit pinned phase execution worker and actual aq-git/Git"]
 async fn actual_worker_receives_durable_phase_execution_from_actual_issuer() {
-    run_worker(true, true, true).await;
+    run_worker(true, true, true, false).await;
 }
-async fn run_worker(use_phase: bool, prepare_phase_inputs: bool, execute_phase: bool) {
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "requires pinned worker, aq-git/Git, host helper, synthetic ELF and actual tmux"]
+async fn actual_worker_phase_execution_launches_and_stops_actual_tmux_host() {
+    run_worker(true, true, true, true).await;
+}
+async fn run_worker(use_phase: bool, prepare_phase_inputs: bool, execute_phase: bool, host: bool) {
     let mut a = setup_actual_unpublished().await;
     let case = &mut a.case;
     let (phase_config, inventory_qualification) = if use_phase {
@@ -48,6 +55,9 @@ async fn run_worker(use_phase: bool, prepare_phase_inputs: bool, execute_phase: 
         config["prepare_inputs"] = json!(prepare_phase_inputs);
         if execute_phase {
             config["prepare_execution"] = json!(true);
+            if host {
+                config["synthetic_host"] = phase_host::configuration();
+            }
         }
         (Some(config), inventory_qualification)
     } else {
@@ -226,6 +236,11 @@ async fn run_worker(use_phase: bool, prepare_phase_inputs: bool, execute_phase: 
     );
     if use_phase {
         phase::verify(case, &worker_root, &identity, &result).await;
+        if host {
+            phase_host::verify(&worker_root, &result);
+        } else {
+            assert!(result.get("host_started").is_none());
+        }
     } else {
         let prepare: Prepare = serde_json::from_value(result["request"].clone()).unwrap();
         let grant: InitialGrantDelivery = serde_json::from_value(result["grant"].clone()).unwrap();
