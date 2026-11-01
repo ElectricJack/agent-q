@@ -392,3 +392,39 @@ The actual fixture upgraded31→32 after a private backup and stopping the old
 server; the existing session remains visible. All four live browser checks pass
 in1.9seconds. Current read-only views are connected; native execution, optional
 playbook startup and terminal capabilities remain inactive in this preview.
+
+
+The [independent phase execution process](../implementation/AQ-08-phase-execution-process-evidence/qualification.md)
+is integrated at `e0d0eda`: actual daemon/HTTP/PostgreSQL plus pinned independent
+worker and Git processes reach durable execution in6.23seconds, with issuance
+2.079seconds after the original proposal expires. Real child registration occurs
+before qualified InventoryV2 publication. The execution probe uses prompt input
+preparation; separate expiry probes retain their deliberate pause. The earlier
+registration, stale-availability and test-audit failures are preserved. No source
+age, proposal, preparation or execution policy was widened.
+
+The [format9 native host component](../../../aq-worker/docs/implementation/WRK-08-native-phase-host-evidence.md)
+is integrated at worker `3954b07` (source `40d6e36`, integrated `8c813d6`). It fsyncs
+the outer launch intent before host effects, verifies a blank tmux baseline before
+sealed-image exec, and retains actual local Started/ECHILD history. Independent
+stop/expiry survive a blocked writer. Unadmitted claim cleanup cannot erase a stop
+fence; admitted work is never blindly relaunched. Twelve top-level actual tmux
+cases pass (including one nested short-exec child), plus221 normal package tests
+with18 explicit ignores and three actual-Git checks. Strict lint/default build and
+formatting pass. This is a closed synthetic4KiB harness profile, not provider or
+remote Started qualification. Root verified886 frozen source hashes,26 artifacts
+and all14 changed source files against integration.
+
+The [current format9 process union](../implementation/AQ-08-phase9-process-evidence/qualification.md)
+is integrated through `71eb244` / test source `2297616`: the same real worker input
+and fresh issuer chain passes in5.78seconds with journal9/revision27. Its separate
+input-only/late-replay case passes in7.15seconds with revision26. These runs reach
+durable permission, not physical host launch. The physical host evidence above
+remains a separate qualification. Product gates stay in progress.
+
+Next parallel implementation is the [paired phase terminal consumer plan](../implementation/AQ-08-phase-terminal-consumers-plan.md):
+a bounded standalone origin protocol, typed daemon Started/Stopped/no-Started
+closure owners, and additive033 compatibility fencing tested with already-open
+old-style SQL writers. The schema32 preview stays current while these candidates
+are isolated. No route, capability, renewal, task settlement or provider execution
+is activated by that design.
