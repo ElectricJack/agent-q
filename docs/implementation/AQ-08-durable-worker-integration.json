@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "daemon_source": "82d386f",
+  "daemon_schema": 28,
+  "worker_source": "30e182f",
+  "worker_journal_format": 5,
+  "worker_binary_sha256": "f7a5b2be22b1c82fe5398960bb158460eb59184027545a5f890995c37a51bd1b",
+  "git_source": "2035654eeda57ded8880ea3f518ff0b4d324fa49",
+  "git_binary_sha256": "c2ff26f5e63008aec0fbd4082a547e87825e651d4aba0744c4b9fdf752d58c39",
+  "actual_process": {
+    "passed": 0,
+    "failed": 1,
+    "seconds": 3.65,
+    "stage": "artifacts",
+    "central_issued_grants": 0,
+    "accepted_preparation_ms": 720
+  },
+  "smoke_binary_tests": {
+    "passed": 2,
+    "failed": 0,
+    "seconds": 0.01
+  },
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-durable-worker-82d386f/actual-worker.log",
+      "sha256": "16b8badd7d77a40f228015ed2de2e94375aafdc3916282f919aade33edfac229",
+      "bytes": 1895
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-durable-worker-82d386f/worker-release-build.log",
+      "sha256": "70cb18ee4bb1578da55e548f5dfe51b35f0801dcb5dce5b6fe671485ae6c397d",
+      "bytes": 138
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-durable-worker-82d386f/daemon-build.log",
+      "sha256": "ade120b844f899197ff43984a210dba34000a5a5a639c3fbdeee0db1172763e0",
+      "bytes": 336
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-durable-worker-82d386f/smoke-tests.log",
+      "sha256": "2957427eaa452a8596f0a03e02812d13494e76299891a9db1a2de7a8e4895b60",
+      "bytes": 576
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-durable-worker-82d386f/smoke-clippy.log",
+      "sha256": "ef74df751279a212b1c0a2f938e65a7623fbff7ef48c50df1259bf3164b5ec97",
+      "bytes": 1440
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-durable-worker-82d386f/daemon-clippy.log",
+      "sha256": "f9d541d5136124691657e115d6484f78963c48946da8ab0e21debb3b70294a8c",
+      "bytes": 213
+    }
+  ],
+  "limitations": [
+    "No successful combined durable initial grant claim; real process refused before durable grant path.",
+    "Old two-second selection/preparation clocks remain unchanged; no retry or retiming to force a pass.",
+    "Independent worker durable grant component qualification is separate: source99e793c,164 tests and2 opt-in actual Git cases.",
+    "Synthetic runtime/harness/inventory/Graph/provider qualification. No host/model launch, Started, release or runtime activation."
+  ],
+  "strict_affected_daemon_lint": true
+}

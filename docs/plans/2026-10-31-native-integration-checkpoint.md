@@ -9,7 +9,7 @@ its historical test results and source pins.
 | Area | Integrated behavior | Remaining product work |
 | --- | --- | --- |
 | Daemon schema and preparation | Ordered state25→28 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Cold preparation phase separation, installed-material presence reporting, multi-project fairness, worker granted-before-Started proof production and full settlement |
-| Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, independent material installation pins and actual Git hydration/workspace ownership and durable Prepare input join | Grant/renewal and launch/stop callbacks, result/release |
+| Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, material installation pins, actual Git workspace ownership, durable Prepare join and received initial Grant history | Continuing renewal owner, launch/stop callbacks, result/release, combined durable-grant process qualification |
 | tmux host | Durable blank terminal baseline before sealed-image exec; original physical server/pane ownership checks | Native driver adoption, selected real harness qualification and operational load envelope |
 | Playbooks | Catalog2 human decision adapter, lost-Accepted-reply recovery and explicit optional startup/drive/shutdown | Broader real adapters, workflow pilots and verified network database transport |
 | Dashboard | Live daemon overview/projects/sessions/workers with capability gates and verified static assets | Live terminals, interaction and remaining task/workflow/domain views |
@@ -186,3 +186,27 @@ and independent control progress with unchanged atomic receipt completion.
 The newer [actual process check](../implementation/AQ-08-overlap-worker-integration.md)
 passes at daemon `6d4b178`/worker `a39e990` in3.17seconds. No original deadline
 changed; earlier refusals are retained and cold preparation is still open.
+
+The joint [0.1.9 contract package](../implementation/AQ-08-admission019.qualification.md)
+is qualified at `1088d10`, with83 source and83 independently extracted tests,
+strict lint and external schema checks. It adds explicit preparation phases and
+scoped material-presence types;72 inherited0.1.8 files remain byte-for-byte intact.
+It is a local package, not a registry publication or runtime activation.
+
+The worker's [durable initial-grant owner](../../../aq-worker/docs/implementation/WRK-08-durable-initial-grant-qualification.md)
+is integrated at `d919e4c` (source `99e793c`), with164 package tests, five explicit
+ignores, two separately enabled actual-Git checks, and strict lint/formatting.
+Format5 retains the actual received Grant before checking present usability;
+expired or changed inputs retain history and holds without live permission.
+Cancellation retains exclusive input owners in a bounded per-attempt map.
+This does not supply a continuing renewal owner or host launch callbacks.
+
+The [updated independent process probe](../implementation/AQ-08-durable-worker-integration.md)
+now requires durable received-grant evidence. Its first run at daemon `82d386f`
+/ worker `30e182f` refused during artifact download with720ms left at Accept;
+no central Grant was issued and the new durable assertions were not reached.
+This negative is retained alongside the earlier format4 success. The
+[accepted-preparation owner plan](../implementation/AQ-08-accepted-preparation-owner-plan.md)
+addresses this measured limitation; its schema030 registration depends on the
+separate schema029 presence owner. Both owners and worker presence adoption
+remain active parallel work. The dashboard preview remains pinned to `8f1adcc`.
