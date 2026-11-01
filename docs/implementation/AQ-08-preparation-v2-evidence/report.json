@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "source_revision": "b97498c5121594ef27860cc328efaa9ce64db6b3",
+  "scope": "Pure phase contracts only. Joint0.1.9 archive/extracted qualification pending scoped-presence freeze; no runtime owner authority, storage, HTTP or activation claim.",
+  "tests": {
+    "package_passed": 73,
+    "phase_passed": 15,
+    "ignored": 0
+  },
+  "commands": [
+    "CARGO_TARGET_DIR=/tmp/aq-preparation-v2-target CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=2 cargo test -p aq-admission --locked --offline",
+    "CARGO_TARGET_DIR=/tmp/aq-preparation-v2-target CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=2 cargo clippy -p aq-admission --all-targets --locked --offline -- -D warnings",
+    "cargo fmt --package aq-admission --check",
+    "python3 crates/aq-admission/tools/preparation_v2_vectors.py --check",
+    "git diff --check"
+  ],
+  "baseline_archive": {
+    "version": "0.1.8",
+    "source_revision": "f5f61b3da04a601a6fff80c1069404aadd7d0c90",
+    "sha256": "97fa3874794a47dcbcff5af60df37d7fce16e67eaa4971771887f6643b7a7587",
+    "immutable": true
+  },
+  "source_files": [
+    {
+      "path": "crates/aq-admission/PREPARATION_V2.md",
+      "bytes": 2865,
+      "sha256": "e9e3fabda5d552b798da8c6562099376e5577f47cc4a46d327c0ec695cb7a167"
+    },
+    {
+      "path": "crates/aq-admission/artifacts/preparation-v2.compatibility-sha256.json",
+      "bytes": 13309,
+      "sha256": "20b4a6ccfb33cefaa07db95abc8d5ffbb95fe9087d81ff663c791b662eb385a1"
+    },
+    {
+      "path": "crates/aq-admission/artifacts/preparation-v2.contract.json",
+      "bytes": 498,
+      "sha256": "9fc44d1c7eb7a6383aff0c36d8abe24de2bba1e208a10ee5792c74710f968824"
+    },
+    {
+      "path": "crates/aq-admission/artifacts/preparation-v2.fixture.json",
+      "bytes": 217951,
+      "sha256": "119bc70fd0499a1136ba9b21bf44eeec69ca7321e367a9fcad770b505705fd4c"
+    },
+    {
+      "path": "crates/aq-admission/artifacts/preparation-v2.python-vectors.json",
+      "bytes": 1410,
+      "sha256": "162a2fed392828dab2078241688d3f1e1ca47469aa7dc925cb5198e6db642b33"
+    },
+    {
+      "path": "crates/aq-admission/artifacts/preparation-v2.schema.json",
+      "bytes": 67005,
+      "sha256": "a1f58849f95b8bff32f16e8614f47266ae2367034092a0d1d6424af6f137b7f5"
+    },
+    {
+      "path": "crates/aq-admission/examples/export_preparation_v2.rs",
+      "bytes": 597,
+      "sha256": "93598aac29837ee06907ff91cfb17dcc3739032b5160e65f8788fbc23a01569a"
+    },
+    {
+      "path": "crates/aq-admission/src/lib.rs",
+      "bytes": 18865,
+      "sha256": "5b33c5bb038d8fb9967e95df366c8eece7008ca001885e19770eff828f46642c"
+    },
+    {
+      "path": "crates/aq-admission/src/preparation_v2.rs",
+      "bytes": 34082,
+      "sha256": "335f8f2f0ac415298f9a964bead8ddbcf61523e65b477198a5e4e8d44201738c"
+    },
+    {
+      "path": "crates/aq-admission/src/preparation_v2/facts.rs",
+      "bytes": 14586,
+      "sha256": "c2891dd1a92771668de9311a6c5fa8513ba323bed79b4b41cd26a23a0fa1c86f"
+    },
+    {
+      "path": "crates/aq-admission/tests/preparation_v2.rs",
+      "bytes": 13276,
+      "sha256": "4548a154f5a30814d21f1551be524712de4f15b14dddd9460a898a48ee70de35"
+    },
+    {
+      "path": "crates/aq-admission/tests/preparation_v2_common.rs",
+      "bytes": 14773,
+      "sha256": "694f27f89f71a900b064bb5ec2e28d4d19a59531b533533d403f2e25148e19da"
+    },
+    {
+      "path": "crates/aq-admission/tools/preparation_v2_vectors.py",
+      "bytes": 2059,
+      "sha256": "1b4d6bec1963ef5bf12d52a50c0466658b879c795e8017ee0cd612dd68d4c67e"
+    },
+    {
+      "path": "docs/implementation/AQ-08-accepted-preparation-v2-plan.md",
+      "bytes": 8764,
+      "sha256": "3434f4c6b43249cd58608fb274c1006810870290f15a760a45d8b7f6f158cc86"
+    },
+    {
+      "path": "crates/aq-admission/Cargo.toml",
+      "bytes": 522,
+      "sha256": "ee0e77431669f3d3a3ae68416025067aa5e4e24f26a855e33bb499fe33185452"
+    },
+    {
+      "path": "crates/aq-server/Cargo.toml",
+      "bytes": 2420,
+      "sha256": "6b35511647dce1ad7c070e1e8657f99ea5a256a4a5b41362f0d3aeadd0580d70"
+    },
+    {
+      "path": "Cargo.lock",
+      "bytes": 88659,
+      "sha256": "401c007635de6429e0af9721ee41c8ed20fe2472fd9e70b4c2e7b209f5c65d15"
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/AQ-08-preparation-v2-evidence/aq-preparation-v2-tests7.log",
+      "bytes": 1481,
+      "sha256": "87e2ca33e249f409c5ac61cc6b46d3ab32dfb996a4f0087cbef323447342308b",
+      "result": "passed"
+    },
+    {
+      "path": "docs/implementation/AQ-08-preparation-v2-evidence/aq-preparation-v2-all-tests.log",
+      "bytes": 10635,
+      "sha256": "88579c65443c3dde71167d44ba3b0514b99a0dbf8212181bf7922ec5c5657f0b",
+      "result": "passed"
+    },
+    {
+      "path": "docs/implementation/AQ-08-preparation-v2-evidence/aq-preparation-v2-clippy2.log",
+      "bytes": 159,
+      "sha256": "9b3921bbaaf2d675a766f46d96b78590a5adce5328270eb9dd354e9c9fb90448",
+      "result": "passed"
+    },
+    {
+      "path": "docs/implementation/AQ-08-preparation-v2-evidence/aq-preparation-v2-tests6.log",
+      "bytes": 1519,
+      "sha256": "5f04bf002294afb6fe3f468086df59d36a44d583fb2080478aba2bc363cd4779",
+      "result": "superseded development failure"
+    },
+    {
+      "path": "docs/implementation/AQ-08-preparation-v2-evidence/aq-preparation-v2-clippy.log",
+      "bytes": 2018,
+      "sha256": "812850a97abcc7e2903a8c545effb098fdec4bd1354ce925b29a29314ddf0f00",
+      "result": "superseded development failure"
+    }
+  ]
+}
