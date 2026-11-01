@@ -1,0 +1,89 @@
+COMMAND ["cargo", "test", "--all-targets", "--manifest-path", "/tmp/aq-terminal-refresh-closure-q2mwy2o6/aq-phase-terminal-protocol-0.1.1/Cargo.toml", "--locked", "--offline"]
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq-terminal-refresh-closure-q2mwy2o6/aq-session-protocol-0.1.0)
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/aq-terminal-refresh-closure-q2mwy2o6/aq-lifecycle-protocol-0.1.0)
+   Compiling aq-admission v0.1.10 (/tmp/aq-terminal-refresh-closure-q2mwy2o6/aq-admission-0.1.10)
+   Compiling aq-phase-terminal-protocol v0.1.1 (/tmp/aq-terminal-refresh-closure-q2mwy2o6/aq-phase-terminal-protocol-0.1.1)
+    Finished `test` profile [unoptimized] target(s) in 10.63s
+     Running unittests src/lib.rs (/tmp/aq-native-union-target/debug/deps/aq_phase_terminal_protocol-51d85b06e5a8eb44)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/common.rs (/tmp/aq-native-union-target/debug/deps/common-9f269a8f778fd0e6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contracts.rs (/tmp/aq-native-union-target/debug/deps/contracts-fef88fa780f51a1a)
+
+running 12 tests
+test negotiation_unknown_duplicate_reordered_or_missing_features_refuse ... ok
+test strict_wire_inclusive_bound_unknown_keys_floats_and_duplicate_fields ... ok
+test closure_direct_phase_checkpoint_both_suppression_and_real_stop_shapes ... ok
+test context_cannot_replace_server_prepared_with_worker_local_commit_or_digest ... ok
+test stopped_rejects_false_echild_guardian_pane_and_changed_origin ... ok
+test deterministic_published_schema_manifest_and_fixtures ... ok
+test historical_readback_checks_exact_variant_and_request ... ok
+test immutable_outer_identity_and_domain_separation ... ok
+test lost_first_execution_reply_lookup_needs_only_known_keys_no_live_clock ... ok
+test origin_boot_generation_runtime_and_prepared_must_match_actual_history ... ok
+test published_invalid_documents_are_refused ... ok
+test actual_phase_history_structural_linkage_and_historical_receipts ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.23s
+
+     Running tests/frozen_artifact.rs (/tmp/aq-native-union-target/debug/deps/frozen_artifact-dd4b0ffc8ded6153)
+
+running 1 test
+test legacy_artifact_identity_remains_exactly_frozen ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/refresh_common.rs (/tmp/aq-native-union-target/debug/deps/refresh_common-e1a7906fbdbdb49b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/refresh_contracts.rs (/tmp/aq-native-union-target/debug/deps/refresh_contracts-94484da85e46d3a6)
+
+running 14 tests
+test negotiation_unknown_duplicate_reordered_or_missing_features_refuse ... ok
+test strict_wire_inclusive_bound_unknown_keys_floats_and_duplicate_fields ... ok
+test refresh_contract_and_frozen_contract_cannot_impersonate_each_other ... ok
+test closure_direct_phase_checkpoint_both_suppression_and_real_stop_shapes ... ok
+test stopped_rejects_false_echild_guardian_pane_and_changed_origin ... ok
+test context_retains_all_four_real_registry_floors_and_new_receipt_identity ... ok
+test context_cannot_replace_server_prepared_with_worker_local_commit_or_digest ... ok
+test deterministic_published_schema_manifest_and_fixtures ... ok
+test historical_readback_checks_exact_variant_and_request ... ok
+test immutable_outer_identity_and_domain_separation ... ok
+test origin_boot_generation_runtime_and_prepared_must_match_actual_history ... ok
+test lost_first_execution_reply_lookup_needs_only_known_keys_no_live_clock ... ok
+test published_invalid_documents_are_refused ... ok
+test actual_phase_history_structural_linkage_and_historical_receipts ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+     Running unittests examples/export_phase_terminal.rs (/tmp/aq-native-union-target/debug/examples/export_phase_terminal-15e69f4e084bf645)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests examples/export_refresh_phase_terminal.rs (/tmp/aq-native-union-target/debug/examples/export_refresh_phase_terminal-32edc6c98c922941)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+COMMAND ["cargo", "clippy", "--all-features", "--manifest-path", "/tmp/aq-terminal-refresh-closure-q2mwy2o6/aq-phase-terminal-protocol-0.1.1/Cargo.toml", "--all-targets", "--locked", "--offline", "--", "-D", "warnings"]
+    Checking aq-session-protocol v0.1.0 (/tmp/aq-terminal-refresh-closure-q2mwy2o6/aq-session-protocol-0.1.0)
+    Checking aq-lifecycle-protocol v0.1.0 (/tmp/aq-terminal-refresh-closure-q2mwy2o6/aq-lifecycle-protocol-0.1.0)
+    Checking aq-admission v0.1.10 (/tmp/aq-terminal-refresh-closure-q2mwy2o6/aq-admission-0.1.10)
+    Checking aq-phase-terminal-protocol v0.1.1 (/tmp/aq-terminal-refresh-closure-q2mwy2o6/aq-phase-terminal-protocol-0.1.1)
+    Finished `dev` profile [unoptimized] target(s) in 6.06s
+COMMAND ["cargo", "fmt", "--manifest-path", "/tmp/aq-terminal-refresh-closure-q2mwy2o6/aq-phase-terminal-protocol-0.1.1/Cargo.toml", "--check"]
+Qualified exact extracted terminal refresh closure at /tmp/aq-terminal-refresh-closure-q2mwy2o6
