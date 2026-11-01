@@ -963,3 +963,7 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+#[path = "store/supervisor35_tests.rs"]
+mod supervisor35_tests;
