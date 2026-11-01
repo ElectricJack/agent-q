@@ -102,3 +102,54 @@ async fn issued_history_is_immutable_and_changed_request_cannot_replay() {
         replay.receipt.digest().unwrap()
     );
 }
+
+#[tokio::test]
+async fn final_insert_wait_expiring_facts_rolls_back_despite_live_preparation_and_execution_windows()
+ {
+    use std::sync::{
+        Arc,
+        atomic::{AtomicI64, Ordering},
+    };
+    let mut f = prepared(true).await;
+    let at = (f.c.env.env.state.clock)().timestamp_millis();
+    let clock = Arc::new(AtomicI64::new(at));
+    let sample = clock.clone();
+    f.c.env.env.state.clock = Arc::new(move || {
+        chrono::DateTime::from_timestamp_millis(
+            sample
+                .load(Ordering::SeqCst)
+                .max(chrono::Utc::now().timestamp_millis()),
+        )
+        .unwrap()
+    });
+    let before = rows(&f.c).await;
+    sqlx::raw_sql("CREATE FUNCTION fixture_phase_insert_wait() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_advisory_xact_lock(hashtextextended('fixture-phase-final-insert',0)); RETURN NEW; END $$; CREATE TRIGGER zz_fixture_phase_insert_wait AFTER INSERT ON profiled_phase_execution_grants FOR EACH ROW EXECUTE FUNCTION fixture_phase_insert_wait();").execute(&f.c.env.env.pool).await.unwrap();
+    let mut blocker = f.c.env.env.pool.begin().await.unwrap();
+    sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended('fixture-phase-final-insert',0))")
+        .execute(&mut *blocker)
+        .await
+        .unwrap();
+    let state = f.c.env.env.state.clone();
+    let node = auth(&f.c).await;
+    let request = f.prepared.clone();
+    let task = tokio::spawn(async move {
+        phase_execution::prepare(&state, &node, &request, Uuid::new_v4()).await
+    });
+    tokio::time::timeout(std::time::Duration::from_secs(2), async {
+        loop {
+            let waiting: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND wait_event='advisory' AND query LIKE '%INSERT INTO profiled_phase_execution_grants%')").fetch_one(&f.c.env.env.pool).await.unwrap();
+            if waiting { break; }
+            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        }
+    }).await.expect("must observe final actual insert wait");
+    let expired_facts = at + f.p.policy.maximum_observation_ms as i64 + 500;
+    assert!(
+        (expired_facts as u64) < f.a.lease.expires_at_ms,
+        "preparation stays live while facts expire"
+    );
+    clock.store(expired_facts, Ordering::SeqCst);
+    blocker.commit().await.unwrap();
+    assert!(task.await.unwrap().is_err());
+    assert_eq!(before, rows(&f.c).await);
+    assert_unissued(&f.c).await;
+}
