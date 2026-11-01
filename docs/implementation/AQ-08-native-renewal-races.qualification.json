@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "test_source_revision": "202b9f8386c58e03a94fa9b31410fb87ff4280e8",
+  "production_source_revision": "c5438d3",
+  "passed": 4,
+  "ignored": 0,
+  "strict_target_clippy": true,
+  "format": true,
+  "test_paths": [
+    {
+      "path": "crates/aq-server/tests/native_initial_grant/published/renewal.rs",
+      "sha256": "654e8466e6fa3a087f4ffef2cf2f28937a66dd6252571704616db37aba6745e5",
+      "bytes": 10039
+    },
+    {
+      "path": "crates/aq-server/tests/native_initial_grant/published/renewal/races.rs",
+      "sha256": "52902e57341620f2fcfa64cad8168de4eb8d84afbb2a45efa893999d1d4efc85",
+      "bytes": 8278
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-races-202b9f8/aq08-native-renewal-races-confirm.log",
+      "sha256": "ec95553704131463f7fcd3f3bc8acb3b5b7436ca836289b7149e2d3ea45a801a",
+      "bytes": 857
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-races-202b9f8/aq08-native-renewal-races-clippy.log",
+      "sha256": "0b4e633b82458cb1ab9af64f0a7bfb5505e525b647e179e75857cf5cf7060d90",
+      "bytes": 146
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-native-renewal-races-202b9f8/aq08-native-renewal-races-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "claims": [
+    "Actual receipt-trigger failure rolls back hot authority and receipt; same operation can retry.",
+    "Actual observed final quota lock crosses old permit expiry and rolls back new state.",
+    "Changed authorized task CAS or content refuses renewal.",
+    "Delayed Started keeps its original physical digest/counter separate from later renewal history; exact renewal replay preserves original versions; later renewal fences maximum acknowledged counter."
+  ],
+  "limitations": [
+    "Synthetic qualified host observation; no physical process/provider execution claim.",
+    "No production changes or new wire/schema in this followup.",
+    "Full combined root qualification remains separate."
+  ]
+}
