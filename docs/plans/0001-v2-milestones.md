@@ -33,6 +33,7 @@ The original planning baseline completed AUD-00; current statuses below record s
 - [2026-10-31-native-integration-checkpoint.md](2026-10-31-native-integration-checkpoint.md): Ordered state25→27, native preparation and explicit optional playbook lifecycle are integrated. Worker no-launch journal/observed tmux host passed retained Git/host/relay checks; one concurrent-load deadline failure remains explicit. The assembled daemon passed45 selected tests and4livebrowser checks after fixture upgrade. Native offers/grants and full driver continue in parallel; product gates stay open.
 - [AQ-08-granted-launch-closure-plan.md](../implementation/AQ-08-granted-launch-closure-plan.md): Proposed missing native recovery boundary for an issued grant without central Started: preserve original authority, qualify durable suppression or actual host stop, and keep claims/resources held until independent settlement. No contract, migration or capability is implemented by this design.
 - [0003-live-dashboard-delivery.md](../../../aq-dashboard/docs/plans/0003-live-dashboard-delivery.md): Eight-subagent delivery: two independent native adapter/runner lanes and six dashboard lanes, root integration, early shared/DTO handoffs, independent Results/Overview/Supervisor/read-only Agents increments, and separately bounded build concurrency. Parent product gates retain full qualification.
+- [visual-acceptance.md](../../../aq-dashboard/docs/design/visual-acceptance.md): User reaffirmed visual fidelity while real infrastructure is connected. Named mockups, page composition, independent desktop/phone captures and reviewed visual subsets are acceptance requirements; API success does not establish design completion.
 
 ### V1 implementation evidence
 
@@ -1383,6 +1384,7 @@ Acceptance:
 - Build/component/accessibility checks need no AQ daemon, graph or workers.
 - Large paginated views render stale/unknown/truncated states and untrusted content safely.
 - Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence.
+- Apply aq-dashboard/docs/design/visual-acceptance.md: review rendered composition against named accepted mockups, record deferred differences, and fix material layout/readability drift before visual promotion.
 
 Requirement links: U1, U2, U3, U6.
 
@@ -1462,6 +1464,7 @@ Acceptance:
 - Embedded bundle includes the required session operations, wait/continuation and external-delivery views.
 - All nine dashboard destinations satisfy the live-delivery plan: actual human-authorized flows plus reviewed desktop/mobile composition against accepted mockups. Granular increments do not stand in for full Results, supervisor or terminal capability.
 - Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence.
+- Apply aq-dashboard/docs/design/visual-acceptance.md: review rendered composition against named accepted mockups, record deferred differences, and fix material layout/readability drift before visual promotion.
 
 Requirement links: E2, E6, U7, U8, U9, U10, U11, U12, U13, U14.
 
@@ -1628,6 +1631,7 @@ Acceptance:
 - Mock browser tests cover multi-viewer/control handoff, revoked scope, stale tabs/epochs, reconnect, gaps, unknown input and resize without replaying stale keystrokes or relaunching an agent.
 - Render full-screen/alternate-screen/Unicode output safely with bounded memory, safe escape/link/clipboard handling and a plain-text accessible view. No worker credentials, socket paths or terminal content persist in browser storage by default.
 - Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence.
+- Apply aq-dashboard/docs/design/visual-acceptance.md: review rendered composition against named accepted mockups, record deferred differences, and fix material layout/readability drift before visual promotion.
 
 Requirement links: P3, R1, R2, R3, R4, R6, U9, U10, U11.
 
@@ -1964,6 +1968,7 @@ Acceptance:
 - Compare actual desktop/phone layouts to named reference PNGs for hierarchy, density, proportions and navigation; retain reviewed screenshots and accessible reflow checks.
 - A consistent visual system is usable before new APIs; unavailable data stays honest and mock fixtures remain excluded from live builds.
 - Each increment names delivered visual subsets and deferred panels; read-only Agents and metadata-only Results do not claim full-tab design completion.
+- Apply aq-dashboard/docs/design/visual-acceptance.md: review rendered composition against named accepted mockups, record deferred differences, and fix material layout/readability drift before visual promotion.
 
 Requirement links: U1, U3, U6.
 

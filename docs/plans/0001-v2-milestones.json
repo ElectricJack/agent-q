@@ -2209,7 +2209,8 @@
       "acceptance": [
         "Build/component/accessibility checks need no AQ daemon, graph or workers.",
         "Large paginated views render stale/unknown/truncated states and untrusted content safely.",
-        "Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence."
+        "Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence.",
+        "Apply aq-dashboard/docs/design/visual-acceptance.md: review rendered composition against named accepted mockups, record deferred differences, and fix material layout/readability drift before visual promotion."
       ],
       "out_of_scope": [
         "Separate dashboard backend",
@@ -2352,7 +2353,8 @@
         "The embedded bundle includes the qualified session inspector and terminal UI; old browser/terminal protocol combinations refuse or resynchronize explicitly.",
         "Embedded bundle includes the required session operations, wait/continuation and external-delivery views.",
         "All nine dashboard destinations satisfy the live-delivery plan: actual human-authorized flows plus reviewed desktop/mobile composition against accepted mockups. Granular increments do not stand in for full Results, supervisor or terminal capability.",
-        "Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence."
+        "Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence.",
+        "Apply aq-dashboard/docs/design/visual-acceptance.md: review rendered composition against named accepted mockups, record deferred differences, and fix material layout/readability drift before visual promotion."
       ],
       "out_of_scope": [],
       "evidence": []
@@ -2666,7 +2668,8 @@
       "acceptance": [
         "Mock browser tests cover multi-viewer/control handoff, revoked scope, stale tabs/epochs, reconnect, gaps, unknown input and resize without replaying stale keystrokes or relaunching an agent.",
         "Render full-screen/alternate-screen/Unicode output safely with bounded memory, safe escape/link/clipboard handling and a plain-text accessible view. No worker credentials, socket paths or terminal content persist in browser storage by default.",
-        "Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence."
+        "Execute the applicable slices and dual functional/visual checks in aq-dashboard/docs/plans/0003-live-dashboard-delivery.md; planned paths or mock-only pages are not live completion evidence.",
+        "Apply aq-dashboard/docs/design/visual-acceptance.md: review rendered composition against named accepted mockups, record deferred differences, and fix material layout/readability drift before visual promotion."
       ],
       "out_of_scope": [
         "Direct browser-to-worker connections, a separate dashboard backend"
@@ -3258,7 +3261,8 @@
       "acceptance": [
         "Compare actual desktop/phone layouts to named reference PNGs for hierarchy, density, proportions and navigation; retain reviewed screenshots and accessible reflow checks.",
         "A consistent visual system is usable before new APIs; unavailable data stays honest and mock fixtures remain excluded from live builds.",
-        "Each increment names delivered visual subsets and deferred panels; read-only Agents and metadata-only Results do not claim full-tab design completion."
+        "Each increment names delivered visual subsets and deferred panels; read-only Agents and metadata-only Results do not claim full-tab design completion.",
+        "Apply aq-dashboard/docs/design/visual-acceptance.md: review rendered composition against named accepted mockups, record deferred differences, and fix material layout/readability drift before visual promotion."
       ],
       "out_of_scope": [
         "Counting placeholder pages as completed destinations",
@@ -3799,6 +3803,10 @@
     {
       "source": "../../../aq-dashboard/docs/plans/0003-live-dashboard-delivery.md",
       "summary": "Eight-subagent delivery: two independent native adapter/runner lanes and six dashboard lanes, root integration, early shared/DTO handoffs, independent Results/Overview/Supervisor/read-only Agents increments, and separately bounded build concurrency. Parent product gates retain full qualification."
+    },
+    {
+      "source": "../../../aq-dashboard/docs/design/visual-acceptance.md",
+      "summary": "User reaffirmed visual fidelity while real infrastructure is connected. Named mockups, page composition, independent desktop/phone captures and reviewed visual subsets are acceptance requirements; API success does not establish design completion."
     }
   ],
   "implementation_reference_maps": [
