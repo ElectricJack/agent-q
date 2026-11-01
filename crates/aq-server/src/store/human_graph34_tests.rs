@@ -1,9 +1,14 @@
 //! Actual PostgreSQL qualification of the state34 journal, independent of Graph.
-use super::{migrate, migrate_known, StoreError, MIGRATIONS};
+use super::{MIGRATIONS, StoreError, migrate_known};
 use crate::test_support::TestDb;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use sqlx::PgPool;
 use uuid::Uuid;
+
+// Qualify the historical state34 reader even after newer migrations are added.
+async fn migrate(pool: &PgPool) -> Result<(), StoreError> {
+    migrate_known(pool, &MIGRATIONS[..34], 34).await
+}
 
 async fn database(version: u32) -> (TestDb, PgPool) {
     let db = TestDb::create().await;
@@ -182,7 +187,10 @@ async fn each_missing_history_guard_is_corrupt_without_repair() {
 #[tokio::test]
 async fn each_disabled_history_guard_is_corrupt_without_repair() {
     for guard in ["identity", "delete", "truncate"] {
-        corruption_refused(&format!("ALTER TABLE human_graph_operations DISABLE TRIGGER human_graph_operation_{guard}_guard")).await;
+        corruption_refused(&format!(
+            "ALTER TABLE human_graph_operations DISABLE TRIGGER human_graph_operation_{guard}_guard"
+        ))
+        .await;
     }
 }
 
