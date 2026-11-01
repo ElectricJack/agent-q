@@ -257,6 +257,14 @@ pub(super) async fn report(
     }
 
     sqlx::query("INSERT INTO intelligence_node_snapshots(node_id,boot_id,sequence,revision,snapshot) VALUES($1,$2,$3,$4,$5) ON CONFLICT(node_id) DO UPDATE SET boot_id=excluded.boot_id,sequence=excluded.sequence,revision=excluded.revision,snapshot=excluded.snapshot").bind(node.id).bind(request.boot_id).bind(request.sequence as i64).bind(revision as i64).bind(&value).execute(&mut *tx).await.map_err(db)?;
+    crate::profiled_execution::presence::record_legacy_inventory_locked(
+        &mut tx,
+        node.id,
+        request.boot_id,
+        revision,
+        &value,
+    )
+    .await?;
     sqlx::query("INSERT INTO execution_receipts(node_id,operation_id,kind,payload_digest,response) VALUES($1,$2,'intelligence_inventory',$3,$4)").bind(node.id).bind(request.operation_id).bind(payload.as_str()).bind(&value).execute(&mut *tx).await.map_err(db)?;
     tx.commit().await.map_err(db)?;
     Ok(Json(value))
