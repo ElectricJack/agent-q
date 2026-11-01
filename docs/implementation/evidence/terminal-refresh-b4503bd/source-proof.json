@@ -1,0 +1,20 @@
+{
+  "source_commit": "b4503bd8486079bd7ff6a6dd7bbf8ae495ad4d2e",
+  "archive_sha256": "818f2499a2d50f47db491031f50fc1e629fd9d402e224a460efea1ea5532805c",
+  "all_tracked_package_payloads_exact": true,
+  "tracked_payload_files": 28,
+  "normalization_exclusions": [
+    "Cargo.toml",
+    "Cargo.lock",
+    ".cargo_vcs_info.json"
+  ],
+  "manifest_proof": "Cargo.toml.orig byte-identical to frozen source Cargo.toml",
+  "actual_cargo_vcs_info": {
+    "git": {
+      "sha1": "b4503bd8486079bd7ff6a6dd7bbf8ae495ad4d2e"
+    },
+    "path_in_vcs": "crates/aq-phase-terminal-protocol"
+  },
+  "independent_source_review": "decisions_vertical_v2 accepted b4503bd; no reviewer builds/SQL",
+  "frozen_010_and_019_archives": "unchanged"
+}

@@ -1,0 +1,31 @@
+{
+  "contract": "phase-terminal-registry-refresh-1",
+  "source_commit": "dda1c2135feeb383b40e90192ac661f67f819abe",
+  "packages": [
+    {
+      "name": "aq-lifecycle-protocol",
+      "version": "0.1.0",
+      "archive": "docs/implementation/AQ-08-admission019-evidence/aq-lifecycle-protocol-0.1.0.crate",
+      "sha256": "945b03a99701035eb7cf6679bd9baa9ad2b50a7cb6329b9ca8de2cf8bd58b92b"
+    },
+    {
+      "name": "aq-session-protocol",
+      "version": "0.1.0",
+      "archive": "docs/implementation/AQ-08-admission019-evidence/aq-session-protocol-0.1.0.crate",
+      "sha256": "479778d8ea76f0605b9a20460e0bd3fda73b699337b1e80783ada0d291a68090"
+    },
+    {
+      "name": "aq-admission",
+      "version": "0.1.10",
+      "archive": "docs/implementation/evidence/admission-refresh-dda1c21/aq-admission-0.1.10.crate",
+      "sha256": "bd10dda2220bc91a8f0999cbe2a6e12804bdd3137c145c779d690d504c46d78e"
+    },
+    {
+      "name": "aq-phase-terminal-protocol",
+      "version": "0.1.1",
+      "archive": "docs/implementation/evidence/terminal-refresh-b4503bd/aq-phase-terminal-protocol-0.1.1.crate",
+      "sha256": "818f2499a2d50f47db491031f50fc1e629fd9d402e224a460efea1ea5532805c"
+    }
+  ],
+  "terminal_source_commit": "b4503bd8486079bd7ff6a6dd7bbf8ae495ad4d2e"
+}

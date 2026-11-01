@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "source_commit": "b4503bd",
+  "base": "33dcc41",
+  "admission_source": "dda1c21",
+  "admission_archive_sha256": "bd10dda2220bc91a8f0999cbe2a6e12804bdd3137c145c779d690d504c46d78e",
+  "package": "aq-phase-terminal-protocol/0.1.1",
+  "old_profile": "frozen root0.1.0 over admission preparation_v2",
+  "new_profile": "refresh_v1 over admission preparation_refresh_v1",
+  "old_contract_digest": "292c30eba95b8dd6f1d9a7bf75775bc5d0f9ecb54644047747f9593d538c0a4a",
+  "new_contract_digest": "f9af55c49127a8cb93f03ef5bbb28313d13f94a221affa3e26d91d45bffd6c2d",
+  "source_checks": {
+    "legacy_contract_tests_passed": 12,
+    "frozen_artifact_test_passed": 1,
+    "refresh_contract_tests_passed": 14,
+    "test_seconds": 0.46,
+    "final_test_build_seconds": 0.22,
+    "strict_seconds": 7.53,
+    "strict_command": "cargo clippy -p aq-phase-terminal-protocol --all-targets --all-features --locked --offline -- -D warnings",
+    "test_command": "cargo test -p aq-phase-terminal-protocol --all-targets --locked --offline",
+    "deterministic_new_export_check_passed": true,
+    "old_and_new_schema_vectors_each": {
+      "valid": 16,
+      "shape_negative": 4,
+      "relational_negative_delegated_to_rust": 4
+    },
+    "fmt_diff_clean": true,
+    "jobs": 2,
+    "debug": 0,
+    "incremental": 0,
+    "cache": "existing SERVER"
+  },
+  "finite_coverage": [
+    "old schema/manifest/complete fixtures/invalid/artifact unchanged",
+    "strict byte bound, extra/duplicate fields, unknown/missing/reordered features",
+    "exact selected/accepted/preflight/current registry context; rollback refusal",
+    "new and frozen context/receipt contracts cannot impersonate each other",
+    "actual new accepted/execution digests, exact Prepared checkpoint, Started/Stopped/closure/readback associations",
+    "false ECHILD, guardian/pane/runtime/boot mismatch refused"
+  ],
+  "limits": [
+    "structural data validation only; no authenticated owner/kernel/process proof",
+    "no daemon SQL/HTTP adoption or worker format11 yet",
+    "no workspace/source credential isolation or runtime eligibility",
+    "no provider/model/Codex/fixture process launch; no canonical changes"
+  ],
+  "terminal_archive_sha256": "818f2499a2d50f47db491031f50fc1e629fd9d402e224a460efea1ea5532805c",
+  "independent_source_review": "decisions_vertical_v2 accepted b4503bd; no reviewer builds/tests/edits/SQL",
+  "extracted_four_archive_closure": {
+    "packages": [
+      "aq-lifecycle-protocol/0.1.0",
+      "aq-session-protocol/0.1.0",
+      "aq-admission/0.1.10",
+      "aq-phase-terminal-protocol/0.1.1"
+    ],
+    "tests_passed": 27,
+    "build_seconds": 10.63,
+    "test_seconds": 0.48,
+    "strict_seconds": 6.06,
+    "fmt_passed": true,
+    "locked_offline": true,
+    "live_sibling_checkout_required": false,
+    "script": "scripts/test-terminal-refresh-packages.py",
+    "log": "package-check.log"
+  }
+}
