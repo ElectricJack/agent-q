@@ -897,7 +897,13 @@
         "../implementation/AQ-08-admission019.qualification.md",
         "../implementation/AQ-08-durable-worker-integration.md",
         "../implementation/AQ-08-accepted-preparation-owner-plan.md",
-        "../implementation/AQ-08-accepted-preparation-owner.md"
+        "../implementation/AQ-08-accepted-preparation-owner.md",
+        "../implementation/AQ-08-accepted-preparation-owner.qualification.md",
+        "../implementation/AQ-08-accepted-preparation-actual-git.qualification.md",
+        "../implementation/AQ-08-presence-029.qualification.md",
+        "../implementation/AQ-08-proposal-scope-main29.json",
+        "../../../aq-worker/docs/implementation/WRK-08-preparation-v2-http.md",
+        "../../../aq-worker/docs/implementation/WRK-08-phase-journal-qualification.md"
       ]
     },
     {
@@ -1100,7 +1106,10 @@
         "../implementation/AQ-08-overlap-worker-integration.md",
         "../../../aq-worker/docs/implementation/WRK-08-artifact-overlap-qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-durable-initial-grant-qualification.md",
-        "../implementation/AQ-08-durable-worker-integration.md"
+        "../implementation/AQ-08-durable-worker-integration.md",
+        "../../../aq-worker/docs/implementation/WRK-08-preparation-v2-http.md",
+        "../../../aq-worker/docs/implementation/WRK-08-phase-journal-qualification.md",
+        "../../../aq-worker/docs/implementation/WRK-08-scoped-presence-producer-plan.md"
       ]
     },
     {

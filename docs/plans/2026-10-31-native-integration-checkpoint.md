@@ -143,8 +143,9 @@ negative facts refuse. This is not fleet-load qualification.
 Two interface gaps are now explicit implementation requirements. First, the
 [preparation phase design](../../../aq-worker/docs/implementation/WRK-08-preparation-phase-separation.md)
 separates timely proposal acceptance, bounded no-launch preparation and a fresh
-execution permit under a newly negotiated contract. It remains a proposal; no
-existing0.1.7/0.1.8 clock was widened. Second, the inventory API cannot yet report
+execution permit under a newly negotiated contract. Its contract and bounded owner now have the separate qualifications recorded
+below; no existing0.1.7/0.1.8 clock was widened. Worker input adoption and fresh
+execution confirmation remain open. Second, the inventory API cannot yet report
 scoped continuing installed-material presence with exact lease/receipt evidence.
 The passing initial renewal profile uses a genuinely fresh original inventory;
 longer continuation needs that owned report seam, rather than invented global
@@ -172,7 +173,7 @@ Worker physical proof and separate settlement are still required.
 The next parallel implementation lanes are the
 [accepted preparation protocol](../implementation/AQ-08-accepted-preparation-v2-plan.md),
 [scoped material presence](../implementation/AQ-08-scoped-material-presence-plan.md)
-and durable worker initial-grant recording before any host hook. Presence facts
+and worker phase input adoption plus continuing grant ownership before host hooks. Presence facts
 are independent per attempt: refreshing one agent must not invalidate every
 other agent's evidence or advertise its private material globally. These remain
 in progress and do not activate runtime capabilities by documentation alone.
@@ -210,3 +211,39 @@ This negative is retained alongside the earlier format4 success. The
 addresses this measured limitation; its schema030 registration depends on the
 separate schema029 presence owner. Both owners and worker presence adoption
 remain active parallel work. The dashboard preview remains pinned to `8f1adcc`.
+
+
+The [accepted-preparation owner candidate](../implementation/AQ-08-accepted-preparation-owner.qualification.md)
+is integrated at `100d301` (production `9121809`, test follow-up `940b061`).
+Thirteen PostgreSQL/HTTP cases pass, including fresh Store/AppState/config reopen,
+independent no-launch leases and original input retrieval after proposal expiry.
+Seventy-two related checks and two actual-Git legacy regressions pass separately.
+The newer [actual v2 retained-source check](../implementation/AQ-08-accepted-preparation-actual-git.qualification.md)
+passes at `0c74bf4`, integrated at `d96166c`: real Git source reads and exact replay
+succeed after actual proposal expiry, and retired retention refuses reads while
+keeping the task held. Original source eligibility had not itself expired in that
+case. No phase execution Grant or full cold-worker hydration is claimed.
+
+[Schema29 and qualified inventory ownership](../implementation/AQ-08-presence-029.qualification.md)
+are integrated at `a523888` (source `85160a7`):11 actual PostgreSQL checks plus strict
+lint/formatting pass. Independent inventory snapshots and semantic compatibility
+epochs prevent a legacy/incompatible publication from reviving old installed facts.
+This prerequisite does not yet mount presence-report routes or change renewal to
+consume them. Ordered030 installation is undergoing separate qualification.
+A review-found proposal node/boot-scope gap is corrected at `a271649`; the
+[independent two-node regression](../implementation/AQ-08-proposal-scope-main29.json)
+passes on29. Optional phase runtime configuration remains absent from the preview.
+
+Worker [phase HTTP transport](../../../aq-worker/docs/implementation/WRK-08-preparation-v2-http.md)
+is integrated at `8fa989a` with the exact0.1.9 archive;170 package tests and two
+actual-Git regressions pass. The newer
+[format6 phase journal](../../../aq-worker/docs/implementation/WRK-08-phase-journal-qualification.md)
+is integrated at `7823fa3` (source `3326b59`/`08eb15c`), with179 package tests,
+five declared ignores, two separately enabled actual-Git regressions, strict lint
+and formatting. It atomically selects the protocol and stores the exact Accept
+intent before sending; received history survives expiry/replay and cannot restore
+live authority after restart. Redelivered offer clocks are associated with the
+unchanged original publication without extending deadlines. These counts overlap.
+A lost reply with no opaque observation remains unknown/held; phase input adoption,
+execution issuance and recovery are still required. The new real-process phase
+probe is built but awaits ordered030 integration; no passing result is claimed yet.
