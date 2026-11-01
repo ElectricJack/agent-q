@@ -1,9 +1,11 @@
 """Validate finite published shape vectors; relational checks remain Rust-only."""
 import json
+import sys
 from pathlib import Path
 import jsonschema
 
-root = Path(__file__).resolve().parent.parent / "artifacts"
+root = (Path(sys.argv[1]) if len(sys.argv) == 2
+        else Path(__file__).resolve().parent.parent / "artifacts")
 schema = json.loads((root / "schema.json").read_text())
 fixtures = json.loads((root / "fixtures.json").read_text())
 validators = {}
