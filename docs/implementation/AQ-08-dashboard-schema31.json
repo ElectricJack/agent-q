@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "daemon_source": "37afe9d",
+  "daemon_binary_sha256": "0e64ca320255b70ca8e2709c98f161843175ea35808f360fd41ce6c5f23d15d2",
+  "dashboard_source": "956d587",
+  "state_format_before": 30,
+  "state_format_after": 31,
+  "browser_passed": 4,
+  "browser_failed": 0,
+  "browser_seconds": 2.1,
+  "build_seconds": 34.53,
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-dashboard-schema31/build.log",
+      "sha256": "dd91297361163a3c831388937b1e808684e855c7a94c6137c689510fa10802d7",
+      "bytes": 134
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-dashboard-schema31/browser.log",
+      "sha256": "2c786a9cba01915134cf0d33f3e779129bece2a2507ea7884e23e9b5868a248e",
+      "bytes": 868
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-dashboard-schema31/readiness.json",
+      "sha256": "3ab6be8adefae5fce25564e5b4a6e8cc6fec248a85ced51450a8db43b798e4c4",
+      "bytes": 129
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-dashboard-schema31/schema.log",
+      "sha256": "4e580dcefc4a8607fec7ac9af2712425ab6e1a91f430ccbf6fc46e730d7d4df1",
+      "bytes": 27
+    }
+  ],
+  "limitations": [
+    "Local disposable fixture upgraded after private mode0600 backup; fixture session preserved.",
+    "Optional native execution and playbook startup inactive; no real agents/models or terminal activation."
+  ]
+}

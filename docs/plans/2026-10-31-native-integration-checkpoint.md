@@ -323,3 +323,10 @@ execution-Grant flow. The local dashboard preview stays on its independently
 qualified schema30 binary. Parallel followups are simultaneous-head/control
 isolation, fresh execution issuance (032) and durable worker phase execution
 (format8); those candidates remain unqualified and unactivated.
+
+
+The [latest local dashboard check](../implementation/AQ-08-dashboard-schema31.json)
+runs daemon `37afe9d` on ordered31, after a private30→31 fixture backup/upgrade.
+All four actual browser checks pass in2.1seconds, including preserved session
+detail and direct refresh. Native execution, playbook startup and unsupported
+terminal views remain inactive. Earlier preview pins above are historical.
