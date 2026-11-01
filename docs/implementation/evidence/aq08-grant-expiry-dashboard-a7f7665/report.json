@@ -1,0 +1,32 @@
+{
+  "source_commit": "a7f76651659175d0f8a24e27952677a34b0d505e",
+  "preview_build_source": "960ffc7c34227c6f27aa30f9773342aa3bfa9e70",
+  "source_equivalence": "Only documentation/evidence changed after a7f7665 through preview build source 960ffc7.",
+  "tests": {
+    "targets": 6,
+    "passed": 45,
+    "failed": 0,
+    "ignored": 0
+  },
+  "strict_affected_all_features_clippy": {
+    "exit": 0
+  },
+  "workspace_format": {
+    "exit": 0
+  },
+  "preview": {
+    "url": "http://127.0.0.1:4188",
+    "binary_sha256": "adc8250b932cad071ef4324433c6106891cc46c52b5c8eabc66e4d1638b442ef",
+    "dashboard_source": "dbbba20936a9ff9c8767796832aa29b9a0523368",
+    "dashboard_manifest_sha256": "6d19f55ac7103e3993ddc0ea6f10cd9b20250abdf940690f99afee7198228f68",
+    "live_browser_passed": 4,
+    "live_browser_reported_seconds": 2.7,
+    "optional_native_and_playbook_owners": "off"
+  },
+  "limits": [
+    "Actual SQL and mounted HTTP owners; graph, Git and runtime facts in native tests are synthetic.",
+    "Preview retains the existing isolated schema27 fixture; no new agent, provider call or source deployment.",
+    "No Renew/Reconcile, physical native launch, grant-before-Started closure, settlement or throughput claim.",
+    "Counts overlap component checkpoints; do not sum as unique product coverage."
+  ]
+}

@@ -869,7 +869,12 @@
         "../implementation/AQ-08-definitions.qualification.md",
         "../implementation/AQ-08-native-preparation.qualification.md",
         "../implementation/AQ-schema26-native27.qualification.md",
-        "../implementation/AQ-08-granted-launch-closure-plan.md"
+        "../implementation/AQ-08-granted-launch-closure-plan.md",
+        "../implementation/AQ-08-native-offers.qualification.md",
+        "../implementation/AQ-08-native-initial-grant.qualification.md",
+        "../implementation/AQ-08-ungranted-expiry-runtime.md",
+        "../implementation/AQ-08-offer-expiry-integration.md",
+        "../implementation/AQ-08-grant-expiry-dashboard-integration.md"
       ]
     },
     {
