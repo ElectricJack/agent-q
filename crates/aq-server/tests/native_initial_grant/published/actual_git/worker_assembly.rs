@@ -179,6 +179,47 @@ async fn actual_worker_downloads_installs_hydrates_and_prepares_against_real_dae
     assert_eq!(prepare.identity, identity);
     assert_eq!(grant.original.grant.binding, prepare.binding);
     assert!(grant.original.grant.expires_at_ms <= grant.execution_deadline_ms);
+    // Inspect actual disk history only after the independent worker's live
+    // owner reports success. Reading this record never grants execution rights.
+    let snapshot: Value =
+        serde_json::from_slice(&std::fs::read(worker_root.join("journal/journal.json")).unwrap())
+            .unwrap();
+    assert_eq!(snapshot["state"]["format"], 5);
+    let attempt = &snapshot["state"]["attempts"][prepare.binding.attempt_id.to_string()];
+    let record = &attempt["initial_grant"];
+    assert_eq!(record["delivery"], result["grant"]);
+    assert_eq!(attempt["prepared"]["request"], result["request"]);
+    assert_eq!(
+        record["prepare_digest"],
+        attempt["prepared"]["request_digest"]
+    );
+    let mut canonical = record.clone();
+    canonical.sort_all_objects();
+    assert_eq!(
+        result["durable_grant"]["record_digest"],
+        json!(Digest::of(&serde_json::to_vec(&canonical).unwrap()))
+    );
+    assert_eq!(
+        result["durable_grant"]["attempt_id"],
+        json!(prepare.binding.attempt_id)
+    );
+    assert_eq!(record["record_revision"], snapshot["state"]["revision"]);
+    assert!(record["record_revision"].as_u64().unwrap() >= prepare.journal_revision + 2);
+    assert!(
+        result["durable_grant"]["observed_after_sync_ns"]
+            .as_u64()
+            .unwrap()
+            >= record["observed_before_write_ns"].as_u64().unwrap()
+    );
+    for cap in ["deadline_ns", "hard_deadline_ns"] {
+        assert!(result["durable_grant"][cap].as_u64().unwrap() <= record[cap].as_u64().unwrap());
+        assert!(
+            result["durable_grant"]["observed_after_sync_ns"]
+                .as_u64()
+                .unwrap()
+                < result["durable_grant"][cap].as_u64().unwrap()
+        );
+    }
     let row: Value =
         sqlx::query_scalar("SELECT receipt FROM admission_material_receipts WHERE lease_id=$1")
             .bind(prepare.materials[0].lease_id)
