@@ -1,0 +1,358 @@
+{
+  "date": "2026-11-01",
+  "scope": "Local development preview, actual owner services, labelled fixtures; partial feature delivery",
+  "preview": {
+    "url": "http://localhost:4188",
+    "state_format": 34,
+    "bundle_digest": "sha256:a384e31c82f84f9ee5565512bc4ecbfad483bed0aefeac4fc7829668a5952ac5",
+    "server_sha256": "84fbf672984584fc6f42e90bc7250581dd48c40129736fba2d4c908e400f4b82"
+  },
+  "source_heads": {
+    "agent_q": "58811adee2798b9776b90f8bf6076c79d972ff30",
+    "aq_dashboard": "4a4e5c54005d4376a4df4b7772f003b90c489a87"
+  },
+  "frontend": {
+    "passed_tests": 413,
+    "test_duration_seconds": 19.29,
+    "production_build_ms": 548,
+    "assets": 28,
+    "mock_code_in_bundle": false
+  },
+  "owner_checks": {
+    "migration34": {
+      "passed": 7,
+      "duration_seconds": 1.81
+    },
+    "human_task_create": {
+      "passed": 3,
+      "duration_seconds": 2.92
+    },
+    "dashboard_mounts": {
+      "passed": 3,
+      "duration_seconds": 2.07
+    },
+    "usage_owner": {
+      "passed": 2,
+      "duration_seconds": 0.95
+    },
+    "dashboard_read_regressions": {
+      "passed": 6,
+      "duration_seconds": 0.98
+    },
+    "retained_schema_fixtures": 5,
+    "strict_affected_checks": "passed"
+  },
+  "browser": {
+    "task_create": {
+      "passed": true,
+      "origin": "http://127.0.0.1:58343",
+      "project_id": "edcc7c88-1a45-46be-8761-8610e2d99619",
+      "operation_id": "253a8e07-726d-4e1a-bf92-cb2a4c40150c",
+      "task_id": "253a8e07-726d-4e1a-bf92-cb2a4c40150c",
+      "request_digest": "sha256:32b31e1ee2a83c6d9b71f15094d46d9e32df14c1ee0d0140d458ff3c7f2ef8f9",
+      "receipt": {
+        "workspace_id": "aebef69f-b5fd-4436-bbf0-115e0e4fbc1d",
+        "change_set_id": "21b769ce-aca4-4bb2-8058-1dc3a85957a8",
+        "task_id": "253a8e07-726d-4e1a-bf92-cb2a4c40150c",
+        "version": "1",
+        "content_revision": "1"
+      },
+      "served_product": {
+        "version": "0.1.0",
+        "dashboard_digest": "sha256:a384e31c82f84f9ee5565512bc4ecbfad483bed0aefeac4fc7829668a5952ac5"
+      },
+      "elapsed_ms": 933,
+      "mutations": [
+        "POST /api/human/projects/edcc7c88-1a45-46be-8761-8610e2d99619/tasks"
+      ],
+      "note": "Actual disposable Graph create, immutable request digest, retained receipt, current record read, reload lookup and desktop/phone composer. No provider calls or agent execution."
+    },
+    "task_reflow": {
+      "passed": true,
+      "origin": "http://127.0.0.1:58343",
+      "project_id": "edcc7c88-1a45-46be-8761-8610e2d99619",
+      "operation_id": "253a8e07-726d-4e1a-bf92-cb2a4c40150c",
+      "served_product": {
+        "version": "0.1.0",
+        "dashboard_digest": "sha256:a384e31c82f84f9ee5565512bc4ecbfad483bed0aefeac4fc7829668a5952ac5"
+      },
+      "viewports": [
+        {
+          "name": "desktop",
+          "width": 1440,
+          "height": 1100,
+          "horizontal_overflow": false,
+          "modal_focus_contained": true,
+          "escape_and_reopen": true
+        },
+        {
+          "name": "mobile",
+          "width": 390,
+          "height": 844,
+          "horizontal_overflow": false,
+          "modal_focus_contained": true,
+          "escape_and_reopen": true
+        },
+        {
+          "name": "narrow",
+          "width": 320,
+          "height": 740,
+          "horizontal_overflow": false,
+          "modal_focus_contained": true,
+          "escape_and_reopen": true
+        }
+      ],
+      "mutations": [],
+      "elapsed_ms": 1714,
+      "note": "Read-only existing-receipt lookup, scope-picker/form reflow and native modal interaction; all fresh drafts discarded without submission."
+    },
+    "notification_positive": {
+      "passed": true,
+      "origin": "http://127.0.0.1:39405",
+      "dashboard_digest": "sha256:a384e31c82f84f9ee5565512bc4ecbfad483bed0aefeac4fc7829668a5952ac5",
+      "notification_id": "20d8aa85-eda5-4592-ba19-5e1b70365361",
+      "recipient_id": "b21f69c8-cc7d-45d8-80fc-d12cf643743e",
+      "external_state": "no_external_route",
+      "delivery_count": 0,
+      "mutations": 0,
+      "external_requests": 0,
+      "elapsed_ms": 705,
+      "screenshots": [
+        "/tmp/aq-dashboard-actions-promotion/notification-usage-candidate/notifications-desktop.png",
+        "/tmp/aq-dashboard-actions-promotion/notification-usage-candidate/notifications-mobile.png"
+      ],
+      "note": "Actual current-recipient persisted no-external-route notification; read-only UI inspection. No sends, retries, transport acceptance or human-acknowledgment claim."
+    },
+    "usage_nonempty": {
+      "passed": true,
+      "origin": "http://127.0.0.1:33341",
+      "session_id": "9ce7aec6-a630-4ac1-95ec-e248824c2593",
+      "attempt_id": "fb113c69-5fb2-48fd-9888-d944d3059fa0",
+      "binding": {
+        "project_id": "00000000-0000-0000-0000-000000000001",
+        "task_id": "00000000-0000-0000-0000-000000000003",
+        "lineage_id": "aac06eab-3c76-5a50-830e-720fbe521fd8",
+        "attempt_id": "fb113c69-5fb2-48fd-9888-d944d3059fa0",
+        "attempt_generation": 1,
+        "session": {
+          "kind": "remote",
+          "node_id": "a7abfb30-7412-4acb-8828-e9967e299e8d",
+          "boot_id": "4f7ddf9e-4ea5-4d60-8b2b-e34de7398348",
+          "attempt_id": "fb113c69-5fb2-48fd-9888-d944d3059fa0",
+          "assignment_generation": 1,
+          "session_id": "9ce7aec6-a630-4ac1-95ec-e248824c2593"
+        }
+      },
+      "usage_revision": 3,
+      "canonical_calls": 2,
+      "known_category_subtotals": [
+        120,
+        9,
+        80,
+        0,
+        3
+      ],
+      "cost": "unknown/not_reported",
+      "actual_projection": "synthetic persisted incomplete accounting fixture",
+      "references": [
+        "08-agents-focus-desktop.png",
+        "11-agent-mobile-v2.png"
+      ],
+      "visual_subset": "on-demand session usage within preserved focused output workspace",
+      "served_bundle_digest": "sha256:a384e31c82f84f9ee5565512bc4ecbfad483bed0aefeac4fc7829668a5952ac5",
+      "api_product_bundle_digest": "sha256:a384e31c82f84f9ee5565512bc4ecbfad483bed0aefeac4fc7829668a5952ac5",
+      "measurements": [
+        {
+          "viewport": {
+            "width": 1440,
+            "height": 1000
+          },
+          "usage": {
+            "x": 273,
+            "y": 332.1875,
+            "width": 1118,
+            "height": 460.15625
+          }
+        },
+        {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "usage": {
+            "x": 33,
+            "y": -746.890625,
+            "width": 324,
+            "height": 1167.109375
+          }
+        }
+      ],
+      "usage_browser_reads": 6,
+      "mutations": 0,
+      "page_errors": 0,
+      "captures": [
+        "/tmp/aq-session-usage-nonempty-browser-reviewed/desktop-focused-output.png",
+        "/tmp/aq-session-usage-nonempty-browser-reviewed/desktop-usage-details.png",
+        "/tmp/aq-session-usage-nonempty-browser-reviewed/phone-focused-output.png",
+        "/tmp/aq-session-usage-nonempty-browser-reviewed/phone-usage-details.png",
+        "/tmp/aq-session-usage-nonempty-browser-reviewed/phone-usage-categories.png",
+        "/tmp/aq-session-usage-nonempty-browser-reviewed/phone-usage-cost.png"
+      ],
+      "elapsed_ms": 2000,
+      "note": "Actual AQ owner reads only; no interception, domain mutations, provider calls or quota/health inference. Optional nonempty fixture is persisted synthetic accounting evidence, never live provider usage or an invoice."
+    },
+    "live_graph": {
+      "passed": true,
+      "visual_measurements": {
+        "desktop_graph_width": 725.328125,
+        "desktop_inspector_width": 426.65625,
+        "desktop_graph_fits": true,
+        "phone_graph_node_top": 681.59375,
+        "phone_graph_node_bottom": 753.59375,
+        "phone_navigation_top": 787,
+        "phone_document_paragraph_top": 592.796875,
+        "phone_document_paragraph_bottom": 645.578125
+      },
+      "references": [
+        "02-work-explorer-v3.png",
+        "07-knowledge-v2.png"
+      ],
+      "visual_subset": "task workspace with readable dependency graph and contextual inspector; document library with first-viewport phone reading",
+      "origin": "http://localhost:4188",
+      "served_bundle_digest": "sha256:a384e31c82f84f9ee5565512bc4ecbfad483bed0aefeac4fc7829668a5952ac5",
+      "api_product_bundle_digest": "sha256:a384e31c82f84f9ee5565512bc4ecbfad483bed0aefeac4fc7829668a5952ac5",
+      "project_id": "00000000-0000-0000-0000-000000000001",
+      "task_id": "cedfdada-042c-5f56-a9c0-7fa68e98081d",
+      "task_revision": "2",
+      "knowledge_id": "dee01ab9-1345-5944-87d2-98441d7941b4",
+      "knowledge_revision": "1",
+      "task_rows": 3,
+      "knowledge_rows": 2,
+      "graph_nodes": 2,
+      "graph_edges": 1,
+      "human_reads": 16,
+      "mutations": 0,
+      "page_errors": 0,
+      "elapsed_ms": 3832,
+      "output": "/tmp/aq-dashboard-actions-promotion/live-graph",
+      "note": "Actual AQ human API and actual configured Graph; labelled local fixture, no interception or domain mutations. Current and exact pinned revision inspected; no older-history claim."
+    },
+    "live_usage": {
+      "passed": true,
+      "origin": "http://localhost:4188",
+      "session_id": "9767942b-b7f8-5ae4-be04-136f81509cce",
+      "attempt_id": "38a3fe3a-5e17-589c-87fa-893754037804",
+      "binding": {
+        "project_id": "00000000-0000-0000-0000-000000000001",
+        "task_id": "ab33b833-349a-4d76-a431-87b2e6991480",
+        "lineage_id": "efe85082-f479-5a34-bbbc-50054c703cc3",
+        "attempt_id": "38a3fe3a-5e17-589c-87fa-893754037804",
+        "attempt_generation": 1,
+        "session": {
+          "kind": "remote",
+          "node_id": "368300e0-f275-4d61-bb5f-a4ae7867315a",
+          "boot_id": "bdbfe42d-0629-45dc-8fb2-b7b490cd8f3e",
+          "attempt_id": "38a3fe3a-5e17-589c-87fa-893754037804",
+          "assignment_generation": 1,
+          "session_id": "9767942b-b7f8-5ae4-be04-136f81509cce"
+        }
+      },
+      "usage_revision": 0,
+      "canonical_calls": 0,
+      "known_category_subtotals": [
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "cost": "unknown/not_reported",
+      "actual_projection": "no accounting projection",
+      "references": [
+        "08-agents-focus-desktop.png",
+        "11-agent-mobile-v2.png"
+      ],
+      "visual_subset": "on-demand session usage within preserved focused output workspace",
+      "served_bundle_digest": "sha256:a384e31c82f84f9ee5565512bc4ecbfad483bed0aefeac4fc7829668a5952ac5",
+      "api_product_bundle_digest": "sha256:a384e31c82f84f9ee5565512bc4ecbfad483bed0aefeac4fc7829668a5952ac5",
+      "measurements": [
+        {
+          "viewport": {
+            "width": 1440,
+            "height": 1000
+          },
+          "usage": {
+            "x": 273,
+            "y": 449.375,
+            "width": 1118,
+            "height": 226.1875
+          }
+        },
+        {
+          "viewport": {
+            "width": 390,
+            "height": 844
+          },
+          "usage": {
+            "x": 33,
+            "y": 232,
+            "width": 324,
+            "height": 332.1875
+          }
+        }
+      ],
+      "usage_browser_reads": 6,
+      "mutations": 0,
+      "page_errors": 0,
+      "captures": [
+        "/tmp/aq-dashboard-actions-promotion/live-usage/desktop-focused-output.png",
+        "/tmp/aq-dashboard-actions-promotion/live-usage/desktop-usage-details.png",
+        "/tmp/aq-dashboard-actions-promotion/live-usage/phone-focused-output.png",
+        "/tmp/aq-dashboard-actions-promotion/live-usage/phone-usage-details.png"
+      ],
+      "elapsed_ms": 1886,
+      "note": "Actual AQ owner reads only; no interception, domain mutations, provider calls or quota/health inference. Optional nonempty fixture is persisted synthetic accounting evidence, never live provider usage or an invoice."
+    },
+    "live_overview": {
+      "passed": true,
+      "origin": "http://localhost:4188",
+      "project_id": "00000000-0000-0000-0000-000000000001",
+      "task_id": "563c8853-4311-54f5-bab4-505c5b18a2b2",
+      "contract": "human-overview-tasks-1",
+      "coverage": "complete",
+      "count_accuracy": "complete_observation",
+      "task_counts": {
+        "draft": 1,
+        "active": 2,
+        "completed": 0,
+        "canceled": 0
+      },
+      "served_product": {
+        "version": "0.1.0",
+        "dashboard_digest": "sha256:a384e31c82f84f9ee5565512bc4ecbfad483bed0aefeac4fc7829668a5952ac5"
+      },
+      "elapsed_ms": 933,
+      "note": "Actual bounded recorded-task contribution and core layout; no running/readiness/capacity/quota inference."
+    },
+    "live_settings": {
+      "passed": true,
+      "origin": "http://localhost:4188",
+      "notifications": 0,
+      "mutations": 0,
+      "page_errors": 0
+    }
+  },
+  "rollback": {
+    "state33_backup_sha256": "c5b3968106103496945d44708632e9f16a101d84d06998f662eed40a2d20a10f",
+    "old_binary_retained": true,
+    "old_reader_refuses_state34": true,
+    "note": "Restoring the old binary also requires restoring the state33 backup; the state34 migration is not rolled back in place."
+  },
+  "limits": [
+    "Actual task writes occurred only in the separate disposable Graph/AQ fixture. Canonical promotion probes were read-only.",
+    "Canonical session has no accounting projection; nonempty usage evidence is persisted synthetic accounting, not live provider billing.",
+    "Notifications in the canonical preview are empty. Nonempty owner fixture has no external route or delivery.",
+    "Decisions and Playbooks configured-owner browser proofs remain separate from this canonical runtime, whose owners are not configured.",
+    "Full media/comments, supervisor conversation, interactive terminals, provider quota and production native execution are not completed by this release."
+  ]
+}
