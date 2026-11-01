@@ -230,3 +230,12 @@ post-upgrade row/receipt alias mutations and head rewind; guard/upgrade/drift/ol
 existing AQ-11 agent digest/receipt behavior. Future execution history must remain
 explicitly unavailable. These tests prove durable pre-plan ownership, not a live
 supervisor, a stopped process, delivery, a reply or provider isolation.
+
+Source contract refinement before activation: stale configuration of an existing
+actor also retains `not_configured/revision_changed`; an absent actor with a
+nonzero expected revision remains an unadmitted conflict. Reusing an already
+retained reservation UUID receives `not_reserved/reservation_id_conflict`.
+Original reserve and cancel records are explicitly linked to exact immutable
+request/result views and admission/cancellation operation sequence, not just an
+operation kind. The per-actor sequence is contiguous and agrees with the lifetime
+operation budget. Reservations have no message-body, profile or session fields.
