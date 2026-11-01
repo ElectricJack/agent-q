@@ -301,7 +301,7 @@ async fn indexes(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
             "mailbox_global_queued_original",
             vec![""],
             vec![0i16],
-            false,
+            true,
             Some("(response ->> 'message_id'::text)"),
             Some(
                 "(((response ->> 'contract'::text) = 'human-supervisor-conversation-1'::text) AND ((response ->> 'state'::text) = 'queued'::text))",
@@ -321,9 +321,9 @@ async fn indexes(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
 async fn checks(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
     // Full canonical CHECK definitions are pinned by the disposable fresh37
     // qualification, including casts and boolean grouping, not name-only probes.
-    for (table, expression) in CHECKS {
-        let valid:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid=to_regclass($1) AND contype='c' AND convalidated AND NOT condeferrable AND pg_get_expr(conbin,conrelid)=$2)")
-            .bind(table).bind(expression).fetch_one(&mut **tx).await?;
+    for (table, name, expression) in CHECKS {
+        let valid:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid=to_regclass($1) AND contype='c' AND convalidated AND NOT condeferrable AND conname=$2 AND pg_get_expr(conbin,conrelid)=$3)")
+            .bind(table).bind(name).bind(expression).fetch_one(&mut **tx).await?;
         if !valid {
             return Err(corrupt());
         }
@@ -331,17 +331,180 @@ async fn checks(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
     Ok(())
 }
 
-const CHECKS: &[(&str, &str)] = &[
+const CHECKS: &[(&str, &str, &str)] = &[
     (
         "central_supervisor_actors",
+        "central_supervisor_actors_actor_id_check",
+        "(actor_id <> '00000000-0000-0000-0000-000000000000'::uuid)",
+    ),
+    (
+        "central_supervisor_actors",
+        "central_supervisor_actors_check",
+        "(policy_digest = encode(sha256(convert_to(policy_bytes, 'UTF8'::name)), 'hex'::text))",
+    ),
+    (
+        "central_supervisor_actors",
+        "central_supervisor_actors_check1",
         "((revision = retained_operations) AND (policy_revision <= revision))",
     ),
     (
         "central_supervisor_actors",
+        "central_supervisor_actors_check2",
+        "(((jsonb_typeof((policy_bytes)::jsonb) = 'object'::text) AND ((policy_bytes)::jsonb = jsonb_build_object('schema_version', 1, 'kind', 'global_supervisor_reservation', 'actor_id', (actor_id)::text, 'conversation_id', (conversation_id)::text, 'enabled', ((policy_bytes)::jsonb -> 'enabled'::text))) AND (jsonb_typeof(((policy_bytes)::jsonb -> 'enabled'::text)) = 'boolean'::text)) IS TRUE)",
+    ),
+    (
+        "central_supervisor_actors",
+        "central_supervisor_actors_check3",
+        "(((jsonb_typeof(approved_identity) = 'object'::text) AND ((approved_identity ->> 'id'::text) = (approved_by)::text) AND ((approved_identity ->> 'role'::text) = 'owner'::text) AND (jsonb_typeof((approved_identity -> 'email'::text)) = 'string'::text) AND (jsonb_typeof((approved_identity -> 'issuer'::text)) = ANY (ARRAY['string'::text, 'null'::text])) AND (jsonb_typeof((approved_identity -> 'subject'::text)) = ANY (ARRAY['string'::text, 'null'::text]))) IS TRUE)",
+    ),
+    (
+        "central_supervisor_actors",
+        "central_supervisor_actors_check4",
         "((current_reservation IS NULL) OR ((retained_operations <= 4095) AND (retained_bytes <= 66977792)))",
     ),
     (
+        "central_supervisor_actors",
+        "central_supervisor_actors_policy_bytes_check",
+        "((octet_length(policy_bytes) >= 1) AND (octet_length(policy_bytes) <= 4096))",
+    ),
+    (
+        "central_supervisor_actors",
+        "central_supervisor_actors_policy_revision_check",
+        "(policy_revision > 0)",
+    ),
+    (
+        "central_supervisor_actors",
+        "central_supervisor_actors_retained_bytes_check",
+        "((retained_bytes >= 1) AND (retained_bytes <= 67108864))",
+    ),
+    (
+        "central_supervisor_actors",
+        "central_supervisor_actors_retained_operations_check",
+        "((retained_operations >= 1) AND (retained_operations <= 4096))",
+    ),
+    (
+        "central_supervisor_actors",
+        "central_supervisor_actors_revision_check",
+        "(revision > 0)",
+    ),
+    (
+        "central_supervisor_mail_members",
+        "central_supervisor_mail_members_cursor_check",
+        "(cursor > 0)",
+    ),
+    (
+        "central_supervisor_mail_members",
+        "central_supervisor_mail_members_mailbox_key_check",
+        "(mailbox_key ~ '^[0-9a-f]{64}$'::text)",
+    ),
+    (
+        "central_supervisor_mail_members",
+        "central_supervisor_mail_members_ordinal_check",
+        "((ordinal >= 0) AND (ordinal <= 15))",
+    ),
+    (
+        "central_supervisor_mail_members",
+        "central_supervisor_mail_members_payload_digest_check",
+        "(payload_digest ~ '^[0-9a-f]{64}$'::text)",
+    ),
+    (
         "central_supervisor_operations",
+        "central_supervisor_operations_actor_revision_check",
+        "((actor_revision >= 1) AND (actor_revision <= 4096))",
+    ),
+    (
+        "central_supervisor_operations",
+        "central_supervisor_operations_check",
+        "(request_digest = encode(sha256(convert_to(request_bytes, 'UTF8'::name)), 'hex'::text))",
+    ),
+    (
+        "central_supervisor_operations",
+        "central_supervisor_operations_check1",
         "((charged_bytes >= ((octet_length(request_bytes) + octet_length(result_bytes)) + 8192)) AND (charged_bytes <= 131072))",
+    ),
+    (
+        "central_supervisor_operations",
+        "central_supervisor_operations_check2",
+        "(((jsonb_typeof((request_bytes)::jsonb) = 'object'::text) AND (((request_bytes)::jsonb ->> 'contract'::text) = 'central-reservation-1'::text) AND (((request_bytes)::jsonb ->> 'kind'::text) = kind) AND (((request_bytes)::jsonb #>> '{request,actor_id}'::text[]) = (actor_id)::text) AND (((request_bytes)::jsonb #>> '{request,operation_id}'::text[]) = (operation_id)::text) AND (((request_bytes)::jsonb #>> '{owner,id}'::text[]) = (initiating_user_id)::text) AND (((request_bytes)::jsonb #>> '{owner,role}'::text[]) = 'owner'::text)) IS TRUE)",
+    ),
+    (
+        "central_supervisor_operations",
+        "central_supervisor_operations_check3",
+        "(((jsonb_typeof((result_bytes)::jsonb) = 'object'::text) AND (((result_bytes)::jsonb ->> 'contract'::text) = 'central-reservation-1'::text) AND (((result_bytes)::jsonb ->> 'actor_id'::text) = (actor_id)::text) AND (((result_bytes)::jsonb ->> 'operation_id'::text) = (operation_id)::text) AND (((result_bytes)::jsonb ->> 'initiating_user_id'::text) = (initiating_user_id)::text) AND (((result_bytes)::jsonb ->> 'request_digest'::text) = request_digest) AND (((result_bytes)::jsonb -> 'actor_revision'::text) = to_jsonb(actor_revision)) AND (((kind = 'configure'::text) AND (((result_bytes)::jsonb ->> 'disposition'::text) = ANY (ARRAY['configured'::text, 'not_configured'::text]))) OR ((kind = 'reserve'::text) AND (((result_bytes)::jsonb ->> 'disposition'::text) = ANY (ARRAY['reserved'::text, 'not_reserved'::text]))) OR ((kind = 'cancel'::text) AND (((result_bytes)::jsonb ->> 'disposition'::text) = ANY (ARRAY['cancelled_before_plan'::text, 'not_cancelled'::text]))))) IS TRUE)",
+    ),
+    (
+        "central_supervisor_operations",
+        "central_supervisor_operations_kind_check",
+        "(kind = ANY (ARRAY['configure'::text, 'reserve'::text, 'cancel'::text]))",
+    ),
+    (
+        "central_supervisor_operations",
+        "central_supervisor_operations_operation_id_check",
+        "(operation_id <> '00000000-0000-0000-0000-000000000000'::uuid)",
+    ),
+    (
+        "central_supervisor_operations",
+        "central_supervisor_operations_request_bytes_check",
+        "((octet_length(request_bytes) >= 1) AND (octet_length(request_bytes) <= 16384))",
+    ),
+    (
+        "central_supervisor_operations",
+        "central_supervisor_operations_result_bytes_check",
+        "((octet_length(result_bytes) >= 1) AND (octet_length(result_bytes) <= 65536))",
+    ),
+    (
+        "central_supervisor_reservations",
+        "central_supervisor_reservations_batch_digest_check",
+        "(batch_digest ~ '^[0-9a-f]{64}$'::text)",
+    ),
+    (
+        "central_supervisor_reservations",
+        "central_supervisor_reservations_body_bytes_check",
+        "((body_bytes >= 1) AND (body_bytes <= 65536))",
+    ),
+    (
+        "central_supervisor_reservations",
+        "central_supervisor_reservations_check",
+        "((reserve_operation_id <> reservation_id) AND (reserve_operation_id <> '00000000-0000-0000-0000-000000000000'::uuid))",
+    ),
+    (
+        "central_supervisor_reservations",
+        "central_supervisor_reservations_check1",
+        "((admission_actor_revision > 0) AND (policy_revision <= admission_actor_revision))",
+    ),
+    (
+        "central_supervisor_reservations",
+        "central_supervisor_reservations_check2",
+        "(((state = 'awaiting_prepared_plan'::text) AND (revision = 1) AND (cancel_operation_id IS NULL) AND (cancel_actor_revision IS NULL)) OR ((state = 'cancelled_before_plan'::text) AND (revision = 2) AND (cancel_operation_id IS NOT NULL) AND (cancel_operation_id <> '00000000-0000-0000-0000-000000000000'::uuid) AND (cancel_operation_id <> reserve_operation_id) AND (cancel_actor_revision IS NOT NULL) AND (cancel_actor_revision > admission_actor_revision)))",
+    ),
+    (
+        "central_supervisor_reservations",
+        "central_supervisor_reservations_message_count_check",
+        "((message_count >= 1) AND (message_count <= 16))",
+    ),
+    (
+        "central_supervisor_reservations",
+        "central_supervisor_reservations_policy_revision_check",
+        "(policy_revision > 0)",
+    ),
+    (
+        "central_supervisor_reservations",
+        "central_supervisor_reservations_reservation_id_check",
+        "(reservation_id <> '00000000-0000-0000-0000-000000000000'::uuid)",
+    ),
+    (
+        "central_supervisor_reservations",
+        "central_supervisor_reservations_revision_check",
+        "(revision > 0)",
+    ),
+    (
+        "central_supervisor_reservations",
+        "central_supervisor_reservations_state_check",
+        "(state = ANY (ARRAY['awaiting_prepared_plan'::text, 'cancelled_before_plan'::text]))",
+    ),
+    (
+        "central_supervisor_reservations",
+        "central_supervisor_reservations_through_cursor_check",
+        "(through_cursor > 0)",
     ),
 ];
