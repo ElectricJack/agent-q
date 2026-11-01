@@ -145,3 +145,58 @@ async fn unconfigured_runtime_returns_without_closing_fixture_claims() {
         .unwrap();
     assert!(held(&pool, attempt).await);
 }
+
+#[tokio::test]
+async fn published_offer_actual_accept_and_expiry_preserve_source_while_revoking_material() {
+    let (case, offer) = common::native_offer::published().await;
+    let request = common::native_offer::acceptance(&case, &offer);
+    let preparation = common::native_offer::accept(&case, &request).await;
+    let pool = &case.env.env.pool;
+    let attempt = offer.offered.offer.binding.attempt_id;
+    case.env.env.time.store(
+        preparation.original.clock.expires_at_ms as i64,
+        Ordering::SeqCst,
+    );
+    let closed = Sweep::default().tick(&case.env.env.state).await.unwrap();
+    assert_eq!((closed.inspected, closed.closed, closed.refused), (1, 1, 0));
+    assert!(!held(pool, attempt).await);
+    let material: String =
+        sqlx::query_scalar("SELECT state FROM admission_material_leases WHERE lease_id=$1")
+            .bind(preparation.original.materials[0].lease_id)
+            .fetch_one(pool)
+            .await
+            .unwrap();
+    assert_eq!(material, "revoked");
+    let linked: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM profiled_launch_artifacts WHERE attempt_id=$1")
+            .bind(attempt)
+            .fetch_one(pool)
+            .await
+            .unwrap();
+    assert!(linked > 0);
+    let mut tx = pool.begin().await.unwrap();
+    let source =
+        aq_server::profiled_execution::source_exports::load_linked_locked(&mut tx, attempt)
+            .await
+            .unwrap();
+    assert_eq!(source.manifest().attempt.attempt_id, attempt);
+    assert!(!source.fact().canonical_bytes().unwrap().is_empty());
+    tx.rollback().await.unwrap();
+    let proof: serde_json::Value =
+        sqlx::query_scalar("SELECT state FROM profiled_authority_hot WHERE attempt_id=$1")
+            .bind(attempt)
+            .fetch_one(pool)
+            .await
+            .unwrap();
+    assert_eq!(proof["status"], "never_granted");
+    assert!(proof["grant"].is_null());
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>(
+            "SELECT count(*) FROM agent_launch_bindings WHERE credential_verifier IS NOT NULL"
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap(),
+        0
+    );
+}
