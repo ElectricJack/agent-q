@@ -215,6 +215,14 @@ async fn absent_policy_has_no_route_and_invalid_policy_refuses_configuration() {
 #[tokio::test]
 async fn mixed_candidate_schema_is_corruption_not_older_profile() {
     let (c, p, q) = setup().await;
+    // This fixture deliberately corrupts only the state30 owner tables. Remove
+    // the newer child's FK first, keeping state32 storage present so the test
+    // still isolates refusal of missing state30 ownership rather than failing
+    // setup or relying on missing state32 quota storage.
+    if aq_server::STATE_FORMAT_VERSION >= 32 {
+        sqlx::query("ALTER TABLE profiled_phase_execution_grants DROP CONSTRAINT profiled_phase_execution_grants_attempt_id_fkey")
+            .execute(&c.env.env.pool).await.unwrap();
+    }
     sqlx::query("DROP TABLE profiled_v2_accepts")
         .execute(&c.env.env.pool)
         .await
@@ -808,6 +816,14 @@ async fn structurally_complete_v2_prepare_never_falls_back_to_legacy_execution_i
 #[tokio::test]
 async fn current30_missing_both_phase_tables_cannot_undercharge_legacy_admission() {
     let (c, _, q) = setup().await;
+    // This fixture deliberately corrupts only the state30 owner tables. Remove
+    // the newer child's FK first, keeping state32 storage present so the test
+    // still isolates refusal of missing state30 ownership rather than failing
+    // setup or relying on missing state32 quota storage.
+    if aq_server::STATE_FORMAT_VERSION >= 32 {
+        sqlx::query("ALTER TABLE profiled_phase_execution_grants DROP CONSTRAINT profiled_phase_execution_grants_attempt_id_fkey")
+            .execute(&c.env.env.pool).await.unwrap();
+    }
     sqlx::query("DROP TABLE profiled_v2_accepts")
         .execute(&c.env.env.pool)
         .await
