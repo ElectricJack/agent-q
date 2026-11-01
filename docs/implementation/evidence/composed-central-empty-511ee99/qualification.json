@@ -1,0 +1,42 @@
+{
+  "source_revision": "511ee995ac55dd6345590732705b5a3bfde5130d",
+  "runtime_source_stamp": "511ee99",
+  "binary": "/tmp/aq-composed-central-empty-511ee99/aq-server",
+  "sha256": "17698c625675b7a994b0a56bbd37737becbf039380093ae9dd32fe1bdcd27b25",
+  "bytes": 116203760,
+  "state_format": 37,
+  "features": "default; no test-support",
+  "tests": {
+    "selection": 38,
+    "playbook_activation": 15
+  },
+  "component_archives_qualified_separately": true,
+  "checks": [
+    {
+      "step": "selection",
+      "returncode": 0,
+      "elapsed_seconds": 4.573
+    },
+    {
+      "step": "playbook_activation",
+      "returncode": 0,
+      "elapsed_seconds": 60.974
+    },
+    {
+      "step": "server_check",
+      "returncode": 0,
+      "elapsed_seconds": 52.192
+    },
+    {
+      "step": "server_default_build",
+      "returncode": 0,
+      "elapsed_seconds": 39.299
+    }
+  ],
+  "qualification": "Composed selector0.1.4 and explicit empty Playbooks owner; default state37 server; no runtime capability promotion",
+  "limits": [
+    "Pure central selection grants no execution authority or current authenticated owner facts.",
+    "Canonical at this qualification checkpoint remains state35/frontend6247; optional Playbooks owner staged separately.",
+    "No provider requests or real harness launch were part of this gate."
+  ]
+}

@@ -1573,7 +1573,10 @@
         "../implementation/dashboard-canonical-events35-2026-11-01.md",
         "../implementation/AQ-17-central-reservation-owner.md",
         "../implementation/AQ-17-central-profile-startup.md",
-        "../implementation/backend-composed-5d445a5-qualification.md"
+        "../implementation/backend-composed-5d445a5-qualification.md",
+        "../implementation/AQ-17-central-selection-pure.md",
+        "../implementation/evidence/aq17-central-selection-7014549/qualification.json",
+        "../implementation/composed-central-empty-511ee99-qualification.md"
       ]
     },
     {
@@ -3062,7 +3065,10 @@
         "../../../aq-dashboard/docs/evidence/loaded-definitions-browser/README.md",
         "../implementation/dashboard-canonical-state35-2026-11-01.md",
         "../implementation/API-05-current-catalog.md",
-        "../implementation/backend-composed-5d445a5-qualification.md"
+        "../implementation/backend-composed-5d445a5-qualification.md",
+        "../implementation/evidence/private-uds-current-catalog-37/README.md",
+        "../implementation/evidence/empty-playbooks-owner-2baa8e7/README.md",
+        "../implementation/composed-central-empty-511ee99-qualification.md"
       ]
     },
     {
@@ -3570,7 +3576,12 @@
       "evidence": [
         "../../../aq-worker/docs/implementation/WRK-17-named-readonly-exec-profile.md",
         "../../../aq-worker/docs/implementation/WRK-17-owned-scoped-auth.md",
-        "../../../aq-worker/docs/implementation/evidence/wrk17-named-readonly-physical/README.md"
+        "../../../aq-worker/docs/implementation/evidence/wrk17-named-readonly-physical/README.md",
+        "../../../aq-worker/docs/implementation/WRK-17-prepared-capsule-commit.md",
+        "../../../aq-worker/docs/implementation/WRK-17-responses-transport-extraction.md",
+        "../../../aq-worker/docs/implementation/evidence/responses-transport-extraction/qualification.json",
+        "../../../aq-worker/docs/implementation/WRK-17-prepared-responses-composition.md",
+        "../../../aq-worker/docs/implementation/evidence/prepared-responses-composition/qualification.json"
       ]
     },
     {
@@ -3869,7 +3880,7 @@
     },
     {
       "source": "2026-10-31-native-integration-checkpoint.md",
-      "summary": "Ordered state25\u219227, native preparation and explicit optional playbook lifecycle are integrated. Worker no-launch journal/observed tmux host passed retained Git/host/relay checks; one concurrent-load deadline failure remains explicit. The assembled daemon passed45 selected tests and4livebrowser checks after fixture upgrade. Native offers/grants and full driver continue in parallel; product gates stay open."
+      "summary": "Ordered state25→27, native preparation and explicit optional playbook lifecycle are integrated. Worker no-launch journal/observed tmux host passed retained Git/host/relay checks; one concurrent-load deadline failure remains explicit. The assembled daemon passed45 selected tests and4livebrowser checks after fixture upgrade. Native offers/grants and full driver continue in parallel; product gates stay open."
     },
     {
       "source": "../implementation/AQ-08-granted-launch-closure-plan.md",
