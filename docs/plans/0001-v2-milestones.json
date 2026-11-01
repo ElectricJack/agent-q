@@ -892,7 +892,8 @@
         "../implementation/AQ-08-closure-owner-evidence.md",
         "../implementation/AQ-08-closure-renewal-integration.md",
         "../implementation/AQ-08-accepted-preparation-v2-plan.md",
-        "../implementation/AQ-08-scoped-material-presence-plan.md"
+        "../implementation/AQ-08-scoped-material-presence-plan.md",
+        "../implementation/AQ-08-overlap-worker-integration.md"
       ]
     },
     {
@@ -1091,7 +1092,9 @@
         "../../../aq-worker/docs/implementation/WRK-08-native-artifact-batch-qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-preparation-phase-separation.md",
         "../implementation/AQ-08-worker-prepare-assembly.md",
-        "../../../aq-worker/docs/implementation/WRK-08-durable-initial-grant-plan.md"
+        "../../../aq-worker/docs/implementation/WRK-08-durable-initial-grant-plan.md",
+        "../implementation/AQ-08-overlap-worker-integration.md",
+        "../../../aq-worker/docs/implementation/WRK-08-artifact-overlap-qualification.md"
       ]
     },
     {

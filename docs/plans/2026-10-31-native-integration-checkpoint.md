@@ -176,3 +176,13 @@ and durable worker initial-grant recording before any host hook. Presence facts
 are independent per attempt: refreshing one agent must not invalidate every
 other agent's evidence or advertise its private material globally. These remain
 in progress and do not activate runtime capabilities by documentation alone.
+
+
+[Bounded two-read overlap](../../../aq-worker/docs/implementation/WRK-08-artifact-overlap-qualification.md)
+is integrated in worker `f1e28d9` (source `a39e990`):135 default and152 all-feature
+package tests pass, with four declared ignores, plus the separately enabled
+actual-Git test and strict lint. A deterministic barrier proves two active reads
+and independent control progress with unchanged atomic receipt completion.
+The newer [actual process check](../implementation/AQ-08-overlap-worker-integration.md)
+passes at daemon `6d4b178`/worker `a39e990` in3.17seconds. No original deadline
+changed; earlier refusals are retained and cold preparation is still open.
