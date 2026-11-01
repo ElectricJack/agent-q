@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "source": "a271649",
+  "state_format": 29,
+  "passed": 1,
+  "failed": 0,
+  "ignored": 0,
+  "seconds": 1.2,
+  "scope": "Actual two authenticated/registered synthetic nodes in disposable PostgreSQL; foreign proposal and wrong boot refuse without reading/inserting foreign proposal; original node still succeeds. Candidate030 tables applied by test fixture on29; this is not ordered030 qualification.",
+  "log": {
+    "path": "docs/implementation/evidence/aq08-proposal-scope-a271649/main29.log",
+    "sha256": "736d6df6954759047be27d468db33c68267a8a34c38916bf9b5df6b24596c394",
+    "bytes": 456
+  }
+}
