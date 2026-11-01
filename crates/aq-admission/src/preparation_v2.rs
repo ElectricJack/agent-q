@@ -373,6 +373,7 @@ impl AcceptedReceipt {
                 && l.issued_at_ms < proposal.expires_at_ms
                 && l.expires_at_ms > l.issued_at_ms
                 && l.expires_at_ms - l.issued_at_ms <= p.policy.maximum_preparation_ms
+                && l.expires_at_ms - l.issued_at_ms <= r.original.reservation_remaining_ms
                 && l.expires_at_ms <= i64::MAX as u64,
             "timely Accept independent preparation lease",
         )?;

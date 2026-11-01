@@ -112,6 +112,7 @@ pub fn case() -> Case {
     let mut original: Accept =
         serde_json::from_value(control["requests"]["accept"].clone()).unwrap();
     original.acceptance.binding = proposal.original.offered.offer.binding.clone();
+    original.reservation_remaining_ms = 60000;
     let hold = ResourceHold {
         reservation: original.reservation.clone(),
         resources: Resources {

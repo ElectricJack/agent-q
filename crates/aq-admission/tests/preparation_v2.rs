@@ -410,3 +410,11 @@ fn v2_decoder_never_falls_back_to_legacy_or_different_schema() {
         assert!(decode(&serde_json::to_vec(&v).unwrap()).is_err());
     }
 }
+
+#[test]
+fn accepted_phase_cannot_outlive_original_worker_resource_reservation() {
+    let mut c = case();
+    c.accept.original.reservation_remaining_ms = 1000;
+    c.accepted.request_digest = c.accept.digest().unwrap();
+    assert!(c.accepted.validate_for(&c.accept, &c.proposal).is_err());
+}
