@@ -1,5 +1,7 @@
 # Dashboard qualification status — November 1, 2026
 
+**Earlier checkpoint.** The subsequent [promoted preview record](dashboard-actions-preview-2026-11-01.md) supersedes the pending task-composer, notification-browser, 320px Scope control and canonical-promotion gates below. It also records the delivered session-usage increment. Full parent tasks remain open.
+
 This records bounded source and isolated-runtime qualification at agent-q
 `b2d7600` and dashboard `436fc12`. It updates the execution plan without closing
 the full product/design tasks. A compiled bundle served by an isolated test

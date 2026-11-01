@@ -2255,7 +2255,8 @@
       ],
       "out_of_scope": [],
       "evidence": [
-        "../implementation/dashboard-qualified-status-2026-11-01.md"
+        "../implementation/dashboard-qualified-status-2026-11-01.md",
+        "../implementation/dashboard-actions-preview-2026-11-01.md"
       ]
     },
     {
@@ -2986,7 +2987,9 @@
         "Raw arbitrary Graph proxy",
         "Task or document writes"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/dashboard-actions-preview-2026-11-01.md"
+      ]
     },
     {
       "id": "API-04",
@@ -3194,7 +3197,8 @@
         "Implicit task creation from comments"
       ],
       "evidence": [
-        "../implementation/dashboard-qualified-status-2026-11-01.md"
+        "../implementation/dashboard-qualified-status-2026-11-01.md",
+        "../implementation/dashboard-actions-preview-2026-11-01.md"
       ]
     },
     {
@@ -3309,7 +3313,9 @@
         "Typed writes owned by API-10/UI-02",
         "Full Graph downloads"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/dashboard-actions-preview-2026-11-01.md"
+      ]
     },
     {
       "id": "UI-07",
@@ -3497,7 +3503,8 @@
         "Full terminal rendering/control"
       ],
       "evidence": [
-        "../implementation/dashboard-qualified-status-2026-11-01.md"
+        "../implementation/dashboard-qualified-status-2026-11-01.md",
+        "../implementation/dashboard-actions-preview-2026-11-01.md"
       ]
     },
     {
@@ -3642,7 +3649,9 @@
         "Waiting for all review/result owners",
         "Full quota aggregation"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/dashboard-actions-preview-2026-11-01.md"
+      ]
     },
     {
       "id": "UI-15",
@@ -3670,7 +3679,9 @@
         "Waiting for provider quota",
         "Fabricated totals"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/dashboard-actions-preview-2026-11-01.md"
+      ]
     },
     {
       "id": "UI-16",
@@ -3730,7 +3741,9 @@
         "Waiting for production native runner",
         "Interactive renderer/control"
       ],
-      "evidence": []
+      "evidence": [
+        "../implementation/dashboard-actions-preview-2026-11-01.md"
+      ]
     },
     {
       "id": "UI-18",
