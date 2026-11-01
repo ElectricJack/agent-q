@@ -1,0 +1,10 @@
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 38.03s
+     Running tests/native_accepted_preparation.rs (/tmp/aq-native-union-target/debug/deps/native_accepted_preparation-0088f350c1faf147)
+
+running 2 tests
+test unsupported_history::accepted_phase_origin_cannot_enter_legacy_started_through_shaped_hot_grant ... ok
+test unsupported_history::accepted_phase_origin_cannot_acquire_legacy_original_grant_through_renewal ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 2.65s
+

@@ -1,0 +1,10 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-phase-execution-owner/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.60s
+     Running tests/native_accepted_preparation.rs (/tmp/aq-phase30-qualification-target/debug/deps/native_accepted_preparation-bee3d72b9007997b)
+
+running 2 tests
+test unsupported_history::accepted_phase_origin_cannot_enter_legacy_started_through_shaped_hot_grant ... ok
+test unsupported_history::accepted_phase_origin_cannot_acquire_legacy_original_grant_through_renewal ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 14 filtered out; finished in 2.80s
+

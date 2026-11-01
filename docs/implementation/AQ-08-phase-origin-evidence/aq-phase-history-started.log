@@ -1,0 +1,13 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.16s
+     Running tests/profiled_started.rs (/tmp/aq-phase30-qualification-target/debug/deps/profiled_started-d89ca80971570515)
+
+running 6 tests
+test journal_heads_preserve_exact_phase_scope_and_require_original_start_record ... ok
+test grant_expiring_while_waiting_for_owner_lock_cannot_become_running ... ok
+test original_started_is_atomic_and_historical_replay_never_revives_stopped_host ... ok
+test receipt_journal_and_running_rollback_together_and_rotated_auth_cannot_replay ... ok
+test missing_prepared_head_foreign_owner_and_unregistered_allowlist_never_make_running ... ok
+test worker_http_start_report_uses_current_node_auth_and_returns_only_historical_ack ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.66s
+
