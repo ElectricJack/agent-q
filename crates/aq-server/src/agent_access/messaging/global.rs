@@ -1,5 +1,6 @@
 //! Human global-conversation admission over AQ-11 mail, never runtime delivery.
 mod reads;
+pub mod reservations;
 mod writes;
 use super::{Envelope as Mail, append, digest, receipt, replay, sender_key};
 use crate::{AppState, authz::RequireOwner, error::AppError, store::User};

@@ -54,7 +54,7 @@ context field is rejected. Unsupported new operation/history kinds fail closed.
 through-cursor, scanned-through cursor, selected exact MailRefs (message UUID,
 mailbox cursor, original payload digest), selected raw body-byte count,
 selection_digest, `coverage: complete|partial`, `has_more`, and an explicit status
-`ready|no_eligible_mail|reservation_outstanding|disabled`. A partial scan is never
+`ready|no_eligible_mail|partial_scan|reservation_outstanding|disabled`. A partial scan is never
 reported complete/empty. The scan cursor is not an acknowledgement or proof of
 processing. Selection digest binds all of these source facts and installed
 policy identity. Reserve re-queries; a digest supplied by a caller proves nothing. The source head
@@ -65,12 +65,13 @@ protect original global rows/receipts, including OLD/NEW mailbox identity aliase
 
 Immutable mutation receipts identify contract, actor/conversation, operation ID,
 initiating human user ID, request digest, resulting actor/policy revisions and a
-closed disposition. Configure returns `configured`; reserve returns `reserved`
+closed disposition. Configure returns `configured` or retained `not_configured/revision_changed` for
+an existing actor; reserve returns `reserved`
 with the actual immutable reservation/batch metadata or `not_reserved` with a
 reason; cancel returns `cancelled_before_plan` or `not_cancelled` with a reason.
 Retained refusals include revision_changed, policy_disabled,
 reservation_outstanding, selection_changed, no_eligible_mail and
-reservation_not_current. Capacity/shape/current-authorization failures perform
+reservation_not_current and reservation_id_conflict. Capacity/shape/current-authorization failures perform
 no admission; lookup after an ambiguous transport/database error is mandatory.
 Reused op identity under different bytes/kind/initiating principal conflicts.
 Original successful receipts remain immutable after cancel/policy change.
@@ -100,3 +101,13 @@ versioned profile/HostPlan bridge and complete all-generation UUID/cursor/operat
 history under one CAS transaction. There is deliberately no method that accepts
 a caller-supplied MailHistoryFence or starts a host. A generation-zero core fence
 is invalid. This API cannot emit one or advertise central execution capability.
+
+Exact current reservation fields are frozen in the generated schema: id,
+actor_id, conversation_id, revision, admission_actor_revision,
+reserve_operation_id, nullable cancel_operation_id, admission policy_revision,
+core MailBatch, batch_digest, body_bytes, state and the explicit unavailable/null
+runtime fields. `lookup.current_reservation` is the current view of the original
+receipt's reservation, separately from the immutable receipt. Inspect actor to
+resolve the actor's currently active reservation; they may differ after history.
+The complete command/result row binds the original reserve/cancel operation and
+its exact snapshot/revisions, so a configure receipt cannot witness cancellation.
