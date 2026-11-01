@@ -186,3 +186,23 @@ must return the same grant without extending its cap. Schema32 startup refuses
 missing mandatory history rather than undercharging or rebuilding it. Legacy
 Started, renewal and closure consumers stay fenced until separately updated to
 consume actual typed phase history. A test-only issuer route is not activation.
+
+
+## Follow-up gate: independent availability refresh
+
+The current intelligence registry advances its aggregate revision when availability
+observations change. The frozen0.1.9 phase contract requires an exact registry
+artifact match. Consequently, the first issuer cannot renew source availability
+after acceptance without invalidating its original pin, even when configuration
+and the selected credential are unchanged. This is a documented activation and
+scale limitation, not an argument to reuse stale availability or lengthen all
+source ages.
+
+A follow-up must distinguish immutable configuration/credential identity from
+mutable availability observations. Design an explicitly negotiated compatibility
+boundary before changing the frozen contract or the meaning of an existing
+artifact. Qualification must show that a genuinely fresh same-configuration
+positive observation can permit issuance, a matching newer negative/cooldown still
+refuses, credential rotation or principal changes still fence, and unrelated
+agents' availability reports do not invalidate every outstanding proposal. Preserve
+original history and independently bounded new delivery clocks throughout.
