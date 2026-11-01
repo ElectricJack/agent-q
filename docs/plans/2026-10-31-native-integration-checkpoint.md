@@ -56,8 +56,10 @@ Worker source `ec41ad7` now adds format2 journal input intents and independent
 material installation pins. Inline verified payloads remain in memory and must
 be downloaded and verified again after loss; receipt metadata is not availability
 or live authority. It does not yet expose Prepare or claim actual Git hydration.
-Its separate frozen qualification is being retained; earlier broad worker test
-counts above are not attributed to this newer source.
+Its [frozen qualification](../../../aq-worker/docs/implementation/WRK-08-native-inputs-qualification.md)
+at `238c2ce` records129 package tests passed, three existing actual-Git ignores,
+22 focused tests as a subset, and strict lint/formatting. Earlier broad worker
+test counts above are not attributed to this newer source.
 
 Parallel implementation now covers central renewal/reconciliation, additive
 pre-Started closure contracts, and actual worker source hydration/workspace

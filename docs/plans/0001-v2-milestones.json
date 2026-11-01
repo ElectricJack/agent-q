@@ -1065,7 +1065,9 @@
         "../../../aq-worker/docs/implementation/WRK-08-codex-adapter-plan.md",
         "../../../aq-worker/docs/implementation/WRK-08-native-journal-plan.md",
         "../../../aq-worker/docs/implementation/WRK-08-worker-integration-qualification.md",
-        "../implementation/AQ-08-granted-launch-closure-plan.md"
+        "../implementation/AQ-08-granted-launch-closure-plan.md",
+        "../../../aq-worker/docs/implementation/WRK-08-native-preparation-slice.md",
+        "../../../aq-worker/docs/implementation/WRK-08-native-inputs-qualification.md"
       ]
     },
     {
