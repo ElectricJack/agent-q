@@ -183,6 +183,7 @@ async fn locked(
     }
     let view =
         authority::load_locked(state, tx, &request.binding.session, Policy::IdentityOnly).await?;
+    super::closure::ensure_launch_open_locked(tx, &request.binding).await?;
     if view.kind != Kind::ProfiledV1
         || !view.holds_task
         || view.revoked
