@@ -1,0 +1,10 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-native-producer/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 07s
+     Running unittests src/lib.rs (/tmp/aq08-native-producer-target/debug/deps/aq_server-d1e021636c6c1da9)
+
+running 2 tests
+test profiled_execution::native_offer::observation::tests::each_read_has_its_own_freshness_and_workspace ... ok
+test profiled_execution::native_offer::observation::tests::same_authorized_context_digest_does_not_replace_exact_read_provenance ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 54 filtered out; finished in 0.00s
+

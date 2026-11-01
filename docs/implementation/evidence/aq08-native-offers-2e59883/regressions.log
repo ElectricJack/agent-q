@@ -1,0 +1,46 @@
+   Compiling aq-server v0.1.0 (/tmp/aq08-native-producer/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 16.60s
+     Running tests/native_preparation.rs (/tmp/aq08-native-producer-target/debug/deps/native_preparation-9f37d31d95dd007a)
+
+running 11 tests
+test accept_missing_nonce_unknown_and_duplicate_fields_and_body_bound_are_typed_failures ... ok
+test changed_private_file_never_admits_lease_or_reservation_journal ... ok
+test concurrent_exact_accept_can_reconcile_original_receipt_without_duplicate_leases ... ok
+test actual_original_plan_lease_mapping_reserved_journal_and_exact_replay_without_grant ... ok
+test credential_rotation_during_actual_git_io_never_admits_preparation ... ok
+test expiry_after_observed_node_lock_wait_never_commits_preparation ... ok
+test incoming_preparation_bytes_cannot_overshoot_retained_storage_limit ... ok
+test issued_grant_cannot_be_discounted_as_an_owned_ungranted_reservation ... ok
+test journal_storage_failure_rolls_back_lease_mapping_hot_and_receipt_atomically ... ok
+test extra_known_worker_capabilities_and_missing_durable_journal_never_qualify_preparation ... ok
+test mounted_accept_and_actual_private_material_fetch_keep_preparation_separate_from_grant ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.20s
+
+     Running tests/native_source.rs (/tmp/aq08-native-producer-target/debug/deps/native_source-27a9ce780753ec39)
+
+running 6 tests
+test actual_source_owner_retains_typed_bytes_without_relabeling_context_proposal ... ok
+test offer_expiry_during_git_io_refuses_preflight_authority ... ok
+test credential_rotation_during_git_io_refuses_already_authenticated_read ... ok
+test current_auth_source_status_and_exact_chunks_are_bounded_without_grant_or_receipt_side_effect ... ok
+test version_range_unknown_fields_auth_and_symlink_fail_with_bounded_typed_errors ... ok
+test preparing_and_granted_source_reads_use_original_plan_and_current_authority ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.92s
+
+     Running tests/profiled_source_exports.rs (/tmp/aq08-native-producer-target/debug/deps/profiled_source_exports-3214248f3b2631d2)
+
+running 9 tests
+test completion_retains_original_fact_releases_only_excess_reservation_and_refuses_refresh ... ok
+test pending_unknown_export_is_not_pruned_and_stale_observation_cannot_reserve_new_operation ... ok
+test durable_reservation_precedes_io_exact_retry_survives_capacity_without_grant ... ok
+test linked_attempt_wrapper_has_zero_extra_charge_only_for_exact_verified_export ... ok
+test unknown_source_scope_and_unretained_observation_never_mint_owned_io_token ... ok
+test retired_policy_allows_only_original_fixed_scope_pending_reconciliation ... ok
+test reservation_clock_is_rechecked_after_observed_quota_lock_wait ... ok
+test source_link_rechecks_freshness_after_observed_owned_export_lock_wait ... ok
+test worst_case_pending_metadata_is_bounded_and_original_replay_remains_available ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.50s
+

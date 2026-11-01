@@ -1,7 +1,8 @@
 # AQ-08 delivery status and remaining native execution work
 
-This task-level plan is reconciled with source `0551d84` and persisted state
-format20. The [native completion plan](AQ-08-native-completion-plan.md) defines
+This task-level plan includes the frozen native preparation checkpoint
+`57584b8`, the independently integrated state27 schema, and the bounded native
+offer candidate described below. The [native completion plan](AQ-08-native-completion-plan.md) defines
 remaining work. Root owns the shared architecture and canonical plan; this file
 does not mark AQ08 complete or qualify an unimplemented producer.
 
@@ -9,7 +10,7 @@ does not mark AQ08 complete or qualify an unimplemented producer.
 
 | Boundary | Current implementation |
 | --- | --- |
-| Pure admission publication | `aq-admission`0.1.3; frozen session0.1.0 identities, placement/source/material/artifact contracts, bounded transport, typed execution spec and separate Started publication |
+| Pure admission publication | `aq-admission`0.1.7 (older archives remain immutable); frozen session0.1.0 identities, placement/source/material/artifact contracts, bounded transport, typed execution spec and separate Started publication |
 | Actual graph candidate observations | `agent_access/scheduling.rs`: fixed public API1 ready/context reads, exact workspace/root/CAS/content revisions, request-bound paging/bytes and truthful coverage |
 | Common attempt identity | Migration010: explicit legacy/profiled kind and the shared unsettled-task claim; kind-gated legacy readers and common `AuthorityView` |
 | Current profiled authority | Migration013: compact sole mutable hot authority, immutable sealed launch facts, bounded immutable verification cache, monotonic grant/stop/release guards |
@@ -77,3 +78,39 @@ status/chunk retrieval across Offered, Preparing and Granted. It does not claim
 that native scheduling/offer/accept/prepare/grant/renew handlers exist. Those
 remain the next integration step using these retained owners and exact 0.1.7
 control envelopes; missing qualified model/counting facts continue to refuse.
+
+
+## Initial native offer candidate
+
+The daemon-owned producer now connects actual scoped Graph ready/context reads,
+acyclic profile-v2 compilation and concrete selection/counting facts, owned Git
+export reconciliation, retained startup/definition/outcome/spec bodies, and one
+atomic native Offered claim. The immutable original NativeOffer is retained with
+central read provenance; redelivery only shortens its absolute expiry. Its
+protected API01 bootstrap binding contains no issued credential. Actual Accept
+then enters the separately qualified preparation owner; it does not grant or
+infer Running.
+
+This is a deliberately restricted first profile: one held attempt per worker,
+one highest-priority enabled project, its first ready task, one allowed agent
+recipe, immutable SHA1 source and startup-only instructions. An empty/ineligible
+first project or an already-held first task can starve later candidates. It is
+not multiproject fairness or capacity-scheduler acceptance. Initial inline
+retention is bounded to126 descriptors/16MiB logical body bytes, leaving two
+Prepare receipt slots for Git manifest/bundle; the stored complete offer wrapper
+is limited to500000 compact bytes under the existing1MiB JSONB row guard.
+
+Readiness/context/source/selection expiry caps the original offer to at most30s.
+Accept and the original preparation/material clocks cannot outlive it. Cold
+hydration, material installation and Prepare may therefore refuse large or slow
+workspaces. Retries never stretch original timestamps. Prewarming or fresh
+exact-input revalidation needs a separately owned future design.
+
+Prepare→Grant, renewal, reconciliation/cancellation delivery, automatic bounded
+expiry maintenance, worker physical launch, qualified native CLI/model/counting
+facts and full current-component qualification remain separate completion gates.
+Expired held claims stay conservative until the existing verified never-granted
+closure owner runs. No paid provider is called by this candidate. Actual CLI
+qualification needs a selected configured test target and declared bounded budget;
+missing target, credentials or qualified model facts are concrete blockers, not
+permission requirements invented by this task.

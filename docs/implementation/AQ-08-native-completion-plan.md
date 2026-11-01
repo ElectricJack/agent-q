@@ -1,6 +1,8 @@
 # AQ-08 native producer completion plan
 
-Baseline: source `0551d84`, state format20. This is a task-level implementation
+Historical planning baseline: source `0551d84`, state format20. Current task
+checkpoints include preparation `57584b8`, offer publication `2e59883`, and the
+separately integrated state27 schema. This is a task-level implementation
 plan for worker execution, subordinate to architecture0003/0004 and the
 [three-area completion scope](../plans/0002-execution-sessions-policy-completion.md).
 It supersedes the historical stage1-only AQ08 plan. None of the remaining routes
@@ -324,16 +326,16 @@ rehash multi-MiB definition bodies.
 The actual inline artifact owner supplies receipts for the required definitions.
 All required references are checked before retaining any; individual receipts
 are durable per-artifact operations, so a later storage failure can leave charged
-retained artifacts but grants no execution. Draft migration027 makes definition
+retained artifacts but grants no execution. Migration027 makes definition
 identity/version content immutable across projects and configuration revisions,
-serialized under the existing inline-artifact quota lock. It is unregistered
-until human026 is present; explicit027 component tests are not ordered migration
-qualification. Final producer offer/grant transactions must fence the same
+serialized under the existing inline-artifact quota lock. The schema owner
+registered026→027 separately. This lane’s original explicit027 component tests
+are not ordered migration qualification. Final producer offer/grant transactions must fence the same
 current configuration after external work and waits.
 
 ## Actual acceptance/preparation owner
 
-The next checkpoint mounts raw `transport::Accept` at
+Frozen checkpoint `57584b8` mounts raw `transport::Accept` at
 `POST /v1/worker/profiled/accept` on the machine listener with a 64KiB body ceiling
 and one nonnil `aq-delivery-nonce` per physical send. It returns the frozen 0.1.7
 `ControlReply::Preparation` envelope. This is preparation permission only, never
@@ -384,3 +386,57 @@ provider called, source/effect receipt invented, grant issued or task completed.
 Next required code remains actual ready-task → authorized projection/composition
 → selection → retained artifacts/source → atomic offer publication, then
 Prepare→Grant, Renew and Reconcile handlers plus the worker/host vertical gate.
+
+
+## Bounded first native offer publication
+
+The initial producer reads actual public ready/context owners, checks exact task
+CAS/content revisions and decoded record equality, compiles the authorized
+ContextSnapshot into startup before selection, and uses current service-policy
+selection plus explicitly qualified model capacity/counting. Missing facts refuse;
+unknown token counts are never encoded as zero. Actual source export intent is
+reserved before Git I/O and reconciled by its original operation identity. After
+export, ready/context/eligibility/selection and source retention are observed again.
+All Git/Graph/file I/O precedes the final SQL transaction.
+
+The final SERIALIZABLE transaction locks/rechecks the authenticated current node,
+registered runtime/configuration and actual project/catalog/registry/policy facts,
+then publishes the shared unsettled-task claim, immutable launch/spec/selection,
+Offered hot authority, owner-linked retained artifacts/source and an internal
+protected API01 launch binding. No credential, material lease, grant or Running
+observation is minted by Poll. Independently retained artifacts/export intents may
+remain charged after a later failure, and are not silently pruned.
+
+The immutable launch row stores a versioned complete original NativeOffer and
+separate central read provenance. Historical loading verifies exact binding,
+manifest/spec digests, readiness/context expiry ceilings and linked owner bodies;
+missing older wrappers refuse. The final renderer payload is verified against
+its descriptor and exact constituent spans. Fixed project-policy labeling is part
+of the counted compiler input, using a derived content-addressed context source;
+the original policy Definition remains separately pinned. This avoids ambiguous
+same-byte Definition/Context receipts under the frozen Prepare digest-uniqueness
+rule. The worker receives one rendered payload and adds no framing.
+
+This first profile selects at most one offer, one worker slot, the highest-priority
+enabled project and its first ready task. Empty/ineligible first projects and
+already-held first tasks can starve later work. It requires one allowed agent
+recipe, immutable SHA1 source, positive complete bundle and startup-only delivery.
+It refuses inline descriptor counts above126, logical inline bodies above16MiB,
+duplicate receipt digests (including Git members), and original wrappers above
+500000 compact bytes. These are conservative supported-profile limits, not claims
+of full public-envelope or fleet capacity support.
+
+Original offer expiry is at most30s and no later than all exact ready/context,
+source, selection and counting facts. Original preparation/material expiry cannot
+exceed it. Cold hydration/install/Prepare may consequently time out for slow or
+large workspaces. Delivery retries shorten remaining TTL; they never rewrite the
+original clock. Later prewarming or exact-input freshness revalidation must have
+its own owner semantics rather than extending stale originals.
+
+The initial integration test uses synthetic Graph/Git/model/runtime qualification
+bodies and real daemon HTTP, retained owners, compiler/selector and PostgreSQL.
+It exercises Poll→Offered→redelivery→Accept→Preparing with no grant. Real CLI/model
+qualification, worker execution, Prepare→Grant/Renew/Reconcile, cancellation and
+bounded expiry dispatch remain distinct gates. A previously started attempt is
+never discounted by reserved-choice refresh; verified NeverGranted history still
+advances generations and consumes the separate finite retry budget.
