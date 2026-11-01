@@ -1,0 +1,12 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.24s
+     Running tests/playbook_activation.rs (/tmp/aq14-decisions/target/debug/deps/playbook_activation-d5fbb49e33c841bb)
+
+running 5 tests
+test config_refuses_disabled_tcp_unsafe_files_unknown_fields_and_changed_socket_directory ... ok
+test changed_bootstrap_binding_is_refused_and_successful_stop_replay_is_exact ... ok
+test lost_engine_connection_does_not_fabricate_shutdown_release_ack ... ok
+test startup_missing_registered_schema_refuses_before_engine_creation ... ok
+test explicit_unix_owner_starts_dispatches_restarts_without_regrant_and_drains ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.60s
+

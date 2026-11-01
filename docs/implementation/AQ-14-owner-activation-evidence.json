@@ -1,0 +1,223 @@
+{
+  "schema_version": 1,
+  "task": "AQ-14",
+  "status": "qualified opt-in local owner activation slice; broader task remains in progress",
+  "source_revision": "bc6ac06b61fc718aeba6879fc5b8e70fbbdd528c",
+  "integrated_source_revision": "077a0ad",
+  "base_revision": "55b9ede0535e1b47b504dfced7094d4f1dda9352",
+  "recorded_at": "2026-11-01T00:03:17.596413+00:00",
+  "platform": "Linux with /proc/self/fd and trusted local PostgreSQL Unix socket; no TCP fallback",
+  "prerequisites": {
+    "ordered_schema_registration": "84b079d",
+    "native27_sql_source": "3468456",
+    "metadata_guard": "b591f12",
+    "local_equivalents": [
+      "09afdf1",
+      "a039a81",
+      "55b9ede"
+    ],
+    "state_format": 27,
+    "public_host_version": "0.1.2",
+    "producer_revision": "d3bd349d9293b7aee6ed434cd1927ecfb035f8e7",
+    "producer_archive_sha256": "bd1246e8e972ee1627e94598945f398812c89044106b463151a696511412ca39",
+    "vendor_files_verified": 725
+  },
+  "qualification": {
+    "server_tests": 55,
+    "actual_disposable_postgresql_server_tests": 49,
+    "pure_catalog_compiler_tests": 6,
+    "pure_stop_ack_test": 1,
+    "host_stalled_drop_test": 1,
+    "ignored": 0,
+    "subset_repeats_not_added_to_total": [
+      "5 activation cases rerun after test-helper lint cleanup",
+      "1 question expiry case also belongs to13 profiled-results cases"
+    ],
+    "strict_targeted_server_clippy": true,
+    "format": true,
+    "vendor_drift": true,
+    "database": "existing scripts/test-db loopback55432 PostgreSQL; only random TestDb databases",
+    "synthetic_peer": "local Unix socket forwarding exclusively to existing loopback55432 disposable PostgreSQL",
+    "commands": [
+      "DATABASE_URL=<disposable-test-db> CARGO_TARGET_DIR=/tmp/aq14-decisions/target CARGO_INCREMENTAL=0 RUST_TEST_THREADS=2 cargo test -p aq-server --test playbook_activation --test playbook_bridge --test playbook_contract --test playbook_review_contract --test profiled_results --test playbook_integration_startup --test authz --test dashboard_read --locked --offline -- --test-threads=2",
+      "DATABASE_URL=<disposable-test-db> CARGO_TARGET_DIR=/tmp/aq14-decisions/target CARGO_INCREMENTAL=0 RUST_TEST_THREADS=2 cargo test -p aq-server --test playbook_activation --locked --offline -- --test-threads=2",
+      "CARGO_TARGET_DIR=/tmp/aq14-decisions/target CARGO_INCREMENTAL=0 cargo test -p aq-server --lib shutdown_tests --locked --offline",
+      "CARGO_TARGET_DIR=/tmp/aq14-decisions/target CARGO_INCREMENTAL=0 cargo test -p aq-playbook-host --test owner dropping_last_handle --locked --offline",
+      "CARGO_TARGET_DIR=/tmp/aq14-decisions/target CARGO_INCREMENTAL=0 cargo clippy -p aq-server --lib --test playbook_activation --test playbook_bridge --test playbook_review_contract --test profiled_results --all-features --locked --offline -- -D warnings",
+      "cargo fmt --package aq-server --check",
+      "git diff --check"
+    ]
+  },
+  "development_failures": [
+    "Initial new test queried nonexistent agent_messages instead of actual mailbox_messages; corrected fixture assertion.",
+    "New native-shaped fixture initially lacked AQ11 required known-task agent_launch_binding; actual service refused unknown recipient, fixture corrected.",
+    "One repeated fixture run omitted DATABASE_URL and failed before any test database was created; corrected explicit environment final run passes.",
+    "Strict lint found collapsible conditionals in runtime shutdown and test readiness helper; corrected before final strict pass."
+  ],
+  "source_inventory": [
+    {
+      "path": "Cargo.lock",
+      "bytes": 88659,
+      "sha256": "1ec46dc99271d9a24680a2fc9e2be15f6aa9d88a2c7d0f01ef84d9b5bc30b2af"
+    },
+    {
+      "path": "crates/aq-playbook-host/Cargo.toml",
+      "bytes": 713,
+      "sha256": "c05c121cb69c3c0f3b03ef342214901ae06d32fb6e4cb6a2bef763f6d7a6481d"
+    },
+    {
+      "path": "crates/aq-playbook-host/src/lib.rs",
+      "bytes": 22497,
+      "sha256": "6c2f1666a90b2b6cfe3a6f510809877b2d231c6aa88fcf173e9bccfd5ba76a5e"
+    },
+    {
+      "path": "crates/aq-playbook-host/src/protected.rs",
+      "bytes": 3780,
+      "sha256": "46ba2c2cf922e2344e2475497395fe34846ff37021b2ed3d63e430249b2cef1a"
+    },
+    {
+      "path": "crates/aq-playbook-host/tests/owner.rs",
+      "bytes": 8750,
+      "sha256": "1976627ded49837cb3ae2333b9b7df3396c8859d56e8123cdc9d60b45f72bf20"
+    },
+    {
+      "path": "crates/aq-server/Cargo.toml",
+      "bytes": 2420,
+      "sha256": "655236be3c454fb54046cfec68469d4b2e6b9cbde901f9b04f6e16ba672619ef"
+    },
+    {
+      "path": "crates/aq-server/migrations/0026_review_owners.sql",
+      "bytes": 5779,
+      "sha256": "1f2999baeca7caf48e23a08cb74e1970ea2c1725d15d6a88c6258b32e4ae392e"
+    },
+    {
+      "path": "crates/aq-server/migrations/0027_native_definition_identities.sql",
+      "bytes": 1690,
+      "sha256": "ee1622b0d1470286cad47963b2eee971b859861b304452b8d5bed365a07113f7"
+    },
+    {
+      "path": "crates/aq-server/src/config.rs",
+      "bytes": 11457,
+      "sha256": "e335a89435bff2d1ced7df9d584b862e5e98d58b677b62d73ec329e630b273a3"
+    },
+    {
+      "path": "crates/aq-server/src/lib.rs",
+      "bytes": 14067,
+      "sha256": "a20affabe2dab6fe5039cf25bfb142704ac8866113988ee370cf3b4dbf4b8957"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/api.rs",
+      "bytes": 8085,
+      "sha256": "e4c0f61d9742b2c1676a788baf52ecd863df88eb6f4d7a5506ad1f2989a915cd"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/config.rs",
+      "bytes": 10795,
+      "sha256": "8797cac26484defa7732588299f2b552545ad1f97985ae1d02c194f12cdc5d4d"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/driver.rs",
+      "bytes": 23560,
+      "sha256": "ed10ecfa661dc81672e80828c87424abccafa707bf91bcabdc09da1439141ab0"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/mod.rs",
+      "bytes": 282,
+      "sha256": "ee8f056dfdec51162ca04a98c43a9dd551d82a90dc204fd34905d8e4f2882623"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/runtime.rs",
+      "bytes": 9834,
+      "sha256": "2dcbf43646b16332568376ed2b67d08d0bdf5e348ca485f61fd60674d98f38e3"
+    },
+    {
+      "path": "crates/aq-server/src/playbooks/service.rs",
+      "bytes": 68009,
+      "sha256": "2a04777302faf7cac8c76e1fceb11715403d020b0b782fee9e2abe7e2bc44603"
+    },
+    {
+      "path": "crates/aq-server/src/store.rs",
+      "bytes": 25077,
+      "sha256": "7bbd20e9e2fabf376492bf7cbd2a28910bb276051e41f19ec23e36c3d6c2f3c9"
+    },
+    {
+      "path": "crates/aq-server/tests/playbook_activation.rs",
+      "bytes": 21054,
+      "sha256": "69f1dede499f19c0d9805d6fac50ea9ac9d79d58341ca7df58621b4f748538fe"
+    },
+    {
+      "path": "crates/aq-server/tests/profiled_results.rs",
+      "bytes": 64023,
+      "sha256": "268b8a132a5b472be5126fb5cbaa4bc3e9316af348d0f3d466013b28a49e4691"
+    },
+    {
+      "path": "docs/implementation/AQ-14-owner-activation.md",
+      "bytes": 7501,
+      "sha256": "77ca41ad19ee7143bd2a32f03b3cf1eecce0504492aca0b18f655923f454ba7a"
+    },
+    {
+      "path": "vendor/aq-playbooks-source-0.1.2.json",
+      "bytes": 57993,
+      "sha256": "d4c8554298bcf37ee9a1b97a4cc8ace957d58fd22a5828f608f290735a4cbd2b"
+    }
+  ],
+  "logs": {
+    "server-regression": {
+      "path": "docs/implementation/evidence/aq14-activation-bc6ac06/server-regression.log",
+      "sha256": "acb7f38aaacf13e57c3dd94b96b0e1fba8967bc65b4a2711b2d75425021988f8"
+    },
+    "activation-final": {
+      "path": "docs/implementation/evidence/aq14-activation-bc6ac06/activation-final.log",
+      "sha256": "75226fac3af09117d28b8712f2b962ed95cfc6bced3c8f5149ffb0343b4e64db"
+    },
+    "expiry-subset": {
+      "path": "docs/implementation/evidence/aq14-activation-bc6ac06/expiry-subset.log",
+      "sha256": "aaa7c700b47e174ab0aee9e66b56e284d0c702908b9751b3d3395dfb204c97e2"
+    },
+    "stop-ack": {
+      "path": "docs/implementation/evidence/aq14-activation-bc6ac06/stop-ack.log",
+      "sha256": "8f566a79d64c600d3c9b2072b01faadc9ea9038cf20ed077edeb5ab6a1a108f0"
+    },
+    "host-stalled-drop": {
+      "path": "docs/implementation/evidence/aq14-activation-bc6ac06/host-stalled-drop.log",
+      "sha256": "a2861daafcccaac2283fe990e7a5b38901df83c7959eed357600e11a08c31d45"
+    },
+    "strict-clippy": {
+      "path": "docs/implementation/evidence/aq14-activation-bc6ac06/strict-clippy.log",
+      "sha256": "2bb42e6bfa290ef7833332985ac883b4eed2a955d20d4716ce5f6dd2c71dc59d"
+    },
+    "checks": {
+      "path": "docs/implementation/evidence/aq14-activation-bc6ac06/checks.log",
+      "sha256": "bd0f5d6a683d3f8febe24b3b20e4f41e5f6d81b861564e888a3429543a356db6"
+    },
+    "development-fixture-table-error": {
+      "path": "docs/implementation/evidence/aq14-activation-bc6ac06/development-fixture-table-error.log",
+      "sha256": "ee6b8d3556b85dcf78f256a03aa6cb8337ee8808a94d110fb06301b8bc876b27"
+    },
+    "development-missing-known-task-binding": {
+      "path": "docs/implementation/evidence/aq14-activation-bc6ac06/development-missing-known-task-binding.log",
+      "sha256": "d074ced6e745b39e6785d9323389f83d3ecc6cc81b1d233bf245b5da76136e2f"
+    },
+    "development-missing-test-database-env": {
+      "path": "docs/implementation/evidence/aq14-activation-bc6ac06/development-missing-test-database-env.log",
+      "sha256": "cfcd1538cacdea79c3790faffe225cad15d05afefc684f461e9cbe204cd2d522"
+    },
+    "development-runtime-lint": {
+      "path": "docs/implementation/evidence/aq14-activation-bc6ac06/development-runtime-lint.log",
+      "sha256": "3362accc2cfd90132009ea349914c195bf818c6132aedac1bf014c7ae03ab991"
+    },
+    "development-test-helper-lint": {
+      "path": "docs/implementation/evidence/aq14-activation-bc6ac06/development-test-helper-lint.log",
+      "sha256": "30df8003cfac54c107b70d78d953ba83aeae80cb63624d6b0d6293005c107e04"
+    }
+  },
+  "limits": [
+    "Absent configuration never starts or mounts either owner.",
+    "Unix-only local operator trust profile; ordinary TCP-only Docker deployments cannot enable it. Matching dbname is not physical cluster proof.",
+    "Startup may retain a partial uncertain bootstrap prefix. Timeout/drop never proves release or permits automatic replacement.",
+    "Shutdown requires actual exact Stop ACK or prior ACK retained for that same Driver; closed queue alone is unknown.",
+    "Synthetic SQL/native/Git fixtures do not qualify a real provider/native review workflow.",
+    "No executed-check/B2/notification/supervisor or PB04 performance closure.",
+    "Parent owns assembled main build/browser25-to27 and wider native integration evidence."
+  ]
+}

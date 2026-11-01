@@ -1,0 +1,12 @@
+   Compiling aq-playbooks-model v0.1.0 (/tmp/aq14-integration/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-model)
+   Compiling aq-playbooks-runner v0.1.2 (/tmp/aq14-integration/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-runner)
+   Compiling aq-playbooks-postgres v0.1.2 (/tmp/aq14-integration/vendor/aq-playbooks-d3bd349/crates/aq-playbooks-postgres)
+   Compiling aq-playbook-host v0.1.2 (/tmp/aq14-integration/crates/aq-playbook-host)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.76s
+     Running tests/owner.rs (/tmp/aq14-decisions/target/debug/deps/owner-cb384a4730293600)
+
+running 1 test
+test dropping_last_handle_never_joins_stalled_owner_on_async_thread ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.01s
+
