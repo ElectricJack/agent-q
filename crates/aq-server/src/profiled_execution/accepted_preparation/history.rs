@@ -1,9 +1,7 @@
 //! Immutable accepted phase provenance, not a live input or execution permit.
+use super::phase::{AcceptRequest, AcceptedReceipt, Proposal};
 use super::*;
-use aq_admission::{
-    ArtifactRef, LaunchBinding,
-    preparation_v2::{AcceptRequest, AcceptedReceipt, Proposal},
-};
+use aq_admission::{ArtifactRef, LaunchBinding};
 use sqlx::Row;
 #[derive(Clone)]
 pub(crate) struct AcceptedHistory {

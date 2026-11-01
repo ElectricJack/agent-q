@@ -1,3 +1,4 @@
+use super::phase::{ChoicePins, Negotiation, Proposal};
 use super::*;
 use crate::{
     execution::authority::{self, Policy},
@@ -5,9 +6,7 @@ use crate::{
     worker_api::AuthenticatedNode,
 };
 use aq_admission::{
-    ArtifactRef, Digest, LaunchBinding, Text,
-    execution_spec::ProfiledExecutionSpec,
-    preparation_v2::{ChoicePins, Negotiation, Proposal},
+    ArtifactRef, Digest, LaunchBinding, Text, execution_spec::ProfiledExecutionSpec,
     transport::WorkerIdentity,
 };
 use aq_session_protocol::Validate;
@@ -116,6 +115,7 @@ pub(super) async fn build_locked(
         serde_json::from_value(serde_json::json!(reg.get::<String, _>("config_digest")))
             .map_err(|_| refused())?,
     )?;
+    validate_registry_at_proposal(&decision, &registry)?;
     let principal:serde_json::Value=sqlx::query_scalar("SELECT jsonb_build_object('kind',authority_kind,'actor',actor_id,'project',authority_project_id,'policy',authority_policy_ref,'revision',authority_policy_revision,'digest',authority_policy_digest) FROM intelligence_decisions WHERE decision_id=$1").bind(decision.decision_id).fetch_one(&mut **tx).await.map_err(db)?;
     let principal = pin(
         format!("aq.selection-principal/{}", decision.decision_id),

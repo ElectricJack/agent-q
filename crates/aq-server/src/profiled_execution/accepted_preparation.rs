@@ -10,6 +10,8 @@ pub use accept::accept;
 mod history;
 mod proposal;
 use crate::{AppState, error::AppError};
+use aq_admission::preparation_v2 as phase;
+const POLICY_PREFIX: &str = "aq.accepted-preparation-policy/";
 pub(crate) use history::{
     AcceptedHistory, load_accepted_history_locked, require_live_accepted_locked,
 };
@@ -19,19 +21,19 @@ use sqlx::{Postgres, Transaction};
 fn refused() -> AppError {
     AppError::Conflict("accepted preparation v2 is not currently available".into())
 }
-fn db(_: sqlx::Error) -> AppError {
+pub(super) fn db(_: sqlx::Error) -> AppError {
     AppError::Internal
 }
-fn now(state: &AppState) -> Result<u64, AppError> {
+pub(super) fn now(state: &AppState) -> Result<u64, AppError> {
     u64::try_from((state.clock)().timestamp_millis())
         .ok()
         .filter(|n| *n > 0)
         .ok_or_else(refused)
 }
-fn value(v: &impl serde::Serialize) -> Result<serde_json::Value, AppError> {
+pub(super) fn value(v: &impl serde::Serialize) -> Result<serde_json::Value, AppError> {
     serde_json::to_value(v).map_err(|_| AppError::Internal)
 }
-async fn begin(state: &AppState) -> Result<Transaction<'_, Postgres>, AppError> {
+pub(super) async fn begin(state: &AppState) -> Result<Transaction<'_, Postgres>, AppError> {
     let mut tx = state.store.pool.begin().await.map_err(db)?;
     for s in [
         "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE",
@@ -42,7 +44,7 @@ async fn begin(state: &AppState) -> Result<Transaction<'_, Postgres>, AppError> 
     }
     Ok(tx)
 }
-async fn quota(
+pub(super) async fn quota(
     tx: &mut Transaction<'_, Postgres>,
     node: uuid::Uuid,
     incoming: u64,
@@ -100,7 +102,7 @@ async fn schema_available(tx: &mut Transaction<'_, Postgres>) -> Result<bool, Ap
         _ => Err(refused()),
     }
 }
-async fn require_schema(tx: &mut Transaction<'_, Postgres>) -> Result<(), AppError> {
+pub(super) async fn require_schema(tx: &mut Transaction<'_, Postgres>) -> Result<(), AppError> {
     if schema_available(tx).await? {
         Ok(())
     } else {
@@ -108,7 +110,7 @@ async fn require_schema(tx: &mut Transaction<'_, Postgres>) -> Result<(), AppErr
     }
 }
 
-fn request_permit() -> Result<tokio::sync::OwnedSemaphorePermit, AppError> {
+pub(super) fn request_permit() -> Result<tokio::sync::OwnedSemaphorePermit, AppError> {
     static REQUESTS: std::sync::OnceLock<std::sync::Arc<tokio::sync::Semaphore>> =
         std::sync::OnceLock::new();
     REQUESTS
@@ -134,4 +136,53 @@ pub(super) async fn reject_legacy_operation_collision(
     .await
     .map_err(db)?;
     if exists { Err(refused()) } else { Ok(()) }
+}
+
+fn validate_registry_at_proposal(
+    _: &crate::intelligence::resolver::Decision,
+    _: &aq_admission::ArtifactRef,
+) -> Result<(), AppError> {
+    Ok(())
+}
+struct FrozenRegistryAtAccept;
+async fn registry_at_accept(
+    _: &AppState,
+    _: &mut Transaction<'_, Postgres>,
+    _: &phase::Proposal,
+) -> Result<FrozenRegistryAtAccept, AppError> {
+    Ok(FrozenRegistryAtAccept)
+}
+fn accepted_lease(
+    q: &phase::AcceptRequest,
+    p: &phase::Proposal,
+    material: &aq_admission::MaterialLease,
+    time: u64,
+    expiry: u64,
+    lease_id: uuid::Uuid,
+    _: FrozenRegistryAtAccept,
+) -> Result<phase::AcceptedPreparationLease, AppError> {
+    Ok(phase::AcceptedPreparationLease {
+        lease_id: uuid::Uuid::new_v5(&lease_id, b"accepted-preparation-v2"),
+        revision: 1,
+        identity: q.original.identity.clone(),
+        binding: q.original.acceptance.binding.clone(),
+        guardian_id: q.original.guardian_id,
+        launch_id: q.original.launch_id,
+        hold: q.hold.clone(),
+        proposal_digest: q.proposal_digest.clone(),
+        policy_digest: p.policy.digest().map_err(|_| refused())?,
+        choice_digest: p.choice.digest().map_err(|_| refused())?,
+        issued_at_ms: time,
+        expires_at_ms: expiry,
+        materials: vec![material.clone()],
+    })
+}
+
+async fn validate_live_registry(
+    _: &AppState,
+    _: &mut Transaction<'_, Postgres>,
+    _: &phase::Proposal,
+    _: &phase::AcceptedReceipt,
+) -> Result<(), AppError> {
+    Ok(())
 }

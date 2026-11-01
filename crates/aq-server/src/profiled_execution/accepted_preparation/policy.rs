@@ -1,11 +1,9 @@
+use super::phase::{FactKind, OwnerAuthority, PhasePolicy};
 use super::*;
-use aq_admission::{
-    ArtifactRef,
-    preparation_v2::{self as phase, FactKind, OwnerAuthority, PhasePolicy},
-};
+use aq_admission::ArtifactRef;
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
-const PREFIX: &str = "aq.accepted-preparation-policy/";
+const PREFIX: &str = super::POLICY_PREFIX;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct PolicyDefinition {
