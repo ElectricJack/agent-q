@@ -194,6 +194,103 @@ async fn actual_grant_closes_once_and_replays_without_release_or_execution_clock
     }
     assert_eq!(post(&c, p, &replacement).await.0, 409);
 }
+
+#[tokio::test]
+async fn renewal_counter_fences_old_suppression_and_closure_fences_all_later_authority() {
+    let c = closure::setup().await;
+    let mut r = request(&c).await;
+    let p = policy(&c, &r, 1).await;
+    let node = closure::auth(&c).await;
+    let mut renew = aq_admission::transport::Renew {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        identity: c.request.identity.clone(),
+        binding: r.binding.clone(),
+        grant_id: r.grant_id,
+        reservation_id: r.reservation_id,
+        guardian_id: r.guardian_id,
+        launch_id: r.launch_id,
+        journal_revision: c.request.journal_revision + 1,
+    };
+    let renewed = aq_server::profiled_execution::renewal::renew(
+        &c.case.env.env.state,
+        &node,
+        &renew,
+        Uuid::new_v4(),
+    )
+    .await
+    .unwrap();
+    // The old physical Prepared checkpoint is still retained, but suppression
+    // cannot precede an acknowledged continuing-authority journal counter.
+    assert_eq!(post(&c, p.clone(), &r).await.0, 409);
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM profiled_launch_closures")
+            .fetch_one(&c.case.env.env.pool)
+            .await
+            .unwrap(),
+        0
+    );
+    r.operation_id = Uuid::new_v4();
+    r.journal.revision = renew.journal_revision + 1;
+    r.journal.digest = Digest::of(b"synthetic terminal journal after acknowledged renewal");
+    if let Evidence::Suppressed {
+        record,
+        record_digest,
+    } = &mut r.evidence
+    {
+        record.operation_id = r.operation_id;
+        record.previous = JournalCheckpoint {
+            revision: renew.journal_revision,
+            digest: Digest::of(b"synthetic durable acknowledgement, not a server-invented digest"),
+        };
+        record.terminal_revision = r.journal.revision;
+        *record_digest = record.digest().unwrap();
+    }
+    r.validate().unwrap();
+    let (status, bytes) = post(&c, p.clone(), &r).await;
+    assert_eq!(status, 200, "{}", String::from_utf8_lossy(&bytes));
+    // Both exact old-renew replay and a new operation must now refuse.
+    for fresh in [false, true] {
+        if fresh {
+            renew.operation_id = Uuid::new_v4();
+            renew.journal_revision = r.journal.revision + 1;
+        }
+        assert!(
+            aq_server::profiled_execution::renewal::renew(
+                &c.case.env.env.state,
+                &node,
+                &renew,
+                Uuid::new_v4(),
+            )
+            .await
+            .is_err()
+        );
+    }
+    assert!(closure::grant(&c).await.is_err());
+    let replay = post(&c, p, &r).await;
+    assert_eq!(replay.0, 200);
+    assert_eq!(replay.1, bytes);
+    let hot: serde_json::Value =
+        sqlx::query_scalar("SELECT state FROM profiled_authority_hot WHERE attempt_id=$1")
+            .bind(r.binding.attempt_id)
+            .fetch_one(&c.case.env.env.pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        hot["grant"]["expires_at_ms"],
+        renewed.delivery.clock.expires_at_ms
+    );
+    assert_eq!(hot["revoked"], true);
+    assert!(
+        sqlx::query_scalar::<_, bool>(
+            "SELECT holds_task FROM execution_attempts WHERE attempt_id=$1"
+        )
+        .bind(r.binding.attempt_id)
+        .fetch_one(&c.case.env.env.pool)
+        .await
+        .unwrap()
+    );
+}
 #[tokio::test]
 async fn policy_replacement_fences_old_owner_but_exact_history_can_use_new_current_policy() {
     let c = closure::setup().await;
