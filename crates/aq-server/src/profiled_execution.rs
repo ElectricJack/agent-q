@@ -36,5 +36,5 @@ pub mod native_offer;
 pub mod producer;
 
 pub mod reconciliation;
-
 pub mod closure;
+pub(crate) mod continuation_policy;
