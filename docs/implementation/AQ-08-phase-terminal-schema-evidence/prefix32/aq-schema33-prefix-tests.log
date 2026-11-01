@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized] target(s) in 0.16s
+     Running tests/schema33_phase_terminal.rs (/tmp/aq-native-union-target/debug/deps/schema33_phase_terminal-3b4cbe2d496d146c)
+
+running 6 tests
+test actual32_history_survives33_and_reserves_cleanup_without_terminal_effects ... 
+thread 'actual32_history_survives33_and_reserves_cleanup_without_terminal_effects' (453255) has overflowed its stack
+fatal runtime error: stack overflow, aborting
+error: test failed, to rerun pass `-p aq-server --test schema33_phase_terminal`
+
+Caused by:
+  process didn't exit successfully: `/tmp/aq-native-union-target/debug/deps/schema33_phase_terminal-3b4cbe2d496d146c --test-threads=1 --skip 'ordered::'` (signal: 6, SIGABRT: process abort signal)

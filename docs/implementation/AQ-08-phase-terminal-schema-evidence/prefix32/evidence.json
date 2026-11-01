@@ -1,0 +1,31 @@
+{
+  "source": "fd5ad1b",
+  "factory_source": "c04e674 (imported as44d1569)",
+  "draft_ddl_sha256": "9b3c4b3ca6af0d7a19e7f5578995480f3845111300a61951a9c7728d8ba112cd",
+  "changes": [
+    "Explicit actual prefix32 Store construction, without metadata relabeling.",
+    "Valid hot effects mutation in old open SQL transaction before rejected legacy Started insert; rollback restores hot/journal/revisions byte-exact.",
+    "Conservative reservation bound additionally includes448 bytes of existing digest text."
+  ],
+  "results": {
+    "six_cases": "6 passed12.08s; two future ordered33 draft cases intentionally filtered, not qualified",
+    "strict_affected_clippy": "schema33_phase_terminal +phase_execution passed17.76s",
+    "rustfmt_diff": "passed"
+  },
+  "development_failure": "Direct async wrapper embedded large fixture future, causing test-thread stack overflow before first SQL assertion. Caller Box::pin resolves it without stack-size/clock changes; not classified as schema failure. Both logs retained.",
+  "commands": [
+    "CARGO_TARGET_DIR=/tmp/aq-native-union-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=2 DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres RUST_TEST_THREADS=1 cargo test -p aq-server --test schema33_phase_terminal --all-features --locked --offline -- --test-threads=1 --skip ordered::",
+    "CARGO_TARGET_DIR=/tmp/aq-native-union-target CARGO_PROFILE_DEV_DEBUG=0 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=2 cargo clippy -p aq-server --test schema33_phase_terminal --test phase_execution --all-features --locked --offline -- -D warnings"
+  ],
+  "source_sha256": {
+    "crates/aq-server/tests/common/phase_execution.rs": "80d3a197055104219fd493c21eac5c61e5b82cc72bdb1a11fa2d1876e372db4b",
+    "crates/aq-server/tests/schema33_phase_terminal.rs": "e7fb72353e7c42840a2a4916b56239ebae4bd3583eab68d3c84f15ffc03591a1"
+  },
+  "logs": {
+    "aq-schema33-prefix-build.log": "bb593ba2e756aca0214a5f28e5f43fa4db3a90d9b98c0841c49d7860527b425a",
+    "aq-schema33-prefix-tests.log": "5198afb3e8b4496065c189a3fa7288446c42ac349ee5ac560a44da10a661a3c3",
+    "aq-schema33-prefix-boxed-tests.log": "77231e7ee6766435b0ff6ac8c4a378d8627d3e8967bfba5692348424d79c8325",
+    "aq-schema33-prefix-clippy.log": "cbe3728bd5fc3b708e53220a242b018a50bdf0e3f5988f981dd28e05bf00deb9"
+  },
+  "source_note": "After selected six cases passed, removed only unqualified ordered-child module declaration from source; all selected test/helper bodies unchanged. Ordered child remains uncommitted pending genuine registered33 validation."
+}
