@@ -1649,3 +1649,6 @@ async fn bounded_owner_quantum_expires_its_accepted_question_and_delivers_exact_
     );
     driver.stop().await.unwrap();
 }
+
+#[path = "profiled_results/human_results.rs"]
+mod human_results;
