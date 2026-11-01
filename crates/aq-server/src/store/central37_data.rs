@@ -9,10 +9,23 @@ pub(super) async fn validate(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
       AND NOT EXISTS(SELECT 1 FROM mailbox_messages m WHERE (m.mailbox_key=central_global_mailbox_key() OR m.recipient->>'kind'='global_supervisor') AND NOT central_global_mail_source_valid(m.message_id))
       AND NOT EXISTS(SELECT 1 FROM mailbox_operations o WHERE o.response->>'contract'='human-supervisor-conversation-1' AND o.response->>'state'='queued' AND NOT EXISTS(SELECT 1 FROM mailbox_messages m WHERE m.message_id::text=o.response->>'message_id' AND central_global_mail_source_valid(m.message_id)))
       AND COALESCE((SELECT h.next_cursor=(SELECT COALESCE(max(m.cursor),0)+1 FROM mailbox_messages m WHERE m.mailbox_key=central_global_mailbox_key()) FROM mailbox_heads h WHERE h.mailbox_key=central_global_mailbox_key()),NOT EXISTS(SELECT 1 FROM mailbox_messages m WHERE m.mailbox_key=central_global_mailbox_key()))
+      AND NOT EXISTS(SELECT 1 FROM central_supervisor_actors a WHERE NOT EXISTS(SELECT 1 FROM global_supervisor_conversation g WHERE g.conversation_id=a.conversation_id) OR NOT EXISTS(SELECT 1 FROM users u WHERE u.id=a.approved_by)
+        OR (a.current_reservation IS NOT NULL AND NOT EXISTS(SELECT 1 FROM central_supervisor_reservations r WHERE r.actor_id=a.actor_id AND r.reservation_id=a.current_reservation)))
+      AND NOT EXISTS(SELECT 1 FROM central_supervisor_reservations r WHERE NOT EXISTS(SELECT 1 FROM central_supervisor_actors a WHERE a.actor_id=r.actor_id)
+        OR NOT EXISTS(SELECT 1 FROM central_supervisor_operations o WHERE o.actor_id=r.actor_id AND o.operation_id=r.reserve_operation_id)
+        OR (r.cancel_operation_id IS NOT NULL AND NOT EXISTS(SELECT 1 FROM central_supervisor_operations o WHERE o.actor_id=r.actor_id AND o.operation_id=r.cancel_operation_id)))
+      AND NOT EXISTS(SELECT 1 FROM central_supervisor_mail_members b WHERE NOT EXISTS(SELECT 1 FROM central_supervisor_actors a WHERE a.actor_id=b.actor_id)
+        OR NOT EXISTS(SELECT 1 FROM central_supervisor_reservations r WHERE r.actor_id=b.actor_id AND r.reservation_id=b.reservation_id)
+        OR NOT EXISTS(SELECT 1 FROM mailbox_messages m WHERE m.message_id=b.message_id))
+      AND NOT EXISTS(SELECT 1 FROM central_supervisor_operations o WHERE NOT EXISTS(SELECT 1 FROM central_supervisor_actors a WHERE a.actor_id=o.actor_id)
+        OR NOT EXISTS(SELECT 1 FROM users u WHERE u.id=o.initiating_user_id))
     "#).fetch_one(&mut **tx).await?;
     if !valid {
         return Err(corrupt());
     }
+    // Explicit antijoins above also cover child rows outside every retained
+    // actor/reservation loop after FK triggers were disabled then re-enabled.
+    // convalidated is not evidence that such historical rows were rechecked.
     // Replay the exact frozen *read-only* deferred consistency predicates over
     // retained actors/reservations. This is not CREATE FUNCTION, a trigger fire,
     // or a schema repair. The same bounded member/source/operation joins are used

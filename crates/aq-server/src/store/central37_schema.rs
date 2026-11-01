@@ -224,7 +224,7 @@ async fn keys(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
     // rather than trusting a name or merely the referenced relation.
     let actual: Vec<String> = sqlx::query_scalar(r#"SELECT c.conrelid::regclass::text||':'||c.contype::text||':'||array_to_string(ARRAY(SELECT a.attname::text FROM unnest(c.conkey) WITH ORDINALITY k(n,o) JOIN pg_attribute a ON a.attrelid=c.conrelid AND a.attnum=k.n ORDER BY k.o),',')||':'||CASE WHEN c.confrelid=0 THEN '' ELSE c.confrelid::regclass::text END||':'||COALESCE(array_to_string(ARRAY(SELECT a.attname::text FROM unnest(c.confkey) WITH ORDINALITY k(n,o) JOIN pg_attribute a ON a.attrelid=c.confrelid AND a.attnum=k.n ORDER BY k.o),','),'')||':'||c.condeferrable::text||':'||c.condeferred::text
         FROM pg_constraint c WHERE c.conrelid=ANY(ARRAY['central_supervisor_actors'::regclass,'central_supervisor_reservations'::regclass,'central_supervisor_mail_members'::regclass,'central_supervisor_operations'::regclass]) AND c.contype IN ('p','u','f') AND c.convalidated
-        AND ((c.contype IN ('p','u') AND EXISTS(SELECT 1 FROM pg_index i WHERE i.indexrelid=c.conindid AND i.indrelid=c.conrelid AND i.indisvalid AND i.indisready AND i.indisunique AND i.indexprs IS NULL AND i.indpred IS NULL AND i.indnatts=i.indnkeyatts AND i.indnkeyatts=cardinality(c.conkey))) OR (c.contype='f' AND c.confupdtype='a' AND c.confdeltype='a' AND c.confmatchtype='s'))"#)
+        AND ((c.contype IN ('p','u') AND EXISTS(SELECT 1 FROM pg_index i WHERE i.indexrelid=c.conindid AND i.indrelid=c.conrelid AND i.indisvalid AND i.indisready AND i.indisunique AND i.indexprs IS NULL AND i.indpred IS NULL AND i.indnatts=i.indnkeyatts AND i.indnkeyatts=cardinality(c.conkey))) OR (c.contype='f' AND c.confupdtype='a' AND c.confdeltype='a' AND c.confmatchtype='s' AND (SELECT count(*)=4 AND bool_and(t.tgisinternal AND t.tgenabled IN ('O','A')) FROM pg_trigger t WHERE t.tgconstraint=c.oid)))"#)
         .fetch_all(&mut **tx).await?;
     let mut expected = vec![
         "central_supervisor_actors:p:actor_id:::false:false".to_string(),
@@ -321,6 +321,11 @@ async fn indexes(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
 async fn checks(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
     // Full canonical CHECK definitions are pinned by the disposable fresh37
     // qualification, including casts and boolean grouping, not name-only probes.
+    let count:i64=sqlx::query_scalar("SELECT count(*) FROM pg_constraint WHERE conrelid=ANY(ARRAY['central_supervisor_actors'::regclass,'central_supervisor_reservations'::regclass,'central_supervisor_mail_members'::regclass,'central_supervisor_operations'::regclass]) AND contype='c'")
+        .fetch_one(&mut **tx).await?;
+    if count != CHECKS.len() as i64 {
+        return Err(corrupt());
+    }
     for (table, name, expression) in CHECKS {
         let valid:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid=to_regclass($1) AND contype='c' AND convalidated AND NOT condeferrable AND conname=$2 AND pg_get_expr(conbin,conrelid)=$3)")
             .bind(table).bind(name).bind(expression).fetch_one(&mut **tx).await?;
