@@ -1,0 +1,444 @@
+{
+  "schema_version": 1,
+  "scope": "composed backend gate; not canonical promotion or parent milestone completion",
+  "source_revision": "5d445a50644b32d5318f974b9c41e4700769fc17",
+  "source_tree": "d28ba3f6c0e0f3a91baae5edf29172cb7f5a21fc",
+  "base_integration": "b23255c",
+  "current_state_format": 37,
+  "canonical_backend_promoted": false,
+  "main_fast_forwarded": false,
+  "metadata": {
+    "command": [
+      "cargo",
+      "metadata",
+      "--offline",
+      "--locked",
+      "--no-deps",
+      "--format-version",
+      "1"
+    ],
+    "outcome": "pass",
+    "sha256": "f4d60472111e98319550bc28ca9433095c6f21df37e68a622641672f2c684a9e"
+  },
+  "imports": {
+    "media_original": [
+      "ffbf66b",
+      "7e3e8ae",
+      "b455eb0",
+      "33c9602",
+      "4800aab",
+      "5315bbe",
+      "dec5ff9",
+      "9a4c853"
+    ],
+    "playbook_catalog_original": [
+      "6129bed",
+      "b5f226b",
+      "1be7cf0",
+      "056551f",
+      "56f68a5",
+      "ac23018",
+      "c5861c5"
+    ],
+    "central_profile_original": [
+      "1ac3750",
+      "96b584b",
+      "6fcafff",
+      "fc5d941",
+      "43ac07b",
+      "e8aa937"
+    ],
+    "routine_conflicts": 0
+  },
+  "checks": [
+    {
+      "name": "pure-packages",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "aq-profiles",
+        "-p",
+        "aq-selection",
+        "-p",
+        "aq-playbook-host",
+        "--locked",
+        "--offline"
+      ],
+      "status": 0,
+      "elapsed_seconds": 17.67,
+      "tests_passed": 71,
+      "log_private_path": "/tmp/aq-composed-gate-a052cdb/pure-packages.log",
+      "log_sha256": "1d5174a6b55b38da118025895d774824569c07b85d47fdd45353e95677c7238a"
+    },
+    {
+      "name": "media-owner-http",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "aq-server",
+        "--test",
+        "profiled_results",
+        "--locked",
+        "--offline",
+        "media_",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "elapsed_seconds": 78.03,
+      "tests_passed": 24,
+      "log_private_path": "/tmp/aq-composed-gate-a052cdb/media-owner-http.log",
+      "log_sha256": "f89bba08f12ca2015d47b4ed566b2d770f784a0b115452282e9db3996f3807a9"
+    },
+    {
+      "name": "playbook-activation",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "aq-server",
+        "--test",
+        "playbook_activation",
+        "--locked",
+        "--offline",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "elapsed_seconds": 19.88,
+      "tests_passed": 13,
+      "log_private_path": "/tmp/aq-composed-gate-a052cdb/playbook-activation.log",
+      "log_sha256": "bb874caee586f3d2d3f582938da38776852e18fadec80db969d1e39d9afe997d"
+    },
+    {
+      "name": "store37",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "aq-server",
+        "--lib",
+        "--locked",
+        "--offline",
+        "central37",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "elapsed_seconds": 68.81,
+      "tests_passed": 7,
+      "log_private_path": "/tmp/aq-composed-gate-a052cdb/store37.log",
+      "log_sha256": "d2885bed8aa797e71418ba7441c204bbdb51e5d18b80a657437e075a3ebea108"
+    },
+    {
+      "name": "reservations",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "aq-server",
+        "--lib",
+        "--locked",
+        "--offline",
+        "global::reservations",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "elapsed_seconds": 11.37,
+      "tests_passed": 12,
+      "log_private_path": "/tmp/aq-composed-gate-a052cdb/reservations.log",
+      "log_sha256": "6e042726dbd92af2586eb7cda34f7b33f75ed66a966a7a02054466bb40e153e9"
+    },
+    {
+      "name": "store36",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "aq-server",
+        "--lib",
+        "--locked",
+        "--offline",
+        "store::media36_tests",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "elapsed_seconds": 14.08,
+      "tests_passed": 3,
+      "log_private_path": "/tmp/aq-composed-gate-a052cdb/store36.log",
+      "log_sha256": "8b04a7fb949198ecd33b4111427d826a91569eaa8bc3665c51348cdf4e297928"
+    },
+    {
+      "name": "catalog-unit",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "aq-server",
+        "--lib",
+        "--locked",
+        "--offline",
+        "playbooks::inspection::catalog::tests",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "elapsed_seconds": 0.23,
+      "tests_passed": 3,
+      "log_private_path": "/tmp/aq-composed-gate-a052cdb/catalog-unit.log",
+      "log_sha256": "eb89272169dc9c63ea7baec3de5a13e0b564dcd97872f30521b7639dbe77c3d2"
+    },
+    {
+      "name": "dashboard-mounts",
+      "command": [
+        "cargo",
+        "test",
+        "-p",
+        "aq-server",
+        "--test",
+        "dashboard_mounts",
+        "--locked",
+        "--offline",
+        "--",
+        "--test-threads=1"
+      ],
+      "status": 0,
+      "elapsed_seconds": 4.39,
+      "tests_passed": 3,
+      "log_private_path": "/tmp/aq-composed-gate-a052cdb/dashboard-mounts.log",
+      "log_sha256": "79de85cd578fe52027a6653a917ff43e081eb44747a7f7d06077c59accaeb4ab"
+    },
+    {
+      "name": "pure-strict",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "aq-profiles",
+        "-p",
+        "aq-selection",
+        "-p",
+        "aq-playbook-host",
+        "--all-targets",
+        "--locked",
+        "--offline",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": 0,
+      "elapsed_seconds": 8.35,
+      "tests_passed": 0,
+      "log_private_path": "/tmp/aq-composed-gate-a052cdb/pure-strict.log",
+      "log_sha256": "3b7f65a966cbbad7e4ed19c2fa2453133cd7a6b1828f48d28a968aad461c0023"
+    },
+    {
+      "name": "server-strict",
+      "command": [
+        "cargo",
+        "clippy",
+        "-p",
+        "aq-server",
+        "--lib",
+        "--tests",
+        "--locked",
+        "--offline",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "status": 0,
+      "elapsed_seconds": 71.42,
+      "tests_passed": 0,
+      "log_private_path": "/tmp/aq-composed-gate-a052cdb/server-strict.log",
+      "log_sha256": "11020e31e19c3b4aa2ceb889a434e83f7e5128ee2e8492ee6a551835fb862c46"
+    },
+    {
+      "name": "pure-fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "-p",
+        "aq-profiles",
+        "-p",
+        "aq-selection",
+        "-p",
+        "aq-playbook-host",
+        "--check"
+      ],
+      "status": 0,
+      "elapsed_seconds": 0.13,
+      "tests_passed": 0,
+      "log_private_path": "/tmp/aq-composed-gate-a052cdb/pure-fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "total_focused_tests": 136,
+  "changed_server_format": {
+    "command": [
+      "rustfmt",
+      "--check",
+      "--edition",
+      "2024",
+      "--config",
+      "skip_children=true",
+      "crates/aq-server/examples/current_playbook_catalog_contract.rs",
+      "crates/aq-server/src/dashboard_api.rs",
+      "crates/aq-server/src/dashboard_api/service.rs",
+      "crates/aq-server/src/lib.rs",
+      "crates/aq-server/src/playbooks/inspection.rs",
+      "crates/aq-server/src/playbooks/inspection/catalog.rs",
+      "crates/aq-server/src/playbooks/inspection/catalog_auth.rs",
+      "crates/aq-server/src/playbooks/service.rs",
+      "crates/aq-server/src/result_media/cleanup.rs",
+      "crates/aq-server/src/result_media/db.rs",
+      "crates/aq-server/src/result_media/mod.rs",
+      "crates/aq-server/src/result_media/processing.rs",
+      "crates/aq-server/tests/playbook_activation.rs",
+      "crates/aq-server/tests/playbook_activation/catalog.rs",
+      "crates/aq-server/tests/profiled_results/media_owner.rs"
+    ],
+    "status": 0,
+    "files_checked": 15,
+    "seconds": 0.11,
+    "reason": "changed server sources only; avoid unrelated pre-existing module order in unchanged profiled_results.rs"
+  },
+  "binary": {
+    "source_revision": "5d445a50644b32d5318f974b9c41e4700769fc17",
+    "source_tree": "d28ba3f6c0e0f3a91baae5edf29172cb7f5a21fc",
+    "state_format": 37,
+    "default_features": true,
+    "command": [
+      "cargo",
+      "build",
+      "-p",
+      "aq-server",
+      "--bin",
+      "aq-server",
+      "--locked",
+      "--offline"
+    ],
+    "build_seconds": 45.66,
+    "binary": "/tmp/aq-composed-backend-5d445a5/aq-server",
+    "sha256": "56221fc3081666f302eccf779ddd102df0fd728111645246b46e79d967f626d0",
+    "bytes": 115844952,
+    "permissions": "0500",
+    "build_started_no_service": true
+  },
+  "preservation": {
+    "existing_schema37_and_all_aq_migrations": "byte unchanged from b23255c",
+    "profile_selector_source_payload": "byte identical to qualified e8aa937 payload",
+    "frozen_old_archives_checkers": "unchanged; only new archives/vendor pins added",
+    "root_shared_flags": "retained; new live-owner-gated playbooks.catalog.read only",
+    "protected_main_user_files": "untouched"
+  },
+  "retained36_to37": {
+    "state": "pass: actual default37 startup, persisted preservation and authenticated HTTP content/receipt proof",
+    "fixture": "owned disposable actual two-retained-artifact fixture only; no canonical database/root",
+    "before": {
+      "format": 36,
+      "tables": 112,
+      "schema_objects": 2045,
+      "table_bags_sha256": "4c7ddaea2331800edaf84f6f1b0c18038a2883a316b8f5295a66b674d9886b6e",
+      "schema_objects_sha256": "af9ad5dc5dfc845a5c9a6fcada06a6d34b61992a471e1024311eb2ee3c7ec5c0",
+      "sequence_states_sha256": "40b235418cf8b944000e054b37d37095b0b04317ef202585ecb95a376f18c1ca",
+      "exact_retained_receipts": 2,
+      "verified_input_render_preview_files": 6,
+      "receipt_bag_sha256": "7592262868876270f78f6a51d0f7c9e49f08fcfb98f5fa9a4b1209f6504250d3",
+      "root_identity_sha256": "d5ce777911364a300a28637013f1a004f42048bb450e315dc56267726f20b471"
+    },
+    "backup": {
+      "filename": "before.dump",
+      "bytes": 508147,
+      "sha256": "c3f6f2e310f64ec60214de4c74eb27fd17ddfa0dff04c6bd712bdc29f84ad93d"
+    },
+    "rollback_restore": {
+      "all_original_sections_exact": {
+        "tables": true,
+        "normalized": true,
+        "schema_objects": true,
+        "sequences": true,
+        "media_receipts": true,
+        "media_files": true,
+        "root_identity": true
+      },
+      "actual_restore": true,
+      "clone_dropped": true,
+      "no_service_or_root_owner_started": true
+    },
+    "private_evidence_directory": "/tmp/aq-retained36-37-proof",
+    "no_new_upload_by_this_gate": true,
+    "lifecycle_owner": "root",
+    "after": {
+      "actual36_to37": true,
+      "all112_original_tables_accounted": true,
+      "unchanged_original_table_bags": 109,
+      "only_changed_tables": [
+        "meta",
+        "notification_budget",
+        "schema_migrations"
+      ],
+      "expected_control_changes": {
+        "meta": "only state_format_version36\u219237",
+        "schema_migrations": "only new37 ledger row; every original row exact",
+        "notification_budget": "only dispatcher_id rotates"
+      },
+      "all2045_original_schema_objects_exact": true,
+      "new37_schema_objects": 138,
+      "new37_tables": [
+        "central_supervisor_actors",
+        "central_supervisor_mail_members",
+        "central_supervisor_operations",
+        "central_supervisor_reservations"
+      ],
+      "new37_table_rows": 0,
+      "all_sequence_states_exact": true,
+      "exact_original_retained_receipts": 2,
+      "all_stored_file_hashes_sizes_and_inodes_exact": 6,
+      "same_root_marker_objects_staging_identity": true,
+      "same_conversation_identity": true,
+      "before_manifest_sha256": "8c8ae8f9591a194f8a40b33d88d892cfa11028d64a55d77fa0d5b866d5aa1529",
+      "after_manifest_sha256": "0d1fac3b18c0c0e6e013fad343a35a4a48a6803a5200b6d03150ff772b2ec877",
+      "after_table_bags_sha256": "c18bb50dc9d5e60f92ab4e6f3df7018f7824d799f799502ffe243081c78bdc38",
+      "after_schema_objects_sha256": "0df1d28858dcb2af386b078a24f8275fcc87905ba564c51b2a4efc4bc3971177",
+      "no_upload_or_retention_rewrite": true
+    },
+    "authenticated_http": {
+      "passed": true,
+      "exact_original_receipts": 2,
+      "preview_render_png_variants": 4,
+      "new_uploads": 0,
+      "same_source_revision_and_binary_sha256": true,
+      "before_record_sha256": "e905b3199bfcc22a5d4bf9001de9bba88b88f77ed99c065b716187acae9aa5ff",
+      "after_record_sha256": "d687a7cd08390b401b4d8b9322a05247808d0d50774e3b1ca4ca35b885ad37dd",
+      "private_after_record": "/tmp/aq-media-http-qualified/retained-migration-after-http.json"
+    },
+    "same_actual_database_root_storage": "yes; no root relocation/marker recreation, no content or receipt rewrite",
+    "capture_helper_sha256": "cce161f9ef34269010f4b71a06a2f60dd02f4ea3355b6a2c4ddd8c3ba71ce70f"
+  },
+  "parent_task_statuses_unchanged": {
+    "AQ-17": "in_progress",
+    "API-05": "in_progress",
+    "API-11": "in_progress"
+  },
+  "limits": [
+    "No canonical backend migration/promotion or config change",
+    "Actual new PB owner on real private UDS is separate from passing synthetic owner tests",
+    "Central profile artifacts are data only: no selector receipt, HostPlan, physical permit, credentials, provider launch or supervisor reply authority",
+    "Canonical35\u219237 backup/clone/rollback/config qualification remains separate; this nonempty fixture is disposable"
+  ],
+  "plan": "../../../plans/0001-v2-milestones.json",
+  "canonical_at_handoff": {
+    "backend_state_format": 35,
+    "backend": "existing8ad binary/config/database unchanged",
+    "frontend_manifest_sha256": "624707540cc6566158c3721e4733f69934c8a1670c4ffb972afb7d469fb8e663",
+    "frontend_product_source": "f2dbe5e7fc9d2647971aab0c1350df52c54bd0a3",
+    "frontend_documentation_commit": "8dfdef2",
+    "frontend_evidence": "aq-dashboard/docs/implementation/composed-frontend-6247-qualification.md",
+    "canonical_backend_promoted_by_this_gate": false
+  }
+}

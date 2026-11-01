@@ -1570,7 +1570,10 @@
         "../implementation/AQ-12-through-17-plan.md",
         "../implementation/AQ-17-central-authority-core.md",
         "../../../aq-worker/docs/implementation/WRK-17-codex-mapper-extraction.md",
-        "../implementation/dashboard-canonical-events35-2026-11-01.md"
+        "../implementation/dashboard-canonical-events35-2026-11-01.md",
+        "../implementation/AQ-17-central-reservation-owner.md",
+        "../implementation/AQ-17-central-profile-startup.md",
+        "../implementation/backend-composed-5d445a5-qualification.md"
       ]
     },
     {
@@ -3057,7 +3060,9 @@
         "../implementation/API-05-playbooks-inspection.md",
         "../implementation/dashboard-qualified-status-2026-11-01.md",
         "../../../aq-dashboard/docs/evidence/loaded-definitions-browser/README.md",
-        "../implementation/dashboard-canonical-state35-2026-11-01.md"
+        "../implementation/dashboard-canonical-state35-2026-11-01.md",
+        "../implementation/API-05-current-catalog.md",
+        "../implementation/backend-composed-5d445a5-qualification.md"
       ]
     },
     {
@@ -3240,7 +3245,10 @@
         "../implementation/API-11-png-first-plan.md",
         "../implementation/API-11-core-qualification.md",
         "../implementation/API-11-storage-owner.md",
-        "../implementation/dashboard-canonical-events35-2026-11-01.md"
+        "../implementation/dashboard-canonical-events35-2026-11-01.md",
+        "../implementation/API-11-http-port.md",
+        "../implementation/API-11-media36-promotion-rehearsal.md",
+        "../implementation/backend-composed-5d445a5-qualification.md"
       ]
     },
     {

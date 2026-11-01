@@ -1,0 +1,34 @@
+{
+  "actual36_to37": true,
+  "all112_original_tables_accounted": true,
+  "unchanged_original_table_bags": 109,
+  "only_changed_tables": [
+    "meta",
+    "notification_budget",
+    "schema_migrations"
+  ],
+  "expected_control_changes": {
+    "meta": "only state_format_version36\u219237",
+    "schema_migrations": "only new37 ledger row; every original row exact",
+    "notification_budget": "only dispatcher_id rotates"
+  },
+  "all2045_original_schema_objects_exact": true,
+  "new37_schema_objects": 138,
+  "new37_tables": [
+    "central_supervisor_actors",
+    "central_supervisor_mail_members",
+    "central_supervisor_operations",
+    "central_supervisor_reservations"
+  ],
+  "new37_table_rows": 0,
+  "all_sequence_states_exact": true,
+  "exact_original_retained_receipts": 2,
+  "all_stored_file_hashes_sizes_and_inodes_exact": 6,
+  "same_root_marker_objects_staging_identity": true,
+  "same_conversation_identity": true,
+  "before_manifest_sha256": "8c8ae8f9591a194f8a40b33d88d892cfa11028d64a55d77fa0d5b866d5aa1529",
+  "after_manifest_sha256": "0d1fac3b18c0c0e6e013fad343a35a4a48a6803a5200b6d03150ff772b2ec877",
+  "after_table_bags_sha256": "c18bb50dc9d5e60f92ab4e6f3df7018f7824d799f799502ffe243081c78bdc38",
+  "after_schema_objects_sha256": "0df1d28858dcb2af386b078a24f8275fcc87905ba564c51b2a4efc4bc3971177",
+  "no_upload_or_retention_rewrite": true
+}

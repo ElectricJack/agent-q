@@ -1016,7 +1016,7 @@ Requirement links: D4, W1, X11, X13, P2, P4, P5, H1, H3, H4, C6, S1, S2.
 
 Outside this task: General supervisor autonomy or all v1 profiles.
 
-Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md), [AQ-17-central-authority-core.md](../implementation/AQ-17-central-authority-core.md), [WRK-17-codex-mapper-extraction.md](../../../aq-worker/docs/implementation/WRK-17-codex-mapper-extraction.md), [dashboard-canonical-events35-2026-11-01.md](../implementation/dashboard-canonical-events35-2026-11-01.md).
+Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md), [AQ-17-central-authority-core.md](../implementation/AQ-17-central-authority-core.md), [WRK-17-codex-mapper-extraction.md](../../../aq-worker/docs/implementation/WRK-17-codex-mapper-extraction.md), [dashboard-canonical-events35-2026-11-01.md](../implementation/dashboard-canonical-events35-2026-11-01.md), [AQ-17-central-reservation-owner.md](../implementation/AQ-17-central-reservation-owner.md), [AQ-17-central-profile-startup.md](../implementation/AQ-17-central-profile-startup.md), [backend-composed-5d445a5-qualification.md](../implementation/backend-composed-5d445a5-qualification.md).
 
 ### AQ-12
 
@@ -1827,7 +1827,7 @@ Requirement links: U2, U3, U4.
 
 Outside this task: New workflow editor; Pretending configured bindings establish an unimplemented activation owner; Completing AQ-12 through AQ-16 pilots.
 
-Evidence: [API-05-playbooks-inspection.md](../implementation/API-05-playbooks-inspection.md), [dashboard-qualified-status-2026-11-01.md](../implementation/dashboard-qualified-status-2026-11-01.md), [README.md](../../../aq-dashboard/docs/evidence/loaded-definitions-browser/README.md), [dashboard-canonical-state35-2026-11-01.md](../implementation/dashboard-canonical-state35-2026-11-01.md).
+Evidence: [API-05-playbooks-inspection.md](../implementation/API-05-playbooks-inspection.md), [dashboard-qualified-status-2026-11-01.md](../implementation/dashboard-qualified-status-2026-11-01.md), [README.md](../../../aq-dashboard/docs/evidence/loaded-definitions-browser/README.md), [dashboard-canonical-state35-2026-11-01.md](../implementation/dashboard-canonical-state35-2026-11-01.md), [API-05-current-catalog.md](../implementation/API-05-current-catalog.md), [backend-composed-5d445a5-qualification.md](../implementation/backend-composed-5d445a5-qualification.md).
 
 ### API-06
 
@@ -1947,7 +1947,7 @@ Requirement links: U2, U3, U4, U6.
 
 Outside this task: Mandatory external object-storage service; Arbitrary capture of operator desktop; Historical media synthesized from result metadata.
 
-Evidence: [API-11-png-first-plan.md](../implementation/API-11-png-first-plan.md), [API-11-core-qualification.md](../implementation/API-11-core-qualification.md), [API-11-storage-owner.md](../implementation/API-11-storage-owner.md), [dashboard-canonical-events35-2026-11-01.md](../implementation/dashboard-canonical-events35-2026-11-01.md).
+Evidence: [API-11-png-first-plan.md](../implementation/API-11-png-first-plan.md), [API-11-core-qualification.md](../implementation/API-11-core-qualification.md), [API-11-storage-owner.md](../implementation/API-11-storage-owner.md), [dashboard-canonical-events35-2026-11-01.md](../implementation/dashboard-canonical-events35-2026-11-01.md), [API-11-http-port.md](../implementation/API-11-http-port.md), [API-11-media36-promotion-rehearsal.md](../implementation/API-11-media36-promotion-rehearsal.md), [backend-composed-5d445a5-qualification.md](../implementation/backend-composed-5d445a5-qualification.md).
 
 ### API-12
 
