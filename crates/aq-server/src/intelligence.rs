@@ -14,6 +14,15 @@ pub(crate) async fn fence_current_registry(
 ) -> Result<u64> {
     registry::check_current(state, tx).await
 }
+/// Current original principal for one sealed attempt; never a fresh selection.
+pub(crate) async fn fence_continuing_principal(
+    state: &AppState,
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    decision_id: uuid::Uuid,
+    project_id: uuid::Uuid,
+) -> Result<()> {
+    principal::fence_subject(state, tx, decision_id, project_id, project_id).await
+}
 pub fn worker_routes() -> Router<AppState> {
     Router::new()
         .route("/v1/worker/intelligence/inventory", post(inventory::report))

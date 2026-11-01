@@ -320,6 +320,7 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
 pub struct Store {
     pub(crate) pool: PgPool,
     control_pool: PgPool,
+    renewal_pool: PgPool,
     pub(crate) notification_pool: PgPool,
     pub(crate) observation_pool: PgPool,
     terminal_pool: PgPool,
@@ -370,6 +371,17 @@ impl Store {
         }
     }
 
+    /// Dedicated permit-maintenance connections; initial admission/bulk never use them.
+    pub(crate) fn renewal_view(&self) -> Self {
+        Self {
+            pool: self.renewal_pool.clone(),
+            ..self.clone()
+        }
+    }
+    #[cfg(feature = "test-support")]
+    pub fn renewal_pool_for_testing(&self) -> PgPool {
+        self.renewal_pool.clone()
+    }
     pub(crate) fn control_view(&self) -> Self {
         Self {
             pool: self.control_pool.clone(),
@@ -398,6 +410,7 @@ impl Store {
     pub async fn close(&self) {
         self.pool.close().await;
         self.control_pool.close().await;
+        self.renewal_pool.close().await;
         self.notification_pool.close().await;
         self.observation_pool.close().await;
         self.terminal_pool.close().await;
@@ -423,6 +436,29 @@ impl Store {
             .max_connections(4)
             .acquire_timeout(Duration::from_secs(2))
             .connect_lazy_with(pool.connect_options().as_ref().clone());
+        let renewal_pool = PgPoolOptions::new()
+            .max_connections(2)
+            .acquire_timeout(Duration::from_millis(250))
+            .after_connect(|connection, _| {
+                Box::pin(async move {
+                    sqlx::query("SET statement_timeout='750ms'")
+                        .execute(&mut *connection)
+                        .await?;
+                    sqlx::query("SET lock_timeout='150ms'")
+                        .execute(&mut *connection)
+                        .await?;
+                    sqlx::query("SET idle_in_transaction_session_timeout='2s'")
+                        .execute(&mut *connection)
+                        .await?;
+                    Ok(())
+                })
+            })
+            .connect_lazy_with(
+                pool.connect_options()
+                    .as_ref()
+                    .clone()
+                    .application_name("aq-native-renewal"),
+            );
         let notification_pool = PgPoolOptions::new()
             .max_connections(4)
             .acquire_timeout(Duration::from_secs(2))
@@ -506,6 +542,7 @@ impl Store {
             notification_pool,
             pool,
             control_pool,
+            renewal_pool,
             admission: std::sync::Arc::new(crate::admission::Admission::default()),
             verified_profiled_facts: Default::default(),
             #[cfg(feature = "recovery-test-support")]

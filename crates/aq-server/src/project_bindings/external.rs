@@ -6,6 +6,25 @@ use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::Semaphore;
 static READS: OnceLock<Semaphore> = OnceLock::new();
 pub(super) async fn observe(state: &AppState, binding: &ProjectBinding) -> BindingObservation {
+    observe_with_gate(state, binding, READS.get_or_init(|| Semaphore::new(4))).await
+}
+pub(super) async fn observe_execution(
+    state: &AppState,
+    binding: &ProjectBinding,
+) -> BindingObservation {
+    static EXECUTION_READS: OnceLock<Semaphore> = OnceLock::new();
+    observe_with_gate(
+        state,
+        binding,
+        EXECUTION_READS.get_or_init(|| Semaphore::new(2)),
+    )
+    .await
+}
+async fn observe_with_gate(
+    state: &AppState,
+    binding: &ProjectBinding,
+    reads: &Semaphore,
+) -> BindingObservation {
     let now = (state.clock)().timestamp_millis().max(1) as u64;
     let unavailable = || BindingObservation {
         repository_id: binding.repository_id,
@@ -18,7 +37,7 @@ pub(super) async fn observe(state: &AppState, binding: &ProjectBinding) -> Bindi
         observed_at_ms: now,
         expires_at_ms: now.saturating_add(30_000),
     };
-    let Ok(_permit) = READS.get_or_init(|| Semaphore::new(4)).try_acquire() else {
+    let Ok(_permit) = reads.try_acquire() else {
         return unavailable();
     };
     let git = async {
