@@ -8,8 +8,8 @@ its historical test results and source pins.
 
 | Area | Integrated behavior | Remaining product work |
 | --- | --- | --- |
-| Daemon schema and preparation | Ordered state25→27 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, automatic ungranted expiry | Renewal/reconciliation, multi-project fairness, granted-before-Started closure and full settlement |
-| Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities and independent material installation pins | Actual Git hydration and workspace ownership, Prepare, grant/renewal and launch/stop callbacks, result/release |
+| Daemon schema and preparation | Ordered state25→27 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, read-only reconciliation, automatic ungranted expiry | Renewal, multi-project fairness, granted-before-Started closure and full settlement |
+| Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, independent material installation pins and actual Git hydration/workspace ownership | Prepare, grant/renewal and launch/stop callbacks, result/release |
 | tmux host | Durable blank terminal baseline before sealed-image exec; original physical server/pane ownership checks | Native driver adoption, selected real harness qualification and operational load envelope |
 | Playbooks | Catalog2 human decision adapter, lost-Accepted-reply recovery and explicit optional startup/drive/shutdown | Broader real adapters, workflow pilots and verified network database transport |
 | Dashboard | Live daemon overview/projects/sessions/workers with capability gates and verified static assets | Live terminals, interaction and remaining task/workflow/domain views |
@@ -61,9 +61,28 @@ at `238c2ce` records129 package tests passed, three existing actual-Git ignores,
 22 focused tests as a subset, and strict lint/formatting. Earlier broad worker
 test counts above are not attributed to this newer source.
 
-Parallel implementation now covers central renewal/reconciliation, additive
-pre-Started closure contracts, and actual worker source hydration/workspace
-ownership. The [actual Git producer-to-grant checkpoint](../implementation/AQ-08-actual-git-grant-qualification.md)
+[Read-only reconciliation](../implementation/AQ-08-reconciliation-qualification.md)
+is integrated at `24877ac`: 51 selected checks passed with zero ignores, including
+the actual Git grant cases, plus strict lint and formatting. It scopes history to
+the authenticated node and original boot, validates actual terminal receipts,
+and never issues delivery clocks or adopts a worker journal.
+
+Worker hydration source `f14694e`, integrated with evidence at `a95918e`, passes
+142 package tests (four declared ignores) and its separately enabled pinned
+actual-Git case. It downloads and verifies source, imports it, owns a worktree,
+and checks current retention/head/cleanliness. The default Git profile requires a
+conservative logical reservation of21GiB+1MiB per attempt; a32GiB test reservation
+is not physical free-space evidence. Driver Poll/reservation capacity must agree
+with this bound before activation. Source geometry is bounded to512 ranges;
+large cold preparation and physical disk pressure remain unqualified.
+[Exact worker evidence](../../../aq-worker/docs/implementation/WRK-08-native-hydration-qualification.md)
+retains these limitations. Journal format3 refuses older layouts unchanged.
+
+The pure additive granted-closure contract0.1.8 is packaged and integrated;
+58 source and58 extracted-package tests pass, with old0.1.7 compatibility checked.
+This does not enable a server closure owner or worker proof producer. Parallel
+implementation now covers renewal, retained installation evidence/initial lineage
+budgets, and ordered schema28 plus the server closure owner. The [actual Git producer-to-grant checkpoint](../implementation/AQ-08-actual-git-grant-qualification.md)
 passes14 initial-grant tests including two actual-Git cases. The [fresh pre-grant Graph fence](../implementation/AQ-08-initial-grant-current-graph.md)
 now closes the observed task/context-change gap and passes43 selected checks,
 including both actual-Git cases. It rereads bounded readiness and exact authorized
@@ -72,7 +91,7 @@ inputs. The preview remains the separately pinned `960ffc7` binary.
 Shared migration27 and public0.1.7 are frozen. No path may fabricate missing
 original requests, convert timeout to release proof, or restore old-boot authority.
 
-Granted-without-Started recovery is still a separate missing protocol: it cannot
+Granted-without-Started recovery still needs its server and worker owners: it cannot
 reuse NeverGranted or manufacture Started to release a claim. AQ-08, WRK-08,
 WRK-14, AQ-12/13/14 and all related product gates stay in progress. No model call,
 external notification, deployment or publication is claimed by this checkpoint.
