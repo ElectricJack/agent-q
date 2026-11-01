@@ -29,7 +29,7 @@ pub(super) async fn configure(case: &mut Case) -> Value {
         aq_server::STATE_FORMAT_VERSION
     );
     assert!(
-        aq_server::STATE_FORMAT_VERSION >= 30,
+        version.parse::<u32>().unwrap() >= 30,
         "actual ordered preparation owner required"
     );
     let mut config = (*case.env.env.state.config).clone();
