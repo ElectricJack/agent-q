@@ -680,6 +680,7 @@ async fn inspection_uses_exact_acl_and_stable_bounded_snapshot_pages() {
             .unwrap();
     assert_eq!(latest.events.len(), 1);
     assert_eq!(latest.events[0].record.body.sequence, 3);
+    optional_events_browser(&f, &s.binding).await;
     assert!(
         observations::inspection::events(&f.state, f.actor, s.binding.attempt_id, 4, None, 16)
             .await
@@ -776,6 +777,51 @@ async fn inspection_uses_exact_acl_and_stable_bounded_snapshot_pages() {
         StatusCode::FORBIDDEN
     );
     drop(f);
+}
+
+// Opt-in paired browser check uses the real registered source and admitted
+// records above. Synthetic fixtures qualify inspection, never model execution.
+async fn optional_events_browser(f: &Fixture, binding: &Binding) {
+    let Some(script) = std::env::var_os("AQ_TEST_EVENTS_BROWSER_SCRIPT") else {
+        assert!(std::env::var_os("AQ_TEST_EVENTS_DASHBOARD_DIR").is_none());
+        return;
+    };
+    let bundle = std::env::var_os("AQ_TEST_EVENTS_DASHBOARD_DIR")
+        .expect("an explicit events browser probe requires a compiled bundle");
+    let assets =
+        aq_server::dashboard_assets::DashboardAssets::load(std::path::Path::new(&bundle)).unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let origin = format!("http://{}", listener.local_addr().unwrap());
+    let mut state = f.state.clone();
+    let mut config = (*state.config).clone();
+    config.server.public_origin = origin.clone();
+    state.config = std::sync::Arc::new(config);
+    let router = aq_server::build_admin_router_with_dashboard_and_policy_owners(
+        state,
+        None,
+        None,
+        std::sync::Arc::new(assets),
+    );
+    let server = tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    let SessionIdentity::Remote { session_id, .. } = binding.session else {
+        panic!("remote events fixture")
+    };
+    let mut probe = tokio::process::Command::new("node")
+        .arg(script)
+        .env("AQ_LIVE_URL", origin)
+        .env("AQ_LIVE_SESSION_ID", session_id.to_string())
+        .env("AQ_LIVE_EVENTS_EXPECT", "nonempty")
+        .kill_on_drop(true)
+        .spawn()
+        .unwrap();
+    let result = tokio::time::timeout(std::time::Duration::from_secs(30), probe.wait()).await;
+    server.abort();
+    assert!(
+        result
+            .expect("bounded real admitted-events browser probe")
+            .unwrap()
+            .success()
+    );
 }
 
 #[tokio::test]
