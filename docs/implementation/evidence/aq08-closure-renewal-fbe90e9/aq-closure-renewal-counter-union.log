@@ -1,0 +1,44 @@
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+error[E0603]: module `service` is private
+   --> crates/aq-server/tests/granted_closure.rs:215:59
+    |
+215 |     let renewed = aq_server::profiled_execution::renewal::service::renew(
+    |                                                           ^^^^^^^  ----- function `renew` is not publicly re-exported
+    |                                                           |
+    |                                                           private module
+    |
+note: the module `service` is defined here
+   --> crates/aq-server/src/profiled_execution/renewal/mod.rs:18:1
+    |
+ 18 | mod service;
+    | ^^^^^^^^^^^
+
+error[E0603]: module `service` is private
+   --> crates/aq-server/tests/granted_closure.rs:259:53
+    |
+259 |             aq_server::profiled_execution::renewal::service::renew(
+    |                                                     ^^^^^^^  ----- function `renew` is not publicly re-exported
+    |                                                     |
+    |                                                     private module
+    |
+note: the module `service` is defined here
+   --> crates/aq-server/src/profiled_execution/renewal/mod.rs:18:1
+    |
+ 18 | mod service;
+    | ^^^^^^^^^^^
+
+error[E0609]: no field `expires_at_ms` on type `RenewedAuthority`
+   --> crates/aq-server/tests/granted_closure.rs:279:55
+    |
+279 |     assert_eq!(hot["grant"]["expires_at_ms"], renewed.expires_at_ms);
+    |                                                       ^^^^^^^^^^^^^ unknown field
+    |
+help: one of the expressions' fields has a field of the same name
+    |
+279 |     assert_eq!(hot["grant"]["expires_at_ms"], renewed.delivery.clock.expires_at_ms);
+    |                                                       +++++++++++++++
+
+Some errors have detailed explanations: E0603, E0609.
+For more information about an error, try `rustc --explain E0603`.
+error: could not compile `aq-server` (test "granted_closure") due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...

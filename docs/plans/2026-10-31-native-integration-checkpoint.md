@@ -8,7 +8,7 @@ its historical test results and source pins.
 
 | Area | Integrated behavior | Remaining product work |
 | --- | --- | --- |
-| Daemon schema and preparation | Ordered state25→28 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Cold preparation phase separation, installed-material presence reporting, multi-project fairness, granted-before-Started closure and full settlement |
+| Daemon schema and preparation | Ordered state25→28 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Cold preparation phase separation, installed-material presence reporting, multi-project fairness, worker granted-before-Started proof production and full settlement |
 | Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, independent material installation pins and actual Git hydration/workspace ownership and durable Prepare input join | Grant/renewal and launch/stop callbacks, result/release |
 | tmux host | Durable blank terminal baseline before sealed-image exec; original physical server/pane ownership checks | Native driver adoption, selected real harness qualification and operational load envelope |
 | Playbooks | Catalog2 human decision adapter, lost-Accepted-reply recovery and explicit optional startup/drive/shutdown | Broader real adapters, workflow pilots and verified network database transport |
@@ -86,7 +86,7 @@ The [contract evidence](../implementation/AQ-08-granted-closure.qualification.md
 does not enable a server closure owner or worker proof producer.
 [Schema28 and the strict initial-grant terminal fence](../implementation/AQ-08-closure28-prerequisite-integration.md)
 are integrated at `e930d75`:57 native and eight schema checks passed, with strict
-affected lint and formatting. The server closure owner is still being qualified. [Initial lineage budgets and retained installation receipts](../implementation/AQ-08-initial-budget-material-receipts-evidence.md)
+affected lint and formatting. The newer server owner qualification and integration are recorded below. [Initial lineage budgets and retained installation receipts](../implementation/AQ-08-initial-budget-material-receipts-evidence.md)
 are integrated at `876b60b`:57 native tests with zero ignores plus two policy
 helpers passed. The grant's immutable deadline respects the original remaining
 lineage budget. Exact verified installation receipts are atomically retained and
@@ -115,7 +115,8 @@ inputs. The earlier preview was pinned to `960ffc7`; the newer preview update is
 Shared migration27 and public0.1.7 are frozen. No path may fabricate missing
 original requests, convert timeout to release proof, or restore old-boot authority.
 
-Granted-without-Started recovery still needs its server and worker owners: it cannot
+Granted-without-Started recovery still needs its qualified worker producer and
+activation; the explicitly injected server owner is now integrated. It cannot
 reuse NeverGranted or manufacture Started to release a claim. AQ-08, WRK-08,
 WRK-14, AQ-12/13/14 and all related product gates stay in progress. No model call,
 external notification, deployment or publication is claimed by this checkpoint.
@@ -156,3 +157,22 @@ window, so the older schema27 tiny-fixture success is not attributed to this
 newer source. The actual local preview is now rebuilt at `8f1adcc` and upgraded
 to schema28 with the existing fixture preserved; all four live browser checks
 pass. Native optional owners remain off and no agents were launched.
+
+
+[The granted-closure owner](../implementation/AQ-08-closure-owner-evidence.md)
+is integrated at `8ab6d7a` (source `7eb9696`), with nine actual publication/SQL/HTTP
+owner tests and three schema checks. Explicit immutable historical verifier
+policy injection is required; default routes stay unmounted. The
+[combined closure/renewal check](../implementation/AQ-08-closure-renewal-integration.md)
+passes44 selected tests at `fbe90e9`, including a new counter-versus-terminal
+ordering test, under the qualified two-thread profile. A higher-concurrency
+initial-admission fixture expiry remains retained. No original clock changed.
+Worker physical proof and separate settlement are still required.
+
+The next parallel implementation lanes are the
+[accepted preparation protocol](../implementation/AQ-08-accepted-preparation-v2-plan.md),
+[scoped material presence](../implementation/AQ-08-scoped-material-presence-plan.md)
+and durable worker initial-grant recording before any host hook. Presence facts
+are independent per attempt: refreshing one agent must not invalidate every
+other agent's evidence or advertise its private material globally. These remain
+in progress and do not activate runtime capabilities by documentation alone.

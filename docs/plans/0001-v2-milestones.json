@@ -888,7 +888,11 @@
         "../../../aq-worker/docs/implementation/WRK-08-preparation-phase-separation.md",
         "../implementation/AQ-08-worker-prepare-assembly.md",
         "../implementation/AQ-08-native-renewal-races.qualification.md",
-        "../implementation/AQ-08-schema28-renewal-integration.md"
+        "../implementation/AQ-08-schema28-renewal-integration.md",
+        "../implementation/AQ-08-closure-owner-evidence.md",
+        "../implementation/AQ-08-closure-renewal-integration.md",
+        "../implementation/AQ-08-accepted-preparation-v2-plan.md",
+        "../implementation/AQ-08-scoped-material-presence-plan.md"
       ]
     },
     {

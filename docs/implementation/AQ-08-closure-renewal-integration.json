@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "source_revision": "fbe90e9d1fc3ddb02d060cfaa86118f033cb0351",
+  "closure_source": "7eb9696",
+  "renewal_source": "c5438d3",
+  "combined_counter_test_source": "668caf4",
+  "passed": 44,
+  "failed": 0,
+  "ignored": 0,
+  "test_threads": 2,
+  "test_seconds_sum": 60.8,
+  "explicitly_filtered": "actual_worker_downloads (separate retained deadline limitation)",
+  "strict_affected_all_feature_clippy": true,
+  "format": true,
+  "source_inventory": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "19456997cb1f8959a6d14d6393320a3b33d880a5f562cbdd71e1415bc4b1acfe",
+      "bytes": 88659
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "42bcbada166090885b1fd7c5da190aa8022bcedf1770885b6f0c111e1f1ef6cc",
+      "bytes": 2574
+    },
+    {
+      "path": "crates/aq-server/src/admission.rs",
+      "sha256": "06c2f426748bab80414e7b7f2fcdaa7793be9ab8fce2f12ce1dffa970be68bd7",
+      "bytes": 8310
+    },
+    {
+      "path": "crates/aq-server/src/lib.rs",
+      "sha256": "6428e539c0030fd9901010564b60429cf2fad47ef44f0095b7b387902535031a",
+      "bytes": 15451
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/closure/api.rs",
+      "sha256": "bb73c1b10b9ef3ef54c98b212abc2beb2ba5565013e08f083dad2cb3abf9c5e4",
+      "bytes": 1619
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/closure/context.rs",
+      "sha256": "ba456204be22cbe60b3478b1dd53b3b3cb3319ea7c4e1451a91958fdacfcb16d",
+      "bytes": 4848
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/closure/history.rs",
+      "sha256": "fceb021b45da5810e942497b6e3115e857a50116330a77b053c27b9c93fb45b3",
+      "bytes": 7669
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/closure/mod.rs",
+      "sha256": "2e596e50f44e52346b92bd6433a645de2e0618f55d58630950f5d2a7dadbfec4",
+      "bytes": 1411
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/closure/policy.rs",
+      "sha256": "1a8abdf01ecc0f57c71759a27322c54d4e7b346a8a73e631f0d8e25df24c1fe3",
+      "bytes": 7533
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/closure/service.rs",
+      "sha256": "d2f8198af73e6f23c7c55c53ee0f1555d332d8e8cae0ad7b2ef4afcad572bb39",
+      "bytes": 13536
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/api.rs",
+      "sha256": "80f85c01f33820d826c2539bb331c161f3a9866b65aa24746b3f69393e7841e6",
+      "bytes": 1442
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/current.rs",
+      "sha256": "16ed1641ec6ad8d9fa4cc7caae116198c5354a0b3b9c98d1f09c2704b7248984",
+      "bytes": 9227
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/health.rs",
+      "sha256": "c2d9fe162b7deca96dc837c09cb9ba9b09624e81ae719c2924093304e5c8dc0e",
+      "bytes": 7950
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/history.rs",
+      "sha256": "a74f7f40f99f1fa30944c7b0d638b74ca00b203d5d0154ba869edb859669028b",
+      "bytes": 10402
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/mod.rs",
+      "sha256": "ddcaa431d6db0d9ccf0813d0f597eb44d877b8e60dd5fb5a96dfdb298208ea17",
+      "bytes": 556
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/observations.rs",
+      "sha256": "4ea6e35fe35e9584707f00d11b784a3c90243aa38a90c2e85488fb01cbc2d1d4",
+      "bytes": 7472
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/pinned.rs",
+      "sha256": "baeb4092ca9621e2f6b614f7af93a212c04c49d3268724f387dc2e9f4edc3b67",
+      "bytes": 13436
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/private_read.rs",
+      "sha256": "e3e459bfa4240f5cf15cf969282839c34345b4911d0b2b19615ee198c4feef83",
+      "bytes": 11934
+    },
+    {
+      "path": "crates/aq-server/src/profiled_execution/renewal/service.rs",
+      "sha256": "bf55a9d860705af06d3e65053546f91f20a9aef5dbeec38a71c9b1339ccacae8",
+      "bytes": 7700
+    },
+    {
+      "path": "crates/aq-server/src/test_support.rs",
+      "sha256": "3d70d8608982c0ae7cfd9c4de80b32c9e5a5ac06c62337db2a6dc26b062c7e41",
+      "bytes": 3128
+    },
+    {
+      "path": "crates/aq-server/tests/common/closure.rs",
+      "sha256": "64b5f97e2f332ec7f5022ab788db3bbbd50b1c4fb3c988d3ffe8b03a418cb2dd",
+      "bytes": 4762
+    },
+    {
+      "path": "crates/aq-server/tests/granted_closure.rs",
+      "sha256": "d400e28195ba765cb61a3fb4102ed3850df0965fd59388f57cce693cec22d2d9",
+      "bytes": 22971
+    },
+    {
+      "path": "crates/aq-server/tests/schema28_closure.rs",
+      "sha256": "1abc3f17c556a83b8cdef1c101062a06f503574a4b2b3434aef029aa0b2b4a7e",
+      "bytes": 6853
+    }
+  ],
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-closure-renewal-fbe90e9/aq-closure-renewal-counter-union.log",
+      "sha256": "c69e2e3b0a61ea75c6d2e9b83e35e24867311c19a37751e32c373b81d985d133",
+      "bytes": 2079
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-closure-renewal-fbe90e9/aq-closure-renewal-counter-union-final.log",
+      "sha256": "d1adb0c665d64daddfee75987dbc9af3ec31158f79a7c30e77b1501e3ff31e2d",
+      "bytes": 448
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-closure-renewal-fbe90e9/aq-closure-renewal-assembled-tests.log",
+      "sha256": "35ec152a82996258acc388adf08895f8cbb2da80a00e7bd6d37c3ddb96c7cec7",
+      "bytes": 1791
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-closure-renewal-fbe90e9/aq-closure-renewal-assembled-final.log",
+      "sha256": "a5e7987693a3819d7a5d9e39914633175fefac54c4090a1cc9598cba75329409",
+      "bytes": 5004
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-closure-renewal-fbe90e9/aq-closure-renewal-assembled-clippy.log",
+      "sha256": "1d37be2090746de0e149b49616abaa59ed2c11f2ce1404fd70f049fcbee42f2d",
+      "bytes": 134
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-closure-renewal-fbe90e9/aq-closure-renewal-assembled-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "limitations": [
+    "Actual publication/SQL/HTTP owners with synthetic qualified suppression/host proof. No physical worker producer or default closure activation.",
+    "Higher default-concurrency run failed in initial Grant fixture before closure capacity test; other9passed. Qualified2thread profile changes no original TTL.",
+    "Closure preserves task/source/effect holds for separate settlement; terminal closure receipt is not release or NeverGranted.",
+    "Preview remains independently pinned8f1adcc/schema28, no automatic optional-owner activation."
+  ]
+}
