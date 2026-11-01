@@ -71,3 +71,10 @@ Only terminal manifest/dependency pins move to 0.1.1 for workspace resolution in
 this source increment; its new typed Context/profile, worker format-11 adoption
 and runtime route/qualification changes belong to the Runner lane. No SQL,
 canonical migration, provider call or launch is introduced here.
+
+The immutable [package inventory](packages.json) pins the new 0.1.10 archive and
+two unchanged frozen dependencies. Independently extracted tests, strict lint
+and formatting pass offline/locked. Run
+`CARGO_TARGET_DIR=<explicitly leased existing target> python3 scripts/test-admission-refresh-packages.py`
+for that package check. It qualifies the pure contract, not its later runtime
+adoption or the manifest-only terminal package increment.
