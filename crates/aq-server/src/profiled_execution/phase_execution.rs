@@ -335,7 +335,21 @@ pub async fn prepare(
             nonce,
         )
         .map_err(|_| refused())?;
-    if now(state)? >= after.issuance_ceiling {
+    // INSERT may itself wait on a trigger, FK, or unique index. Charge that
+    // final await before making the atomic authority transition durable.
+    let final_at = now(state)?;
+    observed.validate_for(&after.input, final_at)?;
+    current.fresh_at(final_at)?;
+    if final_at >= expiry
+        || final_at < reply.delivery.clock.server_time_ms
+        || final_at >= after.issuance_ceiling
+        || reply
+            .receipt
+            .confirmation
+            .facts
+            .iter()
+            .any(|f| final_at >= f.body.expires_at_ms)
+    {
         return Err(refused());
     }
     tx.commit().await.map_err(|_| {
