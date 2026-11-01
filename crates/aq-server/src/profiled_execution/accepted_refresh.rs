@@ -13,7 +13,7 @@ use super::accepted_preparation::{begin, db, now, quota, request_permit, require
 use crate::{AppState, error::AppError};
 pub use accept::accept;
 use aq_admission::{ArtifactRef, MaterialLease, preparation_refresh_v1 as phase};
-use aq_selection::{AvailabilityObservation, Validate};
+use aq_selection::AvailabilityObservation;
 pub(crate) use authority::{PreparationAuthority, load_preparing_locked};
 pub use policy::{PolicyDefinition, policy_for};
 pub use proposal::{ProposalRequest, propose};

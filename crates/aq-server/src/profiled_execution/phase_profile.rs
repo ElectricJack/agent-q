@@ -112,7 +112,7 @@ mod tests {
     use serde_json::json;
     fn fixture(refresh: bool) -> Value {
         if refresh {
-            serde_json::from_str(include_str!(
+            serde_json::from_str::<Value>(include_str!(
                 "../../../aq-admission/artifacts/preparation-refresh-v1.json"
             ))
             .unwrap()["fixture"]
