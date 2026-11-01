@@ -1,4 +1,30 @@
-# aq-phase-terminal-protocol 0.1.0
+# aq-phase-terminal-protocol 0.1.1
+
+The root API retains the frozen0.1.0 profile and its complete schema, artifacts,
+digest domains and validation behavior. `refresh_v1` is a distinct typed bridge
+over `aq_admission::preparation_refresh_v1` from admission0.1.10. Its borrowed
+Context validates actual selected/accepted/preflight/current registry floors in
+the retained refresh receipt family; it never projects an old phase receipt.
+The new exact contract is `aq.phase-terminal.registry-refresh-v1.contract`,
+schema URN `urn:aq:phase-terminal:registry-refresh:1`. Negotiation requires all
+three ordered features, adding `registry_observation_continuity_v1`. New digest
+domains begin `aq.phase-terminal-refresh`. Its manifest pins the actual refresh
+admission contract. `Profile` selects only an exact known terminal or admission
+artifact; no unknown contract, version-based inference or fallback is supported.
+
+The existing SQL terminal family remains `aq.phase-terminal.v1`, envelope version1
+and origin `phase_execution_v2`. These family labels do not equate the new exact
+artifact with the frozen profile. New Started/Stopped/closure/history identities
+use actual refresh accepted/execution digests. Strict owner/profile dispatch,
+proof producer qualification, physical stop and durable acknowledgments remain
+separate consumer obligations. No route, runtime or live permission is enabled.
+
+Both profiles instantiate one private structural algorithm. Published frozen
+vectors remain unchanged; new vectors live under `artifacts/refresh-v1` and are
+exported by `export_refresh_phase_terminal`. Neither old immutable archive is
+rewritten by the new package.
+
+## Frozen root profile
 
 Pure finite envelopes over frozen `aq-admission =0.1.9`. This package changes no
 admission module, archive, host observation or existing protocol feature enum.
