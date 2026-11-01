@@ -1,0 +1,20 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-granted-closure-server/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 42.35s
+     Running tests/native_offers.rs (/home/jkern/dev/agent-q/target/debug/deps/native_offers-ab4252e369175203)
+
+running 4 tests
+test actual_native_offer_seals_real_owner_artifacts_source_and_graph_without_grant ... ok
+test missing_qualified_capacity_never_invents_zero_or_exports_source ... ok
+test poll_rejects_chosen_scope_duplicate_fields_and_oversized_body_before_admission ... ok
+test task_cas_and_same_cas_content_mismatch_never_publish_an_offer ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.38s
+
+     Running tests/schema28_closure.rs (/home/jkern/dev/agent-q/target/debug/deps/schema28_closure-4962c7c455ba06f0)
+
+running 2 tests
+test fresh_closure_schema_is_empty_and_default_router_has_no_owner ... ok
+test actual27_upgrades_to28_and_collision_rolls_back_before_explicit_retry ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.45s
+

@@ -1,0 +1,14 @@
+{
+  "Dockerfile": "b51e214575f9a3c54ef4ebe9510d873f9a5b8ef514afa1b9f7bc7da6634a0968",
+  "crates/aq-server/migrations/0028_profiled_launch_closure.sql": "23b4b732f787138ec06a93deeffa21a010e41d6d704c7ddb547f5948d1e01225",
+  "crates/aq-server/src/lib.rs": "85a925844db071d17231b6f5c5802c6e8ea1ca5e3336055b49d0b84908dc2e5f",
+  "crates/aq-server/src/profiled_execution.rs": "aba6995d721b62d1c3a765333bbb7d1aa0ce06dc2a6b0f205ad4875585351bcf",
+  "crates/aq-server/src/profiled_execution/closure/history.rs": "fceb021b45da5810e942497b6e3115e857a50116330a77b053c27b9c93fb45b3",
+  "crates/aq-server/src/profiled_execution/closure/mod.rs": "02955a72600d9fbf72fcb0022b04c4eb51becb7fdb69673fa8fe8377f86a76ce",
+  "crates/aq-server/src/profiled_execution/preparation.rs": "376b973270e89fc6fce13f249468aa316f12e0f7a0e13ba88061ff84fd0b598e",
+  "crates/aq-server/src/profiled_execution/registration.rs": "162f0e701cca82951c748d011fbe58bf38f9c22966e648441233283c080a1db0",
+  "crates/aq-server/src/profiled_execution/started.rs": "e6f748ae7c704b0c4bb0ac57b0558e6cf1bf9fc5e9434ef766438e44e9f0b5dc",
+  "crates/aq-server/src/store.rs": "8256ffe673e2b68383ff600166848c554505b64e5790efbaf9f845aee2617fdb",
+  "crates/aq-server/tests/schema26_27.rs": "6f4676be8cc260bb185d897e69d5dd42fba86020928dca280942144bed1c53a6",
+  "crates/aq-server/tests/schema28_closure.rs": "0eb274fe100b1b5f3fa09dd80393cf1c46161ef8ade7adec72d7ced6a096c5ef"
+}
