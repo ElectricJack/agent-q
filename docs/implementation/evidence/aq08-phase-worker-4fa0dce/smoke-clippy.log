@@ -1,0 +1,9 @@
+    Checking aq-session-protocol v0.1.0 (/home/jkern/dev/aq-worker/crates/aq-session-protocol)
+    Checking aq-protocol v0.1.0 (/home/jkern/dev/aq-worker/crates/aq-protocol)
+    Checking aq-worker-protocol v0.2.0 (/home/jkern/dev/aq-worker/crates/aq-worker-protocol)
+    Checking aq-terminal-relay-protocol v0.1.0 (/home/jkern/dev/aq-worker/vendor/aq-terminal-relay-protocol-0.1.0)
+    Checking aq-lifecycle-protocol v0.1.0 (/home/jkern/dev/aq-worker/crates/aq-lifecycle-protocol)
+    Checking aq-session-host v0.1.4 (/home/jkern/dev/aq-worker/crates/aq-session-host)
+    Checking aq-admission v0.1.9 (/home/jkern/dev/aq-worker/vendor/aq-admission-0.1.9)
+    Checking aq-worker v0.3.3 (/home/jkern/dev/aq-worker/crates/aq-worker)
+    Finished `dev` profile [unoptimized] target(s) in 9.69s

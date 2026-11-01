@@ -1,0 +1,10 @@
+   Compiling aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 33.13s
+     Running tests/native_initial_grant.rs (/tmp/aq-native-union-target/debug/deps/native_initial_grant-75d4ef44983dfb89)
+
+running 1 test
+bounded phase clocks: {"accepted_expiry_ms":1793503753849,"accepted_issued_ms":1793503723960,"journal_format":6,"journal_revision":4,"proposal_expiry_ms":1793503725485,"replay_server_ms":1793503726021}
+test published::actual_git::worker_assembly::actual_worker_durably_accepts_new_phase_and_replays_after_proposal_expiry ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 33 filtered out; finished in 4.27s
+

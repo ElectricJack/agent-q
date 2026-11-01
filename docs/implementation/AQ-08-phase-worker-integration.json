@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "daemon_source": "4fa0dce",
+  "daemon_schema": 30,
+  "worker_source": "cf943ff",
+  "worker_journal_format": 6,
+  "worker_binary_sha256": "fbb0e3aa74ee69845918a50723737ed106a0c80e45a586086e84b23c4179dcd4",
+  "admission_archive_sha256": "30f4cfca11ff6840eab325026dfea33dd55c23e25099dedb303b52a1ede75b49",
+  "git_binary_sha256": "c2ff26f5e63008aec0fbd4082a547e87825e651d4aba0744c4b9fdf752d58c39",
+  "passed": 1,
+  "failed": 0,
+  "ignored": 0,
+  "seconds": 4.27,
+  "clock_evidence": {
+    "proposal_expiry_ms": 1793503725485,
+    "accepted_issued_ms": 1793503723960,
+    "accepted_expiry_ms": 1793503753849,
+    "replay_server_ms": 1793503726021,
+    "journal_revision": 4
+  },
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-phase-worker-4fa0dce/actual-worker.log",
+      "sha256": "c55714d8256d6f35960a30a75649f3d250458f8e4d9e917425b1857e9b579eb6",
+      "bytes": 698
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-phase-worker-4fa0dce/worker-release-build.log",
+      "sha256": "277cc365ef51e9d094b568c0bb0ea1461a0fc5b66474db7ee84db5f9d8595a75",
+      "bytes": 138
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-phase-worker-4fa0dce/smoke-tests.log",
+      "sha256": "87ec6f77a5a65a1572642293d6755ce38e91b03a5737784f73335e48a05ce0ef",
+      "bytes": 663
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-phase-worker-4fa0dce/smoke-clippy.log",
+      "sha256": "2da7de5a0631c4d94fc63633c5353c828e24511c6125f9626174b66ba48c4034",
+      "bytes": 790
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-phase-worker-4fa0dce/daemon-preflight29.log",
+      "sha256": "7ba9fa260b0a28e722c2b966231dc0251b8fd6ada1fcb114f7cc63b63dc711e3",
+      "bytes": 256
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-phase-worker-4fa0dce/daemon-clippy29.log",
+      "sha256": "594c3cd023c6499fd4a570a05fca87f7a9519bec21d1be5781567928559469e9",
+      "bytes": 134
+    }
+  ],
+  "limitations": [
+    "Actual independent worker process, daemon HTTP/PostgreSQL, private journal, and actual Git services for source publication/reservation preflight; no phase worker artifact/material download or Git hydration yet.",
+    "Runtime, harness, provider, Graph peer and qualified source profile remain explicit synthetic fixtures.",
+    "Original proposal/selection clocks unchanged; post-proposal replay succeeds under separately issued bounded no-launch lease, never execution permission.",
+    "No v2 Grant, Started, host/model launch, private installation receipt, settlement/release, fleet-load or native runtime activation.",
+    "Earlier legacy2s process refusals and format4 initial Grant successes retain their independent source pins."
+  ]
+}
