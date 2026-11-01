@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "scope": "Actual independent worker process prepares phase inputs after original proposal expiry; format8 coexists with daemon schema31 and explicit phase origin fences. No execution issuance or host launch in this process probe.",
+  "daemon_source": "87d54d5",
+  "worker_source": "76eee8d",
+  "worker_binary_sha256": "1efcf3c799adc71150671d6f1356afaaaf5b9afbcdce12db488cb4b05bc276e4",
+  "git_binary_sha256": "c2ff26f5e63008aec0fbd4082a547e87825e651d4aba0744c4b9fdf752d58c39",
+  "result": {
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "test_seconds": 7.47,
+    "artifacts": 38,
+    "materials": 1,
+    "journal_format": 8,
+    "prepared_revision": 26
+  },
+  "artifacts": {
+    "docs/implementation/evidence/aq08-phase8-origin31-87d54d5/aq-phase8-worker-release-build.log": "1711017edf8642ed55b33a3b6c1dcbbccc1075b6e894c33a4d9f9a331912908c",
+    "docs/implementation/evidence/aq08-phase8-origin31-87d54d5/aq-phase8-origin31-actual-worker.log": "3a2c3847a59870b75a1ef6ed94189306863af785fa617f74159c7963bf6b0206"
+  },
+  "limitations": [
+    "Actual Git, SQL, HTTP, fsynced worker journal and private installation; synthetic qualified Graph/task/harness.",
+    "No provider call, physical presence report, execution Grant, tmux launch or end-to-end task completion.",
+    "Earlier failures and timings remain attributed to their original checkpoints."
+  ]
+}

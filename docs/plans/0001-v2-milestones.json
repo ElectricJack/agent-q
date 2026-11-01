@@ -913,7 +913,12 @@
         "../../../aq-worker/docs/implementation/WRK-08-phase-execution-http.md",
         "../implementation/AQ-08-presence-owner-evidence/qualification.md",
         "../implementation/AQ-08-phase-presence31-union.json",
-        "../implementation/AQ-08-dashboard-schema31.json"
+        "../implementation/AQ-08-dashboard-schema31.json",
+        "../implementation/AQ-08-phase8-origin31-union.json",
+        "../implementation/AQ-08-phase-origin.qualification.md",
+        "../implementation/AQ-08-presence-isolation-evidence/qualification.md",
+        "../../../aq-worker/docs/implementation/WRK-08-phase-execution-owner-evidence.md",
+        "../../../aq-worker/docs/implementation/WRK-08-native-phase-host-plan.md"
       ]
     },
     {
@@ -1128,7 +1133,12 @@
         "../../../aq-worker/docs/implementation/WRK-08-phase-input-evidence.md",
         "../../../aq-worker/docs/implementation/WRK-08-phase-execution-http.md",
         "../implementation/AQ-08-presence-owner-evidence/qualification.md",
-        "../implementation/AQ-08-phase-presence31-union.json"
+        "../implementation/AQ-08-phase-presence31-union.json",
+        "../implementation/AQ-08-phase8-origin31-union.json",
+        "../implementation/AQ-08-phase-origin.qualification.md",
+        "../implementation/AQ-08-presence-isolation-evidence/qualification.md",
+        "../../../aq-worker/docs/implementation/WRK-08-phase-execution-owner-evidence.md",
+        "../../../aq-worker/docs/implementation/WRK-08-native-phase-host-plan.md"
       ]
     },
     {
@@ -2560,7 +2570,8 @@
         "../../../aq-worker/docs/implementation/WRK-14-renderer-baseline-plan.md",
         "../../../aq-worker/docs/implementation/WRK-08-host-union-qualification.md",
         "../../../aq-worker/docs/implementation/WRK-14-observed-baseline.md",
-        "../../../aq-worker/docs/implementation/WRK-08-worker-integration-qualification.md"
+        "../../../aq-worker/docs/implementation/WRK-08-worker-integration-qualification.md",
+        "../../../aq-worker/docs/implementation/WRK-08-native-phase-host-plan.md"
       ]
     },
     {
@@ -2892,7 +2903,7 @@
     },
     {
       "source": "2026-10-31-native-integration-checkpoint.md",
-      "summary": "Ordered state25\u219227, native preparation and explicit optional playbook lifecycle are integrated. Worker no-launch journal/observed tmux host passed retained Git/host/relay checks; one concurrent-load deadline failure remains explicit. The assembled daemon passed45 selected tests and4livebrowser checks after fixture upgrade. Native offers/grants and full driver continue in parallel; product gates stay open."
+      "summary": "Ordered state25→27, native preparation and explicit optional playbook lifecycle are integrated. Worker no-launch journal/observed tmux host passed retained Git/host/relay checks; one concurrent-load deadline failure remains explicit. The assembled daemon passed45 selected tests and4livebrowser checks after fixture upgrade. Native offers/grants and full driver continue in parallel; product gates stay open."
     },
     {
       "source": "../implementation/AQ-08-granted-launch-closure-plan.md",

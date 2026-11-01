@@ -330,3 +330,33 @@ runs daemon `37afe9d` on ordered31, after a private30→31 fixture backup/upgrad
 All four actual browser checks pass in2.1seconds, including preserved session
 detail and direct refresh. Native execution, playbook startup and unsupported
 terminal views remain inactive. Earlier preview pins above are historical.
+
+
+The [format8 durable phase execution owner](../../../aq-worker/docs/implementation/WRK-08-phase-execution-owner-evidence.md)
+is integrated at worker `f4d6a19` (source `82496ef`, integrated source `76eee8d`).
+Its qualification records219 package passes, six declared ignores, three actual-Git
+passes and strict lint. An actual retained opaque execution observation can survive
+lost acknowledgements without resetting its original caps. Disk history alone does
+not restore live permission. This is component evidence, not a real daemon grant.
+
+The [latest independent input process check](../implementation/AQ-08-phase8-origin31-union.json)
+passes in7.47seconds at daemon `87d54d5` with that format8 worker:38 artifact/source
+receipts, one material receipt and durable Prepare after the original proposal
+expires. It does not send a phase execution request or launch a host.
+
+The [origin fence](../implementation/AQ-08-phase-origin.qualification.md) is
+integrated at `1b6214f`, with root regression tests at `aeb9ed0`. Actual accepted
+phase history cannot enter the legacy Started or renewal paths. One new regression
+failed before the guard and both pass afterward. Earlier aggregate admission
+expiry failures remain recorded; isolated passing reruns do not relabel them.
+The [presence isolation checks](../implementation/AQ-08-presence-isolation-evidence/qualification.md)
+are integrated at `2e621c5`: four deterministic isolation cases and three schema
+checks pass. Per-attempt evidence stays independent, and held presence bodies or
+pool connections do not consume the reserved renewal lane. This is not fleet-load
+qualification or multi-slot placement support.
+
+Current parallel work is the daemon fresh phase issuer and ordered032 transaction
+qualification, its current-owner refusal tests, and the worker's explicitly
+synthetic [observed tmux launch owner](../../../aq-worker/docs/implementation/WRK-08-native-phase-host-plan.md).
+The schema31 dashboard preview remains the latest qualified preview. Runtime,
+terminal and complete task-lifecycle gates stay in progress.
