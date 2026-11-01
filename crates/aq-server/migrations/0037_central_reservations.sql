@@ -4,10 +4,12 @@ CREATE FUNCTION central_global_mailbox_key() RETURNS TEXT LANGUAGE SQL STABLE AS
  SELECT encode(sha256(convert_to('{"conversation_id":"'||conversation_id::text||'","kind":"global_supervisor"}','UTF8')),'hex')
  FROM global_supervisor_conversation WHERE singleton
 $$;
-CREATE INDEX mailbox_global_queued_original ON mailbox_operations((response->>'message_id'))
+CREATE UNIQUE INDEX mailbox_global_queued_original ON mailbox_operations((response->>'message_id'))
  WHERE response->>'contract'='human-supervisor-conversation-1' AND response->>'state'='queued';
 CREATE FUNCTION central_global_mail_source_valid(p_message UUID) RETURNS BOOLEAN LANGUAGE SQL STABLE AS $$
- SELECT count(*)=1 FROM mailbox_messages m JOIN global_supervisor_conversation g ON g.singleton
+ SELECT count(*)=1 AND (SELECT count(*) FROM mailbox_operations original WHERE original.response->>'message_id'=p_message::text
+  AND original.response->>'contract'='human-supervisor-conversation-1' AND original.response->>'state'='queued')=1
+ FROM mailbox_messages m JOIN global_supervisor_conversation g ON g.singleton
  JOIN mailbox_operations o ON o.response->>'message_id'=m.message_id::text
   AND o.response->>'contract'='human-supervisor-conversation-1' AND o.response->>'state'='queued'
  WHERE m.message_id=p_message AND m.mailbox_key=central_global_mailbox_key()
@@ -176,7 +178,7 @@ DECLARE a central_supervisor_actors; r central_supervisor_reservations; actual_c
 BEGIN
  SELECT * INTO a FROM central_supervisor_actors WHERE actor_id=NEW.actor_id;
  IF (SELECT count(*) FROM central_supervisor_reservations WHERE actor_id=a.actor_id AND state='awaiting_prepared_plan')
-  <>CASE WHEN a.current_reservation IS NULL THEN 0 ELSE 1 END
+  <>(CASE WHEN a.current_reservation IS NULL THEN 0 ELSE 1 END)
   OR (a.current_reservation IS NOT NULL AND NOT EXISTS(SELECT 1 FROM central_supervisor_reservations WHERE actor_id=a.actor_id AND reservation_id=a.current_reservation AND state='awaiting_prepared_plan')) THEN
   RAISE EXCEPTION 'central current reservation is inconsistent';
  END IF;
