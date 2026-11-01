@@ -1487,7 +1487,10 @@
       "out_of_scope": [],
       "evidence": [
         "../implementation/AQ-12-through-17-plan.md",
-        "../implementation/AQ-12.foundation.md"
+        "../implementation/AQ-12.foundation.md",
+        "../implementation/AQ-14-owner-activation.md",
+        "../implementation/AQ-14-owner-activation-evidence.md",
+        "../implementation/schema27-activation-dashboard-qualification.md"
       ]
     },
     {
@@ -1564,7 +1567,10 @@
         "../implementation/AQ-12-through-17-plan.md",
         "../implementation/AQ-14-decision-check-owner-design.md",
         "../implementation/AQ-14-state25-integration.json",
-        "../implementation/AQ-schema26-native27.qualification.md"
+        "../implementation/AQ-schema26-native27.qualification.md",
+        "../implementation/AQ-14-owner-activation.md",
+        "../implementation/AQ-14-owner-activation-evidence.md",
+        "../implementation/schema27-activation-dashboard-qualification.md"
       ]
     },
     {
@@ -2055,7 +2061,8 @@
         "../implementation/dashboard-read-1-evidence.md",
         "../implementation/dashboard-read-1-evidence.json",
         "../../protocol/dashboard-read/v1/schema.json",
-        "../../../aq-dashboard/docs/evidence/d05-live-framework.md"
+        "../../../aq-dashboard/docs/evidence/d05-live-framework.md",
+        "../implementation/schema27-activation-dashboard-qualification.md"
       ]
     },
     {
@@ -2088,7 +2095,8 @@
         "../evidence/dashboard-assets/README.md",
         "../evidence/dashboard-assets/source.json",
         "../../../aq-dashboard/docs/evidence/d04.md",
-        "../../../aq-dashboard/docs/evidence/d05-live-framework.md"
+        "../../../aq-dashboard/docs/evidence/d05-live-framework.md",
+        "../implementation/schema27-activation-dashboard-qualification.md"
       ]
     },
     {
@@ -2812,7 +2820,7 @@
     },
     {
       "source": "2026-10-31-native-integration-checkpoint.md",
-      "summary": "Ordered state25\u219227 and native preparation integrated; worker no-launch journal and observed tmux host integrated with retained actual Git/host/relay checks. One concurrent-load startup deadline failure remains explicit. Native offers/grants, optional playbook lifecycle and full driver continue in parallel; product gates stay open."
+      "summary": "Ordered state25\u219227, native preparation and explicit optional playbook lifecycle are integrated. Worker no-launch journal/observed tmux host passed retained Git/host/relay checks; one concurrent-load deadline failure remains explicit. The assembled daemon passed45 selected tests and4livebrowser checks after fixture upgrade. Native offers/grants and full driver continue in parallel; product gates stay open."
     }
   ],
   "implementation_reference_maps": [

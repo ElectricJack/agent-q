@@ -11,7 +11,7 @@ its historical test results and source pins.
 | Daemon schema and preparation | Ordered state25→27 migrations, immutable public definitions, native Accept→retained preparation/material plan | Native graph-to-offer assembly, Prepare→Grant, renewal and reconciliation |
 | Worker durability | Separate private native journal, resource holds, exact Accept replay and observed preparation; reopening preserves historical ownership | Durable downloads/material/Prepare, actual Git hydration, grant/renewal and launch/stop callbacks, result/release |
 | tmux host | Durable blank terminal baseline before sealed-image exec; original physical server/pane ownership checks | Native driver adoption, selected real harness qualification and operational load envelope |
-| Playbooks | Catalog2 human decision adapter and lost-Accepted-reply recovery | Explicit optional startup/drive/shutdown integration, broader real adapters and workflow pilots |
+| Playbooks | Catalog2 human decision adapter, lost-Accepted-reply recovery and explicit optional startup/drive/shutdown | Broader real adapters, workflow pilots and verified network database transport |
 | Dashboard | Live daemon overview/projects/sessions/workers with capability gates and verified static assets | Live terminals, interaction and remaining task/workflow/domain views |
 
 The daemon checkpoint is `eacdc05`, with frozen implementation source `50840a0`.
@@ -32,12 +32,14 @@ summed as unique product tests. One earlier tmux case expired under concurrent
 storage-test/build load; that negative remains retained, and identical deadlines
 passed under lower controlled load. Startup under saturation is not qualified.
 
-The [live dashboard checkpoint](../../../aq-dashboard/docs/evidence/d05-live-framework.md)
+The [initial live dashboard checkpoint](../../../aq-dashboard/docs/evidence/d05-live-framework.md)
 has 234 unit/component, 35 mocked browser/accessibility and four actual-daemon
-browser checks. Those four used daemon source `8bc7a63`, before this schema
-integration, and synthetic sessions with no launched agents. A fresh live-browser
-run against the assembled final daemon remains part of the next integration
-checkpoint; the older smoke result is not silently attributed to new source.
+browser checks. The [new assembled checkpoint](../implementation/schema27-activation-dashboard-qualification.md)
+at daemon source `077a0ad` passed 45 selected server checks and all four live
+browser checks after upgrading the isolated fixture database from25 to27. The
+existing fixture session survived. No agents were launched. Optional playbook
+startup has its own explicit-configuration qualification and remains off in the
+preview; its first engine connection profile requires a trusted Unix socket.
 
 Parallel work is divided at ownership boundaries: graph/profile/source offer
 assembly; central initial grants; optional playbook startup/lifecycle; and root

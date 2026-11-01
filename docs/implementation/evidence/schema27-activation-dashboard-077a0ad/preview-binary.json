@@ -1,0 +1,6 @@
+{
+  "source": "077a0adc2e5672fc37b9251a299343be4e540903",
+  "binary_sha256": "8f2857a719f09f4adf8f9876102248a27ac585e220764f15795ce13c9ef72647",
+  "schema": 27,
+  "scope": "isolated local dashboard fixture only; optional playbooks remain off"
+}

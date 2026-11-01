@@ -1,0 +1,90 @@
+{
+  "api_version": "dashboard-read-1",
+  "capabilities": [
+    {
+      "name": "dashboard.overview",
+      "version": "1",
+      "enabled": true
+    },
+    {
+      "name": "sessions.read",
+      "version": "1",
+      "enabled": true
+    },
+    {
+      "name": "projects.read",
+      "version": "1",
+      "enabled": true
+    },
+    {
+      "name": "status.read",
+      "version": "1",
+      "enabled": true
+    },
+    {
+      "name": "workers.read",
+      "version": "1",
+      "enabled": true
+    },
+    {
+      "name": "tasks.read",
+      "version": "1",
+      "enabled": false,
+      "reason": "Task inspection is not connected yet"
+    },
+    {
+      "name": "search.read",
+      "version": "1",
+      "enabled": false,
+      "reason": "Search is not connected yet"
+    },
+    {
+      "name": "decisions.read",
+      "version": "1",
+      "enabled": false,
+      "reason": "Decision inspection is not connected yet"
+    },
+    {
+      "name": "provider.quota",
+      "version": "1",
+      "enabled": false,
+      "reason": "Provider account usage is unavailable"
+    },
+    {
+      "name": "supervisor.conversation",
+      "version": "1",
+      "enabled": false,
+      "reason": "The global supervisor is not connected yet"
+    },
+    {
+      "name": "terminal.watch",
+      "version": "1",
+      "enabled": false,
+      "reason": "Terminal viewing is not connected to this dashboard yet"
+    },
+    {
+      "name": "terminal.control",
+      "version": "1",
+      "enabled": false,
+      "reason": "Terminal control is not connected to this dashboard yet"
+    },
+    {
+      "name": "dashboard.actions",
+      "version": "1",
+      "enabled": false,
+      "reason": "Dashboard actions are not connected yet"
+    },
+    {
+      "name": "results.read",
+      "version": "1",
+      "enabled": false,
+      "reason": "Results are not connected yet"
+    },
+    {
+      "name": "playbooks.inspect",
+      "version": "1",
+      "enabled": false,
+      "reason": "Playbook inspection is not connected yet"
+    }
+  ]
+}

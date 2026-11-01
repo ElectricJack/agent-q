@@ -1,0 +1,42 @@
+{
+  "source_revision": "077a0adc2e5672fc37b9251a299343be4e540903",
+  "schema": 27,
+  "tests": {
+    "assembled_selected_server": {
+      "passed": 45,
+      "failed": 0,
+      "ignored": 0,
+      "targets": 7,
+      "shell_exit": 0
+    },
+    "actual_daemon_browser": {
+      "passed": 4,
+      "failed": 0,
+      "ignored": 0,
+      "shell_exit": 0,
+      "seconds": 3.0
+    }
+  },
+  "checks": {
+    "offline_locked_build": 0,
+    "targeted_allfeatures_strict_clippy": 0,
+    "workspace_format": 0
+  },
+  "dashboard": {
+    "source_revision": "dbbba20936a9ff9c8767796832aa29b9a0523368",
+    "bundle_manifest_sha256": "6d19f55ac7103e3993ddc0ea6f10cd9b20250abdf940690f99afee7198228f68"
+  },
+  "preview": {
+    "source": "077a0adc2e5672fc37b9251a299343be4e540903",
+    "binary_sha256": "8f2857a719f09f4adf8f9876102248a27ac585e220764f15795ce13c9ef72647",
+    "schema": 27,
+    "scope": "isolated local dashboard fixture only; optional playbooks remain off"
+  },
+  "limits": [
+    "Live browser uses loopback development auth and existing fixture session, no agents; actual25\u219227 fixture upgrade preserved session/attempt counts.",
+    "Optional playbook owners remain off in preview. Separate activation tests use disposable realPostgreSQL with syntheticUnix peer and explicitconfig.",
+    "Wrong exploratory /api/dashboard/bootstrap request returned404; correctcontract /api/v1/bootstrap returned200 beforebrowserrun.",
+    "Selected server regression is not a newfullworkspace run. No productiondeployment, provider call, nativegrant or release/publication.",
+    "Private fixture backup is kept only in localtemporarydirectory and notpublished; separate schema qualification retained synthetic pg_dump/restore proof."
+  ]
+}

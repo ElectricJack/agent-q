@@ -30,7 +30,7 @@ The original planning baseline completed AUD-00; current statuses below record s
 - [2026-10-31-execution-sessions-policy-progress.md](2026-10-31-execution-sessions-policy-progress.md): Three-area design/implementation reconciliation: full state24 checkpoint778tests; ordered state25 source-owner/read integration with38focused checks; exact native control, private material and source-client components with26worker tests. Durable native driver, physical terminal baseline and human/check integration continue; product gates remain open.
 - [AQ-14-result-owner-read.md](../implementation/AQ-14-result-owner-read.md): Extract completed AQ-10 B1 ledger/owner-read slice as AQ-28. AQ-14 consumes that frozen owner boundary rather than waiting for full AQ-10 settlement; human decision/check receipts can develop before the evaluator that consumes them. B2/C and all product acceptance gates stay open.
 - [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md): First dashboard-read-1 API and verified static bundle are connected to the independent dashboard: 234 unit/component,35 mocked browser/accessibility and4 actual-daemon checks. Exact source and fixture limits are retained; API-02/UI-01 and broader product gates remain open.
-- [2026-10-31-native-integration-checkpoint.md](2026-10-31-native-integration-checkpoint.md): Ordered state25→27 and native preparation integrated; worker no-launch journal and observed tmux host integrated with retained actual Git/host/relay checks. One concurrent-load startup deadline failure remains explicit. Native offers/grants, optional playbook lifecycle and full driver continue in parallel; product gates stay open.
+- [2026-10-31-native-integration-checkpoint.md](2026-10-31-native-integration-checkpoint.md): Ordered state25→27, native preparation and explicit optional playbook lifecycle are integrated. Worker no-launch journal/observed tmux host passed retained Git/host/relay checks; one concurrent-load deadline failure remains explicit. The assembled daemon passed45 selected tests and4livebrowser checks after fixture upgrade. Native offers/grants and full driver continue in parallel; product gates stay open.
 
 ### V1 implementation evidence
 
@@ -997,7 +997,7 @@ Acceptance:
 
 Requirement links: E1, D2, D6, D7, X8, X14.
 
-Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md), [AQ-12.foundation.md](../implementation/AQ-12.foundation.md).
+Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md), [AQ-12.foundation.md](../implementation/AQ-12.foundation.md), [AQ-14-owner-activation.md](../implementation/AQ-14-owner-activation.md), [AQ-14-owner-activation-evidence.md](../implementation/AQ-14-owner-activation-evidence.md), [schema27-activation-dashboard-qualification.md](../implementation/schema27-activation-dashboard-qualification.md).
 
 ### AQ-13
 
@@ -1037,7 +1037,7 @@ Acceptance:
 
 Requirement links: D2, D3, D6, W1, X6, X7.
 
-Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md), [AQ-14-decision-check-owner-design.md](../implementation/AQ-14-decision-check-owner-design.md), [AQ-14-state25-integration.json](../implementation/AQ-14-state25-integration.json), [AQ-schema26-native27.qualification.md](../implementation/AQ-schema26-native27.qualification.md).
+Evidence: [AQ-12-through-17-plan.md](../implementation/AQ-12-through-17-plan.md), [AQ-14-decision-check-owner-design.md](../implementation/AQ-14-decision-check-owner-design.md), [AQ-14-state25-integration.json](../implementation/AQ-14-state25-integration.json), [AQ-schema26-native27.qualification.md](../implementation/AQ-schema26-native27.qualification.md), [AQ-14-owner-activation.md](../implementation/AQ-14-owner-activation.md), [AQ-14-owner-activation-evidence.md](../implementation/AQ-14-owner-activation-evidence.md), [schema27-activation-dashboard-qualification.md](../implementation/schema27-activation-dashboard-qualification.md).
 
 ### AQ-15
 
@@ -1329,7 +1329,7 @@ Acceptance:
 
 Requirement links: D9, U2, U3, U4, E6, P3.
 
-Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), [dashboard-read-1.md](../implementation/dashboard-read-1.md), [dashboard-read-1-evidence.md](../implementation/dashboard-read-1-evidence.md), [dashboard-read-1-evidence.json](../implementation/dashboard-read-1-evidence.json), [schema.json](../../protocol/dashboard-read/v1/schema.json), [d05-live-framework.md](../../../aq-dashboard/docs/evidence/d05-live-framework.md).
+Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), [dashboard-read-1.md](../implementation/dashboard-read-1.md), [dashboard-read-1-evidence.md](../implementation/dashboard-read-1-evidence.md), [dashboard-read-1-evidence.json](../implementation/dashboard-read-1-evidence.json), [schema.json](../../protocol/dashboard-read/v1/schema.json), [d05-live-framework.md](../../../aq-dashboard/docs/evidence/d05-live-framework.md), [schema27-activation-dashboard-qualification.md](../implementation/schema27-activation-dashboard-qualification.md).
 
 ### UI-01
 
@@ -1350,7 +1350,7 @@ Requirement links: U1, U2, U3, U6.
 
 Outside this task: Separate dashboard backend; Full v1 UI parity.
 
-Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), [README.md](../evidence/dashboard-assets/README.md), [source.json](../evidence/dashboard-assets/source.json), [d04.md](../../../aq-dashboard/docs/evidence/d04.md), [d05-live-framework.md](../../../aq-dashboard/docs/evidence/d05-live-framework.md).
+Evidence: [UI-01-live-dashboard.md](../implementation/UI-01-live-dashboard.md), [README.md](../evidence/dashboard-assets/README.md), [source.json](../evidence/dashboard-assets/source.json), [d04.md](../../../aq-dashboard/docs/evidence/d04.md), [d05-live-framework.md](../../../aq-dashboard/docs/evidence/d05-live-framework.md), [schema27-activation-dashboard-qualification.md](../implementation/schema27-activation-dashboard-qualification.md).
 
 ### UI-02
 
