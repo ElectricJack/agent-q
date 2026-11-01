@@ -1,0 +1,59 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-phase-execution-owner/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 9.13s
+     Running tests/granted_closure.rs (/tmp/aq-phase30-qualification-target/debug/deps/granted_closure-7569f2dc32aca630)
+
+running 10 tests
+test actual_grant_closes_once_and_replays_without_release_or_execution_clock ... ok
+test actual_host_stopped_variant_retains_absent_prestart_pane_without_inventing_started ... ok
+test closure_path_is_explicit_reserved_control ... ok
+test closure_http_uses_reserved_control_capacity_and_refuses_at_its_shared_bound ... ok
+test credential_rotation_during_node_lock_wait_cannot_commit_a_closure ... ok
+test expiry_and_active_policy_retirement_do_not_block_historical_closure ... ok
+test failed_receipt_insert_rolls_back_revocation_and_preserves_retry ... ok
+test policy_replacement_fences_old_owner_but_exact_history_can_use_new_current_policy ... ok
+test renewal_counter_fences_old_suppression_and_closure_fences_all_later_authority ... ok
+test started_and_closure_serialize_to_exactly_one_terminal_history ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.26s
+
+     Running tests/native_accepted_preparation.rs (/tmp/aq-phase30-qualification-target/debug/deps/native_accepted_preparation-bee3d72b9007997b)
+
+running 16 tests
+test absent_policy_has_no_route_and_invalid_policy_refuses_configuration ... ok
+test changed_bytes_runtime_scope_and_cancel_refuse_without_new_receipts ... ok
+test changed_current_project_and_private_bytes_cannot_deliver_inputs ... ok
+test current30_missing_both_phase_tables_cannot_undercharge_legacy_admission ... FAILED
+test failure_after_actual_material_insert_rolls_back_entire_admission ... ok
+test legacy_and_v2_accept_share_one_actual_owner_and_material_scope ... ok
+test mixed_candidate_schema_is_corruption_not_older_profile ... FAILED
+test mounted_v2_routes_require_machine_auth_negotiation_and_physical_nonce ... ok
+test observed_node_wait_charges_expiry_before_any_new_accept_commit ... ok
+test original_inputs_remain_scoped_after_proposal_expiry_then_expire_held ... ok
+test real_timed_accept_retains_independent_lease_and_exact_replay ... ok
+test reopened_store_and_reloaded_protected_policy_replay_exact_accepted_receipt ... ok
+test structurally_complete_v2_prepare_never_falls_back_to_legacy_execution_issuer ... ok
+test shared_bytes_quota_rolls_back_new_accept_but_never_forgets_exact_replay ... ok
+test unsupported_history::accepted_phase_origin_cannot_acquire_legacy_original_grant_through_renewal ... ok
+test unsupported_history::accepted_phase_origin_cannot_enter_legacy_started_through_shaped_hot_grant ... ok
+
+failures:
+
+---- current30_missing_both_phase_tables_cannot_undercharge_legacy_admission stdout ----
+
+thread 'current30_missing_both_phase_tables_cannot_undercharge_legacy_admission' (409571) panicked at crates/aq-server/tests/native_accepted_preparation.rs:814:10:
+called `Result::unwrap()` on an `Err` value: Database(PgDatabaseError { severity: Error, code: "2BP01", message: "cannot drop table profiled_v2_accepts because other objects depend on it", detail: Some("constraint profiled_phase_execution_grants_attempt_id_fkey on table profiled_phase_execution_grants depends on table profiled_v2_accepts"), hint: Some("Use DROP ... CASCADE to drop the dependent objects too."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("dependency.c"), line: Some(1148), routine: Some("reportDependentObjects") })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- mixed_candidate_schema_is_corruption_not_older_profile stdout ----
+
+thread 'mixed_candidate_schema_is_corruption_not_older_profile' (409593) panicked at crates/aq-server/tests/native_accepted_preparation.rs:221:10:
+called `Result::unwrap()` on an `Err` value: Database(PgDatabaseError { severity: Error, code: "2BP01", message: "cannot drop table profiled_v2_accepts because other objects depend on it", detail: Some("constraint profiled_phase_execution_grants_attempt_id_fkey on table profiled_phase_execution_grants depends on table profiled_v2_accepts"), hint: Some("Use DROP ... CASCADE to drop the dependent objects too."), position: None, where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("dependency.c"), line: Some(1148), routine: Some("reportDependentObjects") })
+
+
+failures:
+    current30_missing_both_phase_tables_cannot_undercharge_legacy_admission
+    mixed_candidate_schema_is_corruption_not_older_profile
+
+test result: FAILED. 14 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 22.97s
+
+error: test failed, to rerun pass `-p aq-server --test native_accepted_preparation`

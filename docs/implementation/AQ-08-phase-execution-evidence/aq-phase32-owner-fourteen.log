@@ -1,0 +1,35 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-phase-execution-owner/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 40.27s
+     Running tests/phase_execution.rs (/tmp/aq-phase30-qualification-target/debug/deps/phase_execution-57061f97822d8c1e)
+
+running 14 tests
+test absent_execution_qualification_refuses_without_mutation ... ok
+test actual_phase_issuer_commits_exact_receipt_and_replay_without_extension ... ok
+test atomicity::final_insert_wait_expiring_facts_rolls_back_despite_live_preparation_and_execution_windows ... ok
+test atomicity::final_receipt_insert_failure_rolls_back_hot_journal_and_installation ... ok
+test atomicity::issued_history_is_immutable_and_changed_request_cannot_replay ... ok
+test atomicity::original_proposal_expiry_does_not_limit_new_execution_lease ... FAILED
+test legacy_origin::actual_phase_grant_remains_held_when_legacy_renewal_refuses_its_origin ... ok
+test original_legacy_inventory_is_not_relabelled_as_phase_qualification ... ok
+test refusals::changed_actual_private_backing_refuses_without_installation_or_grant_receipt ... ok
+test refusals::changed_graph_cas_content_and_raw_metadata_refuse_without_partial_authority ... ok
+test refusals::compatible_inventory_refresh_retains_actual_sequence_in_execution_fact ... ok
+test refusals::newer_legacy_then_v2_restoration_cannot_reuse_pre_barrier_selection ... ok
+test refusals::no_longer_in_bounded_ready_page_cannot_issue_execution ... ok
+test refusals::retired_actual_project_policy_fences_an_old_daemon_configuration ... ok
+
+failures:
+
+---- atomicity::original_proposal_expiry_does_not_limit_new_execution_lease stdout ----
+
+thread 'atomicity::original_proposal_expiry_does_not_limit_new_execution_lease' (420772) panicked at crates/aq-server/tests/phase_execution.rs:190:10:
+called `Result::unwrap()` on an `Err` value: Conflict("selection expired during admission locks")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    atomicity::original_proposal_expiry_does_not_limit_new_execution_lease
+
+test result: FAILED. 13 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 32.20s
+
+error: test failed, to rerun pass `-p aq-server --test phase_execution`

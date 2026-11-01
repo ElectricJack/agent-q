@@ -1,0 +1,14 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-phase-execution-owner/crates/aq-server)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1m 11s
+     Running unittests src/lib.rs (/tmp/aq-phase30-qualification-target/debug/deps/aq_server-59b2c0d7a3ee27ba)
+
+running 6 tests
+test profiled_execution::phase_execution::current::tests::old_positive_cannot_supply_lifetime_after_newer_same_source_negative_expires ... ok
+test profiled_execution::phase_execution::current::tests::provider_fact_cap_preserves_source_age_and_expiry ... ok
+test profiled_execution::phase_execution::observations::tests::exact_raw_context_identity_is_separate_from_semantic_projection ... ok
+test profiled_execution::phase_execution::observations::tests::malformed_or_missing_observation_time_is_not_an_equal_projection ... ok
+test profiled_execution::phase_execution::observations::tests::only_top_level_observation_time_is_excluded_from_semantic_context ... ok
+test profiled_execution::phase_execution::current::tests::unrelated_future_cooling_and_conflicting_sources_supply_no_positive_cap ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 73 filtered out; finished in 0.00s
+
