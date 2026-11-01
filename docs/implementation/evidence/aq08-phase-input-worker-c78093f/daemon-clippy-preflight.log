@@ -1,0 +1,16 @@
+    Checking aq-server v0.1.0 (/home/jkern/dev/agent-q/crates/aq-server)
+error: this assertion has a constant value
+  --> crates/aq-server/tests/native_initial_grant/published/actual_git/worker_assembly/phase.rs:31:5
+   |
+31 | /     assert!(
+32 | |         aq_server::STATE_FORMAT_VERSION >= 30,
+33 | |         "actual ordered preparation owner required"
+34 | |     );
+   | |_____^
+   |
+   = help: consider moving this into a const block: `const { assert!(..) }`
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.96.0/index.html#assertions_on_constants
+   = note: `-D clippy::assertions-on-constants` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::assertions_on_constants)]`
+
+error: could not compile `aq-server` (test "native_initial_grant") due to 1 previous error

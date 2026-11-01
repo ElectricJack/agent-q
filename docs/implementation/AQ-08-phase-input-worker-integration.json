@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "daemon_source": "c78093f",
+  "daemon_schema": 30,
+  "worker_source": "cae23c7",
+  "worker_input_source": "a406e48",
+  "worker_journal_format": 7,
+  "worker_binary_sha256": "d6c472fa2fe876e4ad4008341e4aae97e0c5ad314667e5c2511908cf207f4ab7",
+  "admission_archive_sha256": "30f4cfca11ff6840eab325026dfea33dd55c23e25099dedb303b52a1ede75b49",
+  "git_binary_sha256": "c2ff26f5e63008aec0fbd4082a547e87825e651d4aba0744c4b9fdf752d58c39",
+  "passed": 1,
+  "failed": 0,
+  "ignored": 0,
+  "seconds": 7.23,
+  "clock_evidence": {
+    "proposal_expiry_ms": 1793504869400,
+    "accepted_issued_ms": 1793504867902,
+    "accepted_expiry_ms": 1793504897786,
+    "replay_server_ms": 1793504869967,
+    "original_deadline_ns": 161871735780132,
+    "prepared_at_ns": 161875440692297,
+    "deadline_ns": 161900353840419,
+    "journal_revision": 26,
+    "artifacts": 38,
+    "materials": 1
+  },
+  "logs": [
+    {
+      "path": "docs/implementation/evidence/aq08-phase-input-worker-c78093f/actual-worker-first.log",
+      "sha256": "968cd7ff42cd3c7857cee346d404e232389a56ee0c6d58724c5e11149c6b9d62",
+      "bytes": 914
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-phase-input-worker-c78093f/actual-worker-final.log",
+      "sha256": "8fee5c9034007d4f60657527ed805a2d7f5f6ae1f7d45880ea115c86af60fdbc",
+      "bytes": 860
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-phase-input-worker-c78093f/worker-release-build.log",
+      "sha256": "82d93a0862328338b3d87833f0c47c7000f33a0b5427337fc56d40a2065cbd4e",
+      "bytes": 138
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-phase-input-worker-c78093f/worker-release-preflight.log",
+      "sha256": "b7851509c8084ac0eb7ceb84dc217fe5f3ca3a5ca8c4b38d2e89a6bc6c4c1c13",
+      "bytes": 75
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-phase-input-worker-c78093f/worker-union-tests.log",
+      "sha256": "905ddc5e1219ebd52668c3e558d2a86377ad4555327dc1eae5aab89ea0175c5f",
+      "bytes": 1740
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-phase-input-worker-c78093f/worker-union-clippy.log",
+      "sha256": "c759e7cd6e97515585360768b70b5cfd29f327d5c667a736aac69f8f76f96cd6",
+      "bytes": 135
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-phase-input-worker-c78093f/daemon-clippy.log",
+      "sha256": "64a95d6610ec80a166cdda5ee21f1a387a18283be4cd0e2484801cacc00bfa73",
+      "bytes": 133
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-phase-input-worker-c78093f/daemon-clippy-preflight.log",
+      "sha256": "ebdc8a8c804bf15598b8d9c0fb5ef99445a887bb8a0afdc52bce41c9117d84cc",
+      "bytes": 841
+    },
+    {
+      "path": "docs/implementation/evidence/aq08-phase-input-worker-c78093f/acceptance-regression.log",
+      "sha256": "28dc6197be2e332caf35933aff808c0d9065683678b597f10f370cbb3ddbcc96",
+      "bytes": 624
+    }
+  ],
+  "limitations": [
+    "Actual independent worker, daemon HTTP/SQL, private journal/material installation and central/worker Git processes through immutable phase Prepare intent only.",
+    "No phase execution Grant request sent; server remains Preparing/held with no legacy Grant/Started/install-receipt row.",
+    "Runtime/harness/provider/Graph qualification and resource capacity are explicit synthetic fixtures.",
+    "Tiny process fixture does not establish fleet load, large-repository cold hydration, real harness execution or settlement.",
+    "Earlier full126 worker component expiry and legacy2s refusals retained independently."
+  ],
+  "acceptance_only_regression": {
+    "passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "seconds": 4.45
+  }
+}

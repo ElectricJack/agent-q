@@ -8,7 +8,7 @@ its historical test results and source pins.
 
 | Area | Integrated behavior | Remaining product work |
 | --- | --- | --- |
-| Daemon schema and preparation | Ordered state25→30 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Phase worker input adoption and fresh execution issuance, server installed-material presence reporting, multi-project fairness, worker granted-before-Started proof production and full settlement |
+| Daemon schema and preparation | Ordered state25→30 migrations, immutable definitions, bounded graph-to-offer publication, Accept→Prepare→initial Grant, renewal, read-only reconciliation, automatic ungranted expiry | Fresh phase execution issuance/durability, server installed-material presence reporting, multi-project fairness, worker granted-before-Started proof production and full settlement |
 | Worker durability | Private native journal, resource holds, exact Accept replay, durable input request identities, material installation pins, actual Git workspace ownership, durable Prepare join and received initial Grant history | Continuing renewal owner, launch/stop callbacks, result/release, phase input/execution process qualification |
 | tmux host | Durable blank terminal baseline before sealed-image exec; original physical server/pane ownership checks | Native driver adoption, selected real harness qualification and operational load envelope |
 | Playbooks | Catalog2 human decision adapter, lost-Accepted-reply recovery and explicit optional startup/drive/shutdown | Broader real adapters, workflow pilots and verified network database transport |
@@ -280,3 +280,28 @@ All four actual browser checks pass in2.2seconds, with the existing session
 preserved. Optional native execution and playbooks stay inactive. Current
 parallel work is phase input adoption, scoped presence consumption and the fresh
 phase execution-grant owner. Product gates remain in progress.
+
+
+The [format7 phase input owner](../../../aq-worker/docs/implementation/WRK-08-phase-input-evidence.md)
+is integrated at worker `25619c5` (source `a406e48`):205 package tests with six
+declared ignores and three actual-Git checks pass. The126-inline plus2-source
+profile passes after removing duplicate full-proposal validation on every input;
+the earlier31.86second expiry remains retained. No production deadline changed.
+Explicit protocol provenance, cancellation/fault cuts, immutable Prepare replay
+and history-only reopen are covered.
+
+The [independent phase input process](../implementation/AQ-08-phase-input-worker-integration.md)
+passes at daemon `c78093f` / worker `cae23c7` in7.23seconds. Actual HTTP, PostgreSQL,
+private installation, journal and separate Git processes produce38 artifact/source
+receipts and one material receipt, with durable Prepare3.705seconds after the old
+local cap. This is an actual interoperability check through preparation, without
+an execution Grant or host launch.
+
+The worker [execution HTTP observation client](../../../aq-worker/docs/implementation/WRK-08-phase-execution-http.md)
+is integrated at `b094bc9` (source `21404a2`):11 phase loopback tests and strict
+lint pass. Its opaque replies preserve immutable first observations and separate
+execution clocks; they are not durable execution or host permission. The next
+parallel lanes are durable phase execution ownership, server fresh execution
+facts/issuance, and scoped presence/renewal consumption. The latter adds ordered031
+for a normalized provisionable-binding removal/restoration barrier; execution
+provenance reserves032. These migrations are not claimed integrated yet.
