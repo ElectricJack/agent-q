@@ -56,3 +56,31 @@ maintenance/pin handoff; preflight refusal is reported, not hidden by lowering
 limits. Known previous proof used aq-git `c2ff26f5…` and Git `eb54b535…`, whose
 actual reported version is2.43.0, not2.56. New evidence must identify exact chosen
 executables/version and cannot inherit a version label from an older test name.
+
+## Exact request-credential correction
+
+Source audit found the preexisting HTTP path authenticated a Node snapshot, then
+only checked UUID/revocation after waits; a rotated credential could outlive its
+admission snapshot. Root approved this as a concrete pilot fix. Existing opaque
+`AuthenticatedNode` is retained and checked by `lock_current_node` before the
+unchanged trusted UUID SourceRetention authority. The machine-only wrapper is
+used at every HTTP transaction boundary; internal confirmed reads/admin UUID
+owners remain reusable without HTTP credentials. Lock order stays Node→attempt→
+transfer. Legacy base HTTP reads gain the same current-credential fence.
+
+Finalization now reacquires the existing predispatch transaction after file
+validation **before** deciding either rejection or dispatch. Known invalid bytes
+can only be rejected under the original still-current principal; uncertain
+imports retain their dispatch/bytes/charge protection. Physical import results,
+including failed replies, remain pending until the post-I/O principal fence.
+Old credentials are refused; a new current credential for the same node can
+resume/replay the identical admitted transfer and actual import operation. No
+credential becomes persisted authority and no DTO/schema changes.
+
+Two focused default tests prove an observed node-lock wait followed by rotation
+cannot create an intent, and rotation during a held import reply cannot commit a
+receipt or discard uncertain bytes; the current replacement key recovers exactly
+the same import operation. The latter uses an explicitly synthetic socket owner
+for its auth/recovery boundary. The two opt-in real Git phase cases independently
+qualify actual retained bytes/receipts. The existing slow-import revocation case
+now expects current-auth denial even when the held peer returns an invalid reply.
