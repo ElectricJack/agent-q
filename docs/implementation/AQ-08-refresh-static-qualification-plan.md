@@ -77,5 +77,9 @@ at `/tmp/aq-refresh-worker-pin-v2/native-prepare-smoke`, SHA256
 `251063f948e116add528539d51b9935752884878012b29ac9c912723cd4c1b13`.
 It remains worker 0.4.0/FORMAT11 and changes only nominal retained Started/ACK
 dispatch inside the same existing output relay. The first pin and failed
-attempt above remain intact. No changed-case physical retry has occurred;
-Root's separate bounded decision is pending.
+attempt above remain intact. Root authorized one changed static case, which
+passed 1/1 in 20.62s: actual Watch/pull, accepted UploadAck, exact seven-frame /
+269-byte authorized tail, durable ECHILD and both persisted lifecycle ACKs.
+[The positive record](evidence/refresh-static-output-3146cf4/README.md) preserves
+the exact pins, original bounds, receipt/frame metadata and cleanup scope.
+Configured Codex execution, result settlement and Graph closure remain open.
