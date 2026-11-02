@@ -66,8 +66,8 @@ pub struct Observation {
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
-pub struct Envelope<T> {
-    pub api_version: ApiVersion,
+pub struct Envelope<T, V = ApiVersion> {
+    pub api_version: V,
     pub request_id: Uuid,
     pub server_time: Timestamp,
     pub scope: Scope,
@@ -84,6 +84,8 @@ pub enum CapabilityVersion {
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Capability {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation_retention: Option<super::actions::OperationRetention>,
     pub name: String,
     pub version: CapabilityVersion,
     pub enabled: bool,

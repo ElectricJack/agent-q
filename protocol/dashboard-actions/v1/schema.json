@@ -1,0 +1,382 @@
+{
+  "$defs": {
+    "ActionRequest": {
+      "additionalProperties": false,
+      "not": {},
+      "properties": {
+        "expected_versions": {
+          "additionalProperties": {
+            "pattern": "^[1-9][0-9]{0,39}$",
+            "type": "string"
+          },
+          "maxProperties": 32,
+          "propertyNames": {
+            "maxLength": 128,
+            "minLength": 1
+          },
+          "type": "object"
+        },
+        "kind": {
+          "maxLength": 128,
+          "pattern": "^[a-z][a-z0-9_]*(\\.[a-z][a-z0-9_]*)+$",
+          "type": "string"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "payload": true,
+        "reason": {
+          "maxLength": 1024,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "subject": {
+          "$ref": "#/$defs/EntityRef"
+        }
+      },
+      "required": [
+        "operation_id",
+        "kind",
+        "subject",
+        "expected_versions",
+        "payload"
+      ],
+      "type": "object"
+    },
+    "ActionVersion": {
+      "enum": [
+        "dashboard-actions-1"
+      ],
+      "type": "string"
+    },
+    "Completeness": {
+      "enum": [
+        "complete",
+        "partial",
+        "unknown"
+      ],
+      "type": "string"
+    },
+    "Coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "$ref": "#/$defs/Completeness"
+        }
+      },
+      "required": [
+        "state"
+      ],
+      "type": "object"
+    },
+    "Disposition": {
+      "enum": [
+        "pending",
+        "confirmed",
+        "conflict",
+        "rejected",
+        "unknown"
+      ],
+      "type": "string"
+    },
+    "EntityRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        "revision": {
+          "pattern": "^[1-9][0-9]{0,39}$",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "id"
+      ],
+      "type": "object"
+    },
+    "Envelope": {
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "$ref": "#/$defs/ActionVersion"
+        },
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "data": {
+          "$ref": "#/$defs/Operation"
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        },
+        "pending_operations": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "request_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "server_time": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "api_version",
+        "request_id",
+        "server_time",
+        "scope",
+        "data",
+        "observation",
+        "pending_operations",
+        "coverage"
+      ],
+      "type": "object"
+    },
+    "ErrorEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "maxLength": 64,
+          "type": "string"
+        },
+        "current_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "field_errors": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": [
+            "object",
+            "null"
+          ]
+        },
+        "message": {
+          "maxLength": 256,
+          "type": "string"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "request_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "retry_after_ms": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "request_id",
+        "code",
+        "message",
+        "retryable"
+      ],
+      "type": "object"
+    },
+    "Observation": {
+      "additionalProperties": false,
+      "properties": {
+        "coverage": {
+          "$ref": "#/$defs/Completeness"
+        },
+        "fresh_until": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "quality": {
+          "$ref": "#/$defs/Quality"
+        },
+        "source": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "observed_at",
+        "fresh_until",
+        "source",
+        "quality",
+        "coverage"
+      ],
+      "type": "object"
+    },
+    "Operation": {
+      "additionalProperties": false,
+      "properties": {
+        "affected_entities": {
+          "items": {
+            "$ref": "#/$defs/EntityRef"
+          },
+          "maxItems": 100,
+          "type": "array"
+        },
+        "created_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "disposition": {
+          "$ref": "#/$defs/Disposition"
+        },
+        "operation_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "receipt_refs": {
+          "items": {
+            "$ref": "#/$defs/EntityRef"
+          },
+          "maxItems": 100,
+          "type": "array"
+        },
+        "recovery": {
+          "$ref": "#/$defs/Recovery"
+        },
+        "request_digest": {
+          "pattern": "^sha256:[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "subject_refs": {
+          "items": {
+            "$ref": "#/$defs/EntityRef"
+          },
+          "maxItems": 1,
+          "type": "array"
+        },
+        "updated_at": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "operation_id",
+        "disposition",
+        "request_digest",
+        "scope",
+        "created_at",
+        "updated_at",
+        "subject_refs",
+        "receipt_refs",
+        "affected_entities",
+        "recovery"
+      ],
+      "type": "object"
+    },
+    "Quality": {
+      "enum": [
+        "reported",
+        "unknown"
+      ],
+      "type": "string"
+    },
+    "Recovery": {
+      "enum": [
+        "lookup_original",
+        "refresh_and_review",
+        "none"
+      ],
+      "type": "string"
+    },
+    "Scope": {
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "all_authorized",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "project",
+              "type": "string"
+            },
+            "project_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "project_id"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "Timestamp": {
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "anyOf": [
+    {
+      "$ref": "#/$defs/ActionRequest"
+    },
+    {
+      "$ref": "#/$defs/Envelope"
+    },
+    {
+      "$ref": "#/$defs/ErrorEnvelope"
+    }
+  ],
+  "title": "Wire",
+  "x-capability-version": 1
+}
