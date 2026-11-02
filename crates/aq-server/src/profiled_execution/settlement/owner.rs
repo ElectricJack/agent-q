@@ -232,10 +232,19 @@ impl Service {
             source_retention::load_confirmed_locked(&mut tx, request.source_operation_id, &result)
                 .await?;
         let ledger = effects::inspect_aq_effects_locked(&self.state, &mut tx, &result).await?;
-        let decision = self
+        let decision = match self
             .reviews
             .combined_completion_in_tx(&mut tx, request.decision_id)
-            .await?;
+            .await
+        {
+            Ok(decision) => decision,
+            Err(error) => {
+                // Current authorization still wins after external observation
+                // or a pending-review lock wait, even on a normal held result.
+                actor.fence(&mut tx).await?;
+                return Err(error);
+            }
+        };
         if decision.subject().artifact()? != request.subject {
             return Err(conflict());
         }

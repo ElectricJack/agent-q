@@ -591,3 +591,54 @@ async fn settlement39_prepare_held_git_reply_fences_revoked_preparer_before_priv
     c.env.peer.abort();
     c._graph.abort();
 }
+
+#[tokio::test]
+async fn settlement39_valid_pending_combined_review_is_unavailable_without_settlement_writes() {
+    let c = Box::pin(setup()).await;
+    let pool = c.env.f.db.pool().await;
+    let prepared = Box::pin(c.env.service.prepare_combined_as(
+        &c.actor,
+        c.env.report.report_id,
+        c.env.operation,
+        external(c.env.report.binding.attempt_id),
+    ))
+    .await
+    .unwrap();
+    let question = aq_review_protocol::DecisionRequest {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        decision_id: Uuid::new_v4(),
+        subject: prepared.subject().artifact().unwrap(),
+        eligible_owners: vec![c.actor.id],
+        eligibility_project_revision: 1,
+        review_policy: prepared.subject().code.validation_policy.clone(),
+        expires_at_ms: NOW + 30000,
+    };
+    Box::pin(
+        c.env
+            .service
+            .admit_combined(c.actor.id, &prepared, &question),
+    )
+    .await
+    .unwrap();
+    let snapshot = || async {
+        sqlx::query_scalar::<_,Value>("SELECT jsonb_build_object('evaluations',(SELECT count(*) FROM profiled_settlement_evaluations),'releases',(SELECT count(*) FROM profiled_verified_releases),'completions',(SELECT count(*) FROM profiled_task_completions),'hot',h.state,'held',a.holds_task) FROM profiled_authority_hot h JOIN execution_attempts a USING(attempt_id) WHERE h.attempt_id=$1").bind(c.env.report.binding.attempt_id).fetch_one(&pool).await.unwrap()
+    };
+    let before = snapshot().await;
+    let mut request = c.request.clone();
+    request.operation_id = Uuid::new_v4();
+    request.decision_id = question.decision_id;
+    request.subject = question.subject;
+    let result = Box::pin(c.service.evaluate(&c.actor, &request)).await;
+    assert!(
+        matches!(
+            result,
+            Err(aq_server::error::AppError::UpdatesUnavailable(_))
+        ),
+        "a real pending review must hold with503"
+    );
+    assert_eq!(snapshot().await, before);
+    assert_eq!(c.writes.load(Ordering::SeqCst), 0);
+    c.env.peer.abort();
+    c._graph.abort();
+}
