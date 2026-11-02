@@ -2,8 +2,11 @@
 
 Base: `cd64196`. This bounded API slice reads existing qualified B1 records;
 it creates no report, proof, acceptance, completion, media grant or new SQL owner.
-The implementation remains isolated after focused qualification and independent
-source review. Actual execution integration and Root promotion remain separate.
+The focused, independently reviewed implementation is integrated in `7fb35a8`
+after the normal actual-Codex-to-Graph path passed. Its SQL/router qualification
+below remains separate evidence; the actual execution case does not itself
+exercise this human read endpoint. Canonical service and dashboard promotion
+remain separate.
 
 The existing `GET /api/human/results` list and exact revision route currently
 filter/refuse phase origins even though `results::load_locked` verifies actual
@@ -111,3 +114,34 @@ commands, counts and limits. These are actual disposable SQL/router owners with
 explicitly synthetic proof/source/runtime fixtures. No actual Codex, provider,
 Graph completion, canonical service, dashboard bundle or phase media was run or
 changed in this qualification. No full 18-case phase suite was rerun.
+
+## Dashboard consumer follow-up
+
+A read-only audit of dashboard `4457ab7` identified the bounded remaining join.
+No dashboard code or bundle changed as part of this API integration.
+
+- Advertise a dedicated versioned native-result read capability from the server
+  when the supported owner/profile is available. Existing `results.read` alone
+  cannot distinguish an older server. Missing or unsupported capability must
+  produce an explicit unavailable state without a native-profile request or
+  silent fallback.
+- Keep the legacy adapter strict. Add a separate native adapter requiring
+  `recorded_native_v2` coverage and a valid origin on every row. That profile
+  includes all three supported origins, including legacy records.
+- Carry the profile through list/detail requests, pagination and navigation.
+  Include it in report and media-window cache identity alongside the existing
+  principal/scope/report/revision keys.
+- Preserve the media owner and wire contract. Only validated legacy-origin rows
+  can construct its existing legacy media binding; phase rows mount no media or
+  upload client and issue no media requests, even when global media capabilities
+  are enabled. Do not relabel a native page's coverage as legacy.
+- Preserve the Results mock hierarchy, density and responsive composition. B1
+  metadata does not establish acceptance, and its source base is not a claimed
+  result checkpoint. UUID keyset order is not a chronological latest-report
+  guarantee. Verify these meanings, request/cache isolation and media exclusions
+  with focused adapter/view tests and the dashboard's required screenshots.
+
+The principal files are `src/api/adapters/results.ts` and
+`src/features/results/Results.tsx` in aq-dashboard, plus its existing result/media
+fixtures and tests. Reuse the current cards and the unchanged legacy media
+adapter; this follow-up is not a Results layout redesign or a phase-media grant.
