@@ -1,4 +1,5 @@
 //! Typed human task creation. The journal is immutable intent, never task truth.
+pub(crate) mod action;
 mod dispatch;
 mod journal;
 use super::*;
@@ -13,18 +14,23 @@ fn hash(bytes: &[u8]) -> String {
 fn db(_: sqlx::Error) -> AppError {
     unavailable()
 }
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct Create {
+pub(crate) struct Create {
     operation_id: Uuid,
+    #[schemars(regex(pattern = "^[1-9][0-9]{0,18}$"))]
     expected_project_revision: String,
+    #[schemars(length(min = 1, max = 512))]
     title: String,
+    #[schemars(length(max = 32768))]
     body: String,
+    #[schemars(length(max = 8192))]
     acceptance_criteria: String,
+    #[schemars(length(max = 16))]
     labels: Vec<String>,
     task_state: TaskState,
 }
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
 enum TaskState {
     Draft,
@@ -235,18 +241,49 @@ pub(super) async fn create(
     bytes: Bytes,
 ) -> Result<Response> {
     let request = Create::parse(&bytes)?;
-    if project.is_nil() {
-        return Err(invalid());
-    }
     if let Some(old) = journal::load(&r, request.operation_id).await? {
         journal::owns(&old, &actor)?;
         if old.project != project || old.request != bytes.as_ref() {
             return Err(conflict());
         }
-        return outcome(dispatch::run(&state, &r, &actor, old.id).await?);
     }
-    let a = access(&state, &r, actor.clone(), project).await?;
-    let rt = runtime(&state)?;
+    let adapter = action::TaskCreate {
+        runtime: r.clone(),
+        original: Some(bytes.clone()),
+    };
+    let action = action::request(project, &request);
+    let mut registry = crate::dashboard_api::actions::Registry::default();
+    registry
+        .register(adapter)
+        .map_err(crate::dashboard_api::actions::existing::legacy_error)?;
+    crate::dashboard_api::actions::submit_legacy(&state, &registry, &actor, action)
+        .await
+        .map_err(crate::dashboard_api::actions::existing::legacy_error)?;
+    let op = journal::load(&r, request.operation_id)
+        .await?
+        .ok_or_else(unavailable)?;
+    outcome(journal::status(&state, &r, &actor, &op).await?)
+}
+async fn create_domain(
+    state: &AppState,
+    r: &ReadRuntime,
+    actor: &User,
+    project: Uuid,
+    bytes: Bytes,
+) -> Result<Status> {
+    let request = Create::parse(&bytes)?;
+    if project.is_nil() {
+        return Err(invalid());
+    }
+    if let Some(old) = journal::load(r, request.operation_id).await? {
+        journal::owns(&old, actor)?;
+        if old.project != project || old.request != bytes.as_ref() {
+            return Err(conflict());
+        }
+        return journal::status(state, r, actor, &old).await;
+    }
+    let a = access(state, r, actor.clone(), project).await?;
+    let rt = runtime(state)?;
     let service =
         super::super::mutations::service_identity(rt, a.record.binding.graph_workspace_id)
             .map_err(|_| unavailable())?;
@@ -256,10 +293,10 @@ pub(super) async fn create(
     }
     let payload = super::super::canonical(&payload).map_err(|_| unavailable())?;
     journal::admit(
-        &state, &r, &actor, &a.record, &request, &bytes, &payload, &service,
+        state, r, actor, &a.record, &request, &bytes, &payload, &service,
     )
     .await?;
-    outcome(dispatch::run(&state, &r, &actor, request.operation_id).await?)
+    dispatch::run(state, r, actor, request.operation_id).await
 }
 pub(super) async fn lookup(
     State(state): State<AppState>,

@@ -170,3 +170,130 @@ async fn optional_browser(env: &ReviewEnv, decision: Uuid) {
             .success()
     );
 }
+
+async fn dashboard_call(
+    app: &axum::Router,
+    path: &str,
+    body: Option<Value>,
+) -> (axum::http::StatusCode, Value) {
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::builder()
+                .uri(path)
+                .method(if body.is_some() { "POST" } else { "GET" })
+                .header("x-aq-request", "1")
+                .header("content-type", "application/json")
+                .body(axum::body::Body::from(
+                    body.map(|b| b.to_string()).unwrap_or_default(),
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let status = response.status();
+    let bytes = axum::body::to_bytes(response.into_body(), 524288)
+        .await
+        .unwrap();
+    (status, serde_json::from_slice(&bytes).unwrap())
+}
+#[tokio::test]
+async fn dashboard_decision_resolve_binds_subject_and_shares_native_finality() {
+    let env = review_env(1).await;
+    let f = &env.f;
+    let app = aq_server::build_admin_router_with_policy_owners(
+        f.state.clone(),
+        None,
+        Some(Arc::new(env.service.clone())),
+    );
+    for legacy_first in [false, true] {
+        let request = aq_review_protocol::DecisionRequest {
+            schema_version: 1,
+            operation_id: Uuid::new_v4(),
+            decision_id: Uuid::new_v4(),
+            subject: env.prepared.subject().artifact().unwrap(),
+            eligible_owners: vec![f.actor],
+            eligibility_project_revision: 1,
+            review_policy: env.prepared.subject().validation_policy.clone(),
+            expires_at_ms: NOW + 30000,
+        };
+        env.service
+            .admit(f.actor, &env.prepared, &request)
+            .await
+            .unwrap();
+        let op = Uuid::new_v4();
+        let answer = json!({"schema_version":1,"operation_id":op,"decision_id":request.decision_id,"expected_decision_revision":1,"choice":"approve","comment":"Reviewed exact source"});
+        let mut payload = answer.clone();
+        payload["expected_subject"] = json!(request.subject);
+        let action = json!({"operation_id":op,"kind":"decision.resolve","subject":{"type":"decision","id":request.decision_id,"revision":"1"},"expected_versions":{"decision":"1"},"payload":payload});
+        let legacy = format!("/api/reviews/decisions/{}/resolve", request.decision_id);
+        if legacy_first {
+            assert_eq!(
+                dashboard_call(&app, &legacy, Some(answer.clone())).await.0,
+                200
+            );
+        }
+        let mut wrong = action.clone();
+        wrong["payload"]["expected_subject"]["version"] = json!("2");
+        assert_eq!(
+            dashboard_call(&app, "/api/v1/actions", Some(wrong)).await.0,
+            409
+        );
+        let (code, created) = dashboard_call(&app, "/api/v1/actions", Some(action.clone())).await;
+        assert_eq!(code, 200, "{created}");
+        assert_eq!(created["data"]["disposition"], "confirmed");
+        assert_eq!(
+            created["data"]["affected_entities"][0]["id"],
+            json!(request.decision_id)
+        );
+        let (code, native) = dashboard_call(&app, &legacy, Some(answer.clone())).await;
+        assert_eq!(code, 200, "{native}");
+        assert_eq!(native["finality"]["operation_id"], json!(op));
+        assert_eq!(
+            dashboard_call(&app, "/api/v1/actions", Some(action.clone()))
+                .await
+                .1["data"],
+            created["data"]
+        );
+        assert_eq!(
+            dashboard_call(&app, &format!("/api/v1/operations/{op}"), None)
+                .await
+                .1["data"],
+            created["data"]
+        );
+        let mut changed = action;
+        changed["payload"]["choice"] = json!("reject");
+        assert_eq!(
+            dashboard_call(&app, "/api/v1/actions", Some(changed))
+                .await
+                .0,
+            409
+        );
+    }
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM human_decision_finality")
+        .fetch_one(&f.db.pool().await)
+        .await
+        .unwrap();
+    assert_eq!(count, 2);
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM review_owner_outbox")
+        .fetch_one(&f.db.pool().await)
+        .await
+        .unwrap();
+    assert_eq!(count, 2);
+    sqlx::query("UPDATE users SET role='viewer' WHERE id=$1")
+        .bind(f.actor)
+        .execute(&f.db.pool().await)
+        .await
+        .unwrap();
+    let op: Uuid = sqlx::query_scalar("SELECT operation_id FROM dashboard_operations LIMIT 1")
+        .fetch_one(&f.db.pool().await)
+        .await
+        .unwrap();
+    assert_eq!(
+        dashboard_call(&app, &format!("/api/v1/operations/{op}"), None)
+            .await
+            .0,
+        404
+    );
+    env.peer.abort();
+}

@@ -147,9 +147,17 @@ impl ReadQuery {
 /// Runtime is created once per human router and shared by its clones. A
 /// dedicated two-connection pool cannot exhaust execution-control connections.
 pub fn routes(state: AppState) -> Router<AppState> {
+    routes_with_reviews(state, None)
+}
+pub(crate) fn routes_with_reviews(
+    state: AppState,
+    reviews: Option<Arc<crate::reviews::Service>>,
+) -> Router<AppState> {
     let runtime = Arc::new(Runtime::new(&state));
     Router::new()
-        .merge(actions::routes(Arc::new(actions::Registry::default())))
+        .merge(actions::routes(Arc::new(actions::existing::registry(
+            &state, reviews,
+        ))))
         .route("/api/v1/bootstrap", get(bootstrap))
         .route("/api/v1/overview", get(overview))
         .route("/api/v1/sessions", get(sessions))

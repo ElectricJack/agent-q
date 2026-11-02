@@ -40,11 +40,21 @@ pub(super) async fn lookup_for_authorization(
     pool: &PgPool,
     principal: Uuid,
     id: Uuid,
-) -> Result<Lookup, ApiError> {
+) -> Result<Option<Lookup>, ApiError> {
     let mut tx = transaction(pool).await?;
-    let row = sqlx::query("SELECT kind,scope,response FROM dashboard_operations WHERE operation_id=$1 AND principal_id=$2")
-        .bind(id).bind(principal).fetch_optional(&mut *tx).await?.ok_or_else(|| ApiError::for_status(StatusCode::NOT_FOUND))?;
-    Ok(Lookup {
+    let Some(row) = sqlx::query(
+        "SELECT principal_id,kind,scope,response FROM dashboard_operations WHERE operation_id=$1",
+    )
+    .bind(id)
+    .fetch_optional(&mut *tx)
+    .await?
+    else {
+        return Ok(None);
+    };
+    if row.try_get::<Uuid, _>("principal_id")? != principal {
+        return Err(ApiError::for_status(StatusCode::NOT_FOUND));
+    }
+    Ok(Some(Lookup {
         kind: row.try_get("kind")?,
         scope: serde_json::from_value(row.try_get("scope")?)
             .map_err(|_| ApiError::unavailable())?,
@@ -53,7 +63,7 @@ pub(super) async fn lookup_for_authorization(
             .map(serde_json::from_value)
             .transpose()
             .map_err(|_| ApiError::unavailable())?,
-    })
+    }))
 }
 pub(super) fn retired(id: Uuid) -> ApiError {
     ApiError::new(

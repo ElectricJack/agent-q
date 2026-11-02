@@ -1,5 +1,6 @@
 //! Owner-authorized read projection. Graph service credentials never leave AQ.
 mod commands;
+pub(crate) use commands::action::TaskCreate;
 mod cursor;
 mod overview;
 use super::{Runtime, contract};
@@ -42,7 +43,7 @@ pub struct ReadRuntime {
     cursors: cursor::Codec,
 }
 impl ReadRuntime {
-    fn new(state: &AppState) -> Self {
+    pub(crate) fn new(state: &AppState) -> Self {
         Self {
             pool: PgPoolOptions::new()
                 .max_connections(2)
@@ -154,6 +155,12 @@ async fn owner(r: &ReadRuntime, actor: &User) -> Result<()> {
         return Err(conflict());
     }
     Ok(())
+}
+pub(crate) async fn authorize_project(state: &AppState, actor: &User, project: Uuid) -> Result<()> {
+    let runtime = ReadRuntime::new(state);
+    access(state, &runtime, actor.clone(), project)
+        .await
+        .map(|_| ())
 }
 async fn access(state: &AppState, r: &ReadRuntime, actor: User, project: Uuid) -> Result<Access> {
     if project.is_nil() {

@@ -14,6 +14,7 @@ use serde_json::json;
 use sqlx::{Postgres, Row, Transaction};
 use std::sync::Arc;
 use uuid::Uuid;
+pub(crate) mod action;
 pub mod combined;
 mod combined_http;
 mod inbox;
@@ -1000,7 +1001,47 @@ async fn resolve_http(
     if id != answer.decision_id {
         return Err(invalid());
     }
-    Ok(axum::Json(service.resolve(actor.id, &answer).await?))
+    answer.validate().map_err(|_| invalid())?;
+    let pin =
+        crate::profiled_execution::settlement::actor::ActorPin::observe(&service.state, &actor)
+            .await?;
+    let view = service
+        .inspect_subject(actor.id, id, SubjectProfile::Code, Some(&pin))
+        .await?;
+    let subject = serde_json::from_value(view["request"]["subject"].clone())
+        .map_err(|_| AppError::Internal)?;
+    let payload = action::Resolve::from_answer(answer, subject);
+    let mut registry = crate::dashboard_api::actions::Registry::default();
+    registry
+        .register(action::ResolveDecision(Some(service.clone())))
+        .map_err(crate::dashboard_api::actions::existing::legacy_error)?;
+    let operation = crate::dashboard_api::actions::submit_legacy(
+        &service.state,
+        &registry,
+        &actor,
+        payload.request(),
+    )
+    .await
+    .map_err(crate::dashboard_api::actions::existing::legacy_error)?;
+    if operation.disposition == crate::dashboard_api::actions::Disposition::Conflict {
+        return Err(conflict());
+    }
+    let view = service
+        .inspect_subject(actor.id, id, SubjectProfile::Code, Some(&pin))
+        .await?;
+    let receipt: DecisionReceipt =
+        serde_json::from_value(view["receipt"].clone()).map_err(|_| {
+            if operation.disposition == crate::dashboard_api::actions::Disposition::Conflict {
+                conflict()
+            } else {
+                AppError::IdentityUnavailable("decision operation is unresolved".into())
+            }
+        })?;
+    if !matches!(receipt.finality,DecisionFinality::HumanAnswer{owner_user_id,operation_id,..} if owner_user_id==actor.id && operation_id==operation.operation_id)
+    {
+        return Err(conflict());
+    }
+    Ok(axum::Json(receipt))
 }
 async fn cancel_http(
     crate::authz::RequireOwner(actor): crate::authz::RequireOwner,

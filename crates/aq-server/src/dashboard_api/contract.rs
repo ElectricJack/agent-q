@@ -109,8 +109,15 @@ pub struct Product {
 #[serde(deny_unknown_fields)]
 pub struct ContractRef {
     pub name: String,
-    pub version: ApiVersion,
+    pub version: ContractVersion,
     pub digest: Digest,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+pub enum ContractVersion {
+    #[serde(rename = "dashboard-read-1")]
+    Read1,
+    #[serde(rename = "dashboard-actions-1")]
+    Actions1,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

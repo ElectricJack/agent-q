@@ -19,6 +19,7 @@ use sqlx::{PgPool, Postgres, Row, Transaction, postgres::PgPoolOptions};
 use std::{sync::Arc, time::Duration};
 use tokio::sync::Semaphore;
 use uuid::Uuid;
+pub(crate) use writes::action::SendMessage;
 type Result<T> = std::result::Result<T, AppError>;
 const CONTRACT: &str = "human-supervisor-conversation-1";
 const MAX_OPERATIONS: i64 = 4096;
@@ -78,12 +79,12 @@ fn runtime() -> Runtime {
         reason: "central_runtime_not_connected".into(),
     }
 }
-struct Service {
+pub(crate) struct Service {
     pool: PgPool,
     gate: Semaphore,
 }
 impl Service {
-    fn new(state: &AppState) -> Self {
+    pub(crate) fn new(state: &AppState) -> Self {
         Self {
             pool: PgPoolOptions::new()
                 .max_connections(2)

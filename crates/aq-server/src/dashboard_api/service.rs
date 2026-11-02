@@ -269,8 +269,8 @@ pub(super) async fn bootstrap(
         ),
         capability(
             "dashboard.actions",
-            false,
-            "Dashboard actions are not connected yet",
+            a.owner,
+            "Dashboard actions require an owner account",
         ),
         capability(
             "results.read",
@@ -318,11 +318,21 @@ pub(super) async fn bootstrap(
             version: env!("CARGO_PKG_VERSION").into(),
             dashboard_digest: digest.map(Digest),
         },
-        contracts: vec![ContractRef {
-            name: "dashboard-read".into(),
-            version: ApiVersion::Read1,
-            digest: Digest(format!("sha256:{}", hex::encode(Sha256::digest(bytes)))),
-        }],
+        contracts: vec![
+            ContractRef {
+                name: "dashboard-read".into(),
+                version: ContractVersion::Read1,
+                digest: Digest(format!("sha256:{}", hex::encode(Sha256::digest(bytes)))),
+            },
+            ContractRef {
+                name: "dashboard-actions".into(),
+                version: ContractVersion::Actions1,
+                digest: Digest(format!(
+                    "sha256:{}",
+                    hex::encode(Sha256::digest(super::actions::contract::schema_bytes()))
+                )),
+            },
+        ],
         capabilities: caps,
         limits: Limits {
             page_size: runtime::PAGE,
@@ -337,8 +347,25 @@ pub(super) async fn bootstrap(
             reason: "The global supervisor is not connected yet".into(),
         },
     };
+    let mut tx = tx(runtime).await?;
+    let mut pending: Vec<Uuid> = if a.owner {
+        sqlx::query_scalar("SELECT operation_id FROM (SELECT operation_id,created_at FROM dashboard_operations WHERE principal_id=$1 AND retired_at IS NULL AND disposition IN ('pending','unknown') UNION ALL SELECT n.operation_id,to_timestamp(n.created_at_ms::double precision/1000) AS created_at FROM human_graph_operations n WHERE n.actor_id=$1 AND n.status->>'state' IN ('pending','unknown') AND NOT EXISTS(SELECT 1 FROM dashboard_operations d WHERE d.operation_id=n.operation_id)) pending ORDER BY created_at,operation_id LIMIT 101")
+            .bind(a.actor).fetch_all(&mut *tx).await.map_err(|_|Error::Unavailable)?
+    } else {
+        vec![]
+    };
+    tx.commit().await.map_err(|_| Error::Unavailable)?;
+    let truncated = pending.len() > 100;
+    pending.truncate(100);
     fence(state, runtime, user, &a).await?;
-    envelope(state, Scope::AllAuthorized, data, None)
+    let mut response = envelope(
+        state,
+        Scope::AllAuthorized,
+        data,
+        truncated.then_some("pending_operations_truncated"),
+    )?;
+    response.pending_operations = pending;
+    Ok(response)
 }
 async fn membership(
     state: &AppState,

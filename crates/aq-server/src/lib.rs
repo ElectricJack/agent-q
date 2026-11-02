@@ -232,7 +232,10 @@ pub fn build_admin_router_with_optional_owners(
             .map(|d| d.service.namespace.owner_user_id),
     };
     let policy_routes = playbooks.map(playbooks::api::routes).unwrap_or_default();
-    let review_routes = reviews.map(reviews::admin_routes).unwrap_or_default();
+    let review_routes = reviews
+        .clone()
+        .map(reviews::admin_routes)
+        .unwrap_or_default();
     let media_routes = media.map(result_media::api::routes).unwrap_or_default();
     let app = Router::new()
         .merge(
@@ -245,7 +248,7 @@ pub fn build_admin_router_with_optional_owners(
         .merge(review_routes)
         .merge(media_routes)
         .merge(admin_api::admin_routes())
-        .merge(dashboard_api::routes(state.clone()))
+        .merge(dashboard_api::routes_with_reviews(state.clone(), reviews))
         .merge(agent_access::human::routes(&state))
         .merge(agent_access::supervisor_conversation::routes(&state))
         .merge(profiled_execution::human_results::routes())

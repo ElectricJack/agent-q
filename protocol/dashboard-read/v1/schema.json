@@ -169,7 +169,7 @@
           "type": "string"
         },
         "version": {
-          "$ref": "#/$defs/ApiVersion"
+          "$ref": "#/$defs/ContractVersion"
         }
       },
       "required": [
@@ -178,6 +178,13 @@
         "digest"
       ],
       "type": "object"
+    },
+    "ContractVersion": {
+      "enum": [
+        "dashboard-read-1",
+        "dashboard-actions-1"
+      ],
+      "type": "string"
     },
     "Controller": {
       "additionalProperties": false,

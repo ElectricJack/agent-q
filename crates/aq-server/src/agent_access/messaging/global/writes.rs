@@ -1,12 +1,17 @@
 use super::*;
-#[derive(Serialize, Deserialize)]
+pub(crate) mod action;
+#[derive(Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(deny_unknown_fields)]
-struct Create {
+pub(crate) struct Create {
     operation_id: Uuid,
     message_id: Uuid,
+    #[schemars(regex(pattern = "^[1-9][0-9]{0,18}$"))]
     expected_conversation_revision: String,
+    #[schemars(length(min = 1, max = 16384))]
     body: String,
+    #[schemars(length(max = 0))]
     context: Vec<Value>,
+    #[schemars(length(max = 0))]
     attachments: Vec<Value>,
 }
 impl Create {
@@ -111,12 +116,45 @@ pub(super) async fn enqueue(
     bytes: Bytes,
 ) -> Result<Response> {
     let request = Create::parse(&bytes)?;
+    let action = action::request(id, &request);
+    let mut registry = crate::dashboard_api::actions::Registry::default();
+    registry
+        .register(action::SendMessage(service.clone()))
+        .map_err(crate::dashboard_api::actions::existing::legacy_error)?;
+    crate::dashboard_api::actions::submit_legacy(&state, &registry, &user, action)
+        .await
+        .map_err(crate::dashboard_api::actions::existing::legacy_error)?;
+    let Json(receipt) = lookup(
+        Extension(service),
+        RequireOwner(user),
+        Path((id, request.operation_id)),
+    )
+    .await
+    .map_err(|error| match error {
+        AppError::NotFound(_) => {
+            AppError::IdentityUnavailable("supervisor enqueue operation is unresolved".into())
+        }
+        other => other,
+    })?;
+    if receipt.request_digest != request.request_digest()? {
+        return Err(conflict());
+    }
+    Ok(receipt.outcome())
+}
+async fn enqueue_domain(
+    state: &AppState,
+    service: &Service,
+    user: &User,
+    id: Uuid,
+    bytes: Bytes,
+) -> Result<Receipt> {
+    let request = Create::parse(&bytes)?;
     if id.is_nil() {
         return Err(invalid());
     }
-    let at = stamp(&state)?;
+    let at = stamp(state)?;
     let mut tx = service.tx().await?;
-    owner(&mut tx, &user).await?;
+    owner(&mut tx, user).await?;
     let conversation = definition(&mut tx, Some(id), true).await?;
     let sender = author(user.id);
     let sender_key = sender_key(&sender).map_err(|_| unavailable())?;
@@ -133,7 +171,7 @@ pub(super) async fn enqueue(
     {
         let receipt = Receipt::decode(old, user.id, id, request.operation_id)?;
         tx.commit().await.map_err(db)?;
-        return Ok(receipt.outcome());
+        return Ok(receipt);
     }
     let reserved = i64::try_from(request.body.len() + 4096).map_err(|_| invalid())?;
     let row=sqlx::query("UPDATE global_supervisor_conversation SET retained_operations=retained_operations+1,retained_bytes=retained_bytes+$1 WHERE singleton AND retained_operations<$2 AND retained_bytes<=$3-$1 RETURNING conversation_id")
@@ -194,7 +232,7 @@ pub(super) async fn enqueue(
     .await
     .map_err(|_| unavailable())?;
     tx.commit().await.map_err(db)?;
-    Ok(result.outcome())
+    Ok(result)
 }
 pub(super) async fn lookup(
     Extension(service): Extension<Arc<Service>>,

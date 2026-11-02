@@ -33,7 +33,7 @@ impl ActionKind for TestAction {
     }
     async fn authorize_lookup(
         &self,
-        _: &AppState,
+        state: &AppState,
         user: &User,
         _: &Scope,
         _: Option<&Operation>,
@@ -41,7 +41,7 @@ impl ActionKind for TestAction {
         if user.role != Role::Owner {
             return Err(ApiError::for_status(StatusCode::FORBIDDEN));
         }
-        Ok(())
+        existing::owner(state, user).await
     }
     async fn execute(&self, _: &AppState, _: &User, _: &ActionRequest, p: Payload) -> Outcome {
         self.0.fetch_add(1, Ordering::SeqCst);
@@ -502,48 +502,74 @@ async fn outer_deadline_after_admission_returns_the_retained_operation() {
     };
     use http_body_util::BodyExt;
     use tower::ServiceExt;
-    let (_db, state, user, registry, count) = setup().await;
-    let request = request("timeout");
-    // Same cancellation semantics as the production admission gate, with a
-    // short deterministic deadline after the adapter has begun its effect.
-    let started = count.clone();
-    let router=routes(registry.clone()).layer(from_fn(move |req:Request<Body>,next:Next| {
+    for revoked in [false, true] {
+        let (_db, state, user, registry, count) = setup().await;
+        let request = request("timeout");
+        // Same cancellation semantics as the production admission gate, with a
+        // short deterministic deadline after the adapter has begun its effect.
+        let started = count.clone();
+        let pool = state.store.pool.clone();
+        let actor = user.id;
+        let router=routes(registry.clone()).layer(from_fn(move |req:Request<Body>,next:Next| {
         let started=started.clone();
+        let pool=pool.clone();
         async move {
             let dispatch=next.run(req);
             tokio::pin!(dispatch);
             tokio::select! {
                 response=&mut dispatch=>response,
-                _=async {while started.load(Ordering::SeqCst)==0 {tokio::task::yield_now().await;}}=>StatusCode::SERVICE_UNAVAILABLE.into_response(),
+                _=async {while started.load(Ordering::SeqCst)==0 {tokio::task::yield_now().await;}}=> {
+                    if revoked { sqlx::query("UPDATE users SET role='viewer' WHERE id=$1").bind(actor).execute(&pool).await.unwrap(); }
+                    StatusCode::SERVICE_UNAVAILABLE.into_response()
+                },
             }
         }
     })).layer(from_fn(super::super::errors::normalize_errors)).with_state(state.clone());
-    let response = router
-        .oneshot(
-            Request::post("/api/v1/actions")
-                .header("x-aq-dev-email", "owner@localhost")
-                .header("content-type", "application/json")
-                .body(Body::from(serde_json::to_vec(&request).unwrap()))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::ACCEPTED);
-    let body: serde_json::Value =
-        serde_json::from_slice(&response.into_body().collect().await.unwrap().to_bytes()).unwrap();
-    assert_eq!(
-        body["data"]["operation_id"],
-        request.operation_id.to_string()
-    );
-    assert_eq!(body["data"]["disposition"], "pending");
-    assert_eq!(
-        submit(&state, &registry, &user, request)
+        let response = router
+            .oneshot(
+                Request::post("/api/v1/actions")
+                    .header("x-aq-dev-email", "owner@localhost")
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&request).unwrap()))
+                    .unwrap(),
+            )
             .await
-            .unwrap()
-            .disposition,
-        Disposition::Pending
-    );
-    assert_eq!(count.load(Ordering::SeqCst), 1);
+            .unwrap();
+        assert_eq!(
+            response.status(),
+            if revoked {
+                StatusCode::SERVICE_UNAVAILABLE
+            } else {
+                StatusCode::ACCEPTED
+            }
+        );
+        let body: serde_json::Value =
+            serde_json::from_slice(&response.into_body().collect().await.unwrap().to_bytes())
+                .unwrap();
+        if revoked {
+            assert!(body.get("data").is_none(), "{body}");
+            assert!(body.get("pending_operations").is_none(), "{body}");
+            sqlx::query("UPDATE users SET role='owner' WHERE id=$1")
+                .bind(actor)
+                .execute(&state.store.pool)
+                .await
+                .unwrap();
+        } else {
+            assert_eq!(
+                body["data"]["operation_id"],
+                request.operation_id.to_string()
+            );
+            assert_eq!(body["data"]["disposition"], "pending");
+        }
+        assert_eq!(
+            submit(&state, &registry, &user, request)
+                .await
+                .unwrap()
+                .disposition,
+            Disposition::Pending
+        );
+        assert_eq!(count.load(Ordering::SeqCst), 1);
+    }
 }
 
 #[tokio::test]

@@ -2,7 +2,229 @@
   "$defs": {
     "ActionRequest": {
       "additionalProperties": false,
-      "not": {},
+      "oneOf": [
+        {
+          "properties": {
+            "kind": {
+              "const": "decision.resolve"
+            },
+            "payload": {
+              "$defs": {
+                "ArtifactRef": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "digest": {
+                      "$ref": "#/$defs/Digest"
+                    },
+                    "id": {
+                      "$ref": "#/$defs/Text"
+                    },
+                    "version": {
+                      "$ref": "#/$defs/Text"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "version",
+                    "digest"
+                  ],
+                  "type": "object"
+                },
+                "Choice": {
+                  "enum": [
+                    "approve",
+                    "reject"
+                  ],
+                  "type": "string"
+                },
+                "Digest": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "Text": {
+                  "description": "Nonempty UTF-8 text, at most 512 bytes; no control characters.",
+                  "maxLength": 512,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "$id": "urn:aq:dashboard-actions:1:decision.resolve:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "choice": {
+                  "$ref": "#/$defs/Choice"
+                },
+                "comment": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "decision_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "expected_decision_revision": {
+                  "format": "uint64",
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "expected_subject": {
+                  "$ref": "#/$defs/ArtifactRef"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "schema_version": {
+                  "format": "uint32",
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "schema_version",
+                "operation_id",
+                "decision_id",
+                "expected_decision_revision",
+                "choice",
+                "expected_subject"
+              ],
+              "title": "Resolve",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "supervisor.message.send"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:supervisor.message.send:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "attachments": {
+                  "items": true,
+                  "maxItems": 0,
+                  "type": "array"
+                },
+                "body": {
+                  "maxLength": 16384,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "context": {
+                  "items": true,
+                  "maxItems": 0,
+                  "type": "array"
+                },
+                "expected_conversation_revision": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "message_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "message_id",
+                "expected_conversation_revision",
+                "body",
+                "context",
+                "attachments"
+              ],
+              "title": "Create",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "task.create"
+            },
+            "payload": {
+              "$defs": {
+                "TaskState": {
+                  "enum": [
+                    "draft",
+                    "active"
+                  ],
+                  "type": "string"
+                }
+              },
+              "$id": "urn:aq:dashboard-actions:1:task.create:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "acceptance_criteria": {
+                  "maxLength": 8192,
+                  "type": "string"
+                },
+                "body": {
+                  "maxLength": 32768,
+                  "type": "string"
+                },
+                "expected_project_revision": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "labels": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 16,
+                  "type": "array"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "task_state": {
+                  "$ref": "#/$defs/TaskState"
+                },
+                "title": {
+                  "maxLength": 512,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "expected_project_revision",
+                "title",
+                "body",
+                "acceptance_criteria",
+                "labels",
+                "task_state"
+              ],
+              "title": "Create",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        }
+      ],
       "properties": {
         "expected_versions": {
           "additionalProperties": {

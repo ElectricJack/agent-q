@@ -29,6 +29,15 @@ pub trait ActionKind: Send + Sync + 'static {
         scope: &Scope,
         operation: Option<&Operation>,
     ) -> Result<(), ApiError>;
+    /// Read retained native evidence without submitting or retrying an effect.
+    async fn reconcile(
+        &self,
+        _state: &AppState,
+        _user: &User,
+        _operation: &Operation,
+    ) -> Result<Option<Outcome>, ApiError> {
+        Ok(None)
+    }
     /// Called only by the successful admitting request. Domain reconciliation
     /// must use the original operation ID; it must never infer failure from IO.
     async fn execute(
@@ -54,6 +63,12 @@ pub(super) trait Adapter: Send + Sync {
         scope: &Scope,
         operation: Option<&Operation>,
     ) -> Result<(), ApiError>;
+    async fn reconcile(
+        &self,
+        state: &AppState,
+        user: &User,
+        operation: &Operation,
+    ) -> Result<Option<Outcome>, ApiError>;
     async fn execute(&self, state: &AppState, user: &User, request: &ActionRequest) -> Outcome;
 }
 struct Typed<T>(T);
@@ -78,6 +93,14 @@ impl<T: ActionKind> Adapter for Typed<T> {
     ) -> Result<(), ApiError> {
         self.0.authorize_lookup(state, user, scope, operation).await
     }
+    async fn reconcile(
+        &self,
+        state: &AppState,
+        user: &User,
+        operation: &Operation,
+    ) -> Result<Option<Outcome>, ApiError> {
+        self.0.reconcile(state, user, operation).await
+    }
     async fn execute(&self, state: &AppState, user: &User, request: &ActionRequest) -> Outcome {
         match serde_json::from_value::<T::Payload>(request.payload.clone()) {
             Ok(payload) => self.0.execute(state, user, request, payload).await,
@@ -96,13 +119,17 @@ impl Registry {
         if !valid_kind(T::KIND) || T::VERSION != 1 || self.adapters.contains_key(T::KIND) {
             return Err(ApiError::invalid());
         }
+        self.register_schema::<T>()?;
+        self.adapters.insert(T::KIND.into(), Arc::new(Typed(kind)));
+        Ok(())
+    }
+    pub(crate) fn register_schema<T: ActionKind>(&mut self) -> Result<(), ApiError> {
         let schema = serde_json::to_value(schemars::schema_for!(T::Payload))
             .map_err(|_| ApiError::invalid())?;
         if schema["type"] != "object" || schema["additionalProperties"] != false {
             return Err(ApiError::invalid());
         }
         self.schemas.insert(T::KIND.into(), schema);
-        self.adapters.insert(T::KIND.into(), Arc::new(Typed(kind)));
         Ok(())
     }
     pub fn schemas(&self) -> &BTreeMap<String, Value> {

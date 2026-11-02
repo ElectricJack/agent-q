@@ -73,9 +73,8 @@
         "version": "1"
       },
       {
-        "enabled": false,
+        "enabled": true,
         "name": "dashboard.actions",
-        "reason": "Dashboard actions are not connected yet",
         "version": "1"
       },
       {
@@ -93,9 +92,14 @@
     ],
     "contracts": [
       {
-        "digest": "sha256:ceac05fc1648faa4ff884530da1c69360270bba3ae1b6073e6880f2f7385a5ba",
         "name": "dashboard-read",
-        "version": "dashboard-read-1"
+        "version": "dashboard-read-1",
+        "digest": "sha256:a913e589689043d743ca8ccbe756f34fb7a2beb0f44d14a3cb089de777ca00fb"
+      },
+      {
+        "name": "dashboard-actions",
+        "version": "dashboard-actions-1",
+        "digest": "sha256:b477d348f4a1f8ff2302d773bfd01eca55f5cd1905da649eeef066561fdb7732"
       }
     ],
     "default_scope": {

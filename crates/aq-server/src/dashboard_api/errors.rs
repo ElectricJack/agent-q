@@ -139,8 +139,8 @@ pub async fn normalize_errors(mut req: Request, next: Next) -> Response {
         req.extensions_mut().insert(receipt.clone());
     }
     let response = next.run(req).await;
-    if (response.status().is_client_error() || response.status().is_server_error())
-        && let Some(retained) = receipt.retained_response()
+    if response.status().is_server_error()
+        && let Some(retained) = receipt.retained_response().await
     {
         return preserve_protocol_headers(&response, retained);
     }

@@ -111,6 +111,9 @@ impl EntityRef {
 }
 impl ActionRequest {
     pub(super) fn validate(&self) -> Result<(), super::ApiError> {
+        self.validate_with_limit(65536)
+    }
+    pub(super) fn validate_with_limit(&self, max_bytes: usize) -> Result<(), super::ApiError> {
         if self.operation_id.is_nil()
             || !super::registry::valid_kind(&self.kind)
             || !self.subject.valid()
@@ -126,7 +129,7 @@ impl ActionRequest {
         if serde_json::to_vec(self)
             .map_err(|_| super::ApiError::invalid())?
             .len()
-            > 65536
+            > max_bytes
         {
             return Err(super::ApiError::for_status(
                 super::StatusCode::PAYLOAD_TOO_LARGE,
@@ -187,7 +190,7 @@ pub fn schema(registry: &super::Registry) -> Value {
 }
 pub fn schema_bytes() -> Vec<u8> {
     let mut bytes =
-        serde_json::to_vec_pretty(&schema(&super::Registry::default())).expect("static schema");
+        serde_json::to_vec_pretty(&schema(&super::existing::schemas())).expect("static schema");
     bytes.push(b'\n');
     bytes
 }
