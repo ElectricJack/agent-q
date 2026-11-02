@@ -1,10 +1,15 @@
 //! Explicit registry-refresh owner; the frozen phase owner remains separate.
 //! Shared files instantiate the same actual I/O/clock/association algorithms on
 //! nominal refresh types. No old DTO is manufactured to invoke old validation.
+// Shared owner files intentionally instantiate distinct nominal protocol types.
+// A module alias would cross the old/new contract boundary instead.
+#![allow(clippy::duplicate_mod)]
 #[path = "accepted_preparation/accept.rs"]
 mod accept;
 #[path = "accepted_refresh/authority.rs"]
 mod authority;
+#[path = "accepted_preparation/history.rs"]
+mod history;
 #[path = "accepted_preparation/policy.rs"]
 pub(super) mod policy;
 #[path = "accepted_preparation/proposal.rs"]
@@ -15,6 +20,9 @@ pub use accept::accept;
 use aq_admission::{ArtifactRef, MaterialLease, preparation_refresh_v1 as phase};
 use aq_selection::AvailabilityObservation;
 pub(crate) use authority::{PreparationAuthority, load_preparing_locked};
+pub(crate) use history::{
+    AcceptedHistory, load_accepted_history_locked, require_live_accepted_locked,
+};
 pub use policy::{PolicyDefinition, policy_for};
 pub use proposal::{ProposalRequest, propose};
 use sqlx::{Postgres, Row, Transaction};
@@ -141,4 +149,16 @@ fn accepted_lease(
         materials: vec![material.clone()],
         registry_at_accept,
     })
+}
+
+/// Existing installed backing remains checkable after retrieval expires. The
+/// caller must independently own a current, still-live original execution grant.
+pub(super) async fn require_installed_material_locked(
+    state: &AppState,
+    auth: &crate::worker_api::AuthenticatedNode,
+    tx: &mut Transaction<'_, Postgres>,
+    history: &AcceptedHistory,
+) -> Result<(), AppError> {
+    authority::current_policy_locked(state, tx, auth, &history.proposal).await?;
+    authority::material_locked(tx, &history.request, &history.receipt).await
 }

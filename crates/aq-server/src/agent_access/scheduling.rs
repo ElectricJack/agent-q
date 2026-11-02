@@ -83,15 +83,6 @@ fn node_revision(node: &Value, workspace: Uuid) -> Result<TaskRevision> {
     Ok(revision)
 }
 impl Runtime {
-    async fn scheduling_get(
-        &self,
-        path: &str,
-        query: &[(String, String)],
-        max_bytes: usize,
-    ) -> Result<(Value, GraphReadStamp, Vec<u8>)> {
-        self.scheduling_get_clock(path, query, max_bytes, &now)
-            .await
-    }
     async fn scheduling_get_clock(
         &self,
         path: &str,
@@ -174,6 +165,35 @@ impl Runtime {
         limit: u16,
         cursor: Option<&str>,
     ) -> Result<ReadyPage> {
+        self.scheduling_ready_clock(workspace, limit, cursor, &now)
+            .await
+    }
+    /// Trusted daemon clock around a genuinely new ready request/body receive,
+    /// parallel to the current-context adapter. No wire-supplied clock or saved
+    /// response can mint an observation through this method.
+    pub(crate) async fn scheduling_ready_current(
+        &self,
+        workspace: Uuid,
+        limit: u16,
+        cursor: Option<&str>,
+        clock: &(dyn Fn() -> chrono::DateTime<chrono::Utc> + Send + Sync),
+    ) -> Result<ReadyPage> {
+        let observed_now = || {
+            u64::try_from(clock().timestamp_millis())
+                .ok()
+                .filter(|n| *n > 0)
+                .ok_or(SchedulingReadError::Unavailable)
+        };
+        self.scheduling_ready_clock(workspace, limit, cursor, &observed_now)
+            .await
+    }
+    async fn scheduling_ready_clock(
+        &self,
+        workspace: Uuid,
+        limit: u16,
+        cursor: Option<&str>,
+        clock: &(dyn Fn() -> Result<u64> + Sync),
+    ) -> Result<ReadyPage> {
         if workspace.is_nil()
             || !(1..=64).contains(&limit)
             || cursor.is_some_and(|c| !bounded_cursor(c))
@@ -185,10 +205,11 @@ impl Runtime {
             query.push(("cursor".into(), cursor.into()));
         }
         let (value, stamp, _bytes) = self
-            .scheduling_get(
+            .scheduling_get_clock(
                 &format!("/v1/workspaces/{workspace}/ready"),
                 &query,
                 1_048_576,
+                clock,
             )
             .await?;
         if !contract::upstream_valid("NodePage", &value) {

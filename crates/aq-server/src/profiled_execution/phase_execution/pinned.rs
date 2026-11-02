@@ -1,19 +1,16 @@
 //! Bounded immutable input owner for a fresh phase execution confirmation.
+use super::accepted_owner::{self, AcceptedHistory};
+use super::phase::PrepareRequest;
 use super::*;
 use crate::{
     execution::{
         authority::{self, Policy, hot::HotState},
         profiled::Status,
     },
-    profiled_execution::{
-        accepted_preparation::{self, AcceptedHistory},
-        artifacts, registration, source_exports,
-    },
+    profiled_execution::{artifacts, registration, source_exports},
     worker_api::AuthenticatedNode,
 };
-use aq_admission::{
-    Text, control::Versions, preparation_v2::PrepareRequest, transport::ArtifactReceipt,
-};
+use aq_admission::{Text, control::Versions, transport::ArtifactReceipt};
 use sqlx::Row;
 use uuid::Uuid;
 pub(super) struct Pinned {
@@ -26,12 +23,37 @@ pub(super) struct Pinned {
     pub registration_id: Uuid,
     pub qualification: ArtifactRef,
     pub issuance_ceiling: u64,
+    pub registry_at_load: super::RegistrySnapshot,
 }
 pub(super) async fn load_locked(
     state: &AppState,
     tx: &mut Transaction<'_, Postgres>,
     auth: &AuthenticatedNode,
     q: &PrepareRequest,
+) -> Result<Pinned, AppError> {
+    Box::pin(load_for_locked(state, tx, auth, q, None)).await
+}
+
+/// Only the actual immutable issued-history owner supplies this receipt. This
+/// mode verifies existing execution authority without reviving preparation or
+/// private retrieval permission after either original preparation expiry.
+#[allow(dead_code)] // Frozen profile deliberately has no current-replay preflight.
+pub(super) async fn load_replay_locked(
+    state: &AppState,
+    tx: &mut Transaction<'_, Postgres>,
+    auth: &AuthenticatedNode,
+    q: &PrepareRequest,
+    issued: &history::PhaseExecutionHistory,
+) -> Result<Pinned, AppError> {
+    Box::pin(load_for_locked(state, tx, auth, q, Some(issued))).await
+}
+
+async fn load_for_locked(
+    state: &AppState,
+    tx: &mut Transaction<'_, Postgres>,
+    auth: &AuthenticatedNode,
+    q: &PrepareRequest,
+    issued: Option<&history::PhaseExecutionHistory>,
 ) -> Result<Pinned, AppError> {
     use aq_session_protocol::Validate;
     q.original.binding.validate().map_err(|_| refused())?;
@@ -41,10 +63,23 @@ pub(super) async fn load_locked(
         return Err(refused());
     }
     crate::worker_api::lock_current_node(tx, auth).await?;
-    let h = accepted_preparation::load_accepted_history_locked(tx, &q.original.binding).await?;
+    let h = accepted_owner::load_accepted_history_locked(tx, &q.original.binding).await?;
     q.validate_for(&h.receipt, &h.request, &h.proposal)
         .map_err(|_| refused())?;
-    accepted_preparation::require_live_accepted_locked(state, tx, auth, &h).await?;
+    if let Some(issued) = issued {
+        if !same(&issued.request, q)?
+            || !same(&issued.accepted.receipt, &h.receipt)?
+            || !same(&issued.accepted.request, &h.request)?
+            || !same(&issued.accepted.proposal, &h.proposal)?
+        {
+            return Err(refused());
+        }
+        // This validates the same actual current material row and policy. No
+        // lease bytes, expiry, operation or installation receipt are rewritten.
+        accepted_owner::require_installed_material_locked(state, auth, tx, &h).await?;
+    } else {
+        accepted_owner::require_live_accepted_locked(state, tx, auth, &h).await?;
+    }
     let runtime =
         registration::current_runtime_locked(state, tx, auth.id(), q.original.identity.boot_id)
             .await?;
@@ -65,8 +100,11 @@ pub(super) async fn load_locked(
         .await?;
     super::super::closure::ensure_launch_open_locked(tx, &q.original.binding).await?;
     if !view.holds_task
-        || view.status != Status::Preparing
-        || view.grant_id.is_some()
+        || if let Some(issued) = issued {
+            view.status != Status::Granted || view.grant_id != Some(issued.receipt.grant.grant_id)
+        } else {
+            view.status != Status::Preparing || view.grant_id.is_some()
+        }
         || view.cancellation_id.is_some()
         || view.revoked
         || view.stopped
@@ -85,7 +123,22 @@ pub(super) async fn load_locked(
     versions
         .validate_after(&h.receipt.versions)
         .map_err(|_| refused())?;
-    if hot.grant.is_some() || hot.execution_deadline_ms.is_some() {
+    if let Some(issued) = issued {
+        if !same(
+            hot.grant.as_ref().ok_or_else(refused)?,
+            &issued.receipt.grant,
+        )? || hot.execution_deadline_ms != Some(issued.receipt.execution_deadline_ms)
+            || hot.preparation_operation_id != Some(h.request.original.operation_id)
+            || hot.owner.as_ref().is_none_or(|o| {
+                o.guardian_id != q.original.guardian_id
+                    || o.launch_id != q.original.launch_id
+                    || o.reservation_id != q.original.reservation.reservation_id
+            })
+        {
+            return Err(refused());
+        }
+        view.active_at(now(state)?)?;
+    } else if hot.grant.is_some() || hot.execution_deadline_ms.is_some() {
         return Err(refused());
     }
     let offer =
@@ -188,7 +241,14 @@ pub(super) async fn load_locked(
     }
     let mut expected = Vec::new();
     let mut context = None;
-    let mut ceiling = h.receipt.lease.expires_at_ms.min(material.expires_at_ms);
+    let mut ceiling = match issued {
+        Some(h) => h
+            .receipt
+            .grant
+            .expires_at_ms
+            .min(h.receipt.execution_deadline_ms),
+        None => h.receipt.lease.expires_at_ms.min(material.expires_at_ms),
+    };
     let ids:Vec<Uuid>=sqlx::query_scalar("SELECT artifact_id FROM profiled_launch_artifacts WHERE attempt_id=$1 ORDER BY artifact_id LIMIT 127").bind(q.original.binding.attempt_id).fetch_all(&mut **tx).await.map_err(db)?;
     if ids.len() != offer.offered.artifacts.len() || ids.len() > 126 {
         return Err(refused());
@@ -295,7 +355,9 @@ pub(super) async fn load_locked(
         source,
         material,
     };
+    let registry_at_load = super::registry_at_load(state, tx, &h).await?;
     Ok(Pinned {
+        registry_at_load,
         history: h,
         input,
         policy,

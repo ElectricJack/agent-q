@@ -1,12 +1,8 @@
 //! Facts are constructed only after actual owning adapters and final SQL fences.
 //! DTO association validation is additional validation, not the source of truth.
+use super::phase::{FactBody, FactValue, FreshConfirmation, OwnerFact, PrepareRequest};
 use super::*;
-use aq_admission::{
-    Text,
-    preparation_v2::{
-        self as phase, FactBody, FactValue, FreshConfirmation, OwnerFact, PrepareRequest,
-    },
-};
+use aq_admission::Text;
 use uuid::Uuid;
 fn reference(id: String, digest: Digest) -> Result<ArtifactRef, AppError> {
     Ok(ArtifactRef {
@@ -63,11 +59,7 @@ pub(super) fn confirmation(
             c.registry.version.as_str().parse().map_err(|_| refused())?,
             c.checked_at_ms,
             u64::MAX,
-            FactValue::Registry {
-                registry: c.registry.clone(),
-                credential_profile: p.input.material.credential_profile.clone(),
-                credential_revision: p.input.material.credential_revision,
-            },
+            super::registry_fact(p, c),
         ),
         (
             c.principal

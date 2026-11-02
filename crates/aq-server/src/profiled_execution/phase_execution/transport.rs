@@ -1,10 +1,11 @@
 //! Exact019 phase Prepare transport. No capability or provider is enabled by default.
 use crate::{AppState, error::AppError, worker_api};
-use aq_admission::preparation_v2::{self as wire, Document};
+use aq_admission::preparation_v2 as wire;
 use axum::{
     Json, Router,
     body::to_bytes,
     extract::{Request, State},
+    response::{IntoResponse, Response},
     routing::post,
 };
 use tokio::sync::Semaphore;
@@ -12,7 +13,9 @@ static INGRESS: Semaphore = Semaphore::const_new(2);
 /// Root worker router supplies the General view. Cold admission must not consume
 /// renewal or cleanup connections; the issuer separately bounds actual owners.
 pub fn routes(state: AppState) -> Router<AppState> {
-    if !super::policy::transport_enabled(&state) {
+    if !super::policy::transport_enabled(&state)
+        && !super::super::phase_refresh_execution::policy::transport_enabled(&state)
+    {
         return Router::new();
     }
     Router::new()
@@ -31,7 +34,7 @@ pub fn routes(state: AppState) -> Router<AppState> {
 async fn prepare(
     State(state): State<AppState>,
     request: Request,
-) -> Result<Json<Document>, crate::profiled_execution::control_api::Error> {
+) -> Result<Response, crate::profiled_execution::control_api::Error> {
     let _permit = INGRESS
         .try_acquire()
         .map_err(|_| AppError::Maintenance("phase Prepare ingress full".into()))?;
@@ -45,7 +48,7 @@ async fn prepare(
     })?
     .map_err(Into::into)
 }
-async fn prepare_inner(state: &AppState, request: Request) -> Result<Json<Document>, AppError> {
+async fn prepare_inner(state: &AppState, request: Request) -> Result<Response, AppError> {
     let mut types = request.headers().get_all("content-type").iter();
     if types.next().is_none_or(|v| v != "application/json") || types.next().is_some() {
         return Err(AppError::BadRequest(
@@ -57,13 +60,7 @@ async fn prepare_inner(state: &AppState, request: Request) -> Result<Json<Docume
     let bytes = to_bytes(request.into_body(), wire::MAX_BYTES)
         .await
         .map_err(|_| AppError::PayloadTooLarge("phase Prepare body".into()))?;
-    let Document::Prepare(q) = wire::decode(&bytes)
-        .map_err(|_| AppError::BadRequest("invalid phase Prepare document".into()))?
-    else {
-        return Err(AppError::BadRequest(
-            "phase Prepare document required".into(),
-        ));
-    };
+    let q = super::super::phase_profile::decode_prepare(&bytes)?;
     // An already-open historical profile cannot issue production grants without
     // the separately reserved terminal capacity installed by migration 33.
     let ready: bool = sqlx::query_scalar(
@@ -84,14 +81,35 @@ async fn prepare_inner(state: &AppState, request: Request) -> Result<Json<Docume
             "phase terminal storage is not ready".into(),
         ));
     }
-    let document =
-        Document::ExecutionDelivery(Box::new(super::prepare(state, &auth, &q, nonce).await?));
-    // The issuer has committed; a response-envelope failure is ambiguous to the
-    // caller and must preserve its operation identity for history/retry.
-    document.validate_shape().map_err(|_| {
-        AppError::IdentityUnavailable(
-            "phase Prepare outcome unknown: response envelope unavailable".into(),
-        )
-    })?;
-    Ok(Json(document))
+    macro_rules! respond {
+        ($family:path, $delivery:expr) => {{
+            use $family as family;
+            let document = family::Document::ExecutionDelivery(Box::new($delivery));
+            // An already-committed receipt remains uncertain if its response
+            // cannot be encoded. No new operation/expiry may replace it.
+            document.validate_shape().map_err(|_| {
+                AppError::IdentityUnavailable(
+                    "phase Prepare outcome unknown: response envelope unavailable".into(),
+                )
+            })?;
+            Ok(Json(document).into_response())
+        }};
+    }
+    match q {
+        super::super::phase_profile::PrepareRequest::Frozen(q) => respond!(
+            aq_admission::preparation_v2,
+            super::prepare(state, &auth, &q, nonce).await?
+        ),
+        super::super::phase_profile::PrepareRequest::Refresh(q) => {
+            if !super::super::phase_refresh_execution::policy::transport_enabled(state) {
+                return Err(AppError::Maintenance(
+                    "refresh phase terminal owner is not installed".into(),
+                ));
+            }
+            respond!(
+                aq_admission::preparation_refresh_v1,
+                super::super::phase_refresh_execution::prepare(state, &auth, &q, nonce).await?
+            )
+        }
+    }
 }

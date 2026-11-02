@@ -184,7 +184,7 @@ pub(super) async fn live_locked(
     Ok(())
 }
 
-async fn material_locked(
+pub(super) async fn material_locked(
     tx: &mut Transaction<'_, Postgres>,
     q: &AcceptRequest,
     a: &AcceptedReceipt,

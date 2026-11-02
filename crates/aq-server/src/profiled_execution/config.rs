@@ -86,6 +86,7 @@ impl ProfiledConfig {
         super::accepted_preparation::policy::validate_catalog(self)?;
         super::accepted_refresh::policy::validate_catalog(self)?;
         super::phase_execution::policy::validate_catalog(self)?;
+        super::phase_refresh_execution::policy::validate_catalog(self)?;
         super::phase_terminal::qualification::validate_catalog(self)?;
         super::context_budget::validate_catalog(&self.context_qualifications)
             .map_err(|_| "invalid context qualifications".to_string())?;

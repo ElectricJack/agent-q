@@ -83,6 +83,22 @@ pub(super) fn decode_accept(bytes: &[u8]) -> Result<AcceptRequest, AppError> {
         },
     }
 }
+pub(super) enum PrepareRequest {
+    Frozen(frozen::PrepareRequest),
+    Refresh(refresh::PrepareRequest),
+}
+pub(super) fn decode_prepare(bytes: &[u8]) -> Result<PrepareRequest, AppError> {
+    match Profile::from_document(bytes)? {
+        Profile::Frozen => match frozen::decode(bytes).map_err(|_| malformed())? {
+            frozen::Document::Prepare(value) => Ok(PrepareRequest::Frozen(*value)),
+            _ => Err(malformed()),
+        },
+        Profile::Refresh => match refresh::decode(bytes).map_err(|_| malformed())? {
+            refresh::Document::Prepare(value) => Ok(PrepareRequest::Refresh(*value)),
+            _ => Err(malformed()),
+        },
+    }
+}
 
 pub(super) async fn for_attempt_locked(
     tx: &mut Transaction<'_, Postgres>,

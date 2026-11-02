@@ -1,36 +1,13 @@
 //! Immutable phase execution issuance; this is not a live permission wrapper.
+pub(super) use super::Provenance;
+use super::accepted_owner::{self, AcceptedHistory};
+use super::phase::{ExecutionReceipt, PrepareRequest};
 use super::*;
-use crate::profiled_execution::{
-    accepted_preparation::{self, AcceptedHistory},
-    initial_grant,
-};
-use aq_admission::{
-    LaunchBinding, MaterialReceipt,
-    preparation_v2::{ExecutionReceipt, PrepareRequest},
-};
-use aq_selection::AvailabilityObservation;
-use serde::{Deserialize, Serialize};
+use crate::profiled_execution::initial_grant;
+use aq_admission::{LaunchBinding, MaterialReceipt};
+use serde::Serialize;
 use sqlx::Row;
 use uuid::Uuid;
-#[derive(Clone, Serialize, Deserialize)]
-#[serde(deny_unknown_fields)]
-pub(crate) struct Provenance {
-    pub schema_version: u32,
-    pub qualification: ArtifactRef,
-    pub registration_id: Uuid,
-    pub project: crate::project_bindings::domain::FrozenProjectBinding,
-    pub health: crate::profiled_execution::renewal::HealthEvidence,
-    pub graph: crate::profiled_execution::native_offer::observation::ReadProvenance,
-    pub retention: crate::source_retention::profiled_base::RetentionObservation,
-    pub inventory_request_digest: Digest,
-    pub inventory_receipt_digest: Digest,
-    pub inventory_compatibility_epoch: u64,
-    pub availability: Vec<AvailabilityObservation>,
-    pub private_digest: Digest,
-    pub private_bytes: u64,
-    pub private_started_at_ms: u64,
-    pub private_received_at_ms: u64,
-}
 pub(crate) struct PhaseExecutionHistory {
     pub accepted: AcceptedHistory,
     pub request: PrepareRequest,
@@ -94,7 +71,7 @@ pub(crate) async fn load_optional_locked(
         &row.get::<String, _>("provenance_digest"),
     )?;
     let receipt_digest = receipt.digest().map_err(|_| refused())?;
-    let accepted = accepted_preparation::load_accepted_history_locked(tx, binding).await?;
+    let accepted = accepted_owner::load_accepted_history_locked(tx, binding).await?;
     receipt
         .validate_for(
             &request,
@@ -127,6 +104,7 @@ pub(crate) async fn load_optional_locked(
     {
         return Err(refused());
     }
+    super::validate_provenance_profile(&provenance, &receipt, &accepted)?;
     let registration =
         super::super::closure::history::load_locked(tx, provenance.registration_id).await?;
     if registration.metadata.request.identity != request.original.identity {

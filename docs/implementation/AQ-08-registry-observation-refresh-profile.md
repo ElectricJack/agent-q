@@ -284,3 +284,25 @@ does not change current.rs, enable an endpoint/profile, issue a real grant or
 claim a successful refreshed static process. Actual server/worker/terminal
 adoption, source facts, rollback/negative races and explicit format-11 ownership
 qualification remain required. No SQL or canonical change was made.
+
+## Current authority when replaying an original execution grant
+
+Response-loss replay under this new profile uses current owner facts without
+rewriting the original issue facts. Its registry floor is the maximum of the
+actual original issuance `current_registry` and the actual current replay
+preflight registry. A same-config canonical revision advance is allowed. The
+final current registry read must be at least that floor; rollback, changed config,
+credential rotation, revoked principal/node/policy, negative health, cooldown,
+aged source observations and expired original execution authority all refuse.
+
+Replay collects bounded Graph/project/retention/private backing observations
+outside SQL transactions, then performs the final actual locked owner fences.
+It holds one shared request-capacity permit throughout. The final commit wait
+also consumes freshness and original grant limits before delivery. These checks
+are not a new issue operation: original request/receipt bytes, four Registry
+issue refs, issue provenance, digests, grant ID, budget origin, expiry and hard
+execution deadline are unchanged. The response's delivery nonce/server sample
+may change with the exact original expiry; remaining client authority can only
+shrink. An expired private retrieval lease is not revived by checking the backing
+of an independently still-live original grant. Frozen 0.1.9 replay retains its
+original exact-registry semantics.
