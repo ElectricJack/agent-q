@@ -806,6 +806,24 @@ async fn execute_case(
         {
             let _ = private(&root.join("refused-journal.json"), &bytes, 0o600);
         }
+        // Retain bounded private observations before the PID/mount view closes.
+        // These bytes support offline fixture assertions, never live authority.
+        let requests = peer.requests.lock().unwrap().clone();
+        if let Ok(bytes) = serde_json::to_vec(&requests) {
+            let _ = private(&root.join("refused-provider-requests.json"), &bytes, 0o600);
+        }
+        if let Ok(state) = journal(&transferred.state, actual.env.node)
+            && let Some(attempt) = state["attempts"]
+                .as_object()
+                .and_then(|a| a.values().next())
+            && let Some(path) = attempt["result"]["scope"]["workspace"]["path"].as_str()
+            && let Ok(relative) = Path::new(path).strip_prefix(STATE)
+            && let Ok(bytes) = transferred
+                .state
+                .read(&relative.join("gate04-proof.txt"), 128)
+        {
+            let _ = private(&root.join("refused-proof-bytes"), &bytes, 0o600);
+        }
         let metadata = diagnostics(&transferred, actual.env.node, &observed);
         eprintln!("GATE04_DIAGNOSTICS {metadata}");
         let _ = private(

@@ -1,0 +1,10 @@
+{
+  "inspect_top_level_workspace_id_present": false,
+  "inspect_top_level_generation_present": false,
+  "nested_workspace_present": true,
+  "nested_identity_matches_retained": true,
+  "nested_generation_matches_retained": true,
+  "inspect_head_present": true,
+  "capture_operation_count": 0,
+  "source_retention_unknown": true
+}
