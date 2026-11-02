@@ -4,6 +4,17 @@ Priority decision, 2026-11-01: complete GATE-04 before extending suspend/wake,
 additional harnesses or unrelated dashboard features. Existing independent work
 and evidence remain retained; this changes delivery order, not acceptance rules.
 
+The first complete isolated normal path passed in **60.10 seconds** at composed
+source `5d33c3a`: actual pinned Codex in tmux, source edit, physical stop/ECHILD,
+paired lifecycle acknowledgments, central source custody, B1, protected combined
+fixture review and confirmed real Graph completion at the original task CAS.
+Actual outbound Watch delivery and five acknowledged uploads produced seventeen
+gapless frames / 4345 bytes through the authorized tail. See the
+[complete scoped record](evidence/gate04-codex-5d33c3a/README.md).
+This uses a finite local Responses peer and simulated fixture Owner approval.
+Lost-reply recovery, stopped-worker data retirement and remaining refusal cases
+keep GATE-04 open; this is not external-provider or real-human qualification.
+
 ## One acceptance scenario
 
 An authorized task in a real aq-graph project is selected with its exact profile,
@@ -62,7 +73,9 @@ state must retain their existing refusal/hold behavior.
    terminal assertion would qualify the production connection. The retained
    actual-case evidence is source `f9a45c3`, directory
    `docs/implementation/evidence/gate04-codex-e9fa108/` in the isolated composed
-   fixture branch; its test uses worker source `cbd1d6b`.
+   fixture branch; its test uses worker source `cbd1d6b`. The ninth case with the
+   qualified output-poll join passed that terminal assertion and continued
+   through B2/C. Both the earlier negative and the positive record are integrated.
 5. **Review, settlement and Graph completion.** Finish AQ-10 B2/C using the pinned
    outcome policy, actual decision/check owners, source-retention observation and
    AQ-07 expected-version mutation owner. Record the actual Graph receipt before
@@ -70,8 +83,10 @@ state must retain their existing refusal/hold behavior.
    and domain completion distinct. The internal state39 owner and counted-startup
    integration passed 32 focused cases plus strict checks, including legacy review
    compatibility and a populated archive38→39 preservation proof. Settlement
-   component tests use labelled synthetic launch/source/Graph peers; the actual
-   Graph completion and real human decision remain end-to-end requirements.
+   component tests use labelled synthetic launch/source/Graph peers. The ninth
+   composed case now confirms completion against real Graph with one dispatch
+   and task version/content revision `1→2`. Its protected Owner decision is
+   explicitly simulated; a real human decision remains a separate qualification.
 
 The production join adds output-only terminal polling. Keep
 the existing full terminal poll and its controller-count interpretation unchanged.
@@ -84,9 +99,10 @@ strict checks; see the [server evidence](evidence/terminal-output-poll-5f21f79/R
 Worker `0.5.1` / bridge `0.1.3` passed fourteen relay cases, five HTTP regressions
 and strict checks, with a newly pinned binary; see aq-worker's
 `docs/implementation/evidence/output-only-poll-f33d8ec/manifest.json`. These source
-changes are integrated; the next composed offer must use their new pins. The
-actual review-to-Graph completion, lost-reply recovery and retained-source
-survival requirements below remain open.
+changes are integrated, and the ninth composed offer used their new pins and
+passed the exact Watch/acknowledged-tail assertions. Normal review-to-Graph
+completion is now qualified within the stated fixture scope. Lost-reply recovery
+and retained-source survival requirements below remain open.
 The [composed recovery case plan](GATE-04-recovery-case-plan.md) identifies the
 existing replay and real-owner fault hooks, with their current coverage limits.
 
