@@ -207,6 +207,7 @@ impl Synthetic {
         let review = VerifiedReviewEvidence {
             subject,
             receipt: pin("synthetic-code-review", b"approve"),
+            combined_subject: None,
             approved: true,
         };
         let aq = AqEffectsSnapshot::synthetic(&result, LedgerDisposition::Settled);
@@ -220,6 +221,7 @@ impl Synthetic {
                 "synthetic-separate-external-disposition",
                 b"scoped human reconciliation",
             ),
+            combined_subject: None,
         };
         let current = CurrentApplicability {
             report: result.receipt_artifact.clone(),
@@ -251,6 +253,23 @@ impl Synthetic {
             .unwrap()
             .reason
     }
+}
+
+#[test]
+fn synthetic_combined_decision_requires_new_exact_subject_and_two_matching_views() {
+    let mut f = Synthetic::new();
+    f.external.receipt = f.review.receipt.clone();
+    assert_eq!(f.reason(), Some(Reason::ExternalDispositionMismatch));
+    let combined = pin(
+        "synthetic-explicit-code-and-effects-subject",
+        b"full code/source/ledger/external scope",
+    );
+    f.review.combined_subject = Some(combined.clone());
+    assert_eq!(f.reason(), Some(Reason::ExternalDispositionMismatch));
+    f.external.combined_subject = Some(combined);
+    assert_eq!(f.reason(), None);
+    f.external.combined_subject = Some(pin("different-combined-subject", b"changed effect scope"));
+    assert_eq!(f.reason(), Some(Reason::ExternalDispositionMismatch));
 }
 #[test]
 fn synthetic_pure_plan_requires_every_independent_owner_product() {

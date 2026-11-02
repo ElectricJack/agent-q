@@ -87,6 +87,9 @@ impl PilotPolicy {
 pub struct VerifiedReviewEvidence {
     subject: aq_review_protocol::ReviewSubject,
     receipt: ArtifactRef,
+    // Only a future actual combined-subject owner can populate this. Existing
+    // code_review_v1 reads ALWAYS leave it absent.
+    combined_subject: Option<ArtifactRef>,
     approved: bool,
 }
 impl VerifiedReviewEvidence {
@@ -136,6 +139,7 @@ impl VerifiedReviewEvidence {
         Ok(Self {
             subject,
             receipt,
+            combined_subject: None,
             approved,
         })
     }
@@ -151,6 +155,7 @@ pub struct VerifiedEffectDisposition {
     ledger: Digest,
     policy: ArtifactRef,
     receipt: ArtifactRef,
+    combined_subject: Option<ArtifactRef>,
 }
 /// No positive production constructor exists until the current Graph/project/
 /// input owner joins are implemented. A caller bool or historical DTO is not an
@@ -314,7 +319,7 @@ pub fn evaluate_pilot(
         || external.source != source_digest(source)?
         || external.ledger != *aq.digest()
         || external.policy != policy.artifact
-        || external.receipt == review.receipt
+        || !decision_views_match(review, external)
     {
         return plan(
             Disposition::NeedsReconciliation,
@@ -343,6 +348,21 @@ pub fn evaluate_pilot(
         disposition: Disposition::Eligible,
         reason: None,
     })
+}
+
+fn decision_views_match(
+    review: &VerifiedReviewEvidence,
+    effects: &VerifiedEffectDisposition,
+) -> bool {
+    match (&review.combined_subject, &effects.combined_subject) {
+        // Qualified machine-derived disposition can have a separate actual
+        // owner receipt. Reusing an OLD code-only approval cannot stand in.
+        (None, None) => review.receipt != effects.receipt,
+        // One NEW explicit combined decision may supply two typed views only
+        // when both retain the exact complete combined subject and receipt.
+        (Some(a), Some(b)) => a == b && review.receipt == effects.receipt,
+        _ => false,
+    }
 }
 
 #[cfg(test)]
