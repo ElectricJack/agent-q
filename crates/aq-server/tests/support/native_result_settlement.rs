@@ -34,6 +34,17 @@ pub const PROOF_BYTES: &[u8] = b"AQ native result fixture proof\n";
 pub const PROOF_BLOB: &str = "debd0a369a66d685f9d2eca5a0de7684d47bcecc";
 const CONCLUSION: &str = "Changes: created gate04-proof.txt; Checks: /usr/bin/cmp -s - gate04-proof.txt exit0; Limits: finite local peer, no provider/check/review claim";
 
+fn stage_error(stage: &'static str, error: aq_server::error::AppError) -> anyhow::Error {
+    anyhow::anyhow!(
+        "{stage} refused by actual owner (HTTP {})",
+        error.status().as_u16()
+    )
+}
+fn subject_reference(subject: &CombinedSubject) -> Result<ArtifactRef> {
+    subject
+        .artifact()
+        .map_err(|e| stage_error("combined subject", e))
+}
 fn canonical(v: &impl Serialize) -> Result<Vec<u8>> {
     let mut v = serde_json::to_value(v)?;
     v.sort_all_objects();
@@ -53,11 +64,11 @@ fn exact_keys(v: &Value, keys: &[&str]) -> bool {
     v.as_object()
         .is_some_and(|o| o.len() == keys.len() && keys.iter().all(|k| o.contains_key(*k)))
 }
-async fn current_owner(state: &AppState, id: Uuid) -> Result<User> {
+async fn current_owner(pool: &sqlx::PgPool, id: Uuid) -> Result<User> {
     ensure!(!id.is_nil(), "actual owner identity absent");
     let row = sqlx::query("SELECT id,email,role,issuer,subject FROM users WHERE id=$1")
         .bind(id)
-        .fetch_one(&state.store.pool)
+        .fetch_one(pool)
         .await?;
     ensure!(
         row.get::<String, _>("role") == "owner",
@@ -164,12 +175,13 @@ impl PreparedQuestion {
     /// evaluation or completion is executed by this data-only view.
     pub fn human_handoff(&self) -> Result<Value> {
         Ok(
-            json!({"profile":"actual_fixture_combined_review_handoff_v1","owner_choice":"not_made","question":self.question,"subject":self.subject,"subject_artifact":self.subject.artifact()?,"observations":self.observations,"original_task":self.original_task,"checkpoint":self.checkpoint}),
+            json!({"profile":"actual_fixture_combined_review_handoff_v1","owner_choice":"not_made","question":self.question,"subject":self.subject,"subject_artifact":subject_reference(&self.subject)?,"observations":self.observations,"original_task":self.original_task,"checkpoint":self.checkpoint}),
         )
     }
 }
 
 pub struct B1Request<'a> {
+    pub pool: &'a sqlx::PgPool,
     pub actor: Uuid,
     pub report_id: Uuid,
     pub source_operation: Uuid,
@@ -184,6 +196,7 @@ pub async fn prepare_question(
     observed: Observations<'_>,
 ) -> Result<PreparedQuestion> {
     let B1Request {
+        pool,
         actor,
         report_id,
         source_operation,
@@ -260,10 +273,12 @@ pub async fn prepare_question(
                 )?)),
         "actual tool validation differs from the fixed original claim"
     );
-    let owner = current_owner(state, actor).await?;
-    let mut tx = state.store.pool.begin().await?;
+    let owner = current_owner(pool, actor).await?;
+    let mut tx = pool.begin().await?;
     sqlx::query("SELECT set_config('lock_timeout','500ms',true),set_config('statement_timeout','2000ms',true)").execute(&mut *tx).await?;
-    let record = results::load_locked(state, &mut tx, report_id).await?;
+    let record = results::load_locked(state, &mut tx, report_id)
+        .await
+        .map_err(|e| stage_error("B1 read", e))?;
     ensure!(
         record.is_current_report_head && record.spec.task == *original_task,
         "actual B1 must retain current original task pin"
@@ -282,8 +297,9 @@ pub async fn prepare_question(
         record.report.conclusion.as_str() == CONCLUSION,
         "actual B1 conclusion differs from fixed tool claim"
     );
-    let source =
-        source_retention::load_confirmed_locked(&mut tx, source_operation, &record).await?;
+    let source = source_retention::load_confirmed_locked(&mut tx, source_operation, &record)
+        .await
+        .map_err(|e| stage_error("retained source read", e))?;
     ensure!(
         source.receipt.binding_generation == 1
             && source.receipt.source != source.manifest.source.base,
@@ -339,7 +355,8 @@ pub async fn prepare_question(
     let declaration=ExternalDeclaration{scope:ExternalScope::TrustedNodeSourceAndAqReadsOnly,worktree_attempt_id:record.report.binding.attempt_id,known_effects:vec![ExternalEffect{resource:format!("worktree:{}/{PROOF_PATH}",record.report.binding.attempt_id),disposition:ExternalDisposition::Reconciled,reason:"Actual fixed tool cmp, readonly private file bytes and central retained checkpoint tree agree. This is fixture observation, not an AQ required-check receipt.".into(),evidence:vec![refs.actual_tool_output.clone(),refs.actual_private_file.clone(),refs.actual_retained_tree.clone()]}],reason:"Explicit trusted-node fixture source/file scope plus actual exhaustive AQ ledger; no shell/network-absence inference.".into(),residual_uncertainty:"Finite local provider peer; preparation asserts no human choice, paid model, universal external-effect isolation or general check-executor qualification.".into()};
     let prepared =
         Box::pin(reviews.prepare_combined_as(&owner, report_id, source_operation, declaration))
-            .await?;
+            .await
+            .map_err(|e| stage_error("prepare combined review", e))?;
     let subject = prepared.subject().clone();
     ensure!(
         subject.code.task.task_id == original_task.task_id
@@ -350,14 +367,18 @@ pub async fn prepare_question(
         schema_version: 1,
         operation_id: ids.question_operation,
         decision_id: ids.decision,
-        subject: subject.artifact()?,
+        subject: subject_reference(&subject)?,
         eligible_owners: vec![owner.id],
         eligibility_project_revision: subject.code.original_project_revision,
         review_policy: subject.code.validation_policy.clone(),
         expires_at_ms: ids.question_expires_at_ms,
     };
-    Box::pin(reviews.admit_combined(owner.id, &prepared, &question)).await?;
-    let inspection = Box::pin(reviews.inspect_combined_as(&owner, question.decision_id)).await?;
+    Box::pin(reviews.admit_combined(owner.id, &prepared, &question))
+        .await
+        .map_err(|e| stage_error("admit combined question", e))?;
+    let inspection = Box::pin(reviews.inspect_combined_as(&owner, question.decision_id))
+        .await
+        .map_err(|e| stage_error("inspect exact question", e))?;
     ensure!(
         inspection["request"] == serde_json::to_value(&question)?
             && inspection["subject"] == serde_json::to_value(&subject)?
@@ -401,8 +422,10 @@ pub async fn finish_fixture_choice(
 ) -> Result<FixtureSettlement> {
     let FixtureOwnerDecision::ApproveAfterExactProof = choice;
     let answer=ResolveRequest{schema_version:1,operation_id:prepared.ids.answer_operation,decision_id:prepared.question.decision_id,expected_decision_revision:1,choice:Choice::Approve,comment:Some("SIMULATED FIXTURE OWNER: exact observed fixed cmp/file/B1/retained tree and declared scope only; not real human approval.".into())};
-    let subject = prepared.subject.artifact()?;
-    let answer = Box::pin(reviews.resolve_combined_as(&prepared.owner, &answer, &subject)).await?;
+    let subject = subject_reference(&prepared.subject)?;
+    let answer = Box::pin(reviews.resolve_combined_as(&prepared.owner, &answer, &subject))
+        .await
+        .map_err(|e| stage_error("explicit fixture answer", e))?;
     settle_after_answer(
         state,
         reviews,
@@ -421,11 +444,12 @@ pub async fn settle_recorded_answer(
 ) -> Result<FixtureSettlement> {
     let view =
         Box::pin(reviews.inspect_combined_as(&prepared.owner, prepared.question.decision_id))
-            .await?;
+            .await
+            .map_err(|e| stage_error("inspect recorded answer", e))?;
     let answer: DecisionReceipt = serde_json::from_value(view["receipt"].clone())
         .context("protected Owner answer is not recorded")?;
     ensure!(
-        answer.subject == prepared.subject.artifact()?
+        answer.subject == subject_reference(&prepared.subject)?
             && matches!(
                 answer.finality,
                 aq_review_protocol::DecisionFinality::HumanAnswer {
@@ -451,7 +475,7 @@ async fn settle_after_answer(
     answer: DecisionReceipt,
     owner_choice: &'static str,
 ) -> Result<FixtureSettlement> {
-    let subject = prepared.subject.artifact()?;
+    let subject = subject_reference(&prepared.subject)?;
     let service = settlement::Service::new(state.clone(), reviews.clone());
     let request = settlement::EvaluateRequest {
         schema_version: 1,
@@ -461,7 +485,9 @@ async fn settle_after_answer(
         decision_id: prepared.question.decision_id,
         subject: subject.clone(),
     };
-    let evaluation = Box::pin(service.evaluate(&prepared.owner, &request)).await?;
+    let evaluation = Box::pin(service.evaluate(&prepared.owner, &request))
+        .await
+        .map_err(|e| stage_error("actual eligibility", e))?;
     ensure!(
         evaluation.disposition == EvaluationDisposition::Accepted,
         "actual eligibility refused: {:?} {:?}",
@@ -476,7 +502,8 @@ async fn settle_after_answer(
                 .context("accepted evaluation omitted completion identity")?,
         ),
     )
-    .await?;
+    .await
+    .map_err(|e| stage_error("original completion effect", e))?;
     if let Some(ref receipt) = completion.receipt {
         ensure!(
             completion.state == "confirmed"

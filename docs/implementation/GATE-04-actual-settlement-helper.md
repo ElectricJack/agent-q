@@ -13,7 +13,8 @@ restamp expiry to recover an existing question.
 
 `prepare_question` borrows the actual AppState, neutral reviews Service and held
 central Git test owner. Inputs are the current bound fixture Owner identity,
-actual recorded B1 report/import operation, ORIGINAL task revision, actual finite
+actual recorded B1 report/import operation, borrowed same-Env PostgreSQL pool,
+ORIGINAL task revision, actual finite
 peer validator output and original worker-local binding, and exact bytes read
 with Runner's retained PrivateState owner (openat2 BENEATH/NO_SYMLINKS/NO_XDEV).
 The supplied member name is `gate04-proof.txt`, relative to that actual worktree;
