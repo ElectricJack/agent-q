@@ -1,7 +1,12 @@
 //! Authenticated bounded source transport. Upload completion is never retention.
 //! Only trusted frozen assignment metadata can select a repository. Socket calls
 //! are built here from a finite allowlist; caller JSON is never forwarded.
-use crate::{AppState, admin_api::ApiJson, error::AppError, worker_api::authenticate};
+use crate::{
+    AppState,
+    admin_api::ApiJson,
+    error::AppError,
+    worker_api::{AuthenticatedNode, authenticate_context, lock_current_node},
+};
 use aq_worker_protocol::{
     CentralRetentionReceipt, ObjectId, SourceBinding, TransferManifest, TransferStatus,
     TransferStatusRequest, Validate,
@@ -211,6 +216,16 @@ async fn authority(
             other => other.into(),
         })
 }
+// HTTP-only credential fence. Internal confirmed-owner/admin reads keep their
+// actual UUID authority seam; no request credential becomes persisted authority.
+async fn machine_authority(
+    tx: &mut Transaction<'_, Postgres>,
+    authenticated: &AuthenticatedNode,
+    attempt: Uuid,
+) -> Result<crate::execution::authority::AuthorityView> {
+    lock_current_node(tx, authenticated).await?;
+    authority(tx, authenticated.id(), attempt).await
+}
 fn binding(a: &crate::execution::authority::AuthorityView) -> Result<&SourceBinding> {
     a.source
         .as_ref()
@@ -308,8 +323,8 @@ async fn begin(
     r.identity
         .validate()
         .map_err(|_| bad("invalid node identity"))?;
-    let n = authenticate(&s, &headers).await?;
-    if r.identity.node_id != n.id {
+    let n = authenticate_context(&s, &headers).await?;
+    if r.identity.node_id != n.id() {
         return Err(AppError::Forbidden("node identity mismatch".into()));
     }
     let rt = runtime(&s)?;
@@ -318,10 +333,10 @@ async fn begin(
         .try_acquire()
         .map_err(|_| AppError::Maintenance("source bulk capacity exhausted".into()))?;
     let mut tx = s.store.pool.begin().await.map_err(internal)?;
-    let a = authority(&mut tx, n.id, r.manifest.attempt.attempt_id).await?;
+    let a = machine_authority(&mut tx, &n, r.manifest.attempt.attempt_id).await?;
     check_manifest(&a, &r.manifest)?;
     let payload = digest(&serde_json::to_vec(&r).map_err(internal)?);
-    if let Some(old) = replay(&mut tx, n.id, r.operation_id, &payload).await? {
+    if let Some(old) = replay(&mut tx, n.id(), r.operation_id, &payload).await? {
         return Ok(Json(old));
     }
     // Historical retries retain their response, but a released attempt cannot
@@ -372,14 +387,14 @@ async fn begin(
     // Reserve durable ownership before creating files. Chunk writes lazily create
     // private members, so cancellation cannot leave an unaccounted orphan.
 
-    sqlx::query("INSERT INTO source_transfers(transfer_id,attempt_id,node_id,repository_id,import_operation_id,manifest,artifact_id) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7)").bind(r.manifest.transfer_id).bind(r.manifest.attempt.attempt_id).bind(n.id).bind(r.manifest.source.repository_id).bind(Uuid::new_v4()).bind(serde_json::to_string(&r.manifest).map_err(internal)?).bind(r.manifest.artifact_id).execute(&mut *tx).await.map_err(internal)?;
+    sqlx::query("INSERT INTO source_transfers(transfer_id,attempt_id,node_id,repository_id,import_operation_id,manifest,artifact_id) VALUES($1,$2,$3,$4,$5,$6::jsonb,$7)").bind(r.manifest.transfer_id).bind(r.manifest.attempt.attempt_id).bind(n.id()).bind(r.manifest.source.repository_id).bind(Uuid::new_v4()).bind(serde_json::to_string(&r.manifest).map_err(internal)?).bind(r.manifest.artifact_id).execute(&mut *tx).await.map_err(internal)?;
     let out = TransferStatus {
         transfer_id: r.manifest.transfer_id,
         manifest_offset: 0,
         bundle_offset: 0,
         receipt: None,
     };
-    record(&mut tx, n.id, r.operation_id, &payload, &out).await?;
+    record(&mut tx, n.id(), r.operation_id, &payload, &out).await?;
     tx.commit().await.map_err(internal)?;
     Ok(Json(out))
 }
@@ -390,8 +405,8 @@ async fn status(
 ) -> Result<Json<TransferStatus>> {
     r.validate()
         .map_err(|_| bad("invalid source status request"))?;
-    let n = authenticate(&s, &headers).await?;
-    if n.id != r.identity.node_id {
+    let n = authenticate_context(&s, &headers).await?;
+    if n.id() != r.identity.node_id {
         return Err(AppError::Forbidden("node identity mismatch".into()));
     }
     let mut tx = s.store.pool.begin().await.map_err(internal)?;
@@ -400,13 +415,13 @@ async fn status(
         "SELECT attempt_id FROM source_transfers WHERE transfer_id=$1 AND node_id=$2",
     )
     .bind(r.transfer_id)
-    .bind(n.id)
+    .bind(n.id())
     .fetch_optional(&mut *tx)
     .await
     .map_err(internal)?
     .ok_or_else(|| AppError::NotFound("source transfer not found".into()))?;
-    let a = authority(&mut tx, n.id, attempt).await?;
-    let t = transfer(&mut tx, n.id, r.transfer_id).await?;
+    let a = machine_authority(&mut tx, &n, attempt).await?;
+    let t = transfer(&mut tx, n.id(), r.transfer_id).await?;
     check_manifest(&a, &t.manifest)?;
     Ok(Json(response(r.transfer_id, &t)))
 }
@@ -424,7 +439,7 @@ async fn chunk(
     Query(q): Query<ChunkQuery>,
     bytes: Bytes,
 ) -> Result<Json<TransferStatus>> {
-    let n = authenticate(&s, &headers).await?;
+    let n = authenticate_context(&s, &headers).await?;
     let rt = runtime(&s)?;
     let _bulk = rt
         .bulk
@@ -439,17 +454,17 @@ async fn chunk(
         "SELECT attempt_id FROM source_transfers WHERE transfer_id=$1 AND node_id=$2",
     )
     .bind(id)
-    .bind(n.id)
+    .bind(n.id())
     .fetch_optional(&mut *tx)
     .await
     .map_err(internal)?
     .ok_or_else(|| AppError::NotFound("source transfer not found".into()))?;
-    let a = authority(&mut tx, n.id, attempt).await?;
-    let mut t = transfer(&mut tx, n.id, id).await?;
+    let a = machine_authority(&mut tx, &n, attempt).await?;
+    let mut t = transfer(&mut tx, n.id(), id).await?;
     check_manifest(&a, &t.manifest)?;
     let payload =
         digest(format!("{id}/{file}/{}/{}/{}", q.offset, bytes.len(), q.digest).as_bytes());
-    if let Some(old) = replay(&mut tx, n.id, q.operation_id, &payload).await? {
+    if let Some(old) = replay(&mut tx, n.id(), q.operation_id, &payload).await? {
         return Ok(Json(old));
     }
     if t.state != "uploading" {
@@ -488,7 +503,7 @@ async fn chunk(
     }
     sqlx::query("UPDATE source_transfers SET manifest_offset=$2,bundle_offset=$3,updated_at=now() WHERE transfer_id=$1").bind(id).bind(t.manifest_offset as i64).bind(t.bundle_offset as i64).execute(&mut *tx).await.map_err(internal)?;
     let out = response(id, &t);
-    record(&mut tx, n.id, q.operation_id, &payload, &out).await?;
+    record(&mut tx, n.id(), q.operation_id, &payload, &out).await?;
     tx.commit().await.map_err(internal)?;
     Ok(Json(out))
 }
@@ -569,8 +584,8 @@ async fn finalize(
 ) -> Result<Json<TransferStatus>> {
     r.validate()
         .map_err(|_| bad("invalid source status request"))?;
-    let n = authenticate(&s, &headers).await?;
-    if n.id != r.identity.node_id {
+    let n = authenticate_context(&s, &headers).await?;
+    if n.id() != r.identity.node_id {
         return Err(AppError::Forbidden("node identity mismatch".into()));
     }
     let rt = runtime(&s)?;
@@ -584,13 +599,13 @@ async fn finalize(
         "SELECT attempt_id FROM source_transfers WHERE transfer_id=$1 AND node_id=$2",
     )
     .bind(r.transfer_id)
-    .bind(n.id)
+    .bind(n.id())
     .fetch_optional(&mut *tx)
     .await
     .map_err(internal)?
     .ok_or_else(|| AppError::NotFound("source transfer not found".into()))?;
-    let a = authority(&mut tx, n.id, attempt).await?;
-    let mut t = transfer(&mut tx, n.id, r.transfer_id).await?;
+    let a = machine_authority(&mut tx, &n, attempt).await?;
+    let mut t = transfer(&mut tx, n.id(), r.transfer_id).await?;
     check_manifest(&a, &t.manifest)?;
     if t.state == "rejected" {
         return Err(conflict("source upload expired"));
@@ -660,6 +675,19 @@ async fn finalize(
         Ok::<_, AppError>((m, canonical_digest))
     }
     .await;
+    // Recheck the same HTTP principal after filesystem waits before either
+    // rejecting transport or admitting its physical import. The UUID-only
+    // trusted owner loader remains reusable by internal readers.
+    let mut import_tx = s.store.pool.begin().await.map_err(internal)?;
+    let a = machine_authority(&mut import_tx, &n, attempt).await?;
+    let latest = transfer(&mut import_tx, n.id(), r.transfer_id).await?;
+    check_manifest(&a, &latest.manifest)?;
+    if latest.receipt.is_some() {
+        return Ok(Json(response(r.transfer_id, &latest)));
+    }
+    if latest.state == "rejected" {
+        return Err(conflict("source transfer rejected"));
+    }
     let (m, canonical_digest) = match validated {
         Ok(v) => v,
         Err(e) => {
@@ -667,9 +695,9 @@ async fn finalize(
                 e,
                 AppError::BadRequest(_) | AppError::Forbidden(_) | AppError::Conflict(_)
             ) {
-                // This CAS cannot reject a transfer another runtime may have
-                // dispatched. Once dispatch intent exists, protect all bytes.
-                let changed=sqlx::query("UPDATE source_transfers SET state='rejected' WHERE transfer_id=$1 AND state='import_pending' AND NOT dispatch_intent AND receipt IS NULL").bind(r.transfer_id).execute(&s.store.pool).await.map_err(internal)?.rows_affected();
+                // Never discard bytes for an uncertain already-dispatched import.
+                let changed=sqlx::query("UPDATE source_transfers SET state='rejected' WHERE transfer_id=$1 AND state='import_pending' AND NOT dispatch_intent AND receipt IS NULL").bind(r.transfer_id).execute(&mut *import_tx).await.map_err(internal)?.rows_affected();
+                import_tx.commit().await.map_err(internal)?;
                 if changed == 1 {
                     discard_transport(&rt, r.transfer_id, t.manifest.artifact_id).await?;
                     sqlx::query("UPDATE source_transfers SET staging_released=TRUE WHERE transfer_id=$1 AND state='rejected' AND NOT dispatch_intent").bind(r.transfer_id).execute(&s.store.pool).await.map_err(internal)?;
@@ -679,17 +707,6 @@ async fn finalize(
         }
     };
     let b = &t.manifest.source;
-    // Serialize finalization after persisting intent; recovery resumes publication.
-    let mut import_tx = s.store.pool.begin().await.map_err(internal)?;
-    let a = authority(&mut import_tx, n.id, attempt).await?;
-    check_manifest(&a, &t.manifest)?;
-    let latest = transfer(&mut import_tx, n.id, r.transfer_id).await?;
-    if latest.receipt.is_some() {
-        return Ok(Json(response(r.transfer_id, &latest)));
-    }
-    if latest.state == "rejected" {
-        return Err(conflict("source transfer rejected"));
-    }
     sqlx::query("UPDATE source_transfers SET dispatch_intent=TRUE WHERE transfer_id=$1")
         .bind(r.transfer_id)
         .execute(&mut *import_tx)
@@ -710,7 +727,13 @@ async fn finalize(
             .map_err(internal)?;
         dir.sync_all().await.map_err(internal)?;
     }
-    let receipt = socket_import(&rt, &t).await?;
+    let imported = socket_import(&rt, &t).await;
+    // A failed/late physical reply cannot bypass the original principal fence.
+    // Already admitted import intent/bytes stay protected for a fresh caller.
+    let mut tx = s.store.pool.begin().await.map_err(internal)?;
+    machine_authority(&mut tx, &n, attempt).await?;
+    transfer(&mut tx, n.id(), r.transfer_id).await?;
+    let receipt = imported?;
     if receipt["repository_id"] != b.repository_id.to_string()
         || receipt["binding_generation"] != b.binding_generation
         || receipt["transfer_id"] != m.transfer_id
@@ -728,10 +751,6 @@ async fn finalize(
             "unverified import receipt; transfer remains pending".into(),
         ));
     }
-    // Reauthenticate and lock after I/O. Revocation during import cannot gain authority.
-    let mut tx = s.store.pool.begin().await.map_err(internal)?;
-    authority(&mut tx, n.id, attempt).await?;
-    transfer(&mut tx, n.id, r.transfer_id).await?;
     t.receipt = Some(CentralRetentionReceipt {
         receipt_id: t.op,
         transfer_id: r.transfer_id,
@@ -966,9 +985,10 @@ async fn base_status(
     headers: HeaderMap,
     RoutePath(id): RoutePath<Uuid>,
 ) -> Result<Json<TransferManifest>> {
-    let n = authenticate(&s, &headers).await?;
+    let n = authenticate_context(&s, &headers).await?;
     let mut tx = s.store.pool.begin().await.map_err(internal)?;
-    Ok(Json(load_base(&mut tx, n.id, id).await?))
+    lock_current_node(&mut tx, &n).await?;
+    Ok(Json(load_base(&mut tx, n.id(), id).await?))
 }
 async fn base_download(
     State(s): State<AppState>,
@@ -976,7 +996,7 @@ async fn base_download(
     RoutePath((id, file)): RoutePath<(Uuid, String)>,
     Query(q): Query<DownloadQuery>,
 ) -> Result<Bytes> {
-    let n = authenticate(&s, &headers).await?;
+    let n = authenticate_context(&s, &headers).await?;
     let rt = runtime(&s)?;
     let _bulk = rt
         .bulk
@@ -986,7 +1006,8 @@ async fn base_download(
         return Err(bad("download chunk limit exceeded"));
     }
     let mut tx = s.store.pool.begin().await.map_err(internal)?;
-    let m = load_base(&mut tx, n.id, id).await?;
+    lock_current_node(&mut tx, &n).await?;
+    let m = load_base(&mut tx, n.id(), id).await?;
     let name = filename(&file)?;
     let limit = if name == "manifest.json" {
         m.manifest_bytes
