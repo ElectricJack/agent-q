@@ -1,0 +1,18 @@
+[
+  {
+    "name": "library",
+    "returncode": 0,
+    "seconds": 26.467
+  },
+  {
+    "name": "refresh_owners",
+    "returncode": 101,
+    "seconds": 53.348
+  },
+  {
+    "name": "refresh_owners-with-disposable-db",
+    "returncode": 0,
+    "seconds": 55.786,
+    "note": "Previous invocation refused before tests: DATABASE_URL absent. This invocation uses existing disposable test admin and serial test owners."
+  }
+]

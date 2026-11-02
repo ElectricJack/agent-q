@@ -1,0 +1,79 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 53.29s
+     Running tests/phase_refresh_execution.rs (/tmp/aq-native-union-target/debug/deps/phase_refresh_execution-cb261e9377f31858)
+
+running 9 tests
+test actual_config_change_and_credential_rotation_deny_original_issue_replay ... FAILED
+test actual_external_read_preserves_monotonic_positive_and_fences_negative_or_rollback ... FAILED
+test newer_negative_and_active_cooldown_deny_exact_old_receipt_replay ... FAILED
+test original_live_grant_replays_after_preparation_retrieval_expiry_without_renewing_it ... FAILED
+test refreshed_positive_before_issue_preserves_actual_four_registry_reads ... FAILED
+test actual_private_backing_change_denies_replay_without_new_receipt ... FAILED
+test unrelated_positive_advance_replays_exact_original_issue_without_extension ... FAILED
+test retired_actual_project_principal_policy_denies_replay_from_old_daemon ... FAILED
+test stale_health_and_expired_original_grant_are_never_revived ... FAILED
+
+failures:
+
+---- actual_config_change_and_credential_rotation_deny_original_issue_replay stdout ----
+
+thread 'actual_config_change_and_credential_rotation_deny_original_issue_replay' (976391) panicked at crates/aq-server/src/test_support.rs:40:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- actual_external_read_preserves_monotonic_positive_and_fences_negative_or_rollback stdout ----
+
+thread 'actual_external_read_preserves_monotonic_positive_and_fences_negative_or_rollback' (976392) panicked at crates/aq-server/src/test_support.rs:40:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+
+---- newer_negative_and_active_cooldown_deny_exact_old_receipt_replay stdout ----
+
+thread 'newer_negative_and_active_cooldown_deny_exact_old_receipt_replay' (976394) panicked at crates/aq-server/src/test_support.rs:40:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+
+---- original_live_grant_replays_after_preparation_retrieval_expiry_without_renewing_it stdout ----
+
+thread 'original_live_grant_replays_after_preparation_retrieval_expiry_without_renewing_it' (976395) panicked at crates/aq-server/src/test_support.rs:40:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+
+---- refreshed_positive_before_issue_preserves_actual_four_registry_reads stdout ----
+
+thread 'refreshed_positive_before_issue_preserves_actual_four_registry_reads' (976396) panicked at crates/aq-server/src/test_support.rs:40:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+
+---- actual_private_backing_change_denies_replay_without_new_receipt stdout ----
+
+thread 'actual_private_backing_change_denies_replay_without_new_receipt' (976393) panicked at crates/aq-server/src/test_support.rs:40:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+
+---- unrelated_positive_advance_replays_exact_original_issue_without_extension stdout ----
+
+thread 'unrelated_positive_advance_replays_exact_original_issue_without_extension' (976399) panicked at crates/aq-server/src/test_support.rs:40:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+
+---- retired_actual_project_principal_policy_denies_replay_from_old_daemon stdout ----
+
+thread 'retired_actual_project_principal_policy_denies_replay_from_old_daemon' (976397) panicked at crates/aq-server/src/test_support.rs:40:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+
+---- stale_health_and_expired_original_grant_are_never_revived stdout ----
+refresh_stale_setup expire_original_grant=false
+
+thread 'stale_health_and_expired_original_grant_are_never_revived' (976398) panicked at crates/aq-server/src/test_support.rs:40:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+
+
+failures:
+    actual_config_change_and_credential_rotation_deny_original_issue_replay
+    actual_external_read_preserves_monotonic_positive_and_fences_negative_or_rollback
+    actual_private_backing_change_denies_replay_without_new_receipt
+    newer_negative_and_active_cooldown_deny_exact_old_receipt_replay
+    original_live_grant_replays_after_preparation_retrieval_expiry_without_renewing_it
+    refreshed_positive_before_issue_preserves_actual_four_registry_reads
+    retired_actual_project_principal_policy_denies_replay_from_old_daemon
+    stale_health_and_expired_original_grant_are_never_revived
+    unrelated_positive_advance_replays_exact_original_issue_without_extension
+
+test result: FAILED. 0 passed; 9 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p aq-server --test phase_refresh_execution`

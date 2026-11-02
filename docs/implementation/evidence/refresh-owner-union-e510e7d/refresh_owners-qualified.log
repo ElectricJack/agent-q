@@ -1,0 +1,29 @@
+    Finished `test` profile [unoptimized] target(s) in 0.18s
+     Running tests/phase_refresh_execution.rs (/tmp/aq-native-union-target/debug/deps/phase_refresh_execution-cb261e9377f31858)
+
+running 9 tests
+test actual_config_change_and_credential_rotation_deny_original_issue_replay ... ok
+test actual_external_read_preserves_monotonic_positive_and_fences_negative_or_rollback ... ok
+test actual_private_backing_change_denies_replay_without_new_receipt ... ok
+test newer_negative_and_active_cooldown_deny_exact_old_receipt_replay ... ok
+test original_live_grant_replays_after_preparation_retrieval_expiry_without_renewing_it ... ok
+test refreshed_positive_before_issue_preserves_actual_four_registry_reads ... ok
+test retired_actual_project_principal_policy_denies_replay_from_old_daemon ... ok
+test stale_health_and_expired_original_grant_are_never_revived ... ok
+test unrelated_positive_advance_replays_exact_original_issue_without_extension ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 37.37s
+
+     Running tests/phase_refresh_terminal.rs (/tmp/aq-native-union-target/debug/deps/phase_refresh_terminal-7bfc0d290a4e578d)
+
+running 7 tests
+test actual_refresh_started_stopped_http_records_exact_new_ack_envelopes_and_retains_task ... ok
+test duplicate_unknown_and_cross_profile_terminal_requests_never_mutate_authority ... ok
+test exact_refresh_prepare_http_uses_actual_current_store_and_its_own_qualification ... ok
+test expired_retired_runtime_still_cleans_up_with_exact_immutable_refresh_ack ... ok
+test new_history_lookup_survives_expiry_without_minting_local_or_delivery_authority ... ok
+test no_started_refresh_closure_revokes_permission_retains_holds_and_replays_exact_ack ... ok
+test refresh_route_activation_cannot_expose_an_actual_frozen_issuer_without_its_terminal_profile ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 18.17s
+

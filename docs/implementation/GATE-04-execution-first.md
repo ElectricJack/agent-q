@@ -27,7 +27,7 @@ state must retain their existing refusal/hold behavior.
    human Watch, outbound node pull, exact typed upload acknowledgment, all seven
    frames/269 bytes through the authorized daemon tail, and actual ECHILD with
    both lifecycle acknowledgments. This is a static program qualification, not a
-   Codex or task-settlement claim. Retain the first attachment failure separately.
+   Codex or task-settlement claim. See the [positive physical record](evidence/refresh-static-output-3146cf4/README.md); retain the first attachment failure separately.
 2. **Production runner profile dispatch.** Reuse the tested typed orchestration
    for explicit Frozen/Refresh configuration, preparation and corresponding
    terminal history. The ordinary runner currently selects only the frozen

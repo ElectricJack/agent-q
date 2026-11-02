@@ -1,0 +1,38 @@
+{
+  "owner_union_source": "e510e7d",
+  "integrated_source_with_static_fixture_and_evidence": "5b2d56e",
+  "checks": [
+    {
+      "name": "library",
+      "returncode": 0,
+      "seconds": 26.467
+    },
+    {
+      "name": "refresh_owners",
+      "returncode": 101,
+      "seconds": 53.348
+    },
+    {
+      "name": "refresh_owners-with-disposable-db",
+      "returncode": 0,
+      "seconds": 55.786,
+      "note": "Previous invocation refused before tests: DATABASE_URL absent. This invocation uses existing disposable test admin and serial test owners."
+    }
+  ],
+  "actual_owner_tests": 16,
+  "physical_static_case": {
+    "source": "1139ced2720b7d869fad258e3f2f5fe1f95a5e5e",
+    "worker_source": "3146cf462093be887864a492f86a0ff5ee0ca97d",
+    "passed": 1,
+    "seconds": 20.62,
+    "frames": 7,
+    "bytes": 269,
+    "proof": "../refresh-static-output-3146cf4/README.md"
+  },
+  "limits": [
+    "No real Codex/provider task execution or result settlement qualified.",
+    "The owner union was checked before later test-fixture/evidence imports; physical fixture was independently compiled, reviewed and run at its recorded source.",
+    "Missing DATABASE_URL invocation refused before fixture database creation; corrected run used existing disposable admin with serial owner tests.",
+    "Canonical binary, configuration and state37 database unchanged."
+  ]
+}

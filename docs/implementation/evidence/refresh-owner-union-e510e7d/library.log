@@ -1,0 +1,5 @@
+    Checking aq-admission v0.1.10 (/tmp/aq-human-actions-union-v2/crates/aq-admission)
+    Checking aq-notifications v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-notifications)
+    Checking aq-phase-terminal-protocol v0.1.1 (/tmp/aq-human-actions-union-v2/crates/aq-phase-terminal-protocol)
+    Checking aq-server v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-server)
+    Finished `dev` profile [unoptimized] target(s) in 26.38s
