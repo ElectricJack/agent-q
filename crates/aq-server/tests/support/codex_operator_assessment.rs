@@ -57,16 +57,150 @@ pub enum Stage<'a> {
     BeforePoll,
     BeforePrepare(&'a phase::PrepareRequest),
 }
-#[derive(Default)]
 pub struct Assessor {
     sequence: u64,
     last: Option<(Uuid, Value)>,
     subject: Option<Value>,
+    images: Vec<SealedImage>,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+struct ImageStamp {
+    dev: u64,
+    inode: u64,
+    bytes: u64,
+    mode: u32,
+    uid: u32,
+    gid: u32,
+    links: u64,
+    modified: (i64, i64),
+    changed: (i64, i64),
+}
+impl From<std::fs::Metadata> for ImageStamp {
+    fn from(m: std::fs::Metadata) -> Self {
+        Self {
+            dev: m.dev(),
+            inode: m.ino(),
+            bytes: m.len(),
+            mode: m.mode(),
+            uid: m.uid(),
+            gid: m.gid(),
+            links: m.nlink(),
+            modified: (m.mtime(), m.mtime_nsec()),
+            changed: (m.ctime(), m.ctime_nsec()),
+        }
+    }
+}
+// Continuity of an already hashed immutable fixture image, not a new hash or
+// protection against a hostile same-UID writer. The unchanged worker factory
+// still verifies its own actual NamedReadonlyEnvironment/mount/image premises.
+struct SealedImage {
+    route: PathBuf,
+    pin: Value,
+    file: std::fs::File,
+    stamp: ImageStamp,
+}
+impl SealedImage {
+    fn seal(image: &LocalImage) -> Result<Self> {
+        let (file, stamp) = rehash(
+            &image.outer,
+            image.guest.bytes,
+            &image.guest.artifact.digest,
+            false,
+        )?;
+        Ok(Self {
+            route: image.outer.clone(),
+            pin: serde_json::to_value(&image.guest)?,
+            file,
+            stamp,
+        })
+    }
+    fn current(&self, image: &LocalImage) -> Result<()> {
+        ensure!(
+            self.route == image.outer && self.pin == serde_json::to_value(&image.guest)?,
+            "sealed image route/pin changed"
+        );
+        let route = file(&self.route, image.guest.bytes, false)?;
+        ensure!(
+            ImageStamp::from(self.file.metadata()?) == self.stamp
+                && ImageStamp::from(route.metadata()?) == self.stamp,
+            "sealed image descriptor/route changed"
+        );
+        Ok(())
+    }
+}
+
+#[derive(Debug, Default, serde::Serialize)]
+struct TemporalClocks {
+    started_at_ms: Option<u64>,
+    checked_at_ms: Option<u64>,
+    server_at_ms: Option<u64>,
+    real_at_ms: Option<u64>,
+    heartbeat_at_ms: Option<u64>,
+    inventory_observed_at_ms: Option<u64>,
+    inventory_expires_at_ms: Option<u64>,
+    binding_observed_at_ms: Option<u64>,
+    binding_expires_at_ms: Option<u64>,
+    receipt_recorded_at_ms: Option<u64>,
+    receipt_expires_at_ms: Option<u64>,
+    preparation_expires_at_ms: Option<u64>,
+    observation_received_at_ms: Option<u64>,
+    observation_expires_at_ms: Option<u64>,
+}
+#[derive(Debug, Clone, Copy)]
+enum TemporalKind {
+    Clock,
+    Heartbeat,
+    AssessmentAge,
+    Inventory,
+    InventoryReceipt,
+    Preparation,
+    Observation,
+}
+impl TemporalKind {
+    fn code(self) -> &'static str {
+        match self {
+            Self::Clock => "freshness_clock",
+            Self::Heartbeat => "freshness_heartbeat",
+            Self::AssessmentAge => "freshness_assessment_age",
+            Self::Inventory => "freshness_inventory",
+            Self::InventoryReceipt => "freshness_inventory_receipt",
+            Self::Preparation => "freshness_preparation",
+            Self::Observation => "freshness_observation",
+        }
+    }
+}
+#[derive(Debug)]
+struct TemporalRefusal {
+    kind: TemporalKind,
+    clocks: TemporalClocks,
+}
+impl std::fmt::Display for TemporalRefusal {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        formatter.write_str(self.kind.code())
+    }
+}
+impl std::error::Error for TemporalRefusal {}
+fn temporal(valid: bool, kind: TemporalKind, clocks: TemporalClocks) -> Result<()> {
+    if valid {
+        Ok(())
+    } else {
+        Err(TemporalRefusal { kind, clocks }.into())
+    }
+}
+/// Numeric fields from a typed clock refusal only; never arbitrary error text.
+pub fn refusal_clocks(error: &anyhow::Error) -> Value {
+    error
+        .downcast_ref::<TemporalRefusal>()
+        .map_or(Value::Null, |failure| json!(failure.clocks))
 }
 
 /// Fixed fixture diagnostics only. Never return paths, material, request bytes
 /// or arbitrary error-chain text to the callback response/log.
 pub fn refusal_code(error: &anyhow::Error) -> &'static str {
+    if let Some(failure) = error.downcast_ref::<TemporalRefusal>() {
+        return failure.kind.code();
+    }
     for cause in error.chain() {
         let code = match cause.to_string().as_str() {
             "actual image revalidation unavailable"
@@ -74,6 +208,9 @@ pub fn refusal_code(error: &anyhow::Error) -> &'static str {
             | "all five actual images required"
             | "exact unique retained guest image"
             | "public definition bytes" => "image_pin",
+            "sealed image route/pin changed"
+            | "sealed image descriptor/route changed"
+            | "sealed image continuity unavailable" => "image_continuity",
             "synthetic material revalidation unavailable"
             | "owned private synthetic material"
             | "single finite-peer material"
@@ -103,6 +240,7 @@ pub fn refusal_code(error: &anyhow::Error) -> &'static str {
             | "new actual owner observation timing/scope" => "freshness",
             "protected owner assessment route refused"
             | "actual scoped provisionable material config"
+            | "actual node revoked"
             | "actual fixture pool/owner operation join"
             | "prior observation operation reply changed"
             | "only the two actual fixture phases may assess" => "owner_scope",
@@ -113,6 +251,91 @@ pub fn refusal_code(error: &anyhow::Error) -> &'static str {
     "assessment_unavailable"
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    fn small_image(root: &Path, name: &str) -> LocalImage {
+        let outer = root.join(name);
+        let bytes = b"explicit small synthetic image, never executed";
+        std::fs::write(&outer, bytes).unwrap();
+        std::fs::set_permissions(&outer, std::fs::Permissions::from_mode(0o600)).unwrap();
+        LocalImage {
+            outer,
+            guest: ProgramPin {
+                path: PathBuf::from("/opt/aq-qualification/synthetic-image"),
+                artifact: aq_admission::ArtifactRef {
+                    id: aq_admission::Text::new("aq.synthetic-image-test").unwrap(),
+                    version: aq_admission::Text::new("1").unwrap(),
+                    digest: Digest::of(bytes),
+                },
+                bytes: bytes.len() as u64,
+            },
+        }
+    }
+    #[test]
+    fn image_seals_require_real_hash_and_original_pin() {
+        let root = tempfile::tempdir().unwrap();
+        let image = small_image(root.path(), "image");
+        let sealed = SealedImage::seal(&image).unwrap();
+        sealed.current(&image).unwrap();
+        let mut changed = LocalImage {
+            outer: image.outer.clone(),
+            guest: image.guest.clone(),
+        };
+        changed.guest.artifact.digest = Digest::of(b"different synthetic bytes");
+        assert!(SealedImage::seal(&changed).is_err());
+        assert!(sealed.current(&changed).is_err());
+    }
+    #[test]
+    fn image_seals_refuse_metadata_change_and_same_bytes_route_replacement() {
+        let root = tempfile::tempdir().unwrap();
+        let image = small_image(root.path(), "image");
+        let sealed = SealedImage::seal(&image).unwrap();
+        std::fs::set_permissions(&image.outer, std::fs::Permissions::from_mode(0o400)).unwrap();
+        assert!(sealed.current(&image).is_err());
+        std::fs::set_permissions(&image.outer, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let sealed = SealedImage::seal(&image).unwrap();
+        let replacement = small_image(root.path(), "replacement");
+        std::fs::rename(&replacement.outer, &image.outer).unwrap();
+        assert!(
+            sealed.current(&image).is_err(),
+            "retained old FD cannot bless replacement route even with identical bytes"
+        );
+    }
+    #[test]
+    fn temporal_refusal_exports_only_static_code_and_numeric_clocks() {
+        let error = temporal(
+            false,
+            TemporalKind::AssessmentAge,
+            TemporalClocks {
+                started_at_ms: Some(10),
+                checked_at_ms: Some(5011),
+                inventory_expires_at_ms: Some(30000),
+                receipt_expires_at_ms: Some(30001),
+                ..Default::default()
+            },
+        )
+        .unwrap_err()
+        .context("unexported arbitrary path or body");
+        assert_eq!(refusal_code(&error), "freshness_assessment_age");
+        let clocks = refusal_clocks(&error);
+        assert_eq!(clocks["started_at_ms"], 10);
+        assert_eq!(clocks["checked_at_ms"], 5011);
+        assert!(
+            clocks
+                .as_object()
+                .unwrap()
+                .values()
+                .all(|value| value.is_null() || value.is_u64())
+        );
+        let other = anyhow::anyhow!("unexported synthetic secret/path/error");
+        assert_eq!(refusal_code(&other), "assessment_unavailable");
+        assert!(refusal_clocks(&other).is_null());
+    }
+}
+
 fn canonical(value: &Value) -> Result<Vec<u8>> {
     let mut value = value.clone();
     value.sort_all_objects();
@@ -121,10 +344,15 @@ fn canonical(value: &Value) -> Result<Vec<u8>> {
 fn current_ms(state: &AppState) -> Result<u64> {
     let now = u64::try_from((state.clock)().timestamp_millis())?;
     let real = u64::try_from(chrono::Utc::now().timestamp_millis())?;
-    ensure!(
+    temporal(
         now.abs_diff(real) <= 1000,
-        "assessment requires actual wall clock"
-    );
+        TemporalKind::Clock,
+        TemporalClocks {
+            server_at_ms: Some(now),
+            real_at_ms: Some(real),
+            ..Default::default()
+        },
+    )?;
     Ok(now)
 }
 fn file(path: &Path, bytes: u64, private: bool) -> Result<std::fs::File> {
@@ -152,9 +380,14 @@ fn file(path: &Path, bytes: u64, private: bool) -> Result<std::fs::File> {
     }
     Ok(file)
 }
-fn rehash(path: &Path, bytes: u64, digest: &Digest, private: bool) -> Result<()> {
+fn rehash(
+    path: &Path,
+    bytes: u64,
+    digest: &Digest,
+    private: bool,
+) -> Result<(std::fs::File, ImageStamp)> {
     let mut file = file(path, bytes, private)?;
-    let before = file.metadata()?;
+    let before = ImageStamp::from(file.metadata()?);
     let mut hash = Sha256::new();
     let mut chunk = zeroize::Zeroizing::new([0u8; 65536]);
     let mut count = 0u64;
@@ -167,20 +400,12 @@ fn rehash(path: &Path, bytes: u64, digest: &Digest, private: bool) -> Result<()>
         ensure!(count <= bytes, "actual file grew");
         hash.update(&chunk[..n]);
     }
-    let after = file.metadata()?;
+    let after = ImageStamp::from(file.metadata()?);
     ensure!(
-        count == bytes
-            && format!("{:x}", hash.finalize()) == digest.as_str()
-            && before.dev() == after.dev()
-            && before.ino() == after.ino()
-            && before.len() == after.len()
-            && before.mtime() == after.mtime()
-            && before.mtime_nsec() == after.mtime_nsec()
-            && before.ctime() == after.ctime()
-            && before.ctime_nsec() == after.ctime_nsec(),
+        count == bytes && format!("{:x}", hash.finalize()) == digest.as_str() && before == after,
         "actual file changed or pin mismatch"
     );
-    Ok(())
+    Ok((file, after))
 }
 fn peer<T>(witness: &PeerWitness<'_, T>) -> Result<()> {
     ensure!(!witness.server.is_finished(), "finite local server exited");
@@ -209,7 +434,7 @@ fn peer<T>(witness: &PeerWitness<'_, T>) -> Result<()> {
     );
     Ok(())
 }
-fn images(prepared: &Prepared, evidence: &LocalEvidence) -> Result<()> {
+fn image_routes(prepared: &Prepared, evidence: &LocalEvidence) -> Result<()> {
     let body = |pin: &aq_admission::ArtifactRef| -> Result<Value> {
         let definition = prepared
             .profiled
@@ -243,12 +468,6 @@ fn images(prepared: &Prepared, evidence: &LocalEvidence) -> Result<()> {
             expected.contains(&&guest) && seen.insert(image.guest.path.clone()),
             "exact unique retained guest image"
         );
-        rehash(
-            &image.outer,
-            image.guest.bytes,
-            &image.guest.artifact.digest,
-            false,
-        )?;
     }
     Ok(())
 }
@@ -310,9 +529,17 @@ fn prepared_inputs(
     let proposal: phase::Proposal =
         serde_json::from_value(attempt["refresh_acceptance"]["proposal"].clone())?;
     request.validate_for(&accepted.receipt, &accept, &proposal)?;
+    temporal(
+        now < accepted.receipt.lease.expires_at_ms,
+        TemporalKind::Preparation,
+        TemporalClocks {
+            checked_at_ms: Some(now),
+            preparation_expires_at_ms: Some(accepted.receipt.lease.expires_at_ms),
+            ..Default::default()
+        },
+    )?;
     ensure!(
         request.original.identity == *identity
-            && now < accepted.receipt.lease.expires_at_ms
             && attempt["refresh_prepared"]["request"] == json!(request)
             && attempt["refresh_prepared"]["request_digest"]
                 == json!(Digest::of(&canonical(&json!(request))?))
@@ -359,7 +586,58 @@ fn prepared_inputs(
     );
     Ok(())
 }
+fn inventory_clocks(
+    started: u64,
+    checked: u64,
+    heartbeat: u64,
+    snapshot: &CapabilitySnapshot,
+    receipt: &InventoryReceipt,
+) -> TemporalClocks {
+    TemporalClocks {
+        started_at_ms: Some(started),
+        checked_at_ms: Some(checked),
+        heartbeat_at_ms: Some(heartbeat),
+        inventory_observed_at_ms: Some(snapshot.observed_at_ms),
+        inventory_expires_at_ms: Some(snapshot.expires_at_ms),
+        binding_observed_at_ms: snapshot
+            .credential_bindings
+            .first()
+            .map(|b| b.observed_at_ms),
+        binding_expires_at_ms: snapshot
+            .credential_bindings
+            .first()
+            .map(|b| b.expires_at_ms),
+        receipt_recorded_at_ms: Some(receipt.recorded_at_ms),
+        receipt_expires_at_ms: Some(receipt.expires_at_ms),
+        ..Default::default()
+    }
+}
 impl Assessor {
+    /// Call BEFORE starting the worker, heartbeat, inventory or admission clock.
+    /// Only actual immutable local image files are retained; no mutable owner
+    /// fact, material, journal, clock or availability observation is cached.
+    pub fn seal_images(prepared: &Prepared, evidence: &LocalEvidence) -> Result<Self> {
+        image_routes(prepared, evidence)?;
+        let images = evidence
+            .images
+            .iter()
+            .map(SealedImage::seal)
+            .collect::<Result<Vec<_>>>()?;
+        Ok(Self {
+            sequence: 0,
+            last: None,
+            subject: None,
+            images,
+        })
+    }
+    fn image_continuity(&self, prepared: &Prepared, evidence: &LocalEvidence) -> Result<()> {
+        image_routes(prepared, evidence)?;
+        ensure!(self.images.len() == 5, "all five actual images required");
+        for (sealed, current) in self.images.iter().zip(&evidence.images) {
+            sealed.current(current)?;
+        }
+        Ok(())
+    }
     /// The caller serializes these two fixture callbacks. No database locks are
     /// held while reading local images or executing the protected owner routes.
     #[allow(clippy::too_many_arguments)] // Explicit borrowed fixture owners, no authority reconstruction.
@@ -381,16 +659,19 @@ impl Assessor {
             ),
             "only the two actual fixture phases may assess"
         );
+        self.image_continuity(prepared, evidence)
+            .context("sealed image continuity unavailable")?;
         let started = current_ms(state)?;
         peer(&witness)?;
-        images(prepared, evidence).context("actual image revalidation unavailable")?;
-        rehash(
-            &evidence.synthetic_key_file,
-            evidence.synthetic_key_bytes,
-            &evidence.synthetic_key_digest,
-            true,
-        )
-        .context("synthetic material revalidation unavailable")?;
+        drop(
+            rehash(
+                &evidence.synthetic_key_file,
+                evidence.synthetic_key_bytes,
+                &evidence.synthetic_key_digest,
+                true,
+            )
+            .context("synthetic material revalidation unavailable")?,
+        );
         for (path, expected) in prepared.files()? {
             ensure!(
                 private.read(&PathBuf::from("config").join(path), 2097152)? == expected.as_bytes(),
@@ -428,10 +709,17 @@ impl Assessor {
                 .timestamp_millis(),
         )?;
         let now = current_ms(state)?;
-        ensure!(
-            !revoked && now >= last && now - last <= 30000,
-            "actual current heartbeat required"
-        );
+        ensure!(!revoked, "actual node revoked");
+        temporal(
+            now >= last && now - last <= 30000,
+            TemporalKind::Heartbeat,
+            TemporalClocks {
+                started_at_ms: Some(started),
+                checked_at_ms: Some(now),
+                heartbeat_at_ms: Some(last),
+                ..Default::default()
+            },
+        )?;
         let execution: Value =
             sqlx::query_scalar("SELECT state FROM execution_nodes WHERE node_id=$1")
                 .bind(node)
@@ -530,19 +818,31 @@ impl Assessor {
                     node_id: node,
                     boot_id: identity.boot_id
                 }
-                && now >= snapshot.observed_at_ms
-                && now < snapshot.expires_at_ms
                 && json!(snapshot.harnesses) == json!([prepared.harness])
                 && snapshot.credential_bindings.len() == 1
                 && snapshot.credential_bindings[0].credential_profile == prepared.credential
                 && snapshot.credential_bindings[0].credential_revision
                     == configured.credential.revision
                 && !snapshot.credential_bindings[0].available
-                && snapshot.credential_bindings[0].preparation.is_some()
-                && now >= snapshot.credential_bindings[0].observed_at_ms
-                && now < snapshot.credential_bindings[0].expires_at_ms,
+                && snapshot.credential_bindings[0].preparation.is_some(),
             "current real global provisionability inventory, not installed presence"
         );
+        temporal(
+            now >= snapshot.observed_at_ms
+                && now < snapshot.expires_at_ms
+                && now >= snapshot.credential_bindings[0].observed_at_ms
+                && now < snapshot.credential_bindings[0].expires_at_ms,
+            TemporalKind::Inventory,
+            TemporalClocks {
+                started_at_ms: Some(started),
+                checked_at_ms: Some(now),
+                inventory_observed_at_ms: Some(snapshot.observed_at_ms),
+                inventory_expires_at_ms: Some(snapshot.expires_at_ms),
+                binding_observed_at_ms: Some(snapshot.credential_bindings[0].observed_at_ms),
+                binding_expires_at_ms: Some(snapshot.credential_bindings[0].expires_at_ms),
+                ..Default::default()
+            },
+        )?;
         let row = sqlx::query("SELECT o.request_bytes,o.receipt_bytes,h.snapshot_digest,h.inventory_revision FROM profiled_inventory_semantic_heads h JOIN profiled_presence_operations o ON o.node_id=h.node_id AND o.operation_id=h.operation_id WHERE h.node_id=$1 AND h.boot_id=$2 AND h.mode='scoped_v1' AND o.kind='inventory_v2'").bind(node).bind(identity.boot_id).fetch_one(pool).await?;
         let inventory: InventoryV2 =
             serde_json::from_slice(&row.get::<Vec<u8>, _>("request_bytes"))?;
@@ -558,11 +858,14 @@ impl Assessor {
                 && row.get::<String, _>("snapshot_digest")
                     == Digest::of(&canonical(&json!(snapshot))?).as_str()
                 && receipt.inventory.snapshot_digest.as_str()
-                    == row.get::<String, _>("snapshot_digest")
-                && now >= receipt.recorded_at_ms
-                && now < receipt.expires_at_ms,
+                    == row.get::<String, _>("snapshot_digest"),
             "exact actual inventory receipt/head/snapshot"
         );
+        temporal(
+            now >= receipt.recorded_at_ms && now < receipt.expires_at_ms,
+            TemporalKind::InventoryReceipt,
+            inventory_clocks(started, now, last, &snapshot, &receipt),
+        )?;
         let scope = ObservationScope {
             credential_revision: configured.credential.revision,
             provider: configured.credential.provider.clone(),
@@ -582,15 +885,27 @@ impl Assessor {
             .checked_add(1)
             .context("assessment sequence overflow")?;
         peer(&witness)?;
+        self.image_continuity(prepared, evidence)
+            .context("sealed image continuity unavailable")?;
         let checked_at = current_ms(state)?;
-        ensure!(
+        temporal(
             checked_at
                 .checked_sub(started)
-                .is_some_and(|elapsed| elapsed < 5000)
-                && checked_at < snapshot.expires_at_ms
-                && checked_at < receipt.expires_at_ms,
-            "local assessment exceeded unchanged freshness age"
-        );
+                .is_some_and(|elapsed| elapsed < 5000),
+            TemporalKind::AssessmentAge,
+            inventory_clocks(started, checked_at, last, &snapshot, &receipt),
+        )?;
+        temporal(
+            checked_at < snapshot.expires_at_ms
+                && checked_at < snapshot.credential_bindings[0].expires_at_ms,
+            TemporalKind::Inventory,
+            inventory_clocks(started, checked_at, last, &snapshot, &receipt),
+        )?;
+        temporal(
+            checked_at < receipt.expires_at_ms,
+            TemporalKind::InventoryReceipt,
+            inventory_clocks(started, checked_at, last, &snapshot, &receipt),
+        )?;
         let observed = human(state, "/api/intelligence/observations", Some(json!({"operation_id":operation,"expected_revision":revision,"sequence":sequence,"scope":scope,"state":"available","ttl_ms":30000,"cooldown_ms":0}))).await?;
         let typed: AvailabilityObservation = serde_json::from_value(observed.clone())?;
         typed.validate()?;
@@ -601,11 +916,25 @@ impl Assessor {
                 && matches!(
                     typed.source,
                     aq_selection::ObservationSource::Operator { .. }
-                )
-                && typed.received_at_ms >= checked_at
-                && typed.expires_at_ms.checked_sub(typed.received_at_ms) == Some(30000),
+                ),
             "new actual owner observation timing/scope"
         );
+        let mut clocks = inventory_clocks(started, checked_at, last, &snapshot, &receipt);
+        clocks.observation_received_at_ms = Some(typed.received_at_ms);
+        clocks.observation_expires_at_ms = Some(typed.expires_at_ms);
+        temporal(
+            typed.received_at_ms >= checked_at
+                && typed.expires_at_ms.checked_sub(typed.received_at_ms) == Some(30000)
+                && typed
+                    .received_at_ms
+                    .checked_sub(started)
+                    .is_some_and(|elapsed| elapsed < 5000)
+                && typed.received_at_ms < snapshot.expires_at_ms
+                && typed.received_at_ms < snapshot.credential_bindings[0].expires_at_ms
+                && typed.received_at_ms < receipt.expires_at_ms,
+            TemporalKind::Observation,
+            clocks,
+        )?;
         // Tie the explicitly borrowed fixture pool to the real protected owner
         // operation. The caller supplies state and pool from the same Env.
         let retained: Value = sqlx::query_scalar(
@@ -634,7 +963,7 @@ impl Assessor {
         self.last = Some((operation, observed.clone()));
         self.subject = Some(subject);
         Ok(
-            json!({"scope":"finite_local_responses_peer_only","observation":observed,"checked_at_ms":checked_at,"journal_digest":journal_digest,"actual_image_count":5,"material_revalidated":true,"native_registration_revalidated":true,"inventory_revalidated":true,"finite_peer_listening":true,"provider_availability_claim":false,"selection_rewritten":false,"ttl_ms":30000,"observation_max_age_ms":5000}),
+            json!({"scope":"finite_local_responses_peer_only","observation":observed,"checked_at_ms":checked_at,"journal_digest":journal_digest,"actual_image_count":5,"image_evidence":"pre_start_hash_and_current_retained_fd_route_continuity","mutable_checked_started_at_ms":started,"material_revalidated":true,"native_registration_revalidated":true,"inventory_revalidated":true,"finite_peer_listening":true,"provider_availability_claim":false,"selection_rewritten":false,"ttl_ms":30000,"observation_max_age_ms":5000}),
         )
     }
 }
