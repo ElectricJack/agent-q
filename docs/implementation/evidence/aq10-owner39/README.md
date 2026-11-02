@@ -2,9 +2,10 @@
 
 Actual source: `824e2cb` plus the narrow post-Git preparation privacy fence
 `bef321f`. Both were independently reviewed. The final same-source combined
-gate is owned by Root and is **pending** in this checkpoint. Earlier passing
-logs are retained with their precise scope in `qualification.json`; they are
-not silently restamped as proof of the last source change.
+gate passed32 focused cases and strict Clippy in Root evidence commit
+`cd64196` ([exact qualification](../execution-union39-0d1cdc8/qualification.json)).
+Earlier passing logs retain their precise scope in `qualification.json`; they
+are not silently restamped as proof of the last source change.
 
 The owner fixtures invoke actual stopped/B1/source/decision/settlement SQL and
 fixed transport ports, with explicitly synthetic launch/host facts, retained
@@ -21,6 +22,9 @@ heap-allocated test futures, without increasing limits. Exactly eight uniquely
 identified inactive disposable39 databases left by the abort were verified and
 dropped individually; the audit records no FORCE or terminated connections.
 
-Root separately owns the populated archive38→39 preservation test. Source
+Root separately qualified the populated archive36→38→39→39 preservation test:116
+old tables,914 old columns,5 sequence states, one actual legacy report and two
+retained PNG receipts remained byte-identical under the defined snapshot.
+No application/media owner ran during that archive migration. Source
 SQL1–38 remains unchanged; no canonical service/database or deployment was
 modified. Public HTTP/dashboard wiring is an independent next boundary.

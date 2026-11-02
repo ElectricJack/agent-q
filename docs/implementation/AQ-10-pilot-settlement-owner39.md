@@ -1,6 +1,6 @@
 # AQ-10 first-pilot settlement owner
 
-Status: authorized internal owner39 source candidate; qualification pending.
+Status: internal owner39 source and bounded component/integration qualification accepted; real execution/human/canonical rollout remain separate gates.
 Main migration39 is allocated to this owner after execution result-origin38.
 The source draft now includes actual combined-review, live applicability, finite
 evaluation/release and dedicated completion ports. No route is mounted, SQL39 is
@@ -228,3 +228,22 @@ ledger/source/mail guard, then rerun38's retained origin predicate. The checked
 golden catalog must come from an explicitly reviewed disposable38→39 export,
 never runtime learning or repair. Production remains closed until this and
 actual positive owner/response-loss/claim-clear tests pass.
+
+## Qualified boundary
+
+Actual owner39 source `824e2cb` plus post-I/O preparation fence `bef321f` passed
+independent source review and Root's composed qualification in `cd64196`:12
+settlement pure/registered-schema cases,10 settlement/inspection/B1 component
+cases, exact old code-review and inbox regressions,4 counted-startup pure and3
+owner cases, and one actual populated archive migration. Strict Clippy passed
+with warnings denied. Source SQL1–38 remained unchanged; the543-object composed
+catalog preserves original38 objects except the intentional qualified-release
+trigger replacement. The prior18 Frozen/Refresh B1 cases also passed under39.
+
+See [scoped evidence](evidence/aq10-owner39/qualification.json) and Root's
+[precise combined scope](evidence/execution-union39-0d1cdc8/qualification.json).
+Test-only large futures were heap allocated; no stack/deadline/TTL limits were
+increased. The simulated fixture answers and synthetic Git/Graph/launch peers
+qualify protected owner joins, not real human or physical/provider execution.
+Actual B1→combined question→real Graph composition, protected HTTP exposure and
+real human choice are independent next boundaries. Canonical state stayed37.
