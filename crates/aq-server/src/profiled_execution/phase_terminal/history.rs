@@ -1,22 +1,19 @@
 //! Authenticated immutable phase identity lookup, including lost first delivery.
 //! A missing row is a projection snapshot, never proof that issuance cannot occur.
+use super::wire::{Context, HistoricalGrantIdentity, HistoryReceipt, HistoryRequest};
+use super::{accepted_owner, phase_owner};
 use crate::{
     AppState,
     error::AppError,
     execution::authority::{self, Kind, Policy},
-    profiled_execution::{accepted_preparation, closure, phase_execution},
+    profiled_execution::closure,
     worker_api::{self, AuthenticatedNode},
 };
 use aq_admission::{SessionIdentity, granted_closure::JournalCheckpoint};
-use aq_phase_terminal_protocol::{
-    Context, HistoricalGrantIdentity, HistoryReceipt, HistoryRequest,
-};
 use sqlx::Row;
 use std::time::Duration;
-use tokio::sync::Semaphore;
 use uuid::Uuid;
 
-static REQUESTS: Semaphore = Semaphore::const_new(2);
 fn conflict() -> AppError {
     AppError::Conflict("phase history identity mismatch".into())
 }
@@ -40,9 +37,7 @@ pub async fn read(
     if node.id() != node_id {
         return Err(AppError::Forbidden("phase history node mismatch".into()));
     }
-    let _permit = REQUESTS
-        .try_acquire()
-        .map_err(|_| AppError::Maintenance("phase history capacity unavailable".into()))?;
+    let _permit = super::super::phase_terminal::capacity::admit_history()?;
     // General pool only. History cannot occupy reserved terminal/renewal pools,
     // and slow acquisition or a chain of reads has a finite total budget.
     tokio::time::timeout(Duration::from_secs(3), read_inner(state, node, request))
@@ -78,8 +73,7 @@ async fn read_inner(
     {
         return Err(conflict());
     }
-    let accepted =
-        accepted_preparation::load_accepted_history_locked(&mut tx, &request.binding).await?;
+    let accepted = accepted_owner::load_accepted_history_locked(&mut tx, &request.binding).await?;
     if accepted.request.original.identity.node_id != node.id()
         || accepted.receipt.digest().map_err(|_| conflict())? != request.accepted_receipt_digest
     {
@@ -96,7 +90,7 @@ async fn read_inner(
         {
             return Err(conflict());
         }
-        let history = phase_execution::history::load_optional_locked(
+        let history = phase_owner::history::load_optional_locked(
             &mut tx,
             node.id(),
             &request.binding,

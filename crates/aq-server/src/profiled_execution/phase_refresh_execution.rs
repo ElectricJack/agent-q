@@ -181,14 +181,12 @@ fn validate_provenance_profile(
     Ok(())
 }
 
-// The owning issuer is not a transport activation. Actual paired refresh
-// terminal ownership must be installed before any public grant route is enabled.
 fn terminal_profile(
-    _: &super::config::ProfiledConfig,
-    _: &ArtifactRef,
-    _: &ArtifactRef,
+    config: &super::config::ProfiledConfig,
+    runtime: &ArtifactRef,
+    qualification: &ArtifactRef,
 ) -> Result<Option<ArtifactRef>, String> {
-    Err("refresh terminal owner not installed".into())
+    super::phase_refresh_terminal::qualification::profile(config, runtime, qualification)
 }
 
 async fn validate_registry_replay(

@@ -1,10 +1,12 @@
 # AQ-08 refresh preparation consumer increment
 
 The preparation slice adds the separately configured `accepted_refresh`
-proposal/accept/retrieval owner. A following shared issuer increment adds nominal
-refresh execution and original-grant replay; refresh terminal dispatch is not
-yet connected, so its public execution route remains closed. This is not runtime
-activation. See [issuer qualification](AQ-08-refresh-issuer-qualification.md).
+proposal/accept/retrieval owner. Following increments add nominal refresh
+execution, original-grant replay and paired terminal owner dispatch behind exact
+profile qualifications. Defaults activate no new runtime. See
+[issuer qualification](AQ-08-refresh-issuer-qualification.md) and
+[terminal integration](AQ-08-refresh-terminal-consumer.md). The pinned real-worker
+static output qualification remains a separate gate.
 
 The exact contract selects a closed typed parser, which then decodes the original
 wire bytes. A header probe never replaces those bytes with a Value serialization:

@@ -140,3 +140,6 @@ pub mod native_preparation;
 pub mod native_offer;
 
 pub mod closure;
+
+/// Shared source-only presence fixture; independent of phase protocol profile.
+pub mod presence;

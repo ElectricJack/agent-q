@@ -1,7 +1,6 @@
 //! Actual server owners with explicitly synthetic qualified worker observations.
 use super::*;
-#[path = "../../common/presence.rs"]
-mod presence_fixture;
+use crate::common::presence as presence_fixture;
 use aq_admission::{
     scoped_presence::*,
     transport::{MaterialDelivery, MaterialFetch, Renew},

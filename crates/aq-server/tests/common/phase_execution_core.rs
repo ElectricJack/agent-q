@@ -1,11 +1,8 @@
 // Actual phase issuance SQL/owners; synthetic Graph, Git and worker installation.
 // No physical host, real provider, or production route qualification.
 use crate::common;
-use owner::{PolicyDefinition, ProposalRequest};
-use phase::{AcceptRequest, FactKind, OwnerAuthority, PhasePolicy, ResourceHold};
-#[path = "presence.rs"]
-mod presence_fixture;
 use crate::common::native_offer::{self, Case};
+use crate::common::presence as presence_fixture;
 use aq_admission::{
     ArtifactKind, ArtifactRef, Digest, Resources, Text,
     control::{ControlReply, decode_reply},
@@ -16,6 +13,8 @@ use aq_server::{
 };
 use axum::body::to_bytes;
 use base64::Engine;
+use owner::{PolicyDefinition, ProposalRequest};
+use phase::{AcceptRequest, FactKind, OwnerAuthority, PhasePolicy, ResourceHold};
 use serde_json::Value;
 use sqlx::Row;
 use uuid::Uuid;

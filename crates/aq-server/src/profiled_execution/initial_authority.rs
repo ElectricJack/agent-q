@@ -13,13 +13,16 @@ use uuid::Uuid;
 pub(crate) enum InitialAuthorityHistory {
     Legacy(Box<initial_grant::OriginalGrant>),
     AcceptedNoLaunch(Box<accepted_preparation::AcceptedHistory>),
+    AcceptedRefreshNoLaunch(Box<super::accepted_refresh::AcceptedHistory>),
     PhaseExecution(Box<super::phase_execution::history::PhaseExecutionHistory>),
+    PhaseRefreshExecution(Box<super::phase_refresh_execution::history::PhaseExecutionHistory>),
 }
 /// Receipt kinds are not interchangeable digest namespaces.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ReceiptKind {
     LegacyPrepareV1,
     PhaseExecutionV2,
+    PhaseRefreshExecutionV1,
 }
 pub(crate) struct ReceiptIdentity<'a> {
     pub kind: ReceiptKind,
@@ -32,7 +35,10 @@ pub(crate) struct InitialAuthorityView<'a> {
 }
 impl InitialAuthorityHistory {
     pub(crate) fn view(&self) -> Result<InitialAuthorityView<'_>, AppError> {
-        if matches!(self, Self::AcceptedNoLaunch(_)) {
+        if matches!(
+            self,
+            Self::AcceptedNoLaunch(_) | Self::AcceptedRefreshNoLaunch(_)
+        ) {
             return Err(unsupported());
         }
         Ok(InitialAuthorityView { original: self })
@@ -43,7 +49,9 @@ impl InitialAuthorityView<'_> {
         match self.original {
             InitialAuthorityHistory::Legacy(h) => &h.body.grant,
             InitialAuthorityHistory::PhaseExecution(h) => &h.receipt.grant,
-            InitialAuthorityHistory::AcceptedNoLaunch(_) => {
+            InitialAuthorityHistory::PhaseRefreshExecution(h) => &h.receipt.grant,
+            InitialAuthorityHistory::AcceptedNoLaunch(_)
+            | InitialAuthorityHistory::AcceptedRefreshNoLaunch(_) => {
                 unreachable!("no-launch view cannot be constructed")
             }
         }
@@ -58,7 +66,12 @@ impl InitialAuthorityView<'_> {
                 kind: ReceiptKind::PhaseExecutionV2,
                 digest: &h.receipt_digest,
             },
-            InitialAuthorityHistory::AcceptedNoLaunch(_) => {
+            InitialAuthorityHistory::PhaseRefreshExecution(h) => ReceiptIdentity {
+                kind: ReceiptKind::PhaseRefreshExecutionV1,
+                digest: &h.receipt_digest,
+            },
+            InitialAuthorityHistory::AcceptedNoLaunch(_)
+            | InitialAuthorityHistory::AcceptedRefreshNoLaunch(_) => {
                 unreachable!("no-launch view cannot be constructed")
             }
         }
@@ -95,6 +108,29 @@ pub(crate) async fn load_locked(
     grant_id: Uuid,
 ) -> Result<InitialAuthorityHistory, AppError> {
     if has_accepted_origin_locked(tx, binding).await? {
+        if super::phase_profile::for_attempt_locked(tx, binding.attempt_id).await?
+            == Some(super::phase_profile::Profile::Refresh)
+        {
+            let history =
+                super::accepted_refresh::load_accepted_history_locked(tx, binding).await?;
+            if history.request.original.identity.node_id != node
+                || history.proposal.original.offered.offer.binding != *binding
+            {
+                return Err(unsupported());
+            }
+            if let Some(execution) = super::phase_refresh_execution::history::load_optional_locked(
+                tx, node, binding, grant_id,
+            )
+            .await?
+            {
+                return Ok(InitialAuthorityHistory::PhaseRefreshExecution(Box::new(
+                    execution,
+                )));
+            }
+            return Ok(InitialAuthorityHistory::AcceptedRefreshNoLaunch(Box::new(
+                history,
+            )));
+        }
         let history = accepted_preparation::load_accepted_history_locked(tx, binding).await?;
         if history.request.original.identity.node_id != node
             || history.proposal.original.offered.offer.binding != *binding
@@ -136,6 +172,14 @@ pub(crate) async fn load_legacy_initial_grant_locked(
         }
         InitialAuthorityHistory::AcceptedNoLaunch(history) => {
             // Read the actual typed origin rather than accepting a caller tag.
+            let _original_receipt = history.receipt;
+            Err(unsupported())
+        }
+        InitialAuthorityHistory::AcceptedRefreshNoLaunch(history) => {
+            let _original_receipt = history.receipt;
+            Err(unsupported())
+        }
+        InitialAuthorityHistory::PhaseRefreshExecution(history) => {
             let _original_receipt = history.receipt;
             Err(unsupported())
         }

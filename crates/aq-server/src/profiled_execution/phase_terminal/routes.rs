@@ -1,11 +1,12 @@
 //! Bounded worker transport. Routes convey reports/history, never launch authority.
 use crate::{AppState, error::AppError, worker_api};
-use aq_phase_terminal_protocol as wire;
+use aq_phase_terminal_protocol::{self as wire, refresh_v1 as refresh_wire};
 use axum::{
     Json, Router,
     body::to_bytes,
     extract::{Request, State},
     http::HeaderMap,
+    response::IntoResponse,
     routing::post,
 };
 use tokio::sync::Semaphore;
@@ -46,12 +47,31 @@ fn check_headers(headers: &HeaderMap) -> Result<(), AppError> {
     }
     Ok(())
 }
+fn profile(bytes: &[u8]) -> Result<wire::Profile, AppError> {
+    if bytes.len() > wire::MAX_BYTES {
+        return Err(AppError::PayloadTooLarge("phase terminal body".into()));
+    }
+    // The probe chooses a nominal decoder; every authoritative decoder below
+    // still receives the original bytes, preserving duplicate/unknown refusals.
+    let value: serde_json::Value = serde_json::from_slice(bytes)
+        .map_err(|_| AppError::BadRequest("invalid phase terminal request".into()))?;
+    let contract: aq_admission::ArtifactRef = serde_json::from_value(
+        value
+            .get("negotiation")
+            .and_then(|v| v.get("contract"))
+            .cloned()
+            .ok_or_else(|| AppError::BadRequest("invalid phase terminal request".into()))?,
+    )
+    .map_err(|_| AppError::BadRequest("invalid phase terminal request".into()))?;
+    wire::Profile::for_contract(&contract)
+        .map_err(|_| AppError::BadRequest("invalid phase terminal request".into()))
+}
 macro_rules! endpoint {
     ($name:ident, $lane:ident, $decode:ident, $receipt:ident, $owner:ident, $method:ident) => {
         async fn $name(
             State(state): State<AppState>,
             request: Request,
-        ) -> Result<Json<wire::$receipt>, AppError> {
+        ) -> Result<axum::response::Response, AppError> {
             let _permit = $lane
                 .try_acquire()
                 .map_err(|_| AppError::Maintenance("phase terminal ingress full".into()))?;
@@ -61,9 +81,24 @@ macro_rules! endpoint {
                 let bytes = to_bytes(request.into_body(), wire::MAX_BYTES)
                     .await
                     .map_err(|_| AppError::PayloadTooLarge("phase terminal body".into()))?;
-                let q = wire::$decode(&bytes)
-                    .map_err(|_| AppError::BadRequest("invalid phase terminal request".into()))?;
-                super::$owner::$method(&state, &node, &q).await.map(Json)
+                match profile(&bytes)? {
+                    wire::Profile::FrozenV1 => {
+                        let q = wire::$decode(&bytes).map_err(|_| {
+                            AppError::BadRequest("invalid phase terminal request".into())
+                        })?;
+                        super::$owner::$method(&state, &node, &q)
+                            .await
+                            .map(|r| Json(r).into_response())
+                    }
+                    wire::Profile::RegistryRefreshV1 => {
+                        let q = refresh_wire::$decode(&bytes).map_err(|_| {
+                            AppError::BadRequest("invalid phase terminal request".into())
+                        })?;
+                        super::super::phase_refresh_terminal::$owner::$method(&state, &node, &q)
+                            .await
+                            .map(|r| Json(r).into_response())
+                    }
+                }
             })
             .await
             .map_err(|_| {

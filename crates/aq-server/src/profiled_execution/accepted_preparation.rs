@@ -201,3 +201,15 @@ pub(super) async fn require_installed_material_locked(
     authority::current_policy_locked(state, tx, auth, &history.proposal).await?;
     authority::material_locked(tx, &history.request, &history.receipt).await
 }
+
+/// One actual blocking read budget across nominal profiles. The spawned read
+/// retains this permit through completion even when its HTTP waiter disappears.
+pub(super) fn material_read_permit() -> Result<tokio::sync::OwnedSemaphorePermit, ()> {
+    static READS: std::sync::OnceLock<std::sync::Arc<tokio::sync::Semaphore>> =
+        std::sync::OnceLock::new();
+    READS
+        .get_or_init(|| std::sync::Arc::new(tokio::sync::Semaphore::new(2)))
+        .clone()
+        .try_acquire_owned()
+        .map_err(|_| ())
+}

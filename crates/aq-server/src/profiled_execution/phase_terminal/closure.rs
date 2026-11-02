@@ -7,7 +7,7 @@ use crate::{
     worker_api::AuthenticatedNode,
 };
 use aq_admission::granted_closure::{Disposition, Evidence};
-use aq_phase_terminal_protocol as wire;
+use super::wire;
 use sqlx::Row;
 
 pub async fn record(
