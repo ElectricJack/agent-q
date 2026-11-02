@@ -1010,6 +1010,18 @@
     [
       "MS1",
       "D0"
+    ],
+    [
+      "I4a",
+      "C6b"
+    ],
+    [
+      "MS1",
+      "C5b"
+    ],
+    [
+      "MS1",
+      "C6b"
     ]
   ],
   "removed_release_gate_edges": [

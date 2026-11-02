@@ -307,7 +307,7 @@ tasks:
   - key: I0
     epic: I
     repo: aq-worker
-    title: 'MS0: one real Codex API-key run in a plain Docker container on the existing native path'
+    title: 'MS0: one real Codex run on the owner''s ChatGPT login in a plain Docker container on the existing native path'
     type: test
     class: deep-high
     needs: [E0]
@@ -315,11 +315,11 @@ tasks:
     spec: [aq-server/docs/architecture/0003-agent-profiles-harnesses-and-terminals.md, aq-server/docs/plans/2026-10-31-native-integration-checkpoint.md]
     description: |
       ### Goal
-      Prove that the real Codex CLI with a real OpenAI API key can complete a real graph task end to end on today's `aq-worker run-native` path. Do this before permits, the vault or templates are built, and turn every problem found into a filed task.
+      Prove that the real Codex CLI, signed in with the owner's ChatGPT subscription login (no API key), can complete a real graph task end to end on today's `aq-worker run-native` path. Do this before permits, the vault or templates are built, and turn every problem found into a filed task.
 
       ### What to build
       - **Image:** a plain Docker image built from aq-server `Dockerfile.worker` plus the pinned Codex CLI `0.166.0` (`CODEX_CLI_VERSION`, aq-worker `crates/aq-codex-mapper/src/lib.rs:10`). The `aq-worker` binary must come from current aq-worker `main` (see Current state). Run it on the WSL2 desktop's ordinary Docker with host networking, so the worker reaches the E0 server on numeric loopback.
-      - **Key:** read the OpenAI API key from a local owner-0600 file and deliver it through the existing private material lease (`/v1/worker/profiled/material`). Never put it in env, argv, the image, logs or task text (P8).
+      - **Login:** use executor kind `codex-0.166-chatgpt-interactive-result-local-v1`. Deliver the owner's existing `~/.codex/auth.json` through the existing private material lease (`/v1/worker/profiled/material`), with the server's private material file pointing at a copy of it. Never put it in env, argv, the image, logs or task text (P8). The owner's `~/.codex/auth.json` holds a ChatGPT login (`auth_mode: chatgpt`, file store), and v1's Codex agents on this desktop use the same file. Any refreshed `auth.json` produced in a container **must be written back** to `~/.codex/auth.json` atomically (mode 0600) before the container goes away. Otherwise a refresh-token rotation could sign the owner's v1 Codex sessions out. Record whether a refresh happened. No API key is used or needed.
       - **Run:** each `aq-worker run-native --native-config <file>` is one fresh attempt with one slot, and its state root must be empty. The task is E0's seeded graph task: it edits E0's scratch GitHub repository, retains source centrally, and settles through the existing routes: `POST /api/settlement/evaluations`, `POST /api/reviews/combined/{decision_id}/resolve` and `POST /api/settlement/completions/{operation_id}/reconcile`. A human-review decision is acceptable.
       - **Three consecutive runs.** For each, record the attempt and grant IDs, Codex version, model, wall time, retained source revision and settlement outcome.
       - **File every failure and rough edge** with `aq task create --reason …` and list its v1 ID in the report. Prefer configuration to code. If a small code change is unavoidable to get a run through, keep it minimal, record it and file the proper fix.
@@ -327,9 +327,9 @@ tasks:
 
       ### Current state
       - `run-native`/`check-native`: `crates/aq-worker/src/main.rs:83,101`. Executor kinds: `src/native/runner/codex.rs:35-62`; legacy `codex-0.166-exec-stdin-v1` and a missing executor both refuse before admission.
-      - The relay requires HTTPS except through `RelayHttp::trusted_local_node` (`http://127.0.0.1:<port>` only; `crates/aq-terminal-bridge/src/http.rs:45-80`). Only `codex-0.166-chatgpt-interactive-result-local-v1` uses it (`codex.rs:128-139`). The API-key kinds (`…trusted-node-named-readonly[-result-local]-v1`) therefore refuse E0's plain-HTTP server as written. Resolve this (local TLS, or a narrow loopback exception) and file it.
+      - The relay requires HTTPS except through `RelayHttp::trusted_local_node` (`http://127.0.0.1:<port>` only; `crates/aq-terminal-bridge/src/http.rs:45-80`). Only `codex-0.166-chatgpt-interactive-result-local-v1` uses it (`codex.rs:128-139`), and that is the kind this task uses, so E0's plain-HTTP server works. The API-key kinds refuse plain HTTP; they are not used here.
       - The Codex argv hardcodes `--sandbox workspace-write` (`aq-codex-mapper/src/lib.rs:97-120`). A default Docker container may block bubblewrap, which would make tool calls fail (unverified).
-      - The key reaches Codex only through the loopback Responses transport (`src/native/adapter/responses_transport.rs`, `UpstreamEndpoint::openai()`).
+      - ChatGPT `auth.json` material is validated by `src/native/adapter/codex/chatgpt.rs` (`validated_chatgpt_auth_json`). The ChatGPT-interactive profile has no recorded successful model call yet; this task makes the first.
       - aq-server `Dockerfile.worker` builds the vendored candidate `vendor/worker-candidate.json`: aq-worker `3fb2bcb` (v0.3.1). That is about 300 commits old and has no `run-native`.
       - No real-provider run has ever completed. WRK-18 used loopback fake providers only.
 
@@ -341,7 +341,7 @@ tasks:
 
       ### Out of scope
       - Sandboxes and templates (C1, C2, C3a–C3c); `container` mode (C6a); permits (B1, B2, B6a2); credential profiles (C5a1).
-      - Automatic settlement (D3); retry (B4); ChatGPT-login runs (I4b).
+      - Automatic settlement (D3); retry (B4); the vault and login import/enrollment (C5b); sandboxed qualification (I4a).
       - Re-pinning aq-server's vendored worker candidate; fixing filed problems beyond minimal glue.
 
       ### References
@@ -1336,7 +1336,7 @@ tasks:
       - **Evidence** goes in `docs/implementation/C3c.md`: image names, tags, digests, provenance records, scan output, GHCR visibility and the exact commands.
       - **Environment.** This task needs Docker and a GHCR token on the v1 worker that runs it (plan §4.2).
         - The token is an operator secret. It never goes in recipes, images, logs or evidence.
-        - If the token is missing, ask with `aq question` and register a wait.
+        - If the token is missing, ask with `aq message send --to user:dashboard --project aq-platform` and wait for the reply.
 
       ### Current state
       - C3a and C3b deliver the images, CLI, scanner and allowlist. None exists today (verified in aq-worker).
@@ -1578,6 +1578,7 @@ tasks:
       - The owner can enroll a Codex device-auth login.
 
       ### What to build
+      - **Import an existing login:** add an operator command that imports an existing CLI login file (for example the owner's `~/.codex/auth.json` or `~/.claude/.credentials.json`) into the vault as a `subscription-login` credential. Then no device-auth enrollment or API key is needed; device-auth enrollment remains available.
       - **Write-back endpoint** (0005 §7; suggested `POST /v1/worker/profiled/material/refresh`).
         - Scoped to the attempt's current lease and authenticated like the material fetch it pairs with: the permit once C5a2 has landed, otherwise node, boot and attempt (record the follow-up).
         - Each write stores a new credential revision marked `refresh` in the same lineage, recording the writing lease.
@@ -1588,7 +1589,7 @@ tasks:
       - **Enrollment:** an owner-only operation runs `codex login --device-auth` in a one-off enrollment sandbox.
         - The sandbox has a private `CODEX_HOME` with `cli_auth_credentials_store = "file"`.
         - The operation shows the device code to the owner and captures `$CODEX_HOME/auth.json` straight in as a new revision, never copied off a desktop by hand.
-        - Device-code login must be enabled in ChatGPT security settings first; ask the owner with `aq question`.
+        - Device-code login must be enabled in ChatGPT security settings first; ask the owner with `aq message send --to user:dashboard --project aq-platform`.
         - This task has no worker dependency, so build the server side: the enrollment session and a one-shot capture endpoint. A recorded, operator-run container from an image with the pinned Codex CLI is acceptable as the sandbox. File any aq-worker work.
       - **Storage:** the store is read-only startup config today, and these revisions need a store that can be written at runtime. Follow the existing pattern (owner-only files, fingerprints server-side, no secret bytes in logs, prompts or inspection output) and record the design.
 
@@ -1776,7 +1777,7 @@ tasks:
       - **Margins** assume a round-trip time of 250 ms or more. Don't claim the terminal latency target on boat.
       - **Record the 0005 §14 facts:** the create, fork, delete and auto-stop API; scoped-key permissions; snapshot and resume times; outbound firewall controls; account limits.
       - **Tests:** `crates/aq-worker/tests/boat_backend.rs` runs the conformance suite against an HTTP double. The live run is `#[ignore]`, with the key from env.
-      - **Deployment:** each node has exactly one backend (0005 §2), so boat needs its own enrolled node. The service lives in `aq-server/compose.yaml` (E1c); file an aq-server task if it's outside your workspace. Ask the owner (`aq question`) whether boat is a second service beside the docker-local `aq-worker-cloud` or replaces its backend.
+      - **Deployment:** each node has exactly one backend (0005 §2), so boat needs its own enrolled node. The service lives in `aq-server/compose.yaml` (E1c); file an aq-server task if it's outside your workspace.
       - Run boat as a **second enrolled node** on the VPS, `aq-worker-boat`, keeping `aq-worker-cloud` on docker-local; each node has exactly one backend. File an emergent aq-server task for its Compose service.
 
       ### Current state
@@ -4760,23 +4761,23 @@ tasks:
   - key: I4a
     epic: I
     repo: aq-worker
-    title: Codex CLI real-provider qualification with an API key in docker-local sandboxes
+    title: Codex CLI qualification with the owner's ChatGPT login in docker-local sandboxes
     type: test
     class: standard-high
-    needs: [C6a, C2, B5a]
+    needs: [C6a, C2, B5a, C6b]
     continues: [WRK-08, GATE-04]
     spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md, aq-server/docs/architecture/0003-agent-profiles-harnesses-and-terminals.md]
     description: |
       ### Goal
-      Qualify the pinned Codex CLI 0.166.0 with a real OpenAI API key inside a `docker-local` sandbox, on the new sandboxed path, and record Codex's H2 minimum-contract evidence.
+      Qualify the pinned Codex CLI 0.166.0, signed in with the owner's ChatGPT subscription login (no API key), inside a `docker-local` sandbox, on the new sandboxed path, and record Codex's H2 minimum-contract evidence.
 
       ### What to build
-      - **Test file:** `crates/aq-worker/tests/codex_live.rs`, with `#[ignore]` tests whose names contain `api_key`. The deliverable filter is `--test codex_live api_key -- --ignored`, and zero matches leaves it unmet. Read the key from an owner-0600 file named by an environment variable. A missing key must fail the test, never pass it.
+      - **Test file:** `crates/aq-worker/tests/codex_live.rs`, with `#[ignore]` tests whose names contain `chatgpt`. The deliverable filter is `--test codex_live chatgpt -- --ignored`, and zero matches leaves it unmet. The login comes from the C5b vault, either imported from the owner's existing `~/.codex/auth.json` or enrolled with device-auth, and is installed by C6b. A missing login must fail the test, never pass it. The owner's `~/.codex/auth.json` holds a ChatGPT login (`auth_mode: chatgpt`, file store), and v1's Codex agents on this desktop use the same file. Any refreshed `auth.json` produced in a container **must be written back** to `~/.codex/auth.json` atomically (mode 0600) before the container goes away. Otherwise a refresh-token rotation could sign the owner's v1 Codex sessions out. Record whether a refresh happened.
       - **Path under test:**
         1. The B5a node controller accepts an offer.
         2. The C2 backend creates a sandbox from the allowlisted `rust` template (C3c).
-        3. The C6a runner config runs Codex with a private `CODEX_HOME`, `cli_auth_credentials_store = "file"`, and a custom model provider pointing at the runner's loopback Responses proxy.
-        4. Requests go to the real OpenAI upstream.
+        3. The C6a/C6b runner config runs Codex with a private `CODEX_HOME`, `cli_auth_credentials_store = "file"`, and the leased ChatGPT login.
+        4. Requests go to the real OpenAI/ChatGPT upstream, under the owner's subscription.
       - **Cover, as named tests or recorded steps:**
         - `container` confinement: docker-local defaults to it (0005 §8.3). It requires profile permission and is never a fallback from `native` (SBX13, SBX19).
         - Stop and preserve: a mid-run stop leaves the sandbox stopped, the workspace kept and nothing relaunched (SBX4, SBX5).
@@ -4802,16 +4803,17 @@ tasks:
       ### Interfaces
       - **Consumes:**
         - C6a: Codex runner config, confinement modes and a qualification record per template × backend.
+      - C6b: subscription-login install, refresh write-back and wipe. C5b: the vault copy of the login.
         - C2: the `docker-local` backend.
         - B5a: `aq-worker run`.
         - Coordinator: the E0 stack if B2 and B6a2 permits have merged; otherwise the in-repo test coordinator (`crates/aq-worker/tests/support`). Record which.
       - **Produces:**
-        - the `codex_live` module (I4b adds `chatgpt` tests to it);
+        - the `codex_live` module (I4b adds VPS tests to it);
         - retained real transcripts for H1;
         - the Codex H2 row for MS1 and MS4.
 
       ### Out of scope
-      - ChatGPT login (I4b, C6b).
+      - VPS runs (I4b). API-key qualification is not needed; API keys are optional.
       - Runner observation store and production reader qualification (H1).
       - Renderer snapshots (H7).
       - Enabling `native` on docker-local.
@@ -4821,13 +4823,13 @@ tasks:
       - aq-server `docs/architecture/0005-sandboxed-execution-and-deployment-topology.md` §8.3 (Codex CLI), §11
       - aq-server `docs/architecture/0003-agent-profiles-harnesses-and-terminals.md` §4 table
     acceptance:
-      - A real edit task completes three times without failure, with retained source and evidence.
+      - A real edit task completes three times without failure on the owner's ChatGPT login, with retained source and evidence; any refreshed login is written back to `~/.codex/auth.json`.
     deliverables:
-      - {id: live, kind: test, target: cargo test --locked -p aq-worker --test codex_live api_key -- --ignored}
+      - {id: live, kind: test, target: cargo test --locked -p aq-worker --test codex_live chatgpt -- --ignored}
   - key: I4b
     epic: I
     repo: aq-worker
-    title: Codex CLI ChatGPT-login qualification in local and VPS sandboxes
+    title: Codex CLI ChatGPT-login qualification on the VPS worker, with refresh write-back
     type: test
     class: standard-high
     needs: [I4a, C6b, E6b]
@@ -4835,13 +4837,12 @@ tasks:
     spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
     description: |
       ### Goal
-      Qualify Codex with a ChatGPT login, enrolled through C5b, in `docker-local` sandboxes on the desktop and on the VPS. This includes a token refresh during an attempt that is written back and reused.
+      Qualify Codex with the owner's ChatGPT login on the VPS `docker-local` worker, after I4a qualified it on the desktop. This includes a token refresh during an attempt that is written back and reused.
 
       ### What to build
-      - **Tests:** add `#[ignore]` tests whose names contain `chatgpt` to `crates/aq-worker/tests/codex_live.rs` (deliverable filter `--test codex_live chatgpt -- --ignored`; zero matches is unmet). Each test must fail, not pass, if its credential profile or target worker is unavailable.
+      - **Tests:** add `#[ignore]` tests whose names contain `chatgpt_vps` to `crates/aq-worker/tests/codex_live.rs` (deliverable filter `--test codex_live chatgpt_vps -- --ignored`; zero matches is unmet). Each test must fail, not pass, if its credential profile or target worker is unavailable.
       - **Enrollment:**
-        - Use C5b's flow: `codex login --device-auth` in an enrollment sandbox, with `$CODEX_HOME/auth.json` captured straight into the vault and never copied off a desktop by hand.
-        - Device-code login must first be enabled in the ChatGPT security settings. That is an owner action, so ask through `aq question`.
+        - Use the vault copy from C5b. That is the owner's existing login imported, or a device-auth enrollment if the owner enabled device-code login; ask through `aq message send --to user:dashboard`.
       - **Runs:** a real edit task on two workers:
         - the desktop worker (E6a, or the C2 desktop backend);
         - the VPS cloud worker `aq-worker-cloud` (E6b).
@@ -4862,7 +4863,7 @@ tasks:
 
       ### Interfaces
       - **Consumes:**
-        - I4a's `codex_live` harness and API-key baseline;
+        - I4a's `codex_live` harness and desktop ChatGPT-login baseline;
         - C6b's runner subscription install, write-back and wipe;
         - C5b's enrollment, write-back endpoint and `max_concurrent_leases`;
         - E6b's VPS cloud worker on docker-local.
@@ -4878,10 +4879,10 @@ tasks:
       ### References
       - aq-server `docs/architecture/0005-sandboxed-execution-and-deployment-topology.md` §7 (rules), §8.3 (ChatGPT login; getting a login into the vault), §11 ("Credential refresh")
     acceptance:
-      - A real edit task completes on both backends.
+      - A real edit task completes on the VPS worker on the owner's ChatGPT login.
       - A refresh during an attempt is written back, and the next attempt succeeds.
     deliverables:
-      - {id: live, kind: test, target: cargo test --locked -p aq-worker --test codex_live chatgpt -- --ignored}
+      - {id: live, kind: test, target: cargo test --locked -p aq-worker --test codex_live chatgpt_vps -- --ignored}
   - key: I1
     epic: I
     repo: aq-worker
@@ -4915,7 +4916,7 @@ tasks:
       - **Subscription login:**
         - lease, install, write back and wipe through C6b's mechanism;
         - an enrollment flow that captures the login straight into the vault, equivalent to C5b's `codex login --device-auth`;
-        - owner actions go through `aq question`.
+        - owner actions go through `aq message send --to user:dashboard --project aq-platform`.
       - **Template:** add the pinned CLI to the `aq-sandbox-runtime` harness list and rebuild through C3b's tooling. The template advertises the version (SBX18).
       - **Transcript reader:** qualify `crates/aq-observation-engine/src/formats/claude.rs` and `crates/aq-observation/src/formats/claude.rs` (a legacy v1 shape) against real transcripts from the pinned CLI.
       - **Live tests:** `crates/aq-worker/tests/claude_live.rs`, `#[ignore]`, with API-key and subscription cases.
@@ -5148,7 +5149,7 @@ tasks:
         - the desktop worker (E6a) and VPS cloud worker (E6b), each on docker-local sandboxes.
 
         The script is rerunnable and writes raw results next to `docs/implementation/J3.md`.
-      - **Harness mix:** real Codex API-key runs (I4a) versus the deterministic `aq-fixture-agent` is your call; record it. Get owner approval through `aq question` before spending on more than a few real-provider runs.
+      - **Harness mix:** real Codex runs on the owner's subscription logins (I4a) versus the deterministic `aq-fixture-agent` is your call; record it. Keep real runs to a few, because they draw on the owner's subscription limits, and ask through `aq message send --to user:dashboard` before using more.
       - **VPS capacity:** it is sized for the stack plus about two Rust-building sandboxes (plan §5.3), so expect most concurrency on the desktop. Record per-worker placement.
       - **Record, on the VPS:**
         - daemon request and renewal timings;
@@ -5267,7 +5268,7 @@ tasks:
         - the deployment configuration and secrets inventory.
 
         Record the encryption, destination, schedule and retention. Use consistent dumps, either in maintenance mode or with documented isolation.
-      - **Credential-recovery decision** (infrastructure spec: "Credentials or encryption keys needed for recovery require a separately documented recovery procedure"). Decide where the backup encryption key, tunnel token, Access tokens and provider vault secrets come from on restore. Ask the owner through `aq question`. Restore must account for credentials revoked since the backup: revoke and re-enroll workers when that history can't be trusted.
+      - **Credential-recovery decision** (infrastructure spec: "Credentials or encryption keys needed for recovery require a separately documented recovery procedure"). Decide where the backup encryption key, tunnel token, Access tokens and provider vault secrets come from on restore. Ask the owner through `aq message send --to user:dashboard --project aq-platform`. Restore must account for credentials revoked since the backup: revoke and re-enroll workers when that history can't be trusted.
       - **Drill:**
         1. Provision a fresh VPS following `docs/operations/vps-install.md` (E5).
         2. Restore.
@@ -5412,7 +5413,7 @@ tasks:
         4. settle through the human-review route.
 
         Say what the owner should see at each step.
-      - **Write `docs/implementation/MS0.md`** (aq-server) with an evidence summary, a problem table, the decision questions and the demo script. Then request owner verification. Ask the decision questions through `aq question`, or present them for owner sign-off.
+      - **Write `docs/implementation/MS0.md`** (aq-server) with an evidence summary, a problem table, the decision questions and the demo script. Then request owner verification. Ask the decision questions through `aq message send --to user:dashboard --project aq-platform`, or present them for owner sign-off.
       - **Record the owner's decision verbatim** in MS0.md.
 
       ### Current state
@@ -5442,17 +5443,17 @@ tasks:
     type: operator
     class: standard-high
     verification: human
-    needs: [MS0, A3a, A3b, B1, B2, B3, B4, B5a, B5b, B6a2, B6b, B6c, B7, C1, C2, C3a, C3b, C3c, C4, C5a2, C6a, D1a, D1b, D3, I4a, B6a1, C5a1, D0]
+    needs: [MS0, A3a, A3b, B1, B2, B3, B4, B5a, B5b, B6a2, B6b, B6c, B7, C1, C2, C3a, C3b, C3c, C4, C5a2, C6a, D1a, D1b, D3, I4a, B6a1, C5a1, D0, C5b, C6b]
     continues: [GATE-04]
     spec: [aq-server/docs/superpowers/plans/2026-11-02-v2-full-application-plan.md]   # §1, §5 step 1
     description: |
       ### Goal
-      Demonstrate to the owner, on the E0 local stack with the desktop worker, that a real Codex (API-key) agent runs in a `docker-local` sandbox and that the work loop and recovery behave safely. This is a human-verified gate. Its agent assembles, runs and records the scenario; it does not implement features.
+      Demonstrate to the owner, on the E0 local stack with the desktop worker, that a real Codex agent, signed in with the owner's ChatGPT login (no API key), runs in a `docker-local` sandbox and that the work loop and recovery behave safely. This is a human-verified gate. Its agent assembles, runs and records the scenario; it does not implement features.
 
       ### What to build
       Run against E0 (`compose.dev.yaml`) with the B5 node controller on the C2 backend and the C3c `rust` template. Each step records its evidence.
       1. **Two dependent graph tasks** on the E0 scratch repository.
-         - Codex (API key, `container` mode) runs the first in a docker-local sandbox: it edits code, checks, and publishes through aq-git (D1a/D1b policy).
+         - Codex (ChatGPT login, `container` mode) runs the first in a docker-local sandbox: it edits code, checks, and publishes through aq-git (D1a/D1b policy).
          - Evidence: task, attempt, grant and permit IDs; the sandbox ID and template digest; the retained source revision; the publication receipt (commit SHA, plus a PR URL or fast-forward).
       2. **Automatic completion.** The first task completes through D3's default policy (version-checked graph completion), and the second becomes ready and starts.
          - Evidence: graph versions and the outbox event.
@@ -5481,7 +5482,7 @@ tasks:
       ### Out of scope
       - Fixing defects found: file each with `aq task create --reason …` against the owning task (for example C2, B5b, D3), and close the gate with them listed.
       - The VPS or hosted run (MS2).
-      - ChatGPT login (I4b).
+      - VPS runs (I4b).
       - The supervisor, dashboard writes, and the boat backend (MS3 tasks).
       - Self-approving the gate.
 
@@ -5504,7 +5505,7 @@ tasks:
     spec: [aq-server/docs/superpowers/plans/2026-11-02-v2-full-application-plan.md]   # §1, §5
     description: |
       ### Goal
-      Demonstrate to the owner that the hosted topology works. The VPS stack runs behind Cloudflare, the MS1 scenario passes on both enrolled workers with an API key and with a ChatGPT login, a VPS reboot recovers, and off-host backups are configured. This is a human-verified gate. Its agent runs and records the scenario; it does not implement features.
+      Demonstrate to the owner that the hosted topology works. The VPS stack runs behind Cloudflare, the MS1 scenario passes on both enrolled workers with the owner's ChatGPT login, a VPS reboot recovers, and off-host backups are configured. This is a human-verified gate. Its agent runs and records the scenario; it does not implement features.
 
       ### What to build
       1. **Topology check.** Record:
@@ -5512,9 +5513,9 @@ tasks:
          - the human hostname (owner Access) and the machine hostname (service tokens);
          - the desktop worker running as a container on WSL2 (E6a), enrolled to the VPS machine hostname;
          - the VPS cloud worker on docker-local with its own rootless sandbox daemon (E6b).
-      2. **Rerun the MS1 scenario steps 1–5** (dependent tasks with automatic completion and next start, cancel, fail and retry, worker and server restart), with Codex and an API key, once on each worker.
+      2. **Rerun the MS1 scenario steps 1–5** (dependent tasks with automatic completion and next start, cancel, fail and retry, worker and server restart), with Codex signed in with the owner's ChatGPT login, once on each worker.
          - Evidence: the same IDs, receipts and graph versions as MS1, plus worker and node IDs.
-      3. **Repeat once on each worker with a ChatGPT login** enrolled through C5b and installed by C6b (I4b).
+      3. **Confirm that a login refresh during a run is written back** and that the next run succeeds (I4b).
          - Evidence: the credential profile name (never its contents), the refresh-lineage revision if a refresh occurred, and wipe at teardown.
       4. **Reboot the VPS mid-attempt** (Review Focus 4). Runners resume renewal if the server returns within the renewal window; otherwise they stop and preserve.
          - Evidence: timestamps, the renewal log, the attempt disposition, no duplicate effects.
@@ -5641,7 +5642,7 @@ tasks:
         - boat warm-start hibernation;
         - the 500-agent and 10,000-continuation profiles, replaced by J3.
 
-        Any other gap becomes a filed task, or an owner-approved deferral obtained through `aq question`.
+        Any other gap becomes a filed task, or an owner-approved deferral obtained through `aq message send --to user:dashboard --project aq-platform`.
       - **Full-product demo,** with evidence collected for each item:
         1. Four harnesses (Codex, Claude Code, Gemini CLI, OpenCode) each complete a task.
         2. Each of the deployed backends runs an attempt: desktop docker-local, VPS docker-local and boat (the three named in 0005 §11; cloudflare-containers is deferred).
