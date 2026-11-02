@@ -1035,12 +1035,16 @@ async fn credential_rotation_during_held_source_refuses_late_apply_without_erasi
         .unwrap();
 }
 #[tokio::test]
-async fn actual_cancellation_can_retire_wait_after_original_grant_is_cleared() {
+async fn aq08_preserves_original_issued_grant_identity_for_cancellation() {
     let t = setup().await;
     register(&t).await;
     let cancelled = cancel(&t).await;
     let pool = t.f.db.pool().await;
-    sqlx::query("UPDATE profiled_authority_hot SET state=jsonb_set(state,'{grant}','null'::jsonb) WHERE attempt_id=$1").bind(reg(&t).binding.attempt_id).execute(&pool).await.unwrap();
+    let clear=sqlx::query("UPDATE profiled_authority_hot SET state=jsonb_set(state,'{grant}','null'::jsonb) WHERE attempt_id=$1").bind(reg(&t).binding.attempt_id).execute(&pool).await;
+    assert!(
+        clear.is_err(),
+        "actual AQ08 never clears an issued grant identity"
+    );
     let observed = t
         .owner
         .observe(
@@ -1062,6 +1066,125 @@ async fn actual_cancellation_can_retire_wait_after_original_grant_is_cleared() {
             .await
             .unwrap();
     assert_eq!(original, Some(cancelled));
+    Owner::open_fixture(t.f.state.clone(), t.keys.clone(), policy())
+        .await
+        .unwrap();
+}
+struct LargePending;
+impl engine::SourceOwnerPort for LargePending {
+    fn install(&mut self, r: &engine::SourceRequest) -> engine::Result<engine::SourceReply> {
+        let text = wire::Text::new("p".repeat(220))?;
+        let condition = wire::canonical_digest(&r.member.condition)?;
+        // Trusted fake owner bytes are separate from the AQ verdict projection.
+        let owner_bytes=serde_json::to_vec(&serde_json::json!({"fixture":"large-pending-v1","condition":r.member.condition,"scope":r.scope,"binding":r.binding,"committed_cursor":text,"pending":true})).unwrap();
+        let reference = wire::ArtifactRef {
+            id: text.clone(),
+            version: text.clone(),
+            digest: wire::Digest::of(&owner_bytes),
+        };
+        let observation = wire::MemberOutcome {
+            member_id: r.member.member_id,
+            state: wire::MemberState::Pending,
+            evidence: Some(wire::SourceEvidence {
+                owner: r.member.condition.owner(),
+                condition_digest: condition.clone(),
+                revision: text.clone(),
+                result: reference.clone(),
+            }),
+        };
+        Ok(engine::SourceReply::Committed(Box::new(
+            engine::CommittedObservation {
+                protocol: engine::SourceProtocol::CommittedReplay,
+                subscription: r.subscription.clone(),
+                scope: r.scope.clone(),
+                binding: r.binding.clone(),
+                principal: r.principal.clone(),
+                source_access: r.source_access.clone(),
+                incarnation: wire::Text::new("large-pending-v1")?,
+                boundary: wire::SourceBoundary {
+                    member_id: r.member.member_id,
+                    owner: r.member.condition.owner(),
+                    condition_digest: condition,
+                    committed_revision: text.clone(),
+                    committed_replay_cursor: text.clone(),
+                    subscription_receipt: wire::ArtifactRef {
+                        id: text.clone(),
+                        version: text,
+                        digest: r.subscription.digest()?,
+                    },
+                    snapshot_digest: reference.digest.clone(),
+                },
+                owner_snapshot: reference,
+                projection_digest: wire::canonical_digest(&observation)?,
+                replay_from: r
+                    .previous
+                    .as_ref()
+                    .map(|b| b.committed_replay_cursor.clone()),
+                observation,
+            },
+        )))
+    }
+    fn reobserve(&mut self, r: &engine::SourceRequest) -> engine::Result<engine::SourceReply> {
+        self.install(r)
+    }
+}
+#[tokio::test]
+async fn oversized_source_basis_cannot_consume_reserved_terminal_headroom() {
+    let mut t = setup().await;
+    if let wire::Command::RegisterWait(r) = &mut t.request.body.command {
+        r.predicate = wire::Predicate::All {
+            members: (0..32)
+                .map(|i| wire::Member {
+                    member_id: Uuid::new_v4(),
+                    condition: wire::Condition::Timer {
+                        due_at_ms: NOW + 100 + i,
+                    },
+                })
+                .collect(),
+        };
+        r.predicate_digest = wire::canonical_digest(&r.predicate).unwrap();
+    }
+    t.request.body_digest = wire::canonical_digest(&t.request.body).unwrap();
+    t.raw = serde_json::to_vec(&t.request).unwrap();
+    let initial = register(&t).await;
+    let observed = t
+        .owner
+        .drive_fixture(
+            &context(&t.f).await,
+            reg(&t).binding.attempt_id,
+            reg(&t).wait_id,
+            Box::new(LargePending),
+        )
+        .await
+        .unwrap();
+    assert!(observed.snapshot.outcome().is_none());
+    assert_eq!(observed.snapshot.phase(), &engine::Phase::Installing);
+    assert!(observed.snapshot.encode().unwrap().len() <= 131072);
+    assert!(
+        observed.snapshot.next_due_ms() > NOW,
+        "oversized evidence enters bounded retry"
+    );
+    assert_eq!(observed.registration, initial.registration);
+    let pool = t.f.db.pool().await;
+    sqlx::query("UPDATE wait_owner_budgets SET envelope_limit=1")
+        .execute(&pool)
+        .await
+        .unwrap();
+    cancel(&t).await;
+    let terminal = t
+        .owner
+        .observe(
+            &context(&t.f).await,
+            reg(&t).binding.attempt_id,
+            reg(&t).wait_id,
+        )
+        .await
+        .unwrap();
+    assert!(terminal.retired);
+    assert_eq!(
+        terminal.snapshot.outcome().unwrap().kind,
+        wire::WaitOutcomeKind::Cancelled
+    );
     Owner::open_fixture(t.f.state.clone(), t.keys.clone(), policy())
         .await
         .unwrap();

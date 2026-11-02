@@ -1028,3 +1028,32 @@ fn restored_unsupported_terminal_kinds_early_deadline_and_cancelled_resume_are_r
     encoded["resume_allowed"] = serde_json::json!(true);
     assert!(Snapshot::decode(&serde_json::to_vec(&encoded).unwrap()).is_err());
 }
+#[test]
+fn reserved_terminal_headroom_preserves_existing_any_selection_at_widest_future_counters() {
+    let (plan, mut fence) = begin(32, true);
+    let mut source = FakeSource::new();
+    let committed = source.allocate(vec![(id(20), wire::MemberState::Satisfied)]);
+    source.commit(committed);
+    let installed = respond(&plan, &fence, &mut source, 1001);
+    let mut terminal = respond(&installed, &fence, &mut source, 1002).next;
+    // A structurally valid long-retained row, not a claimed number of executions.
+    terminal.revision = (i64::MAX as u64) - 1;
+    terminal.validate().unwrap();
+    let original = terminal.outcome().unwrap().clone();
+    assert_eq!(original.selected_member_id, Some(id(20)));
+    let basis = terminal.retained_basis_bytes().unwrap();
+    let largest = terminal.reserved_terminal_sizes().unwrap();
+    fence.task_cancelled = true;
+    let retired = terminal
+        .step(Input::Drive, &fence, MAX_TIME_MS)
+        .unwrap()
+        .next;
+    assert_eq!(retired.outcome(), Some(&original));
+    assert!(retired.resume_intent().is_none());
+    let actual = retired.encode().unwrap().len();
+    assert!(actual <= basis + serde_json::to_vec(&original).unwrap().len() - 4);
+    assert!(
+        actual <= largest.0,
+        "preserve selected member instead of measuring a smaller replacement outcome"
+    );
+}

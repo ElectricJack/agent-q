@@ -375,6 +375,9 @@ impl Owner {
         Ok(())
     }
     pub(super) fn bounded(snapshot: &engine::Snapshot) -> Result<()> {
+        if snapshot.retained_basis_bytes()? > 131072 {
+            return Err(Error::Capacity);
+        }
         let bytes = snapshot.encode()?;
         if bytes.len()
             > if snapshot.phase() == &engine::Phase::Terminal {
@@ -385,12 +388,12 @@ impl Owner {
         {
             return Err(Error::Capacity);
         }
-        if let Some(outcome) = snapshot.outcome() {
-            if serde_json::to_vec(outcome)?.len() > 131072 {
-                return Err(Error::Capacity);
-            }
+        if let Some(outcome) = snapshot.outcome()
+            && serde_json::to_vec(outcome)?.len() > 131072
+        {
+            return Err(Error::Capacity);
         }
-        if snapshot.outcome().is_none() {
+        {
             let (terminal, outcome, resume) = snapshot.reserved_terminal_sizes()?;
             if terminal > 262144 || outcome > 131072 || resume > 8192 {
                 return Err(Error::Capacity);
@@ -453,9 +456,6 @@ impl Owner {
             deadline_ms: snapshot.deadline_ms(),
         };
         let a = &original.anchor;
-        if a.grant_id.is_none() {
-            return Err(Error::Corrupt);
-        }
         if digest(original.request.as_bytes()) != request_digest
             || reg.wait_id != wait
             || snapshot.request() != &request
@@ -570,15 +570,14 @@ impl Owner {
                 {
                     return Err(Error::Corrupt);
                 }
-                if let Some(resume) = &resume {
-                    if resume.intent_id != original.ids.resume_intent_id
+                if let Some(resume) = &resume
+                    && (resume.intent_id != original.ids.resume_intent_id
                         || resume.outcome != outcome.outcome
                         || resume.continuation.continuation_id != original.ids.continuation_id
                         || resume.continuation.generation != reg.continuation_generation
-                        || resume.continuation.wait != reg.wait_ref()
-                    {
-                        return Err(Error::Corrupt);
-                    }
+                        || resume.continuation.wait != reg.wait_ref())
+                {
+                    return Err(Error::Corrupt);
                 }
             }
             None => {

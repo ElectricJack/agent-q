@@ -13,7 +13,7 @@ pub(super) struct Anchor {
     pub binding: wire::Binding,
     pub principal: wire::Digest,
     pub source_access: wire::Digest,
-    pub grant_id: Option<Uuid>,
+    pub grant_id: Uuid,
 }
 pub(super) struct Current {
     pub anchor: Anchor,
@@ -109,10 +109,7 @@ impl Owner {
         {
             return Err(Error::Corrupt);
         }
-        let grant_id = view.grant_id;
-        if grant_id.is_none() && !(allow_cancel && view.cancellation_id.is_some()) {
-            return Err(Error::Authority);
-        }
+        let grant_id = view.grant_id.ok_or(Error::Authority)?;
         let scope = wire::Scope {
             project_id: binding.project_id,
             workspace_id: offer.manifest.bindings.graph_id,

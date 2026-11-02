@@ -513,17 +513,45 @@ impl Snapshot {
                 outcome: outcome.outcome.clone(),
             })
     }
+    /// Logical retained source/member basis, excluding the duplicated outcome.
+    /// Reserve maximum clock/counter width and later resume retirement now.
+    /// This is a size calculation, not a deserializable state or source proof.
+    pub fn retained_basis_bytes(&self) -> Result<usize> {
+        let mut value = serde_json::to_value(self).map_err(|_| Error::Invalid)?;
+        value["outcome"] = serde_json::Value::Null;
+        value["logical_now"] = MAX_TIME_MS.into();
+        value["next_due"] = MAX_TIME_MS.into();
+        value["revision"] = u64::MAX.into();
+        value["resume_allowed"] = false.into();
+        value["phase"] = "recovery_held".into();
+        value["hold_reason"] = "p".repeat(512).into();
+        Ok(serde_json::to_vec(&value)
+            .map_err(|_| Error::Invalid)?
+            .len())
+    }
     /// Largest terminal encodings from the retained member basis. Durable owners
     /// use this before accepting progress so cancellation cannot later run out of
     /// preallocated space. This only measures plans; it creates no outcome proof.
     pub fn reserved_terminal_sizes(&self) -> Result<(usize, usize, usize)> {
         let mut maximum = (0, 0, 0);
+        if self.outcome.is_some() {
+            // Existing outcome/selected-member identity is immutable on later
+            // cancellation; measuring a replacement deadline can be smaller.
+            let mut preserved = self.clone();
+            preserved.logical_now = MAX_TIME_MS;
+            preserved.revision = u64::MAX;
+            preserved.resume_allowed = false;
+            maximum.0 = serde_json::to_vec(&preserved)
+                .map_err(|_| Error::Invalid)?
+                .len();
+        }
         for (kind, resume) in [
             (wire::WaitOutcomeKind::Cancelled, false),
             (wire::WaitOutcomeKind::DeadlineReached, true),
         ] {
             let mut candidate = self.clone();
             candidate.logical_now = MAX_TIME_MS;
+            candidate.revision = u64::MAX;
             candidate.finish(kind, resume)?;
             let sizes = (
                 serde_json::to_vec(&candidate)
