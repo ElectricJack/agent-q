@@ -1,8 +1,10 @@
 # Agent Q v2 implementation milestones
 
+> **Frozen historical baseline:** Frozen on 2026-11-02. Task statuses, scopes and dependencies below are historical evidence, not a current work queue. Tracking authority: [2026-11-02-v2-full-application-plan.md](../../docs/superpowers/plans/2026-11-02-v2-full-application-plan.md).
+
 **Planning baseline:** 2026-10-30
 
-This is the execution plan for the [implementation audit](../research/2026-10-30-v2-implementation-audit.md). The [JSON task graph](0001-v2-milestones.json) is the canonical planning source. This Markdown view is generated with `python3 scripts/check-v2-plan.py --render`; edit the JSON and regenerate it.
+This is the historical execution plan for the [implementation audit](../research/2026-10-30-v2-implementation-audit.md). The [JSON task graph](0001-v2-milestones.json) is the canonical source for this frozen snapshot. This Markdown view is generated with `python3 scripts/check-v2-plan.py --render`. Preserve historical task data; track current work in the authority above. See the [requirement sources and old-to-new mapping](requirement-sources.md).
 
 Repository planning format; not an AQ daemon import schema. No live tasks or issues are created by this file.
 
