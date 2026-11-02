@@ -230,6 +230,19 @@ impl Service {
             crate::profiled_execution::settlement::actor::ActorPin::observe(&self.state, actor)
                 .await?;
         let mut prepared = self.prepare_combined(report, source, external).await?;
+        // Preparation itself exposes private subject data, even without later
+        // admission. Fence the original principal AFTER Git I/O, preserving the
+        // common B1 -> user lock order used by every actual review operation.
+        let mut tx = self.tx().await?;
+        let current =
+            crate::profiled_execution::results::load_locked(&self.state, &mut tx, report).await?;
+        principal.fence(&mut tx).await?;
+        if !current.is_current_report_head
+            || current.receipt_artifact != prepared.code.subject.result.record_receipt
+        {
+            return Err(conflict());
+        }
+        tx.commit().await.map_err(db)?;
         prepared.principal = Some(principal);
         Ok(prepared)
     }
