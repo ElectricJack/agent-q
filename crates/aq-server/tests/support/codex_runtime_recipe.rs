@@ -100,7 +100,7 @@ fn policy(project: Uuid, repository: Uuid) -> Result<Definition> {
     // scope and scoped permissions remain in their own definitions/ceilings;
     // adding them here would make the strict policy parser refuse settlement.
     definition(
-        &format!("aq.codex-pilot-project-policy/{project}"),
+        &format!("aq.codex-pilot-project-policy:{project}"),
         json!({
             "schema_version":1,"kind":"source_change_reviewed_human_owner_no_checks_v1"
         }),
@@ -811,6 +811,13 @@ mod tests {
         let workspace = Uuid::new_v4();
         let catalog = catalog(project_id, repository).unwrap();
         let project = project(project_id, repository, 7, workspace, &catalog).unwrap();
+        let config = aq_server::project_bindings::domain::ProjectConfig {
+            worker_groups: BTreeMap::from([(GROUP.into(), vec![Uuid::new_v4()])]),
+        };
+        project.validate(&config).unwrap();
+        let mut invalid = project.clone();
+        invalid.policy.identity = format!("aq.codex-pilot-project-policy/{project_id}");
+        assert!(invalid.validate(&config).is_err());
         assert_eq!(project.repository_binding_generation, 7);
         assert_eq!(project.graph_workspace_id, workspace);
         assert_eq!(project.catalog_digest, catalog.digest());
