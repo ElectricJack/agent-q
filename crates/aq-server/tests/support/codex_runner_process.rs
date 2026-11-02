@@ -81,7 +81,7 @@ impl RunnerProcess {
                 ensure!(
                     ready["schema_version"] == 1
                         && ready["phase"] == "native_preflight_ready"
-                        && ready["worker_version"] == "0.5.0",
+                        && ready["worker_version"] == "0.5.1",
                     "actual current preflight required"
                 );
                 return Ok::<_, anyhow::Error>(ready);

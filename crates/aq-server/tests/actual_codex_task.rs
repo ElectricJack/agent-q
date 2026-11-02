@@ -873,7 +873,7 @@ async fn actual_case() -> Result<Value> {
             content_revision: pin.content_revision.try_into()?,
         };
         let setup = common::selection::ActualSetup {
-            enrollment_worker_version: "0.5.0".into(),
+            enrollment_worker_version: "0.5.1".into(),
             project: binding,
             catalog_artifact_json: String::from_utf8(catalog.canonical_bytes()?)?,
             graph: graph.agent_access_config(),
@@ -960,7 +960,7 @@ fn refusal_stage(error: &anyhow::Error) -> &'static str {
     }
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
-#[ignore = "explicit pinned worker0.5/Codex/tmux/aq-git/Graph, disposable PostgreSQL and fresh SID; finite local provider only"]
+#[ignore = "explicit pinned worker0.5.1/Codex/tmux/aq-git/Graph, disposable PostgreSQL and fresh SID; finite local provider only"]
 async fn actual_finite_codex_task_claim_source_and_protected_graph_closure() {
     let result = Box::pin(actual_case()).await;
     if let Err(error) = &result {

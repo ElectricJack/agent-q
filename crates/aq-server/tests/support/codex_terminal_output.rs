@@ -51,7 +51,11 @@ impl Observed {
             statuses.push((path.clone(), response.status().as_u16()));
         }
         if response.status() != StatusCode::OK
-            || (upload.is_none() && path != "/v1/terminal-relay/poll")
+            || (upload.is_none()
+                && !matches!(
+                    path.as_str(),
+                    "/v1/terminal-relay/poll" | "/v1/terminal-relay/output-poll"
+                ))
         {
             return response;
         }
@@ -74,6 +78,14 @@ impl Observed {
             let envelope: Envelope =
                 serde_json::from_slice(&bytes).expect("actual node-pulled envelope");
             envelope.validate().expect("actual envelope shape");
+            if path == "/v1/terminal-relay/output-poll" {
+                assert!(
+                    envelope
+                        .effects
+                        .iter()
+                        .all(|e| matches!(e, Effect::Watch(_)))
+                );
+            }
             let mut values = self.polls.lock().unwrap();
             assert!(values.len() < 64);
             values.push(envelope);
@@ -167,6 +179,15 @@ pub async fn verify_tail(
     }
     let pulled=observed.polls.lock().unwrap().iter().any(|p|p.effects.iter().any(|e|matches!(e,Effect::Watch(w) if w.terminal==watched.info.terminal && w.subscription_id==watched.subscription)));
     ensure!(pulled, "actual node-outbound Watch required");
+    ensure!(
+        observed
+            .statuses
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|(path, status)| path == "/v1/terminal-relay/output-poll" && *status == 200),
+        "actual output-only node poll required"
+    );
     let (_, reply) = human(
         state,
         &format!(
