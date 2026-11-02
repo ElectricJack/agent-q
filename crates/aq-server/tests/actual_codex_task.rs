@@ -203,6 +203,31 @@ impl Pins {
         Ok(env)
     }
 }
+fn git_object(object: &ObjectId) -> Result<aq_worker_protocol::ObjectId> {
+    ensure!(
+        object.format == ObjectFormat::Sha1,
+        "actual Git profile requires SHA1"
+    );
+    let wire = aq_worker_protocol::ObjectId {
+        algorithm: aq_worker_protocol::ObjectAlgorithm::Sha1,
+        hex: object.hex.clone(),
+    };
+    aq_worker_protocol::Validate::validate(&wire).map_err(anyhow::Error::msg)?;
+    Ok(wire)
+}
+#[test]
+fn actual_git_rpc_uses_closed_algorithm_wire_without_changing_source_identity() {
+    let base = ObjectId {
+        format: ObjectFormat::Sha1,
+        hex: "a".repeat(40),
+    };
+    let wire = git_object(&base).unwrap();
+    assert_eq!(
+        serde_json::to_value(&wire).unwrap(),
+        json!({"algorithm":"sha1","hex":base.hex})
+    );
+    assert!(serde_json::from_value::<aq_worker_protocol::ObjectId>(json!(base)).is_err());
+}
 struct Source {
     owner: actual_git_owner::Owner,
     base: ObjectId,
@@ -226,13 +251,14 @@ async fn source(root: &Path, repository: Uuid) -> Result<Source> {
         format: ObjectFormat::Sha1,
         hex: actual_git_owner::git(&seed, &["rev-parse", "HEAD"]).await,
     };
+    let wire = git_object(&base)?;
     let owner = actual_git_owner::Owner::start(root, "central-git").await;
     owner.call(repository,"repo.register",json!({"identity":"aq-gate04-actual-source","mode":"central","remote_url":seed,"allow_file_transport":true,"allowed_refs":["refs/heads/main"],"allowed_targets":["refs/heads/main"]})).await;
     owner.call(repository, "repo.sync", json!({})).await;
     let workspace = owner
-        .call(repository, "workspace.create", json!({"base":base}))
+        .call(repository, "workspace.create", json!({"base":wire}))
         .await;
-    let checkpoint=owner.call(repository,"workspace.checkpoint",json!({"workspace_id":workspace["workspace_id"],"expected_generation":1,"expected_head":base,"quiescent":true,"mode":"head"})).await;
+    let checkpoint=owner.call(repository,"workspace.checkpoint",json!({"workspace_id":workspace["workspace_id"],"expected_generation":1,"expected_head":wire,"quiescent":true,"mode":"head"})).await;
     let retention = serde_json::from_value(checkpoint["retention_handle"].clone())?;
     let configuration = aq_server::source_retention::SourceRetentionConfig {
         git_root: owner.root.clone(),
