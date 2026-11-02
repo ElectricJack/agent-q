@@ -188,7 +188,13 @@ fn source_digest(source: &RecordedSourceConfirmation) -> Result<Digest, AppError
     Ok(Digest::of(&bytes))
 }
 fn source_matches(result: &RecordedResult, source: &RecordedSourceConfirmation) -> bool {
-    source.manifest.attempt.attempt_id == result.report.binding.attempt_id
+    let aq_admission::SessionIdentity::Remote { session_id, .. } = result.report.binding.session
+    else {
+        return false;
+    };
+    source.manifest.role == aq_worker_protocol::SourceRole::Checkpoint
+        && source.manifest.attempt.attempt_id == result.report.binding.attempt_id
+        && source.manifest.attempt.session_id == session_id
         && source.manifest.attempt.generation == result.report.binding.assignment_generation
         && source.manifest.resolved_spec_digest
             == result.report.binding.execution_spec_digest.as_str()
@@ -198,6 +204,9 @@ fn source_matches(result: &RecordedResult, source: &RecordedSourceConfirmation) 
         && source.manifest.source.base.hex == result.spec.source.resolved_object.hex
         && source.receipt.source == source.manifest.checkpoint
         && source.receipt.retention_handle == source.manifest.artifact_id
+        && source.receipt.transfer_id == source.manifest.transfer_id
+        && source.receipt.repository_id == source.manifest.source.repository_id
+        && source.receipt.binding_generation == source.manifest.source.binding_generation
         && result
             .report
             .source_receipt_ids

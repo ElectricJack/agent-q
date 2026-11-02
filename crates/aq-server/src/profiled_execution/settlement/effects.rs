@@ -179,7 +179,9 @@ pub async fn inspect_aq_effects_locked(
         .await
         .map_err(|_| refused())?;
     let current = results::load_locked(state, tx, recorded.report.report_id).await?;
-    if current.receipt_artifact != recorded.receipt_artifact
+    if !current.is_current_report_head
+        || current.head_report_id != current.report.report_id
+        || current.receipt_artifact != recorded.receipt_artifact
         || current.report.binding != recorded.report.binding
     {
         return Err(refused());
