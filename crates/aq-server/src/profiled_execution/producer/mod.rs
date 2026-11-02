@@ -8,6 +8,7 @@ use super::native_offer::observation;
 
 mod publication;
 mod redelivery;
+mod result_startup;
 mod startup;
 mod workflow;
 pub(crate) use super::native_offer::load_original_offer_locked;
