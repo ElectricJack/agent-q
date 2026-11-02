@@ -1,5 +1,7 @@
 //! Actual SQL/nominal refresh owners; synthetic installation, no physical stop claim.
 mod common;
+// This shared fixture also builds Started/Stopped requests for terminal tests.
+#[allow(dead_code)]
 #[path = "common/phase_refresh_terminal.rs"]
 mod terminal;
 use aq_server::profiled_execution::no_grant;
