@@ -1,0 +1,9 @@
+
+running 4 tests
+test profiled_execution::producer::result_startup::tests::counted_rendering_contains_exact_instruction_once_and_never_appends_after_count ... ok
+test profiled_execution::producer::result_startup::tests::plain_adapter_needs_no_reporting_definition_and_preserves_empty_context_path ... ok
+test profiled_execution::producer::result_startup::tests::supported_selected_definition_supplies_exact_public_required_startup ... ok
+test profiled_execution::producer::result_startup::tests::unsupported_profile_or_contract_and_missing_or_changed_public_bytes_refuse ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 151 filtered out; finished in 0.00s
+

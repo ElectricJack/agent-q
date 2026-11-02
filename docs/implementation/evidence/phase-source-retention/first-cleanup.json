@@ -1,0 +1,11 @@
+{
+  "group": 1025182,
+  "owned_private_root": "/tmp/.tmpUIRiwM",
+  "cleanup_signal": "SIGTERM",
+  "remaining_processes": 0,
+  "before": [
+    "1025182 1025208  626557 Sl   /tmp/aq-wrk08-git-pin/aq-git --state-dir /tmp/.tmpUIRiwM/rc --git-executable /usr/bin/git --listen /tmp/.tmpUIRiwM/rc.sock serve",
+    "1025182 1025333  626557 Sl   /tmp/aq-wrk08-git-pin/aq-git --state-dir /tmp/.tmpUIRiwM/rw --git-executable /usr/bin/git --listen /tmp/.tmpUIRiwM/rw.sock serve"
+  ],
+  "after": []
+}

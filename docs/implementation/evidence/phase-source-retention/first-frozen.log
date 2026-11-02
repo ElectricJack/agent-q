@@ -1,0 +1,11 @@
+
+running 1 test
+test frozen::actual_phase_stopped_checkpoint_http_import_and_current_retention_are_not_legacy_gated ... actual phase source retained checkpoint upload report and current-retention proof; no physical/provider/settlement claim
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 7.43s
+
+No such file or directory (os error 2)
+next: doctor or inspect capabilities; correct configuration or request inputs
+No such file or directory (os error 2)
+next: doctor or inspect capabilities; correct configuration or request inputs

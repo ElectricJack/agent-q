@@ -1,0 +1,81 @@
+    Checking serde v1.0.229
+    Checking thiserror v2.0.21
+    Checking zerofrom v0.1.8
+    Checking yoke v0.8.4
+    Checking ref-cast v1.0.27
+    Checking zerovec v0.11.9
+    Checking smallvec v1.16.4
+    Checking parking_lot_core v0.9.12
+    Checking parking_lot v0.12.5
+    Checking schemars v1.2.3
+    Checking tokio v1.54.1
+    Checking aq-session-protocol v0.1.0 (/tmp/aq-human-actions-union-v2/vendor/aq-session-protocol-0.1.0)
+    Checking tinystr v0.8.5
+    Checking icu_locale_core v2.4.0
+    Checking tracing v0.1.44
+    Checking zerotrie v0.2.5
+    Checking potential_utf v0.1.6
+    Checking icu_collections v2.4.0
+    Checking icu_provider v2.4.0
+    Checking icu_properties v2.4.0
+    Checking icu_normalizer v2.4.0
+    Checking chrono v0.4.45
+    Checking idna_adapter v1.2.2
+    Checking idna v1.1.0
+    Checking aq-lifecycle-protocol v0.1.0 (/tmp/aq-human-actions-union-v2/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking url v2.5.8
+    Checking hyper v1.12.0
+    Checking hyper-util v0.1.21
+    Checking tower v0.5.3
+    Checking tokio-util v0.7.20
+    Checking toml_datetime v0.6.11
+    Checking aq-playbooks-model v0.1.0 (/tmp/aq-human-actions-union-v2/vendor/aq-playbooks-0173673/crates/aq-playbooks-model)
+    Checking serde_spanned v0.6.9
+    Checking serde_urlencoded v0.7.1
+    Checking toml_edit v0.22.27
+    Checking tokio-postgres v0.7.18
+    Checking tokio-rustls v0.26.6
+    Checking tokio-stream v0.1.19
+    Checking aq-session-api v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-session-api)
+    Checking futures-intrusive v0.5.0
+    Checking either v1.19.0
+    Checking postgres v0.19.14
+    Checking sqlx-core v0.8.6
+    Checking hyper-rustls v0.27.10
+    Checking toml v0.8.23
+    Checking clap v4.6.7
+    Checking aq-playbooks-runner v0.1.3 (/tmp/aq-human-actions-union-v2/vendor/aq-playbooks-0173673/crates/aq-playbooks-runner)
+    Checking tower-http v0.6.11
+    Checking aq-lifecycle-api v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-lifecycle-api)
+    Checking aq-agent-api v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-agent-api)
+    Checking axum-core v0.5.6
+    Checking sqlx-postgres v0.8.6
+    Checking aq-profiles v0.1.2 (/tmp/aq-human-actions-union-v2/crates/aq-profiles)
+    Checking simple_asn1 v0.6.4
+    Checking aq-playbooks-postgres v0.1.3 (/tmp/aq-human-actions-union-v2/vendor/aq-playbooks-0173673/crates/aq-playbooks-postgres)
+    Checking reqwest v0.12.28
+    Checking aq-admission v0.1.10 (/tmp/aq-human-actions-union-v2/crates/aq-admission)
+    Checking aq-terminal-relay-protocol v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-terminal-relay-protocol)
+    Checking tracing-subscriber v0.3.23
+    Checking axum v0.8.9
+    Checking aq-release v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-release)
+    Checking aq-terminal-relay v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-terminal-relay)
+    Checking jsonwebtoken v9.3.1
+    Checking num-bigint-dig v0.8.6
+    Checking aq-phase-terminal-protocol v0.1.1 (/tmp/aq-human-actions-union-v2/crates/aq-phase-terminal-protocol)
+    Checking aq-notifications v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-notifications)
+    Checking aq-playbook-host v0.1.3 (/tmp/aq-human-actions-union-v2/crates/aq-playbook-host)
+    Checking aq-selection v0.1.4 (/tmp/aq-human-actions-union-v2/crates/aq-selection)
+    Checking aq-result-media v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-result-media)
+    Checking sqlx v0.8.6
+    Checking aq-observation-api v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-observation-api)
+    Checking aq-accounting v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-accounting)
+    Checking aq-observation-admission v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-observation-admission)
+    Checking aq-protocol v0.1.0 (/tmp/aq-human-actions-union-v2/vendor/aq-protocol-0.1.0)
+    Checking aq-review-protocol v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-review-protocol)
+    Checking aq-central-authority v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-central-authority)
+    Checking aq-worker-protocol v0.2.0 (/tmp/aq-human-actions-union-v2/vendor/aq-worker-protocol-0.2.0)
+    Checking rsa v0.9.10
+    Checking aq-playbooks-compiler v0.1.0 (/tmp/aq-human-actions-union-v2/vendor/aq-playbooks-0173673/crates/aq-playbooks-compiler)
+    Checking aq-server v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-server)
+    Finished `dev` profile [unoptimized] target(s) in 50.88s

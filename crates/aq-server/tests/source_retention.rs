@@ -786,10 +786,7 @@ async fn slow_import_does_not_hold_attempt_or_node_locks_and_control_status_prog
     assert_eq!(code, StatusCode::NO_CONTENT, "{body}");
     release.notify_one();
     socket.await.unwrap();
-    assert_eq!(
-        pending.await.unwrap().status(),
-        StatusCode::SERVICE_UNAVAILABLE
-    );
+    assert_eq!(pending.await.unwrap().status(), StatusCode::UNAUTHORIZED);
     assert_eq!(
         h.json("/v1/execution/sources/status", h.status_body())
             .await
@@ -909,4 +906,184 @@ async fn released_attempt_refuses_new_intents_but_preserves_owned_transfer_recov
             .await
             .unwrap();
     assert!(!holds);
+}
+
+#[tokio::test]
+async fn credential_rotation_after_observed_node_wait_cannot_create_transfer_and_new_key_replays() {
+    let h = Harness::new().await;
+    let op = Uuid::new_v4();
+    let body = h.begin_body(op);
+    let mut lock = h.pool.begin().await.unwrap();
+    sqlx::query("SELECT id FROM nodes WHERE id=$1 FOR UPDATE")
+        .bind(h.identity.node_id)
+        .fetch_one(&mut *lock)
+        .await
+        .unwrap();
+    let app = h.app.clone();
+    let token = h.token.clone();
+    let input = body.clone();
+    let blocked = tokio::spawn(async move {
+        app.oneshot(
+            Request::post("/v1/execution/sources/begin")
+                .header("authorization", format!("Bearer {token}"))
+                .header("content-type", "application/json")
+                .body(Body::from(input.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap()
+    });
+    tokio::time::timeout(std::time::Duration::from_secs(2),async {loop {
+        let waiting:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE 'SELECT id FROM nodes WHERE id=%credential_hash=%FOR UPDATE')").fetch_one(&h.pool).await.unwrap();
+        if waiting{break;}tokio::task::yield_now().await;
+    }}).await.expect("must observe original credential's node lock wait");
+    let replacement = new_node_credential();
+    sqlx::query("UPDATE nodes SET credential_hash=$2 WHERE id=$1")
+        .bind(h.identity.node_id)
+        .bind(verifier(&replacement))
+        .execute(&mut *lock)
+        .await
+        .unwrap();
+    lock.commit().await.unwrap();
+    assert_eq!(blocked.await.unwrap().status(), StatusCode::UNAUTHORIZED);
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM source_transfers")
+        .fetch_one(&h.pool)
+        .await
+        .unwrap();
+    assert_eq!(count, 0);
+    let call = || {
+        h.request(
+            "POST",
+            "/v1/execution/sources/begin",
+            body.to_string().into_bytes(),
+            "application/json",
+            Some(&replacement),
+        )
+    };
+    let (code, first) = call().await;
+    assert_eq!(code, StatusCode::OK, "{first}");
+    assert_eq!(
+        call().await.1,
+        first,
+        "new current credential replays original immutable operation"
+    );
+}
+
+#[tokio::test]
+async fn credential_rotation_during_import_keeps_uncertain_intent_and_current_key_recovers_same_op()
+{
+    // Synthetic socket owner isolates auth/recovery; actual Git retention is
+    // independently qualified by phase_source_retention's explicit pinned cases.
+    let h = Harness::new().await;
+    assert_eq!(
+        h.json("/v1/execution/sources/begin", h.begin_body(Uuid::new_v4()))
+            .await
+            .0,
+        StatusCode::OK
+    );
+    assert_eq!(
+        h.upload(Uuid::new_v4(), 0, h.bytes.clone()).await.0,
+        StatusCode::OK
+    );
+    let native: CanonicalManifest = serde_json::from_slice(&h.bytes).unwrap();
+    let canonical = hash(&serde_json::to_vec(&native).unwrap());
+    let acknowledgement = json!({"receiver_installation_id":Uuid::new_v4(),"repository_id":h.manifest.source.repository_id,"binding_generation":1,"transfer_id":h.manifest.artifact_id,"source":h.manifest.checkpoint,"retention_handle":h.manifest.artifact_id,"manifest_digest":canonical,"retention_state":"active","historical":false});
+    let listener = tokio::net::UnixListener::bind(h.dir.path().join("git.sock")).unwrap();
+    let entered = Arc::new(tokio::sync::Semaphore::new(0));
+    let resume = Arc::new(tokio::sync::Semaphore::new(0));
+    let signal = entered.clone();
+    let go = resume.clone();
+    let peer = tokio::spawn(async move {
+        let mut operations = vec![];
+        for index in 0..2 {
+            let (stream, _) = listener.accept().await.unwrap();
+            let mut reader = BufReader::new(stream);
+            let mut line = String::new();
+            reader.read_line(&mut line).await.unwrap();
+            let request: Value = serde_json::from_str(&line).unwrap();
+            operations.push(request["operation_id"].clone());
+            if index == 0 {
+                signal.add_permits(1);
+                go.acquire().await.unwrap().forget();
+            }
+            let reply = json!({"protocol_version":1,"request_id":request["request_id"],"operation_id":request["operation_id"],"ok":true,"result":acknowledgement});
+            reader
+                .get_mut()
+                .write_all(format!("{reply}\n").as_bytes())
+                .await
+                .unwrap();
+        }
+        assert_eq!(
+            operations[0], operations[1],
+            "recovery must reuse admitted import identity"
+        );
+    });
+    let app = h.app.clone();
+    let token = h.token.clone();
+    let input = h.status_body();
+    let pending = tokio::spawn(async move {
+        app.oneshot(
+            Request::post("/v1/execution/sources/finalize")
+                .header("authorization", format!("Bearer {token}"))
+                .header("content-type", "application/json")
+                .body(Body::from(input.to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap()
+    });
+    tokio::time::timeout(std::time::Duration::from_secs(2), entered.acquire())
+        .await
+        .unwrap()
+        .unwrap()
+        .forget();
+    let replacement = new_node_credential();
+    sqlx::query("UPDATE nodes SET credential_hash=$2 WHERE id=$1")
+        .bind(h.identity.node_id)
+        .bind(verifier(&replacement))
+        .execute(&h.pool)
+        .await
+        .unwrap();
+    resume.add_permits(1);
+    assert_eq!(pending.await.unwrap().status(), StatusCode::UNAUTHORIZED);
+    let pending_fact:Value=sqlx::query_scalar("SELECT jsonb_build_object('state',state,'dispatch',dispatch_intent,'receipt',receipt,'staging_released',staging_released) FROM source_transfers WHERE transfer_id=$1").bind(h.manifest.transfer_id).fetch_one(&h.pool).await.unwrap();
+    assert_eq!(
+        pending_fact,
+        json!({"state":"import_pending","dispatch":true,"receipt":null,"staging_released":false})
+    );
+    assert!(
+        h.dir
+            .path()
+            .join("git/artifacts/incoming")
+            .join(h.manifest.artifact_id.to_string())
+            .exists()
+    );
+    let body = h.status_body();
+    let (code, recovered) = h
+        .request(
+            "POST",
+            "/v1/execution/sources/finalize",
+            body.to_string().into_bytes(),
+            "application/json",
+            Some(&replacement),
+        )
+        .await;
+    assert_eq!(code, StatusCode::OK, "{recovered}");
+    assert!(recovered["receipt"].is_object());
+    assert_eq!(
+        h.request(
+            "POST",
+            "/v1/execution/sources/finalize",
+            body.to_string().into_bytes(),
+            "application/json",
+            Some(&replacement)
+        )
+        .await
+        .1,
+        recovered
+    );
+    tokio::time::timeout(std::time::Duration::from_secs(2), peer)
+        .await
+        .unwrap()
+        .unwrap();
 }

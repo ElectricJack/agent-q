@@ -1,4 +1,7 @@
 use aq_server::test_support::migrate_profile;
+#[path = "support/retained_archive.rs"]
+mod retained_archive;
+use retained_archive::{archive_snapshot, write_archive_evidence};
 // Explicit retained-fixture qualification only. The archive is restored by the
 // operator into a newly owned database before this test; no configured service
 // or original fixture database can be selected through this entry point.
@@ -60,7 +63,7 @@ async fn selected_populated_archive37_to38_preserves_old_columns_and_receipts() 
             .fetch_all(&pool).await.unwrap();
         rows.into_iter().collect()
     };
-    let before = archive_snapshot(&pool, &columns).await;
+    let before = archive_snapshot(&pool, &columns, 37).await;
     let report_bytes: Vec<(uuid::Uuid, Vec<u8>, Vec<u8>)> =
         sqlx::query_as("SELECT report_id,report_bytes,receipt_bytes FROM profiled_result_reports ORDER BY report_id")
             .fetch_all(&pool).await.unwrap();
@@ -68,7 +71,7 @@ async fn selected_populated_archive37_to38_preserves_old_columns_and_receipts() 
         .fetch_all(&pool).await.unwrap();
     write_archive_evidence(&directory.join("before37.json"), &before);
     migrate_profile(&pool, 38).await.unwrap();
-    let after = archive_snapshot(&pool, &columns).await;
+    let after = archive_snapshot(&pool, &columns, 37).await;
     write_archive_evidence(&directory.join("after38.json"), &after);
     assert_eq!(
         before, after,
@@ -112,64 +115,4 @@ async fn selected_populated_archive37_to38_preserves_old_columns_and_receipts() 
         columns.len()
     );
     pool.close().await;
-}
-
-fn archive_ident(value: &str) -> String {
-    format!("\"{}\"", value.replace('"', "\"\""))
-}
-fn write_archive_evidence(path: &std::path::Path, value: &serde_json::Value) {
-    use std::io::Write;
-    use std::os::unix::fs::OpenOptionsExt;
-    let mut file = std::fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .mode(0o600)
-        .open(path)
-        .unwrap();
-    file.write_all(&serde_json::to_vec_pretty(value).unwrap())
-        .unwrap();
-    file.sync_all().unwrap();
-}
-async fn archive_snapshot(
-    pool: &sqlx::PgPool,
-    columns: &std::collections::BTreeMap<String, Vec<String>>,
-) -> serde_json::Value {
-    use serde_json::{Value, json};
-    use sqlx::Row;
-    let mut tables = serde_json::Map::new();
-    let mut column_definitions = serde_json::Map::new();
-    for (table, names) in columns {
-        let projection = names
-            .iter()
-            .map(|v| format!("t.{}", archive_ident(v)))
-            .collect::<Vec<_>>()
-            .join(",");
-        let predicate = match table.as_str() {
-            "meta" => " WHERE key<>'state_format_version'",
-            "schema_migrations" => " WHERE version<=37",
-            _ => "",
-        };
-        let query = format!(
-            "SELECT jsonb_build_object('count',count(*),'sha256',encode(sha256(convert_to(COALESCE(string_agg(h,'' ORDER BY h),''),'UTF8')),'hex')) FROM (SELECT encode(sha256(convert_to(to_jsonb(t)::text,'UTF8')),'hex') h FROM (SELECT {projection} FROM public.{} t{predicate}) t) bag",
-            archive_ident(table)
-        );
-        let bag: Value = sqlx::query_scalar(&query).fetch_one(pool).await.unwrap();
-        tables.insert(table.clone(), bag);
-        let defs:Value=sqlx::query_scalar("SELECT jsonb_agg(jsonb_build_object('name',a.attname,'type',format_type(a.atttypid,a.atttypmod),'notnull',a.attnotnull,'identity',a.attidentity,'generated',a.attgenerated,'default',pg_get_expr(d.adbin,d.adrelid)) ORDER BY a.attnum) FROM pg_attribute a JOIN pg_class c ON c.oid=a.attrelid JOIN pg_namespace n ON n.oid=c.relnamespace LEFT JOIN pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum WHERE n.nspname='public' AND c.relname=$1 AND a.attname=ANY($2) AND NOT a.attisdropped")
-            .bind(table).bind(names).fetch_one(pool).await.unwrap();
-        column_definitions.insert(table.clone(), defs);
-    }
-    let sequence_names:Vec<String>=sqlx::query_scalar("SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname='public' AND c.relkind='S' ORDER BY c.relname").fetch_all(pool).await.unwrap();
-    let mut sequences = serde_json::Map::new();
-    for name in sequence_names {
-        let row = sqlx::query(&format!(
-            "SELECT last_value,is_called FROM public.{}",
-            archive_ident(&name)
-        ))
-        .fetch_one(pool)
-        .await
-        .unwrap();
-        sequences.insert(name,json!({"last_value":row.get::<i64,_>("last_value"),"is_called":row.get::<bool,_>("is_called")}));
-    }
-    json!({"old_table_column_bags":tables,"old_column_definitions":column_definitions,"sequence_states":sequences})
 }

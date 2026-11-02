@@ -26,6 +26,33 @@ use sqlx::{Postgres, Row, Transaction};
 use std::{path::PathBuf, time::Duration};
 use uuid::Uuid;
 
+// Settlement uses the SAME fixed configured AQ07 transport and schema validator.
+// These ports expose no token and do not expand any agent capability.
+pub(crate) fn settlement_service_identity(
+    rt: &Runtime,
+    workspace: Uuid,
+) -> std::result::Result<Value, crate::error::AppError> {
+    mutations::service_identity(rt, workspace).map_err(|_| {
+        crate::error::AppError::UpdatesUnavailable("Graph settlement transport unavailable".into())
+    })
+}
+pub(crate) async fn settlement_post(
+    rt: &Runtime,
+    workspace: Uuid,
+    bytes: Vec<u8>,
+) -> std::result::Result<(StatusCode, Value), crate::error::AppError> {
+    mutations::post_human_creation(rt, workspace, bytes)
+        .await
+        .map_err(|_| {
+            crate::error::AppError::UpdatesUnavailable(
+                "Graph settlement response unavailable".into(),
+            )
+        })
+}
+pub(crate) fn settlement_response_valid(raw: &Value) -> bool {
+    contract::upstream_valid("MutationResult", raw)
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct AgentAccessConfig {

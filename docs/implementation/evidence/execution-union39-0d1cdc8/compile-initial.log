@@ -1,0 +1,6 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 1m 43s
+  Executable unittests src/lib.rs (/tmp/aq-native-union-target/debug/deps/aq_server-67ba2403192f552b)
+  Executable tests/native_result_startup.rs (/tmp/aq-native-union-target/debug/deps/native_result_startup-8293c6cba67b3a96)
+  Executable tests/profiled_results.rs (/tmp/aq-native-union-target/debug/deps/profiled_results-538577782df91bd3)
+  Executable tests/settlement_migration.rs (/tmp/aq-native-union-target/debug/deps/settlement_migration-30e7b02d7afdc0f2)

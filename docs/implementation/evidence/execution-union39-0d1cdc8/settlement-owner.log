@@ -1,0 +1,15 @@
+
+running 10 tests
+test recording_retains_claims_replays_and_serializes_corrections_without_settlement ... ok
+test settlement_effects::actual_ledger_byte_bound_refuses_before_payload_fetch ... ok
+test settlement_effects::actual_pending_ledger_and_mailbox_history_cannot_disappear_from_pilot_scope ... ok
+test settlement_effects::actual_stopped_ledger_scan_is_exhaustive_and_preserves_held_authority ... ok
+test settlement_owner39::settlement39_actual_owners_accept_one_combined_decision_hold_until_exact_graph_receipt ... ok
+test settlement_owner39::settlement39_expiry_after_final_approver_wait_rolls_back_first_dispatch ... ok
+test settlement_owner39::settlement39_expiry_after_final_requester_wait_rolls_back_acceptance ... ok
+test settlement_owner39::settlement39_lost_lease_after_held_response_fences_revoked_then_regranted_actor ... ok
+test settlement_owner39::settlement39_prepare_held_git_reply_fences_revoked_preparer_before_private_subject_return ... ok
+test settlement_owner39::settlement39_startup_refuses_corrupted_accepted_hot_basis_without_repair ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 39 filtered out; finished in 16.30s
+

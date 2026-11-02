@@ -112,6 +112,15 @@ pub async fn setup_with_inventory_and_config(
     extra: fn(&mut aq_server::profiled_execution::config::ProfiledConfig),
 ) -> (Case, phase::Proposal, AcceptRequest) {
     let ready = presence_fixture::setup().await;
+    setup_from_presence(ready, v2, extra).await
+}
+/// Actual-source fixtures supply their owner before admission; never rewrite a
+/// frozen offer or binding after the shared fixture has issued it.
+pub async fn setup_from_presence(
+    ready: presence_fixture::Case,
+    v2: bool,
+    extra: fn(&mut aq_server::profiled_execution::config::ProfiledConfig),
+) -> (Case, phase::Proposal, AcceptRequest) {
     let mut c = ready.c;
     configure(&mut c, extra).await;
     if v2 {
@@ -232,6 +241,18 @@ async fn prepare_with_optional_config(
         Some(extra) => setup_with_inventory_and_config(v2, extra).await,
         None => setup_with_inventory(v2).await,
     };
+    prepare_from_parts(c, p, q).await
+}
+pub fn prepared_from_presence(
+    ready: presence_fixture::Case,
+    extra: fn(&mut aq_server::profiled_execution::config::ProfiledConfig),
+) -> impl std::future::Future<Output = Prepared> {
+    Box::pin(async move {
+        let (c, p, q) = setup_from_presence(ready, true, extra).await;
+        prepare_from_parts(c, p, q).await
+    })
+}
+async fn prepare_from_parts(c: Case, p: phase::Proposal, q: AcceptRequest) -> Prepared {
     let a = owner::accept(&c.env.env.state, &auth(&c).await, &q, Uuid::new_v4())
         .await
         .unwrap()
