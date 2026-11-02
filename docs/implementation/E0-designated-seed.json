@@ -1,14 +1,19 @@
 {
-  "admin_url": "http://127.0.0.1:32819",
-  "compose_project": "aq-e0-designated",
+  "admin_url": "http://127.0.0.1:32826",
+  "compose_project": "aq-e0-designated-uid10001",
   "graph_task_verified": true,
-  "graph_url": "http://127.0.0.1:32818",
+  "graph_url": "http://127.0.0.1:32825",
   "health": {
     "aq-git": "healthy",
     "aq-graph": "healthy",
     "postgres": "healthy",
     "server": "healthy"
   },
+  "private_directory_ownership": [
+    "10001:10001:700",
+    "10001:10001:700",
+    "10001:10001:700"
+  ],
   "project_revision": 1,
   "readiness": {
     "database": "ok",
@@ -35,6 +40,10 @@
     "remote_url": "https://github.com/ElectricJack/aq-scratch.git",
     "repository_id": "e0000000-0000-4000-8000-000000000003"
   },
+  "runtime_users": {
+    "aq-git": "10001",
+    "server": "10001"
+  },
   "seed": {
     "designation": {
       "base_branch": "main",
@@ -42,7 +51,7 @@
       "local_fixture": false,
       "url": "https://github.com/ElectricJack/aq-scratch.git"
     },
-    "node_id": "feb7992e-7429-4d1d-99bb-7274f9be5d57",
+    "node_id": "20643c89-5778-4a3b-a14e-7e73114900a3",
     "project_id": "e0000000-0000-4000-8000-000000000002",
     "repository_id": "e0000000-0000-4000-8000-000000000003",
     "task_id": "e0000000-0000-4000-8000-000000000004",
@@ -75,8 +84,8 @@
     "retention_handle": "e0000000-0000-4000-8000-000000000011",
     "workspace_retired": true
   },
-  "source_revision": "c5fb062d055d1da3faf5e7e8417ba6f15f4f2535",
-  "state_root": "/home/jkern/.local/state/aq-platform-e0",
+  "source_revision": "05f074dba3fccb5f73ebb7ffad629ab879f17818",
+  "state_root": "/home/jkern/.local/state/aq-platform-e0-uid10001",
   "worker_count": 1,
-  "worker_url": "http://127.0.0.1:32820"
+  "worker_url": "http://127.0.0.1:32827"
 }
