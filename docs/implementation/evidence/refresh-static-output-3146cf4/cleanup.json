@@ -1,0 +1,5 @@
+{
+  "matching_pinned_processes": [],
+  "stop_evidence": "actual durable kernel_wait_echild=true and exact Started/Stopped ACK assertions in passing case",
+  "snapshot_input_claim": false
+}
