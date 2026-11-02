@@ -770,20 +770,20 @@ async fn execute_case(
         let (watched,binding,deadline,auth,cap)=Box::pin(running_watch(actual,&transferred,&mut worker)).await?;
         ensure!(cap!=key && cap!=actual.env.credential,"fresh scoped capability required");
         peer.release_after_watch(binding.clone(),deadline,cap)?;
-        let status=worker.wait().await?;ensure!(status.success(),"ordinary RunNative failed");
+        let status=worker.wait().await.context("gate04_worker_wait")?;ensure!(status.success(),"ordinary RunNative failed");
         let state=journal(&transferred.state,actual.env.node)?;
         let attempts=state["attempts"].as_object().context("actual attempts absent")?;ensure!(attempts.len()==1,"one retained actual attempt");
         let attempt=attempts.values().next().unwrap();let host=&attempt["native_host"];
         ensure!(host["running"].is_object() && host["stopped"]["observation"]["kernel_wait_echild"]==true &&host["refresh_terminal"]["started"]["receipt"].is_object()&&host["refresh_terminal"]["stopped"]["receipt"].is_object(),"actual physical stop/paired ACK required");
         ensure!(transferred.state.missing(&auth)? &&transferred.sender_exited()?,"actual private auth/fixture sender cleanup");
-        let tools=peer.tool_validation(&program,&binding).await?;
+        let tools=peer.tool_validation(&program,&binding).await.context("gate04_tool_validation")?;
         let requests=peer.requests.lock().unwrap().clone();
-        let model_input=model_input_evidence(actual,attempt,&requests).await?;
+        let model_input=model_input_evidence(actual,attempt,&requests).await.context("gate04_model_input")?;
         let workspace=Path::new(attempt["result"]["scope"]["workspace"]["path"].as_str().context("actual retained worktree")?).strip_prefix(STATE)?;
         let proof=transferred.state.read(&workspace.join("gate04-proof.txt"),128)?;
         ensure!(proof==b"AQ native result fixture proof\n","actual fixed file differs");
         ensure!(attempt["result"]["receipt"].is_object(),"actual B1 receipt required");
-        let terminal=codex_terminal_output::verify_tail(&actual.env.state,&watched,&observed).await?;
+        let terminal=codex_terminal_output::verify_tail(&actual.env.state,&watched,&observed).await.context("gate04_terminal_tail")?;
         eprintln!("GATE04_STAGE protected_result_settlement");
         let report=serde_json::from_value(binding["report_id"].clone())?;
         let source_operation=serde_json::from_value(attempt["result"]["report"]["request"]["source_receipt_ids"][0].clone())?;
@@ -941,12 +941,23 @@ fn refusal_stage(error: &anyhow::Error) -> &'static str {
             "gate04_actual_setup" => return "actual_project_setup",
             "gate04_recipe" => return "runtime_recipe",
             "gate04_install" => return "owner_install",
-            "gate04_execute" => return "ordinary_worker_execution",
+            "gate04_execute" => {}
+            "gate04_worker_wait" | "ordinary RunNative failed" => return "worker_exit",
+            "actual physical stop/paired ACK required" => return "physical_ack_assertion",
+            "actual private auth/fixture sender cleanup" => return "private_cleanup",
+            "gate04_tool_validation" => return "tool_validation",
+            "gate04_model_input" => return "model_input",
+            "gate04_terminal_tail" => return "terminal_tail",
+            "actual fixed file differs" => return "fixed_file",
             "gate04_graph_cleanup" => return "graph_cleanup",
             _ => {}
         }
     }
-    "guard_or_setup_unavailable"
+    if error.chain().any(|e| e.to_string() == "gate04_execute") {
+        "ordinary_worker_execution"
+    } else {
+        "guard_or_setup_unavailable"
+    }
 }
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "explicit pinned worker0.5/Codex/tmux/aq-git/Graph, disposable PostgreSQL and fresh SID; finite local provider only"]

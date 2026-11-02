@@ -1,0 +1,23 @@
+
+running 1 test
+test actual_finite_codex_task_claim_source_and_protected_graph_closure ... GATE04_PRIVATE_ROOT /tmp/aq-g04-9vM2jA
+SOURCE_RETENTION_OWNER group=1094021 start=25244871 session=1093967 root=/tmp/aq-g04-9vM2jA/central-git
+GATE04_STAGE preflight
+GATE04_STAGE worker_repository_provisioning
+GATE04_STAGE ordinary_run_once
+GATE04_DIAGNOSTICS {"accepted":true,"accepted_output_exchanges":5,"b1_receipt":true,"execution":true,"fixture_sender_exited":true,"guardian":true,"host_intent":true,"http_statuses":[["/v1/worker/heartbeat",200],["/v1/worker/probe",200],["/v1/worker/heartbeat",200],["/v1/worker/profiled/register",200],["/v1/worker/profiled/inventory-v2",200],["/v1/worker/profiled/poll",200],["/v1/worker/profiled-v2/proposal",200],["/v1/worker/profiled-v2/accept",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/material",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/source/92040c5f-6a31-5711-af7c-267cc699aae9",200],["/v1/worker/profiled/source/92040c5f-6a31-5711-af7c-267cc699aae9/manifest",200],["/v1/worker/profiled/source/92040c5f-6a31-5711-af7c-267cc699aae9/bundle",200],["/v1/worker/profiled-v2/prepare",200],["/v1/worker/profiled-v2/started",200],["/v1/terminal-relay/register",200],["/v1/terminal-relay/upload",200],["/v1/terminal-relay/upload",200],["/v1/terminal-relay/upload",200],["/v1/terminal-relay/upload",200],["/v1/worker/heartbeat",200],["/v1/terminal-relay/upload",200],["/v1/worker/profiled-v2/stopped",200],["/v1/execution/sources/begin",200],["/v1/execution/sources/dbf910e9-e2e0-49c8-af68-054cc9653a10/manifest",200],["/v1/execution/sources/dbf910e9-e2e0-49c8-af68-054cc9653a10/bundle",200],["/v1/execution/sources/finalize",200],["/v1/worker/profiled/results",200]],"journal_format":12,"journal_revision":55,"kernel_wait_echild":true,"local_claim":true,"original_execution_deadline_boot_ns":252497694333918,"original_reservation_deadline_boot_ns":252473962335586,"physical_intent":true,"prepared_inputs":true,"result_history":true,"running":true,"source_progress":{"bundle_offset":366,"manifest":true,"manifest_offset":930,"operations":[{"intent":true,"result":true,"stage":"repository"},{"intent":true,"result":true,"stage":"import"},{"intent":true,"result":true,"stage":"create"},{"intent":true,"result":true,"stage":"retention"},{"intent":true,"result":true,"stage":"workspace"}],"plan":true,"verified":true},"source_receipt":true,"start_intended":true,"started_ack":true,"stopped":true,"stopped_ack":true}
+SOURCE_RETENTION_OWNER_DRAINED group=1094021
+GATE04_OUTCOME_REFUSAL stage=ordinary_worker_execution no_success_claim
+
+thread 'actual_finite_codex_task_claim_source_and_protected_graph_closure' (1093968) panicked at crates/aq-server/tests/actual_codex_task.rs:961:5:
+actual finite Codex composed qualification failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    actual_finite_codex_task_claim_source_and_protected_graph_closure
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 16 filtered out; finished in 54.37s
+

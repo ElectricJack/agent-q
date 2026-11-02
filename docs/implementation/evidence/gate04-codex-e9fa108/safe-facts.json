@@ -1,0 +1,18 @@
+{
+  "case_sid": 1093967,
+  "remaining_processes": 0,
+  "unknown_processes": 0,
+  "requests": 3,
+  "first_request_canonical_bytes": 35824,
+  "sealed_payload_bytes": 3408,
+  "conservative_implicit_units": 32416,
+  "declared_implicit_units": 32768,
+  "fixed_proof_bytes": 31,
+  "fixed_proof_matches": true,
+  "offline_tool_validator_passed": true,
+  "central_source_receipt": true,
+  "b1_receipt": true,
+  "natural_process_outcome_unknown": true,
+  "physical_stop_echild": true,
+  "original_execution_deadline_boot_ns": 252497694333918
+}
