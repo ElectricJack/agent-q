@@ -530,3 +530,5 @@ pub mod scoped_presence;
 
 pub mod preparation_refresh_v1;
 mod preparation_shared;
+
+mod interactive_delivery;
