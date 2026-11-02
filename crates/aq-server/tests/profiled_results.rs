@@ -18,8 +18,49 @@ async fn prepare(
     pin: bool,
     stop_now: bool,
 ) -> (Fixture, aq_admission::started::Request, ResultReport) {
+    prepare_with_graph_profile(pin, stop_now, None).await
+}
+async fn prepare_with_graph_profile(
+    pin: bool,
+    stop_now: bool,
+    graph_profile: Option<serde_json::Value>,
+) -> (Fixture, aq_admission::started::Request, ResultReport) {
+    prepare_with_inputs(pin, stop_now, graph_profile, false).await
+}
+async fn prepare_with_inputs(
+    pin: bool,
+    stop_now: bool,
+    graph_profile: Option<serde_json::Value>,
+    pilot: bool,
+) -> (Fixture, aq_admission::started::Request, ResultReport) {
     let mut f = fixture().await;
-    let task_context = artifact("synthetic-task-context", b"synthetic task");
+    // Optional synthetic ledger-fixture profile is pinned BEFORE the launch is
+    // sealed. The original prepare wrapper preserves every prior fixture byte.
+    if let Some(profile) = graph_profile {
+        assert!(aq_agent_api::valid("ResolvedProfile", &profile));
+        let digest = aq_agent_api::digest(&profile).unwrap();
+        let reference = ArtifactRef {
+            id: Text::new(profile["profile_id"].as_str().unwrap()).unwrap(),
+            version: Text::new(profile["revision"].as_str().unwrap()).unwrap(),
+            digest: serde_json::from_value(json!(digest)).unwrap(),
+        };
+        f.profiled.graph.profile_id = profile["profile_id"].as_str().unwrap().into();
+        f.profiled.graph.profile_revision = profile["revision"].as_str().unwrap().into();
+        f.profiled.graph.profile_digest = digest;
+        f.profiled.offer.manifest.bindings.graph_access_profile = reference.clone();
+        f.profiled.offer.binding.graph_access_profile_digest = reference.digest;
+    }
+    let context_body = if pilot {
+        settlement_owner39::context_bytes(&f)
+    } else {
+        b"synthetic task".to_vec()
+    };
+    let task_context = artifact("synthetic-task-context", &context_body);
+    if pilot {
+        f.profiled.graph.context_digest = task_context.digest.as_str().into();
+        settlement_owner39::initial_project(&f).await;
+    }
+
     f.profiled
         .offer
         .manifest
@@ -29,7 +70,7 @@ async fn prepare(
             artifact: task_context.clone(),
             provenance: Text::new("synthetic-test-task").unwrap(),
             delivery: aq_session_protocol::ContextDelivery::Startup,
-            bytes: 14,
+            bytes: context_body.len() as u64,
             tokens: 4,
             required: true,
         });
@@ -80,7 +121,11 @@ async fn prepare(
             .bindings
             .graph_access_profile
             .clone(),
-        task_observation: artifact("synthetic-task-observation", b"graph-context"),
+        task_observation: if pilot {
+            task_context.clone()
+        } else {
+            artifact("synthetic-task-observation", b"graph-context")
+        },
         task_context,
         selection_digest,
     };
@@ -99,13 +144,29 @@ async fn prepare(
     };
     outcome.task_observation = spec.task_observation.clone();
     outcome.task_context = spec.task_context.clone();
+    if pilot {
+        outcome.validation_policy = settlement_owner39::policy().artifact().clone();
+        outcome.required_checks.clear();
+        outcome.inputs = vec![spec.task_context.clone()];
+    }
     spec.outcome_artifact = outcome.artifact().unwrap();
     f.profiled.offer.manifest.bindings.outcome = spec.outcome_artifact.clone();
     f.profiled.offer.binding.launch_manifest_digest =
         aq_session_protocol::canonical_digest(&f.profiled.offer.manifest).unwrap();
     f.profiled.offer.binding.execution_spec_digest = spec.artifact().unwrap().digest;
     outcome.validate_against(&spec).unwrap();
-    let (f, start) = native_started::setup_fixture(f, true, true, Some(&spec)).await;
+    let (mut f, start) = native_started::setup_fixture(f, true, true, Some(&spec)).await;
+    if pilot {
+        let mut config = (*f.state.config).clone();
+        let mut p = (**config.profiled_execution.as_ref().unwrap()).clone();
+        p.revision += 1;
+        p.definition_bodies.push(settlement_owner39::policy());
+        config.profiled_execution = Some(Arc::new(p));
+        f.state.config = Arc::new(config);
+        aq_server::profiled_execution::policies::install(&f.state)
+            .await
+            .unwrap();
+    }
     let pool = f.db.pool().await;
     let installed: bool =
         sqlx::query_scalar("SELECT to_regclass('public.profiled_result_reports') IS NOT NULL")
@@ -143,6 +204,35 @@ async fn prepare(
         .unwrap();
         tx.commit().await.unwrap();
     }
+    if pilot {
+        let id = Uuid::new_v4();
+        artifacts::retain(
+            &f.state,
+            artifacts::Retain {
+                artifact_id: id,
+                project_id: spec.lifecycle.project_id,
+                owner: artifacts::OwnerKind::GraphSnapshot,
+                artifact: spec.task_context.clone(),
+                kind: ArtifactKind::Context,
+                bytes: &context_body,
+                retain_until_ms: NOW + 60000,
+            },
+        )
+        .await
+        .unwrap();
+        let mut tx = pool.begin().await.unwrap();
+        artifacts::link_locked(
+            &mut tx,
+            start.binding.attempt_id,
+            spec.lifecycle.project_id,
+            &[id],
+            NOW,
+            NOW + 30000,
+        )
+        .await
+        .unwrap();
+        tx.commit().await.unwrap();
+    }
     let auth = context(&f).await;
     started::record(&f.state, &auth, &start).await.unwrap();
     let stop = native_started::stop_request(&start);
@@ -168,6 +258,9 @@ async fn prepare(
     result_record::validate_report(&report).unwrap();
     (f, start, report)
 }
+
+#[path = "profiled_results/settlement_effects.rs"]
+mod settlement_effects;
 #[tokio::test]
 async fn recording_retains_claims_replays_and_serializes_corrections_without_settlement() {
     let (mut f, start, report) = prepare(true, true).await;
@@ -912,7 +1005,17 @@ struct ReviewEnv {
     peer: tokio::task::JoinHandle<()>,
 }
 async fn review_env(peer_count: usize) -> ReviewEnv {
-    let (mut f, _, mut report) = prepare(true, true).await;
+    review_env_options(peer_count, None, false).await
+}
+async fn review_env_options(
+    peer_count: usize,
+    profile: Option<serde_json::Value>,
+    pilot: bool,
+) -> ReviewEnv {
+    let (mut f, _, mut report) = Box::pin(prepare_with_inputs(true, true, profile, pilot)).await;
+    if pilot {
+        report.outcome = transport::ProcessOutcome::Unknown;
+    }
     let operation = Uuid::new_v4();
     report.source_receipt_ids.push(operation);
     let auth = context(&f).await;
@@ -1650,12 +1753,15 @@ async fn bounded_owner_quantum_expires_its_accepted_question_and_delivers_exact_
     driver.stop().await.unwrap();
 }
 
-#[path = "profiled_results/review_inbox.rs"]
-mod review_inbox;
 #[path = "profiled_results/human_results.rs"]
 mod human_results;
 #[path = "profiled_results/media_owner.rs"]
 mod media_owner;
+#[path = "profiled_results/review_inbox.rs"]
+mod review_inbox;
 
 #[path = "profiled_results/media_http.rs"]
 mod media_http;
+
+#[path = "profiled_results/settlement_owner39.rs"]
+mod settlement_owner39;

@@ -1,0 +1,26 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-settlement-b2-v2/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 4.55s
+     Running unittests src/lib.rs (/tmp/aq-native-union-target/debug/deps/aq_server-e599dbe0bfcad707)
+
+running 8 tests
+test profiled_execution::settlement::effects::tests::byte_and_cardinality_limits_refuse_instead_of_truncating ... ok
+test profiled_execution::settlement::effects::tests::read_only_pilot_closes_messaging_and_unknown_future_effects ... ok
+test profiled_execution::settlement::eligibility::tests::synthetic_pure_plan_requires_every_independent_owner_product ... ok
+test profiled_execution::settlement::eligibility::tests::synthetic_combined_decision_requires_new_exact_subject_and_two_matching_views ... ok
+test profiled_execution::settlement::effects::tests::final_phase_alone_cannot_hide_possible_effect_or_changed_owner ... ok
+test profiled_execution::settlement::effects::tests::terminal_owner_rows_settle_but_pending_and_unknown_never_do ... ok
+test profiled_execution::settlement::eligibility::tests::synthetic_reconciliation_and_applicability_remain_bound_to_original_facts ... ok
+test profiled_execution::settlement::eligibility::tests::synthetic_policy_and_revision_changes_never_inherit_approval ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 135 filtered out; finished in 0.02s
+
+     Running tests/profiled_results.rs (/tmp/aq-native-union-target/debug/deps/profiled_results-cd40b1dc667a0b6b)
+
+running 4 tests
+test settlement_effects::actual_stopped_ledger_scan_is_exhaustive_and_preserves_held_authority ... ok
+test recording_retains_claims_replays_and_serializes_corrections_without_settlement ... ok
+test settlement_effects::actual_ledger_byte_bound_refuses_before_payload_fetch ... ok
+test settlement_effects::actual_pending_ledger_and_mailbox_history_cannot_disappear_from_pilot_scope ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 39 filtered out; finished in 2.18s
+

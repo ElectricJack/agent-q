@@ -23,6 +23,7 @@ pub mod stopped;
 
 pub mod human_results;
 pub mod results;
+pub mod settlement;
 pub mod source_exports;
 
 pub mod source_api;

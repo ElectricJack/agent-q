@@ -135,7 +135,7 @@ impl Service {
         let expires = cursor.as_ref().map_or(at + CURSOR_TTL, |c| c.expires);
         let mut tx = self.tx().await?;
         Self::owner(&mut tx, actor).await?;
-        let rows = sqlx::query("SELECT d.* FROM human_decision_requests d JOIN review_subjects s USING(subject_digest) WHERE ($1::uuid IS NULL OR s.project_id=$1) AND ($2::uuid IS NULL OR d.decision_id>$2) AND ((d.state='pending')=$3) ORDER BY d.decision_id LIMIT $4")
+        let rows = sqlx::query("SELECT d.* FROM human_decision_requests d JOIN review_subjects s USING(subject_digest) WHERE s.subject_profile='code_review_v1' AND ($1::uuid IS NULL OR s.project_id=$1) AND ($2::uuid IS NULL OR d.decision_id>$2) AND ((d.state='pending')=$3) ORDER BY d.decision_id LIMIT $4")
             .bind(query.project_id).bind(after).bind(query.state==InboxState::Open).bind(SCAN+1).fetch_all(&mut *tx).await.map_err(db)?;
         tx.commit().await.map_err(db)?;
         let mut items = Vec::new();
