@@ -39,6 +39,8 @@ REPO_KIND = {
     "aq-playbooks": "aq-playbooks-repo",
 }
 DELIVERABLE_KINDS = {"file", "test", "review"}
+# v1 schedules lower numbers first; 100 is the default.
+PRIORITY = {"high": 50, "normal": 100, "low": 200}
 REVIEW_TARGETS = {"spec", "plan", "other", "any"}
 PLAN_DOC = "aq-server/docs/superpowers/plans/2026-11-02-v2-full-application-plan.md"
 TASK_FILE = "aq-server/docs/superpowers/plans/2026-11-02-v2-full-application-tasks.yaml"
@@ -46,18 +48,17 @@ PLATFORM_REF = "/home/jkern/dev/aq-platform"
 
 FOOTER = """\
 ---
-**Complete this whole task in this session.** Don't stop after one sub-step. Read the cited specs in `platform-ref` \
-(the owner's checkouts at {ref}) first, plus the plan's Global Constraints ({plan}).
+**This description is your complete scope.** Everything you need is above: goal, what to build, current state, interfaces and out-of-scope items. Do not read whole design documents. Open a listed reference section only to settle a specific ambiguity. Never implement work listed under Out of scope; the named task owns it.
+**Complete this whole task in this session.** Don't stop after one sub-step. Follow the plan's Global Constraints ({plan}).
 Write this task's TDD implementation plan (superpowers:writing-plans) in the owning repository before writing code. Then implement it test-first.
-If you find work outside this task's scope, file it with `aq task create --reason ...`, then continue with this task. \
-Don't edit `aq-server/docs/architecture/*` or `docs/specs/*` unless this is an A-series or docs task. Record proposed design-doc changes in your evidence and file a `docs` task.
-If a decision only the owner can make blocks you, ask it through `aq question` and register a wait. Don't guess, and don't close.
+If you find work outside this task's scope, file it with `aq task create --reason ...`, then continue with this task. Don't edit `aq-server/docs/architecture/*` or `docs/specs/*` unless this is an A-series or docs task. Record proposed design-doc changes in your evidence and file a `docs` task.
+If a decision only the owner can make blocks you, report it with `aq message send --to user:dashboard --project aq-platform --body "Blocked on {key} (<task id>): <the decision needed>"`, record it as a task comment, and wait for the reply. Don't guess.
 Each named-test deliverable must exist and pass. A filter that matches zero tests is not met.
 Close `pass` only when every acceptance item is met with evidence in `docs/implementation/{key}.md` in the owning repository. Otherwise close `fail` with what remains.
 """
 
 SUBTASKS = [
-    "Read the cited specs, the prior evidence for the continues: tasks and the current code. Record the findings as a task comment.",
+    "Read this description and the current code it names; open a reference section only if something is ambiguous. Record the findings as a task comment.",
     "Write and commit this task's implementation plan (superpowers:writing-plans).",
     "Implement test-first. The named tests in the acceptance criteria must exist and pass.",
     "Run the full definition-of-done checks for every touched repository.",
@@ -133,15 +134,16 @@ def validate(doc: dict) -> tuple[dict, list[dict], list[dict]]:
 def description(t: dict) -> str:
     parts = [t["description"].strip()]
     parts.append("**Acceptance**\n" + "\n".join(f"- {a}" for a in t["acceptance"]))
-    if t.get("spec"):
-        parts.append("**Specs** (relative to platform-ref)\n" + "\n".join(f"- {s}" for s in t["spec"]))
+    if t.get("spec") and "### References" not in t["description"]:
+        parts.append("**References** (consult only if something above is ambiguous; paths relative to platform-ref at "
+                     + PLATFORM_REF + ")\n" + "\n".join(f"- {s}" for s in t["spec"]))
     if t.get("continues"):
         parts.append("**Continues 2026-10-30 plan tasks:** " + ", ".join(t["continues"]))
     meta = [f"plan key {t['key']}", f"repo {t['repo']}"]
     if t.get("review"):
         meta.append(f"review: {t['review']}")
     parts.append("**Plan:** " + "; ".join(meta) + f". Task contract: {TASK_FILE}.")
-    parts.append(FOOTER.format(ref=PLATFORM_REF, plan=PLAN_DOC, key=t["key"]))
+    parts.append(FOOTER.format(plan=PLAN_DOC, key=t["key"]))
     return "\n\n".join(parts)
 
 
@@ -259,6 +261,8 @@ def main() -> None:
         if t.get("class"):
             args += ["--intelligence-class", t["class"]]
         args += ["--integration-mode", t.get("integration", "direct")]
+        if t.get("priority") in PRIORITY:
+            args += ["--priority", str(PRIORITY[t["priority"]])]
         for d in t["deliverables"]:
             args += ["--deliverable", json.dumps({"id": d["id"], "kind": d["kind"], "target": d["target"]})]
         data = aq.run(*args)
