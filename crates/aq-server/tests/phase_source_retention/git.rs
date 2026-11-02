@@ -65,6 +65,7 @@ pub struct Owner {
     child: std::process::Child,
     leader: Process,
     closed: bool,
+    observed: std::collections::BTreeMap<(i32, u64), Process>,
 }
 impl Owner {
     async fn start(parent: &Path, label: &str) -> Self {
@@ -89,25 +90,38 @@ impl Owner {
         // std::Child deliberately keeps the leader UNREAPED until every
         // descendant is drained: its kernel PID/PGID cannot be reused meanwhile.
         let leader = match process(child.id() as i32) {
-            Some(leader) => leader,
-            None => {
-                // process_group(0) completed before exec and std::Child is
-                // still unreaped, so this freshly allocated group is owned.
-                let _ = nix::sys::signal::killpg(
-                    nix::unistd::Pid::from_raw(child.id() as i32),
-                    nix::sys::signal::Signal::SIGKILL,
+            Ok(Some(leader)) => leader,
+            unknown => {
+                // No unknown observation becomes proof. The outer private
+                // directory was retained before spawn. Only signal the exact
+                // unreaped std::Child here; never a guessed descendant group.
+                println!(
+                    "SOURCE_RETENTION_STARTUP_UNCERTAIN pid={} root={} observation={unknown:?}",
+                    child.id(),
+                    root.display()
                 );
-                let _ = child.wait();
-                panic!("fixture requires observable owned foreground leader");
+                let _ = child.kill();
+                let deadline = std::time::Instant::now() + Duration::from_secs(2);
+                while std::time::Instant::now() < deadline {
+                    match child.try_wait() {
+                        Ok(Some(_)) => break,
+                        Ok(None) => std::thread::sleep(Duration::from_millis(10)),
+                        Err(_) => break,
+                    }
+                }
+                panic!(
+                    "startup observation unavailable; private root retained, cleanup NOT proved"
+                );
             }
         };
         assert_eq!(leader.group, leader.pid);
-        let owner = Self {
+        let mut owner = Self {
             root,
             socket,
             child,
-            leader,
+            leader: leader.clone(),
             closed: false,
+            observed: std::collections::BTreeMap::from([((leader.pid, leader.start), leader)]),
         };
         println!(
             "SOURCE_RETENTION_OWNER group={} start={} session={} root={}",
@@ -118,7 +132,9 @@ impl Owner {
         );
         tokio::time::timeout(Duration::from_secs(5), async {
             while !owner.socket.exists() {
-                let current = process(owner.leader.pid).expect("unreaped leader stays owned");
+                let current = process(owner.leader.pid)
+                    .expect("foreground observation available")
+                    .expect("unreaped leader stays owned");
                 assert_eq!(current.start, owner.leader.start);
                 assert_ne!(
                     current.state, 'Z',
@@ -129,7 +145,7 @@ impl Owner {
         })
         .await
         .unwrap();
-        owner.check_descendants().unwrap();
+        owner.observe_owned().unwrap();
         owner
     }
     pub async fn call(&self, repo: Uuid, operation: &str, params: Value) -> Value {
@@ -153,7 +169,7 @@ impl Owner {
         assert_eq!(reply["ok"], true, "{reply}");
         reply["result"].clone()
     }
-    fn check_descendants(&self) -> Result<(), String> {
+    fn observe_owned(&mut self) -> Result<Vec<Process>, String> {
         let rows = processes()?;
         let current = rows
             .iter()
@@ -165,7 +181,11 @@ impl Owner {
         {
             return Err("owned leader identity changed".into());
         }
-        let mut owned = std::collections::BTreeSet::from([self.leader.pid]);
+        let mut owned = rows
+            .iter()
+            .filter(|p| self.observed.contains_key(&(p.pid, p.start)) || p.group == self.leader.pid)
+            .map(|p| p.pid)
+            .collect::<std::collections::BTreeSet<_>>();
         let mut complete = false;
         for _ in 0..64 {
             let old = owned.len();
@@ -183,19 +203,26 @@ impl Owner {
             return Err("fixture descendant depth bound exceeded".into());
         }
         for p in &rows {
-            if owned.contains(&p.pid)
-                && (p.group != self.leader.pid || p.session != self.leader.session)
-            {
-                return Err("Git descendant escaped owned foreground group/session".into());
+            if owned.contains(&p.pid) {
+                // aq-git's legitimate Git children allocate separate PGIDs.
+                // Keep their exact identities through reparenting; only their
+                // own aq-git supervisor may signal/reap those nested groups.
+                if p.session != self.leader.session {
+                    return Err("Git descendant escaped the owned foreground session".into());
+                }
+                self.observed.insert((p.pid, p.start), p.clone());
             }
         }
-        Ok(())
+        if self.observed.len() > 16384 {
+            return Err("fixture retained identity bound exceeded".into());
+        }
+        Ok(rows)
     }
     fn close(&mut self) -> Result<(), String> {
         if self.closed {
             return Ok(());
         }
-        self.check_descendants()?;
+        self.observe_owned()?;
         use nix::{
             sys::signal::{Signal, killpg},
             unistd::Pid,
@@ -209,12 +236,12 @@ impl Owner {
             (std::time::Duration::from_secs(2), true),
         ] {
             if force {
-                self.check_descendants()?;
+                self.observe_owned()?;
                 killpg(group, Signal::SIGKILL).map_err(|e| e.to_string())?;
             }
             let deadline = std::time::Instant::now() + limit;
             while std::time::Instant::now() < deadline {
-                let rows = processes()?;
+                let rows = self.observe_owned()?;
                 let leader = rows
                     .iter()
                     .find(|p| p.pid == self.leader.pid)
@@ -226,9 +253,9 @@ impl Owner {
                     return Err("leader changed during owned drain".into());
                 }
                 if leader.state == 'Z'
-                    && !rows
-                        .iter()
-                        .any(|p| p.group == self.leader.pid && p.pid != self.leader.pid)
+                    && !rows.iter().any(|p| {
+                        p.pid != self.leader.pid && self.observed.contains_key(&(p.pid, p.start))
+                    })
                 {
                     self.child.wait().map_err(|e| e.to_string())?;
                     self.closed = true;
@@ -260,7 +287,7 @@ impl Drop for Owner {
         }
     }
 }
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Process {
     pid: i32,
     parent: i32,
@@ -269,18 +296,43 @@ struct Process {
     start: u64,
     state: char,
 }
-fn process(pid: i32) -> Option<Process> {
-    let bytes = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
-    let (_, tail) = bytes.rsplit_once(") ")?;
+fn process(pid: i32) -> Result<Option<Process>, String> {
+    let bytes = match std::fs::read_to_string(format!("/proc/{pid}/stat")) {
+        Ok(bytes) => bytes,
+        Err(error)
+            if error.kind() == std::io::ErrorKind::NotFound
+                || error.raw_os_error() == Some(nix::libc::ESRCH) =>
+        {
+            return Ok(None);
+        }
+        Err(error) => return Err(format!("process observation unavailable: {error}")),
+    };
+    let (_, tail) = bytes
+        .rsplit_once(") ")
+        .ok_or("malformed process observation")?;
     let fields = tail.split_whitespace().collect::<Vec<_>>();
-    Some(Process {
+    let number = |index: usize| {
+        fields
+            .get(index)
+            .ok_or("missing process field")?
+            .parse::<i32>()
+            .map_err(|_| "invalid process field")
+    };
+    Ok(Some(Process {
         pid,
-        parent: fields.get(1)?.parse().ok()?,
-        group: fields.get(2)?.parse().ok()?,
-        session: fields.get(3)?.parse().ok()?,
-        start: fields.get(19)?.parse().ok()?,
-        state: fields.first()?.chars().next()?,
-    })
+        parent: number(1)?,
+        group: number(2)?,
+        session: number(3)?,
+        start: fields
+            .get(19)
+            .ok_or("missing process start")?
+            .parse()
+            .map_err(|_| "invalid process start")?,
+        state: fields
+            .first()
+            .and_then(|v| v.chars().next())
+            .ok_or("missing process state")?,
+    }))
 }
 fn processes() -> Result<Vec<Process>, String> {
     let mut rows = vec![];
@@ -292,7 +344,7 @@ fn processes() -> Result<Vec<Process>, String> {
         }
         let entry = entry.map_err(|e| e.to_string())?;
         if let Ok(pid) = entry.file_name().to_string_lossy().parse::<i32>()
-            && let Some(row) = process(pid)
+            && let Some(row) = process(pid)?
         {
             rows.push(row);
         }
@@ -311,6 +363,10 @@ impl Actual {
         pin("AQ_TEST_GIT_CANDIDATE", "AQ_TEST_GIT_CANDIDATE_SHA256");
         pin("AQ_TEST_GIT_EXECUTABLE", "AQ_TEST_GIT_EXECUTABLE_SHA256");
         let c = &mut ready.c;
+        // Source is deliberately preserved on ANY unknown/failed process drain.
+        // Even successful cases retain this small private state for audit; the
+        // external whole-session proof runs after the test process has exited.
+        c.env.env._dir.disable_cleanup(true);
         let parent = c.env.env._dir.path();
         let seed = parent.join("source-seed");
         std::fs::create_dir(&seed).unwrap();

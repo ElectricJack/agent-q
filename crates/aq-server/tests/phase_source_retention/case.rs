@@ -370,6 +370,9 @@ async fn actual_phase_stopped_checkpoint_http_import_and_current_retention_are_n
     assert_eq!(before, invariants(pool, binding.attempt_id).await);
     assert!(before["holds_task"].as_bool().unwrap());
     actual.central.stop().await;
+    // Keep the bounded private fixture state for audit even on success. The
+    // external wrapper still must verify the WHOLE unique case session before
+    // claiming cleanup; no uncertain process can race automatic TempDir removal.
     println!(
         "actual phase source retained checkpoint upload report and current-retention proof; no physical/provider/settlement claim"
     );
