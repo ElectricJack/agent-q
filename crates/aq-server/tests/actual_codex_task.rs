@@ -816,8 +816,10 @@ async fn actual_case() -> Result<Value> {
     let graph=Box::pin(real_graph::RealGraphFixture::start(real_graph::BinaryPin{path:std::env::var("AQ_GATE04_GRAPH_BINARY")?.into(),sha256:std::env::var("AQ_GATE04_GRAPH_SHA256")?},real_graph::TaskSeed {workspace_id:workspace,task_id,title:"Disposable finite Codex source task".into(),body:"Create only gate04-proof.txt containing exactly AQ native result fixture proof and a newline. Compare exact bytes, then submit a factual local AQ result claim using the counted instructions. This is a finite local Responses integration, not an external model or real human review.".into(),acceptance_criteria:"Fixed source file is retained centrally; actual tool cmp passes; scoped claim is acknowledged; protected simulated fixture review precedes actual task CAS.".into()})).await?;
     let mut source = Box::pin(source(&root, repository)).await?;
     let result = Box::pin(async {
-        let catalog = codex_runtime_recipe::catalog(project, repository)?;
-        let binding = codex_runtime_recipe::project(project, repository, 1, workspace, &catalog)?;
+        let catalog =
+            codex_runtime_recipe::catalog(project, repository).context("gate04_catalog")?;
+        let binding = codex_runtime_recipe::project(project, repository, 1, workspace, &catalog)
+            .context("gate04_project")?;
         let pin = graph.task_pin();
         let task = aq_admission::TaskRevision {
             workspace_id: workspace,
@@ -833,9 +835,11 @@ async fn actual_case() -> Result<Value> {
             task,
             source: source.configuration.clone(),
         };
-        let mut actual = Box::pin(common::native_offer::setup_actual(&setup)).await?;
-        let recipe = Arc::new(codex_runtime_recipe::prepare(
-            codex_runtime_recipe::PrepareInput {
+        let mut actual = Box::pin(common::native_offer::setup_actual(&setup))
+            .await
+            .context("gate04_actual_setup")?;
+        let recipe = Arc::new(
+            codex_runtime_recipe::prepare(codex_runtime_recipe::PrepareInput {
                 actual: &actual,
                 context: &actual.context,
                 catalog: &catalog,
@@ -843,12 +847,15 @@ async fn actual_case() -> Result<Value> {
                 now_ms: chrono::Utc::now().timestamp_millis().try_into()?,
                 base: source.base.clone(),
                 retention: source.retention,
-            },
-        )?);
+            })
+            .context("gate04_recipe")?,
+        );
         let key = format!("aq-finite-upstream-{}", Uuid::new_v4());
         let key_file = root.join("finite-peer-key");
         private(&key_file, key.as_bytes(), 0o600)?;
-        Box::pin(install(&mut actual, &recipe, &key_file)).await?;
+        Box::pin(install(&mut actual, &recipe, &key_file))
+            .await
+            .context("gate04_install")?;
         let evidence = Box::pin(execute_case(
             &root,
             &pins,
@@ -859,7 +866,8 @@ async fn actual_case() -> Result<Value> {
             &key_file,
             &key,
         ))
-        .await?;
+        .await
+        .context("gate04_execute")?;
         private(
             &root.join("qualified-evidence.json"),
             &serde_json::to_vec_pretty(&evidence)?,
@@ -871,7 +879,7 @@ async fn actual_case() -> Result<Value> {
     })
     .await;
     source.owner.stop().await;
-    let graph_cleanup = graph.shutdown().await?;
+    let graph_cleanup = graph.shutdown().await.context("gate04_graph_cleanup")?;
     ensure!(
         graph_cleanup.child_reaped
             && graph_cleanup.database_removed
@@ -880,13 +888,29 @@ async fn actual_case() -> Result<Value> {
     );
     result
 }
+fn refusal_stage(error: &anyhow::Error) -> &'static str {
+    for cause in error.chain() {
+        match cause.to_string().as_str() {
+            "gate04_catalog" => return "catalog",
+            "gate04_project" => return "project_definition",
+            "gate04_actual_setup" => return "actual_project_setup",
+            "gate04_recipe" => return "runtime_recipe",
+            "gate04_install" => return "owner_install",
+            "gate04_execute" => return "ordinary_worker_execution",
+            "gate04_graph_cleanup" => return "graph_cleanup",
+            _ => {}
+        }
+    }
+    "guard_or_setup_unavailable"
+}
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "explicit pinned worker0.5/Codex/tmux/aq-git/Graph, disposable PostgreSQL and fresh SID; finite local provider only"]
 async fn actual_finite_codex_task_claim_source_and_protected_graph_closure() {
     let result = Box::pin(actual_case()).await;
-    if result.is_err() {
+    if let Err(error) = &result {
         eprintln!(
-            "GATE04_OUTCOME refused; inspect bounded stage/HTTP/journal metadata; no success claim"
+            "GATE04_OUTCOME_REFUSAL stage={} no_success_claim",
+            refusal_stage(error)
         );
     }
     assert!(
