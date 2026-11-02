@@ -287,8 +287,22 @@ impl Service {
     ) -> Result<VerifiedCombinedDecision> {
         // Immutable identity peek, then actual common authority BEFORE any
         // decision/outbox lock, including callers that did not already load B1.
-        let report:Uuid=sqlx::query_scalar("SELECT s.report_id FROM human_decision_requests d JOIN review_subjects s USING(subject_digest) WHERE d.decision_id=$1").bind(decision).fetch_one(&mut **tx).await.map_err(db)?;
-        crate::profiled_execution::results::load_locked(&self.state, tx, report).await?;
+        let identity=sqlx::query("SELECT s.report_id,s.subject_profile FROM human_decision_requests d JOIN review_subjects s USING(subject_digest) WHERE d.decision_id=$1").bind(decision).fetch_one(&mut **tx).await.map_err(db)?;
+        crate::profiled_execution::results::load_locked(&self.state, tx, identity.get("report_id"))
+            .await?;
+        if identity.get::<String, _>("subject_profile") != "source_and_effects_review_v1" {
+            return Err(conflict());
+        }
+        // A valid pending combined question is a normal unavailable requirement,
+        // not corrupted finality. Keep the old code-only callback reader intact.
+        let progress=sqlx::query("SELECT decision_revision,state FROM human_decision_requests WHERE decision_id=$1 FOR SHARE").bind(decision).fetch_one(&mut **tx).await.map_err(db)?;
+        if progress.get::<i64, _>("decision_revision") == 1
+            && progress.get::<String, _>("state") == "pending"
+        {
+            return Err(AppError::UpdatesUnavailable(
+                "combined review has no recorded answer".into(),
+            ));
+        }
         let (subject, _event, receipt) = self.completion_subject_in_tx(tx, decision).await?;
         let Subject::SourceAndEffects(subject) = subject else {
             return Err(conflict());

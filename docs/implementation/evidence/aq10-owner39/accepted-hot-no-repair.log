@@ -1,0 +1,13 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-settlement-b2-v2/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 49.11s
+     Running tests/profiled_results.rs (/tmp/aq-native-union-target/debug/deps/profiled_results-cd40b1dc667a0b6b)
+
+running 5 tests
+test settlement_owner39::settlement39_startup_refuses_corrupted_accepted_hot_basis_without_repair ... ok
+test settlement_owner39::settlement39_expiry_after_final_approver_wait_rolls_back_first_dispatch ... ok
+test settlement_owner39::settlement39_lost_lease_after_held_response_fences_revoked_then_regranted_actor ... ok
+test settlement_owner39::settlement39_actual_owners_accept_one_combined_decision_hold_until_exact_graph_receipt ... ok
+test settlement_owner39::settlement39_expiry_after_final_requester_wait_rolls_back_acceptance ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 43 filtered out; finished in 3.20s
+

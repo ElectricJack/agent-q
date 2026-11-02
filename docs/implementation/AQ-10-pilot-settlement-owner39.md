@@ -1,13 +1,14 @@
 # AQ-10 first-pilot settlement owner
 
-Status: authorized internal owner39 source candidate; qualification pending.
+Status: internal owner39 source and bounded component/integration qualification accepted; real execution/human/canonical rollout remain separate gates.
 Main migration39 is allocated to this owner after execution result-origin38.
-The source draft now includes actual combined-review, live applicability, finite
-evaluation/release and dedicated completion ports. No route is mounted, SQL39 is
-not yet qualified/applied, and this document does not itself establish completion.
-The independently qualified first increment is finite eligibility planning and
-read-only AQ effect-ledger inspection. It cannot emit an execution grant or clear
-a task claim. Architecture0002 sections5–7 and AQ-10-result-settlement-plan remain
+The source includes actual combined-review, live applicability, finite
+evaluation/release and dedicated completion ports. SQL39 was applied only to
+owned disposable qualification databases/clones. Five qualified protected HTTP
+ports now use the existing configured review owner; default constructors have
+no review-owner injection. No canonical upgrade occurred. The finite planner remains
+data-only; only an actual confirmed C receipt/outbox transaction can clear the
+common task claim. Architecture0002 sections5–7 and AQ-10-result-settlement-plan remain
 normative. The physical runner, B1 recording and this settlement owner are distinct.
 
 ## Small supported policy
@@ -118,8 +119,8 @@ Retain a bounded immutable evaluation operation/receipt. Same ID/bytes returns
 the original result; changed evidence is a new explicit evaluation. Missing
 adapters or stale evidence return unavailable/stale/needs-reconciliation, never
 success-shaped defaults. The positive constructors consume only the actual protected combined decision
-and current Graph/retention owner products. These are source candidates until
-actual registered owner tests qualify them.
+and current Graph/retention owner products. Their protected joins are component-qualified with labelled synthetic peers;
+actual physical/provider/Graph composition remains a separate gate.
 
 ## Minimal schema39 and completion owner
 
@@ -226,5 +227,29 @@ The original38 catalog and data predicate remain unchanged;39 must reattest the
 full composed catalog including every changed/additive release/head/review/
 ledger/source/mail guard, then rerun38's retained origin predicate. The checked
 golden catalog must come from an explicitly reviewed disposable38→39 export,
-never runtime learning or repair. Production remains closed until this and
-actual positive owner/response-loss/claim-clear tests pass.
+never runtime learning or repair. Those component gates passed. Canonical rollout and the actual physical
+agent/source/Graph/human cycle remain separately gated.
+
+## Qualified boundary
+
+Actual owner39 source `824e2cb` plus post-I/O preparation fence `bef321f` passed
+independent source review and Root's composed qualification in `cd64196`:12
+settlement pure/registered-schema cases,10 settlement/inspection/B1 component
+cases, exact old code-review and inbox regressions,4 counted-startup pure and3
+owner cases, and one actual populated archive migration. Strict Clippy passed
+with warnings denied. Source SQL1–38 remained unchanged; the543-object composed
+catalog preserves original38 objects except the intentional qualified-release
+trigger replacement. The prior18 Frozen/Refresh B1 cases also passed under39.
+
+See [scoped evidence](evidence/aq10-owner39/qualification.json) and Root's
+[precise combined scope](evidence/execution-union39-0d1cdc8/qualification.json).
+Test-only large futures were heap allocated; no stack/deadline/TTL limits were
+increased. The simulated fixture answers and synthetic Git/Graph/launch peers
+qualify protected owner joins, not real human or physical/provider execution.
+The [protected HTTP interface](GATE-04-human-settlement-http.md) passed five
+router/SQL cases, the current-pending owner case and affected strict checks.
+It exposes exact combined-subject inspection/resolution and evaluation/recovery
+through the actual owners. A pending question returns503 without creating an
+evaluation, release or completion. No route supplies a human answer automatically.
+Actual B1→combined question→real Graph composition, dashboard integration and
+real human choice remain independent next boundaries. Canonical state stayed37.

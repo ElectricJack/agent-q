@@ -38,7 +38,10 @@ state must retain their existing refusal/hold behavior.
    runtime qualification. An explicit trusted-node named-readonly factory is now
    implemented at worker `a66e293`; the legacy memfd tag still refuses. Together
    with profile dispatch it passed 29 focused tests and strict checks. The
-   composed actual-harness task run remains pending. Reuse existing components;
+   composed actual-harness test has now launched the pinned Codex CLI in tmux,
+   received its actual task context and produced the required source edit. Its
+   provider is an explicitly finite local test peer; this does not qualify a
+   configured external model/provider. Reuse existing components;
    do not build another executor framework or label a static peer as a real agent.
 4. **Explicit completion and retained result.** Adapt v1's completion instructions
    to v2's scoped command surface. The state38 result owner now records both
@@ -50,7 +53,16 @@ state must retain their existing refusal/hold behavior.
    58 focused component cases, strict checks and separately qualified composed
    CLI/build checks. The corrected real-Git Frozen/Refresh source-retention pair
    passed in 7.708s/7.939s with independently verified cleanup; the initial cleanup
-   failure remains retained. Actual Codex-to-B1 composition remains pending.
+   failure remains retained. The eighth composed case now proves the actual
+   Codex edit, local result acknowledgment, physical stop/ECHILD with paired
+   lifecycle acknowledgments, central source retention and a recorded B1 receipt.
+   It refused at the authorized terminal-tail assertion: the ordinary native
+   output publisher uploads frames but does not yet poll for human Watch events.
+   Preserve that negative case; neither a parent-generated node poll nor a weaker
+   terminal assertion would qualify the production connection. The retained
+   actual-case evidence is source `f9a45c3`, directory
+   `docs/implementation/evidence/gate04-codex-e9fa108/` in the isolated composed
+   fixture branch; its test uses worker source `cbd1d6b`.
 5. **Review, settlement and Graph completion.** Finish AQ-10 B2/C using the pinned
    outcome policy, actual decision/check owners, source-retention observation and
    AQ-07 expected-version mutation owner. Record the actual Graph receipt before
@@ -61,6 +73,16 @@ state must retain their existing refusal/hold behavior.
    component tests use labelled synthetic launch/source/Graph peers; the actual
    Graph completion and real human decision remain end-to-end requirements.
 
+The immediate production join is additive, output-only terminal polling. Keep
+the existing full terminal poll and its controller-count interpretation unchanged.
+Use the existing typed poll/envelope on a separate output-poll route, with only
+authorized Watch events and no input dispatch or control-effect consumption.
+The worker owns a separate transport cursor; output frame watermarks and retained
+pending-upload retries keep their existing meanings. Both sides require focused
+qualification and new source/binary pins before the next composed offer. The
+actual review-to-Graph completion, lost-reply recovery and retained-source
+survival requirements below remain open.
+
 Steps 2–5 can develop in parallel at their existing ownership boundaries. The
 acceptance run follows their dependencies. UI redesign, generalized policy,
 additional providers, parking and cross-node wake are outside this increment.
@@ -68,8 +90,9 @@ additional providers, parking and cross-node wake are outside this increment.
 The actual-owner initial setup is integrated with three pure and four historical
 regression cases plus strict checks. It installs actual Graph/Git configuration
 before initial project verification and leaves worker liveness/registration to
-ordinary worker APIs. Running that constructor with the composed real services
-remains pending; the setup tests alone do not prove the end-to-end scenario.
+ordinary worker APIs. The actual composed case has now run that constructor
+against the pinned real Graph/Git services and reached worker execution and B1.
+The setup tests alone do not prove the remaining end-to-end scenario.
 
 Main migration 0038 implements the phase result-origin bridge. The isolated
 wait-owner0038 candidate was tested only in disposable
