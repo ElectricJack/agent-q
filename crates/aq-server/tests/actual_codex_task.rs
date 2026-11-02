@@ -647,8 +647,8 @@ fn diagnostics(
         "source_progress":attempt.map(|a| {let s=&a["source"]; json!({
             "plan":s.is_object(),"manifest":s["manifest"].is_object(),"verified":s["verified"].is_object(),
             "manifest_offset":s["manifest_offset"].as_u64(),"bundle_offset":s["bundle_offset"].as_u64(),
-            "operations":["repository","import","create","retention","workspace"].map(|key| json!({"stage":key,
-                "intent":s["operations"][key].is_object(),"result":s["operations"][key]["result"].is_object()}))})}),
+            "operations":(["repository","import","create","retention","workspace"].map(|key| json!({"stage":key,
+                "intent":s["operations"][key].is_object(),"result":s["operations"][key]["result"].is_object()})))})}),
         "accepted":field("refresh_acceptance"),"prepared_inputs":field("refresh_prepared"),"execution":field("refresh_execution"),
         "original_execution_deadline_boot_ns":attempt.and_then(|a|a["refresh_execution"]["deadline_ns"].as_u64()),
         "original_reservation_deadline_boot_ns":attempt.and_then(|a|a["reservation"]["deadline_ns"].as_u64()),
