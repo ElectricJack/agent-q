@@ -112,6 +112,48 @@ pub struct PrivateState {
     root: File,
 }
 impl PrivateState {
+    /// Observe ENOENT through the same held root. Other refusals do not count
+    /// as cleanup, and this observation is never a process stopped proof.
+    pub fn missing(&self, relative: &Path) -> Result<bool> {
+        ensure!(
+            !relative.is_absolute()
+                && relative.as_os_str().len() <= 2048
+                && relative
+                    .components()
+                    .all(|c| matches!(c, std::path::Component::Normal(_))),
+            "fixture relative cleanup member"
+        );
+        let name = CString::new(relative.as_os_str().as_encoded_bytes())?;
+        #[repr(C)]
+        struct How {
+            flags: u64,
+            mode: u64,
+            resolve: u64,
+        }
+        let how = How {
+            flags: (libc::O_PATH | libc::O_CLOEXEC | libc::O_NOFOLLOW) as u64,
+            mode: 0,
+            resolve: 0x01 | 0x04 | 0x08,
+        };
+        let fd = unsafe {
+            libc::syscall(
+                libc::SYS_openat2,
+                self.root.as_raw_fd(),
+                name.as_ptr(),
+                &how,
+                std::mem::size_of_val(&how),
+            )
+        };
+        if fd < 0 {
+            ensure!(
+                std::io::Error::last_os_error().raw_os_error() == Some(libc::ENOENT),
+                "cleanup observation refused without ENOENT"
+            );
+            return Ok(true);
+        }
+        drop(unsafe { OwnedFd::from_raw_fd(fd as i32) });
+        Ok(false)
+    }
     /// Read-side assertion only. Contents cannot reconstruct a live input/host.
     pub fn read(&self, relative: &Path, maximum: usize) -> Result<Vec<u8>> {
         ensure!(
@@ -442,6 +484,9 @@ mod tests {
             root: File::open(dir.path()).unwrap(),
         };
         assert_eq!(state.read(Path::new("proof"), 64).unwrap(), b"gate04-proof");
+        assert!(!state.missing(Path::new("proof")).unwrap());
+        assert!(state.missing(Path::new("absent")).unwrap());
+        assert!(state.missing(Path::new("../absent")).is_err());
         assert!(state.read(Path::new("../proof"), 64).is_err());
         assert!(state.read(Path::new("/etc/passwd"), 64).is_err());
         assert!(state.read(Path::new("proof"), 1).is_err());
