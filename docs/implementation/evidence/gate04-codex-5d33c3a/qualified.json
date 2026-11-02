@@ -1,0 +1,366 @@
+{
+  "evidence": {
+    "actual_graph_task": {
+      "acceptance_criteria": "Fixed source file is retained centrally; actual tool cmp passes; scoped claim is acknowledged; protected simulated fixture review precedes actual task CAS.",
+      "body": "Create only gate04-proof.txt containing exactly AQ native result fixture proof and a newline. Compare exact bytes, then submit a factual local AQ result claim using the counted instructions. This is a finite local Responses integration, not an external model or real human review.",
+      "content_revision": 2,
+      "content_type": "note",
+      "created_at": "2026-11-02T06:02:42.713006Z",
+      "created_by": "gate04-service-42566aaa62c14569bb556c103d3fb012",
+      "deleted": false,
+      "id": "9b108292-8ab7-4dab-a37b-bd18ea484c60",
+      "kind": "task",
+      "labels": [],
+      "last_verified_at": null,
+      "last_verified_by": null,
+      "metadata": {},
+      "provenance": [],
+      "retired": false,
+      "retirement_reason": null,
+      "review_at": null,
+      "successor_id": null,
+      "summary": null,
+      "summary_of_revision": null,
+      "task_state": "completed",
+      "title": "Disposable finite Codex source task",
+      "updated_at": "2026-11-02T06:03:34.865137Z",
+      "valid_from": null,
+      "valid_until": null,
+      "verification": "unverified",
+      "version": 2,
+      "workspace_id": "4d98af8a-71a9-4ec0-936f-2b923b633d0b"
+    },
+    "b1_receipt": {
+      "binding": {
+        "assignment_generation": 1,
+        "attempt_id": "01ba0a88-ab3b-5595-b171-61387895883c",
+        "execution_spec_digest": "cfd036fd871260a2dc363bf81225c3c02ece1dce3e39f87b81bdda3893015d1a",
+        "graph_access_profile_digest": "0f5f8edee176e84de196e428e89f2b00d88767339ded9ff69cf9be1dfa7d5cd2",
+        "launch_manifest_digest": "6929bc04b0e0ae4b3ab82a1ed314cd865ce0a459613aae8ca910578d025195bb",
+        "offer_id": "ba1cf4c0-95db-5ec2-a7ee-da3785b8c629",
+        "schema_version": 1,
+        "session": {
+          "assignment_generation": 1,
+          "attempt_id": "01ba0a88-ab3b-5595-b171-61387895883c",
+          "boot_id": "0982cb43-ac92-4822-b2cd-b4e3b9801394",
+          "kind": "remote",
+          "node_id": "08c2b514-4f12-477b-8145-7f900f8430d5",
+          "session_id": "9540325c-07ce-5431-abda-88c4524dd2dc"
+        }
+      },
+      "disposition": "recorded",
+      "expected_outcome": {
+        "digest": "0923a0012d8c623230ef12cf9bab2fca17f48739cf20558d56eaf2be66c91e0a",
+        "id": "aq.expected-outcome",
+        "version": "1"
+      },
+      "operation_id": "7600aae4-8190-4c7a-90c4-f8aa5230ecd1",
+      "recorded_at_ms": 1793599410828,
+      "report_digest": "1a4ea2fa22451cbd2b3ceb0c4469ec10781ccf5e8a5f2d584dc7467f04ddc6d4",
+      "report_id": "b6ed6c38-d645-4f4b-89b1-4abf71ecc948",
+      "schema_version": 1,
+      "stopped_receipt": {
+        "digest": "b3ea02efe72f264161fb949ccf47bad8748406525adebc1345a1d85549583c5f",
+        "id": "aq.native-stopped/01ba0a88-ab3b-5595-b171-61387895883c",
+        "version": "1"
+      }
+    },
+    "execution_deadline_boot_ns": 253910710364653,
+    "model_input": {
+      "actual_tools": [
+        {
+          "name": "exec_command",
+          "type": "function"
+        },
+        {
+          "name": "write_stdin",
+          "type": "function"
+        },
+        {
+          "name": "request_user_input",
+          "type": "function"
+        },
+        {
+          "name": "view_image",
+          "type": "function"
+        },
+        {
+          "name": "get_goal",
+          "type": "function"
+        },
+        {
+          "name": "create_goal",
+          "type": "function"
+        },
+        {
+          "name": "update_goal",
+          "type": "function"
+        }
+      ],
+      "canonical_first_input_encoded_bytes": 26757,
+      "canonical_first_request_bytes": 35825,
+      "canonical_request_metadata": [
+        {
+          "bytes": 35825,
+          "digest": "798e23f3f6d8d87099bdeb0914c438dc6d873725da8b736b7fd69f086de74f4d"
+        },
+        {
+          "bytes": 36759,
+          "digest": "70a211ddf8455716c6313a36338e23629348cacf0717a2b38c44b504665210b1"
+        },
+        {
+          "bytes": 39788,
+          "digest": "5c9cad88cddc8df3254081c178fdff641bf20200e0feecc31ab18564bce6a543"
+        }
+      ],
+      "canonical_tool_definition_bytes": 7295,
+      "declared_implicit_planning_units": 32768,
+      "finite_implicit_tool_planning_units": 32417,
+      "max_output_tokens": 4096,
+      "model": "gpt-5.1-codex-mini",
+      "payload_occurrences": 1,
+      "public_reporting_bytes": 1929,
+      "public_reporting_digest": "667d48a537baa35335fb3da1e589846e9d294a2bc24a8df58cf682181b15229a",
+      "reporting_occurrences": 1,
+      "scope": "measured finite-peer wire/input only; no external tokenizer/window/provider qualification",
+      "sealed_payload_bytes": 3408,
+      "sealed_payload_digest": "d1637a5900a832c7632caed465d956de1bb3daea6b7e4ea50f81f6ea40edc222"
+    },
+    "physical_running": true,
+    "physical_stopped_echild": true,
+    "private_auth_removed": true,
+    "qualification": {
+      "digest": "0a99dc565615c896ab3a0f0f65544e8c3ad4168b72282c6197da3c9f61c65bd8",
+      "id": "aq.codex-finite-peer-runtime-qualification",
+      "version": "1"
+    },
+    "request_count": 3,
+    "runtime": {
+      "digest": "25926f81c4ef1e2da01b94503f120b302d40a3e523e237f5d58ba67b2b2ff71d",
+      "id": "aq.codex-finite-peer-runtime",
+      "version": "1"
+    },
+    "scope": "actual pinned Codex finite local peer only; simulated fixture Owner approval",
+    "settlement": {
+      "answer": {
+        "decision_id": "c6c36001-705e-4d6a-9ddc-70c4446468d6",
+        "decision_revision": 2,
+        "eligibility_project_revision": 1,
+        "finality": {
+          "choice": "approve",
+          "comment_digest": "f8a6abfe225557c48aae7eac528eefaf30a15a8c390887219529027950e6d727",
+          "kind": "human_answer",
+          "operation_id": "923ebb9b-d3bd-4bd9-b443-03a9c7eaccb1",
+          "owner_user_id": "11270c20-8a91-4613-a4db-60550f202437"
+        },
+        "recorded_at_ms": 1793599413211,
+        "request_digest": "0afffb57c7d33111380e719a273043a5acb31e1e6f15284c622c72212576276c",
+        "review_policy": {
+          "digest": "c967fc7e4e72936f1aac99e738e61b8f8130cb2c7a926878414e30689dbbf50e",
+          "id": "aq.codex-pilot-project-policy:ee5426a1-cc5a-452d-acca-5407b469be1f",
+          "version": "1"
+        },
+        "schema_version": 1,
+        "subject": {
+          "digest": "592e802d021d743cc11b86f8bbddf9a96eeffb7dae51cb401061d74bbe2b1072",
+          "id": "aq.source-effects-review-subject/b6ed6c38-d645-4f4b-89b1-4abf71ecc948",
+          "version": "1"
+        }
+      },
+      "checkpoint": {
+        "algorithm": "sha1",
+        "hex": "01626885178fe7d7b5fb9f978b02aaa2543a4171"
+      },
+      "completion": {
+        "dispatch_count": 1,
+        "evaluation_operation_id": "142ac21b-a3c0-4d02-ab91-8905f2af927d",
+        "operation_id": "6eb172e2-1274-45b7-b511-969784f8bbe8",
+        "receipt": {
+          "change_set_id": "ebc03ffc-2097-4ad4-996f-e8d763964fec",
+          "content_revision": 2,
+          "response_digest": "1f057e930326908790e6f9dcfbc9f86dd3b63121b4bfac46abeb082c763b6b3d",
+          "task_id": "9b108292-8ab7-4dab-a37b-bd18ea484c60",
+          "version": 2,
+          "workspace_id": "4d98af8a-71a9-4ec0-936f-2b923b633d0b"
+        },
+        "recovery": "none",
+        "state": "confirmed"
+      },
+      "evaluation": {
+        "attempt_id": "01ba0a88-ab3b-5595-b171-61387895883c",
+        "completion_operation_id": "6eb172e2-1274-45b7-b511-969784f8bbe8",
+        "disposition": "accepted",
+        "ledger_digest": "2375bdeae5431b297907f41cfbcd7636328ec479ed454ceb859b6995c277aff8",
+        "operation_id": "142ac21b-a3c0-4d02-ab91-8905f2af927d",
+        "reason": null,
+        "recorded_at_ms": 1793599414031,
+        "release_id": "03361c49-ef94-4f67-838f-7b049d34c0a6",
+        "report": {
+          "digest": "968775450a83e45358171a0028caf0b15340c4b1d9ad9620dbcd2f5ece72bf48",
+          "id": "aq.result-record/b6ed6c38-d645-4f4b-89b1-4abf71ecc948",
+          "version": "1"
+        },
+        "review_receipt": {
+          "digest": "f822211dce4ca23308f1d607c2af0157404cdd9da69743a035b9c8cce6b80bd8",
+          "id": "aq.human-decision/c6c36001-705e-4d6a-9ddc-70c4446468d6/2",
+          "version": "1"
+        },
+        "schema_version": 1,
+        "source_digest": "d3c16431cad77815a3edafe904670df03d466c89df70f8dff6d8b0f82424709d",
+        "subject": {
+          "digest": "592e802d021d743cc11b86f8bbddf9a96eeffb7dae51cb401061d74bbe2b1072",
+          "id": "aq.source-effects-review-subject/b6ed6c38-d645-4f4b-89b1-4abf71ecc948",
+          "version": "1"
+        }
+      },
+      "observations": {
+        "actual_private_file": {
+          "digest": "8df0f989f49ce2cb4e5253607ad53650663fbd82d55f04d3e74ee9d8f3276a6a",
+          "id": "aq.fixture-private-file/gate04-proof.txt",
+          "version": "1"
+        },
+        "actual_retained_tree": {
+          "digest": "bd29653c53068931b5d6703247b685ab7c60b902b3db76e5af4e18ea3ef225b8",
+          "id": "aq.fixture-retained-tree/01626885178fe7d7b5fb9f978b02aaa2543a4171",
+          "version": "1"
+        },
+        "actual_tool_output": {
+          "digest": "e7c9b1713287bdaafbeea19bc5757d2a7a585fa90dadea9187d6b4850ad4c1e3",
+          "id": "aq.fixture-observed-result-tools/b6ed6c38-d645-4f4b-89b1-4abf71ecc948",
+          "version": "1"
+        }
+      },
+      "original_task": {
+        "content_revision": 1,
+        "task_id": "9b108292-8ab7-4dab-a37b-bd18ea484c60",
+        "version": 1,
+        "workspace_id": "4d98af8a-71a9-4ec0-936f-2b923b633d0b"
+      },
+      "owner_choice": "simulated_fixture_approval_NOT_real_human",
+      "subject": {
+        "digest": "592e802d021d743cc11b86f8bbddf9a96eeffb7dae51cb401061d74bbe2b1072",
+        "id": "aq.source-effects-review-subject/b6ed6c38-d645-4f4b-89b1-4abf71ecc948",
+        "version": "1"
+      }
+    },
+    "started_ack": true,
+    "stopped_ack": true,
+    "terminal": {
+      "accepted_uploads": 5,
+      "frames": [
+        {
+          "bytes": 78,
+          "digest": "0181dbc7da81df99242b51981f8811a63042cd32edd7680847ed8a97a382fe25",
+          "sequence": 1
+        },
+        {
+          "bytes": 132,
+          "digest": "6119f98f868b5b4ca926bf597f35ef724f0038239650afa7c3c1a930d591a928",
+          "sequence": 2
+        },
+        {
+          "bytes": 518,
+          "digest": "fce7a2534d98a8c28ec13e765d2fce8d0e6b5cefb2e00c162ce972d4b3fa065a",
+          "sequence": 3
+        },
+        {
+          "bytes": 25,
+          "digest": "84111a8dcfa55ec7ae3b9d957246d0f7ae622c403d2ac1c3846aecb1cb087b96",
+          "sequence": 4
+        },
+        {
+          "bytes": 132,
+          "digest": "58b6f0706b1a4c7893fac5d2230766dfb5f06fcea0071a48fa4142b6b3b1b631",
+          "sequence": 5
+        },
+        {
+          "bytes": 132,
+          "digest": "fe69013254d569490f46ffe94002b1a1c3e51f7c6ab64fa9dabc71c9af06033d",
+          "sequence": 6
+        },
+        {
+          "bytes": 140,
+          "digest": "889c0de3598e4252e4b7b96227d43b259c6c63d03644d0e3e44f5fcc76019dc7",
+          "sequence": 7
+        },
+        {
+          "bytes": 132,
+          "digest": "65ee40de73cbff3d96b755c8ec70be3247449aee31ac076556d33543b05ae1df",
+          "sequence": 8
+        },
+        {
+          "bytes": 140,
+          "digest": "8a876d1315c2c15d969cf5ea09adcf73d5b73533d2384413a12ddfc4dc3c208d",
+          "sequence": 9
+        },
+        {
+          "bytes": 132,
+          "digest": "c6d67a258c8d030b497ddc87cedcf27f06206bba37cc6c303db312f8e487b202",
+          "sequence": 10
+        },
+        {
+          "bytes": 140,
+          "digest": "a2572e809e1141e97d40406a632fb89e8c6d23c1a55cc0ca2ac89f2b227e94eb",
+          "sequence": 11
+        },
+        {
+          "bytes": 132,
+          "digest": "8b08e4f2a95dbbc190caba23df39320e03ca6bb60f88c75ad5a89557826c93d1",
+          "sequence": 12
+        },
+        {
+          "bytes": 140,
+          "digest": "80cf22caf74dde7bdf15f23767999d500a8f9e4e2ccfeac791bfb381c6f0f747",
+          "sequence": 13
+        },
+        {
+          "bytes": 132,
+          "digest": "3a86b58bb712194b1a979d6cbb1aa864e57428c773ac94b63517111917f60f76",
+          "sequence": 14
+        },
+        {
+          "bytes": 214,
+          "digest": "5da6fb904b9868726080e63fea35ad5197ef4bfcd968c322367d9eda0985a677",
+          "sequence": 15
+        },
+        {
+          "bytes": 832,
+          "digest": "01c696d2726137254913b1347e1c5830a8479e67a546ec61b8157b9aa54814a6",
+          "sequence": 16
+        },
+        {
+          "bytes": 1194,
+          "digest": "fdccdb59b3df17bb36c54aa47e260a4c35f5345ba75e11124935933e0e4dad5a",
+          "sequence": 17
+        }
+      ],
+      "subscription": "78ca1ba7-fe1a-48c5-be68-580ac5e3788d",
+      "tail_disconnected": true,
+      "tail_next_sequence": 17,
+      "terminal": {
+        "epoch": 1,
+        "session": {
+          "assignment_generation": 1,
+          "attempt_id": "01ba0a88-ab3b-5595-b171-61387895883c",
+          "boot_id": "0982cb43-ac92-4822-b2cd-b4e3b9801394",
+          "kind": "remote",
+          "node_id": "08c2b514-4f12-477b-8145-7f900f8430d5",
+          "session_id": "9540325c-07ce-5431-abda-88c4524dd2dc"
+        },
+        "terminal_id": "7dd1ac2a-c8dd-416f-8509-b508691fbeb7"
+      },
+      "total_bytes": 4345
+    },
+    "tool_validation": {
+      "binding_digest": "fd2f48ce871bb2a1acc99a4fad26c08f980403c38b8f6895375ced4eaa1523a0",
+      "completion": "AQ finite tool sequence ended; worker finalization remains separate.",
+      "operation_id": "7600aae4-8190-4c7a-90c4-f8aa5230ecd1",
+      "phase": "accepted",
+      "projection": "local_result_data_only",
+      "report_id": "b6ed6c38-d645-4f4b-89b1-4abf71ecc948",
+      "submission_digest": "a1b81d35cc24fabcb8e054ba57b1648b2059b223d81821ac15f5eb9f44402a3b"
+    }
+  },
+  "initial_host_free_bytes": 12926615552,
+  "private_audit_root": "/tmp/aq-g04-VROOhJ"
+}
