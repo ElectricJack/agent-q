@@ -61,6 +61,7 @@ pub enum Stage<'a> {
 pub struct Assessor {
     sequence: u64,
     last: Option<(Uuid, Value)>,
+    subject: Option<Value>,
 }
 
 fn canonical(value: &Value) -> Result<Vec<u8>> {
@@ -236,7 +237,7 @@ fn journal(private: &PrivateState, node: Uuid) -> Result<(Value, WorkerIdentity,
     ensure!(
         snapshot["state"]["format"] == 12
             && snapshot["digest"] == json!(Digest::of(&canonical(&snapshot["state"])?)),
-        "actual closed journal format/digest"
+        "actual journal format/digest"
     );
     let identity: WorkerIdentity = serde_json::from_value(snapshot["state"]["identity"].clone())?;
     identity.validate()?;
@@ -316,6 +317,7 @@ impl Assessor {
     pub async fn assess<T>(
         &mut self,
         state: &AppState,
+        pool: &sqlx::PgPool,
         node: Uuid,
         prepared: &Prepared,
         private: &PrivateState,
@@ -364,7 +366,6 @@ impl Assessor {
                 current_ms(state)?,
             )?,
         }
-        let pool = &state.store.pool;
         let (last_seen, revoked): (Option<chrono::DateTime<chrono::Utc>>, bool) =
             sqlx::query_as("SELECT last_seen_at,revoked_at IS NOT NULL FROM nodes WHERE id=$1")
                 .bind(node)
@@ -423,6 +424,33 @@ impl Assessor {
             .iter()
             .find(|c| c.credential.profile == prepared.credential)
             .context("exact finite-peer credential")?;
+        let [context] = prepared.profiled.context_qualifications.as_slice() else {
+            anyhow::bail!("one original finite-peer context subject required");
+        };
+        context.validate()?;
+        let original = &context.subject;
+        let subject = serde_json::to_value(original)?;
+        ensure!(
+            context.artifact()? == prepared.renderer
+                && original.runtime == prepared.runtime
+                && original.runtime_qualification == prepared.qualification
+                && original.adapter == prepared.adapter
+                && original.environment == prepared.environment
+                && original.harness == prepared.harness.harness
+                && original.cli_version == prepared.harness.cli_version
+                && original.harness_qualification == prepared.harness.qualification
+                && original.credential_profile == prepared.credential
+                && original.credential_profile == configured.credential.profile
+                && original.credential_revision == configured.credential.revision
+                && original.provider == configured.credential.provider
+                && original.account_reference == configured.credential.account_reference
+                && original.endpoint_reference == configured.credential.endpoint_reference
+                && original.model == recipe::MODEL
+                && original.native_reasoning == recipe::REASONING
+                && original.reasoning_configuration_reference == recipe::REASONING_REFERENCE
+                && self.subject.as_ref().is_none_or(|prior| prior == &subject),
+            "unchanged original finite-peer qualification subject"
+        );
         ensure!(
             configured.allowed_node_ids.contains(&node)
                 && configured.secret_file.as_ref() == Some(&evidence.synthetic_key_file)
@@ -527,6 +555,18 @@ impl Assessor {
                 && typed.expires_at_ms.checked_sub(typed.received_at_ms) == Some(30000),
             "new actual owner observation timing/scope"
         );
+        // Tie the explicitly borrowed fixture pool to the real protected owner
+        // operation. The caller supplies state and pool from the same Env.
+        let retained: Value = sqlx::query_scalar(
+            "SELECT response FROM intelligence_operations WHERE operation_id=$1",
+        )
+        .bind(operation)
+        .fetch_one(pool)
+        .await?;
+        ensure!(
+            retained == observed,
+            "actual fixture pool/owner operation join"
+        );
         if let Some((operation, previous)) = &self.last {
             let retained: Value = sqlx::query_scalar(
                 "SELECT response FROM intelligence_operations WHERE operation_id=$1",
@@ -541,6 +581,7 @@ impl Assessor {
         }
         self.sequence = sequence;
         self.last = Some((operation, observed.clone()));
+        self.subject = Some(subject);
         Ok(
             json!({"scope":"finite_local_responses_peer_only","observation":observed,"checked_at_ms":checked_at,"journal_digest":journal_digest,"actual_image_count":5,"material_revalidated":true,"native_registration_revalidated":true,"inventory_revalidated":true,"finite_peer_listening":true,"provider_availability_claim":false,"selection_rewritten":false,"ttl_ms":30000,"observation_max_age_ms":5000}),
         )
