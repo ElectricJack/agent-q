@@ -18,7 +18,30 @@ async fn prepare(
     pin: bool,
     stop_now: bool,
 ) -> (Fixture, aq_admission::started::Request, ResultReport) {
+    prepare_with_graph_profile(pin, stop_now, None).await
+}
+async fn prepare_with_graph_profile(
+    pin: bool,
+    stop_now: bool,
+    graph_profile: Option<serde_json::Value>,
+) -> (Fixture, aq_admission::started::Request, ResultReport) {
     let mut f = fixture().await;
+    // Optional synthetic ledger-fixture profile is pinned BEFORE the launch is
+    // sealed. The original prepare wrapper preserves every prior fixture byte.
+    if let Some(profile) = graph_profile {
+        assert!(aq_agent_api::valid("ResolvedProfile", &profile));
+        let digest = aq_agent_api::digest(&profile).unwrap();
+        let reference = ArtifactRef {
+            id: Text::new(profile["profile_id"].as_str().unwrap()).unwrap(),
+            version: Text::new(profile["revision"].as_str().unwrap()).unwrap(),
+            digest: serde_json::from_value(json!(digest)).unwrap(),
+        };
+        f.profiled.graph.profile_id = profile["profile_id"].as_str().unwrap().into();
+        f.profiled.graph.profile_revision = profile["revision"].as_str().unwrap().into();
+        f.profiled.graph.profile_digest = digest;
+        f.profiled.offer.manifest.bindings.graph_access_profile = reference.clone();
+        f.profiled.offer.binding.graph_access_profile_digest = reference.digest;
+    }
     let task_context = artifact("synthetic-task-context", b"synthetic task");
     f.profiled
         .offer
@@ -168,6 +191,8 @@ async fn prepare(
     result_record::validate_report(&report).unwrap();
     (f, start, report)
 }
+
+mod settlement_effects;
 #[tokio::test]
 async fn recording_retains_claims_replays_and_serializes_corrections_without_settlement() {
     let (mut f, start, report) = prepare(true, true).await;
@@ -1650,12 +1675,12 @@ async fn bounded_owner_quantum_expires_its_accepted_question_and_delivers_exact_
     driver.stop().await.unwrap();
 }
 
-#[path = "profiled_results/review_inbox.rs"]
-mod review_inbox;
 #[path = "profiled_results/human_results.rs"]
 mod human_results;
 #[path = "profiled_results/media_owner.rs"]
 mod media_owner;
+#[path = "profiled_results/review_inbox.rs"]
+mod review_inbox;
 
 #[path = "profiled_results/media_http.rs"]
 mod media_http;
