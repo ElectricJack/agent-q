@@ -583,9 +583,11 @@ async fn model_input_evidence(
     );
     let input_bytes = serde_json::to_vec(&first["input"])?.len();
     let tool_bytes = serde_json::to_vec(&first["tools"])?.len();
-    let implicit_units = input_bytes
-        .checked_add(tool_bytes)
-        .and_then(|n| n.checked_sub(retained.bytes.len()))
+    // Include the entire canonical request (instructions and metadata too),
+    // conservatively charging JSON overhead outside the raw sealed payload.
+    let first_bytes = serde_json::to_vec(first)?.len();
+    let implicit_units = first_bytes
+        .checked_sub(retained.bytes.len())
         .context("finite input measurement underflow")?;
     ensure!(
         (implicit_units as u64) <= offered.startup.implicit_tokens_upper_bound,
@@ -594,7 +596,7 @@ async fn model_input_evidence(
     Ok(
         json!({"model":first["model"],"max_output_tokens":first["max_output_tokens"],"sealed_payload_bytes":retained.bytes.len(),"sealed_payload_digest":payload.digest,
         "public_reporting_bytes":startup.len(),"public_reporting_digest":Digest::of(startup.as_bytes()),"payload_occurrences":1,"reporting_occurrences":1,
-        "canonical_first_request_bytes":serde_json::to_vec(first)?.len(),"canonical_first_input_encoded_bytes":input_bytes,"canonical_tool_definition_bytes":tool_bytes,"finite_implicit_tool_planning_units":implicit_units,"declared_implicit_planning_units":offered.startup.implicit_tokens_upper_bound,"actual_tools":first["tools"].as_array().context("actual tools missing")?.iter().map(|t|json!({"type":t["type"],"name":t["name"]})).collect::<Vec<_>>(),
+        "canonical_first_request_bytes":first_bytes,"canonical_first_input_encoded_bytes":input_bytes,"canonical_tool_definition_bytes":tool_bytes,"finite_implicit_tool_planning_units":implicit_units,"declared_implicit_planning_units":offered.startup.implicit_tokens_upper_bound,"actual_tools":first["tools"].as_array().context("actual tools missing")?.iter().map(|t|json!({"type":t["type"],"name":t["name"]})).collect::<Vec<_>>(),
         "canonical_request_metadata":requests.iter().map(|r|serde_json::to_vec(r).map(|b|json!({"bytes":b.len(),"digest":Digest::of(&b)}))).collect::<std::result::Result<Vec<_>,_>>()?,
         "scope":"measured finite-peer wire/input only; no external tokenizer/window/provider qualification"}),
     )
