@@ -192,6 +192,7 @@ async fn prepare_with_graph_profile(
     (f, start, report)
 }
 
+#[path = "profiled_results/settlement_effects.rs"]
 mod settlement_effects;
 #[tokio::test]
 async fn recording_retains_claims_replays_and_serializes_corrections_without_settlement() {
