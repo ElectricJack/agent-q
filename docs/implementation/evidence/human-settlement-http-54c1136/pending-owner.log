@@ -1,0 +1,9 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-human-settlement-http-v2/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 50.20s
+     Running tests/profiled_results.rs (/tmp/aq-native-union-target/debug/deps/profiled_results-bc3baa115283f78e)
+
+running 1 test
+test settlement_owner39::settlement39_valid_pending_combined_review_is_unavailable_without_settlement_writes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 54 filtered out; finished in 1.45s
+

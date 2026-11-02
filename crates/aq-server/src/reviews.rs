@@ -15,6 +15,7 @@ use sqlx::{Postgres, Row, Transaction};
 use std::sync::Arc;
 use uuid::Uuid;
 pub mod combined;
+mod combined_http;
 mod inbox;
 mod subject_owner;
 pub use inbox::schema as inbox_contract_schema;
@@ -979,6 +980,7 @@ pub fn admin_routes(service: Arc<Service>) -> axum::Router<AppState> {
         .route("/api/reviews/decisions/{id}", get(inspect_http))
         .route("/api/reviews/decisions/{id}/resolve", post(resolve_http))
         .route("/api/reviews/decisions/{id}/cancel", post(cancel_http))
+        .merge(combined_http::routes())
         .layer(DefaultBodyLimit::max(16384))
         .layer(axum::Extension(service))
 }
