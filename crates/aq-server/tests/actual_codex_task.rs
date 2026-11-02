@@ -652,6 +652,7 @@ fn diagnostics(
         "accepted":field("refresh_acceptance"),"prepared_inputs":field("refresh_prepared"),"execution":field("refresh_execution"),
         "original_execution_deadline_boot_ns":attempt.and_then(|a|a["refresh_execution"]["deadline_ns"].as_u64()),
         "original_reservation_deadline_boot_ns":attempt.and_then(|a|a["reservation"]["deadline_ns"].as_u64()),
+        "host_intent":host.is_some_and(|h|h["intent"].is_object()),"physical_intent":host.is_some_and(|h|h["host_intent"].is_object()),"guardian":host.is_some_and(|h|h["guardian"].is_object()),"start_intended":host.and_then(|h|h["start_intended"].as_bool()),"result_history":field("result"),
         "running":host.is_some_and(|h|h["running"].is_object()),"stopped":host.is_some_and(|h|h["stopped"].is_object()),
         "kernel_wait_echild":host.and_then(|h|h["stopped"]["observation"]["kernel_wait_echild"].as_bool()),
         "started_ack":host.is_some_and(|h|h["refresh_terminal"]["started"]["receipt"].is_object()),
@@ -797,6 +798,14 @@ async fn execute_case(
         Ok::<_,anyhow::Error>(json!({"scope":"actual pinned Codex finite local peer only; simulated fixture Owner approval","runtime":recipe.runtime,"qualification":recipe.qualification,"execution_deadline_boot_ns":deadline,"request_count":peer.requests.lock().unwrap().len(),"model_input":model_input,"tool_validation":tools,"terminal":terminal,"physical_running":true,"physical_stopped_echild":true,"started_ack":true,"stopped_ack":true,"private_auth_removed":true,"b1_receipt":attempt["result"]["receipt"],"settlement":settled,"actual_graph_task":task}))
     }).await;
     if result.is_err() {
+        // Private forensic bytes remain outside source control and stdout. They
+        // are history only, never reopened as launch or current-state authority.
+        if let Ok(bytes) = transferred
+            .state
+            .read(Path::new("journal/journal.json"), 4 * 1024 * 1024)
+        {
+            let _ = private(&root.join("refused-journal.json"), &bytes, 0o600);
+        }
         let metadata = diagnostics(&transferred, actual.env.node, &observed);
         eprintln!("GATE04_DIAGNOSTICS {metadata}");
         let _ = private(
