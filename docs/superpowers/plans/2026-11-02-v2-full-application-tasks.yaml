@@ -1,0 +1,2099 @@
+# AQ v2 full application: task contracts (import source for AQ v1).
+# Narrative, constraints and setup: 2026-11-02-v2-full-application-plan.md
+# Spec paths are relative to the aq-platform root (the read-only `platform-ref` workspace).
+# Every task also inherits the plan's Global Constraints and standard footer/subtasks.
+#
+# Schema:
+#   key, epic, repo, title, type, class, needs[], continues[], spec[], review?,
+#   integration? (pull_request; default direct), verification? (human), deferred? (importer skips),
+#   description, acceptance[], deliverables[{id, kind, target}]
+# `repo` maps to v1 workspace kind `<repo>-repo`.
+# Revised 2026-11-02 after the Fable review and the owner's scope decisions (see the plan's revision log).
+
+version: 1
+project: aq-platform
+
+epics:
+  - {key: A, title: "Tracking and provenance"}
+  - {key: B, title: "Execution core"}
+  - {key: C, title: "Sandboxes and templates"}
+  - {key: D, title: "Work loop and policy"}
+  - {key: E, title: "Deployment and release"}
+  - {key: F, title: "Supervisor and communication"}
+  - {key: G, title: "Dashboard and human API"}
+  - {key: H, title: "Session operations"}
+  - {key: I, title: "Harnesses"}
+  - {key: J, title: "Hardening and acceptance"}
+  - {key: M, title: "Milestone gates"}
+
+tasks:
+
+# ── A. Tracking and provenance ───────────────────────────────────────────────
+
+  - key: A1
+    epic: A
+    repo: aq-server
+    title: Freeze the 2026-10-30 plan, namespace requirement IDs, add missing requirement sources
+    type: docs
+    class: standard-high
+    needs: []
+    continues: [AUD-00]
+    spec:
+      - aq-server/docs/plans/0001-v2-milestones.json
+      - aq-server/docs/superpowers/plans/2026-11-02-v2-full-application-plan.md
+    description: |
+      Mark docs/plans/0001-v2-milestones.{json,md} as the frozen historical baseline, superseded for tracking by
+      the v1-tracked program plan. Add an old→new task mapping table using each task's `continues:` list.
+
+      Namespace the colliding requirement prefixes in the documentation index: aq-git R/V become GIT-R/GIT-V,
+      aq-playbooks P/T become PB-P/PB-T, aq-worker T becomes WRK-T. Do not rewrite the component specs' own
+      tables; add an alias note at the top of each.
+
+      Register the missing requirement sources (aq-git 0001, aq-playbooks 0001, aq-graph 0001–0004, aq-server
+      specs 0001/0003/0004/result-media, dashboard specs 0002/0003, worker specs 0003/0004, architecture 0005)
+      in a new `docs/plans/requirement-sources.md`.
+
+      Fix the stale statements found on 2026-11-02:
+        - result-media-png.md says no storage implementation is authorized;
+        - ecosystem §6 says the central install starts graph and supervises aq-git;
+        - aq-worker protocol/README.md says contract 0.1.1.
+      The aq-worker fix is a separate one-line change, filed as an emergent task if it is outside this workspace.
+    acceptance:
+      - "`python3 scripts/check-v2-plan.py` still passes on the frozen file, and the frozen header names this plan."
+      - "requirement-sources.md lists every spec above with its ID prefix; no two sources share a prefix."
+      - "The mapping table covers every in_progress/planned task in the old JSON."
+    deliverables:
+      - {id: check, kind: test, target: "python3 scripts/check-v2-plan.py"}
+  - key: A3a
+    epic: A
+    repo: aq-git
+    title: Release aq-git 0.2.0 from HEAD with a verifiable artifact and Git 2.56 qualification
+    type: chore
+    class: standard-high
+    needs: []
+    continues: [GIT-01]
+    spec: [aq-git/docs/specs/0001-aq-git.md, aq-server/docs/architecture/0001-ecosystem-and-releases.md]
+    description: |
+      The shipped aq-git pin (f3660a8) does not exist in aq-git history, and HEAD (110 tests) is ahead of it,
+      including the engine-crash-after-push recovery and the quota symlink-probe fixes.
+
+      Tag v0.2.0 on main and publish a GitHub release containing a source archive and a linux-x86_64 binary built
+      for the bookworm glibc baseline, each with its SHA-256 and a build record (toolchain, target, lockfile
+      digest, source revision).
+
+      Run the full suite under Git 2.56.0 (the version the images ship) and record compatibility with 2.43.
+    acceptance:
+      - "Tag v0.2.0 exists on origin; release assets and checksums download and verify."
+      - "`cargo test --locked --workspace` passes with Git 2.56.0 on PATH; evidence records both Git versions."
+      - "docs/release-status.md names v0.2.0 and its remaining limits."
+    deliverables:
+      - {id: tests, kind: test, target: "cargo test --locked --workspace"}
+  - key: A3b
+    epic: A
+    repo: aq-server
+    title: Re-pin the shipped aq-git to the 0.2.0 release
+    type: chore
+    class: standard-high
+    needs: [A3a]
+    continues: [AQ-09]
+    spec: [aq-server/docs/source-retention.md]
+    description: |
+      Replace vendor/git-candidate.json and the vendored archive with the aq-git v0.2.0 release: source revision,
+      archive digest, binary digest and Git 2.56.0. Pin the builder by digest.
+
+      Re-run the source-retention and project-binding tests that drive aq-git. Rebuild Dockerfile and
+      Dockerfile.worker and verify the embedded binary digest.
+    acceptance:
+      - "vendor/git-candidate.json source_revision resolves in the aq-git repository."
+      - "`cargo test --locked --workspace` passes; the image build verifies the aq-git digest."
+    deliverables:
+      - {id: tests, kind: test, target: "cargo test --locked --workspace"}
+  - key: A4
+    epic: A
+    repo: aq-server
+    title: "Image and CI hygiene: digest-pinned bases, state-format default, stale vendor trees, check scripts in CI"
+    type: chore
+    class: standard-high
+    needs: []
+    continues: [INT-01]
+    spec: [aq-server/docs/architecture/0001-ecosystem-and-releases.md]
+    description: |
+      - Pin `rust:1.96.1-bookworm` and `debian:bookworm-slim` by digest in Dockerfile and Dockerfile.worker.
+      - Make the Dockerfile `AQ_STATE_FORMAT` default derive from source, so a plain build cannot produce a label
+        the updater refuses (currently 40 vs source 41).
+      - Delete the vendored playbook trees excluded from the workspace (42f9449, a463e59, d3bd349).
+      - Add scripts/check-playbook-source.py and scripts/check-lifecycle-contract.py to ci.yml.
+    acceptance:
+      - "A plain `docker build .` produces a state-format label equal to the source constant."
+      - "CI runs both check scripts; the removed vendor trees are absent and the build still passes."
+    deliverables:
+      - {id: tests, kind: test, target: "cargo test --locked --workspace"}
+  - key: E0
+    epic: E
+    repo: aq-server
+    title: 'Local full-stack Compose for development: graph, supervised aq-git, dev auth'
+    type: chore
+    class: standard-high
+    needs: []
+    continues: [INT-01]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md, aq-server/docs/specs/0001-infrastructure-foundation.md]
+    description: |
+      compose.dev.yaml gains the services:
+        - aq-graph, built from its pinned revision or image;
+        - a supervised aq-git serve;
+        - postgres;
+        - aq-server with dev auth and no Cloudflare.
+
+      It must run on the WSL2 desktop, and it is the stack MS0 and MS1 run against.
+
+      Seed one project binding pointing at a scratch GitHub repository the owner designates, and one graph task.
+    acceptance:
+      - 'Test `compose_dev_reaches_ready_with_graph_and_git` (scripted) passes: all services healthy, the server reports graph and aq-git ready.'
+      - Killing aq-git causes a restart, and the server reports degraded then ready.
+    deliverables:
+      - {id: smoke, kind: test, target: scripts/compose-smoke.sh dev}
+  - key: I0
+    epic: I
+    repo: aq-worker
+    title: 'MS0: one real Codex API-key run in a plain Docker container on the existing native path'
+    type: test
+    class: deep-high
+    needs: [E0]
+    continues: [WRK-08, GATE-04]
+    spec: [aq-server/docs/architecture/0003-agent-profiles-harnesses-and-terminals.md, aq-server/docs/plans/2026-10-31-native-integration-checkpoint.md]
+    description: |
+      Before building permits, the credential vault or templates, prove the real-provider loop on what exists today:
+        - the current `aq-worker run-native` one-shot path;
+        - inside a plain Docker container on the WSL2 desktop, built from Dockerfile.worker plus the pinned Codex CLI;
+        - against the E0 stack;
+        - with a real OpenAI API key read from a local file.
+
+      Run a real graph task that edits the scratch repository, retains source and settles through the existing route.
+      A human-review settlement is acceptable here.
+
+      Run it three times. Record every failure and rough edge, and file each one as a task with --reason.
+    acceptance:
+      - Three consecutive real runs complete with retained source and a recorded outcome.
+      - Every problem found is filed as a task and listed in the evidence.
+    deliverables:
+      - {id: report, kind: file, target: docs/implementation/I0-first-real-run.md}
+  - key: B1
+    epic: B
+    repo: aq-worker
+    title: Own the native execution contract and add delegated runner permits
+    type: design
+    class: deep-high
+    review: adversarial
+    needs: []
+    continues: [CON-01, CON-02]
+    spec:
+      - aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md   # §6, SBX6, SBX16
+      - aq-server/docs/architecture/0002-execution-and-recovery.md
+      - aq-worker/docs/specs/0002-execution-and-agent-access.md
+    description: |
+      The native wire contract currently lives in aq-server's aq-admission and is vendored into aq-worker. That
+      contradicts the ecosystem rule that aq-worker/protocol owns the worker contract.
+
+      Resolve it one of two ways:
+        (a) move the crate into aq-worker/protocol as the published contract;
+        (b) amend ecosystem §3 to name aq-admission's owner explicitly.
+      Record the choice in the evidence.
+
+      Then extend the contract with:
+        - delegated runner permits: preparation scope and execution scope; bound to attempt, grant generation,
+          sandbox identity, node boot and hard deadline;
+        - the node re-adoption request and response;
+        - the renewal response "awaiting node re-adoption";
+        - the runner terminal/observation channel identity (per sandbox, with node aggregation);
+        - backend capability advertisement and template inventory in node registration.
+      Publish schemas and fixtures for valid, invalid, replay and compatibility cases. Older peers must decline
+      these capabilities explicitly.
+    acceptance:
+      - 'Test `permit_fixture_conformance` passes in aq-worker against the published fixtures (scope violations: other attempt, expired, wrong boot, pre-grant use of execution scope; re-adoption replay).'
+      - aq-server consumes the same pinned contract version; its matching conformance test is filed as an emergent aq-server task if outside this workspace.
+      - An adversarial review is resolved.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace permit_fixture_conformance}
+      - {id: review, kind: review, target: spec}
+    integration: pull_request
+  - key: B2
+    epic: B
+    repo: aq-server
+    title: Issue, scope, revoke and re-adopt delegated permits
+    type: feature
+    class: deep-high
+    review: adversarial
+    needs: [B1]
+    continues: [AQ-08]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      - Issue a preparation-scoped permit when an offer is accepted and upgrade it to execution scope at grant.
+      - Enforce permit scope on every runner route: material fetch, Prepared/Started, renewal, observations,
+        terminal, artifact transfer, results, mail.
+      - Revoke permits on node revocation, attempt cancellation and expiry.
+      - Implement node re-adoption: a new boot lists live sandboxes, and the server re-binds their permits.
+        Until then renewals return "awaiting node re-adoption" without extension.
+      - Persist permits durably and make issuance idempotent.
+    acceptance:
+      - "Test `permit_scope_refuses_foreign_attempt_and_expired_use` passes."
+      - "Test `node_reboot_requires_readoption_before_renewal_extends` passes."
+      - "Test `server_restart_mid_attempt_resumes_or_preserves` (Review Focus 4) passes: the server restarts with an active permit; renewal resumes within the window, otherwise the runner is told to stop and preserve; no duplicate result is recorded."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace permit_scope_refuses_foreign_attempt_and_expired_use}
+      - {id: t2, kind: test, target: cargo test --locked --workspace node_reboot_requires_readoption_before_renewal_extends}
+      - {id: t3, kind: test, target: cargo test --locked --workspace server_restart_mid_attempt_resumes_or_preserves}
+    integration: pull_request
+  - key: B3
+    epic: B
+    repo: aq-server
+    title: Native cancellation end to end
+    type: feature
+    class: standard-high
+    needs: []
+    continues: [AQ-08, AQ-10]
+    spec: [aq-server/docs/architecture/0002-execution-and-recovery.md, aq-server/docs/specs/0002-execution-and-agent-access.md]
+    description: |
+      - Native polls currently return `cancellations: vec![]` (producer/workflow.rs:232), and the cancel path
+        loads only `legacy_fixture` attempts.
+      - Add native cancellation for every phase (offered, preparing, granted, started), with durable cancellation
+        IDs and directive delivery in poll and renewal responses.
+      - Order cancellation correctly against a late result (X6/X7).
+      - Expose it through the owner API used by the dashboard, the v2 CLI and policy (`operation.cancel`).
+    acceptance:
+      - "Tests `native_cancel_before_grant_releases_claim`, `native_cancel_after_start_stops_and_settles_cancelled` and `late_result_after_cancel_is_recorded_not_applied` pass."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace native_cancel_before_grant_releases_claim}
+      - {id: t2, kind: test, target: cargo test --locked --workspace native_cancel_after_start_stops_and_settles_cancelled}
+      - {id: t3, kind: test, target: cargo test --locked --workspace late_result_after_cancel_is_recorded_not_applied}
+  - key: B4
+    epic: B
+    repo: aq-server
+    title: Retry/replacement attempts, fair multi-project scheduling and moving-ref sources
+    type: feature
+    class: deep-high
+    needs: []
+    continues: [AQ-08]
+    spec: [aq-server/docs/architecture/0002-execution-and-recovery.md, aq-server/docs/specs/0003-project-execution-bindings.md, aq-worker/docs/specs/0001-worker-framework.md]
+    description: |
+      - Today `first_eligible_task` skips any task with started>0. Allow replacement attempts after a failed,
+        expired or cancelled attempt has settled with stop proof, within shared task retry and spend budgets
+        (P7, X4); a replacement never resets those budgets.
+      - Replace "top-priority project, first 8 ready items" with cursor-based fair scheduling across projects.
+      - Support `NamedRef` source selection resolved to an exact commit at offer time.
+      - A successor attempt uses the predecessor's retained source when policy says so.
+
+      Replacement attempts also consume a per-task sandbox-minutes budget, so a flapping provider cannot spin up paid
+      sandboxes indefinitely.
+    acceptance:
+      - "Tests `failed_attempt_is_replaced_within_retry_budget`, `retry_budget_exhaustion_blocks_task`, `two_projects_share_capacity_fairly` and `named_ref_resolves_to_exact_commit_at_offer` pass."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace failed_attempt_is_replaced_within_retry_budget}
+      - {id: t2, kind: test, target: cargo test --locked --workspace retry_budget_exhaustion_blocks_task}
+      - {id: t3, kind: test, target: cargo test --locked --workspace two_projects_share_capacity_fairly}
+      - {id: t4, kind: test, target: cargo test --locked --workspace named_ref_resolves_to_exact_commit_at_offer}
+  - key: B5a
+    epic: B
+    repo: aq-worker
+    title: 'Node controller core: enrollment, boot incarnation, journal-before-backend, capacity'
+    type: feature
+    class: deep-high
+    review: adversarial
+    needs: [B1, C1]
+    continues: [WRK-02, WRK-18]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md, aq-worker/docs/specs/0001-worker-framework.md]
+    description: |
+      Build a long-lived `aq-worker run` node controller that runs no agents. It owns:
+        - enrollment and boot ID;
+        - registration with backend capabilities and the template inventory (B1 contract);
+        - node-wide capacity (concurrent sandboxes, spend ceiling);
+        - offer acceptance;
+        - a journal that records intent before any backend call;
+        - sandbox lifecycle through the C1 trait (fake backend in tests).
+
+      `run-native`'s refuse-if-state-exists behaviour is removed.
+    acceptance:
+      - Test `capacity_refuses_offer_at_sandbox_ceiling_with_typed_reason` passes.
+      - Test `journal_records_intent_before_backend_create` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace capacity_refuses_offer_at_sandbox_ceiling_with_typed_reason}
+      - {id: t2, kind: test, target: cargo test --locked --workspace journal_records_intent_before_backend_create}
+    integration: pull_request
+  - key: B5b
+    epic: B
+    repo: aq-worker
+    title: 'Node controller recovery: reconcile, re-adopt, preserve-before-destroy, sweeps, cancellation'
+    type: feature
+    class: deep-high
+    needs: [B5a]
+    continues: [WRK-03, WRK-04]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md, aq-worker/docs/specs/0002-execution-and-agent-access.md]
+    description: |
+      Add recovery to the controller:
+        - inventory reconciliation against the journal;
+        - re-adoption after a new boot;
+        - preserve-before-destroy;
+        - deadline sweeps (stop, never delete);
+        - cancellation observation.
+
+      Port the synthetic runtime's journal, capacity and recovery tests to the controller, so that the M2/M3 guarantees
+      are re-earned on the real path. Then retire the synthetic runtime or keep it only as a test harness.
+    acceptance:
+      - Test `controller_restart_reconciles_journal_against_backend_inventory` passes.
+      - Test `unretained_sandbox_is_preserved_not_destroyed` passes.
+      - The ported recovery tests pass against the fake backend.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace controller_restart_reconciles_journal_against_backend_inventory}
+      - {id: t2, kind: test, target: cargo test --locked --workspace unretained_sandbox_is_preserved_not_destroyed}
+  - key: B6a
+    epic: B
+    repo: aq-worker
+    title: 'Runner core: permit auth, guardian and tmux launch, stop-and-preserve, handoff-before-done'
+    type: feature
+    class: deep-high
+    needs: [B1]
+    continues: [WRK-08, WRK-17, WRK-18]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md, aq-server/docs/architecture/0003-agent-profiles-harnesses-and-terminals.md]
+    description: |
+      `aq-worker sandbox-run` is the current native launch path adapted to run inside a sandbox:
+        - it authenticates with the delegated permit;
+        - it runs the guardian and the attempt-owned tmux host;
+        - it stops and preserves on renewal loss;
+        - it reports done only after handoff receipts.
+
+      Use a deterministic fixture harness in a local process.
+    acceptance:
+      - Test `runner_cannot_report_before_handoff_receipts` passes.
+      - Test `renewal_loss_stops_and_preserves_without_relaunch` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace runner_cannot_report_before_handoff_receipts}
+      - {id: t2, kind: test, target: cargo test --locked --workspace renewal_loss_stops_and_preserves_without_relaunch}
+  - key: B6b
+    epic: B
+    repo: aq-worker
+    title: Runner OS users and loopback proxies (Responses; AQ API with Access header)
+    type: feature
+    class: standard-high
+    needs: [B6a]
+    continues: [WRK-17]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      The runner runs as separate `runner` and `agent` OS users. Add two loopback proxies:
+        - the Responses proxy holds provider API keys;
+        - the AQ API proxy injects the runner Access token from a file readable only by `runner`.
+
+      This is not a hostile-code boundary on docker-local (SBX10). Do not over-invest beyond file permissions and the
+      privilege drop.
+    acceptance:
+      - Test `agent_user_cannot_read_permit_or_proxy_key` passes.
+      - Test `aq_proxy_injects_access_header_without_exposing_token` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace agent_user_cannot_read_permit_or_proxy_key}
+      - {id: t2, kind: test, target: cargo test --locked --workspace aq_proxy_injects_access_header_without_exposing_token}
+  - key: B6c
+    epic: B
+    repo: aq-worker
+    title: Runner hydration from retention and per-sandbox terminal/observation channels
+    type: feature
+    class: standard-high
+    needs: [B6a]
+    continues: [WRK-14]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md, aq-server/docs/architecture/0003-agent-profiles-harnesses-and-terminals.md]
+    description: |
+      Hydrate the workspace from central retention through the authorized artifact export. Open per-sandbox terminal and
+      observation channels (SBX16), with no poll held when there are no subscriptions.
+    acceptance:
+      - Test `hydrated_workspace_matches_retained_revision` passes.
+      - Test `idle_sandbox_holds_no_terminal_poll` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace hydrated_workspace_matches_retained_revision}
+      - {id: t2, kind: test, target: cargo test --locked --workspace idle_sandbox_holds_no_terminal_poll}
+  - key: B7
+    epic: B
+    repo: aq-worker
+    title: Scoped AQ access for agents inside sandboxes
+    type: feature
+    class: standard-high
+    needs: [B6b, B2]
+    continues: [WRK-05, AQ-06]
+    spec: [aq-worker/docs/specs/0002-execution-and-agent-access.md, aq-server/docs/specs/0002-execution-and-agent-access.md]
+    description: |
+      Link aq-agent-client into the runner. Provision the per-attempt scoped AQ credential and the
+      context/token-file binding for the agent user, and expose it through the AQ loopback proxy.
+
+      Ship the agent-facing CLI (binary `aq-agent`, never `aq`) in the runtime bundle: context, graph read and
+      commands, operations, messages.
+    acceptance:
+      - "Test `agent_reads_scoped_context_and_writes_versioned_mutation` passes."
+      - "Test `agent_credential_expires_with_attempt` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace agent_reads_scoped_context_and_writes_versioned_mutation}
+      - {id: t2, kind: test, target: cargo test --locked --workspace agent_credential_expires_with_attempt}
+  - key: C1
+    epic: C
+    repo: aq-worker
+    title: Placement backend trait, journaled lifecycle and conformance suite
+    type: feature
+    class: deep-high
+    needs: []
+    continues: []
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]   # §4, §5, §11; SBX1 SBX3 SBX4 SBX5 SBX15
+    description: |
+      Define the backend trait and a fake backend:
+        - create from template digest;
+        - deliver private material;
+        - start runner;
+        - inspect;
+        - list owned;
+        - stop;
+        - archive (optional);
+        - resume/fork (optional);
+        - destroy with confirmation;
+        - capabilities.
+
+      Write the reusable conformance suite that every backend must pass. Run it against the fake backend.
+    acceptance:
+      - "The conformance suite runs against the fake backend and covers: create-crash-before-record, unknown sandbox in inventory, destroy failure keeping resources protected, preserve-before-destroy with unretained work, deadline sweep stopping rather than deleting."
+    deliverables:
+      - {id: tests, kind: test, target: "cargo test --locked -p aq-worker --test backend_conformance"}
+  - key: C2
+    epic: C
+    repo: aq-worker
+    title: "`docker-local` backend with a dedicated rootless sandbox daemon"
+    type: feature
+    class: standard-high
+    needs: [C1]
+    continues: []
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]   # §5.1, SBX10, §8.3
+    description: |
+      Implement the backend against a dedicated rootless Docker or Podman daemon on WSL2, never the host's main
+      socket. Fixed launch policy:
+        - allowlisted template digests only;
+        - no privileged containers;
+        - only managed volumes and declared mount aliases;
+        - CPU, memory and PID limits;
+        - outbound-only network.
+
+      Decide and record whether unprivileged user namespaces are allowed for bubblewrap (Codex `native` mode), or
+      whether this backend is `container`-mode only.
+    acceptance:
+      - "Conformance suite passes against the real daemon in an opt-in test."
+      - "Test `wsl_suspend_resume_reconciles_sandboxes` (Review Focus 1) passes: pausing and resuming the daemon mid-attempt leads to re-adoption or preservation, with no lost workspace."
+      - "Install notes for WSL2 are written."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace wsl_suspend_resume_reconciles_sandboxes}
+      - {id: tests, kind: test, target: "cargo test --locked -p aq-worker --test docker_local_backend -- --ignored"}
+  - key: C3a
+    epic: C
+    repo: aq-worker
+    title: aq-sandbox-os base image and aq-sandbox-runtime bundle
+    type: feature
+    class: standard-high
+    needs: []
+    continues: [WRK-10]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      Build two artifacts:
+        - `aq-sandbox-os`: OS, Git, tmux, bubblewrap, CA certificates, `runner` and `agent` users;
+        - `aq-sandbox-runtime`, under /opt/aq: runner, pinned aq-git, proxies, pinned harness CLIs, private Node.
+
+      Both are built reproducibly from pinned inputs (0005 §8.1).
+    acceptance:
+      - Test `runtime_bundle_lists_pinned_harness_versions` passes.
+      - Rebuilding after a harness version bump changes only the bundle layer (recorded).
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace runtime_bundle_lists_pinned_harness_versions}
+  - key: C3b
+    epic: C
+    repo: aq-worker
+    title: Template assembly, recipe format, finalize check, credential scan, allowlist and provenance
+    type: feature
+    class: standard-high
+    needs: [C3a]
+    continues: []
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      - Template recipe format, stored in the vault.
+      - Assembly: toolchain image + `COPY --from` bundle + finalize check.
+      - A build CLI that emits the digest and a provenance record.
+      - A credential scan of built templates.
+      - A digest allowlist (SBX9, SBX18).
+    acceptance:
+      - Test `finalize_refuses_template_missing_tmux_or_users` passes.
+      - Test `credential_scan_fails_build_with_auth_json` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace finalize_refuses_template_missing_tmux_or_users}
+      - {id: t2, kind: test, target: cargo test --locked --workspace credential_scan_fails_build_with_auth_json}
+  - key: C3c
+    epic: C
+    repo: aq-worker
+    title: Publish base and runtime to GHCR and seed the rust and node templates
+    type: chore
+    class: standard-high
+    needs: [C3b]
+    continues: []
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      - Publish `aq-sandbox-os` and `aq-sandbox-runtime` to GHCR, tagged and digest-pinned.
+      - Add toolchain recipes: `rust` (aq-server, aq-worker, aq-git, aq-graph, aq-playbooks) and `node` (aq-dashboard).
+      - Build and allowlist both templates.
+
+      Requires Docker and a GHCR token on the v1 worker (plan §4.2).
+    acceptance:
+      - Both templates build, pass finalize and credential scan, and their digests are recorded in the allowlist.
+    deliverables:
+      - {id: evidence, kind: file, target: docs/implementation/C3c.md}
+  - key: C4
+    epic: C
+    repo: aq-server
+    title: Environment-to-template catalog, backend capabilities and placement preference
+    type: feature
+    class: standard-high
+    needs: [C3c, B1]
+    continues: [AQ-18, AQ-19, AQ-20, AQ-08]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md, aq-server/docs/architecture/0003-agent-profiles-harnesses-and-terminals.md]
+    description: |
+      - At catalog activation, resolve each execution profile's environment to exactly one template digest, and
+        pin it in the launch manifest.
+      - Consume node advertisements (backend kind, capabilities, templates and harness versions, ceilings) in
+        eligibility.
+      - Implement placement preference: the default is docker-local, then boat, then cloudflare-containers,
+        overridable per project.
+      - Respect node spend and concurrency ceilings, with typed refusals and explanations (SBX13, SBX14, SBX15, W13).
+    acceptance:
+      - "Test `placement_prefers_local_then_boat_then_cloudflare` passes."
+      - "Test `template_missing_selected_harness_version_is_ineligible` passes."
+      - "Test `node_at_spend_ceiling_refuses_with_reason` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace placement_prefers_local_then_boat_then_cloudflare}
+      - {id: t2, kind: test, target: cargo test --locked --workspace template_missing_selected_harness_version_is_ineligible}
+      - {id: t3, kind: test, target: cargo test --locked --workspace node_at_spend_ceiling_refuses_with_reason}
+  - key: C5a
+    epic: C
+    repo: aq-server
+    title: Provider credential profiles, per-credential backend policy, leases bound to permits
+    type: feature
+    class: deep-high
+    review: adversarial
+    needs: [B1]
+    continues: [AQ-08]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      Credential profiles of two kinds, `api-key` and `subscription-login`, with allowed backends (default: all enabled
+      backends; personal deployment, see 0005 §7). Extend material leases to delegated permits.
+    acceptance:
+      - Test `lease_bound_to_permit_refuses_other_attempt` passes.
+      - Test `credential_restricted_backend_is_ineligible` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace lease_bound_to_permit_refuses_other_attempt}
+      - {id: t2, kind: test, target: cargo test --locked --workspace credential_restricted_backend_is_ineligible}
+    integration: pull_request
+  - key: C5b
+    epic: C
+    repo: aq-server
+    title: Subscription-login refresh write-back with refresh-lineage fencing; Codex device-auth enrollment
+    type: feature
+    class: deep-high
+    review: adversarial
+    needs: [C5a]
+    continues: []
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      - A lease-scoped write-back endpoint that creates refresh-lineage revisions.
+      - Renewal fencing accepts the attempt's own refresh lineage and refuses operator rotation or revocation.
+      - `max_concurrent_leases` (default 1; a value above 1 only when `refresh_safe`).
+      - The enrollment flow: run `codex login --device-auth` in an enrollment sandbox and capture `$CODEX_HOME/auth.json`
+        directly into the vault.
+    acceptance:
+      - Test `refresh_writeback_does_not_refuse_own_renewal` passes.
+      - Test `operator_rotation_refuses_renewal` passes.
+      - Test `second_lease_beyond_limit_is_unavailable` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace refresh_writeback_does_not_refuse_own_renewal}
+      - {id: t2, kind: test, target: cargo test --locked --workspace operator_rotation_refuses_renewal}
+      - {id: t3, kind: test, target: cargo test --locked --workspace second_lease_beyond_limit_is_unavailable}
+    integration: pull_request
+  - key: C6a
+    epic: C
+    repo: aq-worker
+    title: Runner Codex configuration for API keys and harness confinement modes
+    type: feature
+    class: deep-high
+    review: adversarial
+    needs: [C5a, B6b, C3c]
+    continues: [WRK-08, WRK-17]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      Codex configuration:
+        - a private `CODEX_HOME`;
+        - `cli_auth_credentials_store = "file"`;
+        - a custom model provider pointing at the runner's Responses proxy.
+
+      Implement the `native` and `container` confinement modes, with a qualification record per template × backend.
+      docker-local defaults to `container` mode (0005 §8.3). `container` mode requires profile permission.
+    acceptance:
+      - Test `container_mode_requires_profile_permission` passes.
+      - Test `api_key_never_visible_to_agent_user` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace container_mode_requires_profile_permission}
+      - {id: t2, kind: test, target: cargo test --locked --workspace api_key_never_visible_to_agent_user}
+    integration: pull_request
+  - key: C6b
+    epic: C
+    repo: aq-worker
+    title: Runner subscription-login install, refresh write-back and wipe
+    type: feature
+    class: standard-high
+    needs: [C6a, C5b]
+    continues: [WRK-08]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      Install the leased subscription material into the agent's harness home, write back a refreshed copy before
+      teardown, and wipe it at teardown. The agent user can read the material, because the CLI requires it (0005 §7).
+    acceptance:
+      - 'Test `expired_subscription_login_fails_fast_with_credential_reason` (Review Focus 3, worker side) passes: the attempt fails with reason `credential_invalid` and is not retried automatically.'
+      - Test `refreshed_login_written_back_before_teardown` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace expired_subscription_login_fails_fast_with_credential_reason}
+      - {id: t2, kind: test, target: cargo test --locked --workspace refreshed_login_written_back_before_teardown}
+  - key: C7
+    epic: C
+    repo: aq-worker
+    title: "`boat` backend"
+    type: feature
+    class: standard-high
+    needs: [C1, C3c, B5b]
+    continues: []
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]   # §5.2, SBX11
+    description: |
+      Client for the boat API (https://boat.dev/api/v1, scoped key). Behaviour:
+        - templates are materialized as saved snapshots;
+        - each attempt forks a snapshot, sized from its resource request;
+        - auto-stop is set to the grant hard deadline and extended only within it;
+        - stop-and-archive is used for preserve and warm start;
+        - DELETE plus confirmation is used for destroy;
+        - sandboxes are scoped to a dedicated organization by name prefix;
+        - the runner runs inside the template OCI container on the VM's Docker;
+        - no public URLs, SSH keys or desktop streaming.
+
+      Verify and record the platform facts listed in 0005 §14.
+
+      Add the boat backend configuration to the `aq-worker-cloud` service (E6b).
+
+      Renewal, stop and preserve margins must assume a transatlantic RTT of 250 ms or more. The terminal latency
+      target is not claimed on boat.
+    acceptance:
+      - "The conformance suite passes against boat in an opt-in live test."
+      - "Test `boat_unavailable_refuses_offers_without_orphans` (Review Focus 2) passes: API 5xx, 429 or the account limit leads to typed offer refusal, and the sweep leaves zero running sandboxes."
+      - "Test `sweep_ignores_sandboxes_without_node_prefix` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace boat_unavailable_refuses_offers_without_orphans}
+      - {id: t2, kind: test, target: cargo test --locked --workspace sweep_ignores_sandboxes_without_node_prefix}
+      - {id: tests, kind: test, target: "cargo test --locked -p aq-worker --test boat_backend"}
+  - key: C8
+    epic: C
+    repo: aq-worker
+    title: "`cloudflare-containers` backend and gateway Worker"
+    type: feature
+    class: standard-high
+    needs: [C1, C3c, B5b]
+    continues: []
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]   # §5.3, SBX12
+    description: |
+      Build an AQ-owned gateway Worker plus Durable Object in aq-worker/gateway/cloudflare, with a narrow
+      authenticated API: create, deliver material, start runner, inspect, list, destroy. Build the node-side
+      backend client.
+
+      Handoff must complete before ephemeral teardown. There is no snapshot suspend. Nested Docker is not
+      advertised unless verified.
+
+      Verify and record the Cloudflare facts in 0005 §14.
+    acceptance:
+      - "The conformance suite passes against the gateway in an opt-in live test."
+      - "Test `ephemeral_teardown_waits_for_handoff` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace ephemeral_teardown_waits_for_handoff}
+      - {id: tests, kind: test, target: "cargo test --locked -p aq-worker --test cloudflare_backend"}
+    deferred: true
+  - key: D1a
+    epic: D
+    repo: aq-server
+    title: Candidate creation and conditional publication through aq-git with durable intents
+    type: feature
+    class: deep-high
+    review: adversarial
+    needs: [A3b]
+    continues: [AQ-15, AQ-09]
+    spec: [aq-git/docs/specs/0001-aq-git.md, aq-git/docs/aq-integration.md]
+    description: |
+      Use aq-git `candidate.create` and `publish` from the central daemon, with durable intents and receipts. Git remote
+      credentials stay central (SBX17).
+    acceptance:
+      - Test `candidate_from_retained_source_publishes_once` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace candidate_from_retained_source_publishes_once}
+    integration: pull_request
+  - key: D1b
+    epic: D
+    repo: aq-server
+    title: Per-project publication policy and ambiguous-publication reconciliation
+    type: feature
+    class: standard-high
+    needs: [D1a]
+    continues: [AQ-15]
+    spec: [aq-git/docs/specs/0001-aq-git.md]
+    description: |
+      Publication policy per project:
+        - push a branch and open a PR, or fast-forward the default branch;
+        - optionally wait for checks.
+
+      Use `operation.reconcile` and `recovery.clear-fence` for ambiguous publication. Never retry blindly.
+    acceptance:
+      - Test `ambiguous_push_reconciles_without_double_publish` passes.
+      - Test `publication_conflict_reports_typed_refusal` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace ambiguous_push_reconciles_without_double_publish}
+      - {id: t2, kind: test, target: cargo test --locked --workspace publication_conflict_reports_typed_refusal}
+  - key: D2
+    epic: D
+    repo: aq-server
+    title: Repository onboarding and central Git remote credentials
+    type: feature
+    class: standard-high
+    needs: [D1b]
+    continues: [AQ-19]
+    spec: [aq-server/docs/specs/0003-project-execution-bindings.md]
+    description: |
+      - Add owner API and CLI to create a project binding from a GitHub repository: clone into central aq-git,
+        create the binding, select the default branch, set the publication policy.
+      - Manage GitHub credentials centrally as a deploy key or fine-grained token in the vault.
+      - Document which repositories fit the aq-git supported profile (see J7) and refuse others with a reason.
+    acceptance:
+      - "Test `onboard_github_repo_creates_binding_and_retained_base` passes."
+      - "Test `unsupported_repo_profile_refused_with_reason` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace onboard_github_repo_creates_binding_and_retained_base}
+      - {id: t2, kind: test, target: cargo test --locked --workspace unsupported_repo_profile_refused_with_reason}
+  - key: D3
+    epic: D
+    repo: aq-server
+    title: Automatic result settlement and the confirmed-event outbox consumer
+    type: feature
+    class: deep-high
+    review: adversarial
+    needs: []
+    continues: [AQ-10, AQ-07, AQ-28]
+    spec: [aq-server/docs/specs/0002-execution-and-agent-access.md, aq-server/docs/architecture/0002-execution-and-recovery.md]
+    description: |
+      Trigger settlement evaluation automatically when a result arrives. It currently runs only behind the
+      reviews route.
+
+      Default completion policy, used until D9 installs playbook policy:
+        - the result is accepted;
+        - required checks pass;
+        - source is retained;
+        - the change is published, when the task requires delivery;
+        - then a version-checked graph completion.
+
+      Add the consumer of `agent_graph_outbox` that delivers confirmed domain events to the embedded playbook
+      host, with deduplication and replay (0002 §9).
+    acceptance:
+      - "Test `false_pass_result_does_not_complete_task` (Review Focus 5) passes: a result claiming success with failing checks or unpublished required delivery does not complete the graph task, and the task is marked for rework with the evidence."
+      - "Test `accepted_result_completes_task_with_expected_version` passes."
+      - "Test `outbox_replay_delivers_each_event_once` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace false_pass_result_does_not_complete_task}
+      - {id: t2, kind: test, target: cargo test --locked --workspace accepted_result_completes_task_with_expected_version}
+      - {id: t3, kind: test, target: cargo test --locked --workspace outbox_replay_delivers_each_event_once}
+    integration: pull_request
+  - key: D4
+    epic: D
+    repo: aq-playbooks
+    title: Reconcile the synthetic and production host catalogs
+    type: refactor
+    class: standard-high
+    needs: []
+    continues: [PB-01, AQ-12]
+    spec: [aq-playbooks/docs/specs/0001-aq-playbooks.md, aq-playbooks/docs/aq-host-integration.md]
+    description: |
+      The synthetic catalog differs from the daemon's in four ways:
+        - recovery classes: the daemon accepts only Reconcilable, while 9 synthetic commands are KeyedIdempotent;
+        - outcome words: queued vs accepted;
+        - sync vs async `decision.request`;
+        - event names: aq.operation.updated vs work.changed.
+
+      Publish one versioned host catalog contract that both use. Update the pilots and fake host to it, and
+      document event names.
+    acceptance:
+      - "All pilots pass against the reconciled catalog."
+      - "The contract version is pinned by aq-server's aq-playbook-host in a follow-up emergent task if outside this repo."
+      - 'Named tests pass: `pilots_pass_on_reconciled_catalog`.'
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace pilots_pass_on_reconciled_catalog}
+  - key: D5
+    epic: D
+    repo: aq-server
+    title: "Host adapters: context.read, work.ensure, work.change, operation.cancel"
+    type: feature
+    class: standard-high
+    needs: [D3, D4]
+    continues: [AQ-13]
+    spec: [aq-playbooks/docs/specs/0001-aq-playbooks.md, aq-server/docs/specs/0002-execution-and-agent-access.md]
+    description: |
+      Implement the four adapters against the real graph gateway and execution authority:
+        - Reconcilable recovery;
+        - effect intents;
+        - cancellation through B3;
+        - grant binding.
+
+      Pin the D4 catalog contract.
+    acceptance:
+      - "Test `work_ensure_is_idempotent_by_key` passes."
+      - "Test `work_change_conflict_returns_version_refusal` passes."
+      - "Test `operation_cancel_reaches_native_attempt` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace work_ensure_is_idempotent_by_key}
+      - {id: t2, kind: test, target: cargo test --locked --workspace work_change_conflict_returns_version_refusal}
+      - {id: t3, kind: test, target: cargo test --locked --workspace operation_cancel_reaches_native_attempt}
+  - key: D6
+    epic: D
+    repo: aq-server
+    title: "Host adapters: judgment.request, check.request"
+    type: feature
+    class: standard-high
+    needs: [D5, B5b]
+    continues: [AQ-14]
+    spec: [aq-playbooks/docs/specs/0001-aq-playbooks.md, aq-server/docs/implementation/AQ-14-decision-check-owner-design.md]
+    description: |
+      - judgment.request: a bounded model judgment through a provider credential profile.
+      - check.request: runs the project's declared checks (tests, lint) as a check attempt in a sandbox with a
+        check execution profile, and returns a typed pass/fail with evidence references.
+    acceptance:
+      - "Test `check_request_runs_in_sandbox_and_reports_typed_outcome` passes."
+      - "Test `judgment_request_respects_budget_and_records_provenance` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace check_request_runs_in_sandbox_and_reports_typed_outcome}
+      - {id: t2, kind: test, target: cargo test --locked --workspace judgment_request_respects_budget_and_records_provenance}
+  - key: D7
+    epic: D
+    repo: aq-server
+    title: "Host adapters: candidate.prepare, candidate.publish"
+    type: feature
+    class: standard-high
+    needs: [D1b, D5]
+    continues: [AQ-15]
+    spec: [aq-playbooks/docs/specs/0001-aq-playbooks.md]
+    description: |
+      Expose D1 delivery as policy commands, with guarded publication. Publication requires the evidence named
+      by policy (P10).
+    acceptance:
+      - "Test `publish_refused_without_required_evidence` passes."
+      - "Test `prepare_then_publish_records_receipts` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace publish_refused_without_required_evidence}
+      - {id: t2, kind: test, target: cargo test --locked --workspace prepare_then_publish_records_receipts}
+  - key: D8
+    epic: D
+    repo: aq-server
+    title: "findings.reconcile, schedules and domain-event triggers"
+    type: feature
+    class: standard-high
+    needs: [D3, D5]
+    continues: [AQ-16]
+    spec: [aq-playbooks/docs/specs/0001-aq-playbooks.md]
+    description: |
+      - Implement the findings.reconcile adapter.
+      - Start playbook runs from three sources: durable calendar schedules, domain events delivered by the D3
+        outbox, and keyed manual admission.
+      - Admission is deduplicated and bounded per namespace.
+    acceptance:
+      - "Test `domain_event_trigger_admits_once` passes."
+      - "Test `schedule_survives_restart_without_double_fire` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace domain_event_trigger_admits_once}
+      - {id: t2, kind: test, target: cargo test --locked --workspace schedule_survives_restart_without_double_fire}
+  - key: D9
+    epic: D
+    repo: aq-server
+    title: Default coding policy and playbook install/activation API
+    type: feature
+    class: deep-high
+    needs: [D5, D6, D7, D8]
+    continues: [AQ-12, GATE-05]
+    spec: [aq-playbooks/docs/specs/0001-aq-playbooks.md, aq-playbooks/docs/research/0001-v1-to-v2-capability-selection.md]
+    description: |
+      Author the default coding playbook:
+        1. implement;
+        2. check;
+        3. review: agent review from a different model family, plus an optional human decision;
+        4. publish;
+        5. complete;
+        6. on failure, rework with evidence, within budgets.
+
+      Add an owner API and CLI to install, validate, activate and roll back playbook artifacts without a daemon
+      restart; today the daemon only loads files at startup.
+
+      Make the coding policy the project default, replacing D3's built-in default.
+    acceptance:
+      - "Test `coding_policy_review_rejection_creates_rework_attempt` passes."
+      - "Test `activation_switches_future_runs_only` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace coding_policy_review_rejection_creates_rework_attempt}
+      - {id: t2, kind: test, target: cargo test --locked --workspace activation_switches_future_runs_only}
+  - key: D10
+    epic: D
+    repo: aq-playbooks
+    title: Bounded transition persistence (PB-04)
+    type: feature
+    class: deep-high
+    needs: []
+    continues: [PB-02, PB-04]
+    spec: [aq-playbooks/docs/specs/0002-implementation.md, aq-playbooks/docs/implementation/PB-04.stage-a.md]
+    description: |
+      Replace whole-namespace snapshot writes with incremental persistence, so that transition cost does not grow
+      with retained history. Remove the single synchronous writer as the throughput bound, either with an async
+      client or bounded parallel writers.
+
+      Budget: event admission p95 ≤ 25 ms and dispatch p95 ≤ 100 ms at history 0, 32, 128 and 512, on the
+      recorded reference host.
+    acceptance:
+      - Transition cost stays within 2× from history 0 to 512 in the PB-02 matrix rerun; raw results retained.
+      - The 25 ms / 100 ms p95 targets are reported; missing them is recorded as a limit, not a failure.
+      - 'Named tests pass: `transition_cost_flat_with_history`.'
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace transition_cost_flat_with_history}
+  - key: D11
+    epic: D
+    repo: aq-server
+    title: Routing, watcher and reporting pilots on real adapters
+    type: feature
+    class: standard-high
+    needs: [D9, D10]
+    continues: [GATE-05]
+    spec: [aq-playbooks/docs/specs/0001-aq-playbooks.md]
+    description: |
+      Run the routing, watcher and reporting pilot playbooks against real AQ adapters with designated fake
+      external peers, and record GATE-05 evidence.
+    acceptance:
+      - "All three pilots and the coding pilot pass end to end; evidence lists exact artifacts."
+      - 'Named tests pass: `real_adapter_pilots_complete`.'
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace real_adapter_pilots_complete}
+  - key: E1a
+    epic: E
+    repo: aq-server
+    title: 'Production Compose: graph, supervised aq-git, cloudflared, digest-pinned images'
+    type: feature
+    class: standard-high
+    needs: [A3b, E2, E0]
+    continues: [REL-03, OPS-01]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md, aq-server/docs/specs/0001-infrastructure-foundation.md]
+    description: |
+      Extend compose.yaml from E0's services, with production auth:
+        - postgres;
+        - aq-server;
+        - aq-graph, pinned by digest;
+        - aq-git, supervised with readiness gating;
+        - cloudflared.
+    acceptance:
+      - Test `compose_prod_reaches_ready_with_graph_and_git` (scripted) passes.
+    deliverables:
+      - {id: smoke, kind: test, target: scripts/compose-smoke.sh prod}
+  - key: E1b
+    epic: E
+    repo: aq-server
+    title: Dashboard release archive built into the server image, with asset caching
+    type: feature
+    class: standard-high
+    needs: [E1a, E3]
+    continues: [REL-03]
+    spec: [aq-dashboard/docs/specs/0001-dashboard.md]
+    description: |
+      Build the E3 dashboard archive into the server image, verified by digest, with no host bind-mount. Hashed assets
+      get immutable caching; the API gets no-store.
+    acceptance:
+      - Test `server_image_serves_pinned_dashboard_digest` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace server_image_serves_pinned_dashboard_digest}
+  - key: E1c
+    epic: E
+    repo: aq-server
+    title: Supervisor host and cloud worker services in production Compose
+    type: feature
+    class: standard-high
+    needs: [E1a]
+    continues: []
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      Add two services:
+        - `aq-supervisor-host`;
+        - `aq-worker-cloud`, initially with the docker-local backend and its own rootless sandbox daemon on the VPS
+          (0005 §3.1).
+
+      Set memory and CPU limits per service, so agent sandboxes cannot starve the server stack.
+    acceptance:
+      - Test `sandbox_load_does_not_starve_server_health` (scripted) passes.
+    deliverables:
+      - {id: smoke, kind: test, target: scripts/compose-smoke.sh prod-workers}
+  - key: E2
+    epic: E
+    repo: aq-graph
+    title: Publish the graph image with digest and an upgrade/rollback check
+    type: chore
+    class: standard-high
+    needs: []
+    continues: [GRAPH-01]
+    spec: [aq-graph/docs/specs/0001-aq-graph.md, aq-graph/docs/deployment-validation.md]
+    description: |
+      - Publish the aq-graph image to GHCR from a tagged release, with digest and provenance.
+      - Add a schema upgrade test from the previous schema to the current one.
+      - Document rollback constraints.
+    acceptance:
+      - "The release tag and image digest are recorded."
+      - "Test `upgrade_from_previous_schema_preserves_data` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace upgrade_from_previous_schema_preserves_data}
+  - key: E3
+    epic: E
+    repo: aq-dashboard
+    title: Versioned dashboard release archive with provenance and capability metadata
+    type: chore
+    class: standard-high
+    needs: []
+    continues: [REL-03, UI-01]
+    spec: [aq-dashboard/docs/specs/0001-dashboard.md]   # U7/U8
+    description: |
+      Release a versioned archive. Extend the bundle manifest with: source revision, build toolchain, required
+      API contract versions and capabilities, and the archive digest. Publish it as a GitHub release asset for
+      E1 to consume.
+    acceptance:
+      - "Test `bundle_manifest_lists_required_capabilities_and_digest` passes."
+      - "The release asset is published and verifies."
+    deliverables:
+      - {id: t1, kind: test, target: pnpm test -- -t "bundle_manifest_lists_required_capabilities_and_digest"}
+  - key: E4
+    epic: E
+    repo: aq-server
+    title: Product manifest format 2 and multi-component update orchestration
+    type: feature
+    class: deep-high
+    review: adversarial
+    needs: [E1b, E1c]
+    continues: [REL-01, REL-02]
+    spec: [aq-server/docs/architecture/0001-ecosystem-and-releases.md, aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]   # §5, §6, E2/E5; DEP4
+    description: |
+      Manifest format 2 pins:
+        - server, graph and worker image digests;
+        - the aq-git binary, dashboard archive, playbook crate, sandbox base and runtime bundle;
+        - compatibility ranges and per-owner state formats;
+        - the update plan.
+
+      The updater orchestrates ordered migrations with a durable journal, admission pauses and drains. Old
+      updaters reject format 2 with an upgrade path.
+    acceptance:
+      - "Test `updater_resumes_interrupted_migration_step` passes."
+      - "Test `manifest_mismatch_with_built_inventory_fails_ci` passes."
+      - "Test `format1_updater_rejects_format2` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace updater_resumes_interrupted_migration_step}
+      - {id: t2, kind: test, target: cargo test --locked --workspace manifest_mismatch_with_built_inventory_fails_ci}
+      - {id: t3, kind: test, target: cargo test --locked --workspace format1_updater_rejects_format2}
+    deferred: true
+    integration: pull_request
+  - key: E5
+    epic: E
+    repo: aq-server
+    title: VPS and Cloudflare provisioning runbook, executed
+    type: operator
+    class: standard-high
+    needs: [E1b, E1c]
+    continues: [OPS-01, BASE-01]
+    spec: [aq-server/docs/specs/0001-infrastructure-foundation.md, aq-server/docs/superpowers/plans/2026-11-02-v2-full-application-plan.md]   # plan §5
+    description: |
+      Write docs/operations/vps-install.md. Then execute it with the owner, who purchases the plan and owns the
+      accounts:
+        - size the Bluehost VPS from measured MS1 memory;
+        - harden the host;
+        - install Docker/Compose and the host updater;
+        - create the Cloudflare Tunnel and two hostnames (human with owner Access, machine with service tokens);
+        - install the pinned release;
+        - configure off-host encrypted backups;
+        - run the reboot recovery check and Access origin-isolation checks.
+
+      Use `aq question` for every owner action.
+    acceptance:
+      - "The infrastructure foundation 'Verification and completion' demonstrations pass on the real VPS, with evidence."
+      - "The public internet cannot reach the origin; the machine hostname cannot reach human routes."
+    deliverables:
+      - {id: runbook, kind: file, target: "docs/operations/vps-install.md"}
+  - key: E6a
+    epic: E
+    repo: aq-worker
+    title: Local WSL2 worker in a container with a rootless sandbox daemon and autostart
+    type: feature
+    class: standard-high
+    needs: [C2, B5b]
+    continues: [WRK-01]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      The local worker runs as a container on WSL2, next to a rootless sandbox daemon:
+        - autostart after a Windows or WSL restart (keep the WSL VM alive);
+        - enrollment with node and runner Access tokens;
+        - re-pointing between the local and hosted servers.
+
+      Write docs/operations/install-worker.md.
+    acceptance:
+      - 'Fresh install, enroll, Windows restart: the worker returns online and reconciles (recorded drill).'
+    deliverables:
+      - {id: doc, kind: file, target: docs/operations/install-worker.md}
+  - key: E6b
+    epic: E
+    repo: aq-worker
+    title: VPS cloud worker on the docker-local backend
+    type: feature
+    class: standard-high
+    needs: [C2, B5b, E1c]
+    continues: []
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      Configure and document the `aq-worker-cloud` worker on the VPS: docker-local backend, its own rootless sandbox
+      daemon, ceilings, and enrollment through the machine hostname. The boat backend configuration is added by C7.
+    acceptance:
+      - The cloud worker enrolls through Access and runs a fixture attempt in a VPS sandbox (recorded).
+    deliverables:
+      - {id: doc, kind: file, target: docs/operations/install-cloud-worker.md}
+  - key: E7
+    epic: E
+    repo: aq-server
+    title: Access service-token lifecycle per worker and revocation on removal
+    type: feature
+    class: standard-high
+    needs: [B2]
+    continues: [BASE-01]
+    spec: [aq-server/docs/specs/0001-infrastructure-foundation.md, aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      Create, rotate and revoke the two Access service tokens per worker (node and runner) through the
+      Cloudflare API behind an adapter. Node removal revokes both. Rotation does not interrupt running attempts
+      beyond one renewal.
+    acceptance:
+      - "Test `node_removal_revokes_both_access_tokens` (fake Cloudflare adapter) passes."
+      - "A live check of revocation is recorded."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace node_removal_revokes_both_access_tokens}
+    deferred: true
+  - key: F1a
+    epic: F
+    repo: aq-server
+    title: Supervisor host container and supervisor session lifecycle under central identity
+    type: feature
+    class: deep-high
+    review: adversarial
+    needs: [B6a, C6b]
+    continues: [AQ-17]
+    spec: [aq-server/docs/architecture/0003-agent-profiles-harnesses-and-terminals.md, aq-server/docs/implementation/AQ-17-central-authority-core.md, aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      The supervisor host container runs global supervisor CLI sessions:
+        - shared tmux host and harness adapters from pinned aq-worker crates;
+        - central session identity and an expiring execution permit;
+        - provider credentials from the central vault.
+
+      No supervisor credential reaches any worker.
+    acceptance:
+      - Test `supervisor_session_starts_under_central_permit` passes.
+      - Test `supervisor_restart_resumes_without_duplicate_session` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace supervisor_session_starts_under_central_permit}
+      - {id: t2, kind: test, target: cargo test --locked --workspace supervisor_restart_resumes_without_duplicate_session}
+    integration: pull_request
+  - key: F1b
+    epic: F
+    repo: aq-server
+    title: Supervisor conversation dispatch and reply, and scoped supervisor tool credentials
+    type: feature
+    class: standard-high
+    needs: [F1a]
+    continues: [AQ-17, API-07]
+    spec: [aq-server/docs/architecture/0003-agent-profiles-harnesses-and-terminals.md]
+    description: |
+      Connect the global conversation mailbox (API-07) to dispatch and reply. The supervisor's tool access is a scoped
+      central credential for graph reads and writes, enqueue (F2), messaging and decisions. Turn on
+      `supervisor.conversation` when live.
+    acceptance:
+      - Test `owner_message_reaches_supervisor_and_reply_is_recorded` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace owner_message_reaches_supervisor_and_reply_is_recorded}
+  - key: F2
+    epic: F
+    repo: aq-server
+    title: Supervisor and owner enqueue-work commands at v1 parity
+    type: feature
+    class: standard-high
+    needs: [G1b, F1b]
+    continues: [API-10]
+    spec: [aq-server/docs/specs/0002-execution-and-agent-access.md]
+    description: |
+      Typed commands, used by the supervisor, the dashboard and the v2 CLI:
+        - create a task;
+        - create a task graph with dependencies;
+        - set priority;
+        - select project, profile hint and intelligence hint.
+      Commands are idempotent, with operation receipts.
+
+      Inventory the v1 supervisor commands the owner actually uses (`aq chat`, task/graph creation), and record
+      in the evidence which are covered and which are deliberately excluded.
+    acceptance:
+      - "Test `supervisor_creates_graph_with_dependencies_idempotently` passes."
+      - "The v1 parity table is in the evidence."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace supervisor_creates_graph_with_dependencies_idempotently}
+  - key: F3
+    epic: F
+    repo: aq-worker
+    title: Agent messaging end to end in sandboxes
+    type: feature
+    class: standard-high
+    needs: [B7]
+    continues: [WRK-09, AQ-11]
+    spec: [aq-server/docs/operations/messaging.md, aq-server/docs/architecture/0002-execution-and-recovery.md]   # X13
+    description: |
+      - The runner polls its attempt mailbox under the permit and acknowledges.
+      - Messages are delivered to the harness at safe prompt boundaries, or to the agent inbox, as the profile
+        declares. Never arbitrary keystroke injection.
+      - `aq-agent message inbox/send/reply` is available to the agent.
+      - Uncertain delivery stays `delivery_unknown`.
+    acceptance:
+      - "Test `message_delivered_once_across_runner_restart` passes."
+      - "Test `agent_reply_reaches_supervisor_mailbox` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace message_delivered_once_across_runner_restart}
+      - {id: t2, kind: test, target: cargo test --locked --workspace agent_reply_reaches_supervisor_mailbox}
+  - key: F4
+    epic: F
+    repo: aq-server
+    title: Automatic notifications to Discord with real-destination qualification
+    type: feature
+    class: standard-high
+    needs: [D3]
+    continues: [AQ-24, AQ-27]
+    spec: [aq-server/docs/architecture/0004-session-operations-waits-and-notifications.md]   # N1, N2, N4
+    description: |
+      Event-to-notification policy for:
+        - task failed or blocked;
+        - decision needed;
+        - question asked;
+        - credential invalid (from C6);
+        - milestone gate ready;
+        - worker offline.
+      Flood control and deduplication per episode.
+
+      Qualify against a real Discord webhook destination supplied by the owner.
+    acceptance:
+      - "Test `credential_invalid_notifies_once_per_episode` passes."
+      - "Test `flood_of_failures_collapses_to_bounded_notifications` passes."
+      - "A live delivery receipt is recorded."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace credential_invalid_notifies_once_per_episode}
+      - {id: t2, kind: test, target: cargo test --locked --workspace flood_of_failures_collapses_to_bounded_notifications}
+  - key: F5
+    epic: F
+    repo: aq-server
+    title: Agent questions to the owner, with answers delivered back
+    type: feature
+    class: standard-high
+    needs: [F3, H4]
+    continues: []
+    spec: [aq-server/docs/architecture/0004-session-operations-waits-and-notifications.md]
+    description: |
+      This is the v2 equivalent of v1 `aq question` / WAITING_INPUT:
+        1. An agent asks through `aq-agent question ask`.
+        2. A typed question decision is created and notified (F4).
+        3. The owner answers in the dashboard decision inbox or through an authenticated link.
+        4. The answer is delivered to the waiting agent through a registered wait (H4).
+    acceptance:
+      - "Test `question_answer_resumes_waiting_attempt` passes."
+      - "Test `question_after_attempt_ended_routes_to_continuation` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace question_answer_resumes_waiting_attempt}
+      - {id: t2, kind: test, target: cargo test --locked --workspace question_after_attempt_ended_routes_to_continuation}
+  - key: F6
+    epic: F
+    repo: aq-server
+    title: Escalation and daily digest policies
+    type: feature
+    class: standard-high
+    needs: [F4, D8]
+    continues: [AQ-27]
+    spec: [aq-server/docs/architecture/0004-session-operations-waits-and-notifications.md]   # N3
+    description: |
+      Escalation episodes for unanswered decisions and questions, and a scheduled daily digest at parity with
+      v1 `src/digest`, delivered through notifications.
+    acceptance:
+      - "Test `unanswered_question_escalates_after_policy_delay` passes."
+      - "Test `digest_contains_completed_failed_waiting_counts` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace unanswered_question_escalates_after_policy_delay}
+      - {id: t2, kind: test, target: cargo test --locked --workspace digest_contains_completed_failed_waiting_counts}
+    deferred: true
+  - key: F7
+    epic: F
+    repo: aq-server
+    title: v2 human CLI (`aqv2`) over the same domain operations
+    type: feature
+    class: standard-high
+    needs: [G1b]
+    continues: [API-02]
+    spec: [aq-server/docs/architecture/0001-ecosystem-and-releases.md]   # E6
+    description: |
+      `aqv2` is a human CLI over the owner API and action union:
+        - tasks (list, show, create, cancel, retry);
+        - decisions;
+        - messages;
+        - supervisor chat;
+        - workers;
+        - projects and onboarding.
+      Each command is the same operation the dashboard uses. It must not install as `aq`.
+    acceptance:
+      - "Test `cli_and_dashboard_actions_share_operation_ids` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace cli_and_dashboard_actions_share_operation_ids}
+  - key: F8
+    epic: F
+    repo: aq-server
+    title: "Inbound Discord: answer questions and decisions from Discord"
+    type: feature
+    class: standard-high
+    needs: [F5, F4]
+    continues: []
+    spec: [aq-server/docs/architecture/0004-session-operations-waits-and-notifications.md]
+    description: |
+      This is v1 parity for ask and escalation buttons. A Discord bot posts actionable messages for questions
+      and decisions and accepts answers from the owner's verified Discord identity, through the same decision
+      operations. Not a general chat interface.
+    acceptance:
+      - "Test `discord_answer_from_unverified_user_is_refused` passes."
+      - "Test `discord_answer_resolves_decision_once` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace discord_answer_from_unverified_user_is_refused}
+      - {id: t2, kind: test, target: cargo test --locked --workspace discord_answer_resolves_decision_once}
+    deferred: true
+  - key: G1a
+    epic: G
+    repo: aq-server
+    title: Action union, common error envelope and operation lookup
+    type: feature
+    class: deep-high
+    needs: []
+    continues: [API-02, API-10]
+    spec: [aq-dashboard/docs/specs/0003-dashboard-api.md]
+    description: |
+      - `POST /api/v1/actions` with a finite, versioned action union.
+      - `GET /api/v1/operations/{id}`.
+      - The common error envelope.
+      - Opaque authenticated cursors.
+    acceptance:
+      - Test `unknown_effect_operation_is_recoverable_by_lookup` passes.
+      - Test `action_union_rejects_unknown_kind_with_envelope` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace unknown_effect_operation_is_recoverable_by_lookup}
+      - {id: t2, kind: test, target: cargo test --locked --workspace action_union_rejects_unknown_kind_with_envelope}
+  - key: G1b
+    epic: G
+    repo: aq-server
+    title: Migrate existing writes behind the action union; pending operations in bootstrap; fixtures
+    type: feature
+    class: standard-high
+    needs: [G1a]
+    continues: [API-02]
+    spec: [aq-dashboard/docs/specs/0003-dashboard-api.md]
+    description: |
+      Move task create, decision resolve and supervisor send behind the action union. Add pending operations to the
+      bootstrap envelope. Publish contract fixtures for the dashboard.
+    acceptance:
+      - Test `bootstrap_lists_pending_operations` passes.
+      - Contract fixtures are published.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace bootstrap_lists_pending_operations}
+  - key: G2
+    epic: G
+    repo: aq-server
+    title: Typed task and knowledge commands
+    type: feature
+    class: standard-high
+    needs: [G1b]
+    continues: [API-10, API-03]
+    spec: [aq-dashboard/docs/specs/0003-dashboard-api.md, aq-graph/docs/specs/0004-shared-node-model.md]
+    description: |
+      Task commands: edit, cancel (B3), retry, reprioritize, dependency edits.
+
+      Knowledge commands, proxied to graph with expected versions: author, correct, verify, retire, restore.
+    acceptance:
+      - "Test `knowledge_correct_with_stale_version_conflicts` passes."
+      - "Test `task_retry_creates_replacement_attempt` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace knowledge_correct_with_stale_version_conflicts}
+      - {id: t2, kind: test, target: cargo test --locked --workspace task_retry_creates_replacement_attempt}
+  - key: G3
+    epic: G
+    repo: aq-dashboard
+    title: Work and Knowledge write flows
+    type: feature
+    class: standard-high
+    needs: [G2]
+    continues: [UI-06, UI-02]
+    spec: [aq-dashboard/docs/specs/0002-product-design.md, aq-dashboard/docs/design/visual-acceptance.md]
+    description: |
+      Pending-safe write flows for task edit, cancel, retry and dependencies, and for knowledge author, correct,
+      verify and retire. Migrate Work off `/api/v1/tasks` mocks to the served routes.
+    acceptance:
+      - "Mocked browser tests for each action, including the unknown-effect state, pass."
+      - "A live probe passes against a local daemon."
+      - 'Named tests pass: `work_task_edit_handles_unknown_effect`, `knowledge_correct_conflict_offers_reload`.'
+    deliverables:
+      - {id: t1, kind: test, target: pnpm test -- -t "work_task_edit_handles_unknown_effect"}
+      - {id: t2, kind: test, target: pnpm test -- -t "knowledge_correct_conflict_offers_reload"}
+  - key: G4
+    epic: G
+    repo: aq-server
+    title: Overview aggregation, attention, search and provider quota
+    type: feature
+    class: standard-high
+    needs: [G1b]
+    continues: [API-08, API-13, API-09]
+    spec: [aq-dashboard/docs/specs/0003-dashboard-api.md]
+    description: |
+      - Real counts, the "needs attention" list (failed, blocked, waiting decisions and questions, offline
+        workers) and recent outcomes from their owners, freshness-labelled.
+      - `/api/v1/search`.
+      - Provider quota collection for supported providers. Unsupported providers show unknown, never zero.
+    acceptance:
+      - "Test `overview_attention_lists_waiting_decision_and_failed_task` passes."
+      - "Test `quota_unknown_is_not_zero` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace overview_attention_lists_waiting_decision_and_failed_task}
+      - {id: t2, kind: test, target: cargo test --locked --workspace quota_unknown_is_not_zero}
+  - key: G5
+    epic: G
+    repo: aq-dashboard
+    title: Overview full composition
+    type: feature
+    class: standard-high
+    needs: [G4]
+    continues: [UI-11, UI-15]
+    spec: [aq-dashboard/docs/specs/0002-product-design.md, aq-dashboard/docs/design/visual-acceptance.md]
+    description: |
+      Implement the Overview design (01-overview-v3) on live data: attention, summaries and the provider strip.
+    acceptance:
+      - "Desktop and phone captures are reviewed against 01-overview-v3."
+      - "Mocked and live tests pass."
+      - 'Named tests pass: `overview_attention_renders_live_items`.'
+    deliverables:
+      - {id: t1, kind: test, target: pnpm test -- -t "overview_attention_renders_live_items"}
+  - key: G6
+    epic: G
+    repo: aq-server
+    title: Results comments, feedback tasks, waivers and a configured media store
+    type: feature
+    class: standard-high
+    needs: [G1b]
+    continues: [API-11, API-12, API-06]
+    spec: [aq-server/docs/specs/result-media-png.md, aq-dashboard/docs/specs/0003-dashboard-api.md]
+    description: |
+      - Result comments and threads (resolve).
+      - Explicit feedback-task creation linked to a result.
+      - Evidence waivers.
+      - Feed modes and follow.
+      - A configured production media store.
+      - Capture-requirement evaluation.
+    acceptance:
+      - "Test `feedback_task_links_result_revision` passes."
+      - "Test `media_upload_disabled_without_store_is_explicit` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace feedback_task_links_result_revision}
+      - {id: t2, kind: test, target: cargo test --locked --workspace media_upload_disabled_without_store_is_explicit}
+  - key: G7
+    epic: G
+    repo: aq-dashboard
+    title: Results feedback, media and feed modes
+    type: feature
+    class: standard-high
+    needs: [G6]
+    continues: [UI-09, UI-14, UI-18, UI-19]
+    spec: [aq-dashboard/docs/specs/0002-product-design.md]
+    description: |
+      Results comments, the feedback-task flow, the media gallery and upload, and the Following and Needs review
+      views, including the phone review-and-correct loop (design 13).
+    acceptance:
+      - "Captures are reviewed against 10-results-desktop-v2 and 13-results-mobile-v2."
+      - "Tests pass."
+      - 'Named tests pass: `results_feedback_creates_linked_task`, `results_mobile_review_flow_completes`.'
+    deliverables:
+      - {id: t1, kind: test, target: pnpm test -- -t "results_feedback_creates_linked_task"}
+      - {id: t2, kind: test, target: pnpm test -- -t "results_mobile_review_flow_completes"}
+  - key: G8
+    epic: G
+    repo: aq-dashboard
+    title: Supervisor docked panel, full page and mobile
+    type: feature
+    class: standard-high
+    needs: [F1b, F2]
+    continues: [UI-10, UI-16]
+    spec: [aq-dashboard/docs/specs/0002-product-design.md]
+    description: |
+      Implement designs 04, 09 and 12 on the live conversation: docked panel, full page and phone. Show
+      pending-safe sends and replies, and dispatched-work links.
+    acceptance:
+      - "Captures are reviewed against 04, 09 and 12."
+      - "A live probe sends and receives a reply."
+      - 'Named tests pass: `supervisor_dock_send_shows_pending_then_reply`.'
+    deliverables:
+      - {id: t1, kind: test, target: pnpm test -- -t "supervisor_dock_send_shows_pending_then_reply"}
+  - key: G9
+    epic: G
+    repo: aq-dashboard
+    title: Playbook start, cancel and activation
+    type: feature
+    class: standard-high
+    needs: [D9]
+    continues: [UI-08, API-05]
+    spec: [aq-dashboard/docs/specs/0002-product-design.md]
+    description: |
+      Owner actions on the Playbooks page: start a run, cancel a run, activate or roll back an artifact, using
+      D9's API through the action union.
+    acceptance:
+      - "Mocked and live tests for each action pass."
+      - "Captures are reviewed against 06-playbooks."
+      - 'Named tests pass: `playbook_cancel_shows_pending_safe_state`.'
+    deliverables:
+      - {id: t1, kind: test, target: pnpm test -- -t "playbook_cancel_shows_pending_safe_state"}
+  - key: G10
+    epic: G
+    repo: aq-dashboard
+    title: "Agents operations views: health, accounting, waits, terminal snapshots"
+    type: feature
+    class: standard-high
+    needs: [H2, H3, H4, H7]
+    continues: [UI-03, UI-04, UI-12, UI-17]
+    spec: [aq-dashboard/docs/specs/0001-dashboard.md, aq-server/docs/architecture/0004-session-operations-waits-and-notifications.md]   # U9–U14
+    description: |
+      - Session health and stall state with the nudge action.
+      - Usage and cost (unknown shown as unknown).
+      - The waits view.
+      - Notification delivery state with retry.
+      - Terminal snapshot reconnect.
+      - Profile provenance and effective permissions.
+    acceptance:
+      - "Captures are reviewed against 05-agents, 08 and 11."
+      - "Tests pass."
+      - 'Named tests pass: `agents_unknown_cost_renders_unknown`, `waits_view_lists_registered_waits`.'
+    deliverables:
+      - {id: t1, kind: test, target: pnpm test -- -t "agents_unknown_cost_renders_unknown"}
+      - {id: t2, kind: test, target: pnpm test -- -t "waits_view_lists_registered_waits"}
+  - key: G11
+    epic: G
+    repo: aq-dashboard
+    title: Visual acceptance against every named mockup, WCAG 2.2 AA, tablet breakpoints
+    type: test
+    class: standard-high
+    needs: [G3, G5, G7, G8, G9, G10]
+    continues: [UI-05, UI-13]
+    spec: [aq-dashboard/docs/design/visual-acceptance.md, aq-dashboard/docs/design/manifest.json]
+    description: |
+      For every mockup in manifest.json:
+        - independent desktop and phone captures against live data;
+        - reviewed visual subsets.
+
+      Also:
+        - an axe audit plus a manual WCAG 2.2 AA checklist;
+        - tablet breakpoints;
+        - Settings display and accessibility preferences.
+    acceptance:
+      - "Every manifest entry is marked accepted with captures in evidence."
+      - "No axe violations at AA."
+    deliverables:
+      - {id: tests, kind: test, target: "pnpm test:visual"}
+  - key: G12
+    epic: G
+    repo: aq-dashboard
+    title: "Bundle compatibility: digest check and draft preservation across update"
+    type: feature
+    class: standard-high
+    needs: [E3]
+    continues: [UI-02]
+    spec: [aq-dashboard/docs/specs/0001-dashboard.md]   # U8
+    description: |
+      - Compare `dashboard_digest` from bootstrap with the loaded bundle.
+      - When they differ, prompt for a reload that preserves unsent drafts.
+      - Handle a required-capability mismatch.
+    acceptance:
+      - "Test `digest_change_prompts_reload_preserving_draft` passes."
+    deliverables:
+      - {id: t1, kind: test, target: pnpm test -- -t "digest_change_prompts_reload_preserving_draft"}
+  - key: H1
+    epic: H
+    repo: aq-worker
+    title: Adopt observation readers and the durable observation store in the runner
+    type: feature
+    class: standard-high
+    needs: [B6c]
+    continues: [WRK-15]
+    spec: [aq-worker/docs/specs/0004-session-observation-and-suspension.md, aq-server/docs/architecture/0004-session-operations-waits-and-notifications.md]   # S2
+    description: |
+      Link aq-observation, aq-observation-engine and the format5 store into the runner. Deliver over the
+      per-sandbox channel. Qualify the Codex reader on real transcripts (codex exec --json events).
+    acceptance:
+      - "Test `observation_cursor_survives_runner_restart_without_duplicates` passes."
+      - "The Codex reader is qualified on recorded real transcripts."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace observation_cursor_survives_runner_restart_without_duplicates}
+  - key: H2
+    epic: H
+    repo: aq-server
+    title: Production usage accounting and the pricing reference
+    type: feature
+    class: standard-high
+    needs: [H1]
+    continues: [AQ-22, API-09]
+    spec: [aq-server/docs/architecture/0004-session-operations-waits-and-notifications.md]   # S3
+    description: |
+      - Register sources from production attempts.
+      - Feed the ledger.
+      - Wire a versioned pricing reference / rate card with corrections.
+      - Connect lineage budgets to the shared task budgets (B4).
+    acceptance:
+      - "Test `attempt_usage_feeds_ledger_and_budget` passes."
+      - "Test `flat_subscription_usage_is_labelled_not_costed` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace attempt_usage_feeds_ledger_and_budget}
+      - {id: t2, kind: test, target: cargo test --locked --workspace flat_subscription_usage_is_labelled_not_costed}
+  - key: H3
+    epic: H
+    repo: aq-server
+    title: Stall ladder with nudge
+    type: feature
+    class: standard-high
+    needs: [H1, F3]
+    continues: [AQ-23]
+    spec: [aq-server/docs/architecture/0004-session-operations-waits-and-notifications.md]   # S1, S4, S5
+    description: |
+      An evidence-based stall ladder: observe, nudge at safe boundaries, notify, stop-and-preserve, replace. It
+      never produces false progress, and every rung is bounded.
+    acceptance:
+      - "Test `stalled_session_is_nudged_then_escalated` passes."
+      - "Test `nudge_never_injects_during_unknown_input_state` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace stalled_session_is_nudged_then_escalated}
+      - {id: t2, kind: test, target: cargo test --locked --workspace nudge_never_injects_during_unknown_input_state}
+  - key: H4
+    epic: H
+    repo: aq-server
+    title: Durable waits registry and agent wait routes
+    type: feature
+    class: deep-high
+    needs: [B2]
+    continues: [AQ-25]
+    spec: [aq-server/docs/architecture/0004-session-operations-waits-and-notifications.md]   # C1, C4, C5
+    description: |
+      A durable wait registry using aq-wait-engine, with agent routes to register, show and consume waits on
+      messages, tasks, decisions and questions. Held-mail and acknowledgement races are handled; bounds are
+      enforced.
+    acceptance:
+      - "Test `wait_on_decision_wakes_once_after_resolution` passes."
+      - "Test `wait_registration_replay_is_idempotent` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace wait_on_decision_wakes_once_after_resolution}
+      - {id: t2, kind: test, target: cargo test --locked --workspace wait_registration_replay_is_idempotent}
+  - key: H5
+    epic: H
+    repo: aq-worker
+    title: Hibernation checkpoint and continuation bootstrap
+    type: feature
+    class: deep-high
+    needs: [H4, B5b]
+    continues: [WRK-16]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md, aq-worker/docs/specs/0004-session-observation-and-suspension.md]   # 0005 §4 step 8
+    description: |
+      Checkpoint to central retention and end the attempt. Bootstrap the continuation in a new sandbox from central
+      retention (0004 §4).
+
+      boat warm start is deferred (plan, Deferred backlog).
+    acceptance:
+      - Test `continuation_hydrates_checkpoint_in_new_sandbox` passes.
+      - Test `hibernation_leaves_no_credentials_in_retained_state` passes.
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace continuation_hydrates_checkpoint_in_new_sandbox}
+      - {id: t2, kind: test, target: cargo test --locked --workspace hibernation_leaves_no_credentials_in_retained_state}
+  - key: H6
+    epic: H
+    repo: aq-server
+    title: Hibernation wake scheduling
+    type: feature
+    class: standard-high
+    needs: [H4, H5]
+    continues: [AQ-26]
+    spec: [aq-server/docs/architecture/0004-session-operations-waits-and-notifications.md]   # C2, C3, C6
+    description: |
+      Schedule continuation attempts on wake, on any eligible node, with fresh authority. Prefer the
+      warm-start node when available. Waits and continuations behave the same for central and remote sessions.
+    acceptance:
+      - "Test `wake_schedules_continuation_on_other_node_when_original_offline` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace wake_schedules_continuation_on_other_node_when_original_offline}
+  - key: H7
+    epic: H
+    repo: aq-worker
+    title: Terminal renderer snapshots and full output path
+    type: feature
+    class: standard-high
+    needs: [B6c]
+    continues: [WRK-14, AQ-21]
+    spec: [aq-server/docs/architecture/0003-agent-profiles-harnesses-and-terminals.md]   # R4, R5
+    description: |
+      Link aq-terminal-renderer for snapshot barriers. Provide full sequenced output with gaps over the
+      per-sandbox channel. Viewers can reconnect without relaunching the session.
+    acceptance:
+      - "Test `reconnect_after_gap_renders_from_snapshot` passes."
+      - "Test `output_flood_does_not_delay_renewal` passes."
+    deliverables:
+      - {id: t1, kind: test, target: cargo test --locked --workspace reconnect_after_gap_renders_from_snapshot}
+      - {id: t2, kind: test, target: cargo test --locked --workspace output_flood_does_not_delay_renewal}
+  - key: I4a
+    epic: I
+    repo: aq-worker
+    title: Codex CLI real-provider qualification with an API key in docker-local sandboxes
+    type: test
+    class: standard-high
+    needs: [C6a, C2, B5b]
+    continues: [WRK-08, GATE-04]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md, aq-server/docs/architecture/0003-agent-profiles-harnesses-and-terminals.md]
+    description: |
+      Qualify the pinned Codex CLI in a docker-local sandbox against the real OpenAI provider with an API key. Cover:
+        - container mode;
+        - stop and preserve;
+        - terminal watch and control;
+        - `codex exec --json` observation.
+      Record the H2 minimum-contract evidence.
+    acceptance:
+      - A real edit task completes three times without failure, with retained source and evidence.
+    deliverables:
+      - {id: live, kind: test, target: cargo test --locked -p aq-worker --test codex_live api_key -- --ignored}
+  - key: I4b
+    epic: I
+    repo: aq-worker
+    title: Codex CLI ChatGPT-login qualification in local and VPS sandboxes
+    type: test
+    class: standard-high
+    needs: [I4a, C6b]
+    continues: [WRK-08]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      Qualify Codex with a ChatGPT login enrolled through C5b, on the desktop and VPS docker-local backends, including
+      a token refresh during an attempt.
+    acceptance:
+      - A real edit task completes on both backends.
+      - A refresh during an attempt is written back, and the next attempt succeeds.
+    deliverables:
+      - {id: live, kind: test, target: cargo test --locked -p aq-worker --test codex_live chatgpt -- --ignored}
+  - key: I1
+    epic: I
+    repo: aq-worker
+    title: Claude Code adapter
+    type: feature
+    class: standard-high
+    needs: [C6b]
+    continues: [WRK-11]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md, aq-server/docs/architecture/0003-agent-profiles-harnesses-and-terminals.md]
+    description: |
+      Fill in the 0005 §8.3 table from Anthropic's current headless documentation:
+        - headless invocation;
+        - config directory;
+        - credential file and refresh;
+        - proxying the API key;
+        - native sandbox.
+
+      Then implement and qualify the adapter to the H2 minimum contract, with the transcript reader.
+
+      Include the Claude subscription enrollment flow, the equivalent of C5b's Codex device-auth.
+    acceptance:
+      - Live qualification passes with an API key and with a subscription login (enrollment flow for Claude included).
+      - The §8.3 table rows are recorded in this task's evidence for the docs steward to fold into 0005.
+    deliverables:
+      - {id: live, kind: test, target: "cargo test --locked -p aq-worker --test claude_live -- --ignored"}
+  - key: I2
+    epic: I
+    repo: aq-worker
+    title: Gemini CLI adapter
+    type: feature
+    class: standard-high
+    needs: [C6b]
+    continues: [WRK-12]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      Same as I1, for Gemini CLI, using the bundle's private Node runtime.
+    acceptance:
+      - Live qualification passes, including the subscription enrollment flow if the harness supports one.
+      - The §8.3 rows are recorded in evidence.
+    deliverables:
+      - {id: live, kind: test, target: "cargo test --locked -p aq-worker --test gemini_live -- --ignored"}
+  - key: I3
+    epic: I
+    repo: aq-worker
+    title: OpenCode adapter
+    type: feature
+    class: standard-high
+    needs: [C6b]
+    continues: [WRK-13]
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      Same as I1, for OpenCode.
+    acceptance:
+      - Live qualification passes, including the subscription enrollment flow if the harness supports one.
+      - The §8.3 rows are recorded in evidence.
+    deliverables:
+      - {id: live, kind: test, target: "cargo test --locked -p aq-worker --test opencode_live -- --ignored"}
+  - key: J1
+    epic: J
+    repo: aq-git
+    title: Performance P1–P7 and host power-loss rehearsal
+    type: test
+    class: standard-high
+    needs: [A3a]
+    continues: [GIT-01]
+    spec: [aq-git/docs/specs/0001-aq-git.md, aq-git/docs/benchmarking.md]   # GIT-R15, GIT-V10, GIT-V12
+    description: |
+      - Bring batch p95 from 37.9 ms to the 25 ms target.
+      - Run the full P1–P7 matrix.
+      - Rehearse host power loss in a VM with disk cache semantics, not just a process kill.
+    acceptance:
+      - "Every P1–P7 cell is within budget, with raw results retained."
+      - "The power-loss rehearsal shows no corrupted journal or duplicate publication."
+    deliverables:
+      - {id: bench, kind: test, target: "cargo test --locked --workspace"}
+    deferred: true
+  - key: J2
+    epic: J
+    repo: aq-graph
+    title: Saturation, p99 budget and VPS measurement
+    type: test
+    class: standard-high
+    needs: [E2]
+    continues: [GRAPH-01, PERF-01]
+    spec: [aq-graph/docs/specs/0001-aq-graph.md, aq-graph/docs/implementation-status.md]
+    description: |
+      - Set the p99 budget and the reference hardware.
+      - Fix or bound the mutation latency degradation at 200 busy clients.
+      - Measure on the deployed VPS through TLS.
+    acceptance:
+      - "A load run on the VPS meets the declared budgets; raw results are retained."
+    deliverables:
+      - {id: bench, kind: test, target: "cargo test --locked"}
+    deferred: true
+  - key: J3
+    epic: J
+    repo: aq-server
+    title: Measure the deployed system at about 10 concurrent attempts
+    type: test
+    class: deep-high
+    needs: [MS2, D10]
+    continues: [PERF-01]
+    spec: [aq-server/docs/architecture/0002-execution-and-recovery.md, aq-server/docs/architecture/0001-ecosystem-and-releases.md]   # E8
+    description: |
+      This replaces the 500-agent envelope, which the owner deferred on 2026-11-02.
+
+      Run about 10 concurrent attempts across the VPS and desktop workers, including a recovery drill at that load.
+      Record aq-git, aq-graph, playbook and daemon timings and resource use on the VPS, together with the DB pool
+      sizing rationale. There are no hard budgets.
+    acceptance:
+      - Measurements and raw results are retained; the recovery drill at load passes without duplicate effects.
+    deliverables:
+      - {id: load, kind: test, target: "scripts/product-load.sh"}
+  - key: J4
+    epic: J
+    repo: aq-server
+    title: Security review of permits, credentials, sandboxes and Access
+    type: research
+    class: deep-high
+    review: adversarial
+    needs: [MS2]
+    continues: []
+    spec: [aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      Threat-model and test the boundaries:
+        - an agent user reading runner secrets;
+        - permit misuse;
+        - credentials remaining in snapshots;
+        - Access bypass;
+        - the launch policy of the sandbox Docker daemon;
+        - supervisor credential isolation;
+        - prompt-injection exfiltration of subscription logins.
+      File every finding as a task.
+    acceptance:
+      - "The review report is submitted and every finding is filed with severity."
+    deliverables:
+      - {id: review, kind: review, target: other}
+    integration: pull_request
+  - key: J5
+    epic: J
+    repo: aq-server
+    title: Off-host encrypted backup and restore drill
+    type: operator
+    class: standard-high
+    needs: [E5]
+    continues: [OPS-01]
+    spec: [aq-server/docs/specs/0001-infrastructure-foundation.md]
+    description: |
+      Back up PostgreSQL (all owners), aq-git retention, the vault and configuration off-host, encrypted, with
+      the credential-recovery decision recorded.
+
+      Restore onto a fresh VPS. Reconcile grants, receipts and pending messages after restore.
+    acceptance:
+      - "The restore drill brings up a working stack, and in-flight work reconciles without duplicate effects."
+    deliverables:
+      - {id: runbook, kind: file, target: "docs/operations/backup-restore.md"}
+  - key: J6
+    epic: J
+    repo: aq-server
+    title: Exact-artifact upgrade and worker-compatibility drills
+    type: test
+    class: standard-high
+    needs: [E4, MS2]
+    continues: [REL-02, INT-02]
+    spec: [aq-server/docs/architecture/0001-ecosystem-and-releases.md]   # E4, E5
+    description: |
+      - Upgrade the deployed stack between two format-2 releases, interrupting each migration and update
+        boundary.
+      - Run the current and the previous supported worker against the new server.
+      - Unsupported workers are ineligible, with an actionable reason.
+    acceptance:
+      - "Every interrupted boundary recovers without duplicate effects."
+      - "The compatibility window is demonstrated."
+    deliverables:
+      - {id: drill, kind: test, target: "scripts/update-lifecycle"}
+    deferred: true
+  - key: J7
+    epic: J
+    repo: aq-git
+    title: Supported repository profile decision and widening
+    type: research
+    class: deep-high
+    needs: [A3a]
+    continues: []
+    spec: [aq-git/docs/specs/0001-aq-git.md, aq-git/README.md]
+    description: |
+      Survey the owner's active repositories (from v1 projects) against the profile restrictions: submodules,
+      LFS, shallow or partial clones, signing, attributes, SHA-1 only.
+
+      Recommend which to support. Implement the highest-value widening, or document the explicit refusal.
+    acceptance:
+      - "The report lists each active repository's fit."
+      - "The chosen widening is implemented with tests, or the refusal is documented."
+    deliverables:
+      - {id: review, kind: review, target: other}
+  - key: MS0
+    epic: M
+    repo: aq-server
+    title: 'MS0 gate: first real agent run'
+    type: operator
+    class: standard-high
+    verification: human
+    needs: [E0, I0]
+    continues: [GATE-04]
+    spec: [aq-server/docs/superpowers/plans/2026-11-02-v2-full-application-plan.md]
+    description: |
+      Show the owner I0's evidence: three real Codex API-key runs against the local stack, and the list of filed
+      problems. The owner decides whether the filed problems change the MS1 tasks.
+    acceptance:
+      - The owner approves.
+    deliverables:
+      - {id: demo, kind: file, target: docs/implementation/MS0.md}
+  - key: MS1
+    epic: M
+    repo: aq-server
+    title: "MS1 gate: real agent, sandboxed, local"
+    type: operator
+    class: standard-high
+    verification: human
+    needs: [MS0, A3a, A3b, B1, B2, B3, B4, B5a, B5b, B6a, B6b, B6c, B7, C1, C2, C3a, C3b, C3c, C4, C5a, C6a, D1a, D1b, D3, I4a]
+    continues: [GATE-04]
+    spec: [aq-server/docs/superpowers/plans/2026-11-02-v2-full-application-plan.md]   # §1, §5 step 1
+    description: |
+      Run against the E0 local stack with the local worker. The scenario:
+        1. Two dependent graph tasks: Codex (API key) runs the first in a docker-local sandbox, edits code, checks,
+           publishes.
+        2. The task completes automatically and the second starts.
+        3. Cancel an attempt mid-run.
+        4. Fail an attempt and see the retry.
+        5. Restart the worker and the server mid-attempt.
+        6. Run a manual drill: suspend Windows during an attempt and resume.
+
+      Write the evidence and a rerunnable demo script.
+    acceptance:
+      - "The owner approves after watching or rerunning the demo."
+    deliverables:
+      - {id: demo, kind: file, target: "docs/implementation/MS1.md"}
+  - key: MS2
+    epic: M
+    repo: aq-server
+    title: "MS2 gate: hosted"
+    type: operator
+    class: standard-high
+    verification: human
+    needs: [MS1, A1, A4, C5b, C6b, I4b, E1a, E1b, E1c, E2, E3, E5, E6a, E6b]
+    continues: []
+    spec: [aq-server/docs/superpowers/plans/2026-11-02-v2-full-application-plan.md]   # §1, §5
+    description: |
+      Run the MS1 scenario against the VPS, on two workers:
+        - the local worker, running in a container on WSL2 (E6a);
+        - the VPS cloud worker on docker-local (E6b).
+
+      Repeat once with a ChatGPT login on each.
+
+      Then reboot the VPS mid-attempt. Off-host backups must be configured (E5).
+    acceptance:
+      - "The owner approves."
+    deliverables:
+      - {id: demo, kind: file, target: "docs/implementation/MS2.md"}
+  - key: MS3
+    epic: M
+    repo: aq-server
+    title: "MS3 gate: daily driver"
+    type: operator
+    class: standard-high
+    verification: human
+    needs: [MS2, C7, D2, D4, D5, D6, D7, D8, D9, F1a, F1b, F2, F3, F4, F5, F7, G1a, G1b, G2, G3, G4, G5, G6, G7, G8, I1]
+    continues: [GATE-05]
+    spec: [aq-server/docs/superpowers/plans/2026-11-02-v2-full-application-plan.md]
+    description: |
+      The owner, from the dashboard and from aqv2:
+        1. asks the supervisor to plan and enqueue a small feature graph on an onboarded repository;
+        2. sees agents work under the coding policy;
+        3. answers an agent question;
+        4. receives Discord notifications;
+        5. reviews results and leaves feedback that creates a rework task.
+
+      The boat backend (C7) runs at least one attempt, and Claude Code (I1) completes one task.
+    acceptance:
+      - "The owner approves that this replaces the v1 daily loop."
+    deliverables:
+      - {id: demo, kind: file, target: "docs/implementation/MS3.md"}
+  - key: MS4
+    epic: M
+    repo: aq-server
+    title: "MS4 gate: complete product"
+    type: operator
+    class: deep-high
+    verification: human
+    needs: [MS3, D10, D11, G9, G10, G11, G12, H1, H2, H3, H4, H5, H6, H7, I2, I3, J3, J4, J5, J7]
+    continues: [GATE-06, INT-02, INT-03]
+    spec: [aq-server/docs/architecture/0001-ecosystem-and-releases.md, aq-server/docs/architecture/0005-sandboxed-execution-and-deployment-topology.md]
+    description: |
+      Assemble the final acceptance matrix: every requirement ID (E, X, D, W, U, P, H, R, S, N, C, SBX, DEP and
+      the namespaced component IDs) mapped to its evidence. Run the full-product demo:
+        - four harnesses;
+        - all three backends;
+        - hibernation and wake across nodes;
+        - full dashboard;
+        - an exact-artifact upgrade.
+    acceptance:
+      - "The matrix has no requirement without evidence or an owner-approved deferral."
+      - "The owner approves."
+    deliverables:
+      - {id: matrix, kind: file, target: "docs/implementation/MS4-acceptance-matrix.md"}

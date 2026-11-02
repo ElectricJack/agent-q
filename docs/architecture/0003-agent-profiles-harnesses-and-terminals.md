@@ -271,7 +271,7 @@ injection. CLI/provider versions are pinned in release manifests and checked at
 startup. A generic custom-command adapter is experimental until independently
 qualified; it does not count as one of the required four adapters.
 
-Each attempt owns a private tmux socket/server/session and recorded pane identity.
+Each attempt runs in its own sandbox ([sandboxed execution](0005-sandboxed-execution-and-deployment-topology.md)); the guardian and tmux host run inside that sandbox under the in-sandbox runner, and an execution profile's environment resolves to one pinned sandbox template digest. Each attempt owns a private tmux socket/server/session and recorded pane identity.
 Create the tmux server inside the guardian's process-ownership boundary before
 any agent writer starts. Do not join a pre-existing shared server. The supported
 tmux launch mode, daemonization behavior, descendant adoption and PTY lifecycle
@@ -400,7 +400,7 @@ These are implementation/qualification inputs, not measured performance claims.
 | Limit | Initial default / requirement |
 | --- | --- |
 | Idle terminal polls | None without subscriptions/control work; ordinary worker polling remains separate |
-| Terminal long poll | At most one per node, 20-second maximum hold, immediate response when work exists |
+| Terminal long poll | At most one per sandbox (amended by [0005](0005-sandboxed-execution-and-deployment-topology.md) SBX16; per-node aggregate limits are enforced server-side across a node's sandboxes), 20-second maximum hold, immediate response when work exists |
 | Active viewers | At most 4 per session and 32 subscriptions per node; excess refused explicitly |
 | Output | Frames at most 64 KiB; 256 KiB/s per watched session and 2 MiB/s aggregate per node; flush target 50 ms |
 | Replay buffers | 1 MiB per session, 32 MiB aggregate per node; central active replay 128 MiB aggregate, bounded eviction with gap markers |

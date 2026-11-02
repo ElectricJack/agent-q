@@ -18,7 +18,7 @@ The phase delivers the `agent-q` foundation repository, a minimal server, a mini
 
 The server exposes only foundation operations: identity, worker enrollment and status, health, version information, and update status. The worker registers, authenticates, sends heartbeats, reconnects, and reports its version. A bounded connectivity probe demonstrates communication; there is no remote shell or job runner.
 
-Deferred work includes task storage, scheduling, agent harnesses, disposable execution sandboxes, knowledge, playbooks, integration trains, the full dashboard, billing, and multi-tenant hosting. Foundation persistence does not determine the future task database.
+Deferred work includes task storage, scheduling, agent harnesses, disposable execution sandboxes (now specified in [sandboxed execution and deployment topology](../architecture/0005-sandboxed-execution-and-deployment-topology.md)), knowledge, playbooks, integration trains, the full dashboard, billing, and multi-tenant hosting. Foundation persistence does not determine the future task database.
 
 ## Proposed deployment
 
@@ -108,7 +108,7 @@ The handshake includes worker identity, software version, and protocol version. 
 
 The initial desktop target is provisionally Linux or WSL2, consistent with the current development environment. The installation guide must explain whether the worker runs as a local service or container and what happens when Windows or WSL shuts down. Native Windows and macOS support are separate decisions.
 
-This phase proves connectivity. Filesystem access, Docker access, and sandbox privileges for future agent execution require a later worker specification.
+This phase proves connectivity. Filesystem access, Docker access, and sandbox privileges for future agent execution require a later worker specification. That specification is now [sandboxed execution and deployment topology](../architecture/0005-sandboxed-execution-and-deployment-topology.md): each attempt runs in its own sandbox, the desktop worker launches sandboxes through a dedicated sandbox Docker daemon, and a cloud worker on the VPS creates boat.dev sandboxes.
 
 ## Configuration and persistent state
 

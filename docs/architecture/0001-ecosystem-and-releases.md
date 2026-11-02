@@ -13,7 +13,7 @@ Agent Q v2 is a product assembled from independently developed and tested compon
 | Repository | Responsibility | Product integration |
 | --- | --- | --- |
 | `agent-q` | Daemon, scheduling, execution authority, human/agent APIs, messaging, integration policy, deployment, updater, product acceptance | Central server image and installation/release tooling |
-| `aq-worker` | Worker runtime, local process ownership, harness adapters, journal, capacity, transport, worker protocol | Independently released worker image; outbound HTTPS to AQ |
+| `aq-worker` | Worker runtime, placement backends and sandbox lifecycle, in-sandbox runner, harness adapters, journal, capacity, transport, worker protocol, sandbox templates | Independently released worker image and sandbox base template; outbound HTTPS to AQ |
 | `aq-graph` | Task and knowledge records, revisions, relationships, graph invariants and API | Released private HTTP service image |
 | `aq-git` | Repository operations, workspaces, retained source, integration candidates and conditional publication | Versioned executable with a local process interface, packaged in central and worker runtimes |
 | `aq-playbooks` | Workflow model, compiler, runner, storage adapter and authoring CLI | Versioned Rust libraries embedded in AQ; independently available CLI |
@@ -21,7 +21,7 @@ Agent Q v2 is a product assembled from independently developed and tested compon
 
 Supervisors run centrally. Workers do not host supervisors, a graph database, or the playbook engine. The dashboard accesses the daemon; it does not contact workers, aq-git, PostgreSQL, or aq-graph directly.
 
-The initial deployment uses Compose centrally and containers for remote workers. The existing PostgreSQL deployment may host separately owned databases/schemas and roles; component ownership does not require one database server per component. AQ, graph, and playbook adapters must not query one another's private tables. Independent stores and schemas still require explicit delivery/reconciliation boundaries. No broker, Kubernetes cluster, worker database service, or private package-registry service is required by this design.
+The initial deployment uses Compose centrally and containers for remote workers. Each agent attempt runs in its own sandbox created by a worker node through a placement backend (`docker-local`, `boat`, `cloudflare-containers`); see [sandboxed execution and deployment topology](0005-sandboxed-execution-and-deployment-topology.md). The existing PostgreSQL deployment may host separately owned databases/schemas and roles; component ownership does not require one database server per component. AQ, graph, and playbook adapters must not query one another's private tables. Independent stores and schemas still require explicit delivery/reconciliation boundaries. No broker, Kubernetes cluster, worker database service, or private package-registry service is required by this design.
 
 ```mermaid
 flowchart LR
@@ -61,6 +61,7 @@ Observations identify their origin, revision/sequence and observation time. “W
 | Ecosystem architecture and product release policy | This document in `agent-q` |
 | Cross-component execution guarantees and failure scenarios | [Execution and recovery](0002-execution-and-recovery.md) in `agent-q` |
 | Profile composition, intelligence selection, mandatory tmux hosting and remote terminals | [Shared profile/session design](0003-agent-profiles-harnesses-and-terminals.md) in `agent-q`; [worker mechanisms](../../../aq-worker/docs/specs/0003-profiled-tmux-sessions.md) and dashboard section 8 reference it |
+| Per-attempt sandboxes, placement backends, sandbox templates, delegated attempt permits, credential placement and the first deployment topology | [Sandboxed execution and deployment topology](0005-sandboxed-execution-and-deployment-topology.md) in `agent-q`; worker framework §3/§5 reference it |
 | Session observability, stall policy, accounting, notification delivery and agent hibernation | [Shared operations/waits design](0004-session-operations-waits-and-notifications.md) in `agent-q`; [worker mechanisms](../../../aq-worker/docs/specs/0004-session-observation-and-suspension.md) and dashboard section 9 reference it |
 | Daemon execution and graph gateway implementation requirements | [Daemon specification](../specs/0002-execution-and-agent-access.md) |
 | Worker internals | [Worker framework](../../../aq-worker/docs/specs/0001-worker-framework.md) and [execution specification](../../../aq-worker/docs/specs/0002-execution-and-agent-access.md) |
@@ -111,7 +112,7 @@ Workers may be disconnected during central upgrades. Publish a recommended worke
 
 ## 6. Deployment, upgrades and rollback
 
-The central installation serves the dashboard and API at one origin, starts the private graph service, and supervises the local aq-git process. Playbooks run inside the daemon. Workers package their runtime, pinned aq-git, supported harnesses and toolchains. Development toolchains and standalone authoring CLIs need not ship in the production server image.
+The central installation serves the dashboard and API at one origin, starts the private graph service, and supervises the local aq-git process. Playbooks run inside the daemon. Workers package their runtime and placement backend; sandbox templates package the in-sandbox runner, pinned aq-git, supported harnesses and toolchains. The first production topology — one Bluehost VPS hosting the server stack plus a cloud worker that creates boat.dev sandboxes, and one local desktop worker — is defined in [sandboxed execution and deployment topology](0005-sandboxed-execution-and-deployment-topology.md) §3 and §9. Development toolchains and standalone authoring CLIs need not ship in the production server image.
 
 The existing updater evolves to orchestrate the central release. Each component owns its migrations; the product coordinates their order and records progress durably. No component reads another's tables to simulate an atomic cross-service upgrade. Use admission pauses, compatibility checks, backups and resumable migration steps. Define which existing attempts can continue during maintenance and preserve renewal/reporting paths, or explicitly drain before taking them down.
 
