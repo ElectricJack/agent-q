@@ -1,0 +1,58 @@
+{
+  "source_commit": "98689bb88b012ff9630ba6628332cff40923f070",
+  "status": "bounded_component_qualification_not_settlement",
+  "scope": "finite pure planning and actual stopped/B1/SQL effect-ledger inspection; no eligibility/release/completion producer",
+  "checks": {
+    "focused": {
+      "command": "cargo test --offline -p aq-server --lib --test profiled_results settlement -- --nocapture",
+      "build_seconds": 4.55,
+      "pure_tests": 8,
+      "pure_seconds": 0.02,
+      "sql_tests": 3,
+      "existing_recording_regressions": 1,
+      "integration_seconds": 2.18,
+      "failed": 0
+    },
+    "strict": {
+      "command": "cargo clippy --offline -p aq-server --lib --test profiled_results --all-features -- -D warnings",
+      "seconds": 37.86,
+      "passed": true
+    }
+  },
+  "environment": {
+    "target": "existing /tmp/aq-native-union-target",
+    "jobs": 2,
+    "debug": 0,
+    "incremental": false,
+    "offline": true,
+    "database": "existing loopback PostgreSQL via disposable TestDb; server version not re-probed",
+    "canonical_state_changed": false
+  },
+  "source_sha256": {
+    "crates/aq-server/src/profiled_execution.rs": "e31009d5785f0d5bfc8c282af4183ef6cc5f0cf7a3b6d00173a8ac2b09ca1c99",
+    "crates/aq-server/src/profiled_execution/settlement.rs": "2cd7f9d0de8f9bf206f08ed948b405d09d1b6abbe7e82a1113de6ab9928967e6",
+    "crates/aq-server/src/profiled_execution/settlement/effects.rs": "9da34bd5db5673926057b383d9c2598a95f043396556d411eeb6cd1104b5eac7",
+    "crates/aq-server/src/profiled_execution/settlement/eligibility.rs": "68727609d3b01ac2f5558149646235d7c61f6dd5115377cf822d3cd766661639",
+    "crates/aq-server/src/profiled_execution/settlement/eligibility_tests.rs": "ae256969383a25e4222b67ee02e04538c9ec61ee2469d194fe4eb303e6333bac",
+    "crates/aq-server/tests/profiled_results.rs": "90c043bda340e44fba076af6e6b230e8078fabd633a50f8b3f1f47acbae25c4a",
+    "crates/aq-server/tests/profiled_results/settlement_effects.rs": "230c274778968fd37a60d83b337195e4313fe07fe56f9457aa3d01b75a3b0a7a"
+  },
+  "log_sha256": {
+    "initial-module-path-failure.log": "affdd9bdfd9fc3b17631dac5f77305a26e883431447e58f2f0dda3cd3ae8deaa",
+    "initial-result-alias-failure.log": "958e5dd8e744cffa7cf7a9d6f2135350be896712b456da7e6bff8ff9715d064b",
+    "focused-tests.log": "c88cd50da15ff4e8990c584e2f1383087918de2da409f348ad6060241565c6db",
+    "strict.log": "72859a2494b2d04478c5ccc17466c8d055c6fa432482f7eec813f025e1ae4f2d"
+  },
+  "negative_history": [
+    "First integration compile refused missing explicit child module path; corrected dedicated path without owner change.",
+    "Next integration compile refused aq-admission Result alias shadow; corrected std::result::Result in fixture only."
+  ],
+  "limits": [
+    "Agent binding and Graph-operation/mailbox rows in SQL cases are explicitly synthetic fixtures, not qualified command admission or actual Graph/message dispatch.",
+    "Actual B1/Stopped/held-task and ordered Store owners are used; source retention and provider/physical execution are not exercised.",
+    "No independent leftover-database-name audit was run; disposal uses existing TestDb owner cleanup.",
+    "Current applicability and effect-disposition positive production constructors remain unavailable in this first source increment.",
+    "No schema39 migration, public capability, scheduler, eligibility receipt, verified release, claim clear, Graph completion, or external effect was implemented/qualified.",
+    "B1 phase-origin38 integration is a subsequent source composition and requires the explicit legacy origin in the pure fixture."
+  ]
+}
