@@ -2,6 +2,8 @@
   "schema_version": 1,
   "title": "Agent Q v2 implementation milestones",
   "date": "2026-10-30",
+  "tracking_authority": "docs/superpowers/plans/2026-11-02-v2-full-application-plan.md",
+  "freeze_note": "Frozen on 2026-11-02. Task statuses, scopes and dependencies below are historical evidence, not a current work queue.",
   "format_note": "Repository planning format; not an AQ daemon import schema. No live tasks or issues are created by this file.",
   "audit": "../research/2026-10-30-v2-implementation-audit.md",
   "snapshot": "../research/2026-10-30-implementation-audit-snapshot.json",
