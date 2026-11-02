@@ -184,7 +184,7 @@ impl Shared {
             .context("Graph gate actual read unavailable")?;
         let (status, _, bytes) = bounded(response).await?;
         ensure!(status == StatusCode::OK, "Graph gate actual read refused");
-        Ok(serde_json::from_slice(&bytes).context("Graph gate actual read JSON")?)
+        serde_json::from_slice(&bytes).context("Graph gate actual read JSON")
     }
     async fn forward(&self, request: Request) -> Result<Response> {
         let _permit = self
