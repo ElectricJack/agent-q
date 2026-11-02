@@ -180,4 +180,4 @@ CREATE OR REPLACE FUNCTION profiled_close_expired_ungranted(p_node UUID,p_attemp
 RETURNS TABLE(body_bytes BYTEA,body_digest TEXT,changed BOOLEAN) LANGUAGE SQL AS $$
  SELECT * FROM profiled_close_ungranted(p_node,p_attempt,p_now,p_closure,p_operation,FALSE)
 $$;
-UPDATE meta SET value='42' WHERE key='state_format_version';
+UPDATE meta SET value='43' WHERE key='state_format_version';

@@ -37,7 +37,7 @@ async fn validate_composed(
         ("settlement_claim_guard", ""),
     ] {
         let tail = if cancellation && name == "profiled_close_expired_ungranted" {
-            super::cancellation42::function_body(name)?
+            super::cancellation43::function_body(name)?
         } else if compute_reuse && name == "profiled_close_expired_ungranted" {
             super::compute41::function_body(name)?
         } else {

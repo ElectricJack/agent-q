@@ -97,7 +97,7 @@ async fn live_subset_bootstrap_and_exact_session_scope_are_truthful() {
         read(&app, "/api/v1/sessions?limit=101", "owner@localhost")
             .await
             .0,
-        StatusCode::BAD_REQUEST
+        StatusCode::UNPROCESSABLE_ENTITY
     );
 }
 #[tokio::test]
@@ -147,7 +147,7 @@ async fn malformed_inputs_have_dashboard_error_envelopes() {
     ] {
         let (status, body) = read(&app, path, "owner@localhost").await;
         assert!(
-            status == StatusCode::BAD_REQUEST || status == StatusCode::CONFLICT,
+            status == StatusCode::UNPROCESSABLE_ENTITY || status == StatusCode::GONE,
             "{body}"
         );
         assert!(body["code"].is_string(), "{body}");

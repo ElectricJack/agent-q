@@ -5,7 +5,7 @@ use aq_server::{
 };
 use serde_json::Value;
 #[tokio::test]
-async fn cancellation42_upgrade_preserves_prior_records_and_old41_refuses() {
+async fn cancellation43_upgrade_preserves_prior_records_and_old41_refuses() {
     let db = TestDb::create().await;
     let pool = db.pool().await;
     test_support::migrate_profile(&pool, 41).await.unwrap();
@@ -24,14 +24,53 @@ async fn cancellation42_upgrade_preserves_prior_records_and_old41_refuses() {
     assert!(matches!(
         test_support::migrate_profile(&pool, 41).await,
         Err(StoreError::IncompatibleState {
-            found: 42,
+            found: 43,
             supported: 41
         })
     ));
     Store::connect_with(db.options()).await.unwrap();
 }
 #[tokio::test]
-async fn cancellation42_startup_refuses_missing_or_changed_proof_owners() {
+async fn cancellation43_upgrade_preserves_dashboard42_operation_and_old42_refuses() {
+    let db = TestDb::create().await;
+    let pool = db.pool().await;
+    test_support::migrate_profile(&pool, 42).await.unwrap();
+    let principal = uuid::Uuid::new_v4();
+    let operation = uuid::Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO users(id,email,role,created_at) VALUES($1,'upgrade@localhost','owner',now())",
+    )
+    .bind(principal)
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query("INSERT INTO dashboard_operations(operation_id,principal_id,kind,scope,request_digest,disposition,response,created_at,updated_at) VALUES($1,$2,'test.upgrade','{}',$3,'pending',jsonb_build_object('operation_id',$1::text,'request_digest',$3::text,'disposition','pending','scope','{}'::jsonb),now(),now())")
+        .bind(operation).bind(principal).bind(format!("sha256:{}", "0".repeat(64))).execute(&pool).await.unwrap();
+    let before: Value =
+        sqlx::query_scalar("SELECT to_jsonb(t) FROM dashboard_operations t WHERE operation_id=$1")
+            .bind(operation)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let _store = db.store().await;
+    let after: Value =
+        sqlx::query_scalar("SELECT to_jsonb(t) FROM dashboard_operations t WHERE operation_id=$1")
+            .bind(operation)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(before, after);
+    assert!(matches!(
+        test_support::migrate_profile(&pool, 42).await,
+        Err(StoreError::IncompatibleState {
+            found: 43,
+            supported: 42
+        })
+    ));
+    Store::connect_with(db.options()).await.unwrap();
+}
+#[tokio::test]
+async fn cancellation43_startup_refuses_missing_or_changed_proof_owners() {
     for mutation in [
         "ALTER TABLE profiled_cancellations DISABLE TRIGGER profiled_cancellations_immutable",
         "ALTER TABLE profiled_cancelled_settlements DISABLE TRIGGER profiled_cancelled_settlement_guard",

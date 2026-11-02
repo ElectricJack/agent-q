@@ -243,6 +243,7 @@ async fn prepare_with_optional_config(
     };
     prepare_from_parts(c, p, q).await
 }
+#[allow(dead_code)] // Selected only by the path-imported qualified terminal fixture.
 pub fn prepared_from_presence(
     ready: presence_fixture::Case,
     extra: fn(&mut aq_server::profiled_execution::config::ProfiledConfig),

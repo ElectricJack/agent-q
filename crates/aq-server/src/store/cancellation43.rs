@@ -1,11 +1,11 @@
-//! Leaf42 cancellation owners; older migration profiles keep their exact guards.
+//! Leaf43 cancellation owners; older migration profiles keep their exact guards.
 use super::{Result, StoreError};
 use sqlx::{Postgres, Transaction};
 fn corrupt() -> StoreError {
-    StoreError::Corrupt("native cancellation42 guard drift".into())
+    StoreError::Corrupt("native cancellation43 guard drift".into())
 }
 pub(super) fn function_body(name: &str) -> Result<&'static str> {
-    include_str!("../../migrations/0042_native_cancellation.sql")
+    include_str!("../../migrations/0043_native_cancellation.sql")
         .split_once(&format!("FUNCTION {name}("))
         .and_then(|(_, tail)| tail.split_once("AS $$"))
         .and_then(|(_, tail)| tail.split_once("$$;"))

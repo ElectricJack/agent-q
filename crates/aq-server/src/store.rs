@@ -278,7 +278,11 @@ const MIGRATIONS: &[(i32, &str)] = &[
     ),
     (
         42,
-        include_str!("../migrations/0042_native_cancellation.sql"),
+        include_str!("../migrations/0042_dashboard_operations.sql"),
+    ),
+    (
+        43,
+        include_str!("../migrations/0043_native_cancellation.sql"),
     ),
 ];
 
@@ -358,6 +362,14 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         return Err(StoreError::Corrupt(
             "state format metadata does not match applied migrations".into(),
         ));
+    }
+    if supported >= 42 {
+        let intact: bool = sqlx::query_scalar("SELECT to_regclass('dashboard_operations') IS NOT NULL AND to_regprocedure('guard_dashboard_operation()') IS NOT NULL AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='dashboard_operation_guard' AND tgrelid=to_regclass('dashboard_operations') AND NOT tgisinternal AND tgenabled='O') AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='dashboard_operation_truncate_guard' AND tgrelid=to_regclass('dashboard_operations') AND NOT tgisinternal AND tgenabled='O')").fetch_one(&mut *tx).await?;
+        if !intact {
+            return Err(StoreError::Corrupt(
+                "dashboard operation journal safeguards missing".into(),
+            ));
+        }
     }
     if supported >= 30 {
         let complete:bool=sqlx::query_scalar("SELECT to_regclass('profiled_v2_proposals') IS NOT NULL AND to_regclass('profiled_v2_accepts') IS NOT NULL").fetch_one(&mut *tx).await?;
@@ -467,10 +479,10 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
     } else if supported >= 39 {
         settlement39::validate(&mut tx).await?;
     }
-    if supported >= 42 {
+    if supported >= 43 {
         never_granted40::validate_native_cancellation(&mut tx).await?;
         compute41::validate(&mut tx).await?;
-        cancellation42::validate(&mut tx).await?;
+        cancellation43::validate(&mut tx).await?;
     } else if supported >= 41 {
         never_granted40::validate_compute_reuse(&mut tx).await?;
         compute41::validate(&mut tx).await?;
@@ -1049,5 +1061,5 @@ mod compute41;
 #[path = "store/never_granted40.rs"]
 mod never_granted40;
 
-#[path = "store/cancellation42.rs"]
-mod cancellation42;
+#[path = "store/cancellation43.rs"]
+mod cancellation43;

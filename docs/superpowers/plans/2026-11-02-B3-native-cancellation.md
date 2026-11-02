@@ -19,7 +19,7 @@
 - Unsupported capabilities refuse explicitly. Do not edit architecture/spec documents.
 - Evidence: `docs/implementation/B3.md`, exact commands, environment, commit and limits.
 - Run fmt, clippy and named/related Rust tests. Respect AQ foreground resource controls; full CI remains integration-owned per worker instructions.
-- Push assigned branch with guarded AQ publication; merge origin/dev before final submission.
+- Push assigned branch with guarded AQ publication; merge the component default before final submission (origin/dev is absent; origin/main is the fetched default).
 
 ## Review Focus
 
@@ -32,7 +32,7 @@
 ## File Structure
 
 - Create `crates/aq-server/src/profiled_execution/cancellation.rs`: domain request receipts, directives, stopped settlement.
-- Create `crates/aq-server/migrations/0042_native_cancellation.sql`: immutable cancel/replay/settlement records and cancellation-enabled NeverGranted owner.
+- Create `crates/aq-server/migrations/0043_native_cancellation.sql`: immutable cancel/replay/settlement records and cancellation-enabled NeverGranted owner.
 - Modify `profiled_execution/no_grant.rs`: expose locked closure reuse, decode cancelled proof.
 - Modify `profiled_execution/producer/workflow.rs`: cancellation delivery before capacity/scheduling.
 - Modify `execution/api.rs`: native dispatch through domain function; preserve legacy response.
@@ -66,11 +66,11 @@
 - [x] Write `late_result_after_cancel_is_recorded_not_applied`: cancellation before retained stopped result, result remains readable, eligibility forbids success; old released attempt cannot settle current task. Cover accepted-first cancellation outcome and concurrent lock ordering.
 - [x] Reuse the initial cancellation RED; confirm cancel-first and accepted-first behavior through existing result/applicability owners.
 - [x] Implement only missing ordering fences; leave automatic result settlement to D3.
-- [x] Run named tests plus related no-grant, native poll, renewal, stopped and result tests. Expect all selected tests pass. Commit.
+- [x] Run named tests plus related no-grant, native poll, renewal, stopped and result tests. Record passes and broader timing/setup failures in the evidence. Commit.
 
 ### Task 4: Verification and publication
 
 - [x] Run `cargo fmt --all --check`, `cargo clippy --locked --all-targets -- -D warnings` and exact three named workspace commands within available resource controls; record unavailable checks truthfully.
 - [x] Record evidence in `docs/implementation/B3.md`; perform a fresh whole-branch review under executing-plans. B3 is not marked cross-family adversarial.
-- [ ] Resolve review findings with focused RED/GREEN tests. Squash own unpublished feature commits to one, preserving tree and attribution.
-- [ ] Merge origin/dev, rerun targeted checks for affected files, guarded push, record full SHA, complete AQ subtasks and close with evidence.
+- [x] Resolve review findings with focused RED/GREEN tests. Squash own unpublished feature commits to one, preserving tree and attribution.
+- [x] Merge fetched origin/main (component default; origin/dev is absent), rerun targeted schema/acceptance checks, guarded push, record full SHA, complete AQ subtasks and close with evidence in the AQ receipt.

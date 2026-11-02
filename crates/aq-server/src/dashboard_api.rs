@@ -1,5 +1,8 @@
 //! Bounded authenticated dashboard reads. No action proxy, no browser authority.
+pub mod actions;
 pub mod contract;
+pub mod cursor;
+pub mod errors;
 mod runtime;
 mod service;
 use crate::{AppState, authz::CurrentUser, error::AppError};
@@ -53,57 +56,23 @@ impl From<AppError> for Error {
 }
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
-        let (status, code, message, retryable) = match self {
-            Self::Invalid => (
-                StatusCode::BAD_REQUEST,
-                "invalid_request",
-                "Invalid dashboard request",
-                false,
-            ),
-            Self::Restart => (
-                StatusCode::CONFLICT,
+        use errors::ApiError;
+        match self {
+            Self::Invalid => ApiError::invalid(),
+            Self::Restart => ApiError::new(
+                StatusCode::GONE,
                 "cursor_restart_required",
-                "This page expired; refresh the list",
-                false,
+                "Restart this list; preserve your reading anchor",
             ),
-            Self::AuthorizationChanged => (
+            Self::AuthorizationChanged => ApiError::new(
                 StatusCode::FORBIDDEN,
                 "authorization_changed",
                 "Your access changed; reconnect to AQ",
-                false,
             ),
-            Self::Api(AppError::Unauthenticated(_)) => (
-                StatusCode::UNAUTHORIZED,
-                "unauthenticated",
-                "Sign in to AQ",
-                false,
-            ),
-            Self::Api(AppError::Forbidden(_)) => (
-                StatusCode::FORBIDDEN,
-                "forbidden",
-                "This read is not available to your account",
-                false,
-            ),
-            Self::Api(AppError::NotFound(_)) => (
-                StatusCode::NOT_FOUND,
-                "not_found",
-                "Session not found",
-                false,
-            ),
-            Self::Api(AppError::BadRequest(_)) => (
-                StatusCode::BAD_REQUEST,
-                "invalid_request",
-                "Invalid dashboard request",
-                false,
-            ),
-            _ => (
-                StatusCode::SERVICE_UNAVAILABLE,
-                "read_unavailable",
-                "This read is temporarily unavailable",
-                true,
-            ),
-        };
-        (status,Json(serde_json::json!({"request_id":Uuid::new_v4(),"code":code,"message":message,"retryable":retryable}))).into_response()
+            Self::Api(error) => ApiError::from(error),
+            Self::Unavailable => ApiError::unavailable(),
+        }
+        .into_response()
     }
 }
 struct DashboardUser(crate::store::User);
@@ -180,6 +149,7 @@ impl ReadQuery {
 pub fn routes(state: AppState) -> Router<AppState> {
     let runtime = Arc::new(Runtime::new(&state));
     Router::new()
+        .merge(actions::routes(Arc::new(actions::Registry::default())))
         .route("/api/v1/bootstrap", get(bootstrap))
         .route("/api/v1/overview", get(overview))
         .route("/api/v1/sessions", get(sessions))

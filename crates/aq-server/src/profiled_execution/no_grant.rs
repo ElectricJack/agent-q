@@ -100,7 +100,7 @@ pub(crate) async fn close_locked(
         .map_err(|_| AppError::Internal)?;
     let phase = super::phase_profile::for_attempt_locked(tx, attempt).await?;
     if hot.status == crate::execution::profiled::Status::Preparing
-        && let Some(phase) = phase
+        && let Some(phase_profile) = phase
     {
         // Historical validators retain the exact Frozen/Refresh nominal types;
         // neither lease is reinterpreted as a legacy PreparationPlan.
@@ -125,7 +125,7 @@ pub(crate) async fn close_locked(
                 }
             }};
         }
-        match phase {
+        match phase_profile {
             super::phase_profile::Profile::Frozen => validate_phase!(super::accepted_preparation),
             super::phase_profile::Profile::Refresh => validate_phase!(super::accepted_refresh),
         }
