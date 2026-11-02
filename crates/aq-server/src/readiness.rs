@@ -176,7 +176,7 @@ mod tests {
             let peer = tokio::spawn(async move {
                 let (mut stream, _) = listener.accept().await.unwrap();
                 let mut request = [0; 1024];
-                stream.read(&mut request).await.unwrap();
+                assert!(stream.read(&mut request).await.unwrap() > 0);
                 if let Some(frame) = frame { stream.write_all(frame).await.unwrap(); }
                 else { std::future::pending::<()>().await; }
             });
@@ -197,7 +197,7 @@ mod tests {
             let peer = tokio::spawn(async move {
                 let (mut stream, _) = listener.accept().await.unwrap();
                 let mut request = [0; 1024];
-                stream.read(&mut request).await.unwrap();
+                assert!(stream.read(&mut request).await.unwrap() > 0);
                 if let Some(body) = body {
                     let response = format!(
                         "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{body}",

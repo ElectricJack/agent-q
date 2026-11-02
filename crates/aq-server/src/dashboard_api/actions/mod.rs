@@ -326,24 +326,26 @@ async fn reconcile(
     adapter: &dyn registry::Adapter,
     original: Operation,
 ) -> Result<Operation, ApiError> {
-    if !matches!(
+    let scope = original.scope.clone();
+    let completed = if matches!(
         original.disposition,
         Disposition::Pending | Disposition::Unknown
     ) {
-        return Ok(original);
-    }
-    let scope = original.scope.clone();
-    let outcome = tokio::time::timeout(
-        std::time::Duration::from_secs(2),
-        adapter.reconcile(state, user, &original),
-    )
-    .await
-    .map_err(|_| ApiError::unavailable())??;
-    let completed = match outcome {
-        Some(outcome) => finish(state, user, original, outcome).await?,
-        None => original,
+        let outcome = tokio::time::timeout(
+            std::time::Duration::from_secs(2),
+            adapter.reconcile(state, user, &original),
+        )
+        .await
+        .map_err(|_| ApiError::unavailable())??;
+        match outcome {
+            Some(outcome) => finish(state, user, original, outcome).await?,
+            None => original,
+        }
+    } else {
+        original
     };
-    // Fence current authority and all references again after native IO.
+    // Every retained response, including a terminal replay, requires current
+    // lookup authority after journal/native IO and validation of returned refs.
     tokio::time::timeout(
         std::time::Duration::from_secs(2),
         adapter.authorize_lookup(state, user, &scope, Some(&completed)),
@@ -352,6 +354,7 @@ async fn reconcile(
     .map_err(|_| ApiError::unavailable())??;
     Ok(completed)
 }
+
 #[cfg(test)]
 async fn submit(
     state: &AppState,

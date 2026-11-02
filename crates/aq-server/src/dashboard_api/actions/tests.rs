@@ -155,6 +155,33 @@ async fn concurrent_retries_and_changed_bytes_do_not_redispatch() {
     assert_eq!(count.load(Ordering::SeqCst), 1);
 }
 #[tokio::test]
+async fn terminal_replay_rechecks_current_lookup_authority() {
+    let (_db, state, user, registry, count) = setup().await;
+    let request = request("ok");
+    let original = submit(&state, &registry, &user, request.clone())
+        .await
+        .unwrap();
+    // Model an authenticated/authorized context becoming stale during replay IO.
+    // Lookup authorization reads the current row rather than the captured User.
+    sqlx::query("UPDATE users SET role='viewer' WHERE id=$1")
+        .bind(user.id)
+        .execute(&state.store.pool)
+        .await
+        .unwrap();
+    let error = submit(&state, &registry, &user, request.clone())
+        .await
+        .unwrap_err();
+    assert_eq!(error.status(), StatusCode::FORBIDDEN);
+    assert_eq!(
+        journal::lookup(&state.store.pool, user.id, request.operation_id)
+            .await
+            .unwrap(),
+        original
+    );
+    assert_eq!(count.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
 async fn strict_payloads_and_retention_preserve_unresolved_and_tombstones() {
     let (_db, state, user, registry, count) = setup().await;
     let mut bad = request("ok");
