@@ -119,3 +119,11 @@ Protected terminal capacity is checked from each accepted nonterminal basis by
 measuring both cancellation and deadline plans at the maximum safe timestamp.
 This covers timestamp-size growth and outcome duplication rather than assuming
 that two nominal payload bounds necessarily fit after serialization.
+
+Cycle indexing includes a virtual `Wait(wait_id) → Task(owner)` bridge for each
+nonterminal record. Without that bridge a task→wait→task cycle could be missed.
+The registry's trigger-assigned creation/terminal graph revisions retain this
+bridge history; source-edge rows retain their own activation/retirement revisions.
+Both are read at the original locked project graph revision when authenticating
+an old cycle receipt. These two bounded registry integers fit its existing8192
+metadata allowance, and add no rows or bytes to the fixed reservation.

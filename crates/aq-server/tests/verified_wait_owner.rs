@@ -786,3 +786,54 @@ async fn project_quota_race_counts_retired_history_and_rolls_back_installation_c
         .await
         .unwrap();
 }
+#[tokio::test]
+async fn known_cycle_through_wait_to_owner_bridge_refuses_without_reserving() {
+    let mut t = setup().await;
+    let other = sibling(&t).await;
+    if let wire::Command::RegisterWait(r) = &mut t.request.body.command {
+        let wire::Predicate::Single { member } = &mut r.predicate else {
+            panic!()
+        };
+        member.condition = wire::Condition::Task {
+            task_id: other.selection.lineage.task_id,
+            revision: wire::Text::new("1").unwrap(),
+            requirement: wire::TaskRequirement::Settled,
+        };
+        r.predicate_digest = wire::canonical_digest(&r.predicate).unwrap();
+    }
+    t.request.body_digest = wire::canonical_digest(&t.request.body).unwrap();
+    t.raw = serde_json::to_vec(&t.request).unwrap();
+    register(&t).await;
+    let mut request: wire::Request = serde_json::from_slice(&sibling_request(&other)).unwrap();
+    if let wire::Command::RegisterWait(r) = &mut request.body.command {
+        let wire::Predicate::Single { member } = &mut r.predicate else {
+            panic!()
+        };
+        member.condition = wire::Condition::WaitOutcome {
+            wait: reg(&t).wait_ref(),
+        };
+        r.predicate_digest = wire::canonical_digest(&r.predicate).unwrap();
+    }
+    request.body_digest = wire::canonical_digest(&request.body).unwrap();
+    let result = t
+        .owner
+        .register(
+            &context(&other).await,
+            other.profiled.offer.binding.attempt_id,
+            &serde_json::to_vec(&request).unwrap(),
+        )
+        .await;
+    assert!(matches!(result, Err(Error::Engine(engine::Error::Cycle))));
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>(
+            "SELECT envelopes FROM wait_owner_budgets WHERE scope_key='installation'"
+        )
+        .fetch_one(&t.f.db.pool().await)
+        .await
+        .unwrap(),
+        1
+    );
+    Owner::open_fixture(t.f.state.clone(), t.keys.clone(), policy())
+        .await
+        .unwrap();
+}

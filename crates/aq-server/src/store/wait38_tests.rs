@@ -10,6 +10,14 @@ async fn database(version: u32) -> (TestDb, PgPool) {
         .unwrap();
     (db, pool)
 }
+async fn table_rows(pool: &PgPool, table: &str) -> serde_json::Value {
+    assert!(
+        table
+            .bytes()
+            .all(|c| c.is_ascii_alphanumeric() || c == b'_')
+    );
+    sqlx::query_scalar(&format!("SELECT COALESCE(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text),'[]'::jsonb) FROM {table} t")).fetch_one(pool).await.unwrap()
+}
 #[tokio::test]
 async fn reviewed_ddl_catalog_export() {
     let (_db, pool) = database(37).await;
@@ -37,21 +45,22 @@ async fn reviewed_ddl_catalog_export() {
 #[tokio::test]
 async fn fresh38_and_actual37_upgrade_preserve_rows_and_reject_old_reader() {
     let (_db, pool) = database(37).await;
-    let before: serde_json::Value =
-        sqlx::query_scalar("SELECT jsonb_agg(to_jsonb(t)) FROM global_supervisor_conversation t")
-            .fetch_one(&pool)
-            .await
-            .unwrap();
+    // Representative retained rows; no delivery or source-proof claim. Preserve
+    // every preexisting data table, including empty ones and all old history.
+    sqlx::raw_sql("INSERT INTO users(id,email,role,issuer,subject,created_at,bound_at) VALUES('1a3400a0-3196-469c-b9fd-d5244bbb249f','wait38-retained@localhost','owner','dev','wait38-retained@localhost',now(),now()); INSERT INTO mailbox_heads(mailbox_key,next_cursor) VALUES('wait38-retained-legacy',2); INSERT INTO mailbox_messages(message_id,mailbox_key,cursor,thread_id,sender,recipient,payload_digest,body,created_at_ms) VALUES('5dbb77ca-7d10-46f2-8c07-4ab3892b72aa','wait38-retained-legacy',1,'3b228baa-bca0-462d-947d-66a4b0b0a177','{\"kind\":\"owner\"}','{\"kind\":\"task\"}','legacy-retained-digest','Retained legacy fixture',1000)").execute(&pool).await.unwrap();
+    let tables:Vec<String>=sqlx::query_scalar("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename NOT IN('meta','schema_migrations') ORDER BY tablename").fetch_all(&pool).await.unwrap();
+    let mut before = Vec::new();
+    for table in &tables {
+        before.push(table_rows(&pool, table).await);
+    }
     migrate_known(&pool, &MIGRATIONS[..38], 38).await.unwrap();
-    assert_eq!(
-        before,
-        sqlx::query_scalar::<_, serde_json::Value>(
-            "SELECT jsonb_agg(to_jsonb(t)) FROM global_supervisor_conversation t"
-        )
-        .fetch_one(&pool)
-        .await
-        .unwrap()
-    );
+    for (table, expected) in tables.iter().zip(&before) {
+        assert_eq!(
+            table_rows(&pool, table).await,
+            *expected,
+            "changed retained table {table}"
+        );
+    }
     let budget: (i64, i64) = sqlx::query_as(
         "SELECT envelopes,reserved_bytes FROM wait_owner_budgets WHERE scope_key='installation'",
     )

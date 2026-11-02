@@ -128,8 +128,9 @@ impl Owner {
         a: &Anchor,
         r: u64,
     ) -> Result<Vec<(engine::DependencyKey, engine::DependencyKey)>> {
-        let rows=sqlx::query("SELECT e.waiter_key,e.blocker_key FROM wait_owner_edges e JOIN wait_owner_records w USING(wait_id) WHERE w.workspace_id=$1 AND w.project_id=$2 AND e.activated_revision<=$3 AND (e.retired_revision IS NULL OR e.retired_revision>$3) ORDER BY e.waiter_key,e.blocker_key,e.wait_id,e.ordinal LIMIT 4097")
+        let rows=sqlx::query("WITH history AS (SELECT e.waiter_key,e.blocker_key FROM wait_owner_edges e JOIN wait_owner_records w USING(wait_id) WHERE w.workspace_id=$1 AND w.project_id=$2 AND e.activated_revision<=$3 AND (e.retired_revision IS NULL OR e.retired_revision>$3) UNION ALL SELECT 'wait/'||w.wait_id::text AS waiter_key,'task/'||w.project_id::text||'/'||w.task_id::text AS blocker_key FROM wait_owner_records w WHERE w.workspace_id=$1 AND w.project_id=$2 AND w.bridge_created_revision<=$3 AND (w.bridge_retired_revision IS NULL OR w.bridge_retired_revision>$3)) SELECT waiter_key,blocker_key FROM history ORDER BY waiter_key,blocker_key LIMIT 4097")
             .bind(a.scope.workspace_id).bind(a.scope.project_id).bind(r as i64).fetch_all(&mut **tx).await?;
+
         if rows.len() > 4096 {
             return Err(Error::Capacity);
         }
@@ -278,7 +279,7 @@ impl Owner {
         if serde_json::to_vec(&original)?.len() > slots::bound("original")? {
             return Err(Error::Capacity);
         }
-        sqlx::query("INSERT INTO wait_owner_records(wait_id,operation_id,request_digest,workspace_id,project_id,task_id,lineage_id,node_id,attempt_id,binding_digest,source_access_digest,policy_digest,source_profile,wait_generation,continuation_id,continuation_generation,outcome_id,resume_intent_id,member_count,envelope_bytes,created_at_ms,deadline_ms,revision,logical_now_ms,next_due_ms,phase,dirty_generation,work_generation,resume_state) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,1,$21,$21,'installing',0,1,'none')")
+        sqlx::query("INSERT INTO wait_owner_records(wait_id,operation_id,request_digest,workspace_id,project_id,task_id,lineage_id,node_id,attempt_id,binding_digest,source_access_digest,policy_digest,source_profile,wait_generation,continuation_id,continuation_generation,outcome_id,resume_intent_id,member_count,envelope_bytes,created_at_ms,deadline_ms,revision,bridge_created_revision,logical_now_ms,next_due_ms,phase,dirty_generation,work_generation,resume_state) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,1,1,$21,$21,'installing',0,1,'none')")
             .bind(reg.wait_id).bind(request.body.operation_id).bind(&hash).bind(reg.scope.workspace_id).bind(reg.scope.project_id).bind(reg.binding.task_id).bind(reg.binding.lineage_id).bind(node.id()).bind(attempt)
             .bind(wire::canonical_digest(&reg.binding)?.as_str()).bind(current.anchor.source_access.as_str()).bind(self.policy.reference.digest.as_str()).bind(if self.fixture_sources{"test_fixture_v1"}else{"local_v1"})
             .bind(reg.wait_generation as i64).bind(original.ids.continuation_id).bind(reg.continuation_generation as i64).bind(original.ids.outcome_id).bind(original.ids.resume_intent_id).bind(reg.predicate.members().len() as i32)

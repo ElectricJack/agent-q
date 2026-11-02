@@ -53,6 +53,8 @@ CREATE TABLE wait_owner_records (
  created_at_ms BIGINT NOT NULL CHECK(created_at_ms BETWEEN 1 AND 9007199254740991),
  deadline_ms BIGINT NOT NULL CHECK(deadline_ms>created_at_ms AND deadline_ms<=9007199254740991 AND deadline_ms-created_at_ms<=2592000000),
  revision BIGINT NOT NULL CHECK(revision>0),
+ bridge_created_revision BIGINT NOT NULL CHECK(bridge_created_revision>0),
+ bridge_retired_revision BIGINT,
  logical_now_ms BIGINT NOT NULL CHECK(logical_now_ms BETWEEN created_at_ms AND 9007199254740991),
  next_due_ms BIGINT NOT NULL CHECK(next_due_ms BETWEEN 1 AND 9007199254740991),
  phase TEXT NOT NULL CHECK(phase IN ('installing','pending','recovery_held','terminal')),
@@ -63,8 +65,8 @@ CREATE TABLE wait_owner_records (
  terminal_digest TEXT CHECK(terminal_digest ~ '^[0-9a-f]{64}$'),
  resume_state TEXT NOT NULL CHECK(resume_state IN ('none','pending','retired')),
  FOREIGN KEY(workspace_id,project_id,task_id) REFERENCES wait_owner_tasks(workspace_id,project_id,task_id),
- CONSTRAINT wait_owner_record_terminal CHECK((phase='terminal')=(terminal_digest IS NOT NULL) AND retired=(cancel_operation_id IS NOT NULL) AND (NOT retired OR (resume_state='retired' AND phase='terminal')) AND (cancel_operation_id IS NULL OR cancel_operation_id<>'00000000-0000-0000-0000-000000000000')),
- CONSTRAINT wait_owner_record_metadata CHECK(octet_length(to_jsonb(ROW(wait_id,operation_id,request_digest,workspace_id,project_id,task_id,lineage_id,node_id,attempt_id,binding_digest,source_access_digest,policy_digest,source_profile,wait_generation,continuation_id,continuation_generation,outcome_id,resume_intent_id,member_count,envelope_bytes,created_at_ms,deadline_ms,revision,logical_now_ms,next_due_ms,phase,dirty_generation,work_generation,retired,cancel_operation_id,terminal_digest,resume_state))::text)<=8192)
+ CONSTRAINT wait_owner_record_terminal CHECK((phase='terminal')=(bridge_retired_revision IS NOT NULL) AND (bridge_retired_revision IS NULL OR bridge_retired_revision>bridge_created_revision) AND (phase='terminal')=(terminal_digest IS NOT NULL) AND retired=(cancel_operation_id IS NOT NULL) AND (NOT retired OR (resume_state='retired' AND phase='terminal')) AND (cancel_operation_id IS NULL OR cancel_operation_id<>'00000000-0000-0000-0000-000000000000')),
+ CONSTRAINT wait_owner_record_metadata CHECK(octet_length(to_jsonb(ROW(wait_id,operation_id,request_digest,workspace_id,project_id,task_id,lineage_id,node_id,attempt_id,binding_digest,source_access_digest,policy_digest,source_profile,wait_generation,continuation_id,continuation_generation,outcome_id,resume_intent_id,member_count,envelope_bytes,created_at_ms,deadline_ms,revision,bridge_created_revision,bridge_retired_revision,logical_now_ms,next_due_ms,phase,dirty_generation,work_generation,retired,cancel_operation_id,terminal_digest,resume_state))::text)<=8192)
 );
 CREATE UNIQUE INDEX wait_owner_one_live_task ON wait_owner_records(workspace_id,project_id,task_id) WHERE NOT retired;
 CREATE INDEX wait_owner_scope ON wait_owner_records(workspace_id,project_id,wait_id);
@@ -140,16 +142,26 @@ END $$;
 CREATE TRIGGER wait_owner_budget_guard BEFORE INSERT OR UPDATE OR DELETE ON wait_owner_budgets FOR EACH ROW EXECUTE FUNCTION wait38_budget_guard();
 CREATE TRIGGER wait_owner_budget_truncate BEFORE TRUNCATE ON wait_owner_budgets FOR EACH STATEMENT EXECUTE FUNCTION wait38_budget_guard();
 CREATE FUNCTION wait38_record_guard() RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE graph_revision BIGINT;
 BEGIN
  IF TG_OP IN ('DELETE','TRUNCATE') THEN RAISE EXCEPTION 'wait identities and envelopes are retained'; END IF;
  IF TG_OP='UPDATE' THEN
   IF (NEW.wait_id,NEW.operation_id,NEW.request_digest,NEW.workspace_id,NEW.project_id,NEW.task_id,NEW.lineage_id,NEW.node_id,NEW.attempt_id,NEW.binding_digest,NEW.source_access_digest,NEW.policy_digest,NEW.source_profile,NEW.wait_generation,NEW.continuation_id,NEW.continuation_generation,NEW.outcome_id,NEW.resume_intent_id,NEW.member_count,NEW.envelope_bytes,NEW.created_at_ms,NEW.deadline_ms) IS DISTINCT FROM (OLD.wait_id,OLD.operation_id,OLD.request_digest,OLD.workspace_id,OLD.project_id,OLD.task_id,OLD.lineage_id,OLD.node_id,OLD.attempt_id,OLD.binding_digest,OLD.source_access_digest,OLD.policy_digest,OLD.source_profile,OLD.wait_generation,OLD.continuation_id,OLD.continuation_generation,OLD.outcome_id,OLD.resume_intent_id,OLD.member_count,OLD.envelope_bytes,OLD.created_at_ms,OLD.deadline_ms)
-   OR NEW.revision<>OLD.revision+1 OR NEW.logical_now_ms<OLD.logical_now_ms OR NEW.dirty_generation<OLD.dirty_generation OR NEW.work_generation<OLD.work_generation OR (OLD.retired AND NOT NEW.retired)
+   OR NEW.bridge_created_revision<>OLD.bridge_created_revision OR NEW.revision<>OLD.revision+1 OR NEW.logical_now_ms<OLD.logical_now_ms OR NEW.dirty_generation<OLD.dirty_generation OR NEW.work_generation<OLD.work_generation OR (OLD.retired AND NOT NEW.retired)
    OR (OLD.cancel_operation_id IS NOT NULL AND NEW.cancel_operation_id IS DISTINCT FROM OLD.cancel_operation_id)
    OR (OLD.terminal_digest IS NOT NULL AND NEW.terminal_digest IS DISTINCT FROM OLD.terminal_digest)
    OR (OLD.phase='terminal' AND NEW.phase<>'terminal') OR (OLD.phase='recovery_held' AND NEW.phase NOT IN ('recovery_held','terminal')) OR (OLD.phase='pending' AND NEW.phase='installing') THEN RAISE EXCEPTION 'wait immutable or monotonic state changed'; END IF;
+  IF OLD.phase<>'terminal' AND NEW.phase='terminal' THEN
+   IF NEW.bridge_retired_revision IS DISTINCT FROM OLD.bridge_retired_revision THEN RAISE EXCEPTION 'wait bridge revision is owner assigned'; END IF;
+   UPDATE wait_owner_projects SET revision=revision+1 WHERE workspace_id=NEW.workspace_id AND project_id=NEW.project_id RETURNING revision INTO graph_revision;
+   NEW.bridge_retired_revision:=graph_revision;
+  ELSIF NEW.bridge_retired_revision IS DISTINCT FROM OLD.bridge_retired_revision THEN RAISE EXCEPTION 'wait bridge retirement changed'; END IF;
  ELSE
   IF NEW.revision<>1 OR NEW.logical_now_ms<>NEW.created_at_ms OR NEW.phase<>'installing' OR NEW.retired OR NEW.cancel_operation_id IS NOT NULL OR NEW.terminal_digest IS NOT NULL OR NEW.resume_state<>'none' THEN RAISE EXCEPTION 'new wait must install under original envelope'; END IF;
+  IF NEW.bridge_retired_revision IS NOT NULL THEN RAISE EXCEPTION 'new wait bridge already retired'; END IF;
+  UPDATE wait_owner_projects SET revision=revision+1 WHERE workspace_id=NEW.workspace_id AND project_id=NEW.project_id RETURNING revision INTO graph_revision;
+  IF NOT FOUND THEN RAISE EXCEPTION 'missing wait bridge revision owner'; END IF;
+  NEW.bridge_created_revision:=graph_revision;
   UPDATE wait_owner_budgets SET envelopes=envelopes+1,reserved_bytes=reserved_bytes+1048576 WHERE scope_key='installation';
   IF NOT FOUND THEN RAISE EXCEPTION 'missing wait installation budget'; END IF;
   UPDATE wait_owner_budgets SET envelopes=envelopes+1,reserved_bytes=reserved_bytes+1048576 WHERE scope_key='project/'||NEW.workspace_id::text||'/'||NEW.project_id::text;
