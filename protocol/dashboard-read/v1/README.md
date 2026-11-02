@@ -17,11 +17,14 @@ each page reloads current rows and ACLs, then checks the current partition again
 Sessions totals remain unknown across pages. At most 256 members, 100 items per
 page, 64 cached snapshots, four per principal and four concurrent reads are
 admitted. Each SQL statement and lock wait is bounded; common authority locks
-are released per item. Responses are bounded to 1 MiB; no action routes exist.
+are released per item. Responses are bounded to 1 MiB. The separate `dashboard-actions-1` contract
+mounts admission and lookup, with no production kinds enabled. The disabled
+`dashboard.actions` capability declares operation retention metadata.
 
 All-authorized scope omits `scope`; project scope uses `scope=project:{uuid}`.
 Opaque cursors are process-local authenticated ciphertext. A restart, expiry,
-changed scope/limit or invalid token requires a fresh list; authorization changes
+changed scope/limit or invalid token returns 410 `cursor_restart_required` and
+requires a fresh list; authorization changes
 return 403. No source paths, credentials, tokens or launch manifests are projected.
 
 `python3 protocol/dashboard-read/v1/check.py` validates the five retained route

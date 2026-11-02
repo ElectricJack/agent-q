@@ -102,6 +102,16 @@
         "name": {
           "type": "string"
         },
+        "operation_retention": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OperationRetention"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "reason": {
           "type": [
             "string",
@@ -581,6 +591,29 @@
         "source",
         "quality",
         "coverage"
+      ],
+      "type": "object"
+    },
+    "OperationRetention": {
+      "additionalProperties": false,
+      "properties": {
+        "minimum_days": {
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "retired_ids_indefinite": {
+          "type": "boolean"
+        },
+        "unresolved_indefinite": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "minimum_days",
+        "unresolved_indefinite",
+        "retired_ids_indefinite"
       ],
       "type": "object"
     },
