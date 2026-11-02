@@ -14,7 +14,10 @@ use serde_json::{Value, json};
 use std::{
     path::PathBuf,
     process::Stdio,
-    sync::{Arc, Mutex},
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicUsize, Ordering},
+    },
     time::Duration,
 };
 use tokio::{
@@ -104,6 +107,7 @@ impl ToolProgram {
 struct Scope {
     binding: Value,
     deadline_ns: u64,
+    local_capability: String,
 }
 #[derive(Clone)]
 struct Peer {
@@ -114,6 +118,7 @@ struct Peer {
     forbidden: Vec<String>,
     completion: String,
     completion_text: String,
+    admitted: Arc<AtomicUsize>,
     observed: Arc<Mutex<Vec<Value>>>,
     scope: Arc<Mutex<Option<Scope>>>,
     release: watch::Receiver<bool>,
@@ -160,6 +165,7 @@ impl FinitePeer {
             forbidden,
             completion,
             completion_text,
+            admitted: Arc::new(AtomicUsize::new(0)),
             observed: requests.clone(),
             scope: scope.clone(),
             release: receiver,
@@ -173,19 +179,35 @@ impl FinitePeer {
             release,
         })
     }
+    pub async fn tool_validation(&self, program: &ToolProgram, binding: &Value) -> Result<Value> {
+        let requests = self.requests.lock().unwrap().clone();
+        program
+            .call(&json!({"operation":"validate","requests":requests,"binding":binding}))
+            .await
+    }
     /// Parent borrows the actual readonly worker publication and original
     /// journal deadline after a protected Watch. These are fixture assertions,
     /// never a replacement grant or authority constructed from history.
-    pub fn release_after_watch(&self, binding: Value, original_deadline_ns: u64) -> Result<()> {
+    pub fn release_after_watch(
+        &self,
+        binding: Value,
+        original_deadline_ns: u64,
+        local_capability: String,
+    ) -> Result<()> {
         ensure!(
             remaining(original_deadline_ns).is_ok(),
             "original execution already expired"
+        );
+        ensure!(
+            !local_capability.is_empty(),
+            "actual local capability required"
         );
         let mut scope = self.scope.lock().unwrap();
         ensure!(scope.is_none(), "finite sequence already released");
         *scope = Some(Scope {
             binding,
             deadline_ns: original_deadline_ns,
+            local_capability,
         });
         self.release
             .send(true)
@@ -230,6 +252,9 @@ async fn exchange(mut peer: Peer, request: Request) -> std::result::Result<Strin
     {
         return Err(());
     }
+    if peer.admitted.fetch_add(1, Ordering::SeqCst) >= MAX_REQUESTS {
+        return Err(());
+    }
     // No assumption that output exists before a tool call. The parent runs the
     // actual protected Watch and supplies the already-issued original deadline.
     tokio::time::timeout(Duration::from_secs(20), async {
@@ -244,8 +269,10 @@ async fn exchange(mut peer: Peer, request: Request) -> std::result::Result<Strin
     tokio::time::timeout(remaining(scope.deadline_ns).map_err(|_|())?, async {
         let body = to_bytes(request.into_body(), MAX_BODY - 1).await.map_err(|_| ())?;
         let text = std::str::from_utf8(&body).map_err(|_| ())?;
+        let mut forbidden=peer.forbidden.clone();
+        forbidden.push(scope.local_capability.clone());
         let checked = peer.cli.call(&json!({"operation":"check","model":peer.model,"output_cap":4096,
-            "forbidden_material":peer.forbidden,"body_utf8":text})).await.map_err(|_| ())?;
+            "forbidden_material":forbidden,"body_utf8":text})).await.map_err(|_| ())?;
         if checked["valid"] != true { return Err(()); }
         let body:Value=serde_json::from_slice(&body).map_err(|_|())?;
         let requests={
@@ -258,6 +285,7 @@ async fn exchange(mut peer: Peer, request: Request) -> std::result::Result<Strin
         if next.is_null() {
             let proof=peer.program.call(&json!({"operation":"validate","requests":requests,"binding":scope.binding})).await.map_err(|_|())?;
             if proof["completion"]!=peer.completion_text {return Err(());}
+            remaining(scope.deadline_ns).map_err(|_|())?;
             return Ok(peer.completion.clone());
         }
         let response=match next["tool"].as_str() {
@@ -298,6 +326,7 @@ mod tests {
             forbidden: vec![],
             completion: String::new(),
             completion_text: String::new(),
+            admitted: Arc::new(AtomicUsize::new(0)),
             observed: observed.clone(),
             scope: Arc::new(Mutex::new(None)),
             release,
