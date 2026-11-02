@@ -3,7 +3,8 @@
 ## Prerequisites
 
 - Rust 1.96.1 (pinned by `rust-toolchain.toml`; rustup installs it automatically).
-- Docker with the Compose plugin. Under WSL2, use Docker Desktop's WSL integration.
+- Docker with Compose 2.24.4 or newer (`!override` support). Under WSL2, use
+  Docker Desktop's WSL integration.
 - Python 3.12 or newer, and `curl` (used by the integration/update scripts).
 
 ## Run the stack
@@ -22,7 +23,15 @@ both bound to loopback only. The generated vault is `state.dev/vault/`, based
 on `vault.example/`, with dev auth as `owner@localhost` and graph/Git adapters.
 Graph is available on loopback port 8741; its public API requires the private
 `secrets.dev/graph_token`. Git exposes only a private Unix socket shared with
-the server. Git state and source staging persist under `state.dev/`.
+the server. Server and Git run as UID/GID 10001. Git state and source staging
+share one private named volume at `/var/lib/aq`, allowing atomic renames between
+them. The socket, runtime vault and server token copy use separate private named
+volumes. A one-shot initializer creates only these project volumes as UID 10001
+with mode 0700 and copies configuration/token atomically with mode 0600. It has
+no network and exits before runtime services start. It refuses changed retained
+configuration or tokens; it does not recursively change source ownership.
+The original host vault and credentials remain owned by the host user. Graph
+runs as that host UID to read its private token.
 
 The graph build uses revision `225329cd6acf5a775fd2a0b016dd1c45fb16c79b`;
 Git uses the same server image, whose retained candidate is pinned by
@@ -35,9 +44,11 @@ Git uses the same server image, whose retained candidate is pinned by
 `AQ_DEV_ADMIN_PORT`, `AQ_DEV_WORKER_PORT`, and `AQ_DEV_GRAPH_PORT` override
 the loopback ports. Existing credentials and generated configuration are
 preserved on replay; a differing vault is refused rather than overwritten.
+An older development stack using host bind mounts should remain intact: use
+fresh state, secrets and a Compose project for this volume layout.
 
-The PostgreSQL data lives in the `aq_postgres` Docker volume and persists
-between `scripts/dev-up` runs. To reset it (this deletes all dev data):
+PostgreSQL and the private runtime volumes persist between `scripts/dev-up`
+runs. To remove the selected project's volumes (this deletes its dev data):
 
 ```sh
 python3 scripts/dev-stack.py down -v
@@ -47,6 +58,8 @@ PostgreSQL only reads the password when it first initializes the volume. If you
 delete or regenerate `secrets.dev/postgres_password` while an old volume exists,
 the server fails with password authentication errors until you reset the volume
 as above.
+The host seed receipt and saved worker credential also belong to the old
+database; preserve them and choose fresh state/secrets for a clean initialization.
 
 Cloudflared is disabled in development (it sits behind the `tunnel` profile).
 
@@ -114,7 +127,8 @@ scripts/compose-smoke.sh dev
 
 `compose_dev_reaches_ready_with_graph_and_git` uses its own local bare Git
 repository, project, state, ports, containers and database volume. It verifies
-seed replay, kills the Git child, observes degraded readiness and a new healthy
+UID 10001, private directory ownership and seed replay, kills the Git child,
+observes degraded readiness and a new healthy
 process, then tests graph outage/recovery and removes its Compose resources.
 Explicit preloaded server/Graph image inputs can avoid rebuilding those candidates.
 

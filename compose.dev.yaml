@@ -1,6 +1,24 @@
 # Development overlay. scripts/dev-up prepares the private vault and state.
 # Graph source is pinned independently of the server and Git candidate.
 services:
+  dev-state-init:
+    image: ${AQ_SERVER_IMAGE:-agent-q-server:dev}
+    user: '0:0'
+    entrypoint: [/bin/sh, /dev-init-volumes.sh]
+    volumes:
+      - ./scripts/dev-init-volumes.sh:/dev-init-volumes.sh:ro
+      - ${AQ_VAULT_DIR:?run scripts/dev-up}:/dev-vault:ro
+      - dev_vault:/vault
+      - dev_auth:/run/aq-dev
+      - dev_source:/var/lib/aq
+      - dev_git_run:/run/aq-git
+    secrets: [graph_token]
+    network_mode: none
+    restart: 'no'
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER]
+    security_opt: [no-new-privileges:true]
   graph-db-init:
     image: postgres:17-bookworm
     networks: [database]
@@ -62,15 +80,16 @@ services:
     build:
       context: .
       target: server
-    user: '${AQ_DEV_UID:-1000}:${AQ_DEV_GID:-1000}'
+    user: '10001:10001'
     entrypoint: [/bin/sh, /dev-git-supervisor.sh]
     volumes:
       - ./scripts/dev-git-supervisor.sh:/dev-git-supervisor.sh:ro
-      - ${AQ_DEV_STATE_DIR:-./state.dev}/git:/var/lib/aq/git
-      - ${AQ_DEV_STATE_DIR:-./state.dev}/git-run:/run/aq-git
-      - ${AQ_DEV_STATE_DIR:-./state.dev}/staging:/var/lib/aq/source-staging
+      - dev_source:/var/lib/aq
+      - dev_git_run:/run/aq-git
       - ${AQ_DEV_STATE_DIR:-./state.dev}/fixture:/fixture:ro
     networks: [edge]
+    depends_on:
+      dev-state-init: {condition: service_completed_successfully}
     init: true
     restart: unless-stopped
     read_only: true
@@ -87,29 +106,19 @@ services:
       context: .
       target: server
     image: ${AQ_SERVER_IMAGE:-agent-q-server:dev}
-    user: '${AQ_DEV_UID:-1000}:${AQ_DEV_GID:-1000}'
+    user: '10001:10001'
     environment:
       # compose.yaml sets production; the example vault is a development vault.
       AQ_DEPLOYMENT: development
-    volumes:
-      - type: bind
-        source: ${AQ_VAULT_DIR:?run scripts/dev-up to prepare the dev vault}
-        target: /vault
-        read_only: true
-      # The updater spool (scripts/dev-up creates it; gitignored). The example
-      # vault has no [updates] section, so updates stay unavailable in dev.
-      - type: bind
-        source: ${AQ_UPDATER_SPOOL}/requests
-        target: /updater/requests
-      - type: bind
-        source: ${AQ_UPDATER_SPOOL}/status
-        target: /updater/status
-        read_only: true
-      - ${AQ_DEV_STATE_DIR:-./state.dev}/git:/var/lib/aq/git
-      - ${AQ_DEV_STATE_DIR:-./state.dev}/git-run:/run/aq-git:ro
-      - ${AQ_DEV_STATE_DIR:-./state.dev}/staging:/var/lib/aq/source-staging
-    secrets: [postgres_password, graph_token]
+    # The example vault has no updates section; omit the production spool.
+    volumes: !override
+      - dev_vault:/vault:ro
+      - dev_auth:/run/aq-dev:ro
+      - dev_source:/var/lib/aq
+      - dev_git_run:/run/aq-git:ro
+    secrets: [postgres_password]
     depends_on:
+      dev-state-init: {condition: service_completed_successfully}
       aq-graph: {condition: service_healthy}
       aq-git: {condition: service_healthy}
     healthcheck:
@@ -144,6 +153,10 @@ services:
     security_opt: [no-new-privileges:true]
 volumes:
   worker_config:
+  dev_vault:
+  dev_auth:
+  dev_source:
+  dev_git_run:
 secrets:
   postgres_password:
     file: ${AQ_SECRETS_DIR:?run scripts/dev-up}/postgres_password

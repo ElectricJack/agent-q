@@ -40,8 +40,10 @@ def compose_dev_reaches_ready_with_graph_and_git():
             assert service in config["services"], "missing development service: " + service
             assert config["services"][service].get("healthcheck"), "missing healthcheck: " + service
         assert "cloudflared" not in config["services"], "tunnel enabled by default"
+        for service in ("server", "aq-git"):
+            assert config["services"][service]["user"] == "10001:10001", "runtime UID must be 10001: " + service
         assert config["services"]["aq-git"]["image"] == config["services"]["server"]["image"], "Git must run from the server image"
-        for target in ("/var/lib/aq/git", "/var/lib/aq/source-staging", "/run/aq-git"):
+        for target in ("/var/lib/aq", "/run/aq-git"):
             mounts = [{volume["target"]: volume["source"] for volume in config["services"][service]["volumes"]}
                       for service in ("server", "aq-git")]
             assert target in mounts[0] and mounts[0].get(target) == mounts[1].get(target), "missing shared Git path: " + target
@@ -63,6 +65,13 @@ def compose_dev_reaches_ready_with_graph_and_git():
                                    for service in ("postgres", "server", "aq-graph", "aq-git")) else None
 
             rows = wait_for(healthy, "all four services healthy")
+            evidence["runtime_users"] = {service: dev.compose(env, "exec", "-T", service, "id", "-u").strip()
+                                         for service in ("server", "aq-git")}
+            assert all(user == "10001" for user in evidence["runtime_users"].values())
+            ownership = dev.compose(env, "exec", "-T", "aq-git", "stat", "-c", "%u:%g:%a",
+                "/var/lib/aq/git", "/var/lib/aq/source-staging", "/run/aq-git").splitlines()
+            assert ownership == ["10001:10001:700"] * 3, ownership
+            evidence["private_directory_ownership"] = ownership
             evidence["images"] = {r["Service"]: dev.compose(env, "images", "-q", r["Service"]).strip() for r in rows}
             graph_role = dev.compose(env, "exec", "-T", "postgres", "psql", "-U", "agent_q", "-d", "agent_q", "-tAc",
                 "SELECT r.rolname || ':' || r.rolsuper::text FROM pg_database d JOIN pg_roles r ON r.oid=d.datdba WHERE d.datname='aq_graph'").strip()
@@ -136,7 +145,9 @@ def compose_dev_reaches_ready_with_graph_and_git():
                             token=(directory / "secrets/graph_token").read_text())
             assert node["id"] == dev.TASK and node["kind"] == "task", node
             evidence["seed"] = seed
-            before = (directory / "state/git-run/child.pid").read_text().strip()
+            def git_pid():
+                return dev.compose(env, "exec", "-T", "aq-git", "cat", "/run/aq-git/child.pid").strip()
+            before = git_pid()
             killed_at = time.monotonic()
             # aq-git forks a guarded engine. Kill serve, leaving its guard to
             # reap descendants and mark state clean before supervised restart.
@@ -146,7 +157,7 @@ def compose_dev_reaches_ready_with_graph_and_git():
             def degraded():
                 code, report = readiness()
                 attempts.append(dict(seconds=round(time.monotonic() - killed_at, 2), code=code, report=report,
-                    pid=(directory / "state/git-run/child.pid").read_text().strip()))
+                    pid=git_pid()))
                 return report if code != 0 and report.get("dependencies", {}).get("aq_git") == "degraded" else None
             try:
                 evidence["after_git_kill"] = wait_for(degraded, "Git degradation after killing serve", seconds=10)
@@ -155,7 +166,7 @@ def compose_dev_reaches_ready_with_graph_and_git():
                 raise
             def recovered():
                 code, report = readiness()
-                after = (directory / "state/git-run/child.pid").read_text().strip()
+                after = git_pid()
                 return report if after != before and code == 0 and report.get("dependencies", {}).get("aq_git") == "ready" else None
             evidence["after_git_restart"] = wait_for(recovered, "new Git process and ready report")
             dev.compose(env, "stop", "aq-graph")

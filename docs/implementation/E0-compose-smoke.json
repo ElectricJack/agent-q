@@ -46,6 +46,15 @@
     "status": "ready"
   },
   "killed_engine_pid": "9",
+  "private_directory_ownership": [
+    "10001:10001:700",
+    "10001:10001:700",
+    "10001:10001:700"
+  ],
+  "runtime_users": {
+    "aq-git": "10001",
+    "server": "10001"
+  },
   "seed": {
     "designation": {
       "base_branch": "main",
@@ -53,7 +62,7 @@
       "local_fixture": true,
       "url": "/fixture/scratch.git"
     },
-    "node_id": "9106541b-7437-4310-ac51-a7417b4fc46c",
+    "node_id": "9c5bacd3-ed9e-4139-a24d-2995de9ab55c",
     "project_id": "e0000000-0000-4000-8000-000000000002",
     "repository_id": "e0000000-0000-4000-8000-000000000003",
     "task_id": "e0000000-0000-4000-8000-000000000004",

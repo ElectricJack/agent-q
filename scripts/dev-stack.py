@@ -7,7 +7,6 @@ import json
 import os
 from pathlib import Path
 import secrets
-import socket
 import subprocess
 import sys
 import tempfile
@@ -32,10 +31,14 @@ def paths():
 
 def prepare():
     state, secret, vault = paths()
-    for directory in (state, secret, vault, state / "git", state / "git-run", state / "staging", state / "fixture",
+    for directory in (state, secret, vault,
                       state / "updater-spool/requests", state / "updater-spool/status"):
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         directory.chmod(0o700)
+    # Only disposable, non-secret test repositories are mounted here. The
+    # private state parent still excludes other host users.
+    (state / "fixture").mkdir(exist_ok=True, mode=0o755)
+    (state / "fixture").chmod(0o755)
     for name, mode in (("postgres_password", 0o644), ("graph_database_password", 0o644), ("graph_token", 0o600)):
         path = secret / name
         try:
@@ -49,7 +52,7 @@ def prepare():
     config += '''
 [agent_access]
 graph_url = "http://aq-graph:8741"
-graph_token_file = "/run/secrets/graph_token"
+graph_token_file = "/run/aq-dev/graph_token"
 mutation_actor_id = "dev-service"
 [source_retention]
 staging_root = "/var/lib/aq/source-staging"
@@ -66,11 +69,11 @@ git_socket = "/run/aq-git/central.sock"
                 AQ_SERVER_IMAGE=os.environ.get("AQ_SERVER_IMAGE", "agent-q-server:dev"))
 
 
-def compose(env, *args, capture=True):
+def compose(env, *args, capture=True, input=None, timeout=None):
     result = subprocess.run(["docker", "compose", "-f", str(ROOT / "compose.yaml"),
                              "-f", str(ROOT / "compose.dev.yaml"), *args],
                             cwd=ROOT, env=dict(os.environ, **env), text=True,
-                            capture_output=capture)
+                            capture_output=capture, input=input, timeout=timeout)
     if result.returncode:
         # Output is retained by callers; commands never contain credential values.
         raise RuntimeError(f"development Compose command exited {result.returncode}: {result.stderr}" if capture else "development Compose command failed")
@@ -114,16 +117,17 @@ def git_request(state, operation, params=None, mutation=None):
     request = dict(protocol_version=1, request_id=str(uuid.uuid4()), operation=operation,
                    params=params or {}, deadline_ms=10000)
     if operation != "capabilities":
-        request.update(repository_id=REPOSITORY, expected_binding_generation=0 if mutation else 1)
+        request.update(repository_id=REPOSITORY, expected_binding_generation=0 if operation == "repo.register" else 1)
     if mutation:
         request["operation_id"] = mutation
-    with socket.socket(socket.AF_UNIX) as peer:
-        peer.settimeout(15)
-        peer.connect(str(state / "git-run/central.sock"))
-        peer.sendall(json.dumps(request).encode() + b"\n")
-        with peer.makefile("rb") as reader:
-            raw = reader.readline(65537)
-    if len(raw) > 65536 or not raw.endswith(b"\n"):
+    if state.resolve() != paths()[0]:
+        raise ValueError("Git request state must match the selected development stack")
+    try:
+        raw = compose(prepare(), "exec", "-T", "aq-git", "aq-git", "--socket", "/run/aq-git/central.sock",
+                      "--input", "-", "--json", "request", input=json.dumps(request) + "\n", timeout=15)
+    except subprocess.TimeoutExpired:
+        raise RuntimeError("aq-git request timed out; replay the same seed operation") from None
+    if len(raw.encode()) > 65536 or not raw.endswith("\n"):
         raise RuntimeError("invalid bounded aq-git response")
     response = json.loads(raw)
     if response.get("request_id") != request["request_id"] or response.get("protocol_version") != 1 or response.get("ok") is not True:
