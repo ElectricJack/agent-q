@@ -23,7 +23,7 @@ in this slice; no history deletion/GC/replay-identity recycling is implemented.
 | Immutable completion receipt | 16384 | 1 protected slot |
 | Task gate metadata, conservatively charged per wait | 8192 | 1 shared row |
 | Project wait-graph gate metadata, charged per wait | 4096 | 1 shared row |
-| Fixed row/protection metadata allocation below | 65536 | 43 rows accounted below |
+| Fixed row/protection metadata allocation below | 65536 | 44 rows accounted below |
 | Nonconsumable allocation remainder | 61440 | 0 |
 | **Total** | **1048576** | **at most78 referenced/charged rows** |
 
