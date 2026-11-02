@@ -72,7 +72,9 @@ pub(super) async fn binding(
             crate::error::AppError::NotFound(_) => Error::NotFound,
             _ => Error::Owner,
         })?;
-    if result.receipt.report_digest.as_str() != revision.as_str() {
+    if result.origin != crate::profiled_execution::results::RecordedOrigin::LegacyPrepareV1
+        || result.receipt.report_digest.as_str() != revision.as_str()
+    {
         return Err(Error::NotFound);
     }
     let id = |value| media::Id::new(value).map_err(|_| Error::Owner);
