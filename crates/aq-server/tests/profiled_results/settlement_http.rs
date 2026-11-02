@@ -159,6 +159,21 @@ async fn combined_http_exact_profile_subject_and_explicit_answer_replay() {
             "Explicit synthetic HTTP component-test rejection, not physical review".into(),
         ),
     };
+    let legacy = router
+        .clone()
+        .oneshot(request(
+            "POST",
+            &format!("/api/reviews/decisions/{}/resolve", decision.decision_id),
+            json!(answer),
+            "owner@localhost",
+        ))
+        .await
+        .unwrap();
+    assert_eq!(
+        legacy.status(),
+        StatusCode::FORBIDDEN,
+        "old code-only resolution cannot answer a combined subject"
+    );
     let resolve = format!("{path}/resolve");
     let body = json!({"expected_subject":decision.subject,"answer":answer});
     let mut wrong = body.clone();
@@ -359,7 +374,17 @@ async fn combined_http_optional_mount_owner_origin_and_closed_body_guards() {
         ),
     ];
     let absent = aq_server::build_admin_router(c.env.f.state.clone());
+    let machine = aq_server::build_worker_router(c.env.f.state.clone());
     for (method, path) in &paths {
+        assert_eq!(
+            machine
+                .clone()
+                .oneshot(request(method, path, json!({}), "owner@localhost"))
+                .await
+                .unwrap()
+                .status(),
+            StatusCode::NOT_FOUND
+        );
         assert_eq!(
             absent
                 .clone()
