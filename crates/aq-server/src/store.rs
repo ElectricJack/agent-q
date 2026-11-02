@@ -268,8 +268,14 @@ const MIGRATIONS: &[(i32, &str)] = &[
         include_str!("../migrations/0038_profiled_result_origins.sql"),
     ),
     (39, include_str!("../migrations/0039_pilot_settlement.sql")),
-    (40, include_str!("../migrations/0040_phase_never_granted.sql")),
-    (41, include_str!("../migrations/0041_native_compute_occupancy.sql")),
+    (
+        40,
+        include_str!("../migrations/0040_phase_never_granted.sql"),
+    ),
+    (
+        41,
+        include_str!("../migrations/0041_native_compute_occupancy.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -1030,7 +1036,7 @@ mod settlement39;
 #[path = "store/settlement39_tests.rs"]
 mod settlement39_tests;
 
-#[path = "store/never_granted40.rs"]
-mod never_granted40;
 #[path = "store/compute41.rs"]
 mod compute41;
+#[path = "store/never_granted40.rs"]
+mod never_granted40;

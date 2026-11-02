@@ -30,7 +30,9 @@ jobs:
           rustup toolchain install "$toolchain" --profile minimal --component rustfmt,clippy
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: cargo fmt
-        run: cargo fmt --all --check
+        # The virtual root selects every workspace member. --all also traverses
+        # pinned vendor packages, whose metadata can resolve an outer workspace.
+        run: cargo fmt --check
       - name: Verify the pinned standalone worker and public contracts
         run: python3 scripts/check-worker-candidate.py --official
       - name: Verify the pinned independent session contract

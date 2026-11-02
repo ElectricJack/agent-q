@@ -81,6 +81,12 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --check
 ```
 
+Run formatting from the repository root. This virtual workspace selects every
+workspace member, including its tests and examples. Omit `--all`: it also visits
+excluded vendored path dependencies, which must retain their pinned package
+bytes and can resolve an outer checkout's workspace in nested AQ worktrees.
+Use `cargo fmt` from the same root to apply formatting.
+
 ## Smoke test
 
 ```sh

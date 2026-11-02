@@ -1,5 +1,6 @@
 //! Paired actual phase Started→Stopped owner. No renewal or release is implied.
 use super::common::{self, canonical, conflict, database, now};
+use super::wire;
 use crate::{
     AppState,
     error::AppError,
@@ -8,7 +9,6 @@ use crate::{
     worker_api::AuthenticatedNode,
 };
 use aq_admission::Digest;
-use super::wire;
 use sqlx::Row;
 
 pub async fn record(
