@@ -33,6 +33,7 @@ pub const REASONING: &str = "low";
 pub const REASONING_REFERENCE: &str = "codex-low@1";
 pub const PROFILE: &str = "codex-0.166-trusted-node-named-readonly-result-local-v1";
 pub const EXECUTION_MS: u64 = 20_000;
+pub const WORKER_VERSION: &str = "0.5.1";
 pub const SOURCE_DISK_BYTES: u64 = 21 * 1024 * 1024 * 1024 + 1024 * 1024;
 const MEMORY_BYTES: u64 = 1024 * 1024 * 1024;
 const CONTEXT_BYTES: u64 = 65_536;
@@ -263,6 +264,13 @@ impl ImagePins {
         Ok(())
     }
 }
+fn runtime_code(worker: &ProgramPin, worker_source: &str) -> Result<Definition> {
+    definition(
+        "aq.codex-finite-peer-runtime",
+        json!({"schema_version":1,"worker":worker,"worker_source":worker_source,
+            "runtime_version":WORKER_VERSION,"journal_format":12,"scope":SCOPE}),
+    )
+}
 pub struct PrepareInput<'a> {
     pub actual: &'a crate::common::selection::ActualSelectionFixture,
     pub context: &'a TaskContext,
@@ -429,11 +437,9 @@ pub fn prepare(input: PrepareInput<'_>) -> Result<Prepared> {
     let permission_digest = Digest::of(canonical(&permission_plan)?.as_bytes());
     let images = input.images;
     let mut defs = vec![project_policy];
-    let runtime = append(
-        &mut defs,
-        "aq.codex-finite-peer-runtime",
-        json!({"schema_version":1,"worker":images.worker,"worker_source":images.worker_source,"runtime_version":"0.5.0","journal_format":12,"scope":SCOPE}),
-    )?;
+    let runtime_definition = runtime_code(&images.worker, &images.worker_source)?;
+    let runtime = runtime_definition.artifact().clone();
+    defs.push(runtime_definition);
     let environment = append(
         &mut defs,
         ENVIRONMENT,
@@ -776,6 +782,28 @@ impl Prepared {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn runtime_code_selects_new_worker_version_without_changing_journal_format() {
+        let worker = ProgramPin {
+            path: "/opt/aq-qualification/aq-worker".into(),
+            artifact: reference(
+                "aq.recipe-test-worker",
+                b"pure worker metadata, not executable proof",
+            )
+            .unwrap(),
+            bytes: 1,
+        };
+        let definition = runtime_code(&worker, &"a".repeat(40)).unwrap();
+        let body: Value = serde_json::from_str(definition.body()).unwrap();
+        assert_eq!(body["runtime_version"], "0.5.1");
+        assert_eq!(body["journal_format"], 12);
+        assert_eq!(body["worker"], serde_json::to_value(worker).unwrap());
+        assert_eq!(
+            definition.artifact().digest,
+            Digest::of(definition.body().as_bytes())
+        );
+    }
 
     #[test]
     fn mapper_harness_matches_manifest_projection_without_offer_only_requirements() {
