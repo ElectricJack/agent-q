@@ -82,9 +82,9 @@ These are the five conditions a user is most likely to hit that no task's ordina
 
 | Gate | Outcome the owner can see | Required tasks |
 | --- | --- | --- |
-| **MS0: first real run** | Codex CLI with a real API key completes a real graph task three times. It runs in a plain container on the desktop, on today's native runner, against a local full stack. The problems found are filed as tasks before the larger build starts. | E0, I0 |
-| **MS1: real agent, sandboxed, local** | On the local stack, a graph task runs Codex (API key) in a `docker-local` sandbox on the desktop worker. The work flow is: edit code, run checks, publish the change, then the task completes automatically and the next task starts. Cancel, retry, worker/server restart and a Windows-suspend drill behave safely. | MS0, A3a, A3b, B1–B7, C1, C2, C3a–c, C4, C5a, C6a, D1a–b, D3, I4a |
-| **MS2: hosted** | The full stack runs on the Bluehost VPS behind Cloudflare. Two workers are enrolled: the desktop worker, **running in a container on WSL2**, and the VPS cloud worker running `docker-local` sandboxes on the VPS. The MS1 scenario passes on both, with an API key and with a ChatGPT login. A VPS reboot recovers, and off-host backups are configured. | MS1, A1, A4, C5b, C6b, I4b, E1a–c, E2, E3, E5, E6a, E6b |
+| **MS0: first real run** | Codex CLI, signed in with the owner's ChatGPT login (no API key), completes a real graph task three times. It runs in a plain container on the desktop, on today's native runner, against a local full stack. The problems found are filed as tasks before the larger build starts. | E0, I0 |
+| **MS1: real agent, sandboxed, local** | On the local stack, a graph task runs Codex, signed in with the owner's ChatGPT login, in a `docker-local` sandbox on the desktop worker. The work flow is: edit code, run checks, publish the change, then the task completes automatically and the next task starts. Cancel, retry, worker/server restart and a Windows-suspend drill behave safely. | MS0, A3a, A3b, B1–B7, C1, C2, C3a–c, C4, C5a1–2, C5b, C6a, C6b, D0, D1a–b, D3, I4a |
+| **MS2: hosted** | The full stack runs on the Bluehost VPS behind Cloudflare. Two workers are enrolled: the desktop worker, **running in a container on WSL2**, and the VPS cloud worker running `docker-local` sandboxes on the VPS. The MS1 scenario passes on both with the owner's ChatGPT login, including a login refresh written back. A VPS reboot recovers, and off-host backups are configured. | MS1, A1, A4, I4b, E1a–c, E2, E3, E5, E6a, E6b |
 | **MS3: daily driver** | From the dashboard or the `aqv2` CLI the owner can talk to the supervisor and have it enqueue work. Agents message the supervisor, ask the owner questions and get answers. Discord notifies. The core dashboard actions work. **boat.dev** sandboxes join as a cloud backend, and **Claude Code** works. This is the v1-equivalent working loop on v2. | MS2, C7, D2, D4–D9, F1a–b, F2–F5, F7, G1a–b, G2–G8, I1 |
 | **MS4: complete product** | Gemini CLI and OpenCode work. Session health, accounting, stalls, waits and hibernation run. Full dashboard visual acceptance passes. The deployed system is measured at about 10 concurrent attempts, and backup/restore is drilled. The acceptance matrix maps every requirement to evidence or an owner-approved deferral. | MS3 and the remaining active tasks |
 
@@ -233,10 +233,12 @@ This is the order in which tasks bring the topology up. Requirements are in 0005
    - Configure off-host pg_dump and vault backups now. Daily work lives here from MS3.
 5. **Local worker in a container (E6a).** The desktop worker runs as a container on WSL2 with its rootless sandbox daemon. It points at the VPS machine hostname with its node and runner tokens, survives Windows restarts, and keeps the WSL VM alive.
 6. **Credentials (C5a–b).**
-   - Add an OpenAI API key profile.
-   - Enroll a ChatGPT login through the `codex login --device-auth` enrollment sandbox. Device-code login must be enabled in the ChatGPT security settings first.
-   - Logins are allowed on every backend: this is a personal deployment, and cloud compute supplements the desktop.
-7. **Run MS2.** Run the MS1 scenario on both workers, with an API key and with a ChatGPT login, then reboot the VPS mid-attempt.
+   - **No API keys are required.** Agents use the owner's CLI subscription logins: the Codex ChatGPT login and the Claude login.
+   - **Import the existing login files into the vault:** `~/.codex/auth.json` and `~/.claude/.credentials.json`. Device-auth enrollment is an alternative.
+   - **Refreshes are written back.** v1's agents on the desktop share the same login files, so a refreshed login must not strand them.
+   - **Logins are allowed on every backend.** This is a personal deployment, and cloud compute supplements the desktop.
+   - **API-key profiles stay supported but optional.**
+7. **Run MS2.** Run the MS1 scenario on both workers on the owner's ChatGPT login, then reboot the VPS mid-attempt.
 8. **boat (C7, MS3).**
    - **Account:** create a dedicated boat organization for attempt sandboxes, plus a separate scope for template builds.
    - **Scoped key:** issue a key with lifecycle, command and file permissions.
@@ -254,7 +256,7 @@ This index is generated from the task file and covers active tasks only; deferre
 | A3b | aq-server | Re-pin the shipped aq-git to the 0.2.0 release | A3a |
 | A4 | aq-server | Image and CI hygiene: digest-pinned bases, state-format default, stale vendor trees, check scripts in CI | none |
 | E0 | aq-server | Local full-stack Compose for development: graph, supervised aq-git, dev auth | none |
-| I0 | aq-worker | MS0: one real Codex API-key run in a plain Docker container on the existing native path | E0 |
+| I0 | aq-worker | MS0: one real Codex run on the owner's ChatGPT login in a plain Docker container on the existing native path | E0 |
 | B1 | aq-worker | Own the native execution contract and add delegated runner permits | none |
 | B2 | aq-server | Issue, scope, revoke and re-adopt delegated permits | B1, B3 |
 | B3 | aq-server | Native cancellation end to end | none |
@@ -326,8 +328,8 @@ This index is generated from the task file and covers active tasks only; deferre
 | H5 | aq-worker | Hibernation checkpoint and continuation bootstrap | H4, B5b |
 | H6 | aq-server | Hibernation wake scheduling | H4, H5 |
 | H7 | aq-worker | Terminal renderer snapshots and full output path | B6c |
-| I4a | aq-worker | Codex CLI real-provider qualification with an API key in docker-local sandboxes | C6a, C2, B5a |
-| I4b | aq-worker | Codex CLI ChatGPT-login qualification in local and VPS sandboxes | I4a, C6b, E6b |
+| I4a | aq-worker | Codex CLI qualification with the owner's ChatGPT login in docker-local sandboxes | C6a, C2, B5a, C6b |
+| I4b | aq-worker | Codex CLI ChatGPT-login qualification on the VPS worker, with refresh write-back | I4a, C6b, E6b |
 | I1 | aq-worker | Claude Code adapter | C6b |
 | I2 | aq-worker | Gemini CLI adapter | C6b |
 | I3 | aq-worker | OpenCode adapter | C6b |
@@ -336,7 +338,7 @@ This index is generated from the task file and covers active tasks only; deferre
 | J5 | aq-server | Off-host encrypted backup and restore drill | E5 |
 | J7 | aq-git | Supported repository profile decision and widening | A3a |
 | MS0 | aq-server | MS0 gate: first real agent run | E0, I0 |
-| MS1 | aq-server | MS1 gate: real agent, sandboxed, local | MS0, A3a, A3b, B1, B2, B3, B4, B5a, B5b, B6a2, B6b, B6c, B7, C1, C2, C3a, C3b, C3c, C4, C5a2, C6a, D1a, D1b, D3, I4a, B6a1, C5a1, D0 |
+| MS1 | aq-server | MS1 gate: real agent, sandboxed, local | MS0, A3a, A3b, B1, B2, B3, B4, B5a, B5b, B6a2, B6b, B6c, B7, C1, C2, C3a, C3b, C3c, C4, C5a2, C6a, D1a, D1b, D3, I4a, B6a1, C5a1, D0, C5b, C6b |
 | MS2 | aq-server | MS2 gate: hosted | MS1, A1, A4, C5b, C6b, I4b, E1a, E1b, E1c, E2, E3, E5, E6a, E6b |
 | MS3 | aq-server | MS3 gate: daily driver | MS2, C7, D2, D4, D5, D6, D7, D8, D9, F1a, F1b, F2, F3, F4, F5, F7, G1a, G1b, G2, G3, G4, G5, G6, G7, G8, I1 |
 | MS4 | aq-server | MS4 gate: complete product | MS3, D10, D11, G9, G10, G11, G12, H1, H2, H3, H4, H5, H6, H7, I2, I3, J3, J4, J5, J7 |
@@ -368,6 +370,13 @@ This index is generated from the task file and covers active tasks only; deferre
   - Added D0 (aq-git GitHub remote credentials).
   - Added edges: D7←D6, D6←B5b/C4, D9←B4/G1a, B7←C3a, E1c←F1a/B5b/C2, F2←G2, C3a←A3a, D1b/D2/MS1←D0.
   - boat runs as a second enrolled VPS node, `aq-worker-boat`.
+
+- **2026-11-02, subscription logins (owner):**
+  - No API keys are required; agents use the owner's CLI subscription logins.
+  - I0, I4a and I4b now qualify Codex on the owner's ChatGPT login, with refreshed logins written back to `~/.codex/auth.json`, because v1's Codex agents share it.
+  - C5b gains a login-import command.
+  - MS1 now needs C5b and C6b.
+  - Owner questions everywhere go through `aq message send`.
 
 ## Appendix: gap analysis summary (2026-11-02)
 
