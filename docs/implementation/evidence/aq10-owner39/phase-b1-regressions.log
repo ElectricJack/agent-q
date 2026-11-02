@@ -1,0 +1,26 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-settlement-b2-v2/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 3.18s
+     Running tests/phase_results.rs (/tmp/aq-native-union-target/debug/deps/phase_results-b605466e8668726c)
+
+running 18 tests
+test frozen::correction_race_and_changed_operation_bytes_keep_one_immutable_head ... ok
+test frozen::historical_phase_read_and_replay_survive_expiry_cancellation_and_runtime_retirement ... ok
+test frozen::actual_origin_records_replays_reads_and_never_accepts_or_releases ... ok
+test frozen::origin_pin_forgery_and_legacy_ui_coverage_refuse ... ok
+test frozen::retained_origin_rechecks_qualification_and_proof_instead_of_trusting_report_row ... ok
+test frozen::sql_no_marker_and_even_forged_release_inputs_cannot_cross_settlement_gate ... ok
+test refresh::actual_origin_records_replays_reads_and_never_accepts_or_releases ... ok
+test refresh::correction_race_and_changed_operation_bytes_keep_one_immutable_head ... ok
+test refresh::head_failure_rolls_back_report_and_exact_retry_records_once ... ok
+test refresh::held_node_lock_rechecks_revoked_credential_before_any_report_commit ... ok
+test refresh::origin_pin_forgery_and_legacy_ui_coverage_refuse ... ok
+test frozen::held_node_lock_rechecks_revoked_credential_before_any_report_commit ... ok
+test frozen::running_claim_cannot_become_recorded_without_actual_stopped_owner ... ok
+test frozen::head_failure_rolls_back_report_and_exact_retry_records_once ... ok
+test refresh::sql_no_marker_and_even_forged_release_inputs_cannot_cross_settlement_gate ... ok
+test refresh::running_claim_cannot_become_recorded_without_actual_stopped_owner ... ok
+test refresh::retained_origin_rechecks_qualification_and_proof_instead_of_trusting_report_row ... ok
+test refresh::historical_phase_read_and_replay_survive_expiry_cancellation_and_runtime_retirement ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 59.94s
+

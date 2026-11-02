@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "source_freezes": [
+    "824e2cbc8d2ff10d09b0fe677e86de0977a1b9d9",
+    "bef321fe8393fa4a2378649552853cfede0fac39"
+  ],
+  "source_review": "independently_accepted",
+  "final_same_source_gate": "root_owned_pending",
+  "schema39_sha256": "ab86dca153d0310640557e676bc95a065319d34401054621554ca4727df85187",
+  "catalog_sha256": "5f34c6742dc537122d5421880b7831bb3e29ac76c199b5c68821d940927c9316",
+  "pre_final_runtime_evidence": {
+    "unit_and_registered39": {
+      "passed": 11,
+      "seconds": 0.8
+    },
+    "all_settlement_integration": {
+      "passed": 8,
+      "seconds": 3.43
+    },
+    "phase_b1_frozen_and_refresh": {
+      "passed": 18,
+      "seconds": 59.94
+    },
+    "new_owner_and_data_fence": {
+      "passed": 5,
+      "seconds": 3.2
+    },
+    "strict824": {
+      "passed": true,
+      "seconds": 26.19
+    }
+  },
+  "limitations": [
+    "Runtime groups predate only explicit string-comparison/private enum Box correction and final prepare auth fence as applicable; do not attribute all to final freeze.",
+    "Final Root combined gate includes new pure pending-claim and held-Git-preparer cases plus old code-review/inbox and populated archive proof.",
+    "Synthetic launch/host facts, agent binding/ledger setup and synthetic Git/Graph peers qualify owner/locking/transport joins only.",
+    "No real provider/physical/ECHILD/real Git/real Graph/human intervention/end-to-end proof is established by these fixtures.",
+    "No public router/capability/scheduler, canonical migration or deployment is performed by this source/evidence.",
+    "Initial registered upgrade preserves global conversation singleton only; populated archive38-to39 is a separate Root gate."
+  ],
+  "logs": {
+    "candidate-source-check.log": {
+      "sha256": "10cbd94d22899b22e0c881c0072b22fab4c383bddf9d366f59d26c5c88c6364f",
+      "bytes": 135
+    },
+    "catalog-export.log": {
+      "sha256": "f86e6bd0e4dfc5d1c8b9a31c7854feda70ca79bc42b57dfdc4a0740c8f979cfd",
+      "bytes": 428
+    },
+    "initial-startup-guard-failure.log": {
+      "sha256": "cf8995c2e40339f0d48dabd03c048eecbe2c9d18b7a40b8cd95e11ccf41bd2a0",
+      "bytes": 1480
+    },
+    "initial-fixture-catalog-refusal.log": {
+      "sha256": "1aa1ceec762ab4696249b785acbfbec5859d06ecbc089c68e7817d58d67e10f5",
+      "bytes": 1480
+    },
+    "shared-cache-mismatch.log": {
+      "sha256": "c6c4474a16139b1bda042b7763f931bd8c7781ea5858430988df08caf0db27c8",
+      "bytes": 2360
+    },
+    "fixture-stack-abort.log": {
+      "sha256": "8e53e4f97deb8764c2ecaa0aa3e0bac2e58bae00553c1c5dd4e2f9af5e2be2e3",
+      "bytes": 2280
+    },
+    "boxed-auth-age-races.log": {
+      "sha256": "198ff8276674f0f2b32f50b136b829d74d0b5a609dc6ced38f3b468cd3fb9529",
+      "bytes": 799
+    },
+    "unit-registered-pinned.log": {
+      "sha256": "7a02ee16a7e1d06a21f41c7573dfc6a2ee29bdd5207e0a325a066a236f22f162",
+      "bytes": 1451
+    },
+    "settlement-pinned.log": {
+      "sha256": "3133d32002a75b68ee0793078c7d17bfe891ec889587961e4912f7093c4691a2",
+      "bytes": 937
+    },
+    "phase-b1-regressions.log": {
+      "sha256": "f52a6bfa819884fd6c92488bd89b70301286333163e24624262f55577d35f420",
+      "bytes": 1958
+    },
+    "accepted-hot-no-repair.log": {
+      "sha256": "4da7b86bdc7b1f95450ddd30d879cc4318fc50f3e42e9828e8bab31e183101ca",
+      "bytes": 905
+    },
+    "initial-strict-lints.log": {
+      "sha256": "92bba6d7cc22b5eb7d52408fa284610fc10faf2e41c30e1c1d7460e4f409f6ea",
+      "bytes": 2165
+    },
+    "strict824.log": {
+      "sha256": "d12e5d881546db07a9b88a89b60d93fd3c160dbe63e0c35b5ed980a9fbc40927",
+      "bytes": 135
+    },
+    "aborted-disposable-databases.json": {
+      "sha256": "12c5822b45b06ec0c1e1b698ca6453bb3d8b3f0e61265cba9b406a7f0d4de74d",
+      "bytes": 2127
+    },
+    "exact-abort-cleanup.json": {
+      "sha256": "a68b35205e84bb7becdafde202a94bfd12106815dd8e79fba1f9cb012a160fbe",
+      "bytes": 461
+    }
+  }
+}

@@ -1,0 +1,40 @@
+    Checking aq-server v0.1.0 (/tmp/aq-settlement-b2-v2/crates/aq-server)
+error: this creates an owned instance just for comparison
+  --> crates/aq-server/src/profiled_execution/settlement/applicability.rs:38:39
+   |
+38 |                 && v[0]["version"] == task.version.to_string()
+   |                                       ^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `task.version`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.96.0/index.html#cmp_owned
+   = note: `-D clippy::cmp-owned` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::cmp_owned)]`
+
+error: this creates an owned instance just for comparison
+  --> crates/aq-server/src/profiled_execution/settlement/applicability.rs:39:48
+   |
+39 |                 && v[0]["content_revision"] == task.content_revision.to_string()
+   |                                                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ help: try: `task.content_revision`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.96.0/index.html#cmp_owned
+
+error: large size difference between variants
+  --> crates/aq-server/src/reviews/subject_owner.rs:19:1
+   |
+19 | / pub(super) enum Subject {
+20 | |     Code(ReviewSubject),
+   | |     ------------------- the second-largest variant contains at least 1168 bytes
+21 | |     SourceAndEffects(combined::CombinedSubject),
+   | |     ------------------------------------------- the largest variant contains at least 1376 bytes
+22 | | }
+   | |_^ the entire enum is at least 1376 bytes
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.96.0/index.html#large_enum_variant
+   = note: `-D clippy::large-enum-variant` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::large_enum_variant)]`
+help: consider boxing the large fields or introducing indirection in some other way to reduce the total size of the enum
+   |
+21 -     SourceAndEffects(combined::CombinedSubject),
+21 +     SourceAndEffects(Box<combined::CombinedSubject>),
+   |
+
+error: could not compile `aq-server` (lib) due to 3 previous errors

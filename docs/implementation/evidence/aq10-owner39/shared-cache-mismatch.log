@@ -1,0 +1,48 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-settlement-b2-v2/crates/aq-server)
+error[E0433]: cannot find `settlement` in `profiled_execution`
+ --> crates/aq-server/tests/profiled_results/settlement_effects.rs:5:36
+  |
+5 | use aq_server::profiled_execution::settlement::effects::{self, LedgerDisposition};
+  |                                    ^^^^^^^^^^ could not find `settlement` in `profiled_execution`
+
+error[E0432]: unresolved imports `aq_server::profiled_execution::settlement`, `aq_server::reviews::combined`
+ --> crates/aq-server/tests/profiled_results/settlement_owner39.rs:6:25
+  |
+6 |     profiled_execution::settlement::{self, EvaluationDisposition},
+  |                         ^^^^^^^^^^ could not find `settlement` in `profiled_execution`
+7 |     reviews::combined::*,
+  |              ^^^^^^^^ could not find `combined` in `reviews`
+
+error[E0599]: no method named `prepare_combined_as` found for struct `aq_server::reviews::Service` in the current scope
+   --> crates/aq-server/tests/profiled_results/settlement_owner39.rs:196:10
+    |
+194 |       let prepared = env
+    |  ____________________-
+195 | |         .service
+196 | |         .prepare_combined_as(
+    | |         -^^^^^^^^^^^^^^^^^^^ method not found in `aq_server::reviews::Service`
+    | |_________|
+    |
+
+error[E0599]: no method named `admit_combined` found for struct `aq_server::reviews::Service` in the current scope
+   --> crates/aq-server/tests/profiled_results/settlement_owner39.rs:215:10
+    |
+214 | /     env.service
+215 | |         .admit_combined(actor.id, &prepared, &decision)
+    | |         -^^^^^^^^^^^^^^ method not found in `aq_server::reviews::Service`
+    | |_________|
+    |
+
+error[E0599]: no method named `resolve_combined_as` found for struct `aq_server::reviews::Service` in the current scope
+   --> crates/aq-server/tests/profiled_results/settlement_owner39.rs:231:10
+    |
+230 | /     env.service
+231 | |         .resolve_combined_as(&actor, &answer, &decision.subject)
+    | |         -^^^^^^^^^^^^^^^^^^^ method not found in `aq_server::reviews::Service`
+    | |_________|
+    |
+
+Some errors have detailed explanations: E0432, E0433, E0599.
+For more information about an error, try `rustc --explain E0432`.
+error: could not compile `aq-server` (test "profiled_results") due to 5 previous errors
+warning: build failed, waiting for other jobs to finish...
