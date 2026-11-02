@@ -62,47 +62,75 @@ fn pin(name: &str, expected: &str) {
 pub struct Owner {
     pub root: PathBuf,
     pub socket: PathBuf,
-    child: tokio::process::Child,
+    child: std::process::Child,
+    leader: Process,
+    closed: bool,
 }
 impl Owner {
     async fn start(parent: &Path, label: &str) -> Self {
         let root = parent.join(label);
         let socket = parent.join(format!("{label}.sock"));
         // Default free-space policy is deliberately preserved: no lowering flag.
-        let mut child =
-            tokio::process::Command::new(std::env::var("AQ_TEST_GIT_CANDIDATE").unwrap())
-                .args([
-                    "--state-dir",
-                    root.to_str().unwrap(),
-                    "--git-executable",
-                    &std::env::var("AQ_TEST_GIT_EXECUTABLE").unwrap(),
-                    "--listen",
-                    socket.to_str().unwrap(),
-                    "serve",
-                ])
-                .kill_on_drop(true)
-                .stdout(Stdio::null())
-                .spawn()
-                .unwrap();
+        use std::os::unix::process::CommandExt;
+        let mut child = std::process::Command::new(std::env::var("AQ_TEST_GIT_CANDIDATE").unwrap())
+            .args([
+                "--state-dir",
+                root.to_str().unwrap(),
+                "--git-executable",
+                &std::env::var("AQ_TEST_GIT_EXECUTABLE").unwrap(),
+                "--listen",
+                socket.to_str().unwrap(),
+                "serve",
+            ])
+            .process_group(0)
+            .stdout(Stdio::null())
+            .spawn()
+            .unwrap();
+        // std::Child deliberately keeps the leader UNREAPED until every
+        // descendant is drained: its kernel PID/PGID cannot be reused meanwhile.
+        let leader = match process(child.id() as i32) {
+            Some(leader) => leader,
+            None => {
+                // process_group(0) completed before exec and std::Child is
+                // still unreaped, so this freshly allocated group is owned.
+                let _ = nix::sys::signal::killpg(
+                    nix::unistd::Pid::from_raw(child.id() as i32),
+                    nix::sys::signal::Signal::SIGKILL,
+                );
+                let _ = child.wait();
+                panic!("fixture requires observable owned foreground leader");
+            }
+        };
+        assert_eq!(leader.group, leader.pid);
+        let owner = Self {
+            root,
+            socket,
+            child,
+            leader,
+            closed: false,
+        };
+        println!(
+            "SOURCE_RETENTION_OWNER group={} start={} session={} root={}",
+            owner.leader.pid,
+            owner.leader.start,
+            owner.leader.session,
+            owner.root.display()
+        );
         tokio::time::timeout(Duration::from_secs(5), async {
-            loop {
-                if socket.exists() {
-                    break;
-                }
-                assert!(
-                    child.try_wait().unwrap().is_none(),
-                    "Git owner refused startup; retain its default policy"
+            while !owner.socket.exists() {
+                let current = process(owner.leader.pid).expect("unreaped leader stays owned");
+                assert_eq!(current.start, owner.leader.start);
+                assert_ne!(
+                    current.state, 'Z',
+                    "Git owner refused startup; default policy retained"
                 );
                 tokio::time::sleep(Duration::from_millis(10)).await;
             }
         })
         .await
         .unwrap();
-        Self {
-            root,
-            socket,
-            child,
-        }
+        owner.check_descendants().unwrap();
+        owner
     }
     pub async fn call(&self, repo: Uuid, operation: &str, params: Value) -> Value {
         let id = Uuid::new_v4();
@@ -125,17 +153,151 @@ impl Owner {
         assert_eq!(reply["ok"], true, "{reply}");
         reply["result"].clone()
     }
+    fn check_descendants(&self) -> Result<(), String> {
+        let rows = processes()?;
+        let current = rows
+            .iter()
+            .find(|p| p.pid == self.leader.pid)
+            .ok_or("owned unreaped leader missing")?;
+        if current.start != self.leader.start
+            || current.group != self.leader.pid
+            || current.session != self.leader.session
+        {
+            return Err("owned leader identity changed".into());
+        }
+        let mut owned = std::collections::BTreeSet::from([self.leader.pid]);
+        let mut complete = false;
+        for _ in 0..64 {
+            let old = owned.len();
+            for p in &rows {
+                if owned.contains(&p.parent) {
+                    owned.insert(p.pid);
+                }
+            }
+            if old == owned.len() {
+                complete = true;
+                break;
+            }
+        }
+        if !complete {
+            return Err("fixture descendant depth bound exceeded".into());
+        }
+        for p in &rows {
+            if owned.contains(&p.pid)
+                && (p.group != self.leader.pid || p.session != self.leader.session)
+            {
+                return Err("Git descendant escaped owned foreground group/session".into());
+            }
+        }
+        Ok(())
+    }
+    fn close(&mut self) -> Result<(), String> {
+        if self.closed {
+            return Ok(());
+        }
+        self.check_descendants()?;
+        use nix::{
+            sys::signal::{Signal, killpg},
+            unistd::Pid,
+        };
+        let group = Pid::from_raw(self.leader.pid);
+        killpg(group, Signal::SIGTERM).map_err(|e| e.to_string())?;
+        // Retain the original std::Child unreaped while signaling/draining. A
+        // repeated signal is only sent after exact start-time/PGID revalidation.
+        for (limit, force) in [
+            (std::time::Duration::from_secs(3), false),
+            (std::time::Duration::from_secs(2), true),
+        ] {
+            if force {
+                self.check_descendants()?;
+                killpg(group, Signal::SIGKILL).map_err(|e| e.to_string())?;
+            }
+            let deadline = std::time::Instant::now() + limit;
+            while std::time::Instant::now() < deadline {
+                let rows = processes()?;
+                let leader = rows
+                    .iter()
+                    .find(|p| p.pid == self.leader.pid)
+                    .ok_or("unreaped leader missing during drain")?;
+                if leader.start != self.leader.start
+                    || leader.group != self.leader.pid
+                    || leader.session != self.leader.session
+                {
+                    return Err("leader changed during owned drain".into());
+                }
+                if leader.state == 'Z'
+                    && !rows
+                        .iter()
+                        .any(|p| p.group == self.leader.pid && p.pid != self.leader.pid)
+                {
+                    self.child.wait().map_err(|e| e.to_string())?;
+                    self.closed = true;
+                    println!("SOURCE_RETENTION_OWNER_DRAINED group={}", self.leader.pid);
+                    return Ok(());
+                }
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        }
+        Err("owned Git foreground group failed bounded drain".into())
+    }
     pub async fn stop(&mut self) {
-        self.child.kill().await.unwrap();
-        tokio::time::timeout(Duration::from_secs(2), self.child.wait())
-            .await
-            .unwrap()
-            .unwrap();
+        self.close()
+            .expect("drain every owned Git descendant before root teardown");
     }
     pub fn artifact(&self, value: &Value) -> PathBuf {
         let id: Uuid = serde_json::from_value(value["artifact_handle"].clone()).unwrap();
         self.root.join("artifacts").join(id.to_string())
     }
+}
+impl Drop for Owner {
+    fn drop(&mut self) {
+        if let Err(error) = self.close() {
+            eprintln!(
+                "SOURCE_RETENTION_OWNER_CLEANUP_FAILED group={} root={} error={error}",
+                self.leader.pid,
+                self.root.display()
+            );
+        }
+    }
+}
+#[derive(Clone)]
+struct Process {
+    pid: i32,
+    parent: i32,
+    group: i32,
+    session: i32,
+    start: u64,
+    state: char,
+}
+fn process(pid: i32) -> Option<Process> {
+    let bytes = std::fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    let (_, tail) = bytes.rsplit_once(") ")?;
+    let fields = tail.split_whitespace().collect::<Vec<_>>();
+    Some(Process {
+        pid,
+        parent: fields.get(1)?.parse().ok()?,
+        group: fields.get(2)?.parse().ok()?,
+        session: fields.get(3)?.parse().ok()?,
+        start: fields.get(19)?.parse().ok()?,
+        state: fields.first()?.chars().next()?,
+    })
+}
+fn processes() -> Result<Vec<Process>, String> {
+    let mut rows = vec![];
+    let mut count = 0;
+    for entry in std::fs::read_dir("/proc").map_err(|e| e.to_string())? {
+        count += 1;
+        if count > 16384 {
+            return Err("fixture process observation bound exceeded".into());
+        }
+        let entry = entry.map_err(|e| e.to_string())?;
+        if let Ok(pid) = entry.file_name().to_string_lossy().parse::<i32>()
+            && let Some(row) = process(pid)
+        {
+            rows.push(row);
+        }
+    }
+    Ok(rows)
 }
 pub struct Actual {
     pub central: Owner,
