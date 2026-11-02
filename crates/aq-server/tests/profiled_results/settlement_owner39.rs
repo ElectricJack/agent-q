@@ -591,3 +591,6 @@ async fn settlement39_prepare_held_git_reply_fences_revoked_preparer_before_priv
     c.env.peer.abort();
     c._graph.abort();
 }
+
+#[path = "settlement_http.rs"]
+mod settlement_http;
