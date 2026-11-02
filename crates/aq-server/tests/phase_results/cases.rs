@@ -314,7 +314,11 @@ async fn sql_no_marker_and_even_forged_release_inputs_cannot_cross_settlement_ga
     assert!(
         refused
             .to_string()
-            .contains("phase settlement protocol not qualified"),
+            .contains(if aq_server::STATE_FORMAT_VERSION >= 39 {
+                "qualified settlement release owner required"
+            } else {
+                "phase settlement protocol not qualified"
+            }),
         "{refused}"
     );
     assert!(invariant(&f).await["held"].as_bool().unwrap());

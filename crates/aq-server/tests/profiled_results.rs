@@ -1012,7 +1012,7 @@ async fn review_env_options(
     profile: Option<serde_json::Value>,
     pilot: bool,
 ) -> ReviewEnv {
-    let (mut f, _, mut report) = prepare_with_inputs(true, true, profile, pilot).await;
+    let (mut f, _, mut report) = Box::pin(prepare_with_inputs(true, true, profile, pilot)).await;
     if pilot {
         report.outcome = transport::ProcessOutcome::Unknown;
     }

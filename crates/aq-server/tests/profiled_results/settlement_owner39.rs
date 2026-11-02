@@ -109,7 +109,7 @@ async fn setup() -> Case {
     .unwrap();
     let mut profile = fixture["proposal_profiles"][0]["profile"].clone();
     profile["capabilities"] = json!(["read.get", "read.context"]);
-    let mut env = review_env_options(16, Some(profile.clone()), true).await;
+    let mut env = Box::pin(review_env_options(16, Some(profile.clone()), true)).await;
     // Activate the real immutable fixture catalog through its authenticated owner,
     // rather than assigning a digest-shaped pointer in SQL.
     use tower::ServiceExt;
@@ -282,8 +282,10 @@ fn profile_digest(v: &Value) -> String {
 }
 #[tokio::test]
 async fn settlement39_actual_owners_accept_one_combined_decision_hold_until_exact_graph_receipt() {
-    let c = setup().await;
-    let receipt = c.service.evaluate(&c.actor, &c.request).await.unwrap();
+    let c = Box::pin(setup()).await;
+    let receipt = Box::pin(c.service.evaluate(&c.actor, &c.request))
+        .await
+        .unwrap();
     assert_eq!(receipt.disposition, EvaluationDisposition::Accepted);
     let op = receipt.completion_operation_id.unwrap();
     let pool = c.env.f.db.pool().await;
@@ -296,7 +298,9 @@ async fn settlement39_actual_owners_accept_one_combined_decision_hold_until_exac
         .await
         .unwrap()
     );
-    let replay = c.service.evaluate(&c.actor, &c.request).await.unwrap();
+    let replay = Box::pin(c.service.evaluate(&c.actor, &c.request))
+        .await
+        .unwrap();
     assert_eq!(json!(receipt), json!(replay));
     let mut correction = c.env.report.clone();
     correction.supersedes = Some(correction.report_id);
@@ -308,7 +312,7 @@ async fn settlement39_actual_owners_accept_one_combined_decision_hold_until_exac
             .is_err()
     );
     c.loss.store(true, Ordering::SeqCst);
-    let unknown = c.service.complete(&c.actor, op).await.unwrap();
+    let unknown = Box::pin(c.service.complete(&c.actor, op)).await.unwrap();
     assert_eq!(unknown.state, "possible");
     assert!(unknown.receipt.is_none());
     assert!(
@@ -320,7 +324,7 @@ async fn settlement39_actual_owners_accept_one_combined_decision_hold_until_exac
         .await
         .unwrap()
     );
-    let done = c.service.complete(&c.actor, op).await.unwrap();
+    let done = Box::pin(c.service.complete(&c.actor, op)).await.unwrap();
     assert_eq!(done.state, "confirmed");
     assert_eq!(c.writes.load(Ordering::SeqCst), 1);
     assert!(
@@ -343,7 +347,7 @@ async fn settlement39_actual_owners_accept_one_combined_decision_hold_until_exac
     );
     assert_eq!(
         json!(done),
-        json!(c.service.complete(&c.actor, op).await.unwrap())
+        json!(Box::pin(c.service.complete(&c.actor, op)).await.unwrap())
     );
     c.env.peer.abort();
     c._graph.abort();
@@ -357,7 +361,7 @@ async fn wait_user_lock(pool: &sqlx::PgPool) {
 #[tokio::test]
 async fn settlement39_expiry_after_final_requester_wait_rolls_back_acceptance() {
     for after in [(NOW + 30000) as i64, (NOW - 1) as i64] {
-        let c = setup().await;
+        let c = Box::pin(setup()).await;
         let pool = c.env.f.db.pool().await;
         let mut lock = pool.begin().await.unwrap();
         sqlx::query("SELECT id FROM users WHERE id=$1 FOR UPDATE")
@@ -368,7 +372,8 @@ async fn settlement39_expiry_after_final_requester_wait_rolls_back_acceptance() 
         let service = c.service.clone();
         let actor = c.actor.clone();
         let request = c.request.clone();
-        let pending = tokio::spawn(async move { service.evaluate(&actor, &request).await });
+        let pending =
+            tokio::spawn(async move { Box::pin(service.evaluate(&actor, &request)).await });
         wait_user_lock(&pool).await;
         c.env.f.time.store(after, Ordering::SeqCst);
         lock.commit().await.unwrap();
@@ -387,8 +392,10 @@ async fn settlement39_expiry_after_final_requester_wait_rolls_back_acceptance() 
 }
 #[tokio::test]
 async fn settlement39_expiry_after_final_approver_wait_rolls_back_first_dispatch() {
-    let c = setup().await;
-    let e = c.service.evaluate(&c.actor, &c.request).await.unwrap();
+    let c = Box::pin(setup()).await;
+    let e = Box::pin(c.service.evaluate(&c.actor, &c.request))
+        .await
+        .unwrap();
     let op = e.completion_operation_id.unwrap();
     let pool = c.env.f.db.pool().await;
     let mut lock = pool.begin().await.unwrap();
@@ -399,7 +406,7 @@ async fn settlement39_expiry_after_final_approver_wait_rolls_back_first_dispatch
         .unwrap();
     let service = c.service.clone();
     let actor = c.actor.clone();
-    let pending = tokio::spawn(async move { service.complete(&actor, op).await });
+    let pending = tokio::spawn(async move { Box::pin(service.complete(&actor, op)).await });
     wait_user_lock(&pool).await;
     c.env.f.time.store((NOW + 30000) as i64, Ordering::SeqCst);
     lock.commit().await.unwrap();
@@ -420,14 +427,16 @@ async fn settlement39_expiry_after_final_approver_wait_rolls_back_first_dispatch
 }
 #[tokio::test]
 async fn settlement39_lost_lease_after_held_response_fences_revoked_then_regranted_actor() {
-    let c = setup().await;
-    let e = c.service.evaluate(&c.actor, &c.request).await.unwrap();
+    let c = Box::pin(setup()).await;
+    let e = Box::pin(c.service.evaluate(&c.actor, &c.request))
+        .await
+        .unwrap();
     let op = e.completion_operation_id.unwrap();
     let pool = c.env.f.db.pool().await;
     c.gate.enabled.store(true, Ordering::SeqCst);
     let service = c.service.clone();
     let actor = c.actor.clone();
-    let first = tokio::spawn(async move { service.complete(&actor, op).await });
+    let first = tokio::spawn(async move { Box::pin(service.complete(&actor, op)).await });
     tokio::time::timeout(std::time::Duration::from_secs(1), c.gate.entered.notified())
         .await
         .unwrap();
@@ -442,7 +451,7 @@ async fn settlement39_lost_lease_after_held_response_fences_revoked_then_regrant
         .await
         .unwrap();
     c.env.f.time.store((NOW + 16000) as i64, Ordering::SeqCst);
-    let second = c.service.complete(&c.actor, op).await.unwrap();
+    let second = Box::pin(c.service.complete(&c.actor, op)).await.unwrap();
     assert_eq!(second.state, "confirmed");
     assert_eq!(second.dispatch_count, 2);
     assert!(
