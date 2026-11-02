@@ -43,6 +43,7 @@ struct Pins {
 pub struct RetirementReady {
     view: Weak<Transferred>,
     pins: Pins,
+    current: source_retention::result_retention::ResultRetentionObservation,
 }
 /// Only produced after consuming/dropping the final exact worker-view owner.
 /// Contains central owner records and digests, never a PrivateState or worker FD.
@@ -177,13 +178,15 @@ pub async fn capture(
     let report_digest = record.receipt.report_digest;
     let digest = confirmation_digest(&source)?;
     tx.commit().await?;
-    source_retention::result_retention::inspect_current(state, &source)
+    let current = source_retention::result_retention::inspect_current(state, &source)
         .await
-        .map_err(owner_error)?
+        .map_err(owner_error)?;
+    current
         .validate_current(state, &source)
         .map_err(owner_error)?;
     Ok(RetirementReady {
         view: Arc::downgrade(view),
+        current,
         pins: Pins {
             report_id: ids.report_id,
             source_operation: ids.source_operation,
@@ -198,7 +201,11 @@ impl RetirementReady {
     /// Caller has already stopped/joined router/provider tasks and dropped every
     /// connection/callback owner. Refusal restores the caller's forensic Arc.
     /// No worker file is opened here, and no PrivateState exists in the result.
-    pub fn retire(self, view: &mut Option<Arc<Transferred>>) -> Result<RetiredSource> {
+    pub fn retire(
+        self,
+        state: &AppState,
+        view: &mut Option<Arc<Transferred>>,
+    ) -> Result<RetiredSource> {
         let actual = view.as_ref().context("actual worker view absent")?;
         ensure!(
             Weak::ptr_eq(&self.view, &Arc::downgrade(actual)) && actual.sender_exited()?,
@@ -208,6 +215,12 @@ impl RetirementReady {
             Arc::strong_count(actual) == 1,
             "worker callback/view owners remain; preserve the view"
         );
+        // Controller shutdown cannot turn an expired custody observation into
+        // permission to retire. The existing owner deliberately claims no
+        // distributed lock against a later external Git retention release.
+        self.current
+            .validate_current(state, &self.pins.source)
+            .map_err(owner_error)?;
         let actual = view.take().context("actual worker view absent")?;
         let actual = match Arc::try_unwrap(actual) {
             Ok(actual) => actual,
@@ -235,10 +248,24 @@ fn read_bounded(path: &Path, maximum: usize) -> Result<Vec<u8>> {
     );
     Ok(bytes)
 }
-/// Raw builtin Git object read: unlike the shared text helper, never trim bytes.
-async fn raw_blob(root: &Path, blob: &str) -> Result<Vec<u8>> {
+/// Bounded actual pinned Git, with an owned foreground group and explicit reap.
+/// No remote/config hooks or background maintenance; outputs are never trimmed.
+async fn git_output(root: &Path, arguments: &[&str], maximum: usize) -> Result<Vec<u8>> {
+    ensure!(
+        (1..=65536).contains(&maximum),
+        "bounded verification Git output"
+    );
     let mut child = tokio::process::Command::new(std::env::var("AQ_TEST_GIT_EXECUTABLE")?)
-        .args(["--no-pager", "cat-file", "blob", blob])
+        .args([
+            "--no-pager",
+            "-c",
+            "core.hooksPath=/dev/null",
+            "-c",
+            "gc.auto=0",
+            "-c",
+            "maintenance.auto=false",
+        ])
+        .args(arguments)
         .current_dir(root)
         .env_clear()
         .env("PATH", "/usr/bin:/bin")
@@ -247,34 +274,49 @@ async fn raw_blob(root: &Path, blob: &str) -> Result<Vec<u8>> {
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
+        .process_group(0)
         .kill_on_drop(true)
         .spawn()?;
+    let leader = child.id().context("owned verification Git leader absent")?;
     let mut stdout = child
         .stdout
         .take()
-        .context("actual Git blob output unavailable")?;
+        .context("actual verification Git output unavailable")?;
+    let mut may_signal = true;
     let read = async {
         let mut bytes = Vec::new();
-        (&mut stdout).take(33).read_to_end(&mut bytes).await?;
+        (&mut stdout)
+            .take(maximum as u64 + 1)
+            .read_to_end(&mut bytes)
+            .await?;
         ensure!(
-            bytes.len() <= 32,
-            "fixed actual Git proof blob exceeds bound"
+            bytes.len() <= maximum,
+            "actual verification Git output exceeds bound"
         );
-        ensure!(
-            child.wait().await?.success(),
-            "actual Git proof blob read refused"
-        );
+        let status = child.wait().await;
+        may_signal = false; // Never signal a returned wait's PID/PGID, even if its status is unknown.
+        child.kill_on_drop(false);
+        let status = status?;
+        ensure!(status.success(), "actual verification Git command refused");
         Ok::<_, anyhow::Error>(bytes)
     };
     let result = match tokio::time::timeout(Duration::from_secs(10), read).await {
         Ok(result) => result,
-        Err(_) => Err(anyhow::anyhow!("actual Git blob deadline exceeded")),
+        Err(_) => Err(anyhow::anyhow!("actual verification Git deadline exceeded")),
     };
-    if result.is_err() && child.try_wait()?.is_none() {
-        child.start_kill()?;
-        tokio::time::timeout(Duration::from_secs(3), child.wait())
-            .await
-            .context("actual Git blob cleanup unknown")??;
+    if result.is_err() && may_signal {
+        // The std child leader remains unreaped while its original PGID is
+        // signaled. Helpers of these fixed Git commands inherit that group.
+        match nix::sys::signal::killpg(
+            nix::unistd::Pid::from_raw(leader as i32),
+            nix::sys::signal::Signal::SIGKILL,
+        ) {
+            Ok(()) | Err(nix::errno::Errno::ESRCH) => {}
+            Err(_) => anyhow::bail!("owned verification Git cleanup signal unavailable"),
+        }
+        let waited = tokio::time::timeout(Duration::from_secs(3), child.wait()).await;
+        child.kill_on_drop(false); // Explicit cleanup ended; preserve unknown state for audit.
+        waited.context("actual verification Git cleanup unknown")??;
     }
     result
 }
@@ -378,40 +420,50 @@ pub async fn verify_after_retirement(
         "actual exported bundle digest differs"
     );
     actual_git_owner::verify_pins();
-    let verify = tempfile::tempdir()?;
-    actual_git_owner::git(verify.path(), &["init"]).await;
-    let bundle_path = artifact_path.join("objects.bundle");
-    actual_git_owner::git(
-        verify.path(),
-        &[
-            "-c",
-            "gc.auto=0",
-            "-c",
-            "maintenance.auto=false",
-            "fetch",
-            "--no-tags",
-            bundle_path.to_str().context("actual export path UTF8")?,
-            &checkpoint.hex,
-        ],
-    )
+    let verify = tempfile::Builder::new()
+        .prefix("aq-central-proof-")
+        .tempdir()?;
+    let verification = async {
+        drop(git_output(verify.path(), &["init"], 65536).await?);
+        let bundle_path = artifact_path.join("objects.bundle");
+        drop(
+            git_output(
+                verify.path(),
+                &[
+                    "fetch",
+                    "--no-tags",
+                    bundle_path.to_str().context("actual export path UTF8")?,
+                    &checkpoint.hex,
+                ],
+                65536,
+            )
+            .await?,
+        );
+        let actual_blob = git_output(
+            verify.path(),
+            &["rev-parse", &format!("{}:{PROOF_PATH}", checkpoint.hex)],
+            128,
+        )
+        .await?;
+        ensure!(
+            actual_blob == format!("{PROOF_BLOB}\n").as_bytes(),
+            "fresh exported repository proof blob differs"
+        );
+        let bytes = git_output(verify.path(), &["cat-file", "blob", PROOF_BLOB], 32).await?;
+        let digest = exact_proof(&bytes)?;
+        Ok::<_, anyhow::Error>((bytes, digest))
+    }
     .await;
-    let actual_blob = actual_git_owner::git(
-        verify.path(),
-        &["rev-parse", &format!("{}:{PROOF_PATH}", checkpoint.hex)],
-    )
-    .await;
-    ensure!(
-        actual_blob == PROOF_BLOB,
-        "fresh exported repository proof blob differs"
-    );
-    let bytes = match raw_blob(verify.path(), PROOF_BLOB).await {
-        Ok(bytes) => bytes,
+    let (bytes, digest) = match verification {
+        Ok(value) => value,
         Err(error) => {
+            // Includes fetch/index-pack failures: direct-child reaping alone
+            // is not a descendant-drain claim. Retain the directory, and the
+            // outer case's SID audit must refuse any remaining/unknown process.
             let _retained = verify.keep();
             return Err(error);
         }
     };
-    let digest = exact_proof(&bytes)?;
     Ok(
         json!({"worker_view_retired":true,"proof":"actual central retention/export/fresh Git object read only","report_id":pins.report_id,"source_operation":pins.source_operation,"repository_id":repository,"binding_generation":source.receipt.binding_generation,"checkpoint":checkpoint,"retention_handle":source.receipt.retention_handle,"central_export_artifact":artifact,"proof_blob":PROOF_BLOB,"proof_bytes":bytes.len(),"proof_sha256":digest,"pre_retirement_journal_digest":pins.journal_digest,"current_central_retention_confirmed":true,"worker_private_state_used_after_retirement":false}),
     )
