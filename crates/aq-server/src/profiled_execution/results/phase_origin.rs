@@ -117,6 +117,9 @@ pub(super) async fn load(
     .map_err(|_| conflict())?;
     // Qualification was admitted by the actual terminal owner. Historical
     // cleanup neither invents that admission nor requires its current allowlist.
+    // HostStopEvidenceV1 belongs to the legacy transport admission. This nominal
+    // phase owner instead admitted its exact terminal contract/proof producer;
+    // do not substitute that unrelated legacy flag for actual phase evidence.
     if start.get::<Option<serde_json::Value>, _>("phase_terminal_qualification")
         != Some(serde_json::to_value(&qualification).map_err(|_| AppError::Internal)?)
         || canonical(&started)? != start_bytes
@@ -128,11 +131,6 @@ pub(super) async fn load(
         || canonical(&stopped.original.proof)? != stop.get::<Vec<u8>, _>("proof_bytes")
         || Digest::of(&canonical(&stopped.original.proof)?).as_str()
             != stop.get::<String, _>("proof_digest")
-        || !registration
-            .metadata
-            .request
-            .features
-            .contains(&Feature::HostStopEvidenceV1)
         || !registration
             .metadata
             .request
