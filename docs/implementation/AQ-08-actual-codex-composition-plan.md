@@ -17,6 +17,8 @@ owners and receipts. No canonical configuration or data is used.
 - Actual named-readonly factory: Adapter, same tree, source `a66e293`.
 - Actual authenticated agent completion bootstrap/client: Work, contract pending.
 - Phase result/verification/settlement and Graph closure: Results, contract pending.
+- Actual pinned aq-graph service, fresh UUID database/workspace/token/task and
+  real source/revision/completion receipts: Visual, fixture seam pending.
 - This composition's test-support CLI, finite-peer reuse, fixture transport and
   disposable server assertions: Runner. No edits to the owners above while their
   source is active; import their frozen commits into an isolated branch first.
@@ -38,8 +40,13 @@ plugins / memories / web search, retained stdin startup and scoped transport.
 Use original model/settings from the qualified finite-peer tool case
 (`gpt-5.1-codex-mini`, output cap4096) only in that explicit local-peer scope.
 
-Create one fresh disposable AQ database and actual Graph task through the
-existing server owner fixture. Seed and register a real Git repository, retain
+Create one fresh disposable AQ database and an actual task in a separately
+pinned real aq-graph service. The existing common phase/selection fixtures use
+synthetic Graph HTTP peers; they prove neither an actual aq-graph task nor its
+source revisions or completion. Reuse their AQ owner setup only, replace that
+Graph boundary with Visual's real service/UUID-owned fixture, and retain actual
+expected-version receipts. Until that fixture is composed, label any actual
+CLI/AQ-owner result narrower than full GATE04. Seed and register a real Git repository, retain
 its real base/checkpoint, and let actual aq-git provision and hydrate the worker
 workspace. Use ordinary registration/presence APIs and a real current resolver
 proposal. Do not forge a ready task, inventory, grant or process owner from DTOs.
