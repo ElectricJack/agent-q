@@ -116,6 +116,45 @@ impl RunnerProcess {
             .context("ordinary CLI finalization bound")?
             .context("ordinary CLI wait")
     }
+    /// Read only after the owned wrapper has exited. This marker is observation
+    /// of fixture reconciliation, never success/stop/execution authority.
+    pub async fn replay_marker(&mut self) -> Result<Value> {
+        ensure!(
+            self.finished()?,
+            "replay marker requires observed process exit"
+        );
+        tokio::time::timeout(Duration::from_secs(2), async {
+            let mut bytes = Vec::new();
+            (&mut self.output)
+                .take(8193)
+                .read_to_end(&mut bytes)
+                .await?;
+            ensure!(
+                bytes.len() <= 8192 && bytes.last() == Some(&b'\n'),
+                "bounded single replay marker"
+            );
+            let marker: Value = serde_json::from_slice(&bytes)?;
+            ensure!(
+                marker.as_object().is_some_and(|o| o.len() == 6
+                    && [
+                        "schema_version",
+                        "phase",
+                        "attempt_id",
+                        "operation_id",
+                        "report_id",
+                        "report_digest"
+                    ]
+                    .iter()
+                    .all(|k| o.contains_key(*k)))
+                    && marker["schema_version"] == 1
+                    && marker["phase"] == "fixture_b1_replay_recorded",
+                "exact fixture replay marker required"
+            );
+            Ok::<_, anyhow::Error>(marker)
+        })
+        .await
+        .context("replay marker pipe bound")?
+    }
     pub async fn cleanup(&mut self) -> Result<ExitStatus> {
         if let Some(status) = self.child.try_wait()? {
             return Ok(status);

@@ -60,7 +60,10 @@ impl LostB1 {
         {
             let state = self.observed.lock().unwrap();
             ensure!(
-                state.len() < 2 && state.first().is_none_or(|first| first.0 == bytes),
+                state.len() < 2
+                    && state
+                        .first()
+                        .is_none_or(|first| first.0.as_slice() == bytes.as_ref()),
                 "B1 fixture permits only exact original report replay"
             );
         }
@@ -80,7 +83,8 @@ impl LostB1 {
                 state.len() < 2
                     && state
                         .first()
-                        .is_none_or(|first| first.0 == bytes && first.1 == reply),
+                        .is_none_or(|first| first.0.as_slice() == bytes.as_ref()
+                            && first.1.as_slice() == reply.as_ref()),
                 "committed B1 replay changed original request or receipt"
             );
             let first = state.is_empty();

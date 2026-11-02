@@ -3,8 +3,12 @@
 #[allow(dead_code)] // Shared Git helper has APIs used by the source-retention fixture.
 #[path = "support/actual_git_owner.rs"]
 mod actual_git_owner;
+#[path = "support/codex_b1_loss.rs"]
+mod codex_b1_loss;
 #[path = "support/codex_finite_provider.rs"]
 mod codex_finite_provider;
+#[path = "support/codex_graph_recovery.rs"]
+mod codex_graph_recovery;
 #[path = "support/codex_operator_assessment.rs"]
 mod codex_operator_assessment;
 #[path = "support/codex_runner_process.rs"]
@@ -18,6 +22,8 @@ mod common;
 mod native_result_settlement;
 #[path = "support/native_runner_transport.rs"]
 mod native_runner_transport;
+#[path = "support/native_source_survival.rs"]
+mod native_source_survival;
 #[allow(dead_code)] // Shared Graph helper also serves its standalone component proof.
 #[path = "support/real_graph.rs"]
 mod real_graph;
@@ -36,8 +42,19 @@ use std::{
 use uuid::Uuid;
 const STATE: &str = "/var/lib/aq-qualification/state";
 const MINIMUM_FREE: u64 = 11_005_853_696;
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum Scenario {
+    Happy,
+    ResponseLoss,
+}
+impl Scenario {
+    fn recovery(self) -> bool {
+        self == Self::ResponseLoss
+    }
+}
+
 const WRAPPER_SHA: &str = "3a97e63fb2d772487e2e3e51f2e9b27bdb229d8630489ede299599cb30040cb6";
-const BOOTSTRAP_SHA: &str = "a11dbd3ff50a3e45b896ac1e3df8d51729c4bc9cf57eecadad992ec5f3f56dd0";
+const BOOTSTRAP_SHA: &str = "cf7e14ef35db0ed1ddc55bd573070f78652d8fbceebaacfbc8a8347202a92f6e";
 const TOOL_SHA: &str = "ef5788e7b96098fbac79e8e1ad28d7b37db7446eea335fe38f480e24fcaeeaf5";
 fn headroom() -> Result<u64> {
     let mut value: nix::libc::statvfs = unsafe { std::mem::zeroed() };
@@ -355,6 +372,7 @@ struct ControlOwners {
     provider: Arc<tokio::task::JoinHandle<()>>,
     assessor: tokio::sync::Mutex<codex_operator_assessment::Assessor>,
     observed: codex_terminal_output::Observed,
+    b1_loss: Option<Arc<codex_b1_loss::LostB1>>,
 }
 async fn assessed_request(
     request: axum::extract::Request,
@@ -414,7 +432,16 @@ fn control_router(owners: Arc<ControlOwners>) -> axum::Router {
             let owners = owners.clone();
             Box::pin(async move {
                 match assessed_request(request, &owners).await {
-                    Ok(request) => owners.observed.inspect(request, next).await,
+                    Ok(request) => {
+                        if request.uri().path() == "/v1/worker/profiled/results"
+                            && let Some(loss) = &owners.b1_loss {
+                            match loss.forward(request,next,&owners.observed).await {
+                                Ok(response) => response,
+                                Err(_) => axum::response::Response::builder().status(503)
+                                    .body(axum::body::Body::from("fixture B1 loss boundary refused")).unwrap()
+                            }
+                        } else { owners.observed.inspect(request,next).await }
+                    },
                     Err(error) => {
                         let code = codex_operator_assessment::refusal_code(&error);
                         owners
@@ -440,6 +467,7 @@ fn configure(
     actual: &common::selection::ActualSelectionFixture,
     recipe: &codex_runtime_recipe::Prepared,
     origin: &str,
+    scenario: Scenario,
 ) -> Result<Value> {
     #[derive(serde::Serialize)]
     struct NodeConfig<'a> {
@@ -460,10 +488,12 @@ fn configure(
                 .context("fixed recipe configuration absent")?,
         )?)
     };
-    Ok(
-        json!({"schema_version":1,"operation":"configure","worker_config":worker,"native_config":recipe.native_json(Path::new(STATE))?,
-        "installation_manifest":file("adapter.json")?,"inventory_definition":file("inventory.json")?,"client_manifest":file("client.json")?,"composite_definition":file("composite.json")?}),
-    )
+    let mut packet = json!({"schema_version":1,"operation":"configure","worker_config":worker,"native_config":recipe.native_json(Path::new(STATE))?,
+        "installation_manifest":file("adapter.json")?,"inventory_definition":file("inventory.json")?,"client_manifest":file("client.json")?,"composite_definition":file("composite.json")?});
+    if scenario.recovery() {
+        packet["fixture_replay_lost_b1_ack"] = json!(true);
+    }
+    Ok(packet)
 }
 async fn running_watch(
     actual: &common::selection::ActualSelectionFixture,
@@ -661,6 +691,59 @@ fn diagnostics(
         "b1_receipt":attempt.is_some_and(|a|a["result"]["receipt"].is_object()),"http_statuses":*observed.statuses.lock().unwrap(),
         "accepted_output_exchanges":observed.uploads.lock().unwrap().len(),"fixture_sender_exited":transfer.sender_exited().ok()})
 }
+async fn completion_hold(pool: &sqlx::PgPool, operation: Uuid, held: bool) -> Result<Value> {
+    use sqlx::Row;
+    let row = sqlx::query("SELECT c.state,c.dispatch_count,c.receipt IS NOT NULL AS receipt,c.outbox IS NOT NULL AS outbox,a.holds_task,c.outbox->>'event' AS event FROM profiled_task_completions c JOIN execution_attempts a ON a.attempt_id=c.attempt_id WHERE c.operation_id=$1")
+        .bind(operation).fetch_one(pool).await?;
+    ensure!(
+        row.get::<bool, _>("holds_task") == held
+            && row.get::<bool, _>("receipt") != held
+            && row.get::<bool, _>("outbox") != held
+            && row.get::<String, _>("state") == if held { "possible" } else { "confirmed" }
+            && row.get::<i32, _>("dispatch_count") == if held { 1 } else { 2 },
+        "actual completion hold/receipt/outbox state differs"
+    );
+    if !held {
+        ensure!(
+            row.get::<Option<String>, _>("event").as_deref() == Some("task.completed"),
+            "actual completion outbox absent"
+        );
+    }
+    Ok(
+        json!({"operation_id":operation,"state":row.get::<String,_>("state"),"dispatch_count":row.get::<i32,_>("dispatch_count"),
+        "holds_task":held,"receipt":row.get::<bool,_>("receipt"),"outbox":row.get::<bool,_>("outbox")}),
+    )
+}
+async fn stop_fixture_routes(
+    control_stop: &mut Option<tokio::sync::oneshot::Sender<()>>,
+    control: &mut Option<tokio::task::JoinHandle<()>>,
+    provider_stop: &mut Option<tokio::sync::oneshot::Sender<()>>,
+    provider: &mut Arc<tokio::task::JoinHandle<()>>,
+) -> Result<()> {
+    if let Some(mut task) = control.take() {
+        if let Some(stop) = control_stop.take() {
+            let _ = stop.send(());
+        }
+        match tokio::time::timeout(Duration::from_secs(3), &mut task).await {
+            Ok(result) => {
+                result.context("fixture control route shutdown")?;
+            }
+            Err(_) => {
+                task.abort();
+                anyhow::bail!("fixture control routes did not drain");
+            }
+        }
+    }
+    if let Some(stop) = provider_stop.take() {
+        let _ = stop.send(());
+        let task = Arc::get_mut(provider).context("fixture callback still owns provider route")?;
+        tokio::time::timeout(Duration::from_secs(3), task)
+            .await
+            .context("fixture provider routes did not drain")?
+            .context("fixture provider route shutdown")?;
+    }
+    Ok(())
+}
 #[allow(clippy::too_many_arguments)] // Explicit existing fixture owners and exact synthetic material; no new authority facade.
 async fn execute_case(
     root: &Path,
@@ -669,6 +752,8 @@ async fn execute_case(
     recipe: Arc<codex_runtime_recipe::Prepared>,
     source: &Source,
     graph: &real_graph::RealGraphFixture,
+    graph_gate: Option<&codex_graph_recovery::GraphRecoveryGate>,
+    scenario: Scenario,
     key_path: &Path,
     key: &str,
 ) -> Result<Value> {
@@ -732,15 +817,25 @@ async fn execute_case(
     )?;
     let pid = worker.pid()?;
     let transferred = tokio::task::spawn_blocking(move || listener.receive(pid)).await??;
-    let packet = configure(actual, &recipe, &transferred.info.control_origin)?;
+    let packet = configure(actual, &recipe, &transferred.info.control_origin, scenario)?;
     let transferred = Arc::new(transferred.configure(&packet)?);
     let provider_listener = transferred.provider.try_clone()?;
     let provider_tcp = tokio::net::TcpListener::from_std(transferred.provider.try_clone()?)?;
     let provider_router = peer.router.clone();
-    let provider = Arc::new(tokio::spawn(async move {
-        axum::serve(provider_tcp, provider_router).await.unwrap()
+    let (provider_stop, provider_stopped) = tokio::sync::oneshot::channel();
+    let mut provider_stop = Some(provider_stop);
+    let mut provider = Arc::new(tokio::spawn(async move {
+        axum::serve(provider_tcp, provider_router)
+            .with_graceful_shutdown(async {
+                let _ = provider_stopped.await;
+            })
+            .await
+            .unwrap()
     }));
     let observed = codex_terminal_output::Observed::default();
+    let b1_loss = scenario
+        .recovery()
+        .then(|| Arc::new(codex_b1_loss::LostB1::default()));
     let owners = Arc::new(ControlOwners {
         state: actual.env.state.clone(),
         pool: actual.env.pool.clone(),
@@ -752,11 +847,23 @@ async fn execute_case(
         provider: provider.clone(),
         assessor: tokio::sync::Mutex::new(assessor),
         observed: observed.clone(),
+        b1_loss: b1_loss.clone(),
     });
     let control_tcp = tokio::net::TcpListener::from_std(transferred.control.try_clone()?)?;
     let router = control_router(owners);
-    let control = tokio::spawn(async move { axum::serve(control_tcp, router).await.unwrap() });
+    let (control_stop, control_stopped) = tokio::sync::oneshot::channel();
+    let mut control_stop = Some(control_stop);
+    let mut control = Some(tokio::spawn(async move {
+        axum::serve(control_tcp, router)
+            .with_graceful_shutdown(async {
+                let _ = control_stopped.await;
+            })
+            .await
+            .unwrap()
+    }));
+    let mut private_view = Some(transferred);
     let result=Box::pin(async {
+        let transferred = private_view.as_ref().context("worker view already retired")?.clone();
         eprintln!("GATE04_STAGE preflight");
         let ready=worker.preflight().await?;
         ensure!(ready["runtime"]==json!(recipe.runtime)&&ready["qualification"]==json!(recipe.qualification)&&ready["adapter"]==json!(recipe.adapter),"genuine selected preflight pins differ");
@@ -770,10 +877,14 @@ async fn execute_case(
         let (watched,binding,deadline,auth,cap)=Box::pin(running_watch(actual,&transferred,&mut worker)).await?;
         ensure!(cap!=key && cap!=actual.env.credential,"fresh scoped capability required");
         peer.release_after_watch(binding.clone(),deadline,cap)?;
-        let status=worker.wait().await.context("gate04_worker_wait")?;ensure!(status.success(),"ordinary RunNative failed");
+        let status=worker.wait().await.context("gate04_worker_wait")?;
+        let marker = if scenario.recovery() { ensure!(!status.success(),"fixture must preserve original execution error");
+            Some(worker.replay_marker().await.context("gate04_replay_marker")?)
+        } else { ensure!(status.success(),"ordinary RunNative failed"); None };
         let state=journal(&transferred.state,actual.env.node)?;
         let attempts=state["attempts"].as_object().context("actual attempts absent")?;ensure!(attempts.len()==1,"one retained actual attempt");
         let attempt=attempts.values().next().unwrap();let host=&attempt["native_host"];
+        let b1_recovery = if let Some(loss) = &b1_loss { Some(loss.verify(attempt,marker.as_ref().context("replay marker absent")?).context("gate04_b1_replay")?) } else { None };
         ensure!(host["running"].is_object() && host["stopped"]["observation"]["kernel_wait_echild"]==true &&host["refresh_terminal"]["started"]["receipt"].is_object()&&host["refresh_terminal"]["stopped"]["receipt"].is_object(),"actual physical stop/paired ACK required");
         ensure!(transferred.state.missing(&auth)? &&transferred.sender_exited()?,"actual private auth/fixture sender cleanup");
         let tools=peer.tool_validation(&program,&binding).await.context("gate04_tool_validation")?;
@@ -787,17 +898,40 @@ async fn execute_case(
         eprintln!("GATE04_STAGE protected_result_settlement");
         let report=serde_json::from_value(binding["report_id"].clone())?;
         let source_operation=serde_json::from_value(attempt["result"]["report"]["request"]["source_receipt_ids"][0].clone())?;
+        let survival = if scenario.recovery() {
+            let ready = Box::pin(native_source_survival::capture(&actual.env.state,&actual.env.pool,
+                &source.owner,&mut worker,&transferred,native_source_survival::B1Pins { report_id:report,source_operation })).await.context("gate04_retirement_capture")?;
+            private(&root.join("recovery-pre-retirement-journal.json"),&serde_json::to_vec(&state)?,0o600)?;
+            stop_fixture_routes(&mut control_stop,&mut control,&mut provider_stop,&mut provider).await.context("gate04_retirement_drain")?;
+            drop(transferred);
+            let retired = ready.retire(&actual.env.state,&mut private_view).context("gate04_retirement_drop")?;
+            Some(Box::pin(native_source_survival::verify_after_retirement(&actual.env.state,&actual.env.pool,&source.owner,&retired)).await.context("gate04_central_survival")?)
+        } else { None };
+
         let review_key=root.join("review-key");private(&review_key,&[93u8;32],0o600)?;
         let keys=Arc::new(aq_server::protected_storage::Keyring::load(&aq_server::protected_storage::ProtectionConfig {active_key_id:"finite-gate04".into(),keys:vec![aq_server::protected_storage::KeyFile {id:"finite-gate04".into(),file:review_key} ]})?);
         let reviews=aq_server::reviews::Service::new(actual.env.state.clone(),keys);
         let ids=native_result_settlement::StableIds::capture(&actual.env.state)?;
         let question=Box::pin(native_result_settlement::prepare_question(&actual.env.state,&reviews,&source.owner,native_result_settlement::B1Request {pool:&actual.env.pool,actor:actual.actor,report_id:report,source_operation,original_task:&actual.task,ids:&ids},native_result_settlement::Observations {original_local_binding:&binding,validated_tool_output:&tools,worktree_member:"gate04-proof.txt",private_file_bytes:&proof})).await?;
-        let settled=Box::pin(native_result_settlement::finish_fixture_choice(&actual.env.state,&reviews,&question,native_result_settlement::FixtureOwnerDecision::ApproveAfterExactProof)).await?;
+        let mut settled=Box::pin(native_result_settlement::finish_fixture_choice(&actual.env.state,&reviews,&question,native_result_settlement::FixtureOwnerDecision::ApproveAfterExactProof)).await.context("gate04_settlement_first")?;
+        let graph_recovery = if let Some(gate) = graph_gate {
+            ensure!(settled.completion.state=="possible" && settled.completion.receipt.is_none()
+                && settled.completion.dispatch_count==1 && settled.completion.recovery=="replay_identical", "original Graph loss must retain possible completion");
+            let first_hold = completion_hold(&actual.env.pool, settled.completion.operation_id, true).await.context("gate04_completion_hold")?;
+            let committed_loss = gate.committed_loss().await.context("gate04_graph_loss")?;
+            let original = settled.completion.operation_id;
+            settled.completion = Box::pin(native_result_settlement::reconcile_completion(&actual.env.state,&reviews,&question,&settled)).await.context("gate04_graph_replay")?;
+            ensure!(settled.completion.operation_id==original && settled.completion.dispatch_count==2,"same original Graph completion must reconcile once");
+            let final_hold = completion_hold(&actual.env.pool,original,false).await.context("gate04_completion_hold")?;
+            Some(json!({"first":first_hold,"committed_response_loss":committed_loss,"final":final_hold,"actual_history":gate.verify_recovered().await.context("gate04_graph_history")?}))
+        } else { None };
         ensure!(settled.completion.state=="confirmed" &&settled.completion.receipt.is_some(),"actual Graph completion remains held");
         let task=graph.task().await?;ensure!(task["task_state"]=="completed" &&task["version"]==json!(actual.task.version+1)&&task["content_revision"]==json!(actual.task.content_revision+1),"independent actual Graph task closure differs");
-        Ok::<_,anyhow::Error>(json!({"scope":"actual pinned Codex finite local peer only; simulated fixture Owner approval","runtime":recipe.runtime,"qualification":recipe.qualification,"execution_deadline_boot_ns":deadline,"request_count":peer.requests.lock().unwrap().len(),"model_input":model_input,"tool_validation":tools,"terminal":terminal,"physical_running":true,"physical_stopped_echild":true,"started_ack":true,"stopped_ack":true,"private_auth_removed":true,"b1_receipt":attempt["result"]["receipt"],"settlement":settled,"actual_graph_task":task}))
+        Ok::<_,anyhow::Error>(json!({"scope":"actual pinned Codex finite local peer only; simulated fixture Owner approval","runtime":recipe.runtime,"qualification":recipe.qualification,"execution_deadline_boot_ns":deadline,"request_count":peer.requests.lock().unwrap().len(),"model_input":model_input,"tool_validation":tools,"terminal":terminal,"physical_running":true,"physical_stopped_echild":true,"started_ack":true,"stopped_ack":true,"private_auth_removed":true,"b1_receipt":attempt["result"]["receipt"],"b1_recovery":b1_recovery,"worker_view_retirement":survival,"graph_recovery":graph_recovery,"settlement":settled,"actual_graph_task":task}))
     }).await;
-    if result.is_err() {
+    if result.is_err()
+        && let Some(transferred) = private_view.as_ref()
+    {
         // Private forensic bytes remain outside source control and stdout. They
         // are history only, never reopened as launch or current-state authority.
         if let Ok(bytes) = transferred
@@ -833,12 +967,21 @@ async fn execute_case(
         );
     }
     let cleanup = worker.cleanup().await;
-    control.abort();
-    provider.abort();
+    let routes = stop_fixture_routes(
+        &mut control_stop,
+        &mut control,
+        &mut provider_stop,
+        &mut provider,
+    )
+    .await;
+    if routes.is_err() {
+        provider.abort();
+    }
     cleanup.context("wrapper cleanup uncertain")?;
+    routes?;
     result
 }
-async fn actual_case() -> Result<Value> {
+async fn actual_case(scenario: Scenario) -> Result<Value> {
     ensure!(
         unsafe { nix::libc::getsid(0) } == unsafe { nix::libc::getpid() },
         "run the pinned test binary in a fresh owned SID"
@@ -859,6 +1002,17 @@ async fn actual_case() -> Result<Value> {
     let workspace = Uuid::new_v4();
     let task_id = Uuid::new_v4();
     let graph=Box::pin(real_graph::RealGraphFixture::start(real_graph::BinaryPin{path:std::env::var("AQ_GATE04_GRAPH_BINARY")?.into(),sha256:std::env::var("AQ_GATE04_GRAPH_SHA256")?},real_graph::TaskSeed {workspace_id:workspace,task_id,title:"Disposable finite Codex source task".into(),body:"Create only gate04-proof.txt containing exactly AQ native result fixture proof and a newline. Compare exact bytes, then submit a factual local AQ result claim using the counted instructions. This is a finite local Responses integration, not an external model or real human review.".into(),acceptance_criteria:"Fixed source file is retained centrally; actual tool cmp passes; scoped claim is acknowledged; protected simulated fixture review precedes actual task CAS.".into()})).await?;
+    let graph_gate = if scenario.recovery() {
+        Some(
+            Box::pin(codex_graph_recovery::GraphRecoveryGate::start(
+                &graph.agent_access_config(),
+                &graph.task_pin(),
+            ))
+            .await?,
+        )
+    } else {
+        None
+    };
     let mut source = Box::pin(source(&root, repository)).await?;
     let result = Box::pin(async {
         let catalog =
@@ -876,7 +1030,10 @@ async fn actual_case() -> Result<Value> {
             enrollment_worker_version: "0.5.1".into(),
             project: binding,
             catalog_artifact_json: String::from_utf8(catalog.canonical_bytes()?)?,
-            graph: graph.agent_access_config(),
+            graph: graph_gate
+                .as_ref()
+                .map(|gate| gate.agent_access_config())
+                .unwrap_or_else(|| graph.agent_access_config()),
             task,
             source: source.configuration.clone(),
         };
@@ -908,6 +1065,8 @@ async fn actual_case() -> Result<Value> {
             recipe,
             &source,
             &graph,
+            graph_gate.as_ref(),
+            scenario,
             &key_file,
             &key,
         ))
@@ -924,6 +1083,9 @@ async fn actual_case() -> Result<Value> {
     })
     .await;
     source.owner.stop().await;
+    if let Some(gate) = graph_gate {
+        gate.shutdown().await.context("gate04_graph_gate_cleanup")?;
+    }
     let graph_cleanup = graph.shutdown().await.context("gate04_graph_cleanup")?;
     ensure!(
         graph_cleanup.child_reaped
@@ -945,6 +1107,17 @@ fn refusal_stage(error: &anyhow::Error) -> &'static str {
             "gate04_worker_wait" | "ordinary RunNative failed" => return "worker_exit",
             "actual physical stop/paired ACK required" => return "physical_ack_assertion",
             "actual private auth/fixture sender cleanup" => return "private_cleanup",
+            "gate04_replay_marker" => return "replay_marker",
+            "gate04_b1_replay" => return "b1_replay",
+            "gate04_retirement_capture" => return "retirement_capture",
+            "gate04_retirement_drain" => return "retirement_drain",
+            "gate04_retirement_drop" => return "retirement_drop",
+            "gate04_central_survival" => return "central_survival",
+            "gate04_settlement_first" => return "settlement_first",
+            "gate04_completion_hold" => return "completion_hold",
+            "gate04_graph_loss" => return "graph_loss",
+            "gate04_graph_replay" => return "graph_replay",
+            "gate04_graph_history" => return "graph_history",
             "gate04_tool_validation" => return "tool_validation",
             "gate04_model_input" => return "model_input",
             "gate04_terminal_tail" => return "terminal_tail",
@@ -962,7 +1135,7 @@ fn refusal_stage(error: &anyhow::Error) -> &'static str {
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[ignore = "explicit pinned worker0.5.1/Codex/tmux/aq-git/Graph, disposable PostgreSQL and fresh SID; finite local provider only"]
 async fn actual_finite_codex_task_claim_source_and_protected_graph_closure() {
-    let result = Box::pin(actual_case()).await;
+    let result = Box::pin(actual_case(Scenario::Happy)).await;
     if let Err(error) = &result {
         eprintln!(
             "GATE04_OUTCOME_REFUSAL stage={} no_success_claim",
@@ -974,4 +1147,21 @@ async fn actual_finite_codex_task_claim_source_and_protected_graph_closure() {
         "actual finite Codex composed qualification failed"
     );
     eprintln!("GATE04_QUALIFIED {}", result.unwrap());
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+#[ignore = "explicit fresh pinned finite-peer response-loss and worker-view retirement qualification"]
+async fn actual_finite_codex_lost_ack_graph_reconciliation_and_central_survival() {
+    let result = Box::pin(actual_case(Scenario::ResponseLoss)).await;
+    if let Err(error) = &result {
+        eprintln!(
+            "GATE04_RECOVERY_REFUSAL stage={} no_success_claim",
+            refusal_stage(error)
+        );
+    }
+    assert!(
+        result.is_ok(),
+        "actual finite Codex recovery qualification failed"
+    );
+    eprintln!("GATE04_RECOVERY_QUALIFIED {}", result.unwrap());
 }
