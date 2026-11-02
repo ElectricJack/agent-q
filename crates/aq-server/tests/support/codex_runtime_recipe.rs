@@ -688,6 +688,20 @@ fn capabilities() -> Result<Vec<aq_session_protocol::Capability>> {
     })
     .collect()
 }
+fn mapper_harness(
+    adapter: &ArtifactRef,
+    environment: &ArtifactRef,
+) -> Result<aq_session_protocol::HarnessSettings> {
+    Ok(aq_session_protocol::HarnessSettings {
+        harness: Text::new("codex")?,
+        cli_version: Text::new("0.166.0")?,
+        adapter: adapter.clone(),
+        environment: environment.clone(),
+        // Match the actual producer's manifest projection in producer/build.rs:
+        // launch/terminal are offer requirements; these three belong to harness.
+        required_capabilities: capabilities()?[2..].to_vec(),
+    })
+}
 fn features() -> Vec<aq_admission::transport::Feature> {
     use aq_admission::transport::Feature;
     vec![
@@ -753,7 +767,7 @@ impl Prepared {
             "inventory_evidence":self.inventory_evidence,"harness_qualifications":[self.harness.qualification],"inventory_ttl_ms":30000,
             "executor":{"kind":PROFILE,"environment":self.environment,"client_manifest":state.join("config/client.json"),"client_manifest_digest":self.client_manifest_reference.digest,
                 "composite_definition":state.join("config/composite.json"),"settings":{"host_root":state.join("host"),"columns":80,"rows":24,"permissions_digest":self.permission_digest,
-                    "harness":{"harness":"codex","cli_version":"0.166.0","adapter":self.adapter,"environment":self.environment,"required_capabilities":capabilities()?},
+                    "harness":mapper_harness(&self.adapter,&self.environment)?,
                     "model":{"provider":"openai","model":MODEL,"reasoning":REASONING,"max_output_tokens":4096,"spending_budget":null}}}}),
         )
     }
@@ -762,6 +776,43 @@ impl Prepared {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mapper_harness_matches_manifest_projection_without_offer_only_requirements() {
+        // Pure metadata, no fabricated offer or execution grant. The actual
+        // producer projects required_caps[2..] into manifest.harness and keeps
+        // all five on the offer; the worker compares HarnessSettings exactly.
+        let adapter = reference("aq.recipe-test-adapter", b"pure adapter metadata").unwrap();
+        let environment =
+            reference("aq.recipe-test-environment", b"pure environment metadata").unwrap();
+        let all = capabilities().unwrap();
+        let expected = aq_session_protocol::HarnessSettings {
+            harness: Text::new("codex").unwrap(),
+            cli_version: Text::new("0.166.0").unwrap(),
+            adapter: adapter.clone(),
+            environment: environment.clone(),
+            required_capabilities: all[2..].to_vec(),
+        };
+        let mapped = mapper_harness(&adapter, &environment).unwrap();
+        assert_eq!(mapped, expected);
+        assert_eq!(all.len(), 5);
+        assert_eq!(mapped.required_capabilities.len(), 3);
+        assert_eq!(
+            mapped
+                .required_capabilities
+                .iter()
+                .map(|c| c.id.as_str())
+                .collect::<Vec<_>>(),
+            [
+                "aq.harness.startup-context",
+                "aq.harness.confined-worktree",
+                "aq.harness.stop"
+            ]
+        );
+        let mut old = mapped.clone();
+        old.required_capabilities = all;
+        assert_ne!(old, expected);
+    }
 
     #[test]
     fn selected_policy_is_accepted_by_actual_b2_owner_before_project_creation() {
