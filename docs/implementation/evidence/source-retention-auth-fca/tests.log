@@ -1,0 +1,18 @@
+    Finished `test` profile [unoptimized] target(s) in 0.20s
+     Running tests/source_retention.rs (/tmp/aq-native-union-target/debug/deps/source_retention-89ebe001b9e7ea7c)
+
+running 11 tests
+test credential_rotation_after_observed_node_wait_cannot_create_transfer_and_new_key_replays ... ok
+test credential_rotation_during_import_keeps_uncertain_intent_and_current_key_recovers_same_op ... ok
+test exact_replay_offsets_scope_and_upload_is_not_retention ... ok
+test invalid_pre_dispatch_manifest_is_rejected_without_leaking_quota ... ok
+test late_attempt_retains_only_verified_receipt_and_releases_transport_budget ... ok
+test pending_import_retries_same_operation_and_rejects_incompatible_receipt ... ok
+test released_attempt_refuses_new_intents_but_preserves_owned_transfer_recovery ... ok
+test runtime_rejects_symlink_before_changing_target_permissions ... ok
+test selected_real_aq_git_import_survives_worker_volume_loss_and_base_download_is_scoped ... ignored, qualification requires immutable aq-git and bookworm Git2.56.0 binaries
+test slow_import_does_not_hold_attempt_or_node_locks_and_control_status_progresses ... ok
+test stale_upload_cleanup_and_limits_preserve_unknown_imports ... ok
+
+test result: ok. 10 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 6.00s
+
