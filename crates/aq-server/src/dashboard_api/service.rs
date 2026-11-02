@@ -263,8 +263,8 @@ pub(super) async fn bootstrap(
         ),
         capability(
             "terminal.control",
-            false,
-            "Terminal control is not connected to this dashboard yet",
+            state.config.terminals.is_some() && a.owner,
+            "Terminal control requires an owner account and configured terminal relay",
         ),
         capability(
             "dashboard.actions",
