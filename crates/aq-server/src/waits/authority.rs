@@ -20,6 +20,22 @@ pub(super) struct Current {
     pub fence: engine::AuthorityFence,
     pub cancellation: Option<Uuid>,
     pub now: u64,
+    live: authority::AuthorityView,
+    allow_cancel: bool,
+}
+impl Current {
+    pub(super) fn refresh(&mut self, state: &AppState) -> Result<()> {
+        self.now = (state.clock)()
+            .timestamp_millis()
+            .try_into()
+            .map_err(|_| Error::Authority)?;
+        if !(self.allow_cancel && self.cancellation.is_some()) {
+            self.live
+                .active_at(self.now)
+                .map_err(|_| Error::Authority)?;
+        }
+        Ok(())
+    }
 }
 impl Owner {
     pub(super) async fn current(
@@ -103,12 +119,16 @@ impl Owner {
             source_access,
             task_cancelled: view.cancellation_id.is_some(),
         };
-        Ok(Current {
+        let mut current = Current {
             anchor,
             fence,
             cancellation: view.cancellation_id,
             now,
-        })
+            live: view,
+            allow_cancel,
+        };
+        current.refresh(&self.state)?;
+        Ok(current)
     }
     pub(super) async fn preflight(
         &self,

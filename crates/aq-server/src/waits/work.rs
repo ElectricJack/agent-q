@@ -99,6 +99,7 @@ impl Owner {
         let mut current = self.current(&mut tx, node, attempt, true).await?;
         self.mailbox_head(&mut tx, &current.anchor).await?;
         let stored = self.load(&mut tx, wait, true).await?;
+        current.refresh(&self.state)?;
         same_owner(&stored.original.anchor, &current.anchor)?;
         current.now = current
             .now
@@ -135,6 +136,7 @@ impl Owner {
         let mut current = self.current(&mut tx, node, attempt, true).await?;
         self.mailbox_head(&mut tx, &current.anchor).await?;
         let mut stored = self.load(&mut tx, wait, true).await?;
+        current.refresh(&self.state)?;
         same_owner(&stored.original.anchor, &current.anchor)?;
         current.now = current
             .now
@@ -224,6 +226,7 @@ impl Owner {
         let mut current = self.current(&mut tx, node, attempt, true).await?;
         self.mailbox_head(&mut tx, &current.anchor).await?;
         let stored = self.load(&mut tx, wait, true).await?;
+        current.refresh(&self.state)?;
         same_owner(&stored.original.anchor, &current.anchor)?;
         current.now = current
             .now
@@ -298,8 +301,11 @@ impl Clock {
             at,
         ))?;
         let reference = wire::ArtifactRef {
-            id: wire::Text::new(format!("aq-clock/{}", source.member.member_id))?,
-            version: wire::Text::new("1")?,
+            id: wire::Text::new(format!(
+                "aq-clock/{}/{}",
+                source.subscription.wait.wait_id, source.member.member_id
+            ))?,
+            version: wire::Text::new(at.to_string())?,
             digest: wire::Digest::of(&owner_bytes),
         };
         let revision = wire::Text::new(at.to_string())?;
@@ -324,7 +330,10 @@ impl Clock {
             committed_revision: revision.clone(),
             committed_replay_cursor: revision,
             subscription_receipt: wire::ArtifactRef {
-                id: wire::Text::new(format!("aq-clock-subscription/{}", source.member.member_id))?,
+                id: wire::Text::new(format!(
+                    "aq-clock-subscription/{}/{}",
+                    source.subscription.wait.wait_id, source.member.member_id
+                ))?,
                 version: wire::Text::new("1")?,
                 digest: source.subscription.digest()?,
             },

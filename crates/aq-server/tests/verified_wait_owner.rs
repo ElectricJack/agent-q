@@ -492,3 +492,297 @@ async fn encrypted_slot_tampering_refuses_configured_owner_without_deleting_hist
         original
     );
 }
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn observed_status_waits_project_gate_before_node_and_registry() {
+    let t = setup().await;
+    register(&t).await;
+    let r = reg(&t);
+    let wait = r.wait_id;
+    let attempt = r.binding.attempt_id;
+    let pool = t.f.db.pool().await;
+    let mut held = pool.begin().await.unwrap();
+    sqlx::query("SELECT revision FROM wait_owner_projects FOR UPDATE")
+        .execute(&mut *held)
+        .await
+        .unwrap();
+    let owner = t.owner.clone();
+    let auth = context(&t.f).await;
+    let job = tokio::spawn(async move { owner.observe(&auth, attempt, wait).await });
+    wait_for_lock(&pool, "SELECT revision FROM wait_owner_projects%").await;
+    sqlx::query("SELECT id FROM nodes WHERE id=$1 FOR UPDATE NOWAIT")
+        .bind(t.f.node.node_id)
+        .execute(&mut *held)
+        .await
+        .unwrap();
+    sqlx::query("SELECT wait_id FROM wait_owner_records WHERE wait_id=$1 FOR UPDATE NOWAIT")
+        .bind(wait)
+        .execute(&mut *held)
+        .await
+        .unwrap();
+    held.commit().await.unwrap();
+    assert!(job.await.unwrap().unwrap().snapshot.outcome().is_none());
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn mailbox_head_precedes_registry_and_held_head_cannot_revive_expired_grant() {
+    let t = setup().await;
+    register(&t).await;
+    let r = reg(&t);
+    let wait = r.wait_id;
+    let attempt = r.binding.attempt_id;
+    // Exact existing messaging owner's canonical task-recipient key.
+    let recipient = serde_json::json!({"kind":"task","workspace_id":r.scope.workspace_id,"project_id":r.scope.project_id,"task_id":r.binding.task_id});
+    let key = wire::Digest::of(&aq_agent_api::canonical(&recipient).unwrap())
+        .as_str()
+        .to_owned();
+    let pool = t.f.db.pool().await;
+    sqlx::query("INSERT INTO mailbox_heads(mailbox_key) VALUES($1)")
+        .bind(&key)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let mut held = pool.begin().await.unwrap();
+    sqlx::query("SELECT next_cursor FROM mailbox_heads WHERE mailbox_key=$1 FOR UPDATE")
+        .bind(key)
+        .execute(&mut *held)
+        .await
+        .unwrap();
+    let owner = t.owner.clone();
+    let auth = context(&t.f).await;
+    let job = tokio::spawn(async move { owner.observe(&auth, attempt, wait).await });
+    wait_for_lock(&pool, "SELECT next_cursor FROM mailbox_heads%").await;
+    sqlx::query("SELECT wait_id FROM wait_owner_records WHERE wait_id=$1 FOR UPDATE NOWAIT")
+        .bind(wait)
+        .execute(&mut *held)
+        .await
+        .unwrap();
+    t.f.time.store((NOW + 1001) as i64, Ordering::SeqCst);
+    held.commit().await.unwrap();
+    assert!(matches!(job.await.unwrap(), Err(Error::Authority)));
+    let revision: i64 = sqlx::query_scalar("SELECT revision FROM wait_owner_records")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(revision, 1);
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn actual_cancellation_during_source_io_wins_before_any_source_outcome() {
+    let t = setup().await;
+    register(&t).await;
+    let r = reg(&t);
+    let owner = t.owner.clone();
+    let auth = context(&t.f).await;
+    let attempt = r.binding.attempt_id;
+    let wait = r.wait_id;
+    let (entered, seen) = tokio::sync::oneshot::channel();
+    let gate = Arc::new((Mutex::new(false), Condvar::new()));
+    let callback = Held {
+        entered: Some(entered),
+        release: gate.clone(),
+    };
+    let job = tokio::spawn(async move {
+        owner
+            .drive_fixture(&auth, attempt, wait, Box::new(callback))
+            .await
+    });
+    seen.await.unwrap();
+    cancel(&t).await;
+    release(&gate);
+    let result = job.await.unwrap().unwrap();
+    assert!(result.retired);
+    assert_eq!(
+        result.snapshot.outcome().unwrap().kind,
+        wire::WaitOutcomeKind::Cancelled
+    );
+    assert!(result.snapshot.resume_intent().is_none());
+    Owner::open_fixture(t.f.state.clone(), t.keys.clone(), policy())
+        .await
+        .unwrap();
+}
+#[tokio::test]
+async fn fixed_deadline_survives_rollback_and_full_capacity() {
+    let t = setup().await;
+    let first = register(&t).await;
+    let r = reg(&t);
+    let auth = context(&t.f).await;
+    let pool = t.f.db.pool().await;
+    sqlx::query("UPDATE wait_owner_budgets SET envelope_limit=1")
+        .execute(&pool)
+        .await
+        .unwrap();
+    t.f.time.store((NOW + 500) as i64, Ordering::SeqCst);
+    let terminal = t
+        .owner
+        .drive_clock(&auth, r.binding.attempt_id, r.wait_id)
+        .await
+        .unwrap();
+    assert_eq!(
+        terminal.snapshot.outcome().unwrap().kind,
+        wire::WaitOutcomeKind::DeadlineReached
+    );
+    assert_eq!(
+        terminal.snapshot.deadline_ms(),
+        first.snapshot.deadline_ms()
+    );
+    t.f.time.store((NOW + 20) as i64, Ordering::SeqCst);
+    let restored = Owner::open_fixture(t.f.state.clone(), t.keys.clone(), policy())
+        .await
+        .unwrap();
+    let again = restored
+        .observe(&auth, r.binding.attempt_id, r.wait_id)
+        .await
+        .unwrap();
+    assert_eq!(again.snapshot.original_created_at_ms(), NOW);
+    assert_eq!(again.snapshot.deadline_ms(), NOW + 500);
+    assert_eq!(again.snapshot.outcome(), terminal.snapshot.outcome());
+}
+async fn sibling(t: &Test) -> Fixture {
+    // A second actual AQ08 profiled attempt under the same node/project, for a
+    // DIFFERENT task. Its retained immutable selection/manifest/source rows are
+    // verified by the ordinary authority owner, not supplied as a trusted Binding.
+    let mut selection = t.f.selection.clone();
+    selection.lineage.task_id = Uuid::new_v4();
+    let mut profiled = common::profiled::state_from_selection(&selection, &t.f.node);
+    profiled.source = t.f.profiled.source.clone();
+    profiled.status = aq_server::execution::profiled::Status::Granted;
+    profiled.grant = Some(aq_session_protocol::ProfiledGrant {
+        binding: profiled.offer.binding.clone(),
+        grant_id: Uuid::new_v4(),
+        expires_at_ms: NOW + 1000,
+    });
+    profiled.execution_deadline_ms = Some(NOW + 30000);
+    profiled.validate().unwrap();
+    let f = Fixture {
+        db: t.f.db.clone(),
+        state: t.f.state.clone(),
+        node: t.f.node.clone(),
+        profiled,
+        selection,
+        decision: Uuid::new_v4(),
+        actor: t.f.actor,
+        credential: t.f.credential.clone(),
+        time: t.f.time.clone(),
+    };
+    common::profiled::insert_sibling(&f).await;
+    f
+}
+fn sibling_request(f: &Fixture) -> Vec<u8> {
+    let binding = aq_admission::transport::lifecycle_binding(&f.profiled.offer).unwrap();
+    let predicate = wire::Predicate::Single {
+        member: wire::Member {
+            member_id: Uuid::new_v4(),
+            condition: wire::Condition::Timer {
+                due_at_ms: NOW + 100,
+            },
+        },
+    };
+    let r = wire::WaitRegistration {
+        scope: wire::Scope {
+            project_id: binding.project_id,
+            workspace_id: f.profiled.offer.manifest.bindings.graph_id,
+        },
+        binding,
+        wait_id: Uuid::new_v4(),
+        wait_generation: 1,
+        continuation_generation: 1,
+        policy: policy().reference,
+        predicate_digest: wire::canonical_digest(&predicate).unwrap(),
+        predicate,
+        preference: wire::WaitPreference::Hibernate,
+    };
+    serde_json::to_vec(
+        &wire::Request::seal(Uuid::new_v4(), wire::Command::RegisterWait(r)).unwrap(),
+    )
+    .unwrap()
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn installation_quota_race_across_actual_distinct_tasks_reserves_exactly_one_envelope() {
+    let t = setup().await;
+    let other = sibling(&t).await;
+    let other_request = sibling_request(&other);
+    let pool = t.f.db.pool().await;
+    sqlx::query("UPDATE wait_owner_budgets SET envelope_limit=1 WHERE scope_key='installation'")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let left = context(&t.f).await;
+    let right = context(&other).await;
+    let (a, b) = tokio::join!(
+        t.owner.register(&left, reg(&t).binding.attempt_id, &t.raw),
+        t.owner.register(
+            &right,
+            other.profiled.offer.binding.attempt_id,
+            &other_request
+        )
+    );
+    assert_ne!(
+        a.is_ok(),
+        b.is_ok(),
+        "one real authority admission must win"
+    );
+    let row: (i64, i64) = sqlx::query_as(
+        "SELECT envelopes,reserved_bytes FROM wait_owner_budgets WHERE scope_key='installation'",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(row, (1, 1048576));
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM wait_owner_records")
+            .fetch_one(&pool)
+            .await
+            .unwrap(),
+        1
+    );
+    Owner::open_fixture(t.f.state.clone(), t.keys.clone(), policy())
+        .await
+        .unwrap();
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn project_quota_race_counts_retired_history_and_rolls_back_installation_charge() {
+    let t = setup().await;
+    register(&t).await;
+    cancel(&t).await;
+    t.owner
+        .observe(
+            &context(&t.f).await,
+            reg(&t).binding.attempt_id,
+            reg(&t).wait_id,
+        )
+        .await
+        .unwrap();
+    let left = sibling(&t).await;
+    let right = sibling(&t).await;
+    let a_request = sibling_request(&left);
+    let b_request = sibling_request(&right);
+    let pool = t.f.db.pool().await;
+    sqlx::query("UPDATE wait_owner_budgets SET envelope_limit=2 WHERE scope_key<>'installation'")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let a_auth = context(&left).await;
+    let b_auth = context(&right).await;
+    let (a, b) = tokio::join!(
+        t.owner
+            .register(&a_auth, left.profiled.offer.binding.attempt_id, &a_request),
+        t.owner
+            .register(&b_auth, right.profiled.offer.binding.attempt_id, &b_request)
+    );
+    assert_ne!(a.is_ok(), b.is_ok());
+    let rows: Vec<(i64, i64)> = sqlx::query_as(
+        "SELECT envelopes,reserved_bytes FROM wait_owner_budgets ORDER BY scope_key",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    assert_eq!(rows, vec![(2, 2097152), (2, 2097152)]);
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM wait_owner_records WHERE retired")
+            .fetch_one(&pool)
+            .await
+            .unwrap(),
+        1
+    );
+    Owner::open_fixture(t.f.state.clone(), t.keys.clone(), policy())
+        .await
+        .unwrap();
+}

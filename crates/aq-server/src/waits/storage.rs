@@ -194,9 +194,10 @@ impl Owner {
             }
             let mut tx = self.transaction().await?;
             self.gates(&mut tx, &current.anchor, false).await?;
-            let now = self.current(&mut tx, node, attempt, false).await?;
+            let mut now = self.current(&mut tx, node, attempt, false).await?;
             self.mailbox_head(&mut tx, &now.anchor).await?;
             let stored = self.load(&mut tx, reg.wait_id, true).await?;
+            now.refresh(&self.state)?;
             if stored.request_digest != hash
                 || stored.original.request != raw
                 || stored.original.anchor != now.anchor
@@ -213,7 +214,7 @@ impl Owner {
         let before_admission_anchor = current.anchor.clone();
         let mut tx = self.transaction().await?;
         self.admission_gates(&mut tx, &current.anchor).await?;
-        let current = self.current(&mut tx, node, attempt, false).await?;
+        let mut current = self.current(&mut tx, node, attempt, false).await?;
         if current.anchor != before_admission_anchor {
             return Err(Error::Authority);
         }
@@ -226,6 +227,7 @@ impl Owner {
         {
             self.mailbox_head(&mut tx, &current.anchor).await?;
             let stored = self.load(&mut tx, wait, true).await?;
+            current.refresh(&self.state)?;
             if wait != reg.wait_id
                 || stored.request_digest != hash
                 || stored.original.request != raw
@@ -242,6 +244,7 @@ impl Owner {
             return Err(Error::Conflict);
         }
         let (graph, proof) = self.graph(&mut tx, &current.anchor).await?;
+        current.refresh(&self.state)?;
         let ids = engine::StableIds {
             continuation_id: uuid_for(reg.wait_id, "continuation"),
             outcome_id: uuid_for(reg.wait_id, "outcome"),
@@ -733,9 +736,10 @@ impl Owner {
         let preflight = self.preflight(node, attempt, true).await?;
         let mut tx = self.transaction().await?;
         self.gates(&mut tx, &preflight.anchor, false).await?;
-        let current = self.current(&mut tx, node, attempt, true).await?;
+        let mut current = self.current(&mut tx, node, attempt, true).await?;
         self.mailbox_head(&mut tx, &current.anchor).await?;
         let stored = self.load(&mut tx, wait, true).await?;
+        current.refresh(&self.state)?;
         work::same_owner(&stored.original.anchor, &current.anchor)?;
         if current.cancellation.is_some() && !stored.observation.retired {
             let plan = stored.observation.snapshot.step(
