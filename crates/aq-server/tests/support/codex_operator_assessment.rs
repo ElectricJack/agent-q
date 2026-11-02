@@ -64,6 +64,55 @@ pub struct Assessor {
     subject: Option<Value>,
 }
 
+/// Fixed fixture diagnostics only. Never return paths, material, request bytes
+/// or arbitrary error-chain text to the callback response/log.
+pub fn refusal_code(error: &anyhow::Error) -> &'static str {
+    for cause in error.chain() {
+        let code = match cause.to_string().as_str() {
+            "actual image revalidation unavailable"
+            | "actual file changed or pin mismatch"
+            | "all five actual images required"
+            | "exact unique retained guest image"
+            | "public definition bytes" => "image_pin",
+            "synthetic material revalidation unavailable"
+            | "owned private synthetic material"
+            | "single finite-peer material"
+            | "actual scoped synthetic material pin"
+            | "actual installed finite-peer material bytes" => "material",
+            "actual journal observation unavailable"
+            | "actual journal format/digest"
+            | "actual journal node identity"
+            | "actual retained native config bytes"
+            | "actual retained Prepared request before execution"
+            | "retained actual source/artifact inputs"
+            | "first actual Poll only" => "journal_inputs",
+            "actual exact native registration"
+            | "current configured native qualification"
+            | "registration semantic digest" => "native_registration",
+            "current real global provisionability inventory, not installed presence"
+            | "exact actual inventory receipt/head/snapshot" => "inventory",
+            "finite local server exited"
+            | "exact numeric finite peer origin"
+            | "actual finite peer listening witness" => "finite_peer",
+            "unchanged original finite-peer qualification subject"
+            | "one original finite-peer context subject required" => "original_subject",
+            "assessment requires actual wall clock"
+            | "actual current heartbeat required"
+            | "actual awaited heartbeat absent"
+            | "local assessment exceeded unchanged freshness age"
+            | "new actual owner observation timing/scope" => "freshness",
+            "protected owner assessment route refused"
+            | "actual scoped provisionable material config"
+            | "actual fixture pool/owner operation join"
+            | "prior observation operation reply changed"
+            | "only the two actual fixture phases may assess" => "owner_scope",
+            _ => continue,
+        };
+        return code;
+    }
+    "assessment_unavailable"
+}
+
 fn canonical(value: &Value) -> Result<Vec<u8>> {
     let mut value = value.clone();
     value.sort_all_objects();
@@ -334,20 +383,22 @@ impl Assessor {
         );
         let started = current_ms(state)?;
         peer(&witness)?;
-        images(prepared, evidence)?;
+        images(prepared, evidence).context("actual image revalidation unavailable")?;
         rehash(
             &evidence.synthetic_key_file,
             evidence.synthetic_key_bytes,
             &evidence.synthetic_key_digest,
             true,
-        )?;
+        )
+        .context("synthetic material revalidation unavailable")?;
         for (path, expected) in prepared.files()? {
             ensure!(
                 private.read(&PathBuf::from("config").join(path), 2097152)? == expected.as_bytes(),
                 "actual retained native config bytes"
             );
         }
-        let (journal, identity, journal_digest) = journal(private, node)?;
+        let (journal, identity, journal_digest) =
+            journal(private, node).context("actual journal observation unavailable")?;
         match stage {
             Stage::BeforePoll => ensure!(
                 journal["attempts"]
