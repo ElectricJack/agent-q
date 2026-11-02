@@ -84,9 +84,10 @@ without changing behavior to satisfy this required check. The optional stronger
 error (`fmt-initial.log`); it is not claimed as passing.
 
 The task already authorizes implementation, guarded publication and the final
-merge from origin/dev. That explicit workflow takes precedence over generic skill
-menus that ask whether to execute or publish. The AQ integration owner publishes
-to dev; this worker only publishes its assigned leaf branch.
+merge from the integration source. That explicit workflow takes precedence over
+generic skill menus that ask whether to execute or publish. The supervisor later
+identified `origin/main` as the source because `origin/dev` does not exist; this
+worker only publishes its assigned leaf branch.
 
 
 ## Fresh source review and fix pass
@@ -175,6 +176,22 @@ existing wrapper/shared-codec tests passed. No full unrelated test suite ran.
 The required `origin/dev` merge could not initially be performed: the ref was
 absent locally and a read-only remote query returned exit 2/no matching branch.
 Supervisor message `msg-39cc091a8741433e916f4e13834191c2` requests the correct source.
-The tested leaf is preserved for review; the task records the final pushed SHA
-and any later supervisor-authorized integration-source correction. This checkpoint
-does not claim delivery to the default branch or a completed mandatory merge.
+Supervisor ruling `msg-a1a4d4eab0904a308375dc7204a40c0a` authorized fetched
+`origin/main` in place of nonexistent `origin/dev`, explicitly prohibiting creation
+of dev. The single feature commit `3244f2252b2f105ce86b994703b1aa0c86db96ca` was
+already published. `aq git pull --branch main` fetched and merged
+`cc7b74e6a723a6dade7b632af514e6d90b7c7abb` without conflicts, producing merge
+`fae3e8ca3fb8c600c42711bf6cc9d39b20eb33a0`. Incoming changes are planning documents
+and scripts; G1a runtime code is unchanged.
+
+Post-merge focused validation through AQ repeated the dashboard unit suite
+(18 passed), route area suite (14 passed, the same pinned-Graph test ignored),
+and schema validity/drift/read-fixture checks (all passed). Commands are the
+corresponding entries above; logs are `.aq/tmp/g1a/post-merge{,-unit,-area,-schema}.log`.
+The incoming planning tests initially failed because sibling historical Graph
+evidence was absent from the default checkout layout. Their documented
+`AQ_PLAN_PLATFORM_ROOT=/home/jkern/dev/aq-platform` reference setting made
+`aq test scripts/test-v2-plan.py -q` pass all four tests (`post-merge-plan.log`),
+without changing tests or adding a runtime dependency.
+The AQ task records the final publication SHA and close result. Leaf publication
+does not claim delivery to the default branch.

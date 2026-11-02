@@ -19,7 +19,7 @@
 - No secrets in errors, logs or evidence; current human authentication and CSRF remain required.
 - No edits to architecture/spec documents; record proposed deltas in evidence.
 - Required commands: `cargo fmt --check`, `cargo clippy --locked --all-targets -- -D warnings`, `cargo test --locked`; focused tests and related area suites under AQ resource control (prime limits full-suite runs to CI).
-- Evidence in `docs/implementation/G1a.md`; guarded publication and final merge from origin/dev.
+- Evidence in `docs/implementation/G1a.md`; guarded publication and final merge from origin/main (supervisor ruling replaces nonexistent origin/dev).
 - Named tests must exist and execute; zero matching tests never passes.
 
 ## Review Focus
@@ -61,6 +61,6 @@
 
 - [x] Inspect acceptance coverage and record exact commands, environment, HEAD, limits and schema changes.
 - [x] Fresh whole-branch review per executing-plans; fix material findings with focused regressions. G1a has no cross-family adversarial gate.
-- [ ] Squash unpublished leaf implementation to one feature commit preserving attribution and tree.
-- [ ] Merge origin/dev, resolve with context, run targeted checks, guarded push; record pushed SHA.
+- [x] Squash unpublished leaf implementation to one feature commit preserving attribution and tree.
+- [x] Merge supervisor-authorized origin/main without conflicts and run targeted checks; final publication SHA is recorded on the AQ task.
 - [ ] Settle AQ subtasks and close with changes, verification and named-test evidence, following next-claim disposition.
