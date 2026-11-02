@@ -67,9 +67,12 @@ async fn run_pure(
     let mut input = child.stdin.take().context("fixture CLI input absent")?;
     let mut output = child.stdout.take().context("fixture CLI output absent")?;
     let operation = async {
-        let writer = async {
+        let writer = async move {
             input.write_all(&bytes).await?;
-            input.shutdown().await?;
+            input.flush().await?;
+            // Tokio ChildStdin::shutdown is not EOF. Own and drop the actual
+            // handle before awaiting a child that reads its bounded request.
+            drop(input);
             Ok::<_, anyhow::Error>(())
         };
         let reader = async {
@@ -310,6 +313,12 @@ async fn exchange(mut peer: Peer, request: Request) -> std::result::Result<Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[tokio::test]
+    async fn pure_json_child_receives_eof_before_parent_waits_for_output() {
+        let input = json!({"closed":"public fixture data"});
+        let reply=run_pure("/usr/bin/python3".into(),vec!["-c".into(),"import json,sys; value=json.loads(sys.stdin.buffer.read()); print(json.dumps(value))".into()],&input).await.unwrap();
+        assert_eq!(reply, input);
+    }
     #[tokio::test]
     async fn unauthorized_request_cannot_start_cli_or_record_model_input() {
         let (_, release) = watch::channel(false);
