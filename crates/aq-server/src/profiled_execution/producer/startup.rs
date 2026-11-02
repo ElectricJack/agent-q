@@ -43,6 +43,8 @@ pub async fn retain(
     {
         return Err(refused());
     }
+    let reporting = super::result_startup::for_adapter(state, &fact.subject.adapter)?;
+    let mut reporting_count = 0;
     let mut reconstructed = Vec::new();
     let mut spans = Vec::new();
     let mut contexts = Vec::new();
@@ -54,7 +56,17 @@ pub async fn retain(
         let offset = reconstructed.len() as u64;
         let bytes = instruction.text.as_bytes();
         reconstructed.extend_from_slice(bytes);
-        let artifact = if instruction.source.identity == projection.artifact.id.as_str() {
+        let artifact = if instruction.source.identity == super::result_startup::STARTUP_ID {
+            let reporting = reporting.as_ref().ok_or_else(refused)?;
+            if !reporting.matches(&instruction.source)
+                || bytes != reporting.text.as_bytes()
+                || !instruction.required
+            {
+                return Err(refused());
+            }
+            reporting_count += 1;
+            reporting.artifact.clone()
+        } else if instruction.source.identity == projection.artifact.id.as_str() {
             task_count += 1;
             if bytes != projection.bytes
                 || instruction.source.digest != projection.artifact.digest.as_str()
@@ -94,6 +106,9 @@ pub async fn retain(
             offset,
             bytes: bytes.len() as u64,
         });
+    }
+    if let Some(reporting) = &reporting {
+        reporting.validate_rendered(reporting_count, &counted.bytes)?;
     }
     if task_count != 1 || reconstructed != counted.bytes {
         return Err(refused());
@@ -151,6 +166,10 @@ pub async fn retain(
         &canonical(&descriptor)?,
     )
     .await?;
+    let mut modules = vec![descriptor_ref, qualification, proof];
+    if let Some(reporting) = reporting {
+        modules.push(reporting.artifact);
+    }
     Ok(Startup {
         descriptor,
         context: ContextPlan {
@@ -160,6 +179,6 @@ pub async fn retain(
             reserved_output_tokens: counted.proof.reserved_output_tokens,
             context_window_tokens: counted.proof.capacity_tokens,
         },
-        modules: vec![descriptor_ref, qualification, proof],
+        modules,
     })
 }

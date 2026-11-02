@@ -193,6 +193,7 @@ pub async fn compile(
     let mut candidates = Vec::new();
     let mut policies = Vec::new();
     for harness in harnesses {
+        let reporting = super::result_startup::for_adapter(state, &harness.adapter)?;
         let request = CompileRequest {
             profile: ProfileRequest {
                 catalog_digest: digest.clone(),
@@ -241,7 +242,11 @@ pub async fn compile(
                 required: true,
                 omission_priority: 0,
             },
-            context: vec![],
+            context: reporting
+                .as_ref()
+                .map(|r| r.context())
+                .into_iter()
+                .collect(),
             overrides: vec![],
         };
         let draft = aq_profiles::compile_draft(&catalog, &request).map_err(|_| refused())?;
