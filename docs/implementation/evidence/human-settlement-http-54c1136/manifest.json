@@ -1,0 +1,48 @@
+{
+  "source": "54c113681ca843349dd8a6c17a168416b965ceea",
+  "base": "245f6ed30b840082fced142e83d121c9799327fe",
+  "root_merge": "0d1cdc8",
+  "pending_owner_source": "1cd5f57c92242fd18abb8a9e37893cf590c9a6b8",
+  "pending_owner_import": "f9603735a080efbc44fd6c6c4498219b75270a8c",
+  "profile": "offline locked jobs=2 incremental=0 dev_debug=0 test_debug=0",
+  "commands": [
+    "cargo test -p aq-server --test profiled_results settlement39_valid_pending_combined_review_is_unavailable_without_settlement_writes --offline --locked",
+    "cargo test -p aq-server --test profiled_results settlement_http --offline --locked",
+    "cargo clippy -p aq-server --lib --test profiled_results --offline --locked -- -D warnings"
+  ],
+  "results": {
+    "owner_pending": {
+      "passed": 1,
+      "failed": 0,
+      "seconds": 1.45,
+      "compile_seconds": 50.2
+    },
+    "http": {
+      "passed": 5,
+      "failed": 0,
+      "seconds": 1.76
+    },
+    "strict": {
+      "passed": true,
+      "seconds": 26.98
+    }
+  },
+  "scope": "Actual persisted owner and protected router component tests with synthetic launch/Git/Graph peers. No provider launch, canonical migration, real human answer, or parent milestone completion.",
+  "logs": [
+    {
+      "path": "pending-owner.log",
+      "sha256": "7a2aa74df9ec8bc82e57faea189c962769042f34fde7f0caf507b95807a16c71",
+      "bytes": 487
+    },
+    {
+      "path": "http.log",
+      "sha256": "6059fceaa9343c92dfc2200fe206e8c96726d7a70b21e498c922c3c859a1bb75",
+      "bytes": 876
+    },
+    {
+      "path": "strict.log",
+      "sha256": "cfff367b8c038a5dda3cdb09e13fb31907a8ef9c8e8fbb23f3d400391f52aa5a",
+      "bytes": 143
+    }
+  ]
+}

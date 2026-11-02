@@ -21,3 +21,15 @@ Responses are existing owner values: combined inspection JSON, `DecisionReceipt`
 A valid current combined question without a recorded answer returns 503 after the owner locks and verifies the retained B1 subject. This creates no evaluation, completion or release work. After the human answers, the same previously refused evaluation intent can be submitted unchanged. This classification applies only to the new combined profile; legacy callbacks keep their existing behavior.
 
 Focused qualification reuses `profiled_results/settlement_owner39` actual SQL owner fixtures with explicitly synthetic launch/Git/Graph peers. Tests cover default absence, Owner/Viewer/identity rebinding, origin and closed bodies, old/new profile separation, expected-subject mismatch, explicit answer replay, immutable evaluation lookup and exact completion recovery after a lost Graph response. No provider, canonical database, production source or external human message is involved. Parent execution and human-approval gates remain open until separately qualified.
+
+## Qualification
+
+The product/source freeze is `54c113681ca843349dd8a6c17a168416b965ceea`, based on `245f6ed` and merged with Root's qualified `0d1cdc8`. The pending-review owner correction is Decisions' `1cd5f57`, imported as `f960373`. Decisions independently accepted the thin routes, the object-only root/nested envelopes (`16e75f3`) and the pending-question HTTP vector (`54c1136`). The HTTP author separately reviewed the new-profile pending classification and full-principal error fence; no legacy callback behavior was changed.
+
+The final focused gate uses the existing SERVER cache, two Cargo jobs, no incremental/debug payload, and offline/locked dependencies. It uses disposable UUID test databases on the shared local test service; it does not migrate the canonical database or start an agent/provider. Commands and captured output are retained in [the evidence directory](evidence/human-settlement-http-54c1136/manifest.json).
+
+- Exact pending-review owner negative: 1 passed in 1.45 s after a 50.20 s compile.
+- Focused library and `profiled_results` Clippy with warnings denied: passed in 26.98 s.
+- Protected HTTP route group: 5 passed in 1.76 s, including strict root/nested JSON objects, optional mounting, machine-listener exclusion, Owner/Viewer/current-identity fences, origin/body bounds, old/new profile separation, answer replay, read-only evaluation lookup, and original-effect reconciliation.
+
+Tests deliberately label their review choices and launch/Git/Graph peers as synthetic. These results qualify the protected adapter and its actual persisted owner calls. They do not record a real human answer, qualify the physical agent execution, or complete the parent execution milestone. Runtime activation and the user's human choice remain separate.

@@ -1,0 +1,12 @@
+    Finished `test` profile [unoptimized] target(s) in 0.17s
+     Running tests/profiled_results.rs (/tmp/aq-native-union-target/debug/deps/profiled_results-bc3baa115283f78e)
+
+running 5 tests
+test settlement_owner39::settlement_http::settlement_http_rechecks_full_current_principal_after_body_read ... ok
+test settlement_owner39::settlement_http::combined_http_optional_mount_owner_origin_and_closed_body_guards ... ok
+test settlement_owner39::settlement_http::combined_http_exact_profile_subject_and_explicit_answer_replay ... ok
+test settlement_owner39::settlement_http::settlement_http_pending_review_refuses_without_effect_then_same_intent_can_retry ... ok
+test settlement_owner39::settlement_http::settlement_http_lookup_is_readonly_and_reconcile_reuses_exact_effect ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 50 filtered out; finished in 1.76s
+
