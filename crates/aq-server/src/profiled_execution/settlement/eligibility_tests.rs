@@ -24,6 +24,9 @@ impl Synthetic {
         Self::new_outcome(aq_admission::transport::ProcessOutcome::Success)
     }
     fn new_outcome(process: aq_admission::transport::ProcessOutcome) -> Self {
+        Self::with_pending(process, Vec::new())
+    }
+    fn with_pending(process: aq_admission::transport::ProcessOutcome, pending: Vec<Uuid>) -> Self {
         let record: Value = serde_json::from_str(include_str!(
             "../../../../aq-review-protocol/artifacts/upstream-result-record-v1.fixture.json"
         ))
@@ -31,6 +34,7 @@ impl Synthetic {
         let mut report: aq_admission::transport::ResultReport =
             serde_json::from_value(record["report"].clone()).unwrap();
         report.outcome = process;
+        report.pending_effect_ids = pending;
         let mut receipt: aq_admission::result_record::Receipt =
             serde_json::from_value(record["receipt"].clone()).unwrap();
         let body =
@@ -365,4 +369,14 @@ fn synthetic_reconciliation_and_applicability_remain_bound_to_original_facts() {
     let mut f = Synthetic::new();
     f.current.changed = true;
     assert_eq!(f.reason(), Some(Reason::ChangedInputs));
+}
+
+#[test]
+fn synthetic_declared_pending_effects_are_not_erased_by_a_closed_empty_ledger() {
+    let f = Synthetic::with_pending(
+        aq_admission::transport::ProcessOutcome::Unknown,
+        vec![Uuid::new_v4()],
+    );
+    f.result.receipt.validate_for(&f.result.report).unwrap();
+    assert_eq!(f.reason(), Some(Reason::DeclaredEffectsPending));
 }

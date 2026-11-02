@@ -468,3 +468,44 @@ async fn settlement39_lost_lease_after_held_response_fences_revoked_then_regrant
     c.env.peer.abort();
     c._graph.abort();
 }
+
+#[tokio::test]
+async fn settlement39_startup_refuses_corrupted_accepted_hot_basis_without_repair() {
+    let c = Box::pin(setup()).await;
+    let e = Box::pin(c.service.evaluate(&c.actor, &c.request))
+        .await
+        .unwrap();
+    let pool = c.env.f.db.pool().await;
+    let mut tx = pool.begin().await.unwrap();
+    sqlx::query("ALTER TABLE profiled_authority_hot DISABLE TRIGGER profiled_hot_guard")
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    sqlx::query("UPDATE profiled_authority_hot SET state=jsonb_set(state,'{effects}','{\"kind\":\"unknown\"}'::JSONB) WHERE attempt_id=$1").bind(e.attempt_id).execute(&mut *tx).await.unwrap();
+    sqlx::query("ALTER TABLE profiled_authority_hot ENABLE TRIGGER profiled_hot_guard")
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+    let before: Value =
+        sqlx::query_scalar("SELECT state FROM profiled_authority_hot WHERE attempt_id=$1")
+            .bind(e.attempt_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let reopened = aq_server::store::Store::connect_with(c.env.f.db.options()).await;
+    assert!(
+        matches!(reopened, Err(aq_server::store::StoreError::Corrupt(_))),
+        "startup must reject the changed accepted materialization"
+    );
+    let after: Value =
+        sqlx::query_scalar("SELECT state FROM profiled_authority_hot WHERE attempt_id=$1")
+            .bind(e.attempt_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(before, after);
+    assert_eq!(after["effects"]["kind"], "unknown");
+    c.env.peer.abort();
+    c._graph.abort();
+}

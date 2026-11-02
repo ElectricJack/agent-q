@@ -315,6 +315,9 @@ impl Service {
         {
             return Err(forbidden());
         }
-        Ok(VerifiedCombinedDecision { subject, receipt })
+        Ok(VerifiedCombinedDecision {
+            subject: *subject,
+            receipt,
+        })
     }
 }

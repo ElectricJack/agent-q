@@ -30,13 +30,15 @@ pub(super) fn source_digest(source: &RecordedSourceConfirmation) -> Result<Diges
     Ok(Digest::of(&aq_agent_api::canonical(&json!({"manifest":source.manifest,"receipt":source.receipt,"acknowledgement":source.acknowledgement})).map_err(|_|AppError::Internal)?))
 }
 fn no_required_neighbors(context: &Value, task: &aq_admission::TaskRevision) -> bool {
+    let version = task.version.to_string();
+    let content_revision = task.content_revision.to_string();
     aq_agent_api::valid("ContextSnapshot", context)
         && context["root_ids"] == json!([task.task_id])
         && context["nodes"].as_array().is_some_and(|v| {
             v.len() == 1
                 && v[0]["id"] == json!(task.task_id)
-                && v[0]["version"] == task.version.to_string()
-                && v[0]["content_revision"] == task.content_revision.to_string()
+                && v[0]["version"].as_str() == Some(version.as_str())
+                && v[0]["content_revision"].as_str() == Some(content_revision.as_str())
         })
         && context["edges"].as_array().is_some_and(Vec::is_empty)
         && context["pinned_revisions"]

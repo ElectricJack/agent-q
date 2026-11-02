@@ -17,8 +17,8 @@ impl Profile {
 }
 #[derive(Clone)]
 pub(super) enum Subject {
-    Code(ReviewSubject),
-    SourceAndEffects(combined::CombinedSubject),
+    Code(Box<ReviewSubject>),
+    SourceAndEffects(Box<combined::CombinedSubject>),
 }
 impl std::ops::Deref for Subject {
     type Target = ReviewSubject;
@@ -72,12 +72,12 @@ impl Service {
             .map_err(db)?
             .as_str()
         {
-            "code_review_v1" => Ok(Subject::Code(self.decode("subject", digest, row)?)),
-            "source_and_effects_review_v1" => Ok(Subject::SourceAndEffects(self.decode(
-                "combined-subject",
-                digest,
-                row,
-            )?)),
+            "code_review_v1" => Ok(Subject::Code(Box::new(
+                self.decode("subject", digest, row)?,
+            ))),
+            "source_and_effects_review_v1" => Ok(Subject::SourceAndEffects(Box::new(
+                self.decode("combined-subject", digest, row)?,
+            ))),
             _ => Err(AppError::Internal),
         }
     }

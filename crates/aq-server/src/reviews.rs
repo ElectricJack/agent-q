@@ -191,8 +191,8 @@ impl Service {
     ) -> Result<()> {
         request.validate().map_err(|_| invalid())?;
         let wanted = match combined {
-            Some(s) => OwnedSubject::SourceAndEffects(s.clone()),
-            None => OwnedSubject::Code(prepared.subject.clone()),
+            Some(s) => OwnedSubject::SourceAndEffects(Box::new(s.clone())),
+            None => OwnedSubject::Code(Box::new(prepared.subject.clone())),
         };
         if request.subject != wanted.artifact()? {
             return Err(conflict());
@@ -222,9 +222,9 @@ impl Service {
             if combined.code != code || !combined.matches_ledger(&result, &ledger) {
                 return Err(conflict());
             }
-            OwnedSubject::SourceAndEffects(combined.clone())
+            OwnedSubject::SourceAndEffects(Box::new(combined.clone()))
         } else {
-            OwnedSubject::Code(code)
+            OwnedSubject::Code(Box::new(code))
         };
         let subject_digest = exact
             .artifact()
@@ -790,7 +790,7 @@ impl Service {
     ) -> Result<(ReviewSubject, serde_json::Value)> {
         let (subject, event, _) = self.completion_subject_in_tx(tx, decision).await?;
         match subject {
-            OwnedSubject::Code(subject) => Ok((subject, event)),
+            OwnedSubject::Code(subject) => Ok((*subject, event)),
             _ => Err(conflict()),
         }
     }
