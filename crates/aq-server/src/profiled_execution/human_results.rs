@@ -126,13 +126,19 @@ pub async fn read(
     let ids: Vec<Uuid> = if let Some((id, _)) = exact {
         vec![id]
     } else {
-        sqlx::query_scalar("SELECT r.report_id FROM profiled_result_reports r JOIN profiled_launches l USING(attempt_id) WHERE ($1::uuid IS NULL OR (l.execution_spec#>>'{lifecycle,project_id}')=$1::text) AND ($2::uuid IS NULL OR r.report_id>$2) ORDER BY r.report_id LIMIT $3")
+        sqlx::query_scalar("SELECT r.report_id FROM profiled_result_reports r JOIN profiled_launches l USING(attempt_id) WHERE NOT EXISTS(SELECT 1 FROM profiled_v2_accepts a WHERE a.attempt_id=r.attempt_id) AND ($1::uuid IS NULL OR (l.execution_spec#>>'{lifecycle,project_id}')=$1::text) AND ($2::uuid IS NULL OR r.report_id>$2) ORDER BY r.report_id LIMIT $3")
             .bind(page.project_id).bind(page.after).bind(i64::from(limit)+1).fetch_all(&mut *tx).await.map_err(db)?
     };
     let more = ids.len() > limit as usize;
     let mut items = Vec::new();
     for id in ids.into_iter().take(limit as usize) {
-        let value = metadata(super::results::load_locked(state, &mut tx, id).await?);
+        let retained = super::results::load_locked(state, &mut tx, id).await?;
+        if retained.origin != super::results::RecordedOrigin::LegacyPrepareV1 {
+            return Err(AppError::NotFound(
+                "result origin is outside current metadata coverage".into(),
+            ));
+        }
+        let value = metadata(retained);
         if page.project_id.is_some_and(|p| p != value.project_id)
             || exact.is_some_and(|(_, r)| r != value.revision)
         {

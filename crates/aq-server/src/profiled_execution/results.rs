@@ -1,6 +1,7 @@
 //! Immutable native result claims. Recording never evaluates eligibility,
 //! clears a held task, releases source/effects, or changes the graph.
-use super::{artifacts, registration};
+use super::artifacts;
+mod origin;
 use crate::{
     AppState,
     error::AppError,
@@ -8,9 +9,9 @@ use crate::{
     worker_api::AuthenticatedNode,
 };
 use aq_admission::{
-    ArtifactKind, Digest, SessionIdentity,
+    ArtifactKind, SessionIdentity,
     result_record::{self, Disposition, Receipt},
-    transport::{Feature, ResultReport},
+    transport::ResultReport,
 };
 use sqlx::Row;
 use uuid::Uuid;
@@ -40,10 +41,7 @@ pub async fn record(
     result_record::validate_report(report)
         .map_err(|_| AppError::BadRequest("invalid result report".into()))?;
     let binding = &report.binding;
-    let SessionIdentity::Remote {
-        node_id, boot_id, ..
-    } = binding.session
-    else {
+    let SessionIdentity::Remote { node_id, .. } = binding.session else {
         return Err(conflict());
     };
     if node.id() != node_id {
@@ -61,7 +59,6 @@ pub async fn record(
         .await
         .map_err(db)?;
     crate::worker_api::lock_current_node(&mut tx, node).await?;
-    let admitted = registration::admitted_runtime_locked(&mut tx, node_id, boot_id).await?;
     let view =
         authority::load_locked(state, &mut tx, &binding.session, Policy::IdentityOnly).await?;
     if view.kind != Kind::ProfiledV1
@@ -72,45 +69,21 @@ pub async fn record(
     {
         return Err(conflict());
     }
-    super::initial_authority::require_legacy_origin_locked(&mut tx, binding).await?;
-    let stop=sqlx::query("SELECT request_bytes,request_digest,receipt_bytes FROM profiled_stopped_receipts WHERE attempt_id=$1 FOR SHARE")
-        .bind(binding.attempt_id).fetch_optional(&mut *tx).await.map_err(db)?.ok_or_else(conflict)?;
-    let stop_bytes: Vec<u8> = stop.get("request_bytes");
-    if Digest::of(&stop_bytes).as_str() != stop.get::<String, _>("request_digest") {
-        return Err(AppError::Internal);
-    }
-    let original =
-        aq_admission::stopped::decode_request(&stop_bytes).map_err(|_| AppError::Internal)?;
-    let stopped =
-        aq_admission::stopped::decode_receipt(&stop.get::<Vec<u8>, _>("receipt_bytes"), &original)
-            .map_err(|_| AppError::Internal)?;
-    if canonical(&report.stop)? != canonical(&original.evidence)?
-        || admitted.request.runtime != original.runtime
-        || admitted.qualification != original.qualification
-        || !admitted
-            .request
-            .features
-            .contains(&Feature::HostStopEvidenceV1)
-        || !admitted
-            .request
-            .features
-            .contains(&Feature::DurableHostJournalV1)
-        || !matches!(view.stop.as_ref(),Some(crate::execution::profiled::Stop::Stopped {receipt}) if *receipt==stopped.artifact().map_err(|_|AppError::Internal)?)
+    let terminal = origin::load_locked(
+        &mut tx,
+        node_id,
+        binding,
+        view.grant_id.ok_or_else(conflict)?,
+        true,
+    )
+    .await?;
+    terminal.require_report(report)?;
+    let stopped = terminal.stopped_receipt();
+    let origin_pin = terminal.pin();
+    if !matches!(view.stop.as_ref(),Some(crate::execution::profiled::Stop::Stopped{receipt}) if *receipt==terminal.artifact()?)
     {
         return Err(conflict());
     }
-    let started_bytes: Vec<u8> = sqlx::query_scalar(
-        "SELECT request_bytes FROM profiled_started_receipts WHERE attempt_id=$1 FOR SHARE",
-    )
-    .bind(binding.attempt_id)
-    .fetch_one(&mut *tx)
-    .await
-    .map_err(db)?;
-    let started =
-        aq_admission::started::decode_request(&started_bytes).map_err(|_| AppError::Internal)?;
-    original
-        .validate_after(&started)
-        .map_err(|_| AppError::Internal)?;
     let launch = sqlx::query(
         "SELECT execution_spec,launch_manifest FROM profiled_launches WHERE attempt_id=$1",
     )
@@ -140,7 +113,7 @@ pub async fn record(
     }
     let definition = aq_admission::outcome::decode(&outcome.bytes).map_err(|_| conflict())?;
     definition.validate_against(&spec).map_err(|_| conflict())?;
-    let existing=sqlx::query("SELECT report_id,attempt_id,node_id,operation_id,report_bytes,report_digest,receipt_bytes FROM profiled_result_reports WHERE report_id=$1 OR(node_id=$2 AND operation_id=$3)")
+    let existing=sqlx::query("SELECT * FROM profiled_result_reports WHERE report_id=$1 OR(node_id=$2 AND operation_id=$3)")
         .bind(report.report_id).bind(node_id).bind(report.operation_id).fetch_all(&mut *tx).await.map_err(db)?;
     if !existing.is_empty() {
         if existing.len() != 1 {
@@ -156,6 +129,7 @@ pub async fn record(
         {
             return Err(conflict());
         }
+        origin_pin.require_row(&mut tx, old).await?;
         let receipt =
             result_record::decode_receipt(&old.get::<Vec<u8>, _>("receipt_bytes"), report)
                 .map_err(|_| AppError::Internal)?;
@@ -204,8 +178,29 @@ pub async fn record(
         disposition: Disposition::Recorded,
     };
     receipt.validate_for(report).map_err(|_| conflict())?;
-    sqlx::query("INSERT INTO profiled_result_reports(report_id,attempt_id,node_id,operation_id,supersedes,report_bytes,report_digest,receipt_bytes,outcome_artifact_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)")
-        .bind(report.report_id).bind(binding.attempt_id).bind(node_id).bind(report.operation_id).bind(report.supersedes).bind(&bytes).bind(digest.as_str()).bind(canonical(&receipt)?).bind(artifact_id).execute(&mut *tx).await.map_err(db)?;
+    origin_pin.writer(&mut tx).await?;
+    let sql = if origin_pin.kind == "legacy_prepare_v1" {
+        "INSERT INTO profiled_result_reports(report_id,attempt_id,node_id,operation_id,supersedes,report_bytes,report_digest,receipt_bytes,outcome_artifact_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)"
+    } else {
+        "INSERT INTO profiled_result_reports(report_id,attempt_id,node_id,operation_id,supersedes,report_bytes,report_digest,receipt_bytes,outcome_artifact_id,result_origin_kind,origin_execution_receipt_digest,origin_stopped_ack_bytes_digest) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)"
+    };
+    let mut insert = sqlx::query(sql)
+        .bind(report.report_id)
+        .bind(binding.attempt_id)
+        .bind(node_id)
+        .bind(report.operation_id)
+        .bind(report.supersedes)
+        .bind(&bytes)
+        .bind(digest.as_str())
+        .bind(canonical(&receipt)?)
+        .bind(artifact_id);
+    if origin_pin.kind != "legacy_prepare_v1" {
+        insert = insert
+            .bind(origin_pin.kind)
+            .bind(&origin_pin.execution)
+            .bind(&origin_pin.stopped_ack_bytes);
+    }
+    insert.execute(&mut *tx).await.map_err(db)?;
     sqlx::query(if head.is_some() {
         "UPDATE profiled_result_heads SET report_id=$2 WHERE attempt_id=$1"
     } else {
@@ -222,7 +217,15 @@ pub async fn record(
 /// Validated retained owner facts, never an eligibility or current execution
 /// permit. Callers authenticate/project-scope independently and keep this same
 /// transaction when relying on the report-head snapshot for another admission.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum RecordedOrigin {
+    LegacyPrepareV1,
+    PhaseExecutionV2,
+    PhaseRefreshExecutionV1,
+}
 pub struct RecordedResult {
+    /// Validated historical origin only; no eligibility or release authority.
+    pub origin: RecordedOrigin,
     pub report: ResultReport,
     pub receipt: Receipt,
     pub receipt_artifact: aq_admission::ArtifactRef,
@@ -244,8 +247,12 @@ pub async fn load_locked(
     if report_id.is_nil() {
         return Err(AppError::BadRequest("invalid report identity".into()));
     }
-    let row=sqlx::query("SELECT report_id,attempt_id,node_id,operation_id,report_bytes,report_digest,receipt_bytes,outcome_artifact_id FROM profiled_result_reports WHERE report_id=$1")
-        .bind(report_id).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(||AppError::NotFound("recorded result not found".into()))?;
+    let row = sqlx::query("SELECT * FROM profiled_result_reports WHERE report_id=$1")
+        .bind(report_id)
+        .fetch_optional(&mut **tx)
+        .await
+        .map_err(db)?
+        .ok_or_else(|| AppError::NotFound("recorded result not found".into()))?;
     let bytes: Vec<u8> = row.get("report_bytes");
     let report = result_record::decode_report(&bytes).map_err(|_| AppError::Internal)?;
     let digest = result_record::report_digest(&report).map_err(|_| AppError::Internal)?;
@@ -282,43 +289,28 @@ pub async fn load_locked(
     {
         return Err(AppError::Internal);
     }
-    super::initial_authority::require_legacy_origin_locked(tx, &report.binding).await?;
-    let stopped=sqlx::query("SELECT request_bytes,request_digest,receipt_bytes,proof_bytes,proof_digest FROM profiled_stopped_receipts WHERE attempt_id=$1 FOR SHARE")
-        .bind(report.binding.attempt_id).fetch_optional(&mut **tx).await.map_err(db)?.ok_or(AppError::Internal)?;
-    let stop_bytes: Vec<u8> = stopped.get("request_bytes");
-    let stop_request =
-        aq_admission::stopped::decode_request(&stop_bytes).map_err(|_| AppError::Internal)?;
-    let stop_receipt = aq_admission::stopped::decode_receipt(
-        &stopped.get::<Vec<u8>, _>("receipt_bytes"),
-        &stop_request,
+    let terminal = origin::load_locked(
+        tx,
+        node_id,
+        &report.binding,
+        view.grant_id.ok_or(AppError::Internal)?,
+        false,
     )
-    .map_err(|_| AppError::Internal)?;
-    let proof_bytes: Vec<u8> = stopped.get("proof_bytes");
-    if canonical(&stop_request)? != stop_bytes
-        || Digest::of(&stop_bytes).as_str() != stopped.get::<String, _>("request_digest")
-        || canonical(&stop_request.proof)? != proof_bytes
-        || Digest::of(&proof_bytes).as_str() != stopped.get::<String, _>("proof_digest")
-        || canonical(&report.stop)? != canonical(&stop_request.evidence)?
-        || receipt.stopped_receipt != stop_receipt.artifact().map_err(|_| AppError::Internal)?
+    .await?;
+    terminal.require_report(&report)?;
+    let pin = terminal.pin();
+    pin.require_row(tx, &row).await?;
+    if receipt.stopped_receipt != terminal.artifact()?
         || !matches!(view.stop.as_ref(),Some(crate::execution::profiled::Stop::Stopped{receipt:reference}) if reference==&receipt.stopped_receipt)
     {
         return Err(AppError::Internal);
     }
-    let started=sqlx::query("SELECT request_bytes,request_digest,receipt_bytes FROM profiled_started_receipts WHERE attempt_id=$1 FOR SHARE")
-        .bind(report.binding.attempt_id).fetch_optional(&mut **tx).await.map_err(db)?.ok_or(AppError::Internal)?;
-    let start_bytes: Vec<u8> = started.get("request_bytes");
-    let start =
-        aq_admission::started::decode_request(&start_bytes).map_err(|_| AppError::Internal)?;
-    aq_admission::started::decode_receipt(&started.get::<Vec<u8>, _>("receipt_bytes"), &start)
-        .map_err(|_| AppError::Internal)?;
-    if canonical(&start)? != start_bytes
-        || Digest::of(&start_bytes).as_str() != started.get::<String, _>("request_digest")
-    {
-        return Err(AppError::Internal);
-    }
-    stop_request
-        .validate_after(&start)
-        .map_err(|_| AppError::Internal)?;
+    let result_origin = match pin.kind {
+        "legacy_prepare_v1" => RecordedOrigin::LegacyPrepareV1,
+        "phase_execution_v2" => RecordedOrigin::PhaseExecutionV2,
+        "phase_refresh_execution_v1" => RecordedOrigin::PhaseRefreshExecutionV1,
+        _ => return Err(AppError::Internal),
+    };
     let launch=sqlx::query("SELECT launch_binding,launch_manifest,manifest_digest,execution_spec,execution_spec_digest FROM profiled_launches WHERE attempt_id=$1 FOR SHARE")
         .bind(report.binding.attempt_id).fetch_one(&mut **tx).await.map_err(db)?;
     let binding: aq_admission::LaunchBinding =
@@ -381,6 +373,7 @@ pub async fn load_locked(
     .ok_or(AppError::Internal)?;
     let receipt_artifact = receipt.artifact(&report).map_err(|_| AppError::Internal)?;
     Ok(RecordedResult {
+        origin: result_origin,
         is_current_report_head: head_report_id == report.report_id,
         head_report_id,
         report,
