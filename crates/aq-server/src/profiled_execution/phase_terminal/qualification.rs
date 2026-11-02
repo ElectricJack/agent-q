@@ -4,7 +4,8 @@ use crate::{AppState, error::AppError};
 use aq_admission::ArtifactRef;
 use aq_session_protocol::Validate;
 use serde::{Deserialize, Serialize};
-const PREFIX: &str = "aq.phase-terminal-qualification/";
+const PREFIX: &str = super::QUALIFICATION_PREFIX;
+use super::wire;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct TerminalQualification {
@@ -18,9 +19,7 @@ pub struct TerminalQualification {
 impl TerminalQualification {
     fn validate(&self) -> Result<(), String> {
         if self.schema_version != 1
-            || self.contract
-                != aq_phase_terminal_protocol::contract_artifact()
-                    .map_err(|_| "terminal contract")?
+            || self.contract != wire::contract_artifact().map_err(|_| "terminal contract")?
         {
             return Err("terminal contract mismatch".into());
         }
@@ -108,7 +107,7 @@ mod tests {
     fn qualification() -> TerminalQualification {
         TerminalQualification {
             schema_version: 1,
-            contract: aq_phase_terminal_protocol::contract_artifact().unwrap(),
+            contract: wire::contract_artifact().unwrap(),
             runtime: reference("synthetic-runtime"),
             runtime_qualification: reference("synthetic-runtime-qualification"),
             proof_producer: reference("synthetic-proof-producer"),

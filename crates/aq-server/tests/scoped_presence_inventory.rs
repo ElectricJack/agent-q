@@ -5,11 +5,10 @@ use aq_server::{
     profiled_execution::{policies, presence::inventory},
     worker_api,
 };
+use common::presence as presence_fixture;
+use presence_fixture::{Case, definition, setup};
 use serde_json::{Value, json};
 use uuid::Uuid;
-#[path = "common/presence.rs"]
-mod presence_fixture;
-use presence_fixture::{Case, definition, setup};
 async fn auth(c: &Case) -> worker_api::AuthenticatedNode {
     let mut h = axum::http::HeaderMap::new();
     h.insert(

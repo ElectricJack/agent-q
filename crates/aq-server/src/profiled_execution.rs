@@ -50,5 +50,6 @@ pub mod presence;
 
 pub mod phase_execution;
 pub mod phase_refresh_execution;
+pub mod phase_refresh_terminal;
 
 pub(crate) mod initial_authority;

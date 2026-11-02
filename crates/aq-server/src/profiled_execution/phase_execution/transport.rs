@@ -1,4 +1,4 @@
-//! Exact019 phase Prepare transport. No capability or provider is enabled by default.
+//! Exact nominal phase Prepare transport. No capability or provider is enabled by default.
 use crate::{AppState, error::AppError, worker_api};
 use aq_admission::preparation_v2 as wire;
 use axum::{
@@ -96,10 +96,19 @@ async fn prepare_inner(state: &AppState, request: Request) -> Result<Response, A
         }};
     }
     match q {
-        super::super::phase_profile::PrepareRequest::Frozen(q) => respond!(
-            aq_admission::preparation_v2,
-            super::prepare(state, &auth, &q, nonce).await?
-        ),
+        super::super::phase_profile::PrepareRequest::Frozen(q) => {
+            // A shared URI becoming available for refresh must not activate the
+            // frozen issuer without its own paired terminal qualification.
+            if !super::policy::transport_enabled(state) {
+                return Err(AppError::Maintenance(
+                    "phase terminal owner is not installed".into(),
+                ));
+            }
+            respond!(
+                aq_admission::preparation_v2,
+                super::prepare(state, &auth, &q, nonce).await?
+            )
+        }
         super::super::phase_profile::PrepareRequest::Refresh(q) => {
             if !super::super::phase_refresh_execution::policy::transport_enabled(state) {
                 return Err(AppError::Maintenance(

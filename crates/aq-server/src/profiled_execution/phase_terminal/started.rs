@@ -2,7 +2,7 @@
 use super::common::{self, Loaded};
 use crate::{AppState, error::AppError, execution::profiled::Stop, worker_api::AuthenticatedNode};
 use aq_admission::{Digest, started};
-use aq_phase_terminal_protocol as wire;
+use super::wire;
 use sqlx::{Postgres, Row, Transaction, postgres::PgRow};
 
 pub async fn record(

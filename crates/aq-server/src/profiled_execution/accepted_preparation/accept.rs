@@ -10,7 +10,6 @@ use aq_admission::{
     transport::DeliveryClock,
 };
 use sqlx::Row;
-use std::sync::{Arc, OnceLock};
 use uuid::Uuid;
 pub async fn accept(
     state: &AppState,
@@ -92,12 +91,8 @@ pub async fn accept(
     let selection = before.selection.clone();
     let binding = q.original.acceptance.binding.clone();
     let lease_id = Uuid::new_v5(&q.original.operation_id, binding.attempt_id.as_bytes());
-    static READS: OnceLock<Arc<tokio::sync::Semaphore>> = OnceLock::new();
-    let permit = READS
-        .get_or_init(|| Arc::new(tokio::sync::Semaphore::new(2)))
-        .clone()
-        .try_acquire_owned()
-        .map_err(|_| refused())?;
+    let permit =
+        super::super::accepted_preparation::material_read_permit().map_err(|_| refused())?;
     let mut material = tokio::time::timeout(
         std::time::Duration::from_secs(2),
         tokio::task::spawn_blocking(move || {

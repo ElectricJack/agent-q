@@ -1,5 +1,8 @@
 //! Shared actual phase history and transaction-local compatibility fence.
-use super::super::{closure, initial_authority, phase_execution};
+use super::super::closure;
+pub(super) use super::super::phase_terminal::capacity::{admit_control, admit_work};
+use super::phase_owner;
+use super::wire;
 use crate::{
     AppState,
     error::AppError,
@@ -10,22 +13,9 @@ use aq_admission::{
     ArtifactRef, LaunchBinding, SessionIdentity, control::Versions,
     granted_closure::JournalCheckpoint,
 };
-use aq_phase_terminal_protocol as wire;
 use aq_session_protocol::Validate;
 use sqlx::{Postgres, Row, Transaction};
-use tokio::sync::{Semaphore, SemaphorePermit};
 use uuid::Uuid;
-static WORK: Semaphore = Semaphore::const_new(2);
-static CONTROL: Semaphore = Semaphore::const_new(2);
-pub(super) fn admit_work() -> Result<SemaphorePermit<'static>, AppError> {
-    WORK.try_acquire()
-        .map_err(|_| AppError::Maintenance("phase terminal work capacity unavailable".into()))
-}
-pub(super) fn admit_control() -> Result<SemaphorePermit<'static>, AppError> {
-    CONTROL
-        .try_acquire()
-        .map_err(|_| AppError::Maintenance("phase terminal control capacity unavailable".into()))
-}
 
 pub(super) fn conflict() -> AppError {
     AppError::Conflict("phase terminal owner mismatch".into())
@@ -43,7 +33,7 @@ pub(super) fn now(state: &AppState) -> Result<u64, AppError> {
 }
 
 pub(super) struct Loaded {
-    pub history: Box<phase_execution::history::PhaseExecutionHistory>,
+    pub history: Box<phase_owner::history::PhaseExecutionHistory>,
     pub registration: closure::history::RegistrationHistory,
     pub view: AuthorityView,
     pub hot: HotState,
@@ -118,10 +108,7 @@ pub(super) async fn load_locked(
     {
         return Err(conflict());
     }
-    let history = match initial_authority::load_locked(tx, node.id(), binding, grant_id).await? {
-        initial_authority::InitialAuthorityHistory::PhaseExecution(h) => h,
-        _ => return Err(conflict()),
-    };
+    let history = super::load_phase_history(tx, node.id(), binding, grant_id).await?;
     let issued = &history.receipt;
     if hot.execution_deadline_ms != Some(issued.execution_deadline_ms)
         || hot.owner.as_ref().is_none_or(|o| {
