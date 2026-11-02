@@ -1,4 +1,4 @@
-# Agent Q
+# aq-server
 
 The new Agent Queue foundation, developed as a fresh start alongside the existing installation. V1 migration is not a launch requirement. Any optional owner-specific data transfer belongs in an external one-off script outside aq-graph.
 
