@@ -1,0 +1,74 @@
+[
+  {
+    "database": "aq_test_2e6c54821bbb46e3ac453b21a9dbccf9",
+    "format": "39",
+    "guard_sha256": "a01ad7c8cb725cffb8a1f92f26f1022886cdae423d4e7f9f180ca8faf6b980b7",
+    "fixture_labels": [
+      "Synthetic settlement fixture"
+    ],
+    "connections": 0
+  },
+  {
+    "database": "aq_test_585333479c0a405a8c85f9e4143af31e",
+    "format": "39",
+    "guard_sha256": "a01ad7c8cb725cffb8a1f92f26f1022886cdae423d4e7f9f180ca8faf6b980b7",
+    "fixture_labels": [
+      "Synthetic settlement fixture"
+    ],
+    "connections": 0
+  },
+  {
+    "database": "aq_test_617d53bef277417cabf255b42bd5b980",
+    "format": "39",
+    "guard_sha256": "a01ad7c8cb725cffb8a1f92f26f1022886cdae423d4e7f9f180ca8faf6b980b7",
+    "fixture_labels": [
+      "Synthetic authority fixture"
+    ],
+    "connections": 0
+  },
+  {
+    "database": "aq_test_812a9cab3aa4457d863b2e233af280d7",
+    "format": "39",
+    "guard_sha256": "a01ad7c8cb725cffb8a1f92f26f1022886cdae423d4e7f9f180ca8faf6b980b7",
+    "fixture_labels": [
+      "Synthetic settlement fixture"
+    ],
+    "connections": 0
+  },
+  {
+    "database": "aq_test_851caebedae84a1da46c75b1d7c95e87",
+    "format": "39",
+    "guard_sha256": "a01ad7c8cb725cffb8a1f92f26f1022886cdae423d4e7f9f180ca8faf6b980b7",
+    "fixture_labels": [
+      "Synthetic authority fixture"
+    ],
+    "connections": 0
+  },
+  {
+    "database": "aq_test_b68dff1cd79647d8a70596003c6b7403",
+    "format": "39",
+    "guard_sha256": "a01ad7c8cb725cffb8a1f92f26f1022886cdae423d4e7f9f180ca8faf6b980b7",
+    "fixture_labels": [
+      "Synthetic authority fixture"
+    ],
+    "connections": 0
+  },
+  {
+    "database": "aq_test_bb2b8bfa844e4d1fbdb8eade805d9585",
+    "format": "39",
+    "guard_sha256": "a01ad7c8cb725cffb8a1f92f26f1022886cdae423d4e7f9f180ca8faf6b980b7",
+    "fixture_labels": [
+      "Synthetic settlement fixture"
+    ],
+    "connections": 0
+  },
+  {
+    "database": "aq_test_e394702b8b2b4bf781892680b1a01890",
+    "format": "39",
+    "guard_sha256": "a01ad7c8cb725cffb8a1f92f26f1022886cdae423d4e7f9f180ca8faf6b980b7",
+    "fixture_labels": [
+      "Synthetic authority fixture"
+    ],
+    "connections": 0
+  }
+]

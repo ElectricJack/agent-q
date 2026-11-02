@@ -1,0 +1,29 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-settlement-b2-v2/crates/aq-server)
+warning: unused import: `sqlx::Row`
+  --> crates/aq-server/tests/profiled_results/settlement_owner39.rs:14:5
+   |
+14 | use sqlx::Row;
+   |     ^^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `aq-server` (test "profiled_results") generated 1 warning (run `cargo fix --test "profiled_results" -p aq-server` to apply 1 suggestion)
+    Finished `test` profile [unoptimized] target(s) in 1m 33s
+     Running unittests src/lib.rs (/tmp/aq-native-union-target/debug/deps/aq_server-e599dbe0bfcad707)
+
+running 2 tests
+
+thread 'store::settlement39_tests::settlement39_registered_upgrade_old_reader_and_critical_drift' (1026928) panicked at crates/aq-server/src/store/settlement39_tests.rs:36:48:
+called `Result::unwrap()` on an `Err` value: Corrupt("phase terminal origin/capacity storage missing or disabled in current schema")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test store::settlement39_tests::settlement39_registered_upgrade_old_reader_and_critical_drift ... FAILED
+test store::settlement39_tests::reviewed_settlement39_catalog_export ... ok
+
+failures:
+
+failures:
+    store::settlement39_tests::settlement39_registered_upgrade_old_reader_and_critical_drift
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 146 filtered out; finished in 0.60s
+
+error: test failed, to rerun pass `-p aq-server --lib`
