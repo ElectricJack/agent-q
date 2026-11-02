@@ -1005,7 +1005,7 @@ struct ReviewEnv {
     peer: tokio::task::JoinHandle<()>,
 }
 async fn review_env(peer_count: usize) -> ReviewEnv {
-    review_env_options(peer_count, None, false).await
+    Box::pin(review_env_options(peer_count, None, false)).await
 }
 async fn review_env_options(
     peer_count: usize,
