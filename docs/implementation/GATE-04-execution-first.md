@@ -82,6 +82,8 @@ pending-upload retries keep their existing meanings. Both sides require focused
 qualification and new source/binary pins before the next composed offer. The
 actual review-to-Graph completion, lost-reply recovery and retained-source
 survival requirements below remain open.
+The [composed recovery case plan](GATE-04-recovery-case-plan.md) identifies the
+existing replay and real-owner fault hooks, with their current coverage limits.
 
 Steps 2–5 can develop in parallel at their existing ownership boundaries. The
 acceptance run follows their dependencies. UI redesign, generalized policy,
