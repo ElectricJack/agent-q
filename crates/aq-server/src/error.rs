@@ -22,6 +22,7 @@ pub enum AppError {
     NotFound(String),
     BadRequest(String),
     Conflict(String),
+    ExecutionCancelled,
     PayloadTooLarge(String),
     /// 426 with a `CompatibilityError` body.
     UnsupportedProtocol(CompatibilityError),
@@ -44,7 +45,7 @@ impl AppError {
             AppError::IdentityUnavailable(_) => StatusCode::SERVICE_UNAVAILABLE,
             AppError::NotFound(_) => StatusCode::NOT_FOUND,
             AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
-            AppError::Conflict(_) => StatusCode::CONFLICT,
+            AppError::Conflict(_) | AppError::ExecutionCancelled => StatusCode::CONFLICT,
             AppError::PayloadTooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
             AppError::UnsupportedProtocol(_) => StatusCode::UPGRADE_REQUIRED,
             AppError::InvalidCredential(_) | AppError::CredentialRevoked => {
@@ -69,6 +70,7 @@ impl AppError {
             AppError::NotFound(m) => (NOT_FOUND, m.clone()),
             AppError::BadRequest(m) => (BAD_REQUEST, m.clone()),
             AppError::Conflict(m) => (CONFLICT, m.clone()),
+            AppError::ExecutionCancelled => (CONFLICT, "execution cancelled".into()),
             AppError::PayloadTooLarge(m) => (BAD_REQUEST, m.clone()),
             AppError::UnsupportedProtocol(c) => (c.error.as_str(), c.message.clone()),
             AppError::InvalidCredential(m) => (INVALID_CREDENTIAL, m.clone()),

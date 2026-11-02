@@ -185,6 +185,12 @@ async fn record_inner(
     {
         return Err(conflict());
     }
+    crate::profiled_execution::cancellation::settle_stopped_locked(
+        &mut tx,
+        binding.attempt_id,
+        recorded,
+    )
+    .await?;
     tx.commit().await.map_err(database)?;
     Ok(ack)
 }

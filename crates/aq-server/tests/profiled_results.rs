@@ -1,5 +1,7 @@
 //! Disposable actual SQL owners; synthetic launch/host fixture, no provider run.
 //! Ordered migrations must create the ledger in the assembled daemon.
+#[path = "profiled_results/cancellation.rs"]
+mod cancellation;
 mod common;
 use aq_admission::{
     execution_spec::ProfiledExecutionSpec,

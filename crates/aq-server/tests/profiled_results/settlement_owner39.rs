@@ -281,6 +281,120 @@ fn profile_digest(v: &Value) -> String {
     aq_agent_api::digest(v).unwrap()
 }
 #[tokio::test]
+async fn native_cancellation_before_evaluation_refuses_success() {
+    let c = Box::pin(setup()).await;
+    let (status, receipt) = common::native_cancellation::cancel(
+        &c.env.f.state,
+        c.env.report.binding.attempt_id,
+        Uuid::new_v4(),
+        "cancel before acceptance",
+    )
+    .await;
+    assert_eq!(status, 200, "{receipt}");
+    let evaluation = Box::pin(c.service.evaluate(&c.actor, &c.request))
+        .await
+        .unwrap();
+    assert_eq!(evaluation.disposition, EvaluationDisposition::Rejected);
+    assert_eq!(
+        evaluation.reason,
+        Some(settlement::eligibility::Reason::Cancelled)
+    );
+    assert!(evaluation.completion_operation_id.is_none());
+    assert_eq!(c.writes.load(Ordering::SeqCst), 0);
+    c.env.peer.abort();
+    c._graph.abort();
+}
+
+#[tokio::test]
+async fn native_cancellation_after_accepted_evaluation_preserves_completion() {
+    let c = Box::pin(setup()).await;
+    let accepted = Box::pin(c.service.evaluate(&c.actor, &c.request))
+        .await
+        .unwrap();
+    assert_eq!(accepted.disposition, EvaluationDisposition::Accepted);
+    let op = Uuid::new_v4();
+    let (status, receipt) = common::native_cancellation::cancel(
+        &c.env.f.state,
+        c.env.report.binding.attempt_id,
+        op,
+        "too late",
+    )
+    .await;
+    assert_eq!(status, 200, "{receipt}");
+    assert_eq!(receipt["disposition"], "already_accepted");
+    assert!(receipt["cancellation_id"].is_null());
+    let done = Box::pin(
+        c.service
+            .complete(&c.actor, accepted.completion_operation_id.unwrap()),
+    )
+    .await
+    .unwrap();
+    assert_eq!(done.state, "confirmed");
+    assert_eq!(c.writes.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        json!(
+            Box::pin(c.service.evaluate(&c.actor, &c.request))
+                .await
+                .unwrap()
+        ),
+        json!(accepted)
+    );
+    c.env.peer.abort();
+    c._graph.abort();
+}
+#[tokio::test]
+async fn native_cancellation_waits_for_acceptance_owner_and_preserves_accepted_result() {
+    let c = Box::pin(setup()).await;
+    let pool = c.env.f.db.pool().await;
+    let mut user_lock = pool.begin().await.unwrap();
+    sqlx::query("SELECT id FROM users WHERE id=$1 FOR UPDATE")
+        .bind(c.actor.id)
+        .execute(&mut *user_lock)
+        .await
+        .unwrap();
+    let service = c.service.clone();
+    let actor = c.actor.clone();
+    let request = c.request.clone();
+    let evaluating =
+        tokio::spawn(async move { Box::pin(service.evaluate(&actor, &request)).await });
+    wait_user_lock(&pool).await;
+    let state = c.env.f.state.clone();
+    let attempt = c.env.report.binding.attempt_id;
+    let cancelling = tokio::spawn(async move {
+        aq_server::profiled_execution::cancellation::cancel(
+            &state,
+            attempt,
+            Uuid::new_v4(),
+            "concurrent cancellation",
+        )
+        .await
+    });
+    tokio::time::timeout(std::time::Duration::from_secs(1),async {
+        loop {
+            let waiting:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query='SELECT id FROM nodes WHERE id=$1 FOR UPDATE')").fetch_one(&pool).await.unwrap();
+            if waiting {break;}
+            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        }
+    }).await.expect("cancellation must wait for the actual acceptance node lock");
+    user_lock.commit().await.unwrap();
+    let accepted = evaluating.await.unwrap().unwrap();
+    assert_eq!(accepted.disposition, EvaluationDisposition::Accepted);
+    let cancelled = cancelling.await.unwrap().unwrap();
+    assert_eq!(json!(cancelled.disposition), "already_accepted");
+    assert!(cancelled.cancellation_id.is_none());
+    let completion = Box::pin(
+        c.service
+            .complete(&c.actor, accepted.completion_operation_id.unwrap()),
+    )
+    .await
+    .unwrap();
+    assert_eq!(completion.state, "confirmed");
+    assert_eq!(c.writes.load(Ordering::SeqCst), 1);
+    c.env.peer.abort();
+    c._graph.abort();
+}
+
+#[tokio::test]
 async fn settlement39_actual_owners_accept_one_combined_decision_hold_until_exact_graph_receipt() {
     let c = Box::pin(setup()).await;
     let receipt = Box::pin(c.service.evaluate(&c.actor, &c.request))

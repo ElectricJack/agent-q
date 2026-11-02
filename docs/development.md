@@ -3,7 +3,8 @@
 ## Prerequisites
 
 - Rust 1.96.1 (pinned by `rust-toolchain.toml`; rustup installs it automatically).
-- Docker with the Compose plugin. Under WSL2, use Docker Desktop's WSL integration.
+- Docker with Compose 2.24.4 or newer (`!override` support). Under WSL2, use
+  Docker Desktop's WSL integration.
 - Python 3.12 or newer, and `curl` (used by the integration/update scripts).
 
 ## Run the stack
@@ -12,26 +13,124 @@
 scripts/dev-up
 ```
 
-This creates `secrets.dev/postgres_password` if it is missing (random contents,
-gitignored), then builds and starts PostgreSQL and the server from source using
-`compose.yaml` plus `compose.dev.yaml`. The admin listener is on
+This prepares private, gitignored `secrets.dev/` and `state.dev/` directories,
+then builds and starts PostgreSQL, aq-graph, a supervised aq-git service, and
+the server using `compose.yaml` plus `compose.dev.yaml`. Use `scripts/dev-up -d`
+to run in the background. Keep the checkout in the WSL2 Linux filesystem and
+enable Docker Desktop integration for that distribution. The admin listener is on
 `http://127.0.0.1:8080` and the worker listener on `http://127.0.0.1:8081`,
-both bound to loopback only. The vault is `vault.example/`, which enables dev
-auth with the owner `owner@localhost`.
+both bound to loopback only. The generated vault is `state.dev/vault/`, based
+on `vault.example/`, with dev auth as `owner@localhost` and graph/Git adapters.
+Graph is available on loopback port 8741; its public API requires the private
+`secrets.dev/graph_token`. Git exposes only a private Unix socket shared with
+the server. Server and Git run as UID/GID 10001. Git state and source staging
+share one private named volume at `/var/lib/aq`, allowing atomic renames between
+them. The socket, runtime vault and server token copy use separate private named
+volumes. A one-shot initializer creates only these project volumes as UID 10001
+with mode 0700 and copies configuration/token atomically with mode 0600. It has
+no network and exits before runtime services start. It refuses changed retained
+configuration or tokens; it does not recursively change source ownership.
+The original host vault and credentials remain owned by the host user. Graph
+runs as that host UID to read its private token.
 
-The PostgreSQL data lives in the `aq_postgres` Docker volume and persists
-between `scripts/dev-up` runs. To reset it (this deletes all dev data):
+The graph build uses revision `225329cd6acf5a775fd2a0b016dd1c45fb16c79b`;
+Git uses the same server image, whose retained candidate is pinned by
+`vendor/git-candidate.json`. Its explicit Git executable is
+`/opt/aq-git-runtime/bin/git`; the shared private paths are `/var/lib/aq/git`,
+`/var/lib/aq/source-staging`, and `/run/aq-git/central.sock`.
+`AQ_SERVER_IMAGE` and `AQ_DEV_GRAPH_IMAGE` explicitly select prebuilt images
+(use immutable digests for reproducible runs). `AQ_DEV_STATE_DIR`,
+`AQ_SECRETS_DIR`, and `COMPOSE_PROJECT_NAME` select an independent stack.
+`AQ_DEV_ADMIN_PORT`, `AQ_DEV_WORKER_PORT`, and `AQ_DEV_GRAPH_PORT` override
+the loopback ports. Existing credentials and generated configuration are
+preserved on replay; a differing vault is refused rather than overwritten.
+An older development stack using host bind mounts should remain intact: use
+fresh state, secrets and a Compose project for this volume layout.
+
+PostgreSQL and the private runtime volumes persist between `scripts/dev-up`
+runs. To remove the selected project's volumes (this deletes its dev data):
 
 ```sh
-docker compose -f compose.yaml -f compose.dev.yaml down -v
+python3 scripts/dev-stack.py down -v
 ```
 
 PostgreSQL only reads the password when it first initializes the volume. If you
 delete or regenerate `secrets.dev/postgres_password` while an old volume exists,
 the server fails with password authentication errors until you reset the volume
 as above.
+The host seed receipt and saved worker credential also belong to the old
+database; preserve them and choose fresh state/secrets for a clean initialization.
 
 Cloudflared is disabled in development (it sits behind the `tunnel` profile).
+
+To check readiness from the loopback-only endpoint inside the server:
+
+```sh
+python3 scripts/dev-stack.py readiness
+```
+
+Export the paths printed by `scripts/dev-up --init-only` if invoking Compose
+directly. The readiness command reports `dependencies.graph` and
+`dependencies.aq_git` as `ready` or `degraded`, and exits nonzero when either
+dependency or the database is unavailable. It invokes `aq-server dependency-readiness`
+against the loopback-only `/dependency-readyz` surface. The updater's `/readyz`
+and `aq-server readiness` retain their original database-only report and schema.
+Graph uses its own `aq_graph` database and non-superuser role, with a separate
+private password; the server never reads its tables. An existing Graph database
+with a different owner is preserved and refused; use a fresh Compose project.
+Git's supervisor restarts a crashed
+`serve` child after five seconds; Compose restarts the supervisor if it exits.
+The pinned Git process contains a guard and a serving engine. Engine failure
+is recovered by the guard and supervisor; loss of the guard or entire container
+may leave a Git recovery fence and require the component's explicit operator
+recovery procedure. The supervisor never clears a recovery fence automatically.
+
+## Seed the designated scratch project
+
+The owner must choose the GitHub repository and base branch. No repository,
+branch, or credential reference is selected by default. After starting the stack:
+
+```sh
+export DEV_SCRATCH_REPO_URL=https://github.com/OWNER/DESIGNATED-SCRATCH.git
+export DEV_SCRATCH_BASE_BRANCH=OWNER_DESIGNATED_BRANCH
+export DEV_SCRATCH_CREDENTIAL_REF=none
+python3 scripts/dev-stack.py seed
+```
+
+`none` is an explicit choice for a public repository. The pinned Git candidate
+rejects named credential profiles; private authenticated remotes require a
+separately qualified candidate. URLs containing credentials are rejected.
+The seed registers the remote/base ref through Git, creates one graph task,
+activates the checked-in example profile artifact, and creates one revisioned
+project binding through the public owner API. It does not fetch or publish.
+Stable IDs and operation receipts make retries safe. Changing seed inputs
+is refused; use a new state directory **and** Compose project to start fresh.
+For nondefault ports, set `AQ_DEV_SERVER_URL`, `AQ_DEV_WORKER_URL`, and
+`AQ_DEV_GRAPH_URL` explicitly.
+
+The example catalog requires intelligence configuration. The seed enrolls an
+offline `e0-local-development` worker because binding validation requires a real
+worker identity. Its credential is kept in private `secrets.dev/dev_worker.json`
+and never printed. New credential files are published atomically. Replay checks
+the saved node identity and authenticates it with a correlated worker probe,
+without marking the worker online. Missing, malformed or stale credentials are
+refused while preserving identities. Recover the original credential, or use
+fresh state, secrets and a Compose project; seed does not silently enroll a
+replacement node. Configure an actual worker and revise the profile policy for MS0/MS1. E0
+establishes local service integration, not a model-backed execution claim.
+
+Run the disposable acceptance test without a designated GitHub repository:
+
+```sh
+scripts/compose-smoke.sh dev
+```
+
+`compose_dev_reaches_ready_with_graph_and_git` uses its own local bare Git
+repository, project, state, ports, containers and database volume. It verifies
+UID 10001, private directory ownership and seed replay, kills the Git child,
+observes degraded readiness and a new healthy
+process, then tests graph outage/recovery and removes its Compose resources.
+Explicit preloaded server/Graph image inputs can avoid rebuilding those candidates.
 
 ## Run a worker from source
 

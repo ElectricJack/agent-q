@@ -280,6 +280,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         42,
         include_str!("../migrations/0042_dashboard_operations.sql"),
     ),
+    (
+        43,
+        include_str!("../migrations/0043_native_cancellation.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -475,7 +479,11 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
     } else if supported >= 39 {
         settlement39::validate(&mut tx).await?;
     }
-    if supported >= 41 {
+    if supported >= 43 {
+        never_granted40::validate_native_cancellation(&mut tx).await?;
+        compute41::validate(&mut tx).await?;
+        cancellation43::validate(&mut tx).await?;
+    } else if supported >= 41 {
         never_granted40::validate_compute_reuse(&mut tx).await?;
         compute41::validate(&mut tx).await?;
     } else if supported >= 40 {
@@ -1052,3 +1060,6 @@ mod settlement39_tests;
 mod compute41;
 #[path = "store/never_granted40.rs"]
 mod never_granted40;
+
+#[path = "store/cancellation43.rs"]
+mod cancellation43;

@@ -214,24 +214,57 @@ pub async fn poll(
     auth: &AuthenticatedNode,
     request: &Poll,
 ) -> Result<NativePollPage, AppError> {
-    static ASSEMBLERS: OnceLock<Semaphore> = OnceLock::new();
-    let _permit = ASSEMBLERS
-        .get_or_init(|| Semaphore::new(4))
-        .try_acquire()
-        .map_err(|_| refused())?;
     TransportDocument::Poll(request.clone())
         .validate()
         .map_err(|_| AppError::BadRequest("invalid native poll".into()))?;
-    let (runtime, snapshot) = runtime(state, auth, request).await?;
-    let mut page = NativePollPage {
+    let cancellations = super::super::cancellation::pending(state, auth, &request.identity).await?;
+    let page = NativePollPage {
         schema_version: 1,
         operation_id: request.operation_id,
         identity: request.identity.clone(),
         server_time_ms: now(state)?,
         offers: vec![],
-        cancellations: vec![],
+        cancellations,
         next_after: None,
     };
+    // Deliver cancellation promptly, while letting slow healthy offer assembly
+    // finish for later redelivery. Dropping the JoinHandle after the wait only
+    // detaches the task; the assembler permit bounds its full lifetime.
+    if !page.cancellations.is_empty() {
+        page.validate_for(request).map_err(|_| refused())?;
+        if request.available.slots == 0 {
+            return Ok(page);
+        }
+        let mut assembly = tokio::spawn({
+            let state = state.clone();
+            let auth = auth.clone();
+            let request = request.clone();
+            let page = page.clone();
+            async move { Box::pin(offers(&state, &auth, &request, page)).await }
+        });
+        return match tokio::time::timeout(std::time::Duration::from_millis(750), &mut assembly)
+            .await
+        {
+            Ok(Ok(Ok(scheduled))) => Ok(scheduled),
+            _ => Ok(page),
+        };
+    }
+    // Offer assembly has a large future. Keep this shared scheduling boundary
+    // on the heap instead of embedding it in every control/fixture caller.
+    Box::pin(offers(state, auth, request, page)).await
+}
+async fn offers(
+    state: &AppState,
+    auth: &AuthenticatedNode,
+    request: &Poll,
+    mut page: NativePollPage,
+) -> Result<NativePollPage, AppError> {
+    static ASSEMBLERS: OnceLock<Semaphore> = OnceLock::new();
+    let _permit = ASSEMBLERS
+        .get_or_init(|| Semaphore::new(4))
+        .try_acquire()
+        .map_err(|_| refused())?;
+    let (runtime, snapshot) = runtime(state, auth, request).await?;
     if request.available.slots == 0 {
         return Ok(page);
     }
