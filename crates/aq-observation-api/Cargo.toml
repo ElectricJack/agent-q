@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 description = "Portable bounded observation and session accounting views"
+[[example]]
+name = "export-aq-observation-api"
+path = "examples/export.rs"
+
 [dependencies]
 aq-lifecycle-api = { path = "../aq-lifecycle-api", version = "=0.1.0" }
 serde = { version = "1", features = ["derive"] }

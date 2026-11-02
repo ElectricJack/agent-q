@@ -33,7 +33,7 @@ permanent initial/boot receipts; exact old receipt replays do not roll state bac
 No transport result grants execution, source registration, fresh-zero cumulative
 baselines, native parser qualification, or complete accounting.
 
-`cargo run -p aq-observation-admission --example export` regenerates schemas and
+`cargo run -p aq-observation-admission --example export-aq-observation-admission` regenerates schemas and
 synthetic examples. Rust validators enforce cross-field constraints in addition
 to JSON Schema shapes. The server adapter and local store handshake require
 separate qualification; publishing these types alone does not enable them.

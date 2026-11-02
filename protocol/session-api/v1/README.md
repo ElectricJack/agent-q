@@ -70,7 +70,7 @@ Terminal text is sensitive untrusted content; rendering and independent output
 authorization remain relay/UI responsibilities, and redaction cannot promise
 arbitrary agent output contains no secrets. Raw input is not general audit text.
 
-Rebuild: `cargo run -p aq-session-api --example publish > protocol/session-api/v1/schema.json`.
+Rebuild: `cargo run -p aq-session-api --example publish-aq-session-api > protocol/session-api/v1/schema.json`.
 Test: `cargo test -p aq-session-api` (no database, provider or sibling checkout).
 
 Structural relational checks (not fully expressible in the schema) reject nil

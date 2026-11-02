@@ -51,7 +51,7 @@ received, never read by a person. A snapshot barrier remains a peer assertion un
 actual target terminal/renderer capture ordering is qualified; snapshot text alone
 is not a generic terminal renderer state.
 
-Rebuild: `cargo run -p aq-terminal-relay --example publish -- protocol/terminal-relay/draft-v1`.
+Rebuild: `cargo run -p aq-terminal-relay --example publish-aq-terminal-relay -- protocol/terminal-relay/draft-v1`.
 Check: `cargo test -p aq-terminal-relay` (no database/provider/network services).
 
 The AQ-owned RelayPoll has explicit peer, cursor, bounded hold and separate active
@@ -70,6 +70,6 @@ prioritize ACKs/receipts on control-upload; a cursor never substitutes for them.
 
 The same deterministic public artifacts are included inside the core and portable
 crate archives. Regenerate explicitly with `cargo run -p aq-terminal-relay
---example publish -- protocol/terminal-relay/draft-v1 --crate-artifacts`; drift
+--example publish-aq-terminal-relay -- protocol/terminal-relay/draft-v1 --crate-artifacts`; drift
 tests check the workspace publication and packaged copies. Typed bounded decode
 and validation remain mandatory; schema validation does not grant authority.

@@ -5,6 +5,10 @@ edition = "2024"
 publish = false
 description = "Pure bounded AQ graph placement and launch preparation contracts"
 
+[[example]]
+name = "export-aq-admission"
+path = "examples/export.rs"
+
 [dependencies]
 aq-lifecycle-protocol = { path = "../../vendor/aq-lifecycle-protocol-0.1.0", version = "=0.1.0" }
 aq-session-protocol = { path = "../../vendor/aq-session-protocol-0.1.0", version = "=0.1.0" }

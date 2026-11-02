@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 
+[[example]]
+name = "publish-aq-session-api"
+path = "examples/publish.rs"
+
 [dependencies]
 aq-session-protocol = { path = "../../vendor/aq-session-protocol-0.1.0", version = "=0.1.0" }
 serde = { version = "1", features = ["derive"] }

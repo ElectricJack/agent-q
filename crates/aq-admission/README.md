@@ -48,7 +48,7 @@ cargo package -p aq-admission --allow-dirty --offline \
   --config 'patch.crates-io.aq-session-protocol.path="/absolute/public/vendor/aq-session-protocol-0.1.0"'
 ```
 
-Publication generation: `cargo run -p aq-admission --example export -- schema`
+Publication generation: `cargo run -p aq-admission --example export-aq-admission -- schema`
 and `... -- fixtures`. New incompatible fields/semantics require a new immutable
 contract version and coordinated consumers; do not edit pinned session bytes.
 

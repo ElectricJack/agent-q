@@ -21,7 +21,8 @@ backend even when the DTO validates.
 check, and synthetic source and human claims; it is not an actual source review
 or executed check. The upstream outcome/result-record fixtures are preserved to
 prove their recording semantics remain distinct. `examples/export.rs` generates
-schemas/fixtures; Rust drift tests compare the checked-in artifacts.
+schemas/fixtures via `cargo run -p aq-review-protocol --example export-aq-review-protocol`;
+Rust drift tests compare the checked-in artifacts.
 
 Run `cargo test -p aq-review-protocol`, strict all-target Clippy, and
 `python3 crates/aq-review-protocol/scripts/check_vectors.py`. The Python checker
