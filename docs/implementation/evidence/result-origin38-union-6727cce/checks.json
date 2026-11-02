@@ -1,0 +1,12 @@
+[
+  {
+    "step": "all_tests_typecheck",
+    "code": 0,
+    "seconds": 68.848
+  },
+  {
+    "step": "phase_recording",
+    "code": 0,
+    "seconds": 51.579
+  }
+]

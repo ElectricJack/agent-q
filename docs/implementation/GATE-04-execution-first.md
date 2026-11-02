@@ -41,10 +41,12 @@ state must retain their existing refusal/hold behavior.
    composed actual-harness task run remains pending. Reuse existing components;
    do not build another executor framework or label a static peer as a real agent.
 4. **Explicit completion and retained result.** Adapt v1's completion instructions
-   to v2's scoped command surface. The current result owner accepts only legacy
-   native Started/Stopped receipts. Add the exact phase/refresh origin using the
-   actual new receipt owners, then connect stopped-source capture/retention and
-   immutable result reporting.
+   to v2's scoped command surface. The state38 result owner now records both phase origins from their actual typed
+   Started/Stopped receipts, preserving the existing report wire and keeping
+   phase release closed. Its gate passed18 phase, seven legacy and two schema
+   cases, plus a populated archive migration proof. The local result client is
+   implemented and qualified; native0.5 stopped-source capture/retention/report
+   production is still being connected.
 5. **Review, settlement and Graph completion.** Finish AQ-10 B2/C using the pinned
    outcome policy, actual decision/check owners, source-retention observation and
    AQ-07 expected-version mutation owner. Record the actual Graph receipt before
@@ -59,7 +61,9 @@ The next unpublished main migration,0038, is assigned to the phase result-origin
 bridge. The isolated wait-owner0038 candidate was tested only in disposable
 databases and is not a prerequisite for execution. Preserve that candidate and
 its evidence unchanged; a future wait integration must rebase to0039 or later
-and qualify again. Main and the canonical server are currently state37.
+and qualify again. Main source now supports state38; the running canonical
+server and database remain on their accepted state37 binary. No live migration
+is part of this source integration.
 
 The next execution settlement migration is reserved as0039. Deferred wait work
 must select the next free number after the execution migrations, not assume0039
@@ -70,8 +74,10 @@ qualified again, without making execution depend on suspension.
 
 The first pilot task is deliberately self-contained: its only mutable Graph
 input is the task itself; other admitted inputs are immutable source/catalog
-artifacts. Verify complete context with no relationships, dependencies or other
-mutable inputs. The existing Graph task CAS then fences that full mutable set.
+artifacts. Verify complete selected context with no required neighbor inputs. The initial
+fixture has no edges/dependencies; task and structural dependency/parent changes
+are fenced by the actual endpoint CAS rules. Do not claim that task CAS proves
+forever-absence of arbitrary incoming nonstructural citations.
 Broader tasks must refuse until atomic input assertions are supported; never trim
 required context or emulate assertions with no-op writes. Graph fixture and
 completion receipts must come from the real service, not HTTP fault peers.

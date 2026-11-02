@@ -1180,7 +1180,10 @@
         "../../../aq-worker/docs/implementation/WRK-17-registry-refresh-adoption.md",
         "../../../aq-worker/docs/implementation/evidence/worker-output-refresh-3146cf4/qualification.json",
         "../../../aq-worker/docs/implementation/WRK-17-trusted-node-codex-pilot.md",
-        "../../../aq-worker/docs/implementation/WRK-17-production-profile-dispatch.md"
+        "../../../aq-worker/docs/implementation/WRK-17-production-profile-dispatch.md",
+        "../../../aq-worker/docs/implementation/evidence/execution-client-union-6829fe9/qualification.json",
+        "../implementation/GATE-04-real-graph-fixture-plan.md",
+        "../implementation/evidence/gate04-real-graph/README.md"
       ]
     },
     {
@@ -1256,7 +1259,11 @@
         "../implementation/aq-admission-0.1.6-qualification.md",
         "../implementation/AQ-10-result-ledger-qualification.md",
         "../implementation/three-area-state24-qualification.json",
-        "../implementation/GATE-04-execution-first.md"
+        "../implementation/GATE-04-execution-first.md",
+        "../implementation/AQ-10-phase-result-origin38-plan.md",
+        "../implementation/AQ-10-phase-result-origin38-qualification.md",
+        "../implementation/AQ-10-execution-closure-reference-map.md",
+        "../implementation/evidence/result-origin38-union-6727cce/qualification.json"
       ]
     },
     {
@@ -1479,7 +1486,10 @@
         "../../../aq-worker/docs/implementation/WRK-17-registry-refresh-adoption.md",
         "../../../aq-worker/docs/implementation/evidence/worker-output-refresh-3146cf4/qualification.json",
         "../../../aq-worker/docs/implementation/WRK-17-trusted-node-codex-pilot.md",
-        "../../../aq-worker/docs/implementation/WRK-17-production-profile-dispatch.md"
+        "../../../aq-worker/docs/implementation/WRK-17-production-profile-dispatch.md",
+        "../../../aq-worker/docs/implementation/evidence/execution-client-union-6829fe9/qualification.json",
+        "../implementation/GATE-04-real-graph-fixture-plan.md",
+        "../implementation/evidence/gate04-real-graph/README.md"
       ]
     },
     {
@@ -3661,7 +3671,10 @@
         "../../../aq-worker/docs/implementation/WRK-17-registry-refresh-adoption.md",
         "../../../aq-worker/docs/implementation/evidence/worker-output-refresh-3146cf4/qualification.json",
         "../../../aq-worker/docs/implementation/WRK-17-trusted-node-codex-pilot.md",
-        "../../../aq-worker/docs/implementation/WRK-17-production-profile-dispatch.md"
+        "../../../aq-worker/docs/implementation/WRK-17-production-profile-dispatch.md",
+        "../../../aq-worker/docs/implementation/evidence/execution-client-union-6829fe9/qualification.json",
+        "../implementation/GATE-04-real-graph-fixture-plan.md",
+        "../implementation/evidence/gate04-real-graph/README.md"
       ]
     },
     {

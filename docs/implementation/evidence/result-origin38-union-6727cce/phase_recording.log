@@ -1,0 +1,10 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 44.90s
+     Running tests/phase_results.rs (/tmp/aq-native-union-target/debug/deps/phase_results-b605466e8668726c)
+
+running 2 tests
+test frozen::actual_origin_records_replays_reads_and_never_accepts_or_releases ... ok
+test refresh::actual_origin_records_replays_reads_and_never_accepts_or_releases ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 16 filtered out; finished in 6.63s
+
