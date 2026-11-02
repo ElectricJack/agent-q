@@ -275,7 +275,7 @@ async fn git_output(root: &Path, arguments: &[&str], maximum: usize) -> Result<V
         .stdout(Stdio::piped())
         .stderr(Stdio::null())
         .process_group(0)
-        .kill_on_drop(true)
+        .kill_on_drop(false)
         .spawn()?;
     let leader = child.id().context("owned verification Git leader absent")?;
     let mut stdout = child
@@ -295,7 +295,6 @@ async fn git_output(root: &Path, arguments: &[&str], maximum: usize) -> Result<V
         );
         let status = child.wait().await;
         may_signal = false; // Never signal a returned wait's PID/PGID, even if its status is unknown.
-        child.kill_on_drop(false);
         let status = status?;
         ensure!(status.success(), "actual verification Git command refused");
         Ok::<_, anyhow::Error>(bytes)
@@ -315,7 +314,6 @@ async fn git_output(root: &Path, arguments: &[&str], maximum: usize) -> Result<V
             Err(_) => anyhow::bail!("owned verification Git cleanup signal unavailable"),
         }
         let waited = tokio::time::timeout(Duration::from_secs(3), child.wait()).await;
-        child.kill_on_drop(false); // Explicit cleanup ended; preserve unknown state for audit.
         waited.context("actual verification Git cleanup unknown")??;
     }
     result
