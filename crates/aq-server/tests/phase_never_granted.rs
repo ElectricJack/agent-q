@@ -3,6 +3,7 @@ mod common;
 // This shared fixture also builds Started/Stopped requests for terminal tests.
 #[allow(dead_code)]
 #[path = "common/phase_refresh_terminal.rs"]
+#[allow(dead_code)] // This target intentionally uses only part of the shared fixture.
 mod terminal;
 use aq_server::profiled_execution::no_grant;
 use sqlx::Row;

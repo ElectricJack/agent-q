@@ -85,7 +85,9 @@ pub async fn close_expired(
     hot.validate_against(&binding)
         .map_err(|_| AppError::Internal)?;
     let phase = super::phase_profile::for_attempt_locked(&mut tx, attempt).await?;
-    if hot.status == crate::execution::profiled::Status::Preparing && phase.is_some() {
+    if hot.status == crate::execution::profiled::Status::Preparing
+        && let Some(phase_profile) = phase
+    {
         // Historical validators retain the exact Frozen/Refresh nominal types;
         // neither lease is reinterpreted as a legacy PreparationPlan.
         macro_rules! validate_phase {
@@ -109,7 +111,7 @@ pub async fn close_expired(
                 }
             }};
         }
-        match phase.unwrap() {
+        match phase_profile {
             super::phase_profile::Profile::Frozen => validate_phase!(super::accepted_preparation),
             super::phase_profile::Profile::Refresh => validate_phase!(super::accepted_refresh),
         }

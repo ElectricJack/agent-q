@@ -268,8 +268,18 @@ const MIGRATIONS: &[(i32, &str)] = &[
         include_str!("../migrations/0038_profiled_result_origins.sql"),
     ),
     (39, include_str!("../migrations/0039_pilot_settlement.sql")),
-    (40, include_str!("../migrations/0040_phase_never_granted.sql")),
-    (41, include_str!("../migrations/0041_native_compute_occupancy.sql")),
+    (
+        40,
+        include_str!("../migrations/0040_phase_never_granted.sql"),
+    ),
+    (
+        41,
+        include_str!("../migrations/0041_native_compute_occupancy.sql"),
+    ),
+    (
+        42,
+        include_str!("../migrations/0042_dashboard_operations.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -348,6 +358,14 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         return Err(StoreError::Corrupt(
             "state format metadata does not match applied migrations".into(),
         ));
+    }
+    if supported >= 42 {
+        let intact: bool = sqlx::query_scalar("SELECT to_regclass('dashboard_operations') IS NOT NULL AND to_regprocedure('guard_dashboard_operation()') IS NOT NULL AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='dashboard_operation_guard' AND tgrelid=to_regclass('dashboard_operations') AND NOT tgisinternal AND tgenabled='O') AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='dashboard_operation_truncate_guard' AND tgrelid=to_regclass('dashboard_operations') AND NOT tgisinternal AND tgenabled='O')").fetch_one(&mut *tx).await?;
+        if !intact {
+            return Err(StoreError::Corrupt(
+                "dashboard operation journal safeguards missing".into(),
+            ));
+        }
     }
     if supported >= 30 {
         let complete:bool=sqlx::query_scalar("SELECT to_regclass('profiled_v2_proposals') IS NOT NULL AND to_regclass('profiled_v2_accepts') IS NOT NULL").fetch_one(&mut *tx).await?;
@@ -1030,7 +1048,7 @@ mod settlement39;
 #[path = "store/settlement39_tests.rs"]
 mod settlement39_tests;
 
-#[path = "store/never_granted40.rs"]
-mod never_granted40;
 #[path = "store/compute41.rs"]
 mod compute41;
+#[path = "store/never_granted40.rs"]
+mod never_granted40;
