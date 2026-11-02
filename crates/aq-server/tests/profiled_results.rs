@@ -719,11 +719,19 @@ async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_
         review_policy: prepared.subject().validation_policy.clone(),
         expires_at_ms: NOW + 30000,
     };
-    service.admit(f.actor, &prepared, &request).await.unwrap();
-    service.admit(f.actor, &prepared, &request).await.unwrap();
+    Box::pin(service.admit(f.actor, &prepared, &request))
+        .await
+        .unwrap();
+    Box::pin(service.admit(f.actor, &prepared, &request))
+        .await
+        .unwrap();
     let mut changed = request.clone();
     changed.expires_at_ms += 1;
-    assert!(service.admit(f.actor, &prepared, &changed).await.is_err());
+    assert!(
+        Box::pin(service.admit(f.actor, &prepared, &changed))
+            .await
+            .is_err()
+    );
     let answer = aq_review_protocol::ResolveRequest {
         schema_version: 1,
         operation_id: Uuid::new_v4(),
@@ -737,12 +745,13 @@ async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_
         let mut next = request.clone();
         next.operation_id = Uuid::new_v4();
         next.decision_id = Uuid::new_v4();
-        service.admit(f.actor, &prepared, &next).await.unwrap();
+        Box::pin(service.admit(f.actor, &prepared, &next))
+            .await
+            .unwrap();
         pending.push(next);
     }
     let cancellation = Uuid::new_v4();
-    let cancelled = service
-        .cancel(f.actor, cancellation, pending[0].decision_id, 1)
+    let cancelled = Box::pin(service.cancel(f.actor, cancellation, pending[0].decision_id, 1))
         .await
         .unwrap();
     assert!(matches!(
@@ -751,8 +760,7 @@ async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_
     ));
     assert_eq!(
         json!(
-            service
-                .cancel(f.actor, cancellation, pending[0].decision_id, 1)
+            Box::pin(service.cancel(f.actor, cancellation, pending[0].decision_id, 1))
                 .await
                 .unwrap()
         ),
@@ -761,7 +769,11 @@ async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_
     let mut cancelled_answer = answer.clone();
     cancelled_answer.operation_id = Uuid::new_v4();
     cancelled_answer.decision_id = pending[0].decision_id;
-    assert!(service.resolve(f.actor, &cancelled_answer).await.is_err());
+    assert!(
+        Box::pin(service.resolve(f.actor, &cancelled_answer))
+            .await
+            .is_err()
+    );
     let mut one = answer.clone();
     one.operation_id = Uuid::new_v4();
     one.decision_id = pending[1].decision_id;
@@ -769,14 +781,14 @@ async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_
     two.operation_id = Uuid::new_v4();
     two.choice = aq_review_protocol::Choice::Reject;
     let competing = tokio::join!(
-        service.resolve(f.actor, &one),
-        service.resolve(f.actor, &two)
+        Box::pin(service.resolve(f.actor, &one)),
+        Box::pin(service.resolve(f.actor, &two))
     );
     assert_ne!(competing.0.is_ok(), competing.1.is_ok());
     // An outbox write failure rolls back finality and pending-state CAS; retry
     // uses the same retained answer ID, not a second human decision.
     sqlx::raw_sql("CREATE FUNCTION fail_review_outbox() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'synthetic write failure'; END $$; CREATE TRIGGER fail_review_outbox BEFORE INSERT ON review_owner_outbox FOR EACH ROW EXECUTE FUNCTION fail_review_outbox();").execute(pool).await.unwrap();
-    assert!(service.resolve(f.actor, &answer).await.is_err());
+    assert!(Box::pin(service.resolve(f.actor, &answer)).await.is_err());
     let state: String =
         sqlx::query_scalar("SELECT state FROM human_decision_requests WHERE decision_id=$1")
             .bind(request.decision_id)
@@ -792,9 +804,9 @@ async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_
             .unwrap();
     assert_eq!(receipts, 0);
     sqlx::raw_sql("DROP TRIGGER fail_review_outbox ON review_owner_outbox; DROP FUNCTION fail_review_outbox();").execute(pool).await.unwrap();
-    let finality = service.resolve(f.actor, &answer).await.unwrap();
+    let finality = Box::pin(service.resolve(f.actor, &answer)).await.unwrap();
     assert_eq!(
-        json!(service.resolve(f.actor, &answer).await.unwrap()),
+        json!(Box::pin(service.resolve(f.actor, &answer)).await.unwrap()),
         json!(finality)
     );
     // Optional real admin router uses current owner identity and the existing
@@ -844,7 +856,7 @@ async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_
     assert_eq!(app.clone().oneshot(post).await.unwrap().status(), 400);
     let mut changed = answer.clone();
     changed.choice = aq_review_protocol::Choice::Reject;
-    assert!(service.resolve(f.actor, &changed).await.is_err());
+    assert!(Box::pin(service.resolve(f.actor, &changed)).await.is_err());
     let outbox: i64 = sqlx::query_scalar("SELECT count(*) FROM review_owner_outbox")
         .fetch_one(pool)
         .await
@@ -867,7 +879,7 @@ async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_
         .unwrap();
     let clone = service.clone();
     let actor = f.actor;
-    let call = tokio::spawn(async move { clone.resolve(actor, &blocked).await });
+    let call = tokio::spawn(async move { Box::pin(clone.resolve(actor, &blocked)).await });
     wait_review_xid(pool, &xid).await;
     sqlx::query("UPDATE users SET role='viewer' WHERE id=$1")
         .bind(f.actor)
@@ -896,29 +908,36 @@ async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_
         .await
         .unwrap();
     let clone = service.clone();
-    let call = tokio::spawn(async move { clone.resolve(actor, &blocked).await });
+    let call = tokio::spawn(async move { Box::pin(clone.resolve(actor, &blocked)).await });
     wait_review_xid(pool, &xid).await;
     f.time.store((NOW + 30001) as i64, Ordering::SeqCst);
     lock.commit().await.unwrap();
     assert!(call.await.unwrap().is_err());
-    let expired = service.expire(pending[3].decision_id).await.unwrap();
+    let expired = Box::pin(service.expire(pending[3].decision_id))
+        .await
+        .unwrap();
     assert!(matches!(
         expired.finality,
         aq_review_protocol::DecisionFinality::Expired {}
     ));
     assert_eq!(
-        json!(service.expire(pending[3].decision_id).await.unwrap()),
+        json!(
+            Box::pin(service.expire(pending[3].decision_id))
+                .await
+                .unwrap()
+        ),
         json!(expired)
     );
     assert!(
-        service
-            .cancel(f.actor, Uuid::new_v4(), pending[4].decision_id, 1)
+        Box::pin(service.cancel(f.actor, Uuid::new_v4(), pending[4].decision_id, 1))
             .await
             .is_err()
     );
     // Refresh only through another actual current public-owner read. Hold the
     // budget row until this proof expires; admission samples expiry after wait.
-    let fresh = service.prepare(report.report_id, operation).await.unwrap();
+    let fresh = Box::pin(service.prepare(report.report_id, operation))
+        .await
+        .unwrap();
     peer.await.unwrap();
     let mut late = request.clone();
     late.operation_id = Uuid::new_v4();
@@ -938,12 +957,14 @@ async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_
         f.time.store((NOW + 60002) as i64, Ordering::SeqCst);
         lock.commit().await.unwrap();
     };
-    let (refused, _) = tokio::join!(service.admit(f.actor, &fresh, &late), expiry);
+    let (refused, _) = tokio::join!(Box::pin(service.admit(f.actor, &fresh, &late)), expiry);
     assert!(matches!(
         refused,
         Err(aq_server::error::AppError::UpdatesUnavailable(_))
     ));
-    service.admit(f.actor, &prepared, &request).await.unwrap(); // historical only
+    Box::pin(service.admit(f.actor, &prepared, &request))
+        .await
+        .unwrap(); // historical only
     let mut correction = report.clone();
     correction.report_id = Uuid::new_v4();
     correction.operation_id = Uuid::new_v4();
@@ -951,7 +972,7 @@ async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_
     let race = tokio::time::timeout(std::time::Duration::from_secs(5), async {
         tokio::join!(
             results::record(&f.state, &auth, &correction),
-            service.resolve(f.actor, &answer)
+            Box::pin(service.resolve(f.actor, &answer))
         )
     })
     .await
