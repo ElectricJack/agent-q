@@ -11,7 +11,6 @@ mod recovery;
 use aq_server::agent_access::AgentAccessConfig;
 use axum::{
     Json, Router,
-    body::Bytes,
     extract::{Request, State},
     http::{Method, StatusCode},
     response::{IntoResponse, Response},
