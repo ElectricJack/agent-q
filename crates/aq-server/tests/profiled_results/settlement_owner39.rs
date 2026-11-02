@@ -509,3 +509,85 @@ async fn settlement39_startup_refuses_corrupted_accepted_hot_basis_without_repai
     c.env.peer.abort();
     c._graph.abort();
 }
+
+#[tokio::test]
+async fn settlement39_prepare_held_git_reply_fences_revoked_preparer_before_private_subject_return()
+{
+    let mut c = Box::pin(setup()).await;
+    let pool = c.env.f.db.pool().await;
+    let mut tx = pool.begin().await.unwrap();
+    let report = results::load_locked(&c.env.f.state, &mut tx, c.env.report.report_id)
+        .await
+        .unwrap();
+    let source =
+        aq_server::source_retention::load_confirmed_locked(&mut tx, c.env.operation, &report)
+            .await
+            .unwrap();
+    tx.rollback().await.unwrap();
+    let path = c.env._directory.path().join("held-prepare.sock");
+    let listener = tokio::net::UnixListener::bind(&path).unwrap();
+    let entered = Arc::new(tokio::sync::Notify::new());
+    let release = Arc::new(tokio::sync::Notify::new());
+    let enter = entered.clone();
+    let resume = release.clone();
+    let inspection = json!({"version":1,"id":source.manifest.artifact_id,"repository_id":source.receipt.repository_id,"binding_generation":source.receipt.binding_generation,"generation":1,"state":"active","resource":"transfer","release_operation":null,"release_reason":null,"refs":[{"name":format!("refs/aq-git/transfers/{}",source.manifest.artifact_id),"oid":source.receipt.source.hex}]});
+    let peer = tokio::spawn(async move {
+        use tokio::io::{AsyncBufReadExt, AsyncWriteExt};
+        let (socket, _) = listener.accept().await.unwrap();
+        let mut socket = tokio::io::BufReader::new(socket);
+        let mut line = String::new();
+        socket.read_line(&mut line).await.unwrap();
+        let request: Value = serde_json::from_str(&line).unwrap();
+        assert_eq!(request["operation"], "retention.inspect");
+        enter.notify_one();
+        resume.notified().await;
+        let mut reply=serde_json::to_vec(&json!({"protocol_version":1,"request_id":request["request_id"],"ok":true,"result":inspection})).unwrap();
+        reply.push(b'\n');
+        socket.get_mut().write_all(&reply).await.unwrap();
+    });
+    c.env.f.state.source_retention = Some(Arc::new(
+        aq_server::source_retention::Runtime::new(
+            aq_server::source_retention::SourceRetentionConfig {
+                staging_root: c.env._directory.path().join("held-stage"),
+                git_root: c.env._directory.path().join("held-git"),
+                git_socket: path,
+                max_staging_bytes: 1048576,
+                max_bundle_bytes: 1048576,
+                bulk_concurrency: 1,
+                incomplete_ttl_secs: 60,
+            },
+        )
+        .unwrap(),
+    ));
+    let service = aq_server::reviews::Service::new(c.env.f.state.clone(), c.env.keys.clone());
+    let actor = c.actor.clone();
+    let id = c.env.report.report_id;
+    let operation = c.env.operation;
+    let declaration = external(c.env.report.binding.attempt_id);
+    let pending = tokio::spawn(async move {
+        Box::pin(service.prepare_combined_as(&actor, id, operation, declaration)).await
+    });
+    tokio::time::timeout(std::time::Duration::from_secs(1), entered.notified())
+        .await
+        .unwrap();
+    sqlx::query("UPDATE users SET role='viewer' WHERE id=$1")
+        .bind(c.actor.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert!(
+        !pending.is_finished(),
+        "valid Git response is still held after role revocation"
+    );
+    release.notify_one();
+    assert!(
+        matches!(
+            pending.await.unwrap(),
+            Err(aq_server::error::AppError::Forbidden(_))
+        ),
+        "private subject must not escape after the actual I/O wait"
+    );
+    peer.await.unwrap();
+    c.env.peer.abort();
+    c._graph.abort();
+}
