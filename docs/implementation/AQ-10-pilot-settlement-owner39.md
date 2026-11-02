@@ -2,12 +2,12 @@
 
 Status: internal owner39 source and bounded component/integration qualification accepted; real execution/human/canonical rollout remain separate gates.
 Main migration39 is allocated to this owner after execution result-origin38.
-The source draft now includes actual combined-review, live applicability, finite
-evaluation/release and dedicated completion ports. No route is mounted, SQL39 is
-not yet qualified/applied, and this document does not itself establish completion.
-The independently qualified first increment is finite eligibility planning and
-read-only AQ effect-ledger inspection. It cannot emit an execution grant or clear
-a task claim. Architecture0002 sections5–7 and AQ-10-result-settlement-plan remain
+The source includes actual combined-review, live applicability, finite
+evaluation/release and dedicated completion ports. SQL39 was applied only to
+owned disposable qualification databases/clones. This increment installs no
+public router and performs no canonical upgrade. The finite planner remains
+data-only; only an actual confirmed C receipt/outbox transaction can clear the
+common task claim. Architecture0002 sections5–7 and AQ-10-result-settlement-plan remain
 normative. The physical runner, B1 recording and this settlement owner are distinct.
 
 ## Small supported policy
@@ -118,8 +118,8 @@ Retain a bounded immutable evaluation operation/receipt. Same ID/bytes returns
 the original result; changed evidence is a new explicit evaluation. Missing
 adapters or stale evidence return unavailable/stale/needs-reconciliation, never
 success-shaped defaults. The positive constructors consume only the actual protected combined decision
-and current Graph/retention owner products. These are source candidates until
-actual registered owner tests qualify them.
+and current Graph/retention owner products. Their protected joins are component-qualified with labelled synthetic peers;
+actual physical/provider/Graph composition remains a separate gate.
 
 ## Minimal schema39 and completion owner
 
@@ -226,8 +226,8 @@ The original38 catalog and data predicate remain unchanged;39 must reattest the
 full composed catalog including every changed/additive release/head/review/
 ledger/source/mail guard, then rerun38's retained origin predicate. The checked
 golden catalog must come from an explicitly reviewed disposable38→39 export,
-never runtime learning or repair. Production remains closed until this and
-actual positive owner/response-loss/claim-clear tests pass.
+never runtime learning or repair. Those component gates passed. Canonical rollout and the actual physical
+agent/source/Graph/human cycle remain separately gated.
 
 ## Qualified boundary
 
