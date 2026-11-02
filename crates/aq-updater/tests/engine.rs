@@ -463,7 +463,6 @@ async fn readiness_version_mismatch_rolls_back() {
             protocol_max: 1,
             database: "ok".into(),
             auth_mode: "cloudflare_access".into(),
-            dependencies: Default::default(),
         },
     );
     let r = e.install(req(B)).await.unwrap();
@@ -485,7 +484,6 @@ async fn readiness_checks_revision_database_protocol_and_auth() {
             protocol_max: 1,
             database: "ok".into(),
             auth_mode: "cloudflare_access".into(),
-            dependencies: Default::default(),
         };
         f(&mut r);
         r
@@ -1264,7 +1262,6 @@ async fn auth_mode_must_match_settings() {
             protocol_max: 1,
             database: "ok".into(),
             auth_mode: "dev".into(),
-            dependencies: Default::default(),
         },
     );
     let r = e.install(req(B)).await.unwrap();

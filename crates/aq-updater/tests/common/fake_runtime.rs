@@ -373,7 +373,6 @@ impl FakeRuntime {
             protocol_max: m.protocol.max,
             database: if readable { "ok" } else { "error" }.into(),
             auth_mode: i.auth_mode.clone(),
-            dependencies: Default::default(),
         })
     }
 

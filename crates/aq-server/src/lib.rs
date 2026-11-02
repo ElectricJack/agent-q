@@ -261,6 +261,7 @@ pub fn build_admin_router_with_optional_owners(
         .merge(execution::api::admin_routes(state.clone()))
         .route("/healthz", get(healthz))
         .route("/readyz", get(readiness::readyz))
+        .route("/dependency-readyz", get(readiness::dependency_readyz))
         .fallback(not_found)
         .method_not_allowed_fallback(method_not_allowed)
         .layer(from_fn_with_state(
@@ -336,6 +337,7 @@ fn build_worker_router_inner(
         .merge(terminal::api::worker_routes(state.clone()))
         .route("/healthz", get(healthz))
         .route("/readyz", get(readiness::readyz))
+        .route("/dependency-readyz", get(readiness::dependency_readyz))
         .fallback(not_found)
         .method_not_allowed_fallback(method_not_allowed)
         .layer(from_fn_with_state(

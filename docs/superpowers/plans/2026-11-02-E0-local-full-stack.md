@@ -73,3 +73,27 @@
 - [ ] Document WSL2 setup, seed variables, no-default behavior, pinned component inputs and smoke execution. Write `docs/implementation/E0.md`.
 - [ ] Review the final diff, check AQ inbox once for owner designation, reconcile all acceptance items and required subtasks.
 - [ ] Squash implementation history before the first passing feature close, merge `origin/dev` as required, rerun targeted checks, guarded push, and close with exact evidence.
+
+### Task 4: Contract reconciliation after merging main
+
+Owner commit `86ca279` adds explicit requirements beyond the held task's initial
+description. This section supersedes Task 1's shared-report map and corresponding
+file changes: `/readyz` and `aq_release::ReadinessReport` remain unchanged for
+installed updaters. `/dependency-readyz` and `aq-server dependency-readiness`
+provide the bounded dependency report used by development healthchecks.
+
+- [ ] RED: configured unavailable dependencies must leave legacy `/readyz` at 200
+  with its original fields, while the new loopback endpoint returns 503.
+- [ ] Restore the shared updater report and expose the separate endpoint/client;
+  verify loopback fencing, pure CLI JSON and all existing endpoint tests.
+- [ ] RED: real Compose must show Graph database owner `aq_graph:false`.
+- [ ] Give Graph its own non-superuser database role and private password;
+  refuse an existing database with a different owner rather than altering it.
+- [ ] RED: Compose must use the server image for Git, with matching shared
+  private paths; run the prescribed Git executable explicitly.
+- [ ] Rebuild the server image, run named acceptance and focused compatibility
+  tests, update evidence and record the supervisor's Git UID/image/path ruling.
+
+Supervisor message `msg-f3bde02e8fee4a90a47aa21ecf37b623` explicitly replaces the
+absent `origin/dev` merge step with `origin/main`; this branch merged it without
+changing the default branch.

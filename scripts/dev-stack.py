@@ -36,7 +36,7 @@ def prepare():
                       state / "updater-spool/requests", state / "updater-spool/status"):
         directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         directory.chmod(0o700)
-    for name, mode in (("postgres_password", 0o644), ("graph_token", 0o600)):
+    for name, mode in (("postgres_password", 0o644), ("graph_database_password", 0o644), ("graph_token", 0o600)):
         path = secret / name
         try:
             with path.open("x") as out:
@@ -52,9 +52,9 @@ graph_url = "http://aq-graph:8741"
 graph_token_file = "/run/secrets/graph_token"
 mutation_actor_id = "dev-service"
 [source_retention]
-staging_root = "/staging"
-git_root = "/git-state"
-git_socket = "/git-run/aq-git.sock"
+staging_root = "/var/lib/aq/source-staging"
+git_root = "/var/lib/aq/git"
+git_socket = "/run/aq-git/central.sock"
 '''
     target = vault / "config.toml"
     if target.exists() and target.read_text() != config:
@@ -119,7 +119,7 @@ def git_request(state, operation, params=None, mutation=None):
         request["operation_id"] = mutation
     with socket.socket(socket.AF_UNIX) as peer:
         peer.settimeout(15)
-        peer.connect(str(state / "git-run/aq-git.sock"))
+        peer.connect(str(state / "git-run/central.sock"))
         peer.sendall(json.dumps(request).encode() + b"\n")
         with peer.makefile("rb") as reader:
             raw = reader.readline(65537)
@@ -262,7 +262,7 @@ def main():
                 candidate = json.loads((ROOT / "vendor/worker-candidate.json").read_text())
                 result.update(AQ_WORKER_SOURCE_REVISION=candidate["source_revision"], AQ_WORKER_ARCHIVE_SHA256=candidate["archive_sha256"], AQ_WORKER_VERSION=candidate["version"])
                 builds = []
-                for variable, service in (("AQ_SERVER_IMAGE", "server"), ("AQ_DEV_GRAPH_IMAGE", "aq-graph"), ("AQ_DEV_GIT_IMAGE", "aq-git")):
+                for variable, service in (("AQ_SERVER_IMAGE", "server"), ("AQ_DEV_GRAPH_IMAGE", "aq-graph")):
                     if not os.environ.get(variable):
                         builds.append(service)
                 if builds:
@@ -273,7 +273,7 @@ def main():
                 compose(result, "down", *remaining, capture=False)
                 return
             if args.command == "readiness":
-                compose(result, "exec", "-T", "server", "aq-server", "readiness", "--vault", "/vault", capture=False)
+                compose(result, "exec", "-T", "server", "aq-server", "dependency-readiness", "--vault", "/vault", capture=False)
                 return
         print(json.dumps(result, sort_keys=True))
     except (ValueError, RuntimeError, OSError) as error:

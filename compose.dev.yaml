@@ -4,16 +4,23 @@ services:
   graph-db-init:
     image: postgres:17-bookworm
     networks: [database]
-    secrets: [postgres_password]
+    secrets: [postgres_password, graph_database_password]
     depends_on:
       postgres: {condition: service_healthy}
     entrypoint: [/bin/sh, -ec]
     command:
       - |
         export PGPASSWORD="$$(cat /run/secrets/postgres_password)"
+        psql -h postgres -U agent_q -d agent_q -v ON_ERROR_STOP=1 <<'AQ_GRAPH_SQL'
+        \set graph_password `cat /run/secrets/graph_database_password`
+        SELECT format('CREATE ROLE aq_graph LOGIN NOSUPERUSER PASSWORD %L', :'graph_password')
+        WHERE NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'aq_graph') \gexec
+        AQ_GRAPH_SQL
         if ! psql -h postgres -U agent_q -d agent_q -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = 'aq_graph'" | grep -q 1; then
-          createdb -h postgres -U agent_q aq_graph
+          createdb -h postgres -U agent_q -O aq_graph aq_graph
         fi
+        owner="$$(psql -h postgres -U agent_q -d agent_q -v ON_ERROR_STOP=1 -tAc "SELECT r.rolname || ':' || r.rolsuper::text FROM pg_database d JOIN pg_roles r ON r.oid=d.datdba WHERE d.datname='aq_graph'")"
+        test "$$owner" = 'aq_graph:false' || { echo 'existing Graph database role differs; preserve it and use a new Compose project' >&2; exit 1; }
     restart: on-failure
     read_only: true
     cap_drop: [ALL]
@@ -33,8 +40,8 @@ services:
       AQ_GRAPH_BOOTSTRAP_TOKEN_FILE: /run/secrets/graph_token
     entrypoint: [/bin/sh, -ec]
     command:
-      - 'export PGPASSWORD="$$(cat /run/secrets/postgres_password)" DATABASE_URL="postgres://agent_q@postgres:5432/aq_graph"; exec aq-graph serve'
-    secrets: [postgres_password, graph_token]
+      - 'export PGPASSWORD="$$(cat /run/secrets/graph_database_password)" DATABASE_URL="postgres://aq_graph@postgres:5432/aq_graph"; exec aq-graph serve'
+    secrets: [graph_database_password, graph_token]
     networks: [database, edge]
     depends_on:
       graph-db-init: {condition: service_completed_successfully}
@@ -51,16 +58,17 @@ services:
       timeout: 5s
       retries: 30
   aq-git:
-    image: ${AQ_DEV_GIT_IMAGE:-aq-git:f3660a89cbeac0e068105af2926dfdcb06a1daad}
+    image: ${AQ_SERVER_IMAGE:-agent-q-server:dev}
     build:
       context: .
-      dockerfile: scripts/Dockerfile.aq-git
+      target: server
     user: '${AQ_DEV_UID:-1000}:${AQ_DEV_GID:-1000}'
     entrypoint: [/bin/sh, /dev-git-supervisor.sh]
     volumes:
       - ./scripts/dev-git-supervisor.sh:/dev-git-supervisor.sh:ro
-      - ${AQ_DEV_STATE_DIR:-./state.dev}/git:/git-state
-      - ${AQ_DEV_STATE_DIR:-./state.dev}/git-run:/git-run
+      - ${AQ_DEV_STATE_DIR:-./state.dev}/git:/var/lib/aq/git
+      - ${AQ_DEV_STATE_DIR:-./state.dev}/git-run:/run/aq-git
+      - ${AQ_DEV_STATE_DIR:-./state.dev}/staging:/var/lib/aq/source-staging
       - ${AQ_DEV_STATE_DIR:-./state.dev}/fixture:/fixture:ro
     networks: [edge]
     init: true
@@ -70,7 +78,7 @@ services:
     security_opt: [no-new-privileges:true]
     logging: *dev-logging
     healthcheck:
-      test: [CMD, aq-git, --socket, /git-run/aq-git.sock, --json, capabilities]
+      test: [CMD, aq-git, --socket, /run/aq-git/central.sock, --json, capabilities]
       interval: 2s
       timeout: 3s
       retries: 30
@@ -97,15 +105,15 @@ services:
         source: ${AQ_UPDATER_SPOOL}/status
         target: /updater/status
         read_only: true
-      - ${AQ_DEV_STATE_DIR:-./state.dev}/git:/git-state
-      - ${AQ_DEV_STATE_DIR:-./state.dev}/git-run:/git-run:ro
-      - ${AQ_DEV_STATE_DIR:-./state.dev}/staging:/staging
+      - ${AQ_DEV_STATE_DIR:-./state.dev}/git:/var/lib/aq/git
+      - ${AQ_DEV_STATE_DIR:-./state.dev}/git-run:/run/aq-git:ro
+      - ${AQ_DEV_STATE_DIR:-./state.dev}/staging:/var/lib/aq/source-staging
     secrets: [postgres_password, graph_token]
     depends_on:
       aq-graph: {condition: service_healthy}
       aq-git: {condition: service_healthy}
     healthcheck:
-      test: [CMD, aq-server, readiness, --vault, /vault]
+      test: [CMD, aq-server, dependency-readiness, --vault, /vault]
       interval: 2s
       timeout: 5s
       retries: 30
@@ -141,3 +149,5 @@ secrets:
     file: ${AQ_SECRETS_DIR:?run scripts/dev-up}/postgres_password
   graph_token:
     file: ${AQ_SECRETS_DIR:?run scripts/dev-up}/graph_token
+  graph_database_password:
+    file: ${AQ_SECRETS_DIR:?run scripts/dev-up}/graph_database_password

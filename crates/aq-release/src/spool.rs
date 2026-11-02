@@ -113,7 +113,4 @@ pub struct ReadinessReport {
     pub protocol_max: u32,
     pub database: String,
     pub auth_mode: String,
-    /// Configured service dependencies; omitted for foundation-only vaults.
-    #[serde(default, skip_serializing_if = "std::collections::BTreeMap::is_empty")]
-    pub dependencies: std::collections::BTreeMap<String, String>,
 }

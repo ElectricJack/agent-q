@@ -1,29 +1,19 @@
 {
   "after_git_kill": {
-    "auth_mode": "dev",
     "database": "ok",
     "dependencies": {
       "aq_git": "degraded",
       "graph": "ready"
     },
-    "protocol_max": 1,
-    "protocol_min": 1,
-    "source_revision": "unknown",
-    "state_format": 41,
-    "version": "0.1.0"
+    "status": "degraded"
   },
   "after_git_restart": {
-    "auth_mode": "dev",
     "database": "ok",
     "dependencies": {
       "aq_git": "ready",
       "graph": "ready"
     },
-    "protocol_max": 1,
-    "protocol_min": 1,
-    "source_revision": "unknown",
-    "state_format": 41,
-    "version": "0.1.0"
+    "status": "ready"
   },
   "cleanup": "owned Compose containers and volumes removed",
   "credential_replay_refusals": [
@@ -32,37 +22,28 @@
     "invalid",
     "truncated"
   ],
+  "graph_database_owner": "aq_graph:false",
   "graph_outage_degraded": {
-    "auth_mode": "dev",
     "database": "ok",
     "dependencies": {
       "aq_git": "ready",
       "graph": "degraded"
     },
-    "protocol_max": 1,
-    "protocol_min": 1,
-    "source_revision": "unknown",
-    "state_format": 41,
-    "version": "0.1.0"
+    "status": "degraded"
   },
   "images": {
-    "aq-git": "ad68eec4eb7208bac9314a01d02694c4e422df8aebd24a7afd5c674389f15f01",
+    "aq-git": "d11b1cdf293ab9021485f62eb76dba54b82effc504d54f0a4749c8913643e083",
     "aq-graph": "807beba98dcd20b0ae335f09cae8c06ecb182a352ee78de278cb47fccb2ee3be",
     "postgres": "99445113a4a19e82dd3713c65bd9f6fb5bf972065ab043df8d1e1c93e957da9a",
-    "server": "ca297b693a54df3251974ca130421d04c95885af9f7db6cd6b7e200dfb8249be"
+    "server": "d11b1cdf293ab9021485f62eb76dba54b82effc504d54f0a4749c8913643e083"
   },
   "initial_readiness": {
-    "auth_mode": "dev",
     "database": "ok",
     "dependencies": {
       "aq_git": "ready",
       "graph": "ready"
     },
-    "protocol_max": 1,
-    "protocol_min": 1,
-    "source_revision": "unknown",
-    "state_format": 41,
-    "version": "0.1.0"
+    "status": "ready"
   },
   "killed_engine_pid": "9",
   "seed": {
@@ -72,7 +53,7 @@
       "local_fixture": true,
       "url": "/fixture/scratch.git"
     },
-    "node_id": "7906519e-51eb-4b43-94d2-287933046cee",
+    "node_id": "9106541b-7437-4310-ac51-a7417b4fc46c",
     "project_id": "e0000000-0000-4000-8000-000000000002",
     "repository_id": "e0000000-0000-4000-8000-000000000003",
     "task_id": "e0000000-0000-4000-8000-000000000004",

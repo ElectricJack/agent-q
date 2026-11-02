@@ -33,6 +33,11 @@ enum Command {
         #[arg(long, env = "AQ_VAULT_DIR")]
         vault: Option<PathBuf>,
     },
+    /// GET loopback /dependency-readyz; print JSON and exit nonzero if degraded.
+    DependencyReadiness {
+        #[arg(long, env = "AQ_VAULT_DIR")]
+        vault: Option<PathBuf>,
+    },
     /// Print this binary's canonical release manifest (the bytes that get signed).
     Manifest {
         #[arg(long)]
@@ -62,6 +67,9 @@ async fn main() {
         Command::Serve { vault } => serve(vault).await,
         Command::Healthcheck { vault } => std::process::exit(healthcheck(vault).await),
         Command::Readiness { vault } => std::process::exit(readiness(vault).await),
+        Command::DependencyReadiness { vault } => {
+            std::process::exit(readiness_at(vault, "/dependency-readyz").await)
+        }
         Command::Manifest {
             server_image,
             worker_image,
@@ -148,8 +156,12 @@ async fn healthcheck(vault: Option<PathBuf>) -> i32 {
 
 /// Prints the loopback readiness report; used by the host updater via `docker exec`.
 async fn readiness(vault: Option<PathBuf>) -> i32 {
+    readiness_at(vault, "/readyz").await
+}
+
+async fn readiness_at(vault: Option<PathBuf>, path: &str) -> i32 {
     let port = admin_port(vault);
-    let resp = match get_local(port, "/readyz").await {
+    let resp = match get_local(port, path).await {
         Ok(r) => r,
         Err(e) => {
             eprintln!("aq-server: not ready: {e}");

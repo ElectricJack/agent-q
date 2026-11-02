@@ -92,19 +92,9 @@ fn readiness_report_roundtrip() {
         protocol_max: 1,
         database: "ok".into(),
         auth_mode: "password".into(),
-        dependencies: Default::default(),
     };
     let j = serde_json::to_vec(&r).unwrap();
-    assert!(!String::from_utf8_lossy(&j).contains("dependencies"));
     assert_eq!(serde_json::from_slice::<ReadinessReport>(&j).unwrap(), r);
-    let mut extended = r.clone();
-    extended
-        .dependencies
-        .insert("aq_git".into(), "degraded".into());
-    assert_eq!(
-        serde_json::from_slice::<ReadinessReport>(&serde_json::to_vec(&extended).unwrap()).unwrap(),
-        extended
-    );
     let mut v: serde_json::Value = serde_json::from_slice(&j).unwrap();
     v["extra"] = 1.into();
     assert!(serde_json::from_value::<ReadinessReport>(v).is_err());

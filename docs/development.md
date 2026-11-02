@@ -25,8 +25,11 @@ Graph is available on loopback port 8741; its public API requires the private
 the server. Git state and source staging persist under `state.dev/`.
 
 The graph build uses revision `225329cd6acf5a775fd2a0b016dd1c45fb16c79b`;
-Git uses `vendor/git-candidate.json` through `scripts/Dockerfile.aq-git`.
-`AQ_DEV_GRAPH_IMAGE` and `AQ_DEV_GIT_IMAGE` explicitly select prebuilt images
+Git uses the same server image, whose retained candidate is pinned by
+`vendor/git-candidate.json`. Its explicit Git executable is
+`/opt/aq-git-runtime/bin/git`; the shared private paths are `/var/lib/aq/git`,
+`/var/lib/aq/source-staging`, and `/run/aq-git/central.sock`.
+`AQ_SERVER_IMAGE` and `AQ_DEV_GRAPH_IMAGE` explicitly select prebuilt images
 (use immutable digests for reproducible runs). `AQ_DEV_STATE_DIR`,
 `AQ_SECRETS_DIR`, and `COMPOSE_PROJECT_NAME` select an independent stack.
 `AQ_DEV_ADMIN_PORT`, `AQ_DEV_WORKER_PORT`, and `AQ_DEV_GRAPH_PORT` override
@@ -56,7 +59,13 @@ python3 scripts/dev-stack.py readiness
 Export the paths printed by `scripts/dev-up --init-only` if invoking Compose
 directly. The readiness command reports `dependencies.graph` and
 `dependencies.aq_git` as `ready` or `degraded`, and exits nonzero when either
-dependency or the database is unavailable. Git's supervisor restarts a crashed
+dependency or the database is unavailable. It invokes `aq-server dependency-readiness`
+against the loopback-only `/dependency-readyz` surface. The updater's `/readyz`
+and `aq-server readiness` retain their original database-only report and schema.
+Graph uses its own `aq_graph` database and non-superuser role, with a separate
+private password; the server never reads its tables. An existing Graph database
+with a different owner is preserved and refused; use a fresh Compose project.
+Git's supervisor restarts a crashed
 `serve` child after five seconds; Compose restarts the supervisor if it exits.
 The pinned Git process contains a guard and a serving engine. Engine failure
 is recovered by the guard and supervisor; loss of the guard or entire container
@@ -107,7 +116,7 @@ scripts/compose-smoke.sh dev
 repository, project, state, ports, containers and database volume. It verifies
 seed replay, kills the Git child, observes degraded readiness and a new healthy
 process, then tests graph outage/recovery and removes its Compose resources.
-Explicit preloaded Graph/Git image inputs can avoid rebuilding those candidates.
+Explicit preloaded server/Graph image inputs can avoid rebuilding those candidates.
 
 ## Run a worker from source
 

@@ -40,16 +40,19 @@ def compose_dev_reaches_ready_with_graph_and_git():
             assert service in config["services"], "missing development service: " + service
             assert config["services"][service].get("healthcheck"), "missing healthcheck: " + service
         assert "cloudflared" not in config["services"], "tunnel enabled by default"
+        assert config["services"]["aq-git"]["image"] == config["services"]["server"]["image"], "Git must run from the server image"
+        for target in ("/var/lib/aq/git", "/var/lib/aq/source-staging", "/run/aq-git"):
+            mounts = [{volume["target"]: volume["source"] for volume in config["services"][service]["volumes"]}
+                      for service in ("server", "aq-git")]
+            assert target in mounts[0] and mounts[0].get(target) == mounts[1].get(target), "missing shared Git path: " + target
         started = False
         evidence = dict(test="compose_dev_reaches_ready_with_graph_and_git")
         try:
             if os.environ.get("AQ_DEV_SMOKE_NO_BUILD") != "1":
-                # Preloaded immutable Graph/Git images may be selected explicitly.
+                # A preloaded immutable Graph image may be selected explicitly.
                 builds = ["server"]
                 if not os.environ.get("AQ_DEV_GRAPH_IMAGE"):
                     builds.append("aq-graph")
-                if not os.environ.get("AQ_DEV_GIT_IMAGE"):
-                    builds.append("aq-git")
                 dev.compose(env, "build", *builds, capture=False)
             started = True
             dev.compose(env, "up", "-d", "--no-build", "postgres", "graph-db-init", "aq-graph", "aq-git", "server")
@@ -61,10 +64,14 @@ def compose_dev_reaches_ready_with_graph_and_git():
 
             rows = wait_for(healthy, "all four services healthy")
             evidence["images"] = {r["Service"]: dev.compose(env, "images", "-q", r["Service"]).strip() for r in rows}
+            graph_role = dev.compose(env, "exec", "-T", "postgres", "psql", "-U", "agent_q", "-d", "agent_q", "-tAc",
+                "SELECT r.rolname || ':' || r.rolsuper::text FROM pg_database d JOIN pg_roles r ON r.oid=d.datdba WHERE d.datname='aq_graph'").strip()
+            assert graph_role == "aq_graph:false", "Graph database must have its own non-superuser role: " + graph_role
+            evidence["graph_database_owner"] = graph_role
             def readiness():
-                # /readyz is deliberately accessible only from inside the server.
+                # Dependency readiness is accessible only from inside the server.
                 result = subprocess.run(["docker", "compose", "-f", str(dev.ROOT / "compose.yaml"), "-f",
-                    str(dev.ROOT / "compose.dev.yaml"), "exec", "-T", "server", "aq-server", "readiness", "--vault", "/vault"],
+                    str(dev.ROOT / "compose.dev.yaml"), "exec", "-T", "server", "aq-server", "dependency-readiness", "--vault", "/vault"],
                     env=dict(os.environ, **env), capture_output=True, text=True, timeout=10)
                 try:
                     return result.returncode, json.loads(result.stdout)
@@ -134,7 +141,7 @@ def compose_dev_reaches_ready_with_graph_and_git():
             # aq-git forks a guarded engine. Kill serve, leaving its guard to
             # reap descendants and mark state clean before supervised restart.
             evidence["killed_engine_pid"] = dev.compose(env, "exec", "-T", "aq-git", "sh", "-ec",
-                'guard=$(cat /git-run/child.pid); children=$(cat /proc/$guard/task/$guard/children); engine=""; for pid in $children; do if [ "$(cat /proc/$pid/comm)" = aq-git ]; then test -z "$engine"; engine=$pid; fi; done; test -n "$engine"; kill -KILL "$engine"; printf "%s\\n" "$engine"').strip()
+                'guard=$(cat /run/aq-git/child.pid); children=$(cat /proc/$guard/task/$guard/children); engine=""; for pid in $children; do if [ "$(cat /proc/$pid/comm)" = aq-git ]; then test -z "$engine"; engine=$pid; fi; done; test -n "$engine"; kill -KILL "$engine"; printf "%s\\n" "$engine"').strip()
             attempts = []
             def degraded():
                 code, report = readiness()

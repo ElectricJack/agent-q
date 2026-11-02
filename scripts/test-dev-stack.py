@@ -39,7 +39,7 @@ def test_prepare_replay_preserves_private_credentials_and_config(tmp_path):
     config = tomllib.loads(vault.read_text())
     assert config["auth"]["mode"] == "dev"
     assert config["agent_access"]["graph_url"] == "http://aq-graph:8741"
-    assert config["source_retention"]["git_socket"] == "/git-run/aq-git.sock"
+    assert config["source_retention"]["git_socket"] == "/run/aq-git/central.sock"
     assert command(tmp_path, "prepare").stdout == first.stdout
 
 
