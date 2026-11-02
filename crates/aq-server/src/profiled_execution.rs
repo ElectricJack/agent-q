@@ -4,8 +4,8 @@
 pub mod api;
 pub mod artifact_api;
 pub mod artifacts;
-pub mod config;
 pub(crate) mod compute;
+pub mod config;
 pub mod context_budget;
 pub mod context_projection;
 pub mod expiry;
@@ -55,3 +55,5 @@ pub mod phase_refresh_execution;
 pub mod phase_refresh_terminal;
 
 pub(crate) mod initial_authority;
+
+pub mod cancellation;
