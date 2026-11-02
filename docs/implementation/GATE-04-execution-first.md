@@ -47,7 +47,11 @@ state must retain their existing refusal/hold behavior.
    phase release closed. Its gate passed 18 phase, seven legacy and two schema
    cases, plus a populated archive migration proof. The local result client is
    implemented and qualified; native0.5 stopped-source capture/retention/report
-   production is still being connected.
+   production has passed 42 focused component cases. Its later metadata and
+   attempt-directory corrections still require affected checks. The first
+   real-Git Frozen case passed functionally, but fixture descendants survived
+   parent cleanup; both profiles must pass again with the corrected owned
+   process-group cleanup before that pair is qualified.
 5. **Review, settlement and Graph completion.** Finish AQ-10 B2/C using the pinned
    outcome policy, actual decision/check owners, source-retention observation and
    AQ-07 expected-version mutation owner. Record the actual Graph receipt before
@@ -57,6 +61,12 @@ state must retain their existing refusal/hold behavior.
 Steps 2–5 can develop in parallel at their existing ownership boundaries. The
 acceptance run follows their dependencies. UI redesign, generalized policy,
 additional providers, parking and cross-node wake are outside this increment.
+
+The actual-owner initial setup is integrated with three pure and four historical
+regression cases plus strict checks. It installs actual Graph/Git configuration
+before initial project verification and leaves worker liveness/registration to
+ordinary worker APIs. Running that constructor with the composed real services
+remains pending; the setup tests alone do not prove the end-to-end scenario.
 
 Main migration 0038 implements the phase result-origin bridge. The isolated
 wait-owner0038 candidate was tested only in disposable
