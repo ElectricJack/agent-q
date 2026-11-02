@@ -52,6 +52,12 @@ Steps 2–5 can develop in parallel at their existing ownership boundaries. The
 acceptance run follows their dependencies. UI redesign, generalized policy,
 additional providers, parking and cross-node wake are outside this increment.
 
+The next unpublished main migration,0038, is assigned to the phase result-origin
+bridge. The isolated wait-owner0038 candidate was tested only in disposable
+databases and is not a prerequisite for execution. Preserve that candidate and
+its evidence unchanged; a future wait integration must rebase to0039 or later
+and qualify again. Main and the canonical server are currently state37.
+
 ## Reuse from v1
 
 Reference repository: `agent-queue2`, immutable revision
