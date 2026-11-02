@@ -445,6 +445,10 @@ async fn settlement39_lost_lease_after_held_response_fences_revoked_then_regrant
     let second = c.service.complete(&c.actor, op).await.unwrap();
     assert_eq!(second.state, "confirmed");
     assert_eq!(second.dispatch_count, 2);
+    assert!(
+        !first.is_finished(),
+        "old request must still be held AFTER newer lease confirms"
+    );
     c.gate.release.notify_one();
     let old = first.await.unwrap();
     assert!(
