@@ -109,6 +109,7 @@ async fn fence(state: &AppState, runtime: &Runtime, user: &User, expected: &Auth
 }
 fn capability(name: &str, enabled: bool, reason: &str) -> Capability {
     Capability {
+        operation_retention: (name == "dashboard.actions").then(Default::default),
         name: name.into(),
         version: CapabilityVersion::V1,
         enabled,

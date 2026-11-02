@@ -549,8 +549,16 @@ async fn actual_http_separates_listeners_csrf_identity_binding_and_sensitive_err
         ))
         .await
         .unwrap();
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(
+        response
+            .headers()
+            .contains_key("aq-terminal-server-time-ms")
+    );
     let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let error: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    assert_eq!(error["code"], "invalid_request");
+    assert!(error["request_id"].is_string());
     assert!(!String::from_utf8_lossy(&bytes).contains("sentinel"));
     let register = serde_json::to_vec(&r).unwrap();
     assert_eq!(
