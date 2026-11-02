@@ -17,10 +17,14 @@ fn malformed() -> AppError {
     AppError::BadRequest("invalid phase preparation document".into())
 }
 impl Profile {
-    fn for_contract(contract: &ArtifactRef) -> Result<Self, AppError> {
-        if *contract == frozen::contract_artifact().map_err(|_| refused())? {
+    pub(super) fn for_contract(contract: &ArtifactRef) -> Result<Self, AppError> {
+        if *contract == frozen::contract_artifact().map_err(|_| refused())?
+            || *contract == frozen::long_contract_artifact().map_err(|_| refused())?
+        {
             Ok(Self::Frozen)
-        } else if *contract == refresh::contract_artifact().map_err(|_| refused())? {
+        } else if *contract == refresh::contract_artifact().map_err(|_| refused())?
+            || *contract == refresh::long_contract_artifact().map_err(|_| refused())?
+        {
             Ok(Self::Refresh)
         } else {
             Err(refused())
