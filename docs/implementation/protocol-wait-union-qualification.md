@@ -1,0 +1,9 @@
+# Preparation refresh, terminal and verified-wait composition
+
+Source `e428fdc` combines the reviewed aq-admission0.1.10 preparation-refresh contract, aq-phase-terminal-protocol0.1.1 and the new pure aq-wait-engine0.1.0. Existing admission and terminal artifacts remain frozen. Refresh selection retains original proposal identity, clocks and budgets while distinguishing actual accepted, preflight and current registry observations.
+
+The composed gate passed 140 tests: 96 admission, 27 terminal and 17 wait-engine cases. Offline locked metadata completed in 0.022s, package tests including compilation in 26.397s, and server library compilation in 44.248s. Exact logs, checksums and limits are retained in the [qualification record](evidence/protocol-wait-union-e428fdc/qualification.json).
+
+The wait reducer returns deterministic transition plans and validates restored state, source-generation boundaries and immutable outcomes. It creates no durable registration, scheduling hold or execution grant. Its [source audit](AQ-25-source-audit.json) and [durable-owner lock proposal](AQ-25-durable-owner-lock-proposal.md) define the next integration boundaries. AQ migration0038 is reserved for the internal durable wait owner; its implementation and qualification are pending.
+
+Server refresh consumers and worker physical launch remain separate qualification gates. The canonical dashboard stays on its accepted state37 binary; this source integration changes neither the running server nor the Graph service. Hibernation, retained parking and wake scheduling remain incomplete.

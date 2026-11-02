@@ -1,0 +1,34 @@
+{
+  "source_revision": "e428fdc",
+  "checks": [
+    {
+      "step": "metadata",
+      "returncode": 0,
+      "elapsed_seconds": 0.022
+    },
+    {
+      "step": "pure_packages",
+      "returncode": 0,
+      "elapsed_seconds": 26.397
+    },
+    {
+      "step": "server_library",
+      "returncode": 0,
+      "elapsed_seconds": 44.248
+    }
+  ],
+  "pure_tests": 140,
+  "pure_packages": {
+    "aq-admission": "0.1.10",
+    "aq-phase-terminal-protocol": "0.1.1",
+    "aq-wait-engine": "0.1.0"
+  },
+  "runtime_changed": false,
+  "canonical_state": 37,
+  "limits": [
+    "No server refresh-consumer activation or actual worker process qualification.",
+    "Wait engine emits plans only; no durable wait registration, scheduling hold or wake authority.",
+    "No AQ migration0038 executed.",
+    "No canonical Graph service change."
+  ]
+}

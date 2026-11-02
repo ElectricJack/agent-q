@@ -1,0 +1,17 @@
+[
+  {
+    "step": "metadata",
+    "returncode": 0,
+    "elapsed_seconds": 0.022
+  },
+  {
+    "step": "pure_packages",
+    "returncode": 0,
+    "elapsed_seconds": 26.397
+  },
+  {
+    "step": "server_library",
+    "returncode": 0,
+    "elapsed_seconds": 44.248
+  }
+]

@@ -1,0 +1,365 @@
+   Compiling uuid v1.29.0
+   Compiling schemars v1.2.3
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq-human-actions-union-v2/vendor/aq-session-protocol-0.1.0)
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/aq-human-actions-union-v2/vendor/aq-lifecycle-protocol-0.1.0)
+   Compiling aq-admission v0.1.10 (/tmp/aq-human-actions-union-v2/crates/aq-admission)
+   Compiling aq-lifecycle-api v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-lifecycle-api)
+   Compiling aq-wait-engine v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-wait-engine)
+   Compiling aq-phase-terminal-protocol v0.1.1 (/tmp/aq-human-actions-union-v2/crates/aq-phase-terminal-protocol)
+    Finished `test` profile [unoptimized] target(s) in 19.67s
+     Running unittests src/lib.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/aq_admission-d7d9bf75aeed8d1d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/common.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/common-b1633c6d94f30bc7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contracts.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/contracts-134c5d28dbdae332)
+
+running 7 tests
+test artifact_requires_real_matching_bytes_and_current_retention_metadata ... ok
+test material_bytes_and_receipts_are_exact_attempt_binding_not_presence_claims ... ok
+test mutations_reject_unknown_duplicate_nil_unbounded_and_wrong_versions ... ok
+test published_schema_and_fixtures_drift_test_packaged_artifacts ... ok
+test retained_role_and_byte_coverage_validates_against_resealed_public_offer ... ok
+test shipped_shared_offer_uses_exact_existing_launch_binding_bridge ... ok
+test source_requires_explicit_safe_ref_or_matching_immutable_object_and_freshness ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/control.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/control-b32514caf272ed3d)
+
+running 10 tests
+test frozen_six_source_and_publication_bytes_match_the_exact_archived_baseline ... ok
+test immutable_six_receipts_have_fresh_nonce_clocks_without_retiming_history ... ok
+test initial_revision_cannot_change_expiry_and_new_revision_extends_only_live_prior_permit ... ok
+test material_receipt_time_is_server_watermark_not_unqualified_worker_wall_clock ... ok
+test mismatched_original_owner_material_and_historical_clocks_never_get_positive_delivery ... ok
+test native_poll_refuses_scope_duplicate_cancellation_and_requested_limit_overflow ... ok
+test published_control_fixtures_schema_and_independent_hashes_do_not_drift ... ok
+test reconciliation_is_readonly_complete_scoped_and_cannot_hide_unknown_attempts ... ok
+test renewal_outlives_delivery_lease_only_for_exact_same_grant_owner_and_hard_deadline ... ok
+test typed_decode_rejects_nil_versions_scope_unknown_duplicates_and_oversized_bodies ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests/control_common.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/control_common-8bd32e7474d62cb9)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/execution_spec.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/execution_spec-19e9a890465ec3df)
+
+running 3 tests
+test publication_is_independent_and_decode_rejects_caller_secret_unknown_duplicate_fields ... ok
+test spec_observation_context_and_canonical_bytes_must_all_be_retained ... ok
+test typed_worker_artifact_is_digest_bound_without_a_manifest_cycle ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/granted_closure.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/granted_closure-3eb487c508c452d8)
+
+running 5 tests
+test actual_host_optional_shape_does_not_weaken_the_post_started_contract ... ok
+test frozen_017_source_and_artifacts_are_preserved ... ok
+test serialization_is_not_original_owner_or_current_authority ... ok
+test strict_decode_rejects_duplicates_floats_oversize_and_release_semantics ... ok
+test synthetic_fixtures_schemas_and_independent_vectors_do_not_drift ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests/granted_closure_common.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/granted_closure_common-2c0cc00f92bbb410)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/outcome.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/outcome-b21b2e913c4e65f6)
+
+running 6 tests
+test byte_limit_covers_canonical_definition_and_raw_input ... ok
+test changed_review_requirements_change_the_pinned_definition ... ok
+test fixture_matches_independent_python_canonical_vectors_and_public_schema ... ok
+test requirements_have_unique_ids_and_preserve_nonempty_bounded_text ... ok
+test resealing_does_not_allow_different_task_source_or_context ... ok
+test unknown_policy_shapes_and_approval_shortcuts_cannot_decode ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/placement.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/placement-0da33e1e31fc904b)
+
+running 5 tests
+test bounded_project_round_robin_preserves_priority_then_advances_cursor ... ok
+test oversized_head_does_not_hide_later_fit_and_resources_are_reserved_in_proposal ... ok
+test stable_ties_and_snapshot_bounds_are_explicit ... ok
+test stale_boot_capacity_candidate_and_duplicate_subjects_never_become_authority ... ok
+test warmth_is_only_after_eligibility_and_cold_nodes_can_prepare ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/preparation_refresh.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/preparation_refresh-c385a340d5528083)
+
+running 12 tests
+test actual_fact_revision_is_the_current_registry_and_not_a_restamped_original ... ok
+test actual_original_accepted_and_credential_associations_cannot_be_rehashed_away ... ok
+test all_known_registry_floors_reject_rollback_even_above_the_original_revision ... ok
+test canonical_signed64_registry_revisions_and_exact_owner_configuration_are_required ... ok
+test fresh_profile_never_extends_original_accepted_or_replayed_execution_deadlines ... ok
+test normative_schema_contract_and_facts_are_exact_and_never_claim_owner_authentication ... ok
+test principal_inventory_context_and_private_backing_pins_remain_mandatory ... ok
+test profile_negotiation_is_exact_from_proposal_and_never_upgrades_old_history ... ok
+test real_typed_refresh_chain_preserves_selected_pins_and_independent_phase_clocks ... ok
+test strict_new_wire_refuses_unknown_duplicate_oversized_or_wrong_family_documents ... ok
+test unavailable_cooldown_unknown_and_expired_facts_still_refuse_initial_execution ... ok
+test unrelated_observation_revision_advances_do_not_reselect_or_invalidate_configuration ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.57s
+
+     Running tests/preparation_refresh_common.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/preparation_refresh_common-fe3fc8ad3f913e18)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/preparation_v2.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/preparation_v2-c485d754cd0008d5)
+
+running 16 tests
+test acceptance_cannot_change_hold_request_or_retime_expired_proposal ... ok
+test accepted_phase_requires_explicit_new_worker_duration_bound ... ok
+test changed_current_choice_context_source_and_unknown_facts_deny_initial_confirmation ... ok
+test cold_preparation_and_execution_are_distinct_immutable_phases ... ok
+test exact_contract_and_complete_unique_features_are_mandatory ... ok
+test exact_qualified_018_source_and_artifacts_are_preserved ... ok
+test exact_unique_artifacts_and_linked_transfer_roles_refuse_substitution ... ok
+test generated_artifacts_and_independent_canonical_vectors_match ... ok
+test grant_issuance_must_be_inside_phase_and_current_budget ... ok
+test historical_receipt_does_not_become_live_from_expired_delivery ... ok
+test independent_execution_replay_never_extends_or_revives_old_sample ... ok
+test mandatory_owner_fact_set_hash_and_lifetime_are_bounded ... ok
+test original_artifact_retention_caps_accepted_preparation ... ok
+test serialization_and_decode_are_bounded_and_unknown_fields_refuse ... ok
+test structural_claims_are_not_authenticated_owner_truth ... ok
+test v2_decoder_never_falls_back_to_legacy_or_different_schema ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.39s
+
+     Running tests/preparation_v2_baseline.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/preparation_v2_baseline-3c260a1f750ed4cf)
+
+running 1 test
+test untouched_019_phase_wire_schema_pins_clocks_and_errors_stay_exact ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests/preparation_v2_common.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/preparation_v2_common-53e7f93528cef1fc)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/result_record.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/result_record-517aee7f34c7c768)
+
+running 3 tests
+test changed_report_and_foreign_owner_reference_never_reuse_ack ... ok
+test no_stop_unknown_fields_duplicate_ids_and_byte_overflow_refuse ... ok
+test recorded_ack_matches_independent_vectors_without_acceptance_authority ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/scoped_presence.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/scoped_presence-1d8553ad3cb27e0d)
+
+running 9 tests
+test actual_private_record_hash_links_exact_historical_installation_without_retrieval_extension ... ok
+test changed_private_binding_and_cross_boot_lease_receipt_refuse ... ok
+test decoders_reject_unknown_duplicate_fields_protocol_and_raw_size ... ok
+test inventory_has_only_explicit_provisionability_and_bounds_distinct_profiles ... ok
+test network_delay_cannot_turn_old_issuance_into_new_observation_age ... ok
+test positive_requires_live_local_permit_and_later_private_read_but_negative_never_grants ... ok
+test published_schemas_fixtures_and_private_record_have_independent_drift_checks ... ok
+test receipt_replay_pins_original_observation_and_scope_without_fresh_authority ... ok
+test references_are_bounded_by_actual_utf8_bytes_not_only_characters ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/scoped_presence_common.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/scoped_presence_common-c44aad44b792f025)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/spec_common.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/spec_common-840b345fea0bd9c1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/started.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/started-b32adadf4ae0a2a5)
+
+running 3 tests
+test public_artifacts_and_independent_python_canonical_vectors_match ... ok
+test receipt_is_exact_historical_ack_and_strict_boundaries_refuse_unsupported_input ... ok
+test started_identity_is_original_owner_bound_not_a_renewal_or_physical_stop ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/started_common.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/started_common-5060e4df00488edb)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/startup.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/startup-bbde2980e7e9944b)
+
+running 6 tests
+test byte_for_byte_native_payload_retains_constituents_without_duplicate_delivery ... ok
+test independently_hashed_published_payload_descriptor_and_schema_do_not_drift ... ok
+test missing_reordered_duplicate_or_extra_startup_inputs_refuse ... ok
+test one_launch_cannot_pin_two_alternative_native_startup_descriptors ... ok
+test overhead_overflow_payload_alias_unretained_and_unknown_fields_refuse ... ok
+test span_witness_checks_actual_constituent_bytes_and_descriptor_is_launch_bound ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/startup_common.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/startup_common-5469f1e1fe701541)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/stopped.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/stopped-1bd741560f40c733)
+
+running 4 tests
+test acknowledgement_is_historical_and_bound_to_the_original_request ... ok
+test exact_physical_owner_cannot_be_substituted_or_regressed ... ok
+test expired_stop_is_valid_but_unknown_or_digest_only_is_not_proof ... ok
+test public_schema_and_independent_canonical_vectors_match ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/task_lineage.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/task_lineage-5cc9854a082e0067)
+
+running 2 tests
+test independent_python_raw_uuid_vectors_are_stable ... ok
+test namespace_cannot_be_reset_by_attempt_and_nil_scope_refuses ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/transport.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/transport-beea1e8a8013f9b3)
+
+running 4 tests
+test exact_stop_replay_is_immutable_and_journal_order_is_launch_scoped ... ok
+test published_transport_replays_and_mutations_reject_duplicate_unknown_and_scope ... ok
+test roundtrip_budget_is_charged_and_replay_cannot_restart_ttl ... ok
+test stop_journal_requires_durable_closed_reservation_and_unknown_never_releases ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/aq_phase_terminal_protocol-9fb55c3b884ddb5b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/common.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/common-b058cd3ce650a852)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contracts.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/contracts-2af90037281a6f7d)
+
+running 12 tests
+test actual_phase_history_structural_linkage_and_historical_receipts ... ok
+test closure_direct_phase_checkpoint_both_suppression_and_real_stop_shapes ... ok
+test context_cannot_replace_server_prepared_with_worker_local_commit_or_digest ... ok
+test deterministic_published_schema_manifest_and_fixtures ... ok
+test historical_readback_checks_exact_variant_and_request ... ok
+test immutable_outer_identity_and_domain_separation ... ok
+test lost_first_execution_reply_lookup_needs_only_known_keys_no_live_clock ... ok
+test negotiation_unknown_duplicate_reordered_or_missing_features_refuse ... ok
+test origin_boot_generation_runtime_and_prepared_must_match_actual_history ... ok
+test published_invalid_documents_are_refused ... ok
+test stopped_rejects_false_echild_guardian_pane_and_changed_origin ... ok
+test strict_wire_inclusive_bound_unknown_keys_floats_and_duplicate_fields ... ok
+
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.91s
+
+     Running tests/frozen_artifact.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/frozen_artifact-1dc5d7bd40e64087)
+
+running 1 test
+test legacy_artifact_identity_remains_exactly_frozen ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/refresh_common.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/refresh_common-1284c81616652948)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/refresh_contracts.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/refresh_contracts-60663ae0df1be30f)
+
+running 14 tests
+test actual_phase_history_structural_linkage_and_historical_receipts ... ok
+test closure_direct_phase_checkpoint_both_suppression_and_real_stop_shapes ... ok
+test context_cannot_replace_server_prepared_with_worker_local_commit_or_digest ... ok
+test context_retains_all_four_real_registry_floors_and_new_receipt_identity ... ok
+test deterministic_published_schema_manifest_and_fixtures ... ok
+test historical_readback_checks_exact_variant_and_request ... ok
+test immutable_outer_identity_and_domain_separation ... ok
+test lost_first_execution_reply_lookup_needs_only_known_keys_no_live_clock ... ok
+test negotiation_unknown_duplicate_reordered_or_missing_features_refuse ... ok
+test origin_boot_generation_runtime_and_prepared_must_match_actual_history ... ok
+test published_invalid_documents_are_refused ... ok
+test refresh_contract_and_frozen_contract_cannot_impersonate_each_other ... ok
+test stopped_rejects_false_echild_guardian_pane_and_changed_origin ... ok
+test strict_wire_inclusive_bound_unknown_keys_floats_and_duplicate_fields ... ok
+
+test result: ok. 14 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.00s
+
+     Running unittests src/lib.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/aq_wait_engine-aa9d26eeafc6f268)
+
+running 17 tests
+test tests::allocated_later_commit_does_not_advance_safe_watermark_past_held_early_mutation ... ok
+test tests::any_all_use_declared_order_and_unavailable_is_never_evidenced_failure ... ok
+test tests::bounded_known_cycles_and_serialized_opposing_registration_refuse_without_global_claim ... ok
+test tests::bounded_restore_and_backpressure_refuse_malformed_or_duplicate_work ... ok
+test tests::cancellation_deadline_and_late_reply_races_preserve_one_immutable_outcome ... ok
+test tests::dirty_hint_during_held_round_is_not_lost_and_does_not_commit_stale_success ... ok
+test tests::early_resolution_never_skips_unconditional_reobserve_and_result_is_immutable ... ok
+test tests::internal_atomic_complete_reopen_is_not_success_but_two_commits_have_historical_evidence ... ok
+test tests::lost_install_reply_restart_reclaim_and_exact_request_replay_preserve_stable_identity_age ... ok
+test tests::owner_snapshot_and_aq_projection_digests_are_independent_verified_links ... ok
+test tests::resolution_during_install_and_with_no_hint_is_found_after_restart ... ok
+test tests::restored_unsupported_terminal_kinds_early_deadline_and_cancelled_resume_are_refused ... ok
+test tests::restored_work_cannot_skip_post_install_reobserve_or_contradict_terminal_member_history ... ok
+test tests::retention_gap_cannot_use_current_only_success_and_retryable_outage_keeps_last_freshness ... ok
+test tests::rollback_gap_is_settled_but_an_unqualified_max_allocated_claim_is_refused ... ok
+test tests::rollback_time_and_retry_exhaustion_never_reset_age_or_create_hot_polling ... ok
+test tests::source_scope_principal_incarnation_and_snapshot_proof_are_mandatory ... ok
+
+test result: ok. 17 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+   Doc-tests aq_admission
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aq_phase_terminal_protocol
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aq_wait_engine
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
