@@ -47,8 +47,7 @@ public service, tunnel, paid model or external provider.
 
 Before execution: qualify/freeze the composed fixture, independently review the
 paired source, verify every binary/package/profile pin and free-disk threshold,
-then obtain Root's bounded actual static-run authorization. No physical run has
-occurred for this new identity yet. Optional compiled browser tail inspection is
+then use Root's bounded actual static-run authorization. Optional compiled browser tail inspection is
 later, after the core actual accepted-output case is positive.
 
 Worker driver checks: six focused helper tests passed in 0.08s after 1.35s rebuild;
@@ -64,6 +63,8 @@ after the metadata-only correction). Its selected
 strict check passed in 2.80s after factoring the shared HTTP-status metadata type;
 the initial strict check found that one type-complexity lint. No wire, runtime,
 deadline, policy or observation behavior changed in that correction. The actual
-ignored static case has not run for this new profile identity.
+ignored static case subsequently ran once under the standing conditional
+authorization and failed at the existing output-attachment profile join; see
+[the preserved attempt](evidence/refresh-static-output-1139ced/README.md).
 The compiled artifact's filtered `--list` reports exactly the new ignored case;
 listing it executes no fixture setup or test body.

@@ -1,0 +1,20 @@
+{
+  "server_source": "1139ced2720b7d869fad258e3f2f5fe1f95a5e5e",
+  "worker_source": "06650543ad29db72573ac7775320008ccaed3c2e",
+  "pins": {
+    "/tmp/aq-refresh-server-pin-v1/native_initial_grant": "a70b536c33dcd9d3f0ed8fa1c4f23d7d9e00bcbdf4e806dd1eeaa4f27b49e335",
+    "/tmp/aq-refresh-worker-pin-v1/native-prepare-smoke": "d5811b1822de78d7c82606c4bf8bf2f60a05724214f3152cd0938f77dcdc0ca6",
+    "/tmp/aq-wrk08-git-pin/aq-git": "c2ff26f5e63008aec0fbd4082a547e87825e651d4aba0744c4b9fdf752d58c39",
+    "/usr/bin/git": "eb54b535467e0975c1284d4c4d08eea779aeb248a5d34b02e2ee171382e22201",
+    "/tmp/aq-named-owned-pin-v1/aq-session-host": "96aaafcc295b45e95accf67d06f9a90d5a1caf9dad09ebdd09034f7cf8ad9044",
+    "/tmp/aq-named-owned-pin-v1/tmux": "034b15c64035f783d43862f2775eb4828f61571ca62c8199796000b97d556ecd",
+    "/tmp/aq-native-tail-pin/aq-native-synthetic-harness": "fdbfbdc8e8a906019303aeec2a386b43d3f5862404f3448623f653585500f912"
+  },
+  "free_bytes": 13212872704,
+  "started_at_utc": "2026-11-02T01:16:45.727942+00:00",
+  "scope": "one actual static refresh Watch/upload/tail case; no Codex/provider/browser/canonical",
+  "original_preparation_ms": 30000,
+  "original_execution_lease_ms": 10000,
+  "maximum_observation_ms": 2000,
+  "health_maximum_age_ms": 5000
+}
