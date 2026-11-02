@@ -71,10 +71,17 @@ These server sources and fixtures are unchanged by this repair. Follow-up
 all migration assertions. Later workspace targets are not claimed to have run.
 The build also emits the example-name collisions already recorded by A4.
 
-## Publication constraint
+## Final synchronization
 
-The worker prime requires a final `git merge origin/dev`, but this repository
-has no `origin/dev`; its default remote branch is `origin/main`. At validation,
-`origin/main` is the repair's source base `cc7b74e`. The supervisor clarification
-request is `msg-5eec7c96c78540198e15a789e2458a9e`. Branch publication is a checkpoint;
-closure awaits that instruction, and no default-branch delivery is claimed.
+The repository's default remote branch is `origin/main`; `origin/dev` is absent.
+The final task branch merges `origin/main` at
+`e6babbafe807c311e508e1a7743cc6621da83117` in commit `076025e`.
+`aq git pull --branch main` completed without conflicts, and the subsequent
+`git merge origin/main` reported already up to date.
+
+After synchronization, `cargo test --locked -p aq-admission` passes all 98 tests
+again, with zero failures, ignored tests or filtered tests.
+[Post-merge log](evidence/admission-compat-eager-grove-45.12/admission-after-sync.log).
+The full workspace result above records the original repair validation; it was
+not repeated after merging the default branch. Default-branch delivery remains
+the integration owner's responsibility.
