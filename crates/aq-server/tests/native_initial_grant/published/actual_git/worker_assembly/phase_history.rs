@@ -1,6 +1,7 @@
 //! Withheld execution delivery and exact history checks through the worker router.
+use super::phase::wire as phase_wire;
+use super::phase_terminal::wire;
 use super::*;
-use aq_phase_terminal_protocol as wire;
 use axum::response::IntoResponse;
 use sqlx::Row;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -26,9 +27,9 @@ pub(super) fn withhold_first_success(routes: axum::Router) -> axum::Router {
 pub(super) async fn verify(
     case: &Case,
     result: &Value,
-    acceptance: &aq_admission::preparation_v2::AcceptRequest,
-    proposal: &aq_admission::preparation_v2::Proposal,
-    accepted: &aq_admission::preparation_v2::AcceptedDelivery,
+    acceptance: &phase_wire::AcceptRequest,
+    proposal: &phase_wire::Proposal,
+    accepted: &phase_wire::AcceptedDelivery,
     snapshot: &Value,
     hot: &Value,
 ) {
@@ -37,7 +38,7 @@ pub(super) async fn verify(
     let r: wire::HistoryReceipt =
         serde_json::from_value(result["history_receipt"].clone()).unwrap();
     r.validate_for(&q).unwrap();
-    let prepare: aq_admission::preparation_v2::PrepareRequest =
+    let prepare: phase_wire::PrepareRequest =
         serde_json::from_value(result["prepare_request"].clone()).unwrap();
     assert_eq!(q.binding, prepare.original.binding);
     assert_eq!(q.prepare_operation_id, prepare.original.operation_id);
@@ -47,7 +48,7 @@ pub(super) async fn verify(
     );
     let row = sqlx::query("SELECT receipt_bytes,receipt_digest FROM profiled_phase_execution_grants WHERE attempt_id=$1")
         .bind(q.binding.attempt_id).fetch_one(&case.env.env.pool).await.unwrap();
-    let execution: aq_admission::preparation_v2::ExecutionReceipt =
+    let execution: phase_wire::ExecutionReceipt =
         serde_json::from_slice(&row.get::<Vec<u8>, _>("receipt_bytes")).unwrap();
     execution
         .validate_for(&prepare, &accepted.receipt, acceptance, proposal)
@@ -69,7 +70,7 @@ pub(super) async fn verify(
     assert_eq!(identity.prepared.digest, prepare.original.journal_digest);
     assert_eq!(hot["status"], "granted");
     let attempt = &snapshot["state"]["attempts"][q.binding.attempt_id.to_string()];
-    assert!(attempt["phase_execution"].is_null() && attempt["native_host"].is_null());
+    assert!(attempt[phase::EXECUTION].is_null() && attempt["native_host"].is_null());
     assert_eq!(result["history_revision"], result["prepared_revision"]);
     assert_eq!(snapshot["state"]["revision"], result["prepared_revision"]);
     for absent in [

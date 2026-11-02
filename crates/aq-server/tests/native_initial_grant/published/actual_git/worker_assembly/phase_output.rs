@@ -47,11 +47,7 @@ pub(super) fn record_upload(
 
 /// Bounded metadata only: never dump a refusal error chain, stdin config,
 /// credential, material body or arbitrary journal field.
-pub(super) fn refusal_diagnostics(
-    root: &std::path::Path,
-    frame: &Value,
-    statuses: &Arc<std::sync::Mutex<Vec<(String, u16, u128)>>>,
-) {
+pub(super) fn refusal_diagnostics(root: &std::path::Path, frame: &Value, statuses: &HttpStatuses) {
     let snapshot = std::fs::read(root.join("journal/journal.json"))
         .ok()
         .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok());
@@ -67,18 +63,18 @@ pub(super) fn refusal_diagnostics(
             "stage":frame.get("stage").and_then(Value::as_str),
             "http_statuses":*statuses.lock().unwrap(),
             "journal_revision":snapshot.as_ref().and_then(|v|v["state"]["revision"].as_u64()),
-            "execution_deadline_ns":attempt.and_then(|a|a["phase_execution"]["deadline_ns"].as_u64()),
+            "execution_deadline_ns":attempt.and_then(|a|a[phase::EXECUTION]["deadline_ns"].as_u64()),
         "reserved_at_ns":attempt.and_then(|a|a["reservation"]["reserved_at_ns"].as_u64()),
         "reservation_deadline_ns":attempt.and_then(|a|a["reservation"]["deadline_ns"].as_u64()),
-        "phase_accept_created_ns":attempt.and_then(|a|a["phase_acceptance"]["created_ns"].as_u64()),
-        "phase_accept_original_deadline_ns":attempt.and_then(|a|a["phase_acceptance"]["original_deadline_ns"].as_u64()),
-        "phase_accept_reservation_remaining_ms":attempt.and_then(|a|a["phase_acceptance"]["request"]["original"]["reservation_remaining_ms"].as_u64()),
+        "phase_accept_created_ns":attempt.and_then(|a|a[phase::ACCEPTANCE]["created_ns"].as_u64()),
+        "phase_accept_original_deadline_ns":attempt.and_then(|a|a[phase::ACCEPTANCE]["original_deadline_ns"].as_u64()),
+        "phase_accept_reservation_remaining_ms":attempt.and_then(|a|a[phase::ACCEPTANCE]["request"]["original"]["reservation_remaining_ms"].as_u64()),
             "baseline":host.is_some_and(|h|h["baseline"].is_object()),
             "running":host.is_some_and(|h|h["running"].is_object()),
             "stopped":host.is_some_and(|h|h["stopped"].is_object()),
             "kernel_wait_echild":host.and_then(|h|h["stopped"]["observation"]["kernel_wait_echild"].as_bool()),
-            "started_ack":host.is_some_and(|h|h["terminal"]["started"]["receipt"].is_object()),
-            "stopped_ack":host.is_some_and(|h|h["terminal"]["stopped"]["receipt"].is_object())
+            "started_ack":host.is_some_and(|h|h[phase::HOST_TERMINAL]["started"]["receipt"].is_object()),
+            "stopped_ack":host.is_some_and(|h|h[phase::HOST_TERMINAL]["stopped"]["receipt"].is_object())
         })
     );
 }
