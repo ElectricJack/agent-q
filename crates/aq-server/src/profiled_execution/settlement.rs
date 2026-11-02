@@ -1,7 +1,10 @@
-//! AQ-10 source inspection and finite eligibility planning, never admission.
-//!
-//! No route, database write, release, Graph command, capability or scheduler is
-//! installed here. The absent applicability/effect-disposition owners remain
-//! explicitly unavailable. A plan cannot clear a task claim or mint authority.
+//! Actual finite settlement owners and data-only eligibility evaluation.
+//! No router, scheduler or public capability is enabled by module registration.
+//! Schema39 and positive owner qualification remain explicit rollout gates.
 pub mod effects;
 pub mod eligibility;
+
+mod completion;
+mod owner;
+pub use completion::{CompletionReceipt, CompletionStatus};
+pub use owner::{EvaluateRequest, EvaluationDisposition, EvaluationReceipt, Service};

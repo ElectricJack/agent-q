@@ -20,7 +20,8 @@ pub enum Disposition {
     Stale,
     NeedsReconciliation,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum Reason {
     UnsupportedPolicy,
     UnsupportedOutcome,
@@ -32,6 +33,7 @@ pub enum Reason {
     ReviewMismatch,
     AqEffectsUnavailable,
     AqEffectsUnsettled,
+    DeclaredEffectsPending,
     ExternalDispositionUnavailable,
     ExternalDispositionMismatch,
     ApplicabilityUnavailable,
@@ -93,6 +95,17 @@ pub struct VerifiedReviewEvidence {
     approved: bool,
 }
 impl VerifiedReviewEvidence {
+    pub(super) fn from_combined(
+        fact: &crate::reviews::combined::VerifiedCombinedDecision,
+    ) -> Result<Self, AppError> {
+        let subject = fact.subject();
+        Ok(Self {
+            subject: subject.code.clone(),
+            receipt: fact.receipt().artifact().map_err(|_| AppError::Internal)?,
+            combined_subject: Some(subject.artifact()?),
+            approved: true,
+        })
+    }
     pub async fn read_locked(
         state: &crate::AppState,
         service: &crate::reviews::Service,
@@ -145,8 +158,7 @@ impl VerifiedReviewEvidence {
     }
 }
 
-/// No positive production constructor exists before the separate authenticated
-/// effect-disposition owner is implemented. In particular a code-review Approve,
+/// The protected combined-decision owner supplies this product. A code-only Approve,
 /// an empty worker pending list, or shell success cannot construct this evidence.
 pub struct VerifiedEffectDisposition {
     report: ArtifactRef,
@@ -157,14 +169,41 @@ pub struct VerifiedEffectDisposition {
     receipt: ArtifactRef,
     combined_subject: Option<ArtifactRef>,
 }
-/// No positive production constructor exists until the current Graph/project/
-/// input owner joins are implemented. A caller bool or historical DTO is not an
+impl VerifiedEffectDisposition {
+    pub(super) fn from_combined(
+        fact: &crate::reviews::combined::VerifiedCombinedDecision,
+        source: &RecordedSourceConfirmation,
+    ) -> Result<Self, AppError> {
+        let s = fact.subject();
+        Ok(Self {
+            report: s.code.result.record_receipt.clone(),
+            stopped: s.code.result.stopped_receipt.clone(),
+            source: source_digest(source)?,
+            ledger: s.aq_ledger.digest.clone(),
+            policy: s.code.validation_policy.clone(),
+            receipt: fact.receipt().artifact().map_err(|_| AppError::Internal)?,
+            combined_subject: Some(s.artifact()?),
+        })
+    }
+}
+/// The actual current Graph/project/input owner supplies this product.
+/// A caller bool or historical DTO is not an
 /// applicability observation. The future owner must serialize cancellation.
 pub struct CurrentApplicability {
     report: ArtifactRef,
     source: Digest,
     cancelled: bool,
     changed: bool,
+}
+impl CurrentApplicability {
+    pub(super) fn from_owner(fact: &super::applicability::VerifiedApplicability) -> Self {
+        Self {
+            report: fact.report().clone(),
+            source: fact.source().clone(),
+            cancelled: fact.cancelled(),
+            changed: false,
+        }
+    }
 }
 
 /// Missing owners are represented by None, never success-shaped placeholders.
@@ -307,6 +346,15 @@ pub fn evaluate_pilot(
     };
     if aq.disposition() != LedgerDisposition::Settled {
         return plan(Disposition::NeedsReconciliation, Reason::AqEffectsUnsettled);
+    }
+    // The exhaustive ledger is authoritative, but a still-pending worker claim
+    // is not silently dropped. This finite pilot requires a corrected report
+    // after those claimed effects have actually settled; empty is not proof.
+    if !result.report.pending_effect_ids.is_empty() {
+        return plan(
+            Disposition::NeedsReconciliation,
+            Reason::DeclaredEffectsPending,
+        );
     }
     let Some(external) = evidence.external_effects else {
         return plan(

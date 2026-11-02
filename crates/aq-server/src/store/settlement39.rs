@@ -1,0 +1,55 @@
+//! Full composed39 attestation, including unchanged result38 origin predicates.
+use super::{Result, StoreError, result38};
+use sqlx::{Postgres, Row, Transaction};
+fn corrupt() -> StoreError {
+    StoreError::Corrupt("settlement39 schema, bounds or retained owner joins inconsistent".into())
+}
+pub(super) async fn validate(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
+    let expected: serde_json::Value =
+        serde_json::from_str(include_str!("settlement39_catalog.json")).map_err(|_| corrupt())?;
+    if expected.as_array().is_none_or(Vec::is_empty) {
+        return Err(corrupt());
+    }
+    let actual: serde_json::Value = sqlx::query_scalar(include_str!("settlement39_catalog.sql"))
+        .fetch_one(&mut **tx)
+        .await?;
+    if actual != expected {
+        return Err(corrupt());
+    }
+    result38::validate_data(tx).await?;
+    let valid: bool = sqlx::query_scalar(include_str!("settlement39_data.sql"))
+        .fetch_one(&mut **tx)
+        .await?;
+    if !valid {
+        return Err(corrupt());
+    }
+    // Finite global reservation caps this read at341*128KiB. Bound metadata
+    // BEFORE fetching retained JSON; never silently repair or hash only a prefix.
+    let size:(i64,i64)=sqlx::query_as("SELECT count(*),COALESCE(sum(octet_length(request::text)+octet_length(receipt::text)+octet_length(evidence::text)),0)::BIGINT FROM profiled_settlement_evaluations").fetch_one(&mut **tx).await?;
+    if size.0 > 341 || size.1 > 67108864 {
+        return Err(corrupt());
+    }
+    let rows=sqlx::query("SELECT request,request_digest,receipt,receipt_digest,evidence FROM profiled_settlement_evaluations ORDER BY operation_id LIMIT 342").fetch_all(&mut **tx).await?;
+    if rows.len() != size.0 as usize {
+        return Err(corrupt());
+    }
+    for row in rows {
+        for (body, digest) in [("request", "request_digest"), ("receipt", "receipt_digest")] {
+            let value: serde_json::Value = row.get(body);
+            let mut value = value;
+            value.sort_all_objects();
+            let bytes = serde_json::to_vec(&value).map_err(|_| corrupt())?;
+            if aq_admission::Digest::of(&bytes).as_str() != row.get::<String, _>(digest) {
+                return Err(corrupt());
+            }
+        }
+        let request: crate::profiled_execution::settlement::EvaluateRequest =
+            serde_json::from_value(row.get("request")).map_err(|_| corrupt())?;
+        let receipt: crate::profiled_execution::settlement::EvaluationReceipt =
+            serde_json::from_value(row.get("receipt")).map_err(|_| corrupt())?;
+        if request.operation_id != receipt.operation_id || request.subject != receipt.subject {
+            return Err(corrupt());
+        }
+    }
+    Ok(())
+}

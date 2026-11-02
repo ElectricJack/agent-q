@@ -21,12 +21,16 @@ fn pin(id: &str, bytes: &[u8]) -> ArtifactRef {
 }
 impl Synthetic {
     fn new() -> Self {
+        Self::new_outcome(aq_admission::transport::ProcessOutcome::Success)
+    }
+    fn new_outcome(process: aq_admission::transport::ProcessOutcome) -> Self {
         let record: Value = serde_json::from_str(include_str!(
             "../../../../aq-review-protocol/artifacts/upstream-result-record-v1.fixture.json"
         ))
         .unwrap();
         let mut report: aq_admission::transport::ResultReport =
             serde_json::from_value(record["report"].clone()).unwrap();
+        report.outcome = process;
         let mut receipt: aq_admission::result_record::Receipt =
             serde_json::from_value(record["receipt"].clone()).unwrap();
         let body =
@@ -254,6 +258,21 @@ impl Synthetic {
             .unwrap()
             .reason
     }
+}
+
+#[test]
+fn synthetic_unknown_process_outcome_still_requires_real_independent_settlement_bases() {
+    let f = Synthetic::new_outcome(aq_admission::transport::ProcessOutcome::Unknown);
+    f.result.receipt.validate_for(&f.result.report).unwrap();
+    assert_eq!(f.reason(), None);
+    let mut evidence = f.evidence();
+    evidence.external_effects = None;
+    assert_eq!(
+        evaluate_pilot(&f.result, &f.source, &evidence)
+            .unwrap()
+            .reason,
+        Some(Reason::ExternalDispositionUnavailable)
+    );
 }
 
 #[test]

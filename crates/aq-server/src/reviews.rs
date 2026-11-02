@@ -14,9 +14,12 @@ use serde_json::json;
 use sqlx::{Postgres, Row, Transaction};
 use std::sync::Arc;
 use uuid::Uuid;
+pub mod combined;
 mod inbox;
+mod subject_owner;
 pub use inbox::schema as inbox_contract_schema;
 pub use inbox::{InboxItem, InboxPage, InboxQuery, InboxState};
+use subject_owner::{Profile as SubjectProfile, Subject as OwnedSubject};
 
 type Result<T> = std::result::Result<T, AppError>;
 fn db(_: sqlx::Error) -> AppError {
@@ -174,8 +177,24 @@ impl Service {
         prepared: &PreparedReview,
         request: &DecisionRequest,
     ) -> Result<()> {
+        self.admit_subject_in_tx(tx, actor, prepared, request, None, None)
+            .await
+    }
+    async fn admit_subject_in_tx(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        actor: Uuid,
+        prepared: &PreparedReview,
+        request: &DecisionRequest,
+        combined: Option<&combined::CombinedSubject>,
+        principal: Option<&crate::profiled_execution::settlement::actor::ActorPin>,
+    ) -> Result<()> {
         request.validate().map_err(|_| invalid())?;
-        if request.subject != prepared.subject.artifact().map_err(|_| invalid())? {
+        let wanted = match combined {
+            Some(s) => OwnedSubject::SourceAndEffects(s.clone()),
+            None => OwnedSubject::Code(prepared.subject.clone()),
+        };
+        if request.subject != wanted.artifact()? {
             return Err(conflict());
         }
         let digest = hash(request)?;
@@ -188,10 +207,25 @@ impl Service {
         let source =
             crate::source_retention::load_confirmed_locked(tx, prepared.source_operation, &result)
                 .await?;
-        let exact = subject(&result, &source)?;
-        if exact != prepared.subject {
+        let code = subject(&result, &source)?;
+        if code != prepared.subject {
             return Err(conflict());
         }
+        let exact = if let Some(combined) = combined {
+            combined.validate()?;
+            let ledger = crate::profiled_execution::settlement::effects::inspect_aq_effects_locked(
+                &self.state,
+                tx,
+                &result,
+            )
+            .await?;
+            if combined.code != code || !combined.matches_ledger(&result, &ledger) {
+                return Err(conflict());
+            }
+            OwnedSubject::SourceAndEffects(combined.clone())
+        } else {
+            OwnedSubject::Code(code)
+        };
         let subject_digest = exact
             .artifact()
             .map_err(|_| invalid())?
@@ -218,12 +252,24 @@ impl Service {
                 return Err(conflict());
             }
             Self::owner(tx, actor).await?;
+            if let Some(pin) = principal {
+                if pin.id() != actor {
+                    return Err(forbidden());
+                }
+                pin.fence(tx).await?;
+            }
             return Ok(());
         }
         if !result.is_current_report_head {
             return Err(conflict());
         }
         Self::owner(tx, actor).await?;
+        if let Some(pin) = principal {
+            if pin.id() != actor {
+                return Err(forbidden());
+            }
+            pin.fence(tx).await?;
+        }
         // Stable sorted order avoids inversions when eligible sets overlap.
         let mut owners = request.eligible_owners.clone();
         owners.sort();
@@ -249,10 +295,19 @@ impl Service {
             .map_err(db)?;
         let used:i64=sqlx::query_scalar("SELECT retained_operations FROM review_lineage_budget WHERE project_id=$1 AND workspace_id=$2 AND task_id=$3 FOR UPDATE").bind(exact.project_id).bind(exact.task.workspace_id).bind(exact.task.task_id).fetch_one(&mut **tx).await.map_err(db)?;
         if let Some(ref row) = existing
-            && (self.decode::<ReviewSubject>("subject", &subject_digest, row)? != exact
+            && (encode(&self.decode_subject(&subject_digest, row)?)? != encode(&exact)?
                 || row.get::<i64, _>("decision_count") >= 16)
         {
             return Err(conflict());
+        }
+        if exact.profile() == SubjectProfile::SourceAndEffects {
+            let questions: i64 = sqlx::query_scalar("SELECT count(*) FROM human_decision_requests d JOIN review_subjects s USING(subject_digest) JOIN profiled_result_reports r ON r.report_id=s.report_id WHERE r.attempt_id=$1 AND s.subject_profile='source_and_effects_review_v1'")
+                .bind(exact.binding.attempt_id).fetch_one(&mut **tx).await.map_err(db)?;
+            if questions >= 16 {
+                return Err(AppError::PayloadTooLarge(
+                    "combined review attempt quota exhausted".into(),
+                ));
+            }
         }
         // Reserve final receipt+outbox envelope capacity at initial admission;
         // finality never needs to exceed the retained global payload budget.
@@ -275,9 +330,20 @@ impl Service {
                 "review retained budget exhausted".into(),
             ));
         }
+        if exact.profile() == SubjectProfile::SourceAndEffects {
+            sqlx::query("SELECT set_config('aq.settlement_owner','aq.settlement-owner.1',true)")
+                .execute(&mut **tx)
+                .await
+                .map_err(db)?;
+        }
         if existing.is_none() {
-            let s = self.seal("subject", &subject_digest, &subject_body)?;
-            sqlx::query("INSERT INTO review_subjects(subject_digest,report_id,project_id,workspace_id,task_id,sealed_version,key_id,nonce,ciphertext) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)").bind(&subject_digest).bind(prepared.report_id).bind(exact.project_id).bind(exact.task.workspace_id).bind(exact.task.task_id).bind(s.version as i32).bind(s.key_id).bind(s.nonce).bind(s.ciphertext).execute(&mut **tx).await.map_err(db)?;
+            let aad_kind = if exact.profile() == SubjectProfile::Code {
+                "subject"
+            } else {
+                "combined-subject"
+            };
+            let s = self.seal(aad_kind, &subject_digest, &subject_body)?;
+            sqlx::query("INSERT INTO review_subjects(subject_digest,report_id,project_id,workspace_id,task_id,sealed_version,key_id,nonce,ciphertext,subject_profile) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)").bind(&subject_digest).bind(prepared.report_id).bind(exact.project_id).bind(exact.task.workspace_id).bind(exact.task.task_id).bind(s.version as i32).bind(s.key_id).bind(s.nonce).bind(s.ciphertext).bind(exact.profile().name()).execute(&mut **tx).await.map_err(db)?;
         }
         sqlx::query(
             "UPDATE review_subjects SET decision_count=decision_count+1 WHERE subject_digest=$1",
@@ -296,6 +362,17 @@ impl Service {
     /// project revision and current eligible owner after lock waits. Exact old
     /// receipt replay never creates a new vote or restamps current authority.
     pub async fn resolve(&self, actor: Uuid, answer: &ResolveRequest) -> Result<DecisionReceipt> {
+        self.resolve_subject(actor, answer, SubjectProfile::Code, None, None)
+            .await
+    }
+    async fn resolve_subject(
+        &self,
+        actor: Uuid,
+        answer: &ResolveRequest,
+        profile: SubjectProfile,
+        expected_subject: Option<&ArtifactRef>,
+        principal: Option<&crate::profiled_execution::settlement::actor::ActorPin>,
+    ) -> Result<DecisionReceipt> {
         answer.validate().map_err(|_| invalid())?;
         let answer_digest = hash(&json!({"actor":actor,"answer":answer}))?;
         let mut tx = self.tx().await?;
@@ -315,7 +392,13 @@ impl Service {
                 .fetch_one(&mut *tx)
                 .await
                 .map_err(db)?;
-        let subject: ReviewSubject = self.decode("subject", &subject_digest, &subject_row)?;
+        let subject = self.decode_subject(&subject_digest, &subject_row)?;
+        if subject.profile() != profile
+            || expected_subject
+                .is_some_and(|expected| subject.artifact().as_ref().ok() != Some(expected))
+        {
+            return Err(forbidden());
+        }
         if subject
             .artifact()
             .map_err(|_| AppError::Internal)?
@@ -360,6 +443,12 @@ impl Service {
                 return Err(AppError::Internal);
             }
             Self::owner(&mut tx, actor).await?;
+            if let Some(pin) = principal {
+                if pin.id() != actor {
+                    return Err(forbidden());
+                }
+                pin.fence(&mut tx).await?;
+            }
             tx.commit().await.map_err(db)?;
             return Ok(receipt);
         }
@@ -373,7 +462,16 @@ impl Service {
         if !request.eligible_owners.contains(&actor) {
             return Err(forbidden());
         }
+        if answer.choice == Choice::Approve && !subject.may_approve() {
+            return Err(conflict());
+        }
         Self::owner(&mut tx, actor).await?;
+        if let Some(pin) = principal {
+            if pin.id() != actor {
+                return Err(forbidden());
+            }
+            pin.fence(&mut tx).await?;
+        }
         self.project(&mut tx, &subject, request.eligibility_project_revision)
             .await?;
         let at = now(&self.state)?;
@@ -408,7 +506,18 @@ impl Service {
             &answer.decision_id.to_string(),
             &encode(&receipt)?,
         )?;
-        sqlx::query("INSERT INTO human_decision_finality(decision_id,actor_id,operation_id,request_digest,receipt_digest,sealed_version,key_id,nonce,ciphertext) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)").bind(answer.decision_id).bind(actor).bind(answer.operation_id).bind(answer_digest).bind(&receipt_digest).bind(s.version as i32).bind(s.key_id).bind(s.nonce).bind(s.ciphertext).execute(&mut *tx).await.map_err(db)?;
+        if profile == SubjectProfile::SourceAndEffects {
+            sqlx::query("SELECT set_config('aq.settlement_owner','aq.settlement-owner.1',true)")
+                .execute(&mut *tx)
+                .await
+                .map_err(db)?;
+        }
+        let combined_actor = if profile == SubjectProfile::SourceAndEffects {
+            Some(principal.ok_or_else(forbidden)?)
+        } else {
+            None
+        };
+        sqlx::query("INSERT INTO human_decision_finality(decision_id,actor_id,operation_id,request_digest,receipt_digest,sealed_version,key_id,nonce,ciphertext,combined_actor_digest,combined_actor_revision) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)").bind(answer.decision_id).bind(actor).bind(answer.operation_id).bind(answer_digest).bind(&receipt_digest).bind(s.version as i32).bind(s.key_id).bind(s.nonce).bind(s.ciphertext).bind(combined_actor.map(|p|p.identity_digest()).transpose()?).bind(combined_actor.map(|p|p.revision())).execute(&mut *tx).await.map_err(db)?;
         let event = json!({"decision":answer.decision_id.to_string(),"outcome":match answer.choice {Choice::Approve=>"approved",Choice::Reject=>"rejected"},"output":{"receipt":receipt.artifact().map_err(|_|AppError::Internal)?,"subject":request.subject}});
         let s = self.seal("outbox", &answer.decision_id.to_string(), &encode(&event)?)?;
         sqlx::query("INSERT INTO review_owner_outbox(event_id,decision_id,producer,receipt_digest,sealed_version,key_id,nonce,ciphertext) VALUES($1,$1,'aq.human.decisions@1',$2,$3,$4,$5,$6)").bind(answer.decision_id).bind(receipt_digest).bind(s.version as i32).bind(s.key_id).bind(s.nonce).bind(s.ciphertext).execute(&mut *tx).await.map_err(db)?;
@@ -484,7 +593,7 @@ impl Service {
             .fetch_one(&mut **tx)
             .await
             .map_err(db)?;
-        let subject: ReviewSubject = self.decode("subject", &subject_digest, &sr)?;
+        let subject = self.decode_subject(&subject_digest, &sr)?;
         if subject.result.report_id != report_id
             || subject.result.record_receipt != result.receipt_artifact
             || subject
@@ -577,6 +686,16 @@ impl Service {
         Ok(receipt)
     }
     pub async fn inspect(&self, actor: Uuid, decision: Uuid) -> Result<serde_json::Value> {
+        self.inspect_subject(actor, decision, SubjectProfile::Code, None)
+            .await
+    }
+    async fn inspect_subject(
+        &self,
+        actor: Uuid,
+        decision: Uuid,
+        profile: SubjectProfile,
+        principal: Option<&crate::profiled_execution::settlement::actor::ActorPin>,
+    ) -> Result<serde_json::Value> {
         let mut tx = self.tx().await?;
         let ids=sqlx::query("SELECT s.report_id,s.subject_digest FROM human_decision_requests d JOIN review_subjects s USING(subject_digest) WHERE d.decision_id=$1").bind(decision).fetch_optional(&mut *tx).await.map_err(db)?.ok_or_else(forbidden)?;
         let report_id: Uuid = ids.get("report_id");
@@ -589,7 +708,10 @@ impl Service {
             .fetch_one(&mut *tx)
             .await
             .map_err(db)?;
-        let subject: ReviewSubject = self.decode("subject", &subject_digest, &sr)?;
+        let subject = self.decode_subject(&subject_digest, &sr)?;
+        if subject.profile() != profile {
+            return Err(forbidden());
+        }
         let row =
             sqlx::query("SELECT * FROM human_decision_requests WHERE decision_id=$1 FOR SHARE")
                 .bind(decision)
@@ -609,6 +731,12 @@ impl Service {
             return Err(forbidden());
         }
         Self::owner(&mut tx, actor).await?;
+        if let Some(pin) = principal {
+            if pin.id() != actor {
+                return Err(forbidden());
+            }
+            pin.fence(&mut tx).await?;
+        }
         let finality =
             sqlx::query("SELECT * FROM human_decision_finality WHERE decision_id=$1 FOR SHARE")
                 .bind(decision)
@@ -648,6 +776,17 @@ impl Service {
         tx: &mut Transaction<'_, Postgres>,
         decision: Uuid,
     ) -> Result<(ReviewSubject, serde_json::Value)> {
+        let (subject, event, _) = self.completion_subject_in_tx(tx, decision).await?;
+        match subject {
+            OwnedSubject::Code(subject) => Ok((subject, event)),
+            _ => Err(conflict()),
+        }
+    }
+    async fn completion_subject_in_tx(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        decision: Uuid,
+    ) -> Result<(OwnedSubject, serde_json::Value, DecisionReceipt)> {
         let row =
             sqlx::query("SELECT * FROM human_decision_requests WHERE decision_id=$1 FOR SHARE")
                 .bind(decision)
@@ -667,8 +806,7 @@ impl Service {
             .fetch_one(&mut **tx)
             .await
             .map_err(db)?;
-        let subject: ReviewSubject =
-            self.decode("subject", request.subject.digest.as_str(), &sr)?;
+        let subject = self.decode_subject(request.subject.digest.as_str(), &sr)?;
         if subject.artifact().map_err(|_| AppError::Internal)? != request.subject {
             return Err(AppError::Internal);
         }
@@ -712,7 +850,7 @@ impl Service {
         {
             return Err(AppError::Internal);
         }
-        Ok((subject, event))
+        Ok((subject, event, receipt))
     }
     async fn project(
         &self,
@@ -742,7 +880,7 @@ impl Service {
         Ok(())
     }
 }
-fn subject(
+pub(crate) fn subject(
     result: &crate::profiled_execution::results::RecordedResult,
     source: &crate::source_retention::RecordedSourceConfirmation,
 ) -> Result<ReviewSubject> {

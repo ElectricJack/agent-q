@@ -267,6 +267,7 @@ const MIGRATIONS: &[(i32, &str)] = &[
         38,
         include_str!("../migrations/0038_profiled_result_origins.sql"),
     ),
+    (39, include_str!("../migrations/0039_pilot_settlement.sql")),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -444,8 +445,11 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
     if supported >= 37 {
         central37::central37_storage_guard(&mut tx).await?;
     }
-    if supported >= 38 {
+    if supported == 38 {
         result38::validate(&mut tx).await?;
+    }
+    if supported >= 39 {
+        settlement39::validate(&mut tx).await?;
     }
     tx.commit().await?;
     Ok(())
@@ -1007,3 +1011,9 @@ mod result38;
 #[cfg(test)]
 #[path = "store/result38_tests.rs"]
 mod result38_tests;
+
+#[path = "store/settlement39.rs"]
+mod settlement39;
+#[cfg(test)]
+#[path = "store/settlement39_tests.rs"]
+mod settlement39_tests;

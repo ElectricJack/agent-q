@@ -1,8 +1,11 @@
 # AQ-10 first-pilot settlement owner
 
-Status: proposal for Root review, after execution result-origin migration38.
-Number39 is reserved; no DDL, route, release or Graph completion is implemented
-by this document. The current source increment is finite eligibility planning and
+Status: authorized internal owner39 source candidate; qualification pending.
+Main migration39 is allocated to this owner after execution result-origin38.
+The source draft now includes actual combined-review, live applicability, finite
+evaluation/release and dedicated completion ports. No route is mounted, SQL39 is
+not yet qualified/applied, and this document does not itself establish completion.
+The independently qualified first increment is finite eligibility planning and
 read-only AQ effect-ledger inspection. It cannot emit an execution grant or clear
 a task claim. Architecture0002 sections5–7 and AQ-10-result-settlement-plan remain
 normative. The physical runner, B1 recording and this settlement owner are distinct.
@@ -15,6 +18,13 @@ validation-policy definition must declare
 `source_change_reviewed_human_owner_no_checks_v1`; unknown policy bodies, policy
 actors and nonempty check requirements refuse. No check execution is invented.
 
+Reported process outcome is advisory. In particular `unknown` is supported when
+the actual bounded completion claim, known physical stop, retained source,
+criteria/review/effect/applicability owners all satisfy policy. The tmux server's
+wait status is not a harness pane exit code; never manufacture ProcessSuccess
+from it. Task cancellation or unknown physical writers still refuse. No process
+outcome by itself establishes task success.
+
 The complete admitted mutable Graph input set must be exactly the task itself:
 one task node, no relationships/dependencies, no other mutable context records.
 Do not trim context to satisfy this rule. Additional inputs must be actual
@@ -22,6 +32,11 @@ immutable content-addressed source/catalog artifacts. Broader tasks refuse until
 Graph can atomically assert all their required input revisions. Completing the
 task with its ORIGINAL expected CAS version then fences the whole supported
 mutable set; no no-op writes or read-new-version overwrite are required.
+The selected input policy does not require neighboring records: structural
+dependency/parent changes checkpoint the task, while incoming nonstructural
+citations are not required inputs. Initial/current context is observed complete
+without trimming; task CAS does not atomically prove forever-zero arbitrary
+incoming edges. Policies requiring that stronger absence predicate refuse.
 
 The code review pins the exact retained resulting commit and import artifact,
 report/stop/outcome/spec/context/task/project/policy references. A commit's Git
@@ -45,7 +60,9 @@ capabilities and disables messaging. Still query the actual indexed mailbox
 sender namespace derived from its exact frozen binding. Any retained mail
 operation or messaging capability refuses this pilot; it is not silently omitted.
 The report's `pending_effect_ids` is a claim to reconcile, never a complete
-inventory. Database reads, message delivery, and independent later owner actions
+inventory. A nonempty still-pending claim refuses this finite pilot until a
+corrected report follows actual reconciliation; empty alone still proves nothing.
+Database reads, message delivery, and independent later owner actions
 are not relabeled as Graph mutation absence.
 
 This ledger establishes the scoped AQ owner basis, not absence of arbitrary
@@ -100,9 +117,9 @@ acceptance and may block an undispatched completion under explicit policy.
 Retain a bounded immutable evaluation operation/receipt. Same ID/bytes returns
 the original result; changed evidence is a new explicit evaluation. Missing
 adapters or stale evidence return unavailable/stale/needs-reconciliation, never
-success-shaped defaults. The present source intentionally leaves positive
-external-disposition/current-applicability constructors unavailable until these
-actual owners exist.
+success-shaped defaults. The positive constructors consume only the actual protected combined decision
+and current Graph/retention owner products. These are source candidates until
+actual registered owner tests qualify them.
 
 ## Minimal schema39 and completion owner
 
@@ -117,14 +134,20 @@ Freeze these first-owner envelopes before SQL qualification:
 
 | Retained owner | Per-attempt maximum | Payload envelope |
 | --- | --- | --- |
-| New combined review subjects |16 |existing review64KiB canonical subject bound, including required external declaration; no larger legacy envelope |
+| New combined review question operations |16 total per attempt, including repeat questions on a subject |existing review64KiB canonical subject bound, including required external declaration; no larger legacy envelope |
 | External declaration within combined subject |1 per subject |8KiB total, at most16 resource/effect entries, required reason/residual-uncertainty fields |
 | Immutable evaluation operations |16; at most1 accepted |128KiB aggregate canonical request/receipt/evidence per operation; reserve final receipt before acceptance |
 | Completion intent |1, bound to accepted evaluation |64KiB total frozen payload/service mapping, status, compact verified receipt and completion outbox reservation |
 | Completion dispatch |8 attempts,60s automatic elapsed budget |3s network attempt;15s recorded lease; exhaustion holds for exact-ID manual reconciliation |
 
+Reserve196608 bytes per evaluation (128KiB evidence plus64KiB eventual completion)
+under a fixed64MiB global lifetime budget. This permits at most341 evaluations
+without deleting retained history. The reservation is permanent, including
+nonaccepted evaluations; capacity exhaustion refuses new work and preserves
+existing possible/final operations.
+
 Existing review global/lineage quotas remain in force; this adds the smaller
-combined-subject attempt cap. All histories remain retained at capacity. A
+combined-question attempt cap. All histories remain retained at capacity. A
 reevaluation consumes a new operation; unchanged replay consumes none. The
 completion owner reads at most1MiB from Graph and retains a bounded verified
 compact receipt plus exact response digest, as AQ-07 does, rather than copying
@@ -178,3 +201,30 @@ label synthetic ledger/proof rows. Pure planning, raw SQL fixtures, process exit
 and already-passing static output tests do not qualify settlement or a real
 provider. Real qualified agent work, retained result, explicit human decision and
 confirmed expected-version Graph completion remain the end-to-end gate.
+
+## Owner39 source envelope frozen before qualification
+
+The two new tables are `profiled_settlement_evaluations` (immutable operation,
+actor identity, exact request/receipt/evidence and accepted release pin) and
+`profiled_task_completions` (one frozen payload/service identity, finite dispatch
+lease, compact receipt and same-row outbox). No second completion ledger is
+added to the agent operation history. The accepted evaluation, actual verified
+release and prepared completion intent commit together under deferred exact
+cross-links. All request/receipt types are data; only actual owner calls set the
+private SQL writer marker after protected reads. That marker is a compatibility
+fence for old application writers, not authentication against a hostile DBA.
+
+New `review_subjects.subject_profile` defaults to the old profile; old subject
+bytes/AAD remain unchanged. Combined answers additionally retain full human
+identity digest and authorization revision, without extending frozen public
+DecisionReceipt bytes. Current identity/revision is rechecked before using that
+answer for acceptance or first completion dispatch. Old inbox/resolve ports
+refuse the new profile; the separate exact-subject detail/action makes the
+combined scope explicit. No dashboard/browser approval flow is yet installed.
+
+The original38 catalog and data predicate remain unchanged;39 must reattest the
+full composed catalog including every changed/additive release/head/review/
+ledger/source/mail guard, then rerun38's retained origin predicate. The checked
+golden catalog must come from an explicitly reviewed disposable38→39 export,
+never runtime learning or repair. Production remains closed until this and
+actual positive owner/response-loss/claim-clear tests pass.
