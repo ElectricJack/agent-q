@@ -119,7 +119,7 @@ These stay in the task file with `deferred: true`. The importer skips them, and 
 | **I. Harnesses** | Codex real-provider qualification, then Claude Code, Gemini CLI, OpenCode | I1–I4 |
 | **J. Hardening and acceptance** | aq-git and aq-graph performance and durability, product capacity, security review, backup/restore, upgrade and compatibility drills, repository profile | J1–J7 |
 
-**Critical path:** E0 → I0 → MS0. Then, for MS1: B1 → B6a → B6b → B7. C1 → B5a → B5b. C3a → C3b → C3c. (C5a, B6b, C3c) → C6a → I4a. A3a → A3b → D1a → D1b. All of these join at MS1, and B3, B4, D3 and C4 run in parallel.
+**Critical path (after the parallelization review):** MS1 ≈ 9 sessions via A3a → C3a → C3b → C3c → C6a → I4a; MS2 ≈ 13 via B1 → B5a → B5b → E1c → E5 → E6b → I4b; MS3 ≈ 15. The MS0 release gate was removed, so MS0 runs in parallel. Earlier breakdown, kept for reference: B1 → B6a → B6b → B7. C1 → B5a → B5b. C3a → C3b → C3c. (C5a, B6b, C3c) → C6a → I4a. A3a → A3b → D1a → D1b. All of these join at MS1, and B3, B4, D3 and C4 run in parallel.
 
 **Parallel from day one:** E0, A1, A3a, A4, B1, B3, B4, C1, C3a, D3, D4, D10, E2, E3 and G1a have no prerequisites. Under the initial 3-slot limit, start E0 → I0 first.
 
@@ -190,7 +190,7 @@ Description footer, appended verbatim:
 >
 > Each named-test deliverable must exist and pass. A filter that matches zero tests is not met.
 >
-> If a decision only the owner can make blocks you, ask it through `aq question` and register a wait. Don't guess, and don't close.
+> If a decision only the owner can make blocks you, report it with `aq message send --to user:dashboard --project aq-platform --body "Blocked on <KEY> (<task id>): <the decision needed>"`, record it as a task comment, and wait for the reply. Don't guess.
 >
 > Close `pass` only when every acceptance item is met with evidence in `docs/implementation/<TASK-KEY>.md`. Otherwise close `fail` with what remains.
 
@@ -245,7 +245,7 @@ This is the order in which tasks bring the topology up. Requirements are in 0005
 
 ## 6. Task index
 
-This covers the active tasks only; deferred tasks are listed in section 1. Full contracts are in the task file.
+This index is generated from the task file and covers active tasks only; deferred tasks are listed in section 1. The full self-contained contracts are in the task file.
 
 | Key | Repo | Title | Needs |
 | --- | --- | --- | --- |
@@ -256,56 +256,59 @@ This covers the active tasks only; deferred tasks are listed in section 1. Full 
 | E0 | aq-server | Local full-stack Compose for development: graph, supervised aq-git, dev auth | none |
 | I0 | aq-worker | MS0: one real Codex API-key run in a plain Docker container on the existing native path | E0 |
 | B1 | aq-worker | Own the native execution contract and add delegated runner permits | none |
-| B2 | aq-server | Issue, scope, revoke and re-adopt delegated permits | B1 |
+| B2 | aq-server | Issue, scope, revoke and re-adopt delegated permits | B1, B3 |
 | B3 | aq-server | Native cancellation end to end | none |
-| B4 | aq-server | Retry/replacement attempts, fair multi-project scheduling and moving-ref sources | none |
+| B4 | aq-server | Retry/replacement attempts, fair multi-project scheduling and moving-ref sources | B3, I0 |
 | B5a | aq-worker | Node controller core: enrollment, boot incarnation, journal-before-backend, capacity | B1, C1 |
 | B5b | aq-worker | Node controller recovery: reconcile, re-adopt, preserve-before-destroy, sweeps, cancellation | B5a |
-| B6a | aq-worker | Runner core: permit auth, guardian and tmux launch, stop-and-preserve, handoff-before-done | B1 |
-| B6b | aq-worker | Runner OS users and loopback proxies (Responses; AQ API with Access header) | B6a |
-| B6c | aq-worker | Runner hydration from retention and per-sandbox terminal/observation channels | B6a |
-| B7 | aq-worker | Scoped AQ access for agents inside sandboxes | B6b, B2 |
+| B6a1 | aq-worker | Runner core: guardian and tmux launch, stop-and-preserve, handoff-before-done | none |
+| B6a2 | aq-worker | Runner permit authentication on every runner route | B1, B6a1 |
+| B6b | aq-worker | Runner OS users and loopback proxies (Responses; AQ API with Access header) | B6a1 |
+| B6c | aq-worker | Runner hydration from retention and per-sandbox terminal/observation channels | B6a2 |
+| B7 | aq-worker | Scoped AQ access for agents inside sandboxes | B6b, B2, C3a |
 | C1 | aq-worker | Placement backend trait, journaled lifecycle and conformance suite | none |
 | C2 | aq-worker | `docker-local` backend with a dedicated rootless sandbox daemon | C1 |
-| C3a | aq-worker | aq-sandbox-os base image and aq-sandbox-runtime bundle | none |
+| C3a | aq-worker | aq-sandbox-os base image and aq-sandbox-runtime bundle | A3a |
 | C3b | aq-worker | Template assembly, recipe format, finalize check, credential scan, allowlist and provenance | C3a |
 | C3c | aq-worker | Publish base and runtime to GHCR and seed the rust and node templates | C3b |
-| C4 | aq-server | Environment-to-template catalog, backend capabilities and placement preference | C3c, B1 |
-| C5a | aq-server | Provider credential profiles, per-credential backend policy, leases bound to permits | B1 |
-| C5b | aq-server | Subscription-login refresh write-back with refresh-lineage fencing; Codex device-auth enrollment | C5a |
-| C6a | aq-worker | Runner Codex configuration for API keys and harness confinement modes | C5a, B6b, C3c |
+| C4 | aq-server | Environment-to-template catalog, backend capabilities and placement preference | C3c, B1, B4 |
+| C5a1 | aq-server | Provider credential profiles and per-credential backend policy | none |
+| C5a2 | aq-server | Material leases bound to delegated permits | B2, C5a1 |
+| C5b | aq-server | Subscription-login refresh write-back with refresh-lineage fencing; Codex device-auth enrollment | C5a1 |
+| C6a | aq-worker | Runner Codex configuration for API keys and harness confinement modes | C5a1, B6b, C3c |
 | C6b | aq-worker | Runner subscription-login install, refresh write-back and wipe | C6a, C5b |
 | C7 | aq-worker | `boat` backend | C1, C3c, B5b |
+| D0 | aq-git | Authenticated GitHub remotes in aq-git for fetch and publish | none |
 | D1a | aq-server | Candidate creation and conditional publication through aq-git with durable intents | A3b |
-| D1b | aq-server | Per-project publication policy and ambiguous-publication reconciliation | D1a |
-| D2 | aq-server | Repository onboarding and central Git remote credentials | D1b |
-| D3 | aq-server | Automatic result settlement and the confirmed-event outbox consumer | none |
+| D1b | aq-server | Per-project publication policy and ambiguous-publication reconciliation | D1a, D0 |
+| D2 | aq-server | Repository onboarding and central Git remote credentials | D1b, D0 |
+| D3 | aq-server | Automatic result settlement and the confirmed-event outbox consumer | B3, I0 |
 | D4 | aq-playbooks | Reconcile the synthetic and production host catalogs | none |
 | D5 | aq-server | Host adapters: context.read, work.ensure, work.change, operation.cancel | D3, D4 |
-| D6 | aq-server | Host adapters: judgment.request, check.request | D5, B5b |
-| D7 | aq-server | Host adapters: candidate.prepare, candidate.publish | D1b, D5 |
+| D6 | aq-server | Host adapters: judgment.request, check.request | D5, B5b, C4 |
+| D7 | aq-server | Host adapters: candidate.prepare, candidate.publish | D1b, D5, D6 |
 | D8 | aq-server | findings.reconcile, schedules and domain-event triggers | D3, D5 |
-| D9 | aq-server | Default coding policy and playbook install/activation API | D5, D6, D7, D8 |
+| D9 | aq-server | Default coding policy and playbook install/activation API | D5, D6, D7, D8, B4, G1a |
 | D10 | aq-playbooks | Bounded transition persistence (PB-04) | none |
 | D11 | aq-server | Routing, watcher and reporting pilots on real adapters | D9, D10 |
 | E1a | aq-server | Production Compose: graph, supervised aq-git, cloudflared, digest-pinned images | A3b, E2, E0 |
 | E1b | aq-server | Dashboard release archive built into the server image, with asset caching | E1a, E3 |
-| E1c | aq-server | Supervisor host and cloud worker services in production Compose | E1a |
+| E1c | aq-server | Supervisor host and cloud worker services in production Compose | E1a, F1a, B5b, C2 |
 | E2 | aq-graph | Publish the graph image with digest and an upgrade/rollback check | none |
 | E3 | aq-dashboard | Versioned dashboard release archive with provenance and capability metadata | none |
 | E5 | aq-server | VPS and Cloudflare provisioning runbook, executed | E1b, E1c |
 | E6a | aq-worker | Local WSL2 worker in a container with a rootless sandbox daemon and autostart | C2, B5b |
-| E6b | aq-worker | VPS cloud worker on the docker-local backend | C2, B5b, E1c |
-| F1a | aq-server | Supervisor host container and supervisor session lifecycle under central identity | B6a, C6b |
+| E6b | aq-worker | VPS cloud worker on the docker-local backend | C2, B5b, E1c, E5 |
+| F1a | aq-server | Supervisor host container and supervisor session lifecycle under central identity | B6a1 |
 | F1b | aq-server | Supervisor conversation dispatch and reply, and scoped supervisor tool credentials | F1a |
-| F2 | aq-server | Supervisor and owner enqueue-work commands at v1 parity | G1b, F1b |
+| F2 | aq-server | Supervisor and owner enqueue-work commands at v1 parity | G1b, G2 |
 | F3 | aq-worker | Agent messaging end to end in sandboxes | B7 |
 | F4 | aq-server | Automatic notifications to Discord with real-destination qualification | D3 |
 | F5 | aq-server | Agent questions to the owner, with answers delivered back | F3, H4 |
 | F7 | aq-server | v2 human CLI (`aqv2`) over the same domain operations | G1b |
 | G1a | aq-server | Action union, common error envelope and operation lookup | none |
 | G1b | aq-server | Migrate existing writes behind the action union; pending operations in bootstrap; fixtures | G1a |
-| G2 | aq-server | Typed task and knowledge commands | G1b |
+| G2 | aq-server | Typed task and knowledge commands | G1b, B4 |
 | G3 | aq-dashboard | Work and Knowledge write flows | G2 |
 | G4 | aq-server | Overview aggregation, attention, search and provider quota | G1b |
 | G5 | aq-dashboard | Overview full composition | G4 |
@@ -317,23 +320,23 @@ This covers the active tasks only; deferred tasks are listed in section 1. Full 
 | G11 | aq-dashboard | Visual acceptance against every named mockup, WCAG 2.2 AA, tablet breakpoints | G3, G5, G7, G8, G9, G10 |
 | G12 | aq-dashboard | Bundle compatibility: digest check and draft preservation across update | E3 |
 | H1 | aq-worker | Adopt observation readers and the durable observation store in the runner | B6c |
-| H2 | aq-server | Production usage accounting and the pricing reference | H1 |
+| H2 | aq-server | Production usage accounting and the pricing reference | H1, B4 |
 | H3 | aq-server | Stall ladder with nudge | H1, F3 |
 | H4 | aq-server | Durable waits registry and agent wait routes | B2 |
 | H5 | aq-worker | Hibernation checkpoint and continuation bootstrap | H4, B5b |
 | H6 | aq-server | Hibernation wake scheduling | H4, H5 |
 | H7 | aq-worker | Terminal renderer snapshots and full output path | B6c |
-| I4a | aq-worker | Codex CLI real-provider qualification with an API key in docker-local sandboxes | C6a, C2, B5b |
-| I4b | aq-worker | Codex CLI ChatGPT-login qualification in local and VPS sandboxes | I4a, C6b |
+| I4a | aq-worker | Codex CLI real-provider qualification with an API key in docker-local sandboxes | C6a, C2, B5a |
+| I4b | aq-worker | Codex CLI ChatGPT-login qualification in local and VPS sandboxes | I4a, C6b, E6b |
 | I1 | aq-worker | Claude Code adapter | C6b |
 | I2 | aq-worker | Gemini CLI adapter | C6b |
 | I3 | aq-worker | OpenCode adapter | C6b |
-| J3 | aq-server | Measure the deployed system at about 10 concurrent attempts | MS2, D10 |
-| J4 | aq-server | Security review of permits, credentials, sandboxes and Access | MS2 |
+| J3 | aq-server | Measure the deployed system at about 10 concurrent attempts | D10, E6a, E6b, I4a |
+| J4 | aq-server | Security review of permits, credentials, sandboxes and Access | C6b, E5, F1a |
 | J5 | aq-server | Off-host encrypted backup and restore drill | E5 |
 | J7 | aq-git | Supported repository profile decision and widening | A3a |
 | MS0 | aq-server | MS0 gate: first real agent run | E0, I0 |
-| MS1 | aq-server | MS1 gate: real agent, sandboxed, local | MS0, A3a, A3b, B1, B2, B3, B4, B5a, B5b, B6a, B6b, B6c, B7, C1, C2, C3a, C3b, C3c, C4, C5a, C6a, D1a, D1b, D3, I4a |
+| MS1 | aq-server | MS1 gate: real agent, sandboxed, local | MS0, A3a, A3b, B1, B2, B3, B4, B5a, B5b, B6a2, B6b, B6c, B7, C1, C2, C3a, C3b, C3c, C4, C5a2, C6a, D1a, D1b, D3, I4a, B6a1, C5a1, D0 |
 | MS2 | aq-server | MS2 gate: hosted | MS1, A1, A4, C5b, C6b, I4b, E1a, E1b, E1c, E2, E3, E5, E6a, E6b |
 | MS3 | aq-server | MS3 gate: daily driver | MS2, C7, D2, D4, D5, D6, D7, D8, D9, F1a, F1b, F2, F3, F4, F5, F7, G1a, G1b, G2, G3, G4, G5, G6, G7, G8, I1 |
 | MS4 | aq-server | MS4 gate: complete product | MS3, D10, D11, G9, G10, G11, G12, H1, H2, H3, H4, H5, H6, H7, I2, I3, J3, J4, J5, J7 |
@@ -353,6 +356,18 @@ This covers the active tasks only; deferred tasks are listed in section 1. Full 
   - Enterprise-scale items moved to the deferred backlog.
   - Runbook fixes: project id, `aq start`, dedicated clones, per-slot target dirs, `direct` integration, importer dry-run first.
   - Docs-steward rule.
+- **2026-11-02, parallelization review (Fable):**
+  - Removed the 14 MS0 release-gate edges.
+  - Split B6a (B6a1/B6a2) and C5a (C5a1/C5a2).
+  - Removed 6 over-constrained edges and added 17 missing ones.
+  - Set priorities.
+  - Raised the project cap to 8, the standard-high Codex pool to 6 and the operator Codex pool to 2.
+- **2026-11-02, self-contained descriptions:**
+  - Every task description now carries Goal, What to build (requirement text inlined), Current state, Interfaces, Out of scope and section-level References.
+  - The footer forbids reading whole design documents and out-of-scope work, and blocked owner decisions go through `aq message send`.
+  - Added D0 (aq-git GitHub remote credentials).
+  - Added edges: D7←D6, D6←B5b/C4, D9←B4/G1a, B7←C3a, E1c←F1a/B5b/C2, F2←G2, C3a←A3a, D1b/D2/MS1←D0.
+  - boat runs as a second enrolled VPS node, `aq-worker-boat`.
 
 ## Appendix: gap analysis summary (2026-11-02)
 
