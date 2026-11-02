@@ -6,7 +6,7 @@ const CATALOG: &str = include_str!("wait38_catalog.sql");
 fn corrupt() -> StoreError {
     StoreError::Corrupt("verified wait owner storage or projections inconsistent".into())
 }
-pub(super) async fn validate(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
+pub(crate) async fn validate(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
     // A frozen reference is generated only from the exact reviewed migration on
     // fresh disposable PostgreSQL. Runtime never learns guards from its own DB.
     let actual: serde_json::Value = sqlx::query_scalar(CATALOG).fetch_one(&mut **tx).await?;

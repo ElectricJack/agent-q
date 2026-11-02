@@ -23,6 +23,7 @@ struct Test {
     _directory: tempfile::TempDir,
     raw: Vec<u8>,
     request: wire::Request,
+    _serial: tokio::sync::OwnedSemaphorePermit,
 }
 fn policy() -> engine::ResolvedPolicy {
     let body = engine::PolicyBody {
@@ -43,6 +44,15 @@ fn policy() -> engine::ResolvedPolicy {
     }
 }
 async fn setup() -> Test {
+    // Physical admission is deliberately component-global, across owner instances.
+    // Isolate independent fixtures while retaining intentional per-case races.
+    static SERIAL: std::sync::OnceLock<Arc<tokio::sync::Semaphore>> = std::sync::OnceLock::new();
+    let serial = SERIAL
+        .get_or_init(|| Arc::new(tokio::sync::Semaphore::new(1)))
+        .clone()
+        .acquire_owned()
+        .await
+        .unwrap();
     let (f, _) = native_started::setup(true).await;
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("key");
@@ -94,6 +104,7 @@ async fn setup() -> Test {
         _directory: directory,
         raw,
         request,
+        _serial: serial,
     }
 }
 fn reg(t: &Test) -> &wire::WaitRegistration {
@@ -339,7 +350,13 @@ impl engine::SourceOwnerPort for Held {
         let (lock, wake) = &*self.release;
         let mut ready = lock.lock().unwrap();
         while !*ready {
-            ready = wake.wait(ready).unwrap();
+            let (next, timeout) = wake
+                .wait_timeout(ready, std::time::Duration::from_secs(3))
+                .unwrap();
+            ready = next;
+            if timeout.timed_out() {
+                break;
+            }
         }
         Ok(engine::SourceReply::RetryableUnavailable {
             member_id: r.member.member_id,
@@ -478,7 +495,7 @@ async fn encrypted_slot_tampering_refuses_configured_owner_without_deleting_hist
         .await
         .unwrap();
     // Simulate privileged disk/DB corruption with self-consistent structural hash.
-    sqlx::raw_sql("ALTER TABLE wait_owner_slots DISABLE TRIGGER ALL; UPDATE wait_owner_slots SET ciphertext=set_byte(ciphertext,0,get_byte(ciphertext,0)#1),ciphertext_digest=encode(sha256(set_byte(ciphertext,0,get_byte(ciphertext,0)#1))),'hex') WHERE kind='snapshot'; ALTER TABLE wait_owner_slots ENABLE TRIGGER ALL").execute(&pool).await.unwrap();
+    sqlx::raw_sql("ALTER TABLE wait_owner_slots DISABLE TRIGGER ALL; UPDATE wait_owner_slots SET ciphertext=set_byte(ciphertext,0,get_byte(ciphertext,0)#1),ciphertext_digest=encode(sha256(set_byte(ciphertext,0,get_byte(ciphertext,0)#1)),'hex') WHERE kind='snapshot'; ALTER TABLE wait_owner_slots ENABLE TRIGGER ALL").execute(&pool).await.unwrap();
     assert!(
         Owner::open_fixture(t.f.state.clone(), t.keys.clone(), policy())
             .await
@@ -895,10 +912,157 @@ async fn default_owner_clock_profile_refuses_graph_and_fixture_history() {
     Owner::open(t.f.state.clone(), t.keys.clone(), policy())
         .await
         .unwrap();
+    drop(t);
     let fixture = setup().await;
     register(&fixture).await;
     assert!(matches!(
         Owner::open(fixture.f.state.clone(), fixture.keys.clone(), policy()).await,
         Err(Error::Unsupported)
     ));
+}
+#[tokio::test]
+async fn native_incarnation_owner_refuses_rebinding_a_current_held_attempt() {
+    let t = setup().await;
+    register(&t).await;
+    let pool = t.f.db.pool().await;
+    let auth = context(&t.f).await;
+    let changed=sqlx::query("UPDATE execution_nodes SET state=jsonb_set(state,'{identity,boot_id}',to_jsonb($2::text)) WHERE node_id=$1").bind(t.f.node.node_id).bind(Uuid::new_v4().to_string()).execute(&pool).await;
+    assert!(
+        changed.is_err(),
+        "actual AQ08 refuses invalid incarnation replacement"
+    );
+    assert!(
+        t.owner
+            .observe(&auth, reg(&t).binding.attempt_id, reg(&t).wait_id)
+            .await
+            .unwrap()
+            .snapshot
+            .outcome()
+            .is_none()
+    );
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT revision FROM wait_owner_records")
+            .fetch_one(&pool)
+            .await
+            .unwrap(),
+        1
+    );
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn reserved_deadline_completion_does_not_wait_for_live_physical_callback() {
+    let t = setup().await;
+    register(&t).await;
+    let r = reg(&t);
+    let owner = t.owner.clone();
+    let auth = context(&t.f).await;
+    let attempt = r.binding.attempt_id;
+    let wait = r.wait_id;
+    let (entered, seen) = tokio::sync::oneshot::channel();
+    let gate = Arc::new((Mutex::new(false), Condvar::new()));
+    let callback = Held {
+        entered: Some(entered),
+        release: gate.clone(),
+    };
+    let job = tokio::spawn(async move {
+        owner
+            .drive_fixture(&auth, attempt, wait, Box::new(callback))
+            .await
+    });
+    seen.await.unwrap();
+    t.f.time.store((NOW + 500) as i64, Ordering::SeqCst);
+    let terminal = tokio::time::timeout(
+        std::time::Duration::from_secs(1),
+        t.owner.observe(&context(&t.f).await, attempt, wait),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert!(!job.is_finished(), "physical source callback is still held");
+    assert_eq!(
+        terminal.snapshot.outcome().unwrap().kind,
+        wire::WaitOutcomeKind::DeadlineReached
+    );
+    let bytes = serde_json::to_vec(terminal.snapshot.outcome().unwrap()).unwrap();
+    release(&gate);
+    assert!(job.await.unwrap().is_err());
+    let after = t
+        .owner
+        .observe(&context(&t.f).await, attempt, wait)
+        .await
+        .unwrap();
+    assert_eq!(
+        serde_json::to_vec(after.snapshot.outcome().unwrap()).unwrap(),
+        bytes
+    );
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn credential_rotation_during_held_source_refuses_late_apply_without_erasing_intent() {
+    let t = setup().await;
+    register(&t).await;
+    let r = reg(&t);
+    let owner = t.owner.clone();
+    let auth = context(&t.f).await;
+    let attempt = r.binding.attempt_id;
+    let wait = r.wait_id;
+    let (entered, seen) = tokio::sync::oneshot::channel();
+    let gate = Arc::new((Mutex::new(false), Condvar::new()));
+    let callback = Held {
+        entered: Some(entered),
+        release: gate.clone(),
+    };
+    let job = tokio::spawn(async move {
+        owner
+            .drive_fixture(&auth, attempt, wait, Box::new(callback))
+            .await
+    });
+    seen.await.unwrap();
+    let pool = t.f.db.pool().await;
+    sqlx::query("UPDATE nodes SET credential_hash=repeat('f',64) WHERE id=$1")
+        .bind(t.f.node.node_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    release(&gate);
+    assert!(matches!(job.await.unwrap(), Err(Error::Authority)));
+    let row: (i64, Option<String>) =
+        sqlx::query_as("SELECT revision,terminal_digest FROM wait_owner_records")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(row, (1, None));
+    Owner::open_fixture(t.f.state.clone(), t.keys.clone(), policy())
+        .await
+        .unwrap();
+}
+#[tokio::test]
+async fn actual_cancellation_can_retire_wait_after_original_grant_is_cleared() {
+    let t = setup().await;
+    register(&t).await;
+    let cancelled = cancel(&t).await;
+    let pool = t.f.db.pool().await;
+    sqlx::query("UPDATE profiled_authority_hot SET state=jsonb_set(state,'{grant}','null'::jsonb) WHERE attempt_id=$1").bind(reg(&t).binding.attempt_id).execute(&pool).await.unwrap();
+    let observed = t
+        .owner
+        .observe(
+            &context(&t.f).await,
+            reg(&t).binding.attempt_id,
+            reg(&t).wait_id,
+        )
+        .await
+        .unwrap();
+    assert!(observed.retired);
+    assert_eq!(
+        observed.snapshot.outcome().unwrap().kind,
+        wire::WaitOutcomeKind::Cancelled
+    );
+    assert!(observed.snapshot.resume_intent().is_none());
+    let original: Option<Uuid> =
+        sqlx::query_scalar("SELECT cancel_operation_id FROM wait_owner_records")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(original, Some(cancelled));
+    Owner::open_fixture(t.f.state.clone(), t.keys.clone(), policy())
+        .await
+        .unwrap();
 }

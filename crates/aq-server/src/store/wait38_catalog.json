@@ -1,1 +1,3641 @@
-[]
+[
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 2,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_budgets.envelope_limit"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": "0",
+      "generated": "",
+      "identity": "",
+      "number": 3,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_budgets.envelopes"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": "0",
+      "generated": "",
+      "identity": "",
+      "number": 4,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_budgets.reserved_bytes"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 1,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_budgets.scope_key"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 6,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_edges.activated_revision"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 5,
+      "required": true,
+      "storage": "p",
+      "type": "boolean"
+    },
+    "kind": "column",
+    "name": "wait_owner_edges.active"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 4,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_edges.blocker_key"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 2,
+      "required": true,
+      "storage": "p",
+      "type": "integer"
+    },
+    "kind": "column",
+    "name": "wait_owner_edges.ordinal"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 7,
+      "required": false,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_edges.retired_revision"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 1,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_edges.wait_id"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 3,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_edges.waiter_key"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 8,
+      "required": false,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_members.blocker_id"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 7,
+      "required": false,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_members.blocker_kind"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 5,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_members.condition_digest"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 10,
+      "required": false,
+      "storage": "x",
+      "type": "jsonb"
+    },
+    "kind": "column",
+    "name": "wait_owner_members.local_current"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 9,
+      "required": false,
+      "storage": "x",
+      "type": "jsonb"
+    },
+    "kind": "column",
+    "name": "wait_owner_members.local_original"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 3,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_members.member_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 2,
+      "required": true,
+      "storage": "p",
+      "type": "integer"
+    },
+    "kind": "column",
+    "name": "wait_owner_members.ordinal"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 4,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_members.owner"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 6,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_members.subscription_digest"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 1,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_members.wait_id"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 4,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_projects.budget_scope"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 2,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_projects.project_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 3,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_projects.revision"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 1,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_projects.workspace_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 9,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.attempt_id"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 10,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.binding_digest"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 24,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.bridge_created_revision"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 25,
+      "required": false,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.bridge_retired_revision"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 32,
+      "required": false,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.cancel_operation_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 16,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.continuation_generation"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 15,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.continuation_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 21,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.created_at_ms"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 22,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.deadline_ms"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 29,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.dirty_generation"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 20,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.envelope_bytes"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 7,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.lineage_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 26,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.logical_now_ms"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 19,
+      "required": true,
+      "storage": "p",
+      "type": "integer"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.member_count"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 27,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.next_due_ms"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 8,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.node_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 2,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.operation_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 17,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.outcome_id"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 28,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.phase"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 12,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.policy_digest"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 5,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.project_id"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 3,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.request_digest"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 18,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.resume_intent_id"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 34,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.resume_state"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": "false",
+      "generated": "",
+      "identity": "",
+      "number": 31,
+      "required": true,
+      "storage": "p",
+      "type": "boolean"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.retired"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 23,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.revision"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 11,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.source_access_digest"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 13,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.source_profile"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 6,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.task_id"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 33,
+      "required": false,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.terminal_digest"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 14,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.wait_generation"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 1,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.wait_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 30,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.work_generation"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 4,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_records.workspace_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 9,
+      "required": false,
+      "storage": "x",
+      "type": "bytea"
+    },
+    "kind": "column",
+    "name": "wait_owner_slots.ciphertext"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 10,
+      "required": false,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_slots.ciphertext_digest"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 7,
+      "required": false,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_slots.key_id"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 2,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_slots.kind"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 8,
+      "required": false,
+      "storage": "x",
+      "type": "bytea"
+    },
+    "kind": "column",
+    "name": "wait_owner_slots.nonce"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 4,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_slots.plaintext_bytes"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 5,
+      "required": false,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_slots.plaintext_digest"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 3,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_slots.revision"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 6,
+      "required": false,
+      "storage": "p",
+      "type": "integer"
+    },
+    "kind": "column",
+    "name": "wait_owner_slots.sealed_version"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 1,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_slots.wait_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 6,
+      "required": false,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_tasks.active_wait_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 5,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_tasks.generation"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 4,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_tasks.lineage_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 2,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_tasks.project_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 3,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_tasks.task_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 1,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_tasks.workspace_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 2,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_work.generation"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 6,
+      "required": false,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_work.lease_expires_ms"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 5,
+      "required": false,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_work.lease_id"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 4,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_work.next_due_ms"
+  },
+  {
+    "body": {
+      "collation": "\"default\"",
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 3,
+      "required": true,
+      "storage": "x",
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "wait_owner_work.state"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 7,
+      "required": true,
+      "storage": "p",
+      "type": "bigint"
+    },
+    "kind": "column",
+    "name": "wait_owner_work.transition_at_ms"
+  },
+  {
+    "body": {
+      "collation": null,
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "number": 1,
+      "required": true,
+      "storage": "p",
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "wait_owner_work.wait_id"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((envelopes <= envelope_limit) AND (reserved_bytes = (envelopes * 1048576))))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_budgets.wait_owner_budget_capacity"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+      "type": "t",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_budgets.wait_owner_budget_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((octet_length((to_jsonb(ROW(scope_key, envelope_limit, envelopes, reserved_bytes)))::text) <= 4096))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_budgets.wait_owner_budget_metadata"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((envelope_limit >= 1) AND (envelope_limit <= 2048)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_budgets.wait_owner_budgets_envelope_limit_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((envelopes >= 0))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_budgets.wait_owner_budgets_envelopes_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "PRIMARY KEY (scope_key)",
+      "type": "p",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_budgets.wait_owner_budgets_pkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((octet_length(scope_key) >= 1) AND (octet_length(scope_key) <= 128)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_budgets.wait_owner_budgets_scope_key_check"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+      "type": "t",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_edges.wait_owner_edge_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((activated_revision > 0))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_edges.wait_owner_edges_activated_revision_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((octet_length(blocker_key) >= 1) AND (octet_length(blocker_key) <= 128)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_edges.wait_owner_edges_blocker_key_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((waiter_key <> blocker_key))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_edges.wait_owner_edges_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((active = (retired_revision IS NULL)) AND ((retired_revision IS NULL) OR (retired_revision > activated_revision))))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_edges.wait_owner_edges_check1"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((octet_length((to_jsonb(ROW(wait_id, ordinal, waiter_key, blocker_key, active, activated_revision, retired_revision)))::text) <= 1024))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_edges.wait_owner_edges_check2"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "PRIMARY KEY (wait_id, ordinal)",
+      "type": "p",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_edges.wait_owner_edges_pkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (wait_id, ordinal) REFERENCES wait_owner_members(wait_id, ordinal)",
+      "type": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_edges.wait_owner_edges_wait_id_ordinal_fkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((octet_length(waiter_key) >= 1) AND (octet_length(waiter_key) <= 128)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_edges.wait_owner_edges_waiter_key_check"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+      "type": "t",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_members.wait_owner_member_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((blocker_kind = ANY (ARRAY['task'::text, 'wait'::text])))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_members.wait_owner_members_blocker_kind_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((blocker_kind IS NULL) = (blocker_id IS NULL)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_members.wait_owner_members_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((octet_length((to_jsonb(ROW(wait_id, ordinal, member_id, owner, condition_digest, subscription_digest, blocker_kind, blocker_id, local_original, local_current)))::text) <= 2048))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_members.wait_owner_members_check1"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((condition_digest ~ '^[0-9a-f]{64}$'::text))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_members.wait_owner_members_condition_digest_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((member_id <> '00000000-0000-0000-0000-000000000000'::uuid))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_members.wait_owner_members_member_id_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((ordinal >= 1) AND (ordinal <= 32)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_members.wait_owner_members_ordinal_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((owner = ANY (ARRAY['task_graph'::text, 'mailbox'::text, 'human_decision'::text, 'clock'::text, 'operation'::text, 'playbook'::text, 'wait_registry'::text, 'scheduler'::text])))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_members.wait_owner_members_owner_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "PRIMARY KEY (wait_id, ordinal)",
+      "type": "p",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_members.wait_owner_members_pkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((subscription_digest ~ '^[0-9a-f]{64}$'::text))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_members.wait_owner_members_subscription_digest_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (wait_id) REFERENCES wait_owner_records(wait_id)",
+      "type": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_members.wait_owner_members_wait_id_fkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "UNIQUE (wait_id, member_id)",
+      "type": "u",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_members.wait_owner_members_wait_id_member_id_key"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+      "type": "t",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_projects.wait_owner_project_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (budget_scope) REFERENCES wait_owner_budgets(scope_key)",
+      "type": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_projects.wait_owner_projects_budget_scope_fkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((budget_scope = ((('project/'::text || (workspace_id)::text) || '/'::text) || (project_id)::text)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_projects.wait_owner_projects_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((octet_length((to_jsonb(ROW(workspace_id, project_id, revision, budget_scope)))::text) <= 4096))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_projects.wait_owner_projects_check1"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "PRIMARY KEY (workspace_id, project_id)",
+      "type": "p",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_projects.wait_owner_projects_pkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((project_id <> '00000000-0000-0000-0000-000000000000'::uuid))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_projects.wait_owner_projects_project_id_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((revision > 0))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_projects.wait_owner_projects_revision_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((workspace_id <> '00000000-0000-0000-0000-000000000000'::uuid))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_projects.wait_owner_projects_workspace_id_check"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+      "type": "t",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_record_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((octet_length((to_jsonb(ROW(wait_id, operation_id, request_digest, workspace_id, project_id, task_id, lineage_id, node_id, attempt_id, binding_digest, source_access_digest, policy_digest, source_profile, wait_generation, continuation_id, continuation_generation, outcome_id, resume_intent_id, member_count, envelope_bytes, created_at_ms, deadline_ms, revision, bridge_created_revision, bridge_retired_revision, logical_now_ms, next_due_ms, phase, dirty_generation, work_generation, retired, cancel_operation_id, terminal_digest, resume_state)))::text) <= 8192))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_record_metadata"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((((phase = 'terminal'::text) = (bridge_retired_revision IS NOT NULL)) AND ((bridge_retired_revision IS NULL) OR (bridge_retired_revision > bridge_created_revision)) AND ((phase = 'terminal'::text) = (terminal_digest IS NOT NULL)) AND (retired = (cancel_operation_id IS NOT NULL)) AND ((NOT retired) OR ((resume_state = 'retired'::text) AND (phase = 'terminal'::text))) AND ((cancel_operation_id IS NULL) OR (cancel_operation_id <> '00000000-0000-0000-0000-000000000000'::uuid))))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_record_terminal"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (attempt_id) REFERENCES execution_attempts(attempt_id)",
+      "type": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_attempt_id_fkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((binding_digest ~ '^[0-9a-f]{64}$'::text))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_binding_digest_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((bridge_created_revision > 0))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_bridge_created_revision_c"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((deadline_ms > created_at_ms) AND (deadline_ms <= '9007199254740991'::bigint) AND ((deadline_ms - created_at_ms) <= '2592000000'::bigint)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((logical_now_ms >= created_at_ms) AND (logical_now_ms <= '9007199254740991'::bigint)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_check1"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((continuation_generation > 0))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_continuation_generation_c"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((continuation_id <> '00000000-0000-0000-0000-000000000000'::uuid))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_continuation_id_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "UNIQUE (continuation_id)",
+      "type": "u",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_continuation_id_key"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((created_at_ms >= 1) AND (created_at_ms <= '9007199254740991'::bigint)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_created_at_ms_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((dirty_generation >= 0))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_dirty_generation_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((envelope_bytes = 1048576))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_envelope_bytes_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((member_count >= 1) AND (member_count <= 32)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_member_count_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((next_due_ms >= 1) AND (next_due_ms <= '9007199254740991'::bigint)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_next_due_ms_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (node_id) REFERENCES nodes(id)",
+      "type": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_node_id_fkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((operation_id <> '00000000-0000-0000-0000-000000000000'::uuid))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_operation_id_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "UNIQUE (operation_id)",
+      "type": "u",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_operation_id_key"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((outcome_id <> '00000000-0000-0000-0000-000000000000'::uuid))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_outcome_id_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "UNIQUE (outcome_id)",
+      "type": "u",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_outcome_id_key"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((phase = ANY (ARRAY['installing'::text, 'pending'::text, 'recovery_held'::text, 'terminal'::text])))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_phase_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "PRIMARY KEY (wait_id)",
+      "type": "p",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_pkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((policy_digest ~ '^[0-9a-f]{64}$'::text))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_policy_digest_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((request_digest ~ '^[0-9a-f]{64}$'::text))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_request_digest_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((resume_intent_id <> '00000000-0000-0000-0000-000000000000'::uuid))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_resume_intent_id_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "UNIQUE (resume_intent_id)",
+      "type": "u",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_resume_intent_id_key"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((resume_state = ANY (ARRAY['none'::text, 'pending'::text, 'retired'::text])))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_resume_state_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((revision > 0))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_revision_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((source_access_digest ~ '^[0-9a-f]{64}$'::text))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_source_access_digest_chec"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((source_profile = ANY (ARRAY['local_v1'::text, 'test_fixture_v1'::text])))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_source_profile_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((terminal_digest ~ '^[0-9a-f]{64}$'::text))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_terminal_digest_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((wait_generation > 0))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_wait_generation_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((wait_id <> '00000000-0000-0000-0000-000000000000'::uuid))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_wait_id_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((work_generation >= 1) AND (work_generation <= 65536)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_work_generation_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (workspace_id, project_id, task_id) REFERENCES wait_owner_tasks(workspace_id, project_id, task_id)",
+      "type": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_records.wait_owner_records_workspace_id_project_id_t"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((plaintext_bytes <=\nCASE kind\n    WHEN 'original'::text THEN 131072\n    WHEN 'snapshot'::text THEN 262144\n    WHEN 'work'::text THEN 262144\n    WHEN 'registration'::text THEN 16384\n    WHEN 'cancellation'::text THEN 16384\n    WHEN 'outcome'::text THEN 131072\n    WHEN 'resume'::text THEN 8192\n    WHEN 'completion'::text THEN 16384\n    ELSE NULL::integer\nEND))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_slots.wait_owner_slot_bound"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+      "type": "t",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_slots.wait_owner_slot_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((octet_length((to_jsonb(ROW(wait_id, kind, revision, plaintext_bytes, plaintext_digest, sealed_version, key_id, nonce, ciphertext_digest)))::text) + 16) <= 1024))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_slots.wait_owner_slot_metadata"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (COALESCE((((plaintext_bytes = 0) AND (revision = 0) AND (plaintext_digest IS NULL) AND (sealed_version IS NULL) AND (key_id IS NULL) AND (nonce IS NULL) AND (ciphertext IS NULL) AND (ciphertext_digest IS NULL)) OR ((plaintext_bytes > 0) AND (revision > 0) AND (plaintext_digest ~ '^[0-9a-f]{64}$'::text) AND (sealed_version = 1) AND (key_id ~ '^[A-Za-z0-9_-]{1,64}$'::text) AND (octet_length(nonce) = 12) AND (octet_length(ciphertext) = (plaintext_bytes + 16)) AND (ciphertext_digest = encode(sha256(ciphertext), 'hex'::text)))), false))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_slots.wait_owner_slot_sealed"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((kind = ANY (ARRAY['original'::text, 'snapshot'::text, 'work'::text, 'registration'::text, 'cancellation'::text, 'outcome'::text, 'resume'::text, 'completion'::text])))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_slots.wait_owner_slots_kind_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "PRIMARY KEY (wait_id, kind)",
+      "type": "p",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_slots.wait_owner_slots_pkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((plaintext_bytes >= 0))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_slots.wait_owner_slots_plaintext_bytes_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((revision >= 0))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_slots.wait_owner_slots_revision_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (wait_id) REFERENCES wait_owner_records(wait_id)",
+      "type": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_slots.wait_owner_slots_wait_id_fkey"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "FOREIGN KEY (active_wait_id) REFERENCES wait_owner_records(wait_id) DEFERRABLE INITIALLY DEFERRED",
+      "type": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_tasks.wait_owner_active_wait"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+      "type": "t",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_tasks.wait_owner_task_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "UNIQUE (active_wait_id)",
+      "type": "u",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_tasks.wait_owner_tasks_active_wait_id_key"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((octet_length((to_jsonb(ROW(workspace_id, project_id, task_id, lineage_id, generation, active_wait_id)))::text) <= 8192))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_tasks.wait_owner_tasks_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((generation > 0))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_tasks.wait_owner_tasks_generation_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((lineage_id <> '00000000-0000-0000-0000-000000000000'::uuid))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_tasks.wait_owner_tasks_lineage_id_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "PRIMARY KEY (workspace_id, project_id, task_id)",
+      "type": "p",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_tasks.wait_owner_tasks_pkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((task_id <> '00000000-0000-0000-0000-000000000000'::uuid))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_tasks.wait_owner_tasks_task_id_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (workspace_id, project_id) REFERENCES wait_owner_projects(workspace_id, project_id)",
+      "type": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_tasks.wait_owner_tasks_workspace_id_project_id_fkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((((state = 'leased'::text) = (lease_id IS NOT NULL)) AND ((lease_id IS NULL) = (lease_expires_ms IS NULL))))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_work.wait_owner_work_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((lease_expires_ms IS NULL) OR ((lease_expires_ms > transition_at_ms) AND (lease_expires_ms <= '9007199254740991'::bigint))))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_work.wait_owner_work_check1"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((octet_length((to_jsonb(ROW(wait_id, generation, state, next_due_ms, lease_id, lease_expires_ms, transition_at_ms)))::text) <= 8192))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_work.wait_owner_work_check2"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+      "type": "t",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_work.wait_owner_work_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((generation >= 1) AND (generation <= 65536)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_work.wait_owner_work_generation_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((next_due_ms >= 1) AND (next_due_ms <= '9007199254740991'::bigint)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_work.wait_owner_work_next_due_ms_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "PRIMARY KEY (wait_id)",
+      "type": "p",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_work.wait_owner_work_pkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((state = ANY (ARRAY['pending'::text, 'leased'::text, 'idle'::text, 'held'::text, 'done'::text])))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_work.wait_owner_work_state_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((transition_at_ms >= 1) AND (transition_at_ms <= '9007199254740991'::bigint)))",
+      "type": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_work.wait_owner_work_transition_at_ms_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (wait_id) REFERENCES wait_owner_records(wait_id)",
+      "type": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "wait_owner_work.wait_owner_work_wait_id_fkey"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_records_attempt_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_records",
+      "function": "RI_FKey_noaction_del",
+      "internal": true,
+      "to_table": "execution_attempts",
+      "type": 9
+    },
+    "kind": "fk_internal_trigger",
+    "name": "execution_attempts.wait_owner_records_attempt_id_fkey.RI_FKey_n"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_records_attempt_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_records",
+      "function": "RI_FKey_noaction_upd",
+      "internal": true,
+      "to_table": "execution_attempts",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "execution_attempts.wait_owner_records_attempt_id_fkey.RI_FKey_n"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_records_node_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_records",
+      "function": "RI_FKey_noaction_del",
+      "internal": true,
+      "to_table": "nodes",
+      "type": 9
+    },
+    "kind": "fk_internal_trigger",
+    "name": "nodes.wait_owner_records_node_id_fkey.RI_FKey_noaction_del.9"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_records_node_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_records",
+      "function": "RI_FKey_noaction_upd",
+      "internal": true,
+      "to_table": "nodes",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "nodes.wait_owner_records_node_id_fkey.RI_FKey_noaction_upd.17"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_projects_budget_scope_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_projects",
+      "function": "RI_FKey_noaction_upd",
+      "internal": true,
+      "to_table": "wait_owner_budgets",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_budgets.wait_owner_projects_budget_scope_fkey.RI_FKe"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_projects_budget_scope_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_projects",
+      "function": "RI_FKey_noaction_del",
+      "internal": true,
+      "to_table": "wait_owner_budgets",
+      "type": 9
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_budgets.wait_owner_projects_budget_scope_fkey.RI_FKe"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_edges_wait_id_ordinal_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_edges",
+      "function": "RI_FKey_check_upd",
+      "internal": true,
+      "to_table": "wait_owner_members",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_edges.wait_owner_edges_wait_id_ordinal_fkey.RI_FKey_"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_edges_wait_id_ordinal_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_edges",
+      "function": "RI_FKey_check_ins",
+      "internal": true,
+      "to_table": "wait_owner_members",
+      "type": 5
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_edges.wait_owner_edges_wait_id_ordinal_fkey.RI_FKey_"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_edges_wait_id_ordinal_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_edges",
+      "function": "RI_FKey_noaction_del",
+      "internal": true,
+      "to_table": "wait_owner_members",
+      "type": 9
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_members.wait_owner_edges_wait_id_ordinal_fkey.RI_FKe"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_edges_wait_id_ordinal_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_edges",
+      "function": "RI_FKey_noaction_upd",
+      "internal": true,
+      "to_table": "wait_owner_members",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_members.wait_owner_edges_wait_id_ordinal_fkey.RI_FKe"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_members_wait_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_members",
+      "function": "RI_FKey_check_ins",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 5
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_members.wait_owner_members_wait_id_fkey.RI_FKey_chec"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_members_wait_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_members",
+      "function": "RI_FKey_check_upd",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_members.wait_owner_members_wait_id_fkey.RI_FKey_chec"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_projects_budget_scope_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_projects",
+      "function": "RI_FKey_check_upd",
+      "internal": true,
+      "to_table": "wait_owner_budgets",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_projects.wait_owner_projects_budget_scope_fkey.RI_FK"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_projects_budget_scope_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_projects",
+      "function": "RI_FKey_check_ins",
+      "internal": true,
+      "to_table": "wait_owner_budgets",
+      "type": 5
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_projects.wait_owner_projects_budget_scope_fkey.RI_FK"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_tasks_workspace_id_project_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_tasks",
+      "function": "RI_FKey_noaction_del",
+      "internal": true,
+      "to_table": "wait_owner_projects",
+      "type": 9
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_projects.wait_owner_tasks_workspace_id_project_id_fk"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_tasks_workspace_id_project_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_tasks",
+      "function": "RI_FKey_noaction_upd",
+      "internal": true,
+      "to_table": "wait_owner_projects",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_projects.wait_owner_tasks_workspace_id_project_id_fk"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_active_wait",
+      "deferrable": true,
+      "deferred": true,
+      "enabled": "O",
+      "from_table": "wait_owner_tasks",
+      "function": "RI_FKey_noaction_del",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 9
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_active_wait.RI_FKey_noaction_del."
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_active_wait",
+      "deferrable": true,
+      "deferred": true,
+      "enabled": "O",
+      "from_table": "wait_owner_tasks",
+      "function": "RI_FKey_noaction_upd",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_active_wait.RI_FKey_noaction_upd."
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_members_wait_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_members",
+      "function": "RI_FKey_noaction_upd",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_members_wait_id_fkey.RI_FKey_noac"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_members_wait_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_members",
+      "function": "RI_FKey_noaction_del",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 9
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_members_wait_id_fkey.RI_FKey_noac"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_records_attempt_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_records",
+      "function": "RI_FKey_check_ins",
+      "internal": true,
+      "to_table": "execution_attempts",
+      "type": 5
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_records_attempt_id_fkey.RI_FKey_c"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_records_attempt_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_records",
+      "function": "RI_FKey_check_upd",
+      "internal": true,
+      "to_table": "execution_attempts",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_records_attempt_id_fkey.RI_FKey_c"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_records_node_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_records",
+      "function": "RI_FKey_check_ins",
+      "internal": true,
+      "to_table": "nodes",
+      "type": 5
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_records_node_id_fkey.RI_FKey_chec"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_records_node_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_records",
+      "function": "RI_FKey_check_upd",
+      "internal": true,
+      "to_table": "nodes",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_records_node_id_fkey.RI_FKey_chec"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_records_workspace_id_project_id_task_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_records",
+      "function": "RI_FKey_check_ins",
+      "internal": true,
+      "to_table": "wait_owner_tasks",
+      "type": 5
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_records_workspace_id_project_id_t"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_records_workspace_id_project_id_task_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_records",
+      "function": "RI_FKey_check_upd",
+      "internal": true,
+      "to_table": "wait_owner_tasks",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_records_workspace_id_project_id_t"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_slots_wait_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_slots",
+      "function": "RI_FKey_noaction_del",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 9
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_slots_wait_id_fkey.RI_FKey_noacti"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_slots_wait_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_slots",
+      "function": "RI_FKey_noaction_upd",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_slots_wait_id_fkey.RI_FKey_noacti"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_work_wait_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_work",
+      "function": "RI_FKey_noaction_upd",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_work_wait_id_fkey.RI_FKey_noactio"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_work_wait_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_work",
+      "function": "RI_FKey_noaction_del",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 9
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_records.wait_owner_work_wait_id_fkey.RI_FKey_noactio"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_slots_wait_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_slots",
+      "function": "RI_FKey_check_ins",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 5
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_slots.wait_owner_slots_wait_id_fkey.RI_FKey_check_in"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_slots_wait_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_slots",
+      "function": "RI_FKey_check_upd",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_slots.wait_owner_slots_wait_id_fkey.RI_FKey_check_up"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_active_wait",
+      "deferrable": true,
+      "deferred": true,
+      "enabled": "O",
+      "from_table": "wait_owner_tasks",
+      "function": "RI_FKey_check_ins",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 5
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_tasks.wait_owner_active_wait.RI_FKey_check_ins.5"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_active_wait",
+      "deferrable": true,
+      "deferred": true,
+      "enabled": "O",
+      "from_table": "wait_owner_tasks",
+      "function": "RI_FKey_check_upd",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_tasks.wait_owner_active_wait.RI_FKey_check_upd.17"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_records_workspace_id_project_id_task_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_records",
+      "function": "RI_FKey_noaction_upd",
+      "internal": true,
+      "to_table": "wait_owner_tasks",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_tasks.wait_owner_records_workspace_id_project_id_tas"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_records_workspace_id_project_id_task_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_records",
+      "function": "RI_FKey_noaction_del",
+      "internal": true,
+      "to_table": "wait_owner_tasks",
+      "type": 9
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_tasks.wait_owner_records_workspace_id_project_id_tas"
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_tasks_workspace_id_project_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_tasks",
+      "function": "RI_FKey_check_upd",
+      "internal": true,
+      "to_table": "wait_owner_projects",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_tasks.wait_owner_tasks_workspace_id_project_id_fkey."
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_tasks_workspace_id_project_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_tasks",
+      "function": "RI_FKey_check_ins",
+      "internal": true,
+      "to_table": "wait_owner_projects",
+      "type": 5
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_tasks.wait_owner_tasks_workspace_id_project_id_fkey."
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_work_wait_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_work",
+      "function": "RI_FKey_check_ins",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 5
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_work.wait_owner_work_wait_id_fkey.RI_FKey_check_ins."
+  },
+  {
+    "body": {
+      "constraint": "wait_owner_work_wait_id_fkey",
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from_table": "wait_owner_work",
+      "function": "RI_FKey_check_upd",
+      "internal": true,
+      "to_table": "wait_owner_records",
+      "type": 17
+    },
+    "kind": "fk_internal_trigger",
+    "name": "wait_owner_work.wait_owner_work_wait_id_fkey.RI_FKey_check_upd."
+  },
+  {
+    "body": {
+      "args": "",
+      "body": "\nBEGIN\n IF TG_OP IN ('DELETE','TRUNCATE') THEN RAISE EXCEPTION 'wait budgets are retained'; END IF;\n IF TG_OP='UPDATE' AND (NEW.scope_key<>OLD.scope_key OR ((NEW.envelopes,NEW.reserved_bytes) IS DISTINCT FROM (OLD.envelopes,OLD.reserved_bytes) AND pg_trigger_depth()<2)) THEN RAISE EXCEPTION 'wait budget accounting is owner controlled'; END IF;\n IF NEW.scope_key<>'installation' AND (NEW.scope_key !~ '^project/[0-9a-f-]{36}/[0-9a-f-]{36}$' OR NEW.envelope_limit>256) THEN RAISE EXCEPTION 'wait project budget bound'; END IF;\n RETURN NEW;\nEND ",
+      "config": null,
+      "kind": "f",
+      "language": "plpgsql",
+      "parallel": "u",
+      "returns": "trigger",
+      "security_definer": false,
+      "set": false,
+      "strict": false,
+      "volatility": "v"
+    },
+    "kind": "function",
+    "name": "wait38_budget_guard()"
+  },
+  {
+    "body": {
+      "args": "p_wait uuid",
+      "body": "\nDECLARE w wait_owner_records%ROWTYPE; task_pointer UUID; kinds BIGINT; filled BIGINT;\nBEGIN\n SELECT * INTO w FROM wait_owner_records WHERE wait_id=p_wait;\n IF NOT FOUND THEN RAISE EXCEPTION 'orphan wait child or gate'; END IF;\n SELECT active_wait_id INTO task_pointer FROM wait_owner_tasks WHERE workspace_id=w.workspace_id AND project_id=w.project_id AND task_id=w.task_id AND lineage_id=w.lineage_id;\n IF NOT FOUND OR (NOT w.retired AND task_pointer IS DISTINCT FROM w.wait_id) OR (w.retired AND task_pointer=w.wait_id) THEN RAISE EXCEPTION 'wait task gate mismatch'; END IF;\n IF (SELECT count(*) FROM wait_owner_members WHERE wait_id=w.wait_id)<>w.member_count OR (SELECT min(ordinal) FROM wait_owner_members WHERE wait_id=w.wait_id)<>1 OR (SELECT max(ordinal) FROM wait_owner_members WHERE wait_id=w.wait_id)<>w.member_count THEN RAISE EXCEPTION 'wait member index incomplete'; END IF;\n SELECT count(*),count(*) FILTER(WHERE plaintext_bytes>0) INTO kinds,filled FROM wait_owner_slots WHERE wait_id=w.wait_id;\n IF kinds<>8 OR NOT EXISTS(SELECT 1 FROM wait_owner_slots WHERE wait_id=w.wait_id AND kind='original' AND plaintext_bytes>0 AND revision=1) OR NOT EXISTS(SELECT 1 FROM wait_owner_slots WHERE wait_id=w.wait_id AND kind='registration' AND plaintext_bytes>0 AND revision=1) OR NOT EXISTS(SELECT 1 FROM wait_owner_slots WHERE wait_id=w.wait_id AND kind='snapshot' AND plaintext_bytes>0 AND revision=w.revision AND (w.phase='terminal' OR plaintext_bytes<=131072)) OR NOT EXISTS(SELECT 1 FROM wait_owner_slots WHERE wait_id=w.wait_id AND kind='work' AND plaintext_bytes>0) THEN RAISE EXCEPTION 'wait reserved slots or snapshot projection incomplete'; END IF;\n IF (w.phase='terminal') IS DISTINCT FROM EXISTS(SELECT 1 FROM wait_owner_slots WHERE wait_id=w.wait_id AND kind='outcome' AND plaintext_bytes>0) OR (w.phase='terminal') IS DISTINCT FROM EXISTS(SELECT 1 FROM wait_owner_slots WHERE wait_id=w.wait_id AND kind='completion' AND plaintext_bytes>0) THEN RAISE EXCEPTION 'wait terminal headroom or receipt incomplete'; END IF;\n IF (w.cancel_operation_id IS NOT NULL) IS DISTINCT FROM EXISTS(SELECT 1 FROM wait_owner_slots WHERE wait_id=w.wait_id AND kind='cancellation' AND plaintext_bytes>0) THEN RAISE EXCEPTION 'wait cancellation receipt incomplete'; END IF;\n IF (w.phase<>'terminal' AND (w.resume_state<>'none' OR EXISTS(SELECT 1 FROM wait_owner_slots WHERE wait_id=w.wait_id AND kind='resume' AND plaintext_bytes>0))) OR (w.phase='terminal' AND NOT w.retired AND w.resume_state<>'pending') THEN RAISE EXCEPTION 'wait resume state does not match registry phase'; END IF;\n IF w.resume_state='pending' AND (w.phase<>'terminal' OR w.retired OR NOT EXISTS(SELECT 1 FROM wait_owner_slots WHERE wait_id=w.wait_id AND kind='resume' AND plaintext_bytes>0)) THEN RAISE EXCEPTION 'wait resume intent not linked to terminal'; END IF;\n IF NOT EXISTS(SELECT 1 FROM wait_owner_work WHERE wait_id=w.wait_id AND generation=w.work_generation AND next_due_ms=w.next_due_ms AND transition_at_ms BETWEEN w.created_at_ms AND w.logical_now_ms AND ((w.phase='terminal' AND state='done') OR (w.phase='recovery_held' AND state='held') OR (w.phase IN ('installing','pending') AND state IN ('pending','leased','idle')))) THEN RAISE EXCEPTION 'wait work projection mismatch'; END IF;\n IF EXISTS(SELECT 1 FROM wait_owner_members m LEFT JOIN wait_owner_edges e USING(wait_id,ordinal) WHERE m.wait_id=w.wait_id AND ((m.blocker_kind IS NULL AND e.wait_id IS NOT NULL) OR (m.blocker_kind IS NOT NULL AND (e.wait_id IS NULL OR e.waiter_key<>'task/'||w.project_id::text||'/'||w.task_id::text OR e.blocker_key<>CASE m.blocker_kind WHEN 'task' THEN 'task/'||w.project_id::text||'/'||m.blocker_id::text ELSE 'wait/'||m.blocker_id::text END OR e.active<>(w.phase<>'terminal' AND NOT w.retired))))) THEN RAISE EXCEPTION 'wait dependency edge projection mismatch'; END IF;\nEND ",
+      "config": null,
+      "kind": "f",
+      "language": "plpgsql",
+      "parallel": "u",
+      "returns": "void",
+      "security_definer": false,
+      "set": false,
+      "strict": false,
+      "volatility": "v"
+    },
+    "kind": "function",
+    "name": "wait38_check_wait(p_wait uuid)"
+  },
+  {
+    "body": {
+      "args": "",
+      "body": "\nBEGIN\n IF TG_OP IN ('DELETE','TRUNCATE') THEN RAISE EXCEPTION 'wait owner children are retained'; END IF;\n IF TG_OP='UPDATE' THEN\n  IF TG_TABLE_NAME='wait_owner_slots' THEN\n   IF (NEW.wait_id,NEW.kind) IS DISTINCT FROM (OLD.wait_id,OLD.kind) OR (OLD.plaintext_bytes>0 AND NEW.kind NOT IN ('snapshot','work')) OR NEW.revision<=OLD.revision OR NEW.plaintext_bytes=0 THEN RAISE EXCEPTION 'wait slot identity, original or terminal changed'; END IF;\n  ELSIF TG_TABLE_NAME='wait_owner_members' THEN\n   IF (NEW.wait_id,NEW.ordinal,NEW.member_id,NEW.owner,NEW.condition_digest,NEW.subscription_digest,NEW.blocker_kind,NEW.blocker_id) IS DISTINCT FROM (OLD.wait_id,OLD.ordinal,OLD.member_id,OLD.owner,OLD.condition_digest,OLD.subscription_digest,OLD.blocker_kind,OLD.blocker_id) OR (OLD.local_original IS NOT NULL AND NEW.local_original IS DISTINCT FROM OLD.local_original) THEN RAISE EXCEPTION 'wait source identity changed'; END IF;\n  ELSIF TG_TABLE_NAME='wait_owner_edges' THEN\n   IF (NEW.wait_id,NEW.ordinal,NEW.waiter_key,NEW.blocker_key) IS DISTINCT FROM (OLD.wait_id,OLD.ordinal,OLD.waiter_key,OLD.blocker_key) OR (NOT OLD.active AND NEW.active) THEN RAISE EXCEPTION 'wait edge identity or retirement changed'; END IF;\n  ELSIF TG_TABLE_NAME='wait_owner_work' THEN\n   IF NEW.wait_id<>OLD.wait_id OR NEW.generation<OLD.generation OR NEW.transition_at_ms<OLD.transition_at_ms OR (OLD.state='done' AND NEW.state<>'done') OR (NEW.lease_id IS NOT NULL AND NEW.lease_id IS DISTINCT FROM OLD.lease_id AND OLD.lease_expires_ms IS NOT NULL AND NEW.transition_at_ms<OLD.lease_expires_ms) THEN RAISE EXCEPTION 'wait work identity or live lease changed'; END IF;\n  ELSIF TG_TABLE_NAME='wait_owner_tasks' THEN\n   IF (NEW.workspace_id,NEW.project_id,NEW.task_id,NEW.lineage_id) IS DISTINCT FROM (OLD.workspace_id,OLD.project_id,OLD.task_id,OLD.lineage_id) OR NEW.generation<>OLD.generation+1 THEN RAISE EXCEPTION 'wait task gate identity changed'; END IF;\n  ELSIF TG_TABLE_NAME='wait_owner_projects' THEN\n   IF (NEW.workspace_id,NEW.project_id,NEW.budget_scope) IS DISTINCT FROM (OLD.workspace_id,OLD.project_id,OLD.budget_scope) OR NEW.revision<>OLD.revision+1 THEN RAISE EXCEPTION 'wait project gate identity changed'; END IF;\n  END IF;\n END IF;\n RETURN NEW;\nEND ",
+      "config": null,
+      "kind": "f",
+      "language": "plpgsql",
+      "parallel": "u",
+      "returns": "trigger",
+      "security_definer": false,
+      "set": false,
+      "strict": false,
+      "volatility": "v"
+    },
+    "kind": "function",
+    "name": "wait38_child_guard()"
+  },
+  {
+    "body": {
+      "args": "",
+      "body": "\nDECLARE candidate UUID; b wait_owner_budgets%ROWTYPE; n BIGINT;\nBEGIN\n IF TG_TABLE_NAME='wait_owner_budgets' THEN\n  SELECT * INTO b FROM wait_owner_budgets WHERE scope_key=NEW.scope_key;\n  IF b.scope_key='installation' THEN SELECT count(*) INTO n FROM wait_owner_records;\n  ELSE SELECT count(*) INTO n FROM wait_owner_records WHERE 'project/'||workspace_id::text||'/'||project_id::text=b.scope_key; END IF;\n  IF b.envelopes<>n OR b.reserved_bytes<>n*1048576 OR (b.scope_key<>'installation' AND n=0) THEN RAISE EXCEPTION 'wait envelope accounting mismatch'; END IF;\n ELSIF TG_TABLE_NAME='wait_owner_projects' THEN\n  IF NOT EXISTS(SELECT 1 FROM wait_owner_records WHERE workspace_id=NEW.workspace_id AND project_id=NEW.project_id) THEN RAISE EXCEPTION 'orphan wait project gate'; END IF;\n ELSIF TG_TABLE_NAME='wait_owner_tasks' THEN\n  IF NOT EXISTS(SELECT 1 FROM wait_owner_records WHERE workspace_id=NEW.workspace_id AND project_id=NEW.project_id AND task_id=NEW.task_id AND lineage_id=NEW.lineage_id) THEN RAISE EXCEPTION 'orphan wait task gate'; END IF;\n  IF NEW.active_wait_id IS NOT NULL THEN\n   IF NOT EXISTS(SELECT 1 FROM wait_owner_records WHERE wait_id=NEW.active_wait_id AND workspace_id=NEW.workspace_id AND project_id=NEW.project_id AND task_id=NEW.task_id AND lineage_id=NEW.lineage_id AND NOT retired) THEN RAISE EXCEPTION 'foreign or retired wait task pointer'; END IF;\n   PERFORM wait38_check_wait(NEW.active_wait_id); END IF;\n  IF TG_OP='UPDATE' AND OLD.active_wait_id IS NOT NULL AND OLD.active_wait_id IS DISTINCT FROM NEW.active_wait_id THEN PERFORM wait38_check_wait(OLD.active_wait_id); END IF;\n ELSE\n  PERFORM wait38_check_wait(NEW.wait_id);\n END IF;\n RETURN NULL;\nEND ",
+      "config": null,
+      "kind": "f",
+      "language": "plpgsql",
+      "parallel": "u",
+      "returns": "trigger",
+      "security_definer": false,
+      "set": false,
+      "strict": false,
+      "volatility": "v"
+    },
+    "kind": "function",
+    "name": "wait38_consistency()"
+  },
+  {
+    "body": {
+      "args": "",
+      "body": "\nDECLARE current_revision BIGINT;\nBEGIN\n IF TG_OP='INSERT' THEN\n  IF NOT NEW.active THEN RAISE EXCEPTION 'new wait edge must be active'; END IF;\n  UPDATE wait_owner_projects p SET revision=p.revision+1 FROM wait_owner_records w WHERE w.wait_id=NEW.wait_id AND p.workspace_id=w.workspace_id AND p.project_id=w.project_id RETURNING p.revision INTO current_revision;\n  IF NOT FOUND THEN RAISE EXCEPTION 'missing wait project revision owner'; END IF;\n  NEW.activated_revision:=current_revision; NEW.retired_revision:=NULL;\n ELSIF OLD.active AND NOT NEW.active THEN\n  IF NEW.activated_revision<>OLD.activated_revision OR NEW.retired_revision IS DISTINCT FROM OLD.retired_revision THEN RAISE EXCEPTION 'wait edge revision is owner assigned'; END IF;\n  UPDATE wait_owner_projects p SET revision=p.revision+1 FROM wait_owner_records w WHERE w.wait_id=NEW.wait_id AND p.workspace_id=w.workspace_id AND p.project_id=w.project_id RETURNING p.revision INTO current_revision;\n  IF NOT FOUND THEN RAISE EXCEPTION 'missing wait project revision owner'; END IF;\n  NEW.retired_revision:=current_revision;\n ELSIF (NEW.activated_revision,NEW.retired_revision) IS DISTINCT FROM (OLD.activated_revision,OLD.retired_revision) THEN RAISE EXCEPTION 'wait edge revision changed';\n END IF;\n RETURN NEW;\nEND ",
+      "config": null,
+      "kind": "f",
+      "language": "plpgsql",
+      "parallel": "u",
+      "returns": "trigger",
+      "security_definer": false,
+      "set": false,
+      "strict": false,
+      "volatility": "v"
+    },
+    "kind": "function",
+    "name": "wait38_edge_revision()"
+  },
+  {
+    "body": {
+      "args": "",
+      "body": "\nDECLARE graph_revision BIGINT;\nBEGIN\n IF TG_OP IN ('DELETE','TRUNCATE') THEN RAISE EXCEPTION 'wait identities and envelopes are retained'; END IF;\n IF TG_OP='UPDATE' THEN\n  IF (NEW.wait_id,NEW.operation_id,NEW.request_digest,NEW.workspace_id,NEW.project_id,NEW.task_id,NEW.lineage_id,NEW.node_id,NEW.attempt_id,NEW.binding_digest,NEW.source_access_digest,NEW.policy_digest,NEW.source_profile,NEW.wait_generation,NEW.continuation_id,NEW.continuation_generation,NEW.outcome_id,NEW.resume_intent_id,NEW.member_count,NEW.envelope_bytes,NEW.created_at_ms,NEW.deadline_ms) IS DISTINCT FROM (OLD.wait_id,OLD.operation_id,OLD.request_digest,OLD.workspace_id,OLD.project_id,OLD.task_id,OLD.lineage_id,OLD.node_id,OLD.attempt_id,OLD.binding_digest,OLD.source_access_digest,OLD.policy_digest,OLD.source_profile,OLD.wait_generation,OLD.continuation_id,OLD.continuation_generation,OLD.outcome_id,OLD.resume_intent_id,OLD.member_count,OLD.envelope_bytes,OLD.created_at_ms,OLD.deadline_ms)\n   OR NEW.bridge_created_revision<>OLD.bridge_created_revision OR NEW.revision<>OLD.revision+1 OR NEW.logical_now_ms<OLD.logical_now_ms OR NEW.dirty_generation<OLD.dirty_generation OR NEW.work_generation<OLD.work_generation OR (OLD.retired AND NOT NEW.retired)\n   OR (OLD.cancel_operation_id IS NOT NULL AND NEW.cancel_operation_id IS DISTINCT FROM OLD.cancel_operation_id)\n   OR (OLD.terminal_digest IS NOT NULL AND NEW.terminal_digest IS DISTINCT FROM OLD.terminal_digest)\n   OR (OLD.phase='terminal' AND NEW.phase<>'terminal') OR (OLD.phase='recovery_held' AND NEW.phase NOT IN ('recovery_held','terminal')) OR (OLD.phase='pending' AND NEW.phase='installing') THEN RAISE EXCEPTION 'wait immutable or monotonic state changed'; END IF;\n  IF OLD.phase<>'terminal' AND NEW.phase='terminal' THEN\n   IF NEW.bridge_retired_revision IS DISTINCT FROM OLD.bridge_retired_revision THEN RAISE EXCEPTION 'wait bridge revision is owner assigned'; END IF;\n   UPDATE wait_owner_projects SET revision=revision+1 WHERE workspace_id=NEW.workspace_id AND project_id=NEW.project_id RETURNING revision INTO graph_revision;\n   NEW.bridge_retired_revision:=graph_revision;\n  ELSIF NEW.bridge_retired_revision IS DISTINCT FROM OLD.bridge_retired_revision THEN RAISE EXCEPTION 'wait bridge retirement changed'; END IF;\n ELSE\n  IF NEW.revision<>1 OR NEW.logical_now_ms<>NEW.created_at_ms OR NEW.phase<>'installing' OR NEW.retired OR NEW.cancel_operation_id IS NOT NULL OR NEW.terminal_digest IS NOT NULL OR NEW.resume_state<>'none' THEN RAISE EXCEPTION 'new wait must install under original envelope'; END IF;\n  IF NEW.bridge_retired_revision IS NOT NULL THEN RAISE EXCEPTION 'new wait bridge already retired'; END IF;\n  UPDATE wait_owner_projects SET revision=revision+1 WHERE workspace_id=NEW.workspace_id AND project_id=NEW.project_id RETURNING revision INTO graph_revision;\n  IF NOT FOUND THEN RAISE EXCEPTION 'missing wait bridge revision owner'; END IF;\n  NEW.bridge_created_revision:=graph_revision;\n  UPDATE wait_owner_budgets SET envelopes=envelopes+1,reserved_bytes=reserved_bytes+1048576 WHERE scope_key='installation';\n  IF NOT FOUND THEN RAISE EXCEPTION 'missing wait installation budget'; END IF;\n  UPDATE wait_owner_budgets SET envelopes=envelopes+1,reserved_bytes=reserved_bytes+1048576 WHERE scope_key='project/'||NEW.workspace_id::text||'/'||NEW.project_id::text;\n  IF NOT FOUND THEN RAISE EXCEPTION 'missing wait project budget'; END IF;\n END IF;\n RETURN NEW;\nEND ",
+      "config": null,
+      "kind": "f",
+      "language": "plpgsql",
+      "parallel": "u",
+      "returns": "trigger",
+      "security_definer": false,
+      "set": false,
+      "strict": false,
+      "volatility": "v"
+    },
+    "kind": "function",
+    "name": "wait38_record_guard()"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_budgets_pkey ON public.wait_owner_budgets USING btree (scope_key)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": true,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_budgets.wait_owner_budgets_pkey"
+  },
+  {
+    "body": {
+      "definition": "CREATE INDEX wait_owner_active_edges ON public.wait_owner_edges USING btree (waiter_key, blocker_key) WHERE active",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": false,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_edges.wait_owner_active_edges"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_edges_pkey ON public.wait_owner_edges USING btree (wait_id, ordinal)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": true,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_edges.wait_owner_edges_pkey"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_members_pkey ON public.wait_owner_members USING btree (wait_id, ordinal)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": true,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_members.wait_owner_members_pkey"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_members_wait_id_member_id_key ON public.wait_owner_members USING btree (wait_id, member_id)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_members.wait_owner_members_wait_id_member_id_key"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_projects_pkey ON public.wait_owner_projects USING btree (workspace_id, project_id)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": true,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_projects.wait_owner_projects_pkey"
+  },
+  {
+    "body": {
+      "definition": "CREATE INDEX wait_owner_attempt ON public.wait_owner_records USING btree (node_id, attempt_id, wait_id)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": false,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_records.wait_owner_attempt"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_one_live_task ON public.wait_owner_records USING btree (workspace_id, project_id, task_id) WHERE (NOT retired)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_records.wait_owner_one_live_task"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_records_continuation_id_key ON public.wait_owner_records USING btree (continuation_id)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_records.wait_owner_records_continuation_id_key"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_records_operation_id_key ON public.wait_owner_records USING btree (operation_id)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_records.wait_owner_records_operation_id_key"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_records_outcome_id_key ON public.wait_owner_records USING btree (outcome_id)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_records.wait_owner_records_outcome_id_key"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_records_pkey ON public.wait_owner_records USING btree (wait_id)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": true,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_records.wait_owner_records_pkey"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_records_resume_intent_id_key ON public.wait_owner_records USING btree (resume_intent_id)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_records.wait_owner_records_resume_intent_id_key"
+  },
+  {
+    "body": {
+      "definition": "CREATE INDEX wait_owner_scope ON public.wait_owner_records USING btree (workspace_id, project_id, wait_id)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": false,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_records.wait_owner_scope"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_slots_pkey ON public.wait_owner_slots USING btree (wait_id, kind)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": true,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_slots.wait_owner_slots_pkey"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_tasks_active_wait_id_key ON public.wait_owner_tasks USING btree (active_wait_id)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_tasks.wait_owner_tasks_active_wait_id_key"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_tasks_pkey ON public.wait_owner_tasks USING btree (workspace_id, project_id, task_id)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": true,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_tasks.wait_owner_tasks_pkey"
+  },
+  {
+    "body": {
+      "definition": "CREATE INDEX wait_owner_due_work ON public.wait_owner_work USING btree (next_due_ms, wait_id) WHERE (state = ANY (ARRAY['pending'::text, 'idle'::text, 'leased'::text]))",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": false,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_work.wait_owner_due_work"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX wait_owner_work_pkey ON public.wait_owner_work USING btree (wait_id)",
+      "exclusion": false,
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": true,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "wait_owner_work.wait_owner_work_pkey"
+  },
+  {
+    "body": {
+      "relforcerowsecurity": false,
+      "relispartition": false,
+      "relkind": "r",
+      "relname": "wait_owner_budgets",
+      "relpersistence": "p",
+      "relreplident": "d",
+      "relrowsecurity": false
+    },
+    "kind": "table",
+    "name": "wait_owner_budgets"
+  },
+  {
+    "body": {
+      "relforcerowsecurity": false,
+      "relispartition": false,
+      "relkind": "r",
+      "relname": "wait_owner_edges",
+      "relpersistence": "p",
+      "relreplident": "d",
+      "relrowsecurity": false
+    },
+    "kind": "table",
+    "name": "wait_owner_edges"
+  },
+  {
+    "body": {
+      "relforcerowsecurity": false,
+      "relispartition": false,
+      "relkind": "r",
+      "relname": "wait_owner_members",
+      "relpersistence": "p",
+      "relreplident": "d",
+      "relrowsecurity": false
+    },
+    "kind": "table",
+    "name": "wait_owner_members"
+  },
+  {
+    "body": {
+      "relforcerowsecurity": false,
+      "relispartition": false,
+      "relkind": "r",
+      "relname": "wait_owner_projects",
+      "relpersistence": "p",
+      "relreplident": "d",
+      "relrowsecurity": false
+    },
+    "kind": "table",
+    "name": "wait_owner_projects"
+  },
+  {
+    "body": {
+      "relforcerowsecurity": false,
+      "relispartition": false,
+      "relkind": "r",
+      "relname": "wait_owner_records",
+      "relpersistence": "p",
+      "relreplident": "d",
+      "relrowsecurity": false
+    },
+    "kind": "table",
+    "name": "wait_owner_records"
+  },
+  {
+    "body": {
+      "relforcerowsecurity": false,
+      "relispartition": false,
+      "relkind": "r",
+      "relname": "wait_owner_slots",
+      "relpersistence": "p",
+      "relreplident": "d",
+      "relrowsecurity": false
+    },
+    "kind": "table",
+    "name": "wait_owner_slots"
+  },
+  {
+    "body": {
+      "relforcerowsecurity": false,
+      "relispartition": false,
+      "relkind": "r",
+      "relname": "wait_owner_tasks",
+      "relpersistence": "p",
+      "relreplident": "d",
+      "relrowsecurity": false
+    },
+    "kind": "table",
+    "name": "wait_owner_tasks"
+  },
+  {
+    "body": {
+      "relforcerowsecurity": false,
+      "relispartition": false,
+      "relkind": "r",
+      "relname": "wait_owner_work",
+      "relpersistence": "p",
+      "relreplident": "d",
+      "relrowsecurity": false
+    },
+    "kind": "table",
+    "name": "wait_owner_work"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "CREATE CONSTRAINT TRIGGER wait_owner_budget_consistency AFTER INSERT OR UPDATE ON public.wait_owner_budgets DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION wait38_consistency()",
+      "enabled": "O",
+      "internal": false,
+      "type": 21
+    },
+    "kind": "trigger",
+    "name": "wait_owner_budgets.wait_owner_budget_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_budget_guard BEFORE INSERT OR DELETE OR UPDATE ON public.wait_owner_budgets FOR EACH ROW EXECUTE FUNCTION wait38_budget_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 31
+    },
+    "kind": "trigger",
+    "name": "wait_owner_budgets.wait_owner_budget_guard"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_budget_truncate BEFORE TRUNCATE ON public.wait_owner_budgets FOR EACH STATEMENT EXECUTE FUNCTION wait38_budget_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 34
+    },
+    "kind": "trigger",
+    "name": "wait_owner_budgets.wait_owner_budget_truncate"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "CREATE CONSTRAINT TRIGGER wait_owner_edge_consistency AFTER INSERT OR UPDATE ON public.wait_owner_edges DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION wait38_consistency()",
+      "enabled": "O",
+      "internal": false,
+      "type": 21
+    },
+    "kind": "trigger",
+    "name": "wait_owner_edges.wait_owner_edge_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_edge_guard BEFORE DELETE OR UPDATE ON public.wait_owner_edges FOR EACH ROW EXECUTE FUNCTION wait38_child_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 27
+    },
+    "kind": "trigger",
+    "name": "wait_owner_edges.wait_owner_edge_guard"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_edge_revision BEFORE INSERT OR UPDATE ON public.wait_owner_edges FOR EACH ROW EXECUTE FUNCTION wait38_edge_revision()",
+      "enabled": "O",
+      "internal": false,
+      "type": 23
+    },
+    "kind": "trigger",
+    "name": "wait_owner_edges.wait_owner_edge_revision"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_edge_truncate BEFORE TRUNCATE ON public.wait_owner_edges FOR EACH STATEMENT EXECUTE FUNCTION wait38_child_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 34
+    },
+    "kind": "trigger",
+    "name": "wait_owner_edges.wait_owner_edge_truncate"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "CREATE CONSTRAINT TRIGGER wait_owner_member_consistency AFTER INSERT OR UPDATE ON public.wait_owner_members DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION wait38_consistency()",
+      "enabled": "O",
+      "internal": false,
+      "type": 21
+    },
+    "kind": "trigger",
+    "name": "wait_owner_members.wait_owner_member_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_member_guard BEFORE DELETE OR UPDATE ON public.wait_owner_members FOR EACH ROW EXECUTE FUNCTION wait38_child_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 27
+    },
+    "kind": "trigger",
+    "name": "wait_owner_members.wait_owner_member_guard"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_member_truncate BEFORE TRUNCATE ON public.wait_owner_members FOR EACH STATEMENT EXECUTE FUNCTION wait38_child_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 34
+    },
+    "kind": "trigger",
+    "name": "wait_owner_members.wait_owner_member_truncate"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "CREATE CONSTRAINT TRIGGER wait_owner_project_consistency AFTER INSERT OR UPDATE ON public.wait_owner_projects DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION wait38_consistency()",
+      "enabled": "O",
+      "internal": false,
+      "type": 21
+    },
+    "kind": "trigger",
+    "name": "wait_owner_projects.wait_owner_project_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_project_guard BEFORE DELETE OR UPDATE ON public.wait_owner_projects FOR EACH ROW EXECUTE FUNCTION wait38_child_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 27
+    },
+    "kind": "trigger",
+    "name": "wait_owner_projects.wait_owner_project_guard"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_project_truncate BEFORE TRUNCATE ON public.wait_owner_projects FOR EACH STATEMENT EXECUTE FUNCTION wait38_child_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 34
+    },
+    "kind": "trigger",
+    "name": "wait_owner_projects.wait_owner_project_truncate"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "CREATE CONSTRAINT TRIGGER wait_owner_record_consistency AFTER INSERT OR UPDATE ON public.wait_owner_records DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION wait38_consistency()",
+      "enabled": "O",
+      "internal": false,
+      "type": 21
+    },
+    "kind": "trigger",
+    "name": "wait_owner_records.wait_owner_record_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_record_guard BEFORE INSERT OR DELETE OR UPDATE ON public.wait_owner_records FOR EACH ROW EXECUTE FUNCTION wait38_record_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 31
+    },
+    "kind": "trigger",
+    "name": "wait_owner_records.wait_owner_record_guard"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_record_truncate BEFORE TRUNCATE ON public.wait_owner_records FOR EACH STATEMENT EXECUTE FUNCTION wait38_record_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 34
+    },
+    "kind": "trigger",
+    "name": "wait_owner_records.wait_owner_record_truncate"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "CREATE CONSTRAINT TRIGGER wait_owner_slot_consistency AFTER INSERT OR UPDATE ON public.wait_owner_slots DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION wait38_consistency()",
+      "enabled": "O",
+      "internal": false,
+      "type": 21
+    },
+    "kind": "trigger",
+    "name": "wait_owner_slots.wait_owner_slot_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_slot_guard BEFORE DELETE OR UPDATE ON public.wait_owner_slots FOR EACH ROW EXECUTE FUNCTION wait38_child_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 27
+    },
+    "kind": "trigger",
+    "name": "wait_owner_slots.wait_owner_slot_guard"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_slot_truncate BEFORE TRUNCATE ON public.wait_owner_slots FOR EACH STATEMENT EXECUTE FUNCTION wait38_child_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 34
+    },
+    "kind": "trigger",
+    "name": "wait_owner_slots.wait_owner_slot_truncate"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "CREATE CONSTRAINT TRIGGER wait_owner_task_consistency AFTER INSERT OR UPDATE ON public.wait_owner_tasks DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION wait38_consistency()",
+      "enabled": "O",
+      "internal": false,
+      "type": 21
+    },
+    "kind": "trigger",
+    "name": "wait_owner_tasks.wait_owner_task_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_task_guard BEFORE DELETE OR UPDATE ON public.wait_owner_tasks FOR EACH ROW EXECUTE FUNCTION wait38_child_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 27
+    },
+    "kind": "trigger",
+    "name": "wait_owner_tasks.wait_owner_task_guard"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_task_truncate BEFORE TRUNCATE ON public.wait_owner_tasks FOR EACH STATEMENT EXECUTE FUNCTION wait38_child_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 34
+    },
+    "kind": "trigger",
+    "name": "wait_owner_tasks.wait_owner_task_truncate"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "CREATE CONSTRAINT TRIGGER wait_owner_work_consistency AFTER INSERT OR UPDATE ON public.wait_owner_work DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION wait38_consistency()",
+      "enabled": "O",
+      "internal": false,
+      "type": 21
+    },
+    "kind": "trigger",
+    "name": "wait_owner_work.wait_owner_work_consistency"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_work_guard BEFORE DELETE OR UPDATE ON public.wait_owner_work FOR EACH ROW EXECUTE FUNCTION wait38_child_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 27
+    },
+    "kind": "trigger",
+    "name": "wait_owner_work.wait_owner_work_guard"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER wait_owner_work_truncate BEFORE TRUNCATE ON public.wait_owner_work FOR EACH STATEMENT EXECUTE FUNCTION wait38_child_guard()",
+      "enabled": "O",
+      "internal": false,
+      "type": 34
+    },
+    "kind": "trigger",
+    "name": "wait_owner_work.wait_owner_work_truncate"
+  }
+]

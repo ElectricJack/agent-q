@@ -1003,7 +1003,7 @@ mod central37;
 mod central37_tests;
 
 #[path = "store/wait38.rs"]
-mod wait38;
+pub(crate) mod wait38;
 #[cfg(test)]
 #[path = "store/wait38_tests.rs"]
 mod wait38_tests;

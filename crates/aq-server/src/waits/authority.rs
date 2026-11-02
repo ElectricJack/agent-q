@@ -1,7 +1,7 @@
 //! Actual AQ08 machine authority; no caller-selected lifecycle Binding is trusted.
 use super::*;
 use crate::execution::authority::{self, Kind, Policy};
-use aq_session_protocol::{ProfiledOffer, Validate as _};
+use aq_session_protocol::ProfiledOffer;
 use sqlx::{Postgres, Row, Transaction};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
@@ -13,7 +13,7 @@ pub(super) struct Anchor {
     pub binding: wire::Binding,
     pub principal: wire::Digest,
     pub source_access: wire::Digest,
-    pub grant_id: Uuid,
+    pub grant_id: Option<Uuid>,
 }
 pub(super) struct Current {
     pub anchor: Anchor,
@@ -25,10 +25,11 @@ pub(super) struct Current {
 }
 impl Current {
     pub(super) fn refresh(&mut self, state: &AppState) -> Result<()> {
-        self.now = (state.clock)()
+        let sampled: u64 = (state.clock)()
             .timestamp_millis()
             .try_into()
             .map_err(|_| Error::Authority)?;
+        self.now = self.now.max(sampled);
         if !(self.allow_cancel && self.cancellation.is_some()) {
             self.live
                 .active_at(self.now)
@@ -48,10 +49,32 @@ impl Owner {
         let node_id = crate::worker_api::lock_current_node(tx, node)
             .await
             .map_err(|_| Error::Authority)?;
-        let view =
-            authority::load_attempt_locked(&self.state, tx, node_id, attempt, Policy::IdentityOnly)
-                .await
-                .map_err(|_| Error::Authority)?;
+        let mut view = authority::load_attempt_locked(
+            &self.state,
+            tx,
+            node_id,
+            attempt,
+            if allow_cancel {
+                Policy::IdentityOnly
+            } else {
+                Policy::GraphActive
+            },
+        )
+        .await
+        .map_err(|_| Error::Authority)?;
+        if allow_cancel && view.cancellation_id.is_none() {
+            // active_at alone does not verify execution_nodes' current boot.
+            // Reuse the actual AQ08 policy, retaining its exact joins/locks.
+            view = authority::load_attempt_locked(
+                &self.state,
+                tx,
+                node_id,
+                attempt,
+                Policy::GraphActive,
+            )
+            .await
+            .map_err(|_| Error::Authority)?;
+        }
         let now = (self.state.clock)()
             .timestamp_millis()
             .try_into()
@@ -86,16 +109,19 @@ impl Owner {
         {
             return Err(Error::Corrupt);
         }
-        let grant_id = view.grant_id.ok_or(Error::Authority)?;
+        let grant_id = view.grant_id;
+        if grant_id.is_none() && !(allow_cancel && view.cancellation_id.is_some()) {
+            return Err(Error::Authority);
+        }
         let scope = wire::Scope {
             project_id: binding.project_id,
             workspace_id: offer.manifest.bindings.graph_id,
         };
         let principal =
-            wire::canonical_digest(&("aq.wait.machine-principal.1", node_id, &binding.session))?;
+            retained_digest(&("aq.wait.machine-principal.1", node_id, &binding.session))?;
         // Renewal revisions/expiry are deliberately excluded: current validity is
         // checked above on every lock acquisition, original source authority is not rebound.
-        let source_access = wire::canonical_digest(&(
+        let source_access = retained_digest(&(
             "aq.wait.source-access.1",
             &scope,
             &binding,

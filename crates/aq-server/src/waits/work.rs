@@ -99,11 +99,11 @@ impl Owner {
         let mut current = self.current(&mut tx, node, attempt, true).await?;
         self.mailbox_head(&mut tx, &current.anchor).await?;
         let stored = self.load(&mut tx, wait, true).await?;
-        current.refresh(&self.state)?;
-        same_owner(&stored.original.anchor, &current.anchor)?;
         current.now = current
             .now
             .max(stored.observation.snapshot.logical_now_ms());
+        current.refresh(&self.state)?;
+        same_owner(&stored.original.anchor, &current.anchor)?;
         let plan = stored.observation.snapshot.step(
             engine::Input::Hint { member_id: member },
             &current.fence,
@@ -136,11 +136,11 @@ impl Owner {
         let mut current = self.current(&mut tx, node, attempt, true).await?;
         self.mailbox_head(&mut tx, &current.anchor).await?;
         let mut stored = self.load(&mut tx, wait, true).await?;
-        current.refresh(&self.state)?;
-        same_owner(&stored.original.anchor, &current.anchor)?;
         current.now = current
             .now
             .max(stored.observation.snapshot.logical_now_ms());
+        current.refresh(&self.state)?;
+        same_owner(&stored.original.anchor, &current.anchor)?;
         let snapshot = &stored.observation.snapshot;
         if snapshot.outcome().is_some()
             || current.cancellation.is_some()
@@ -174,7 +174,7 @@ impl Owner {
                 retired: false,
             });
         }
-        if snapshot.pending_work().is_none() {
+        if snapshot.pending_work().is_none() || current.now > snapshot.logical_now_ms() {
             let plan = snapshot.step(engine::Input::Drive, &current.fence, current.now)?;
             self.save(&mut tx, &stored, &plan.next, &current).await?;
             stored = self.load(&mut tx, wait, true).await?;
@@ -226,11 +226,11 @@ impl Owner {
         let mut current = self.current(&mut tx, node, attempt, true).await?;
         self.mailbox_head(&mut tx, &current.anchor).await?;
         let stored = self.load(&mut tx, wait, true).await?;
-        current.refresh(&self.state)?;
-        same_owner(&stored.original.anchor, &current.anchor)?;
         current.now = current
             .now
             .max(stored.observation.snapshot.logical_now_ms());
+        current.refresh(&self.state)?;
+        same_owner(&stored.original.anchor, &current.anchor)?;
         if stored.lease != Some(lease)
             || stored.lease_expires != Some(expiry)
             || current.now >= expiry
@@ -292,14 +292,15 @@ impl Clock {
             .unwrap_or(1)
             .max(now);
         let condition = wire::canonical_digest(&source.member.condition)?;
-        let owner_bytes = wire::canonical_bytes(&(
+        let owner_bytes = retained_bytes(&(
             "aq.wait.clock-observation.1",
             &source.scope,
             &source.binding,
             source.member.member_id,
             due_at_ms,
             at,
-        ))?;
+        ))
+        .map_err(|_| engine::Error::Invalid)?;
         let reference = wire::ArtifactRef {
             id: wire::Text::new(format!(
                 "aq-clock/{}/{}",

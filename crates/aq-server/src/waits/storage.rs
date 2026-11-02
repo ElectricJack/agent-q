@@ -98,7 +98,7 @@ impl Owner {
         .await?;
         let edges = self.edges_at(tx, a, revision as u64).await?;
         let digest =
-            wire::canonical_digest(&("aq.wait.known-project-graph.1", &a.scope, revision, &edges))?;
+            retained_digest(&("aq.wait.known-project-graph.1", &a.scope, revision, &edges))?;
         let edge_count = edges.len();
         Ok((
             engine::KnownGraph {
@@ -244,7 +244,14 @@ impl Owner {
         if active.is_some() {
             return Err(Error::Conflict);
         }
-        let (graph, proof) = self.graph(&mut tx, &current.anchor).await?;
+        let (mut graph, proof) = self.graph(&mut tx, &current.anchor).await?;
+        // This owner proves only the complete local registry component. Other
+        // source owners' dependency closures are not qualified in this slice.
+        graph.external_unknown = reg
+            .predicate
+            .members()
+            .iter()
+            .any(|m| !matches!(m.condition, wire::Condition::Timer { .. }));
         current.refresh(&self.state)?;
         let ids = engine::StableIds {
             continuation_id: uuid_for(reg.wait_id, "continuation"),
@@ -446,6 +453,9 @@ impl Owner {
             deadline_ms: snapshot.deadline_ms(),
         };
         let a = &original.anchor;
+        if a.grant_id.is_none() {
+            return Err(Error::Corrupt);
+        }
         if digest(original.request.as_bytes()) != request_digest
             || reg.wait_id != wait
             || snapshot.request() != &request
@@ -523,7 +533,7 @@ impl Owner {
         }
         let edges = self.edges_at(tx, a, original.graph.revision).await?;
         if edges.len() != original.graph.edge_count
-            || wire::canonical_digest(&(
+            || retained_digest(&(
                 "aq.wait.known-project-graph.1",
                 &a.scope,
                 original.graph.revision as i64,
@@ -746,9 +756,17 @@ impl Owner {
         let mut current = self.current(&mut tx, node, attempt, true).await?;
         self.mailbox_head(&mut tx, &current.anchor).await?;
         let stored = self.load(&mut tx, wait, true).await?;
+        current.now = current
+            .now
+            .max(stored.observation.snapshot.logical_now_ms());
         current.refresh(&self.state)?;
         work::same_owner(&stored.original.anchor, &current.anchor)?;
-        if current.cancellation.is_some() && !stored.observation.retired {
+        if !stored.observation.retired
+            && (current.cancellation.is_some()
+                || (stored.observation.snapshot.outcome().is_none()
+                    && (current.now >= stored.observation.snapshot.deadline_ms()
+                        || current.anchor.source_access != stored.original.anchor.source_access)))
+        {
             let plan = stored.observation.snapshot.step(
                 engine::Input::Drive,
                 &current.fence,
@@ -759,14 +777,22 @@ impl Owner {
             return Ok(Observation {
                 registration: stored.observation.registration,
                 snapshot: plan.next,
-                retired: true,
+                retired: current.cancellation.is_some(),
             });
         }
         tx.commit().await?;
         Ok(stored.observation)
     }
     pub(super) async fn validate_retained(&self) -> Result<()> {
-        // One row/envelope at a time: startup does not queue2GiB of decrypted data.
+        // One consistent startup snapshot; decrypt only one bounded envelope at
+        // a time. Keys are already loaded. There is no FS/network IO here.
+        let mut tx = self.transaction().await?;
+        sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
+            .execute(&mut *tx)
+            .await?;
+        crate::store::wait38::validate(&mut tx)
+            .await
+            .map_err(|_| Error::Corrupt)?;
         let mut after = Uuid::nil();
         let mut seen = 0;
         loop {
@@ -774,25 +800,17 @@ impl Owner {
                 "SELECT wait_id FROM wait_owner_records WHERE wait_id>$1 ORDER BY wait_id LIMIT 1",
             )
             .bind(after)
-            .fetch_optional(&self.state.store.pool)
+            .fetch_optional(&mut *tx)
             .await?;
             let Some(wait) = wait else { break };
             seen += 1;
             if seen > 2048 {
                 return Err(Error::Capacity);
             }
-            let mut tx = self.transaction().await?;
-            sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ")
-                .execute(&mut *tx)
-                .await?;
-            sqlx::query("SELECT wait38_check_wait($1)")
-                .bind(wait)
-                .execute(&mut *tx)
-                .await?;
             self.load(&mut tx, wait, false).await?;
-            tx.commit().await?;
             after = wait;
         }
+        tx.commit().await?;
         Ok(())
     }
 }

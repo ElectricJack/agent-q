@@ -81,6 +81,17 @@ struct GraphProof {
     edge_count: usize,
     digest: wire::Digest,
 }
+// Internal typed values are validated by their respective authority/reducer
+// owners before this neutral canonical encoding. This makes no source-verdict
+// authentication claim and is not a blanket implementation of wire Validate.
+fn retained_bytes<T: Serialize>(value: &T) -> std::result::Result<Vec<u8>, serde_json::Error> {
+    let mut json = serde_json::to_value(value)?;
+    json.sort_all_objects();
+    serde_json::to_vec(&json)
+}
+fn retained_digest<T: Serialize>(value: &T) -> Result<wire::Digest> {
+    Ok(wire::Digest::of(&retained_bytes(value)?))
+}
 impl Owner {
     /// Keys/policy are trusted daemon-owned inputs, never request data. No runtime
     /// wiring is installed in this increment. Open authenticates retained records.

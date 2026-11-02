@@ -416,6 +416,7 @@ dependencies = [
  "aq-session-protocol",
  "aq-terminal-relay",
  "aq-terminal-relay-protocol",
+ "aq-wait-engine",
  "aq-worker-protocol",
  "async-trait",
  "axum",
