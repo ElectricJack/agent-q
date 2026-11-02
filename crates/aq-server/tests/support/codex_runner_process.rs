@@ -61,6 +61,9 @@ impl RunnerProcess {
     pub fn pid(&self) -> Result<u32> {
         self.child.id().context("owned wrapper already reaped")
     }
+    pub fn finished(&mut self) -> Result<bool> {
+        Ok(self.child.try_wait()?.is_some())
+    }
     pub async fn preflight(&mut self) -> Result<Value> {
         tokio::time::timeout(Duration::from_secs(45), async {
             for _ in 0..4 {

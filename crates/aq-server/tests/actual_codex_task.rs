@@ -79,7 +79,6 @@ struct Pins {
     outer: BTreeMap<String, PathBuf>,
     worker: PathBuf,
     wrapper: PathBuf,
-    bootstrap: PathBuf,
 }
 impl Pins {
     fn load() -> Result<Self> {
@@ -165,7 +164,6 @@ impl Pins {
             ]),
             worker: worker_path,
             wrapper,
-            bootstrap,
         })
     }
     fn environment(&self, socket: &Path) -> Result<BTreeMap<String, String>> {
@@ -316,6 +314,7 @@ fn journal(private: &native_runner_transport::PrivateState, node: Uuid) -> Resul
 
 struct ControlOwners {
     state: aq_server::AppState,
+    pool: sqlx::PgPool,
     node: Uuid,
     recipe: Arc<codex_runtime_recipe::Prepared>,
     transfer: Arc<native_runner_transport::Transferred>,
@@ -339,6 +338,7 @@ async fn assessed_request(
         "/v1/worker/profiled/poll" => {
             Box::pin(owners.assessor.lock().await.assess(
                 &owners.state,
+                &owners.pool,
                 owners.node,
                 &owners.recipe,
                 &owners.transfer.state,
@@ -359,6 +359,7 @@ async fn assessed_request(
             };
             Box::pin(owners.assessor.lock().await.assess(
                 &owners.state,
+                &owners.pool,
                 owners.node,
                 &owners.recipe,
                 &owners.transfer.state,
@@ -425,31 +426,75 @@ fn configure(
 async fn running_watch(
     actual: &common::selection::ActualSelectionFixture,
     transfer: &native_runner_transport::Transferred,
+    worker: &mut codex_runner_process::RunnerProcess,
 ) -> Result<(codex_terminal_output::Watched, Value, u64, PathBuf, String)> {
-    tokio::time::timeout(Duration::from_secs(40),async {
+    tokio::time::timeout(Duration::from_secs(40), async {
         loop {
-            if let Ok(state)=journal(&transfer.state,actual.env.node) {
-                if let Some(attempts)=state["attempts"].as_object() {
-                    ensure!(attempts.len()<=1,"one actual attempt required");
-                    if let Some(attempt)=attempts.values().next() {
-                        if let Some(deadline)=attempt["refresh_execution"]["deadline_ns"].as_u64() {
-                            let mut now:nix::libc::timespec=unsafe{std::mem::zeroed()};ensure!(unsafe{nix::libc::clock_gettime(nix::libc::CLOCK_BOOTTIME,&mut now)}==0,"original boot clock");
-                            ensure!((now.tv_sec as u64)*1_000_000_000+now.tv_nsec as u64<deadline,"original grant expired before Watch");
-                            if attempt["native_host"]["refresh_terminal"]["started"]["receipt"].is_object() {
-                                let terminal:Option<Uuid>=sqlx::query_scalar("SELECT terminal_id FROM terminal_sessions WHERE node_id=$1").bind(actual.env.node).fetch_optional(&actual.env.pool).await?;
-                                if let Some(terminal)=terminal {
-                                    let watched=codex_terminal_output::watch_registered(&actual.env.state,terminal).await?;
-                                    let root=PathBuf::from(attempt["result"]["scope"]["root"].as_str().context("actual result channel root")?);
-                                    let relative=root.strip_prefix(STATE)?.join("binding.json");
-                                    let binding:Value=serde_json::from_slice(&transfer.state.read(&relative,16384)?)?;
-                                    ensure!(binding==attempt["result"]["scope"]["binding"],"actual published result binding changed");
-                                    let launch=attempt["native_host"]["running"]["request"]["launch_id"].as_str().context("actual launch ID")?;
+            ensure!(!worker.finished()?, "ordinary runner exited before Watch");
+            if let Ok(state) = journal(&transfer.state, actual.env.node) {
+                if let Some(attempts) = state["attempts"].as_object() {
+                    ensure!(attempts.len() <= 1, "one actual attempt required");
+                    if let Some(attempt) = attempts.values().next() {
+                        if let Some(deadline) = attempt["refresh_execution"]["deadline_ns"].as_u64()
+                        {
+                            let mut now: nix::libc::timespec = unsafe { std::mem::zeroed() };
+                            ensure!(
+                                unsafe {
+                                    nix::libc::clock_gettime(nix::libc::CLOCK_BOOTTIME, &mut now)
+                                } == 0,
+                                "original boot clock"
+                            );
+                            ensure!(
+                                (now.tv_sec as u64) * 1_000_000_000 + (now.tv_nsec as u64)
+                                    < deadline,
+                                "original grant expired before Watch"
+                            );
+                            if attempt["native_host"]["refresh_terminal"]["started"]["receipt"]
+                                .is_object()
+                            {
+                                let terminal: Option<Uuid> = sqlx::query_scalar(
+                                    "SELECT terminal_id FROM terminal_sessions WHERE node_id=$1",
+                                )
+                                .bind(actual.env.node)
+                                .fetch_optional(&actual.env.pool)
+                                .await?;
+                                if let Some(terminal) = terminal {
+                                    let watched = codex_terminal_output::watch_registered(
+                                        &actual.env.state,
+                                        terminal,
+                                    )
+                                    .await?;
+                                    let root = PathBuf::from(
+                                        attempt["result"]["scope"]["root"]
+                                            .as_str()
+                                            .context("actual result channel root")?,
+                                    );
+                                    let relative = root.strip_prefix(STATE)?.join("binding.json");
+                                    let binding: Value = serde_json::from_slice(
+                                        &transfer.state.read(&relative, 16384)?,
+                                    )?;
+                                    ensure!(
+                                        binding == attempt["result"]["scope"]["binding"],
+                                        "actual published result binding changed"
+                                    );
+                                    let launch =
+                                        attempt["native_host"]["running"]["request"]["launch_id"]
+                                            .as_str()
+                                            .context("actual launch ID")?;
                                     Uuid::parse_str(launch)?;
-                                    let auth=PathBuf::from("host").join(launch).join("codex-home/auth.json");
-                                    let auth_value:Value=serde_json::from_slice(&transfer.state.read(&auth,8192)?)?;
-                                    let cap=auth_value["OPENAI_API_KEY"].as_str().context("actual scoped capability")?.to_owned();
-                                    ensure!(!cap.is_empty(),"scoped capability empty");
-                                    return Ok::<_,anyhow::Error>((watched,binding,deadline,auth,cap));
+                                    let auth = PathBuf::from("host")
+                                        .join(launch)
+                                        .join("codex-home/auth.json");
+                                    let auth_value: Value =
+                                        serde_json::from_slice(&transfer.state.read(&auth, 8192)?)?;
+                                    let cap = auth_value["OPENAI_API_KEY"]
+                                        .as_str()
+                                        .context("actual scoped capability")?
+                                        .to_owned();
+                                    ensure!(!cap.is_empty(), "scoped capability empty");
+                                    return Ok::<_, anyhow::Error>((
+                                        watched, binding, deadline, auth, cap,
+                                    ));
                                 }
                             }
                         }
@@ -458,7 +503,33 @@ async fn running_watch(
             }
             tokio::time::sleep(Duration::from_millis(10)).await;
         }
-    }).await.context("actual prelaunch/Watch outer bound")?
+    })
+    .await
+    .context("actual prelaunch/Watch outer bound")?
+}
+fn diagnostics(
+    transfer: &native_runner_transport::Transferred,
+    node: Uuid,
+    observed: &codex_terminal_output::Observed,
+) -> Value {
+    let state = journal(&transfer.state, node).ok();
+    let attempt = state
+        .as_ref()
+        .and_then(|v| v["attempts"].as_object())
+        .and_then(|v| v.values().next());
+    let field = |key: &str| attempt.map(|a| a[key].is_object()).unwrap_or(false);
+    let host = attempt.map(|a| &a["native_host"]);
+    json!({"journal_format":state.as_ref().map(|s|&s["format"]),"journal_revision":state.as_ref().map(|s|&s["revision"]),
+        "accepted":field("refresh_acceptance"),"prepared_inputs":field("refresh_prepared"),"execution":field("refresh_execution"),
+        "original_execution_deadline_boot_ns":attempt.and_then(|a|a["refresh_execution"]["deadline_ns"].as_u64()),
+        "original_reservation_deadline_boot_ns":attempt.and_then(|a|a["reservation"]["deadline_ns"].as_u64()),
+        "running":host.is_some_and(|h|h["running"].is_object()),"stopped":host.is_some_and(|h|h["stopped"].is_object()),
+        "kernel_wait_echild":host.and_then(|h|h["stopped"]["observation"]["kernel_wait_echild"].as_bool()),
+        "started_ack":host.is_some_and(|h|h["refresh_terminal"]["started"]["receipt"].is_object()),
+        "stopped_ack":host.is_some_and(|h|h["refresh_terminal"]["stopped"]["receipt"].is_object()),
+        "local_claim":attempt.is_some_and(|a|a["result"]["claim"].is_object()),"source_receipt":attempt.is_some_and(|a|a["result"]["source"]["receipt"].is_object()),
+        "b1_receipt":attempt.is_some_and(|a|a["result"]["receipt"].is_object()),"http_statuses":*observed.statuses.lock().unwrap(),
+        "accepted_output_exchanges":observed.uploads.lock().unwrap().len(),"fixture_sender_exited":transfer.sender_exited().ok()})
 }
 async fn execute_case(
     root: &Path,
@@ -538,6 +609,7 @@ async fn execute_case(
     let observed = codex_terminal_output::Observed::default();
     let owners = Arc::new(ControlOwners {
         state: actual.env.state.clone(),
+        pool: actual.env.pool.clone(),
         node: actual.env.node,
         recipe: recipe.clone(),
         transfer: transferred.clone(),
@@ -554,8 +626,8 @@ async fn execute_case(
         eprintln!("GATE04_STAGE preflight");
         let ready=worker.preflight().await?;
         ensure!(ready["runtime"]==json!(recipe.runtime)&&ready["qualification"]==json!(recipe.qualification)&&ready["adapter"]==json!(recipe.adapter),"genuine selected preflight pins differ");
-        headroom()?;eprintln!("GATE04_STAGE ordinary_run_once");worker.continue_once().await?;
-        let (watched,binding,deadline,auth,cap)=Box::pin(running_watch(actual,&transferred)).await?;
+        headroom()?;ensure!(transferred.state.free_bytes()? >= recipe.source_disk_bytes,"actual private source reservation unavailable");eprintln!("GATE04_STAGE ordinary_run_once");worker.continue_once().await?;
+        let (watched,binding,deadline,auth,cap)=Box::pin(running_watch(actual,&transferred,&mut worker)).await?;
         ensure!(cap!=key && cap!=actual.env.credential,"fresh scoped capability required");
         peer.release_after_watch(binding.clone(),deadline,cap)?;
         let status=worker.wait().await?;ensure!(status.success(),"ordinary RunNative failed");
@@ -577,12 +649,21 @@ async fn execute_case(
         let keys=Arc::new(aq_server::protected_storage::Keyring::load(&aq_server::protected_storage::ProtectionConfig {active_key_id:"finite-gate04".into(),keys:vec![aq_server::protected_storage::KeyFile {id:"finite-gate04".into(),file:review_key} ]})?);
         let reviews=aq_server::reviews::Service::new(actual.env.state.clone(),keys);
         let ids=native_result_settlement::StableIds::capture(&actual.env.state)?;
-        let question=Box::pin(native_result_settlement::prepare_question(&actual.env.state,&reviews,&source.owner,native_result_settlement::B1Request {actor:actual.actor,report_id:report,source_operation,original_task:&actual.task,ids:&ids},native_result_settlement::Observations {original_local_binding:&binding,validated_tool_output:&tools,worktree_member:"gate04-proof.txt",private_file_bytes:&proof})).await?;
+        let question=Box::pin(native_result_settlement::prepare_question(&actual.env.state,&reviews,&source.owner,native_result_settlement::B1Request {pool:&actual.env.pool,actor:actual.actor,report_id:report,source_operation,original_task:&actual.task,ids:&ids},native_result_settlement::Observations {original_local_binding:&binding,validated_tool_output:&tools,worktree_member:"gate04-proof.txt",private_file_bytes:&proof})).await?;
         let settled=Box::pin(native_result_settlement::finish_fixture_choice(&actual.env.state,&reviews,&question,native_result_settlement::FixtureOwnerDecision::ApproveAfterExactProof)).await?;
         ensure!(settled.completion.state=="confirmed" &&settled.completion.receipt.is_some(),"actual Graph completion remains held");
         let task=graph.task().await?;ensure!(task["task_state"]=="completed" &&task["version"]==json!(actual.task.version+1)&&task["content_revision"]==json!(actual.task.content_revision+1),"independent actual Graph task closure differs");
         Ok::<_,anyhow::Error>(json!({"scope":"actual pinned Codex finite local peer only; simulated fixture Owner approval","runtime":recipe.runtime,"qualification":recipe.qualification,"execution_deadline_boot_ns":deadline,"request_count":peer.requests.lock().unwrap().len(),"tool_validation":tools,"terminal":terminal,"physical_running":true,"physical_stopped_echild":true,"started_ack":true,"stopped_ack":true,"private_auth_removed":true,"b1_receipt":attempt["result"]["receipt"],"settlement":settled,"actual_graph_task":task}))
     }).await;
+    if result.is_err() {
+        let metadata = diagnostics(&transferred, actual.env.node, &observed);
+        eprintln!("GATE04_DIAGNOSTICS {metadata}");
+        let _ = private(
+            &root.join("refused-metadata.json"),
+            &serde_json::to_vec_pretty(&metadata).unwrap_or_default(),
+            0o600,
+        );
+    }
     let cleanup = worker.cleanup().await;
     control.abort();
     provider.abort();
@@ -609,7 +690,7 @@ async fn actual_case() -> Result<Value> {
     let repository = Uuid::new_v4();
     let workspace = Uuid::new_v4();
     let task_id = Uuid::new_v4();
-    let mut graph=Box::pin(real_graph::RealGraphFixture::start(real_graph::BinaryPin{path:std::env::var("AQ_GATE04_GRAPH_BINARY")?.into(),sha256:std::env::var("AQ_GATE04_GRAPH_SHA256")?},real_graph::TaskSeed {workspace_id:workspace,task_id,title:"Disposable finite Codex source task".into(),body:"Create only gate04-proof.txt containing exactly AQ native result fixture proof and a newline. Compare exact bytes, then submit a factual local AQ result claim using the counted instructions. This is a finite local Responses integration, not an external model or real human review.".into(),acceptance_criteria:"Fixed source file is retained centrally; actual tool cmp passes; scoped claim is acknowledged; protected simulated fixture review precedes actual task CAS.".into()})).await?;
+    let graph=Box::pin(real_graph::RealGraphFixture::start(real_graph::BinaryPin{path:std::env::var("AQ_GATE04_GRAPH_BINARY")?.into(),sha256:std::env::var("AQ_GATE04_GRAPH_SHA256")?},real_graph::TaskSeed {workspace_id:workspace,task_id,title:"Disposable finite Codex source task".into(),body:"Create only gate04-proof.txt containing exactly AQ native result fixture proof and a newline. Compare exact bytes, then submit a factual local AQ result claim using the counted instructions. This is a finite local Responses integration, not an external model or real human review.".into(),acceptance_criteria:"Fixed source file is retained centrally; actual tool cmp passes; scoped claim is acknowledged; protected simulated fixture review precedes actual task CAS.".into()})).await?;
     let mut source = Box::pin(source(&root, repository)).await?;
     let result = Box::pin(async {
         let catalog = codex_runtime_recipe::catalog(project, repository)?;

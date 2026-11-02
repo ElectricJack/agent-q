@@ -112,6 +112,14 @@ pub struct PrivateState {
     root: File,
 }
 impl PrivateState {
+    pub fn free_bytes(&self) -> Result<u64> {
+        let mut value: libc::statvfs = unsafe { std::mem::zeroed() };
+        ensure!(
+            unsafe { libc::fstatvfs(self.root.as_raw_fd(), &mut value) } == 0,
+            "actual private free space observation"
+        );
+        Ok(value.f_bavail.saturating_mul(value.f_frsize))
+    }
     /// Observe ENOENT through the same held root. Other refusals do not count
     /// as cleanup, and this observation is never a process stopped proof.
     pub fn missing(&self, relative: &Path) -> Result<bool> {
