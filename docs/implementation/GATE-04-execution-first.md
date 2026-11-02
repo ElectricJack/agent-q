@@ -61,6 +61,29 @@ databases and is not a prerequisite for execution. Preserve that candidate and
 its evidence unchanged; a future wait integration must rebase to0039 or later
 and qualify again. Main and the canonical server are currently state37.
 
+The next execution settlement migration is reserved as0039. Deferred wait work
+must select the next free number after the execution migrations, not assume0039
+remains available. Likewise the next unpublished worker0.5/FORMAT12 is assigned
+to the native result outbox. Preserve the isolated parking0.5/FORMAT12 candidate
+and evidence; future parking integration must use the next free format and be
+qualified again, without making execution depend on suspension.
+
+The first pilot task is deliberately self-contained: its only mutable Graph
+input is the task itself; other admitted inputs are immutable source/catalog
+artifacts. Verify complete context with no relationships, dependencies or other
+mutable inputs. The existing Graph task CAS then fences that full mutable set.
+Broader tasks must refuse until atomic input assertions are supported; never trim
+required context or emulate assertions with no-op writes. Graph fixture and
+completion receipts must come from the real service, not HTTP fault peers.
+
+The pilot retains the existing requirement for one authorized human review.
+Prefer actual machine-owned effect disposition for supported runtime/owner
+boundaries. If human reconciliation is needed, use an explicit combined
+source-and-effects subject/profile so that one review covers its stated scope;
+do not reinterpret an old code-only approval or add an extra default approval
+flow for hypothetical effects. Unknown AQ operations and unresolved conflicting
+effects remain held.
+
 ## Reuse from v1
 
 Reference repository: `agent-queue2`, immutable revision
