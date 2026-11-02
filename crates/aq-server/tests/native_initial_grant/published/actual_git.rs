@@ -288,3 +288,6 @@ mod worker_assembly;
 
 #[path = "actual_git/accepted_v2.rs"]
 mod accepted_v2;
+
+#[path = "actual_git/worker_refresh_assembly.rs"]
+mod worker_refresh_assembly;

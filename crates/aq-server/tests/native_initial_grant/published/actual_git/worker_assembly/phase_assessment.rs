@@ -1,7 +1,7 @@
 //! An explicit operator assessment of this deterministic static fixture only.
 //! It is neither provider health nor a runtime automatic observation refresher.
+use super::phase::wire::{AcceptRequest, AcceptedDelivery, PrepareRequest, Proposal};
 use super::*;
-use aq_admission::preparation_v2::{AcceptRequest, AcceptedDelivery, PrepareRequest, Proposal};
 use std::{os::unix::fs::MetadataExt, path::Path};
 
 fn synthetic_material(path: &Path, expected: &Digest, bytes: u64, uid: u32) {
@@ -48,12 +48,12 @@ pub(super) async fn assess(
     canonical.sort_all_objects();
     assert!(json!(Digest::of(&serde_json::to_vec(&canonical).unwrap())) == snapshot["digest"]);
     let state = &snapshot["state"];
-    assert_eq!(state["format"], 10);
+    assert_eq!(state["format"], super::JOURNAL_FORMAT);
     assert!(state["identity"] == json!(identity));
     assert_eq!(state["revision"], paused["prepared_revision"]);
     let attempt = &state["attempts"][q.original.binding.attempt_id.to_string()];
-    assert!(attempt["phase_prepared"]["request"] == json!(q));
-    assert!(attempt["phase_execution"].is_null() && attempt["native_host"].is_null());
+    assert!(attempt[phase::PREPARED]["request"] == json!(q));
+    assert!(attempt[phase::EXECUTION].is_null() && attempt["native_host"].is_null());
     assert!(attempt["source"]["verified"].is_object());
     assert!(
         attempt["downloads"]

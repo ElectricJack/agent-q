@@ -1,5 +1,7 @@
 //! Actual local physical lifecycle after actual remote phase issuance. No remote
 //! Started/Stopped acknowledgment or task settlement is claimed by this probe.
+use super::phase::wire;
+use super::phase_terminal::wire as terminal_wire;
 use super::*;
 fn pin(binary: &str, hash: &str, id: &str) -> Value {
     let path =
@@ -22,7 +24,7 @@ pub(super) fn verify(root: &std::path::Path, result: &Value) {
     let started: aq_admission::started::Request =
         serde_json::from_value(result["host_started"].clone()).unwrap();
     started.validate().unwrap();
-    let delivery: aq_admission::preparation_v2::ExecutionDelivery =
+    let delivery: wire::ExecutionDelivery =
         serde_json::from_value(result["execution_delivery"].clone()).unwrap();
     assert_eq!(started.binding, delivery.receipt.grant.binding);
     assert_eq!(started.grant_id, delivery.receipt.grant.grant_id);
@@ -53,9 +55,9 @@ pub(super) fn verify(root: &std::path::Path, result: &Value) {
         history["stopped"]["recorded_revision"].as_u64().unwrap()
             > history["running"]["recorded_revision"].as_u64().unwrap()
     );
-    // Format10 pairs the actual physical facts with fsynced phase envelopes.
+    // The selected journal profile pairs physical facts with fsynced envelopes.
     // This host-only probe sends neither envelope and claims no remote ACK.
-    let terminal = &history["terminal"];
+    let terminal = &history[phase::HOST_TERMINAL];
     let phase_started = &terminal["started"]["request"];
     let phase_stopped = &terminal["stopped"]["request"];
     assert_eq!(phase_started["schema_version"], 1);
@@ -75,9 +77,8 @@ pub(super) fn verify(root: &std::path::Path, result: &Value) {
         json!(delivery.receipt.digest().unwrap())
     );
     let attempt = &snapshot["state"]["attempts"][started.binding.attempt_id.to_string()];
-    let accepted: aq_admission::preparation_v2::AcceptedReceipt =
-        serde_json::from_value(attempt["phase_preparation"]["delivery"]["receipt"].clone())
-            .unwrap();
+    let accepted: wire::AcceptedReceipt =
+        serde_json::from_value(attempt[phase::PREPARATION]["delivery"]["receipt"].clone()).unwrap();
     assert_eq!(
         phase_started["origin"]["accepted_receipt_digest"],
         json!(accepted.digest().unwrap())
@@ -89,13 +90,9 @@ pub(super) fn verify(root: &std::path::Path, result: &Value) {
     );
     assert_eq!(
         phase_started["negotiation"]["features"],
-        json!(["started_stopped_closure_v1", "original_lease_no_renewal_v1"])
+        json!(terminal_wire::required_features())
     );
-    let contract: Value = serde_json::from_str(include_str!(concat!(
-        env!("CARGO_MANIFEST_DIR"),
-        "/../aq-phase-terminal-protocol/artifacts/artifact.json"
-    )))
-    .unwrap();
+    let contract = json!(terminal_wire::contract_artifact().unwrap());
     assert_eq!(phase_started["negotiation"]["contract"], contract);
     assert_eq!(
         terminal["started"]["recorded_revision"],
