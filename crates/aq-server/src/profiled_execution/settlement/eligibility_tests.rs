@@ -95,6 +95,7 @@ impl Synthetic {
         };
         let head_report_id = report.report_id;
         let result = RecordedResult {
+            origin: crate::profiled_execution::results::RecordedOrigin::LegacyPrepareV1,
             report,
             receipt,
             receipt_artifact,
