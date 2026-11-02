@@ -243,7 +243,7 @@ This is the order in which tasks bring the topology up. Requirements are in 0005
    - **Account:** create a dedicated boat organization for attempt sandboxes, plus a separate scope for template builds.
    - **Scoped key:** issue a key with lifecycle, command and file permissions.
    - **Templates:** materialize the template snapshots in boat.
-   - **Worker:** add the boat backend configuration to the cloud worker, with spend and concurrency ceilings.
+   - **Worker:** enroll a second VPS worker node, `aq-worker-boat`, with the boat backend and spend and concurrency ceilings. `aq-worker-cloud` stays on docker-local.
 
 ## 6. Task index
 
