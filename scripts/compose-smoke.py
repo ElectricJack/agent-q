@@ -86,6 +86,29 @@ def compose_dev_reaches_ready_with_graph_and_git():
             os.environ.update(DEV_SCRATCH_REPO_URL="/fixture/scratch.git", DEV_SCRATCH_BASE_BRANCH="main", DEV_SCRATCH_CREDENTIAL_REF="none")
             seed = dev.seed(local_fixture=True)
             assert dev.seed(local_fixture=True) == seed, "seed replay changed identities"
+            credential_path = directory / "secrets/dev_worker.json"
+            saved_credential = credential_path.read_bytes()
+            mismatched = json.loads(saved_credential)
+            mismatched["node_id"] = str(uuid.uuid4())
+            invalid = json.loads(saved_credential)
+            invalid["credential"] = "aqn_" + "0" * 64
+            for label, content in (("missing", None), ("mismatched", json.dumps(mismatched).encode()),
+                                   ("invalid", json.dumps(invalid).encode()), ("truncated", b"{")):
+                credential_path.unlink()
+                if content is not None:
+                    credential_path.write_bytes(content)
+                    credential_path.chmod(0o600)
+                try:
+                    dev.seed(local_fixture=True)
+                except ValueError as error:
+                    assert "worker credential" in str(error), str(error)
+                else:
+                    raise AssertionError("seed accepted " + label + " worker credential")
+                finally:
+                    credential_path.write_bytes(saved_credential)
+                    credential_path.chmod(0o600)
+            assert dev.seed(local_fixture=True) == seed, "credential refusal changed seed identities"
+            evidence["credential_replay_refusals"] = ["missing", "mismatched", "invalid", "truncated"]
             os.environ["DEV_SCRATCH_BASE_BRANCH"] = "changed-input"
             try:
                 dev.seed(local_fixture=True)

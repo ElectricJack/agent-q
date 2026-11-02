@@ -89,7 +89,12 @@ For nondefault ports, set `AQ_DEV_SERVER_URL`, `AQ_DEV_WORKER_URL`, and
 The example catalog requires intelligence configuration. The seed enrolls an
 offline `e0-local-development` worker because binding validation requires a real
 worker identity. Its credential is kept in private `secrets.dev/dev_worker.json`
-and never printed. Configure an actual worker and revise the profile policy for MS0/MS1. E0
+and never printed. New credential files are published atomically. Replay checks
+the saved node identity and authenticates it with a correlated worker probe,
+without marking the worker online. Missing, malformed or stale credentials are
+refused while preserving identities. Recover the original credential, or use
+fresh state, secrets and a Compose project; seed does not silently enroll a
+replacement node. Configure an actual worker and revise the profile policy for MS0/MS1. E0
 establishes local service integration, not a model-backed execution claim.
 
 Run the disposable acceptance test without a designated GitHub repository:

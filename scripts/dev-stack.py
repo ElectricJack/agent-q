@@ -10,6 +10,7 @@ import secrets
 import socket
 import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -139,6 +140,42 @@ def seed(local_fixture=False):
         return seed_locked(choice, local_fixture)
 
 
+def verify_worker_credential(record, node_id, worker_url):
+    if (not isinstance(record, dict) or record.get("node_id") != node_id
+            or not isinstance(record.get("credential"), str)
+            or not record["credential"].startswith("aqn_")
+            or not isinstance(record.get("heartbeat_interval_secs"), int)
+            or record["heartbeat_interval_secs"] <= 0):
+        raise ValueError("saved worker credential is incomplete or belongs to another node; existing identities are preserved")
+    nonce = uuid.uuid4().hex
+    try:
+        reply = http(worker_url + "/v1/worker/probe", dict(nonce=nonce), record["credential"])
+    except (RuntimeError, OSError):
+        raise ValueError("saved worker credential could not be authenticated; existing identities are preserved") from None
+    if not isinstance(reply, dict) or reply.get("nonce") != nonce:
+        raise ValueError("worker credential probe response was not correlated; existing identities are preserved")
+
+
+def save_worker_credential(path, record):
+    # Publish a complete private file atomically without replacing retained credentials.
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, prefix=".dev-worker-", delete=False) as output:
+            temporary = Path(output.name)
+            json.dump(record, output)
+            output.flush()
+            os.fsync(output.fileno())
+        os.link(temporary, path)
+        directory_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
+    finally:
+        if temporary is not None:
+            temporary.unlink()
+
+
 def seed_locked(choice, local_fixture):
     state, secret, _ = paths()
     receipt = state / "seed.json"
@@ -152,17 +189,25 @@ def seed_locked(choice, local_fixture):
     workers = [worker for worker in http(server + "/api/workers") if worker["name"] == "e0-local-development"]
     if len(workers) > 1 or any(worker["status"] == "revoked" for worker in workers):
         raise ValueError("seed worker identity is ambiguous or revoked; existing identities are preserved")
+    credential_file = secret / "dev_worker.json"
     if workers:
         node_id = workers[0]["id"]
+        try:
+            if credential_file.is_symlink() or not credential_file.is_file():
+                raise ValueError()
+            worker = json.loads(credential_file.read_text())
+        except (ValueError, OSError):
+            raise ValueError("saved worker credential is missing or invalid; existing identities are preserved; recover the credential or use a new state, secrets and Compose project") from None
+        verify_worker_credential(worker, node_id, worker_url)
     else:
+        if credential_file.exists() or credential_file.is_symlink():
+            raise ValueError("saved worker credential has no matching worker; existing identities are preserved; use a new state, secrets and Compose project")
         enrollment = http(server + "/api/enrollments", {})
         worker = http(worker_url + "/v1/worker/enroll", dict(code=enrollment["code"],
             name="e0-local-development", worker_version="e0-seed", protocol_version=1))
         node_id = worker["node_id"]
-        credential_file = secret / "dev_worker.json"
-        with credential_file.open("x") as output:
-            credential_file.chmod(0o600)
-            json.dump(worker, output)
+        verify_worker_credential(worker, node_id, worker_url)
+        save_worker_credential(credential_file, worker)
     token = (secret / "graph_token").read_text().strip()
     workspace = graph + "/v1/workspaces/" + WORKSPACE
     if http(workspace + "/nodes/" + TASK, token=token) is None:

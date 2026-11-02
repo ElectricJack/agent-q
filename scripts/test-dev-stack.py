@@ -3,6 +3,11 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import importlib.util
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -57,3 +62,76 @@ def test_seed_rejects_credentials_in_url_and_unsupported_credential_profiles(tmp
         assert "DEV_SCRATCH" in result.stderr
         assert "secret" not in result.stderr
         assert not (tmp_path / "state/seed.json").exists()
+
+
+def test_seed_refuses_retained_credentials_after_database_reset_before_enrolling(tmp_path):
+    assert command(tmp_path, "prepare").returncode == 0
+    credential = tmp_path / "secrets/dev_worker.json"
+    original = b'{"node_id":"old-node","credential":"aqn_retained-secret"}'
+    credential.write_bytes(original)
+    posts = []
+
+    class EmptyWorkerDatabase(BaseHTTPRequestHandler):
+        def do_GET(self):
+            assert self.path == "/api/workers"
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"[]")
+
+        def do_POST(self):
+            posts.append(self.path)
+            self.send_response(500)
+            self.end_headers()
+
+        def log_message(self, *_):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), EmptyWorkerDatabase)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        result = command(tmp_path, "seed", extra=dict(
+            DEV_SCRATCH_REPO_URL="https://github.com/example/scratch.git", DEV_SCRATCH_BASE_BRANCH="main",
+            DEV_SCRATCH_CREDENTIAL_REF="none", AQ_DEV_SERVER_URL=f"http://127.0.0.1:{server.server_port}"))
+        assert result.returncode != 0
+        assert "worker credential has no matching worker" in result.stderr
+        assert not posts, "seed enrolled another node before refusing the stale credential"
+        assert credential.read_bytes() == original
+        assert "retained-secret" not in result.stderr
+    finally:
+        server.shutdown()
+        thread.join()
+        server.server_close()
+
+
+def load_dev():
+    spec = importlib.util.spec_from_file_location("e0_dev_stack", ROOT / "scripts/dev-stack.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_interrupted_credential_write_never_publishes_a_partial_record(tmp_path, monkeypatch):
+    dev = load_dev()
+    credential = tmp_path / "dev_worker.json"
+
+    def interrupted_write(record, output):
+        output.write('{"credential":')
+        raise OSError("simulated disk failure")
+
+    monkeypatch.setattr(dev.json, "dump", interrupted_write)
+    with pytest.raises(OSError, match="disk failure"):
+        dev.save_worker_credential(credential, {})
+    assert not credential.exists()
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_atomic_credential_publish_preserves_an_existing_record(tmp_path):
+    dev = load_dev()
+    credential = tmp_path / "dev_worker.json"
+    dev.save_worker_credential(credential, {"credential": "first"})
+    assert credential.stat().st_mode & 0o777 == 0o600
+    with pytest.raises(FileExistsError):
+        dev.save_worker_credential(credential, {"credential": "replacement"})
+    assert json.loads(credential.read_text()) == {"credential": "first"}
+    assert list(tmp_path.iterdir()) == [credential]
