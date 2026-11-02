@@ -232,6 +232,11 @@ pub(super) async fn bootstrap(
             "Decision resolution requires an owner account and a mounted review owner",
         ),
         capability(
+            "providers.configured.read",
+            a.owner,
+            "Configured provider inspection requires an owner account",
+        ),
+        capability(
             "provider.quota",
             false,
             "Provider account usage is unavailable",

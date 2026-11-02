@@ -14,6 +14,7 @@ pub mod observations;
 pub mod playbooks;
 pub mod profile_catalog;
 pub mod profiled_execution;
+pub mod provider_accounts;
 pub mod project_bindings;
 pub mod protected_storage;
 pub mod readiness;
@@ -248,6 +249,7 @@ pub fn build_admin_router_with_optional_owners(
         .merge(agent_access::human::routes(&state))
         .merge(agent_access::supervisor_conversation::routes(&state))
         .merge(profiled_execution::human_results::routes())
+        .merge(provider_accounts::routes())
         .merge(notifications::api::routes(state.clone()))
         .merge(observations::api::admin_routes(state.clone()))
         .merge(terminal::api::human_routes(state.clone()))
