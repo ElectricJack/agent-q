@@ -474,6 +474,76 @@ impl Snapshot {
             resume,
         })
     }
+    /// Read-only storage projection. None of these values proves an enforced
+    /// scheduling hold, current source authorization or physical stop.
+    pub fn request(&self) -> &wire::Request {
+        &self.request
+    }
+    pub fn policy(&self) -> &ResolvedPolicy {
+        &self.policy
+    }
+    pub fn stable_ids(&self) -> &StableIds {
+        &self.ids
+    }
+    pub fn logical_now_ms(&self) -> u64 {
+        self.logical_now
+    }
+    pub fn dirty_generation(&self) -> u64 {
+        self.dirty
+    }
+    pub fn work_generation(&self) -> u64 {
+        self.work_generation
+    }
+    pub fn pending_work(&self) -> Option<(WorkTicket, Vec<SourceRequest>)> {
+        self.inflight
+            .as_ref()
+            .map(|ticket| (ticket.clone(), self.source_requests(&ticket.kind)))
+    }
+    pub fn resume_intent(&self) -> Option<ResumeIntent> {
+        self.outcome
+            .as_ref()
+            .filter(|_| self.resume_allowed)
+            .map(|outcome| ResumeIntent {
+                intent_id: self.ids.resume_intent_id,
+                continuation: wire::ContinuationRef {
+                    continuation_id: self.ids.continuation_id,
+                    generation: self.registration().continuation_generation,
+                    wait: self.registration().wait_ref(),
+                },
+                outcome: outcome.outcome.clone(),
+            })
+    }
+    /// Largest terminal encodings from the retained member basis. Durable owners
+    /// use this before accepting progress so cancellation cannot later run out of
+    /// preallocated space. This only measures plans; it creates no outcome proof.
+    pub fn reserved_terminal_sizes(&self) -> Result<(usize, usize, usize)> {
+        let mut maximum = (0, 0, 0);
+        for (kind, resume) in [
+            (wire::WaitOutcomeKind::Cancelled, false),
+            (wire::WaitOutcomeKind::DeadlineReached, true),
+        ] {
+            let mut candidate = self.clone();
+            candidate.logical_now = MAX_TIME_MS;
+            candidate.finish(kind, resume)?;
+            let sizes = (
+                serde_json::to_vec(&candidate)
+                    .map_err(|_| Error::Invalid)?
+                    .len(),
+                serde_json::to_vec(candidate.outcome.as_ref().ok_or(Error::Invalid)?)
+                    .map_err(|_| Error::Invalid)?
+                    .len(),
+                serde_json::to_vec(&candidate.resume_intent())
+                    .map_err(|_| Error::Invalid)?
+                    .len(),
+            );
+            maximum = (
+                maximum.0.max(sizes.0),
+                maximum.1.max(sizes.1),
+                maximum.2.max(sizes.2),
+            );
+        }
+        Ok(maximum)
+    }
     pub fn phase(&self) -> &Phase {
         &self.phase
     }

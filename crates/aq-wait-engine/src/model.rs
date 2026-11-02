@@ -109,7 +109,7 @@ pub struct WorkTicket {
 }
 /// Trusted source call, not a public command. Every round is bounded by32 members;
 /// the outside coordinator separately admits at most its fixed physical IO limit.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub struct SourceRequest {
     pub subscription: SubscriptionId,
     pub scope: wire::Scope,
@@ -268,13 +268,14 @@ impl TryFrom<StoredSnapshot> for Snapshot {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ResumeIntent {
     pub intent_id: Uuid,
     pub continuation: wire::ContinuationRef,
     pub outcome: wire::OutcomeRef,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Serialize)]
 pub enum Action {
     Install {
         ticket: WorkTicket,

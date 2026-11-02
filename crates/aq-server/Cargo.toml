@@ -5,6 +5,7 @@ edition.workspace = true
 publish.workspace = true
 
 [dependencies]
+aq-wait-engine = { path = "../aq-wait-engine", version = "=0.1.0" }
 http-body = "=1.1.0"
 aq-central-authority = { path = "../aq-central-authority", version = "=0.1.0" }
 aq-result-media = { path = "../aq-result-media", version = "=0.1.0" }

@@ -263,6 +263,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         37,
         include_str!("../migrations/0037_central_reservations.sql"),
     ),
+    (
+        38,
+        include_str!("../migrations/0038_verified_wait_owner.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -439,6 +443,9 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
     }
     if supported >= 37 {
         central37::central37_storage_guard(&mut tx).await?;
+    }
+    if supported >= 38 {
+        wait38::validate(&mut tx).await?;
     }
     tx.commit().await?;
     Ok(())
@@ -994,3 +1001,9 @@ mod central37;
 #[cfg(test)]
 #[path = "store/central37_tests.rs"]
 mod central37_tests;
+
+#[path = "store/wait38.rs"]
+mod wait38;
+#[cfg(test)]
+#[path = "store/wait38_tests.rs"]
+mod wait38_tests;

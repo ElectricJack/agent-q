@@ -60,6 +60,11 @@ impl Recipient {
         Ok(())
     }
 }
+/// Internal consumers share the actual mailbox identity algorithm; they must
+/// independently authenticate the exact scoped task before reading its head.
+pub(crate) fn task_mailbox_key(workspace_id: Uuid, project_id: Uuid, task_id: Uuid) -> std::result::Result<String, ()> {
+    Recipient::Task { workspace_id, project_id, task_id }.key().map_err(|_| ())
+}
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct Send {

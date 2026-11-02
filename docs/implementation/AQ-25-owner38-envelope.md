@@ -107,3 +107,15 @@ its digest plus this allocation contract. Disposable tests must cover full-quota
 terminal/cancel completion, quota races, gate-before-node and mailbox-before-wait
 NOWAIT cases, held IO with no SQL locks, exact replay/stale work, current authority
 loss/cancellation/deadline, startup definition drift and retained-record tampering.
+
+The first source candidate enables only the daemon-owned clock adapter. The
+existing task-mailbox identity/head lock is reused before registry rows, but an
+actual mailbox committed-observation verifier is still unsupported; fake source
+ports are available only with `test-support`. This increment does not advertise
+Graph/mail dependency functionality. The installation's default paths do not
+construct the Owner or honor its gate yet.
+
+Protected terminal capacity is checked from each accepted nonterminal basis by
+measuring both cancellation and deadline plans at the maximum safe timestamp.
+This covers timestamp-size growth and outcome duplication rather than assuming
+that two nominal payload bounds necessarily fit after serialization.
