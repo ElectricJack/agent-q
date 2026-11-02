@@ -1,14 +1,14 @@
 //! Current locked authorization/inventory/health for the exact accepted choice.
 //! Caller owns authenticated node/attempt and current project/catalog locks.
 //! No selector, external read, restamped selection, or global installed-key claim.
-use super::{db, digest, now, refused};
+use super::{db, digest, now, phase, refused};
 use crate::{
     AppState,
     error::AppError,
     intelligence::resolver,
     profiled_execution::{presence, renewal},
 };
-use aq_admission::{ArtifactRef, Digest, MaterialLease, Text, preparation_v2 as phase};
+use aq_admission::{ArtifactRef, Digest, MaterialLease, Text};
 use aq_profiles::SelectionPolicy;
 use aq_selection::{
     Availability, AvailabilityObservation, CapabilitySnapshot, ConcreteChoice, CredentialDelivery,
@@ -23,9 +23,11 @@ pub(super) struct Input<'a> {
     pub decision: &'a resolver::Decision,
     pub policy: &'a SelectionPolicy,
     pub material: &'a MaterialLease,
+    pub registry_at_preflight: &'a super::RegistrySnapshot,
 }
 pub(super) struct Current {
     pub registry: ArtifactRef,
+    pub registry_at_preflight: super::RegistrySnapshot,
     pub principal: ArtifactRef,
     pub inventory: CapabilitySnapshot,
     pub inventory_sequence: u64,
@@ -180,9 +182,10 @@ pub(super) async fn fence_locked(
         ))
         .map_err(|_| refused())?,
     )?;
-    if revision != registry_revision || registry != p.choice.registry {
+    if revision != registry_revision {
         return Err(refused());
     }
+    super::validate_registry_current(input, &registry)?;
     let loaded = state.config.intelligence.as_ref().ok_or_else(refused)?;
     let (index, credential) = loaded
         .credentials
@@ -304,6 +307,7 @@ pub(super) async fn fence_locked(
         .map(serde_json::from_value)
         .collect::<Result<_, _>>()
         .map_err(|_| refused())?;
+    super::validate_observation_revisions(&availability, &registry)?;
     let time = now(state)?;
     if inventory.observed_at_ms == 0
         || inventory.observed_at_ms > time
@@ -350,6 +354,7 @@ pub(super) async fn fence_locked(
         .min(provision.expires_at_ms);
     let result = Current {
         registry,
+        registry_at_preflight: input.registry_at_preflight.clone(),
         principal,
         inventory_sequence: current.request.sequence,
         inventory_request_digest: current.request.digest().map_err(|_| refused())?,

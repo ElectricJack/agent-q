@@ -27,6 +27,9 @@ pub struct Case {
     pub env: SelectionFixture,
     pub request: Poll,
     pub mode: Arc<AtomicU8>,
+    pub controlled_clock: Option<Arc<std::sync::atomic::AtomicI64>>,
+    pub observation_entered: Arc<tokio::sync::Semaphore>,
+    pub observation_resume: Arc<tokio::sync::Semaphore>,
     tasks: Vec<tokio::task::JoinHandle<()>>,
 }
 impl Drop for Case {
@@ -66,10 +69,26 @@ pub async fn setup() -> Case {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
     let addr = listener.local_addr().unwrap();
     let peer_mode = mode.clone();
+    let observation_entered = Arc::new(tokio::sync::Semaphore::new(0));
+    let observation_resume = Arc::new(tokio::sync::Semaphore::new(0));
+    let peer_entered = observation_entered.clone();
+    let peer_resume = observation_resume.clone();
     let app = axum::Router::new().fallback(axum::routing::get(move |uri: axum::http::Uri| {
         let mut node = node.clone();
         let mode = peer_mode.load(Ordering::SeqCst);
+        let entered = peer_entered.clone();
+        let resume = peer_resume.clone();
         async move {
+            if mode == 6 && uri.path().ends_with("/ready") {
+                // Exact external-observation boundary; normal fixtures never arm
+                // this mode. Permits prevent lost notifications in race tests.
+                entered.add_permits(1);
+                tokio::time::timeout(std::time::Duration::from_secs(2), resume.acquire())
+                    .await
+                    .expect("bounded synthetic observation resume")
+                    .unwrap()
+                    .forget();
+            }
             if mode == 4 {
                 node["body"] = json!("changed authorized root without CAS increment");
             }
@@ -291,7 +310,11 @@ pub async fn setup() -> Case {
             "artifact.export"=>{let op=r["operation_id"].as_str().unwrap();let dir=root.join("artifacts").join(op);std::fs::create_dir_all(&dir).unwrap();let bundle=b"synthetic bytes, not a qualified Git bundle";let manifest=json!({"format_version":1,"repository_id":repository,"repository_identity":"synthetic-native-repository","binding_generation":1,"transfer_id":op,"object_format":"sha1","base":r["params"]["base"],"source":r["params"]["source"],"prerequisites":[],"bundle_size":bundle.len(),"bundle_sha256":Digest::of(bundle),"producer_installation_id":producer,"reference_only":false,"caller_correlation":r["params"]["caller_correlation"]});std::fs::write(dir.join("objects.bundle"),bundle).unwrap();std::fs::write(dir.join("manifest.json"),serde_json::to_vec_pretty(&manifest).unwrap()).unwrap();json!({"artifact_handle":op,"retention_handle":op,"manifest":manifest})},
             other=>panic!("unexpected private Git operation {other}"),
         };
-        let mut response=json!({"protocol_version":1,"request_id":r["request_id"],"ok":true,"result":result});if let Some(op)=r.get("operation_id"){response["operation_id"]=op.clone();}let mut bytes=serde_json::to_vec(&response).unwrap();bytes.push(b'\n');reader.into_inner().write_all(&bytes).await.unwrap();
+        let mut response=json!({"protocol_version":1,"request_id":r["request_id"],"ok":true,"result":result});if let Some(op)=r.get("operation_id"){response["operation_id"]=op.clone();}let mut bytes=serde_json::to_vec(&response).unwrap();bytes.push(b'\n');if let Err(error)=reader.into_inner().write_all(&bytes).await {
+            // A real refusal cancels sibling observations and closes its UDS.
+            // Expected cancellation is not a successful response or peer panic.
+            assert!(matches!(error.kind(),std::io::ErrorKind::BrokenPipe|std::io::ErrorKind::ConnectionReset),"unexpected synthetic Git response failure");
+        }
     });}}));
     env.env.state.source_retention = Some(Arc::new(
         aq_server::source_retention::Runtime::new(
@@ -324,6 +347,9 @@ pub async fn setup() -> Case {
             after_offer: None,
         },
         mode,
+        controlled_clock: None,
+        observation_entered,
+        observation_resume,
         tasks,
     }
 }

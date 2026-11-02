@@ -1,4 +1,7 @@
 //! Default-inactive separately owned no-launch preparation. No execution issuer.
+// Shared owner files intentionally instantiate distinct nominal protocol types.
+// A module alias would cross the old/new contract boundary instead.
+#![allow(clippy::duplicate_mod)]
 mod accept;
 mod api;
 mod authority;
@@ -185,4 +188,16 @@ async fn validate_live_registry(
     _: &phase::AcceptedReceipt,
 ) -> Result<(), AppError> {
     Ok(())
+}
+
+/// Existing installed backing remains checkable after retrieval expires. The
+/// caller must independently own a current, still-live original execution grant.
+pub(super) async fn require_installed_material_locked(
+    state: &AppState,
+    auth: &crate::worker_api::AuthenticatedNode,
+    tx: &mut Transaction<'_, Postgres>,
+    history: &AcceptedHistory,
+) -> Result<(), AppError> {
+    authority::current_policy_locked(state, tx, auth, &history.proposal).await?;
+    authority::material_locked(tx, &history.request, &history.receipt).await
 }

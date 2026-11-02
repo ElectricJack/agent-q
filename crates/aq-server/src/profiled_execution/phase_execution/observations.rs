@@ -251,8 +251,7 @@ fn read_error(error: crate::agent_access::scheduling::SchedulingReadError) -> Ap
 }
 async fn graph(state: &AppState, input: &Input) -> Result<ReadProvenance, AppError> {
     let graph = state.agent_access.as_ref().ok_or_else(unavailable)?;
-    let ready = graph
-        .scheduling_ready(input.spec.task.workspace_id, 8, None)
+    let ready = super::observe_ready(state, graph, input.spec.task.workspace_id)
         .await
         .map_err(read_error)?;
     let context = graph

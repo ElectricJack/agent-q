@@ -1,12 +1,8 @@
 use super::*;
 use aq_session_protocol::Validate;
 use serde::{Deserialize, Serialize};
-const PREFIX: &str = "aq.phase-execution-qualification/";
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum AdapterSet {
-    CurrentProjectRegistryPrincipalInventoryHealthUnissuedGraphRetentionPrivateV1,
-}
+const PREFIX: &str = super::EXECUTION_PREFIX;
+pub use super::AdapterSet;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct ExecutionQualification {
@@ -21,8 +17,7 @@ impl ExecutionQualification {
     fn validate(&self) -> Result<(), String> {
         if self.schema_version != 1
             || self.contract
-                != aq_admission::preparation_v2::contract_artifact()
-                    .map_err(|_| "phase execution contract")?
+                != phase::contract_artifact().map_err(|_| "phase execution contract")?
         {
             return Err("unsupported phase execution qualification".into());
         }
@@ -74,7 +69,7 @@ pub(crate) fn validate_catalog(
 }
 pub(super) fn current(
     state: &AppState,
-    history: &super::super::accepted_preparation::AcceptedHistory,
+    history: &accepted_owner::AcceptedHistory,
     runtime: &super::super::registration::RegisteredRuntime,
 ) -> Result<ArtifactRef, AppError> {
     let config = state
@@ -100,7 +95,7 @@ pub(super) fn current(
 
 /// Production transport requires a coherent explicitly installed launch/cleanup
 /// profile set. It does not advertise or select any runtime on its own.
-pub(super) fn transport_enabled(state: &AppState) -> bool {
+pub(crate) fn transport_enabled(state: &AppState) -> bool {
     let Some(c) = state.config.profiled_execution.as_ref() else {
         return false;
     };
@@ -116,11 +111,7 @@ pub(super) fn transport_enabled(state: &AppState) -> bool {
             return false;
         };
         if !matches!(
-            super::super::phase_terminal::qualification::profile(
-                c,
-                &q.runtime,
-                &q.runtime_qualification
-            ),
+            super::terminal_profile(c, &q.runtime, &q.runtime_qualification),
             Ok(Some(_))
         ) {
             return false;
