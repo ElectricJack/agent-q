@@ -15,7 +15,9 @@ PhaseExecutionV2 or PhaseRefreshExecutionV1 history. For phase families, decode 
 correct nominal outer Started/Stopped requests and acknowledgments, validate them
 against actual execution/accepted/proposal/registration history and Prepared
 checkpoint, and verify exact canonical inner/outer/proof bytes, receipt digests,
-original runtime/qualification and retained terminal qualification. Accepted but
+original runtime/qualification and retained terminal qualification. Nominal phase
+proof admission uses the actual phase terminal owner and its closed terminal
+qualification, not the legacy transport HostStopEvidenceV1 flag. Accepted but
 unissued work is unsupported. No legacy Prepare/Started/Stopped row is invented.
 
 Existing shared `ResultReport.stop` and `result_record::Receipt.stopped_receipt`
