@@ -87,3 +87,19 @@ wrapper source is `scripts/probe-phase-source-retention.py`, SHA256
 The exact private originals remain under `/tmp/aq-phase-source-qualified`; small
 private fixture roots are retained for audit. SERVER was returned to Root before
 the pair; the cold Git lane was explicitly released to Runner after both passed.
+
+## Standalone fixture owner handoff
+
+After the qualified pair froze, Runner requested the same Git lifecycle helper
+for real Git initialization before any synthetic AQ Case/project verification.
+It is mechanically moved to `tests/support/actual_git_owner.rs`; standalone
+`Owner::{start,call,artifact,stop}`, `git` and `verify_pins` have no AQ Case or
+legacy Runtime dependency. The phase-specific factory remains separate. The
+caller must preserve its private parent root before spawning and perform the
+same whole unique-SID proof; this is not a production containment API.
+
+The owner lifecycle body was compared byte-for-byte with the qualified source
+before move, normalizing only constructor visibility/documentation:
+SHA256 `6dfa36618c212bf5b6bc5bf0498ec90d5554409c4a3b415365a4e1b1d4076b58`.
+The two executable pin checks are unchanged behind `verify_pins`. This mechanical
+source handoff does not claim a new physical producer/composition run.

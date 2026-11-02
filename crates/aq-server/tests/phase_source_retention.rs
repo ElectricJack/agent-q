@@ -2,6 +2,8 @@
 //! material installation and Graph observations remain explicit synthetic facts.
 #[path = "phase_source_retention/git.rs"]
 mod actual_git;
+#[path = "support/actual_git_owner.rs"]
+mod actual_git_owner;
 mod common;
 #[allow(dead_code)]
 #[path = "common/phase_terminal.rs"]
