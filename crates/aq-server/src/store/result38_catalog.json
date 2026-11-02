@@ -1,0 +1,984 @@
+[
+  {
+    "body": {
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "notnull": false,
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "origin_execution_receipt_digest"
+  },
+  {
+    "body": {
+      "default": null,
+      "generated": "",
+      "identity": "",
+      "notnull": false,
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "origin_stopped_ack_bytes_digest"
+  },
+  {
+    "body": {
+      "default": "'legacy_prepare_v1'::text",
+      "generated": "",
+      "identity": "",
+      "notnull": true,
+      "type": "text"
+    },
+    "kind": "column",
+    "name": "result_origin_kind"
+  },
+  {
+    "body": {
+      "default": "\nCASE\n    WHEN (result_origin_kind = 'legacy_prepare_v1'::text) THEN NULL::uuid\n    ELSE attempt_id\nEND",
+      "generated": "s",
+      "identity": "",
+      "notnull": false,
+      "type": "uuid"
+    },
+    "kind": "column",
+    "name": "result_origin_phase_attempt_id"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "UNIQUE (attempt_id, receipt_digest)",
+      "kind": "u",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_phase_execution_grants.profiled_phase_result_execution_key"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (attempt_id) REFERENCES profiled_stopped_receipts(attempt_id)",
+      "kind": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_heads.profiled_result_heads_attempt_id_fkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (attempt_id, report_id) REFERENCES profiled_result_reports(attempt_id, report_id)",
+      "kind": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_heads.profiled_result_heads_attempt_id_report_id_fkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "PRIMARY KEY (attempt_id)",
+      "kind": "p",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_heads.profiled_result_heads_pkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "UNIQUE (report_id)",
+      "kind": "u",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_heads.profiled_result_heads_report_id_key"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "TRIGGER DEFERRABLE INITIALLY DEFERRED",
+      "kind": "t",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_atomic_guard"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (result_origin_phase_attempt_id, origin_execution_receipt_digest) REFERENCES profiled_phase_execution_grants(attempt_id, receipt_digest)",
+      "kind": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_execution_origin_fk"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (COALESCE((((result_origin_kind = 'legacy_prepare_v1'::text) AND (origin_execution_receipt_digest IS NULL) AND (origin_stopped_ack_bytes_digest IS NULL)) OR ((result_origin_kind = ANY (ARRAY['phase_execution_v2'::text, 'phase_refresh_execution_v1'::text])) AND (origin_execution_receipt_digest ~ '^[0-9a-f]{64}$'::text) AND (origin_stopped_ack_bytes_digest ~ '^[0-9a-f]{64}$'::text))), false))",
+      "kind": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_origin_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (attempt_id) REFERENCES profiled_stopped_receipts(attempt_id)",
+      "kind": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_reports_attempt_id_fkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "UNIQUE (attempt_id, report_id)",
+      "kind": "u",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_reports_attempt_id_report_id_key"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((report_digest = encode(sha256(report_bytes), 'hex'::text)))",
+      "kind": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_reports_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (node_id) REFERENCES nodes(id)",
+      "kind": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_reports_node_id_fkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "UNIQUE (node_id, operation_id)",
+      "kind": "u",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_reports_node_id_operation_id_key"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((operation_id <> '00000000-0000-0000-0000-000000000000'::uuid))",
+      "kind": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_reports_operation_id_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (outcome_artifact_id) REFERENCES admission_artifacts(artifact_id)",
+      "kind": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_reports_outcome_artifact_id_fkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "PRIMARY KEY (report_id)",
+      "kind": "p",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_reports_pkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((octet_length(receipt_bytes) >= 1) AND (octet_length(receipt_bytes) <= 65536)))",
+      "kind": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_reports_receipt_bytes_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK (((octet_length(report_bytes) >= 1) AND (octet_length(report_bytes) <= 65536)))",
+      "kind": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_reports_report_bytes_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CHECK ((report_id <> '00000000-0000-0000-0000-000000000000'::uuid))",
+      "kind": "c",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_reports_report_id_check"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (supersedes) REFERENCES profiled_result_reports(report_id)",
+      "kind": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_reports_supersedes_fkey"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "FOREIGN KEY (result_origin_phase_attempt_id, origin_stopped_ack_bytes_digest) REFERENCES profiled_stopped_receipts(attempt_id, phase_ack_digest)",
+      "kind": "f",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_result_reports.profiled_result_stop_origin_fk"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "UNIQUE (attempt_id, phase_ack_digest)",
+      "kind": "u",
+      "validated": true
+    },
+    "kind": "constraint",
+    "name": "profiled_stopped_receipts.profiled_phase_result_stop_key"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_noaction_del",
+      "to": "admission_artifacts",
+      "type": 9
+    },
+    "kind": "fk_internal",
+    "name": "admission_artifacts.profiled_result_reports_outcome_artifact_id_fkey.RI_FKey_noaction_del.9"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_noaction_upd",
+      "to": "admission_artifacts",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "admission_artifacts.profiled_result_reports_outcome_artifact_id_fkey.RI_FKey_noaction_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_noaction_del",
+      "to": "nodes",
+      "type": 9
+    },
+    "kind": "fk_internal",
+    "name": "nodes.profiled_result_reports_node_id_fkey.RI_FKey_noaction_del.9"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_noaction_upd",
+      "to": "nodes",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "nodes.profiled_result_reports_node_id_fkey.RI_FKey_noaction_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_noaction_del",
+      "to": "profiled_phase_execution_grants",
+      "type": 9
+    },
+    "kind": "fk_internal",
+    "name": "profiled_phase_execution_grants.profiled_result_execution_origin_fk.RI_FKey_noaction_del.9"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_noaction_upd",
+      "to": "profiled_phase_execution_grants",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_phase_execution_grants.profiled_result_execution_origin_fk.RI_FKey_noaction_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_heads",
+      "function": "RI_FKey_check_ins",
+      "to": "profiled_stopped_receipts",
+      "type": 5
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_heads.profiled_result_heads_attempt_id_fkey.RI_FKey_check_ins.5"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_heads",
+      "function": "RI_FKey_check_upd",
+      "to": "profiled_stopped_receipts",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_heads.profiled_result_heads_attempt_id_fkey.RI_FKey_check_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_heads",
+      "function": "RI_FKey_check_ins",
+      "to": "profiled_result_reports",
+      "type": 5
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_heads.profiled_result_heads_attempt_id_report_id_fkey.RI_FKey_check_ins.5"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_heads",
+      "function": "RI_FKey_check_upd",
+      "to": "profiled_result_reports",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_heads.profiled_result_heads_attempt_id_report_id_fkey.RI_FKey_check_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_check_ins",
+      "to": "profiled_phase_execution_grants",
+      "type": 5
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_execution_origin_fk.RI_FKey_check_ins.5"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_check_upd",
+      "to": "profiled_phase_execution_grants",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_execution_origin_fk.RI_FKey_check_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_heads",
+      "function": "RI_FKey_noaction_del",
+      "to": "profiled_result_reports",
+      "type": 9
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_heads_attempt_id_report_id_fkey.RI_FKey_noaction_del.9"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_heads",
+      "function": "RI_FKey_noaction_upd",
+      "to": "profiled_result_reports",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_heads_attempt_id_report_id_fkey.RI_FKey_noaction_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_check_ins",
+      "to": "profiled_stopped_receipts",
+      "type": 5
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_reports_attempt_id_fkey.RI_FKey_check_ins.5"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_check_upd",
+      "to": "profiled_stopped_receipts",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_reports_attempt_id_fkey.RI_FKey_check_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_check_ins",
+      "to": "nodes",
+      "type": 5
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_reports_node_id_fkey.RI_FKey_check_ins.5"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_check_upd",
+      "to": "nodes",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_reports_node_id_fkey.RI_FKey_check_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_check_ins",
+      "to": "admission_artifacts",
+      "type": 5
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_reports_outcome_artifact_id_fkey.RI_FKey_check_ins.5"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_check_upd",
+      "to": "admission_artifacts",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_reports_outcome_artifact_id_fkey.RI_FKey_check_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_check_ins",
+      "to": "profiled_result_reports",
+      "type": 5
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_reports_supersedes_fkey.RI_FKey_check_ins.5"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_check_upd",
+      "to": "profiled_result_reports",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_reports_supersedes_fkey.RI_FKey_check_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_noaction_del",
+      "to": "profiled_result_reports",
+      "type": 9
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_reports_supersedes_fkey.RI_FKey_noaction_del.9"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_noaction_upd",
+      "to": "profiled_result_reports",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_reports_supersedes_fkey.RI_FKey_noaction_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_check_ins",
+      "to": "profiled_stopped_receipts",
+      "type": 5
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_stop_origin_fk.RI_FKey_check_ins.5"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_check_upd",
+      "to": "profiled_stopped_receipts",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_result_reports.profiled_result_stop_origin_fk.RI_FKey_check_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_heads",
+      "function": "RI_FKey_noaction_del",
+      "to": "profiled_stopped_receipts",
+      "type": 9
+    },
+    "kind": "fk_internal",
+    "name": "profiled_stopped_receipts.profiled_result_heads_attempt_id_fkey.RI_FKey_noaction_del.9"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_heads",
+      "function": "RI_FKey_noaction_upd",
+      "to": "profiled_stopped_receipts",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_stopped_receipts.profiled_result_heads_attempt_id_fkey.RI_FKey_noaction_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_noaction_del",
+      "to": "profiled_stopped_receipts",
+      "type": 9
+    },
+    "kind": "fk_internal",
+    "name": "profiled_stopped_receipts.profiled_result_reports_attempt_id_fkey.RI_FKey_noaction_del.9"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_noaction_upd",
+      "to": "profiled_stopped_receipts",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_stopped_receipts.profiled_result_reports_attempt_id_fkey.RI_FKey_noaction_upd.17"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_noaction_del",
+      "to": "profiled_stopped_receipts",
+      "type": 9
+    },
+    "kind": "fk_internal",
+    "name": "profiled_stopped_receipts.profiled_result_stop_origin_fk.RI_FKey_noaction_del.9"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "enabled": "O",
+      "from": "profiled_result_reports",
+      "function": "RI_FKey_noaction_upd",
+      "to": "profiled_stopped_receipts",
+      "type": 17
+    },
+    "kind": "fk_internal",
+    "name": "profiled_stopped_receipts.profiled_result_stop_origin_fk.RI_FKey_noaction_upd.17"
+  },
+  {
+    "body": {
+      "args": "",
+      "body": "\nDECLARE phase BOOLEAN;\nBEGIN\n phase:=EXISTS(SELECT 1 FROM profiled_v2_accepts WHERE attempt_id=NEW.attempt_id) OR EXISTS(SELECT 1 FROM profiled_phase_execution_grants WHERE attempt_id=NEW.attempt_id);\n -- Release remains a separate closed authority boundary, including new writers.\n IF TG_TABLE_NAME='profiled_verified_releases' THEN\n  IF phase THEN RAISE EXCEPTION 'phase settlement protocol not qualified' USING ERRCODE='23514'; END IF;\n  RETURN NEW;\n END IF;\n IF phase THEN\n  IF current_setting('transaction_isolation') NOT IN ('read committed','serializable')\n   OR NOT profiled_result_origin_valid(NEW.attempt_id,NEW.node_id,NEW.result_origin_kind,NEW.origin_execution_receipt_digest,NEW.origin_stopped_ack_bytes_digest)\n   OR current_setting('aq.result_origin',true) IS DISTINCT FROM 'aq.result-origin.1:'||NEW.result_origin_kind||':'||NEW.origin_execution_receipt_digest||':'||NEW.origin_stopped_ack_bytes_digest\n  THEN RAISE EXCEPTION 'qualified exact phase result origin required' USING ERRCODE='23514'; END IF;\n ELSIF NEW.result_origin_kind<>'legacy_prepare_v1' OR NEW.origin_execution_receipt_digest IS NOT NULL OR NEW.origin_stopped_ack_bytes_digest IS NOT NULL THEN\n  RAISE EXCEPTION 'legacy result cannot claim phase origin' USING ERRCODE='23514';\n END IF;\n RETURN NEW;\nEND ",
+      "config": null,
+      "kind": "f",
+      "language": "plpgsql",
+      "parallel": "u",
+      "returns": "trigger",
+      "security_definer": false,
+      "set": false,
+      "strict": false,
+      "volatility": "v"
+    },
+    "kind": "function",
+    "name": "profiled_phase_unqualified_result_guard"
+  },
+  {
+    "body": {
+      "args": "",
+      "body": "\nBEGIN\n IF NOT EXISTS(SELECT 1 FROM profiled_result_heads WHERE attempt_id=NEW.attempt_id AND report_id=NEW.report_id)\n THEN RAISE EXCEPTION 'report and correction head must commit together'; END IF;\n RETURN NULL;\nEND ",
+      "config": null,
+      "kind": "f",
+      "language": "plpgsql",
+      "parallel": "u",
+      "returns": "trigger",
+      "security_definer": false,
+      "set": false,
+      "strict": false,
+      "volatility": "v"
+    },
+    "kind": "function",
+    "name": "profiled_result_atomic_guard"
+  },
+  {
+    "body": {
+      "args": "",
+      "body": "\nDECLARE previous UUID; owner UUID;\nBEGIN\n IF TG_OP='DELETE' THEN RAISE EXCEPTION 'retained result head'; END IF;\n SELECT attempt_id,supersedes INTO STRICT owner,previous FROM profiled_result_reports WHERE report_id=NEW.report_id;\n IF NEW.attempt_id<>owner THEN RAISE EXCEPTION 'result head scope'; END IF;\n IF TG_OP='INSERT' THEN\n  IF previous IS NOT NULL THEN RAISE EXCEPTION 'first report head cannot skip predecessor'; END IF;\n ELSE\n  IF NEW.attempt_id<>OLD.attempt_id OR previous IS DISTINCT FROM OLD.report_id OR NEW.report_id=OLD.report_id\n  THEN RAISE EXCEPTION 'result correction must follow current head'; END IF;\n END IF;\n RETURN NEW;\nEND ",
+      "config": null,
+      "kind": "f",
+      "language": "plpgsql",
+      "parallel": "u",
+      "returns": "trigger",
+      "security_definer": false,
+      "set": false,
+      "strict": false,
+      "volatility": "v"
+    },
+    "kind": "function",
+    "name": "profiled_result_head_guard"
+  },
+  {
+    "body": {
+      "args": "",
+      "body": "\nDECLARE q JSONB; r JSONB; b JSONB; m JSONB; s JSONB; stopped JSONB;\n h JSONB; held BOOLEAN; head UUID; n BIGINT; used BIGINT; a admission_artifacts%ROWTYPE;\nBEGIN\n -- Also serialize direct owner inserts; no authority fields are changed.\n SELECT holds_task INTO STRICT held FROM execution_attempts WHERE attempt_id=NEW.attempt_id FOR UPDATE;\n SELECT state INTO STRICT h FROM profiled_authority_hot WHERE attempt_id=NEW.attempt_id;\n SELECT launch_binding,launch_manifest INTO STRICT b,m FROM profiled_launches WHERE attempt_id=NEW.attempt_id;\n SELECT convert_from(request_bytes,'UTF8')::JSONB,\n jsonb_build_object('id','aq.native-stopped/'||NEW.attempt_id::TEXT,'version','1','digest',encode(sha256(receipt_bytes),'hex'))\n INTO STRICT s,stopped FROM profiled_stopped_receipts WHERE attempt_id=NEW.attempt_id;\n SELECT * INTO STRICT a FROM admission_artifacts WHERE artifact_id=NEW.outcome_artifact_id;\n q:=convert_from(NEW.report_bytes,'UTF8')::JSONB;r:=convert_from(NEW.receipt_bytes,'UTF8')::JSONB;\n SELECT report_id INTO head FROM profiled_result_heads WHERE attempt_id=NEW.attempt_id;\n SELECT count(*),COALESCE(sum(octet_length(report_bytes)),0) INTO n,used FROM profiled_result_reports WHERE attempt_id=NEW.attempt_id;\n IF NOT held OR h->>'status' IS DISTINCT FROM 'finished'\n OR h->'stop' IS DISTINCT FROM jsonb_build_object('kind','stopped','receipt',stopped)\n OR q->>'schema_version' IS DISTINCT FROM '1' OR r->>'schema_version' IS DISTINCT FROM '1'\n OR q->'binding' IS DISTINCT FROM b OR r->'binding' IS DISTINCT FROM b\n OR q#>>'{identity,node_id}' IS DISTINCT FROM NEW.node_id::TEXT\n OR q#>>'{identity,boot_id}' IS DISTINCT FROM b#>>'{session,boot_id}'\n OR b#>>'{session,node_id}' IS DISTINCT FROM NEW.node_id::TEXT\n OR q->>'operation_id' IS DISTINCT FROM NEW.operation_id::TEXT OR r->>'operation_id' IS DISTINCT FROM NEW.operation_id::TEXT\n OR q->>'report_id' IS DISTINCT FROM NEW.report_id::TEXT OR r->>'report_id' IS DISTINCT FROM NEW.report_id::TEXT\n OR (q->>'supersedes')::UUID IS DISTINCT FROM NEW.supersedes OR NEW.supersedes IS DISTINCT FROM head\n OR q->'stop' IS DISTINCT FROM s->'evidence'\n OR r->>'report_digest' IS DISTINCT FROM NEW.report_digest\n OR r->>'disposition' IS DISTINCT FROM 'recorded'\n OR r->'stopped_receipt' IS DISTINCT FROM stopped\n OR r->'expected_outcome' IS DISTINCT FROM m#>'{bindings,outcome}'\n OR COALESCE((r->>'recorded_at_ms')::BIGINT,0)<=0\n OR a.owner_kind<>'outcome' OR a.owner_key IS DISTINCT FROM m#>>'{bindings,project_id}'\n OR a.descriptor->'artifact' IS DISTINCT FROM m#>'{bindings,outcome}' OR a.body IS NULL\n OR NOT EXISTS(SELECT 1 FROM profiled_launch_artifacts WHERE attempt_id=NEW.attempt_id AND artifact_id=NEW.outcome_artifact_id)\n OR n>=64 OR used+octet_length(NEW.report_bytes)>4194304\n THEN RAISE EXCEPTION 'native report requires exact stopped/outcome owner, correction head and quota'; END IF;\n RETURN NEW;\nEND ",
+      "config": null,
+      "kind": "f",
+      "language": "plpgsql",
+      "parallel": "u",
+      "returns": "trigger",
+      "security_definer": false,
+      "set": false,
+      "strict": false,
+      "volatility": "v"
+    },
+    "kind": "function",
+    "name": "profiled_result_insert_guard"
+  },
+  {
+    "body": {
+      "args": "attempt uuid, owner_node uuid, origin_kind text, execution_digest text, stopped_ack_digest text",
+      "body": "\n SELECT EXISTS(\n  SELECT 1 FROM profiled_phase_execution_grants g\n  JOIN profiled_v2_proposals p USING(attempt_id)\n  JOIN profiled_started_receipts started USING(attempt_id)\n  JOIN profiled_stopped_receipts stopped USING(attempt_id)\n  WHERE g.attempt_id=attempt AND g.node_id=owner_node AND started.node_id=owner_node AND stopped.node_id=owner_node\n   AND g.receipt_digest=execution_digest AND stopped.phase_ack_digest=stopped_ack_digest\n   AND started.initial_authority_kind='phase_execution_v2' AND stopped.initial_authority_kind='phase_execution_v2'\n   AND started.initial_authority_receipt_digest=g.receipt_digest AND stopped.initial_authority_receipt_digest=g.receipt_digest\n   AND started.phase_terminal_qualification=stopped.phase_terminal_qualification\n   AND convert_from(started.phase_envelope_bytes,'UTF8')::JSONB->'negotiation'=convert_from(stopped.phase_envelope_bytes,'UTF8')::JSONB->'negotiation'\n   AND convert_from(started.phase_ack_bytes,'UTF8')::JSONB->'negotiation'=convert_from(started.phase_envelope_bytes,'UTF8')::JSONB->'negotiation'\n   AND convert_from(stopped.phase_ack_bytes,'UTF8')::JSONB->'negotiation'=convert_from(stopped.phase_envelope_bytes,'UTF8')::JSONB->'negotiation'\n   AND convert_from(stopped.phase_ack_bytes,'UTF8')::JSONB#>>'{origin,execution_receipt_digest}'=g.receipt_digest\n   AND convert_from(stopped.phase_ack_bytes,'UTF8')::JSONB#>>'{origin,accepted_receipt_digest}'=g.accepted_receipt_digest\n   AND convert_from(stopped.phase_ack_bytes,'UTF8')::JSONB->'original'=convert_from(stopped.receipt_bytes,'UTF8')::JSONB\n   AND ((origin_kind='phase_execution_v2' AND p.proposal#>'{negotiation,contract}'='{\"digest\":\"ff60400da09f3de166b7931bc386c89218cb76a6c9e5276dff37c5fce28ca3e5\",\"id\":\"aq.admission.preparation-v2-contract\",\"version\":\"1\"}'::JSONB AND convert_from(stopped.phase_ack_bytes,'UTF8')::JSONB#>'{negotiation,contract}'='{\"digest\":\"292c30eba95b8dd6f1d9a7bf75775bc5d0f9ecb54644047747f9593d538c0a4a\",\"id\":\"aq.phase-terminal.contract\",\"version\":\"1\"}'::JSONB)\n    OR (origin_kind='phase_refresh_execution_v1' AND p.proposal#>'{negotiation,contract}'='{\"digest\":\"e41c08e3c8200f84b75824bff779833c9b8e5279ac63d2d91af12d9879deef56\",\"id\":\"aq.admission.preparation-registry-refresh-v1-contract\",\"version\":\"1\"}'::JSONB AND convert_from(stopped.phase_ack_bytes,'UTF8')::JSONB#>'{negotiation,contract}'='{\"digest\":\"f9af55c49127a8cb93f03ef5bbb28313d13f94a221affa3e26d91d45bffd6c2d\",\"id\":\"aq.phase-terminal.registry-refresh-v1.contract\",\"version\":\"1\"}'::JSONB))\n )\n",
+      "config": null,
+      "kind": "f",
+      "language": "sql",
+      "parallel": "u",
+      "returns": "boolean",
+      "security_definer": false,
+      "set": false,
+      "strict": false,
+      "volatility": "s"
+    },
+    "kind": "function",
+    "name": "profiled_result_origin_valid"
+  },
+  {
+    "body": {
+      "args": "",
+      "body": "\nBEGIN\n IF TG_OP='DELETE' THEN RAISE EXCEPTION 'sealed admission record cannot be deleted' USING ERRCODE='23514'; END IF;\n IF NEW IS DISTINCT FROM OLD THEN RAISE EXCEPTION 'sealed admission record cannot change' USING ERRCODE='23514'; END IF;\n RETURN NEW;\nEND ",
+      "config": null,
+      "kind": "f",
+      "language": "plpgsql",
+      "parallel": "u",
+      "returns": "trigger",
+      "security_definer": false,
+      "set": false,
+      "strict": false,
+      "volatility": "v"
+    },
+    "kind": "function",
+    "name": "profiled_sealed_row_guard"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX profiled_phase_result_execution_key ON public.profiled_phase_execution_grants USING btree (attempt_id, receipt_digest)",
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "profiled_phase_result_execution_key"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX profiled_phase_result_stop_key ON public.profiled_stopped_receipts USING btree (attempt_id, phase_ack_digest)",
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "profiled_phase_result_stop_key"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX profiled_result_heads_pkey ON public.profiled_result_heads USING btree (attempt_id)",
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": true,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "profiled_result_heads_pkey"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX profiled_result_heads_report_id_key ON public.profiled_result_heads USING btree (report_id)",
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "profiled_result_heads_report_id_key"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX profiled_result_reports_attempt_id_report_id_key ON public.profiled_result_reports USING btree (attempt_id, report_id)",
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "profiled_result_reports_attempt_id_report_id_key"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX profiled_result_reports_node_id_operation_id_key ON public.profiled_result_reports USING btree (node_id, operation_id)",
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "profiled_result_reports_node_id_operation_id_key"
+  },
+  {
+    "body": {
+      "definition": "CREATE UNIQUE INDEX profiled_result_reports_pkey ON public.profiled_result_reports USING btree (report_id)",
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": true,
+      "ready": true,
+      "unique": true,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "profiled_result_reports_pkey"
+  },
+  {
+    "body": {
+      "definition": "CREATE INDEX profiled_results_attempt ON public.profiled_result_reports USING btree (attempt_id)",
+      "immediate": true,
+      "live": true,
+      "nulls_not_distinct": false,
+      "primary": false,
+      "ready": true,
+      "unique": false,
+      "valid": true
+    },
+    "kind": "index",
+    "name": "profiled_results_attempt"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER profiled_result_head_guard BEFORE INSERT OR DELETE OR UPDATE ON public.profiled_result_heads FOR EACH ROW EXECUTE FUNCTION profiled_result_head_guard()",
+      "enabled": "O",
+      "type": 31
+    },
+    "kind": "trigger",
+    "name": "profiled_result_heads.profiled_result_head_guard"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER profiled_phase_unqualified_result_guard BEFORE INSERT ON public.profiled_result_reports FOR EACH ROW EXECUTE FUNCTION profiled_phase_unqualified_result_guard()",
+      "enabled": "O",
+      "type": 7
+    },
+    "kind": "trigger",
+    "name": "profiled_result_reports.profiled_phase_unqualified_result_guard"
+  },
+  {
+    "body": {
+      "deferrable": true,
+      "deferred": true,
+      "definition": "CREATE CONSTRAINT TRIGGER profiled_result_atomic_guard AFTER INSERT ON public.profiled_result_reports DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION profiled_result_atomic_guard()",
+      "enabled": "O",
+      "type": 5
+    },
+    "kind": "trigger",
+    "name": "profiled_result_reports.profiled_result_atomic_guard"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER profiled_result_immutable BEFORE DELETE OR UPDATE ON public.profiled_result_reports FOR EACH ROW EXECUTE FUNCTION profiled_sealed_row_guard()",
+      "enabled": "O",
+      "type": 27
+    },
+    "kind": "trigger",
+    "name": "profiled_result_reports.profiled_result_immutable"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER profiled_result_insert_guard BEFORE INSERT ON public.profiled_result_reports FOR EACH ROW EXECUTE FUNCTION profiled_result_insert_guard()",
+      "enabled": "O",
+      "type": 7
+    },
+    "kind": "trigger",
+    "name": "profiled_result_reports.profiled_result_insert_guard"
+  },
+  {
+    "body": {
+      "deferrable": false,
+      "deferred": false,
+      "definition": "CREATE TRIGGER profiled_phase_unqualified_release_guard BEFORE INSERT ON public.profiled_verified_releases FOR EACH ROW EXECUTE FUNCTION profiled_phase_unqualified_result_guard()",
+      "enabled": "O",
+      "type": 7
+    },
+    "kind": "trigger",
+    "name": "profiled_verified_releases.profiled_phase_unqualified_release_guard"
+  }
+]
