@@ -631,3 +631,92 @@ async fn settlement_http_rechecks_full_current_principal_after_body_read() {
     assert_eq!(c.writes.load(Ordering::SeqCst), 0);
     finish(&c);
 }
+
+#[tokio::test]
+async fn settlement_http_pending_review_refuses_without_effect_then_same_intent_can_retry() {
+    let c = Box::pin(setup()).await;
+    let decision = pending(&c).await;
+    let router = app(&c);
+    let mut evaluation = c.request.clone();
+    evaluation.operation_id = Uuid::new_v4();
+    evaluation.decision_id = decision.decision_id;
+    evaluation.subject = decision.subject.clone();
+    let pool = c.env.f.db.pool().await;
+    let before: i64 = sqlx::query_scalar("SELECT count(*) FROM profiled_verified_releases")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    let response = router
+        .clone()
+        .oneshot(request(
+            "POST",
+            "/api/settlement/evaluations",
+            json!(evaluation),
+            &c.actor.email,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    for table in [
+        "profiled_settlement_evaluations",
+        "profiled_task_completions",
+    ] {
+        let count: i64 = sqlx::query_scalar(&format!("SELECT count(*) FROM {table}"))
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(count, 0);
+    }
+    let after: i64 = sqlx::query_scalar("SELECT count(*) FROM profiled_verified_releases")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(after, before);
+    assert_eq!(c.writes.load(Ordering::SeqCst), 0);
+    // Explicit synthetic fixture choice, not a real human or physical proof.
+    let answer = aq_review_protocol::ResolveRequest {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        decision_id: decision.decision_id,
+        expected_decision_revision: 1,
+        choice: aq_review_protocol::Choice::Approve,
+        comment: Some("Synthetic pending-to-resolved HTTP fixture only".into()),
+    };
+    let path = format!("/api/reviews/combined/{}/resolve", decision.decision_id);
+    let response = router
+        .clone()
+        .oneshot(request(
+            "POST",
+            &path,
+            json!({"expected_subject":decision.subject,"answer":answer}),
+            "owner@localhost",
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let response = router
+        .oneshot(request(
+            "POST",
+            "/api/settlement/evaluations",
+            json!(evaluation),
+            &c.actor.email,
+        ))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let receipt = value(response).await;
+    assert_eq!(receipt["operation_id"], json!(evaluation.operation_id));
+    assert_eq!(receipt["disposition"], "accepted");
+    assert_eq!(c.writes.load(Ordering::SeqCst), 0);
+    let held: bool =
+        sqlx::query_scalar("SELECT holds_task FROM execution_attempts WHERE attempt_id=$1")
+            .bind(c.env.report.binding.attempt_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert!(
+        held,
+        "evaluation alone neither dispatches Graph nor releases the task"
+    );
+    finish(&c);
+}
