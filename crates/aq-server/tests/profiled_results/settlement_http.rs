@@ -183,7 +183,7 @@ async fn combined_http_exact_profile_subject_and_explicit_answer_replay() {
         .oneshot(request("POST", &resolve, wrong, "owner@localhost"))
         .await
         .unwrap();
-    assert_eq!(refused.status(), StatusCode::CONFLICT);
+    assert_eq!(refused.status(), StatusCode::FORBIDDEN);
     let mut wrong = body.clone();
     wrong["answer"]["decision_id"] = json!(Uuid::new_v4());
     assert_eq!(
@@ -460,6 +460,109 @@ async fn combined_http_optional_mount_owner_origin_and_closed_body_guards() {
             StatusCode::BAD_REQUEST
         );
     }
+    let answer = aq_review_protocol::ResolveRequest {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        decision_id: decision,
+        expected_decision_revision: 1,
+        choice: aq_review_protocol::Choice::Reject,
+        comment: None,
+    };
+    let positional = json!([c.request.subject, answer]);
+    assert_eq!(
+        router
+            .clone()
+            .oneshot(request("POST", resolve, positional, "owner@localhost"))
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+    let positional = json!([
+        c.request.schema_version,
+        c.request.operation_id,
+        c.request.report_id,
+        c.request.source_operation_id,
+        c.request.decision_id,
+        c.request.subject
+    ]);
+    assert_eq!(
+        router
+            .clone()
+            .oneshot(request(
+                "POST",
+                "/api/settlement/evaluations",
+                positional,
+                &c.actor.email
+            ))
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+    let reference = json!(c.request.subject);
+    let reference_array = json!([reference["id"], reference["version"], reference["digest"]]);
+    let nested = json!({"expected_subject":reference_array,"answer":answer});
+    assert_eq!(
+        router
+            .clone()
+            .oneshot(request("POST", resolve, nested, "owner@localhost"))
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+    let answer_array = json!([
+        answer.schema_version,
+        answer.operation_id,
+        answer.decision_id,
+        answer.expected_decision_revision,
+        answer.choice,
+        answer.comment
+    ]);
+    let nested = json!({"expected_subject":c.request.subject,"answer":answer_array});
+    assert_eq!(
+        router
+            .clone()
+            .oneshot(request("POST", resolve, nested, "owner@localhost"))
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+    let mut nested = json!(c.request);
+    nested["subject"] = reference_array;
+    assert_eq!(
+        router
+            .clone()
+            .oneshot(request(
+                "POST",
+                "/api/settlement/evaluations",
+                nested,
+                &c.actor.email
+            ))
+            .await
+            .unwrap()
+            .status(),
+        StatusCode::BAD_REQUEST
+    );
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM profiled_settlement_evaluations")
+        .fetch_one(&c.env.f.db.pool().await)
+        .await
+        .unwrap();
+    assert_eq!(count, 0);
+    let duplicate = format!(
+        "{{\"expected_subject\":{},\"expected_subject\":{},\"answer\":{}}}",
+        json!(c.request.subject),
+        json!(c.request.subject),
+        json!(answer)
+    );
+    let mut duplicated = request("POST", resolve, json!({}), "owner@localhost");
+    *duplicated.body_mut() = Body::from(duplicate);
+    assert_eq!(
+        router.clone().oneshot(duplicated).await.unwrap().status(),
+        StatusCode::BAD_REQUEST
+    );
     let mut large = request("POST", resolve, json!({}), "owner@localhost");
     *large.body_mut() = Body::from(vec![b' '; 16385]);
     assert_eq!(
