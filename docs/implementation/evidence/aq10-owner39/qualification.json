@@ -5,7 +5,7 @@
     "bef321fe8393fa4a2378649552853cfede0fac39"
   ],
   "source_review": "independently_accepted",
-  "final_same_source_gate": "root_owned_pending",
+  "final_same_source_gate": "root_composed_source_0d1cdc8_passed",
   "schema39_sha256": "ab86dca153d0310640557e676bc95a065319d34401054621554ca4727df85187",
   "catalog_sha256": "5f34c6742dc537122d5421880b7831bb3e29ac76c199b5c68821d940927c9316",
   "pre_final_runtime_evidence": {
@@ -32,7 +32,7 @@
   },
   "limitations": [
     "Runtime groups predate only explicit string-comparison/private enum Box correction and final prepare auth fence as applicable; do not attribute all to final freeze.",
-    "Final Root combined gate includes new pure pending-claim and held-Git-preparer cases plus old code-review/inbox and populated archive proof.",
+    "Final Root combined gate passed new pure pending-claim and held-Git-preparer cases plus old code-review/inbox, counted startup and populated archive preservation; see separately retained Root evidence for precise source scopes.",
     "Synthetic launch/host facts, agent binding/ledger setup and synthetic Git/Graph peers qualify owner/locking/transport joins only.",
     "No real provider/physical/ECHILD/real Git/real Graph/human intervention/end-to-end proof is established by these fixtures.",
     "No public router/capability/scheduler, canonical migration or deployment is performed by this source/evidence.",
@@ -99,5 +99,20 @@
       "sha256": "a68b35205e84bb7becdafde202a94bfd12106815dd8e79fba1f9cb012a160fbe",
       "bytes": 461
     }
+  },
+  "root_integration": {
+    "evidence_commit": "cd641962881a6ab86439a2b626e0fd6853a7f9ea",
+    "source": "0d1cdc8a9972e82ba6fe068dc92d53b76226da92",
+    "qualification_path": "../execution-union39-0d1cdc8/qualification.json",
+    "qualification_sha256": "7fb938a0e7a93d359a75d2f909a246acc00441fa2b010a28c8e8239d552fc03b",
+    "unique_focused_cases": 32,
+    "strict": {
+      "passed": true,
+      "seconds": 50.88,
+      "scope": "lib and profiled_results/native_result_startup/phase_source_retention/settlement_migration/result_origin_migration; all features; warnings denied"
+    },
+    "scope": "settlement12+startup4 unit, settlement10 integration, legacy review1/inbox1 on composed9696db7 plus test-only0d1cdc8 boxing",
+    "producer_and_archive_scope": "startup-owner and populated archive executed on245f6ed; their producer/migration/data-guard bytes unchanged by later post-I/O review fence, test boxing and fixture extraction",
+    "canonical_changed": false
   }
 }
