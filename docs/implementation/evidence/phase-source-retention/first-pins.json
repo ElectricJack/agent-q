@@ -1,0 +1,10 @@
+{
+  "source": "d445b2a3a7f23b11322088ee8bd08a397fac233e",
+  "binary": "/tmp/aq-phase-source-qualified/phase-source-retention-test",
+  "binary_sha256": "eff81b1d28d6ccecdcdd53ebc9b84686e3f137f40877097f98f6de91f621c781",
+  "aq_git": "/tmp/aq-wrk08-git-pin/aq-git",
+  "aq_git_sha256": "c2ff26f5e63008aec0fbd4082a547e87825e651d4aba0744c4b9fdf752d58c39",
+  "git": "/usr/bin/git",
+  "git_sha256": "eb54b535467e0975c1284d4c4d08eea779aeb248a5d34b02e2ee171382e22201",
+  "minimum_free_bytes": 11005853696
+}
