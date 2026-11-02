@@ -419,7 +419,7 @@ fn control_router(owners: Arc<ControlOwners>) -> axum::Router {
                             .lock()
                             .unwrap()
                             .push((format!("fixture_operator:{code}"), 503));
-                        eprintln!("GATE04_OPERATOR_REFUSAL {code}");
+                        eprintln!("GATE04_OPERATOR_REFUSAL {}",json!({"code":code,"clocks":codex_operator_assessment::refusal_clocks(&error)}));
                         axum::response::Response::builder()
                             .status(503)
                             .body(axum::body::Body::from(
@@ -671,6 +671,36 @@ async fn execute_case(
     );
     private(&tools, tool_bytes, 0o500)?;
     let program = ToolProgram { path: tools };
+    let evidence = codex_operator_assessment::LocalEvidence {
+        images: vec![
+            codex_operator_assessment::LocalImage {
+                guest: pins.images.worker.clone(),
+                outer: pins.worker.clone(),
+            },
+            codex_operator_assessment::LocalImage {
+                guest: pins.images.codex.clone(),
+                outer: pins.outer["AQ_NATIVE_CODEX_BINARY"].clone(),
+            },
+            codex_operator_assessment::LocalImage {
+                guest: pins.images.helper.clone(),
+                outer: pins.outer["AQ_NATIVE_HOST_BINARY"].clone(),
+            },
+            codex_operator_assessment::LocalImage {
+                guest: pins.images.tmux.clone(),
+                outer: pins.outer["AQ_NATIVE_TMUX_BINARY"].clone(),
+            },
+            codex_operator_assessment::LocalImage {
+                guest: pins.images.client.clone(),
+                outer: pins.outer["AQ_NATIVE_AGENT_CLIENT_BINARY"].clone(),
+            },
+        ],
+        synthetic_key_file: key_path.into(),
+        synthetic_key_digest: Digest::of(key.as_bytes()),
+        synthetic_key_bytes: key.len() as u64,
+    };
+    // Hash immutable images before the worker exists. Live callbacks retain
+    // these real descriptors and only revalidate continuity in O(1).
+    let assessor = codex_operator_assessment::Assessor::seal_images(&recipe, &evidence)?;
     let peer = Arc::new(
         Box::pin(FinitePeer::new(
             FixtureCli {
@@ -700,33 +730,6 @@ async fn execute_case(
     let provider = Arc::new(tokio::spawn(async move {
         axum::serve(provider_tcp, provider_router).await.unwrap()
     }));
-    let evidence = codex_operator_assessment::LocalEvidence {
-        images: vec![
-            codex_operator_assessment::LocalImage {
-                guest: pins.images.worker.clone(),
-                outer: pins.worker.clone(),
-            },
-            codex_operator_assessment::LocalImage {
-                guest: pins.images.codex.clone(),
-                outer: pins.outer["AQ_NATIVE_CODEX_BINARY"].clone(),
-            },
-            codex_operator_assessment::LocalImage {
-                guest: pins.images.helper.clone(),
-                outer: pins.outer["AQ_NATIVE_HOST_BINARY"].clone(),
-            },
-            codex_operator_assessment::LocalImage {
-                guest: pins.images.tmux.clone(),
-                outer: pins.outer["AQ_NATIVE_TMUX_BINARY"].clone(),
-            },
-            codex_operator_assessment::LocalImage {
-                guest: pins.images.client.clone(),
-                outer: pins.outer["AQ_NATIVE_AGENT_CLIENT_BINARY"].clone(),
-            },
-        ],
-        synthetic_key_file: key_path.into(),
-        synthetic_key_digest: Digest::of(key.as_bytes()),
-        synthetic_key_bytes: key.len() as u64,
-    };
     let observed = codex_terminal_output::Observed::default();
     let owners = Arc::new(ControlOwners {
         state: actual.env.state.clone(),
@@ -737,7 +740,7 @@ async fn execute_case(
         evidence,
         listener: provider_listener,
         provider: provider.clone(),
-        assessor: Default::default(),
+        assessor: tokio::sync::Mutex::new(assessor),
         observed: observed.clone(),
     });
     let control_tcp = tokio::net::TcpListener::from_std(transferred.control.try_clone()?)?;
