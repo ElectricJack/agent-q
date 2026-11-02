@@ -24,13 +24,19 @@ impl IntoResponse for Error {
         #[cfg(feature = "test-support")]
         let classification = crate::test_support::control_diagnostics::classify(&self.0);
         let status = self.0.status();
-        let code = match status {
-            StatusCode::UNAUTHORIZED => FailureCode::AuthenticationRequired,
-            StatusCode::FORBIDDEN | StatusCode::NOT_FOUND => FailureCode::UnknownOrNotOwned,
-            StatusCode::BAD_REQUEST => FailureCode::InvalidRequest,
-            StatusCode::PAYLOAD_TOO_LARGE | StatusCode::TOO_MANY_REQUESTS => FailureCode::Capacity,
-            StatusCode::CONFLICT => FailureCode::Conflict,
-            _ => FailureCode::Unavailable,
+        let code = if matches!(self.0, AppError::ExecutionCancelled) {
+            FailureCode::Cancelled
+        } else {
+            match status {
+                StatusCode::UNAUTHORIZED => FailureCode::AuthenticationRequired,
+                StatusCode::FORBIDDEN | StatusCode::NOT_FOUND => FailureCode::UnknownOrNotOwned,
+                StatusCode::BAD_REQUEST => FailureCode::InvalidRequest,
+                StatusCode::PAYLOAD_TOO_LARGE | StatusCode::TOO_MANY_REQUESTS => {
+                    FailureCode::Capacity
+                }
+                StatusCode::CONFLICT => FailureCode::Conflict,
+                _ => FailureCode::Unavailable,
+            }
         };
         let mut reply = (
             status,

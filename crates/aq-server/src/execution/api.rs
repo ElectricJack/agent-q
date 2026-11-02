@@ -255,14 +255,32 @@ async fn cancel(
     RequireOwner(_): RequireOwner,
     Path(id): Path<Uuid>,
     ExecutionJson(request): ExecutionJson<CancelRequest>,
-) -> Result<Json<AttemptState>, Error> {
-    Ok(Json(
-        state
+) -> Response {
+    let kind =
+        sqlx::query_scalar::<_, String>("SELECT kind FROM execution_attempts WHERE attempt_id=$1")
+            .bind(id)
+            .fetch_optional(&state.store.pool)
+            .await;
+    match kind {
+        Ok(Some(kind)) if kind == "profiled_v1" => crate::profiled_execution::cancellation::cancel(
+            &state,
+            id,
+            request.operation_id,
+            &request.reason,
+        )
+        .await
+        .map(Json)
+        .into_response(),
+        Ok(_) => state
             .store
             .execution_cancel(id, request.operation_id, &request.reason)
-            .await?,
-    ))
+            .await
+            .map(Json)
+            .into_response(),
+        Err(_) => AppError::Internal.into_response(),
+    }
 }
+
 async fn replace_incarnation(
     State(state): State<AppState>,
     RequireOwner(_): RequireOwner,
