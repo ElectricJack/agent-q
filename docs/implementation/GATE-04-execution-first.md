@@ -73,13 +73,18 @@ state must retain their existing refusal/hold behavior.
    component tests use labelled synthetic launch/source/Graph peers; the actual
    Graph completion and real human decision remain end-to-end requirements.
 
-The immediate production join is additive, output-only terminal polling. Keep
+The production join adds output-only terminal polling. Keep
 the existing full terminal poll and its controller-count interpretation unchanged.
 Use the existing typed poll/envelope on a separate output-poll route, with only
 authorized Watch events and no input dispatch or control-effect consumption.
 The worker owns a separate transport cursor; output frame watermarks and retained
-pending-upload retries keep their existing meanings. Both sides require focused
-qualification and new source/binary pins before the next composed offer. The
+pending-upload retries keep their existing meanings. The server component passed
+three new cases, one admission classifier case, six existing regressions and
+strict checks; see the [server evidence](evidence/terminal-output-poll-5f21f79/README.md).
+Worker `0.5.1` / bridge `0.1.3` passed fourteen relay cases, five HTTP regressions
+and strict checks, with a newly pinned binary; see aq-worker's
+`docs/implementation/evidence/output-only-poll-f33d8ec/manifest.json`. These source
+changes are integrated; the next composed offer must use their new pins. The
 actual review-to-Graph completion, lost-reply recovery and retained-source
 survival requirements below remain open.
 The [composed recovery case plan](GATE-04-recovery-case-plan.md) identifies the
