@@ -251,91 +251,6 @@ pub fn refusal_code(error: &anyhow::Error) -> &'static str {
     "assessment_unavailable"
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::os::unix::fs::PermissionsExt;
-
-    fn small_image(root: &Path, name: &str) -> LocalImage {
-        let outer = root.join(name);
-        let bytes = b"explicit small synthetic image, never executed";
-        std::fs::write(&outer, bytes).unwrap();
-        std::fs::set_permissions(&outer, std::fs::Permissions::from_mode(0o600)).unwrap();
-        LocalImage {
-            outer,
-            guest: ProgramPin {
-                path: PathBuf::from("/opt/aq-qualification/synthetic-image"),
-                artifact: aq_admission::ArtifactRef {
-                    id: aq_admission::Text::new("aq.synthetic-image-test").unwrap(),
-                    version: aq_admission::Text::new("1").unwrap(),
-                    digest: Digest::of(bytes),
-                },
-                bytes: bytes.len() as u64,
-            },
-        }
-    }
-    #[test]
-    fn image_seals_require_real_hash_and_original_pin() {
-        let root = tempfile::tempdir().unwrap();
-        let image = small_image(root.path(), "image");
-        let sealed = SealedImage::seal(&image).unwrap();
-        sealed.current(&image).unwrap();
-        let mut changed = LocalImage {
-            outer: image.outer.clone(),
-            guest: image.guest.clone(),
-        };
-        changed.guest.artifact.digest = Digest::of(b"different synthetic bytes");
-        assert!(SealedImage::seal(&changed).is_err());
-        assert!(sealed.current(&changed).is_err());
-    }
-    #[test]
-    fn image_seals_refuse_metadata_change_and_same_bytes_route_replacement() {
-        let root = tempfile::tempdir().unwrap();
-        let image = small_image(root.path(), "image");
-        let sealed = SealedImage::seal(&image).unwrap();
-        std::fs::set_permissions(&image.outer, std::fs::Permissions::from_mode(0o400)).unwrap();
-        assert!(sealed.current(&image).is_err());
-        std::fs::set_permissions(&image.outer, std::fs::Permissions::from_mode(0o600)).unwrap();
-        let sealed = SealedImage::seal(&image).unwrap();
-        let replacement = small_image(root.path(), "replacement");
-        std::fs::rename(&replacement.outer, &image.outer).unwrap();
-        assert!(
-            sealed.current(&image).is_err(),
-            "retained old FD cannot bless replacement route even with identical bytes"
-        );
-    }
-    #[test]
-    fn temporal_refusal_exports_only_static_code_and_numeric_clocks() {
-        let error = temporal(
-            false,
-            TemporalKind::AssessmentAge,
-            TemporalClocks {
-                started_at_ms: Some(10),
-                checked_at_ms: Some(5011),
-                inventory_expires_at_ms: Some(30000),
-                receipt_expires_at_ms: Some(30001),
-                ..Default::default()
-            },
-        )
-        .unwrap_err()
-        .context("unexported arbitrary path or body");
-        assert_eq!(refusal_code(&error), "freshness_assessment_age");
-        let clocks = refusal_clocks(&error);
-        assert_eq!(clocks["started_at_ms"], 10);
-        assert_eq!(clocks["checked_at_ms"], 5011);
-        assert!(
-            clocks
-                .as_object()
-                .unwrap()
-                .values()
-                .all(|value| value.is_null() || value.is_u64())
-        );
-        let other = anyhow::anyhow!("unexported synthetic secret/path/error");
-        assert_eq!(refusal_code(&other), "assessment_unavailable");
-        assert!(refusal_clocks(&other).is_null());
-    }
-}
-
 fn canonical(value: &Value) -> Result<Vec<u8>> {
     let mut value = value.clone();
     value.sort_all_objects();
@@ -965,5 +880,90 @@ impl Assessor {
         Ok(
             json!({"scope":"finite_local_responses_peer_only","observation":observed,"checked_at_ms":checked_at,"journal_digest":journal_digest,"actual_image_count":5,"image_evidence":"pre_start_hash_and_current_retained_fd_route_continuity","mutable_checked_started_at_ms":started,"material_revalidated":true,"native_registration_revalidated":true,"inventory_revalidated":true,"finite_peer_listening":true,"provider_availability_claim":false,"selection_rewritten":false,"ttl_ms":30000,"observation_max_age_ms":5000}),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::unix::fs::PermissionsExt;
+
+    fn small_image(root: &Path, name: &str) -> LocalImage {
+        let outer = root.join(name);
+        let bytes = b"explicit small synthetic image, never executed";
+        std::fs::write(&outer, bytes).unwrap();
+        std::fs::set_permissions(&outer, std::fs::Permissions::from_mode(0o600)).unwrap();
+        LocalImage {
+            outer,
+            guest: ProgramPin {
+                path: PathBuf::from("/opt/aq-qualification/synthetic-image"),
+                artifact: aq_admission::ArtifactRef {
+                    id: aq_admission::Text::new("aq.synthetic-image-test").unwrap(),
+                    version: aq_admission::Text::new("1").unwrap(),
+                    digest: Digest::of(bytes),
+                },
+                bytes: bytes.len() as u64,
+            },
+        }
+    }
+    #[test]
+    fn image_seals_require_real_hash_and_original_pin() {
+        let root = tempfile::tempdir().unwrap();
+        let image = small_image(root.path(), "image");
+        let sealed = SealedImage::seal(&image).unwrap();
+        sealed.current(&image).unwrap();
+        let mut changed = LocalImage {
+            outer: image.outer.clone(),
+            guest: image.guest.clone(),
+        };
+        changed.guest.artifact.digest = Digest::of(b"different synthetic bytes");
+        assert!(SealedImage::seal(&changed).is_err());
+        assert!(sealed.current(&changed).is_err());
+    }
+    #[test]
+    fn image_seals_refuse_metadata_change_and_same_bytes_route_replacement() {
+        let root = tempfile::tempdir().unwrap();
+        let image = small_image(root.path(), "image");
+        let sealed = SealedImage::seal(&image).unwrap();
+        std::fs::set_permissions(&image.outer, std::fs::Permissions::from_mode(0o400)).unwrap();
+        assert!(sealed.current(&image).is_err());
+        std::fs::set_permissions(&image.outer, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let sealed = SealedImage::seal(&image).unwrap();
+        let replacement = small_image(root.path(), "replacement");
+        std::fs::rename(&replacement.outer, &image.outer).unwrap();
+        assert!(
+            sealed.current(&image).is_err(),
+            "retained old FD cannot bless replacement route even with identical bytes"
+        );
+    }
+    #[test]
+    fn temporal_refusal_exports_only_static_code_and_numeric_clocks() {
+        let error = temporal(
+            false,
+            TemporalKind::AssessmentAge,
+            TemporalClocks {
+                started_at_ms: Some(10),
+                checked_at_ms: Some(5011),
+                inventory_expires_at_ms: Some(30000),
+                receipt_expires_at_ms: Some(30001),
+                ..Default::default()
+            },
+        )
+        .unwrap_err()
+        .context("unexported arbitrary path or body");
+        assert_eq!(refusal_code(&error), "freshness_assessment_age");
+        let clocks = refusal_clocks(&error);
+        assert_eq!(clocks["started_at_ms"], 10);
+        assert_eq!(clocks["checked_at_ms"], 5011);
+        assert!(
+            clocks
+                .as_object()
+                .unwrap()
+                .values()
+                .all(|value| value.is_null() || value.is_u64())
+        );
+        let other = anyhow::anyhow!("unexported synthetic secret/path/error");
+        assert_eq!(refusal_code(&other), "assessment_unavailable");
+        assert!(refusal_clocks(&other).is_null());
     }
 }
