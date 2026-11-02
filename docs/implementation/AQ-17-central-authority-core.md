@@ -128,7 +128,7 @@ caused by elapsed time. Owners must retain that returned state rather than
 reusing their old unexpired snapshot.
 
 Validation command: `cargo test -p aq-central-authority --offline`; export check:
-`cargo run -p aq-central-authority --example export --offline --
+`cargo run -p aq-central-authority --example export-aq-central-authority --offline --
 crates/aq-central-authority/artifacts/schema.json --check`. No workspace-wide
 server fixture or provider is needed. The optional export `--examples` mode
 publishes typed example documents under the same check path.

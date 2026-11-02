@@ -5,6 +5,10 @@ edition = "2024"
 publish = false
 description = "Bounded review subjects and human/check receipt claims; owner verification required"
 
+[[example]]
+name = "export-aq-review-protocol"
+path = "examples/export.rs"
+
 [dependencies]
 aq-session-protocol = { path = "../../vendor/aq-session-protocol-0.1.0", version = "=0.1.0" }
 serde = { version = "1", features = ["derive"] }

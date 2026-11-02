@@ -118,7 +118,7 @@ free; callers must scope inspection and avoid logging private inputs.
 Tests: `cargo test -p aq-profiles`; strict lint:
 `cargo clippy -p aq-profiles --all-targets -- -D warnings`.
 The golden composition is regenerated explicitly using
-`cargo run -p aq-profiles --example export > crates/aq-profiles/tests/golden/implementer.json`.
+`cargo run -p aq-profiles --example export-aq-profiles > crates/aq-profiles/tests/golden/implementer.json`.
 Golden data and all tests require no database, sibling checkout or live provider.
 
 Owner-only daemon inspection routes `/api/profiles/validate` and

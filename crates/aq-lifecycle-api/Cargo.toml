@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 publish = false
 description = "Pure AQ-owned wait, continuation acknowledgment and lifecycle inspection contracts"
+[[example]]
+name = "export-aq-lifecycle-api"
+path = "examples/export.rs"
+
 [dependencies]
 aq-lifecycle-protocol = { path = "../../vendor/aq-lifecycle-protocol-0.1.0", version = "=0.1.0" }
 serde = { version = "1", features = ["derive"] }

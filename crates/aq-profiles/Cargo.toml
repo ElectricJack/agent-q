@@ -8,6 +8,10 @@ publish = false
 name = "aq"
 path = "src/main.rs"
 
+[[example]]
+name = "export-aq-profiles"
+path = "examples/export.rs"
+
 [dependencies]
 schemars = "1"
 aq-agent-api = { path = "../aq-agent-api", version = "=0.1.0" }

@@ -6,4 +6,4 @@ Event pages bind an exact session, a stable node-sequence snapshot, ordered sour
 
 Decoders reject duplicate/unknown fields, changed scope, invalid continuation, inconsistent aggregates and oversized input before use. Event pages allow16 items and256 KiB; usage views allow16 KiB. These types convey no control, source-registration or accounting authority. The server must enforce current user/session ACLs for every page.
 
-`artifacts/examples.json` contains a sanitized synthetic CON03 source-shaped report with a missing cumulative baseline. It is not selected-harness or provider qualification. Run `cargo test -p aq-observation-api`; regenerate schemas with `cargo run -p aq-observation-api --example export -- crates/aq-observation-api/artifacts`.
+`artifacts/examples.json` contains a sanitized synthetic CON03 source-shaped report with a missing cumulative baseline. It is not selected-harness or provider qualification. Run `cargo test -p aq-observation-api`; regenerate schemas with `cargo run -p aq-observation-api --example export-aq-observation-api -- crates/aq-observation-api/artifacts`.
