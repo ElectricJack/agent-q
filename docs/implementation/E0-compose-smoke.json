@@ -32,10 +32,10 @@
     "status": "degraded"
   },
   "images": {
-    "aq-git": "d11b1cdf293ab9021485f62eb76dba54b82effc504d54f0a4749c8913643e083",
+    "aq-git": "94a3d9adea2cf2f693cde66e8c0b58dd9d9cd3a2b47eced78545092dbefdb638",
     "aq-graph": "807beba98dcd20b0ae335f09cae8c06ecb182a352ee78de278cb47fccb2ee3be",
     "postgres": "99445113a4a19e82dd3713c65bd9f6fb5bf972065ab043df8d1e1c93e957da9a",
-    "server": "d11b1cdf293ab9021485f62eb76dba54b82effc504d54f0a4749c8913643e083"
+    "server": "94a3d9adea2cf2f693cde66e8c0b58dd9d9cd3a2b47eced78545092dbefdb638"
   },
   "initial_readiness": {
     "database": "ok",
@@ -45,12 +45,17 @@
     },
     "status": "ready"
   },
-  "killed_engine_pid": "9",
+  "killed_engine_pid": "8",
   "private_directory_ownership": [
     "10001:10001:700",
     "10001:10001:700",
     "10001:10001:700"
   ],
+  "runtime_image": {
+    "image_id": "sha256:94a3d9adea2cf2f693cde66e8c0b58dd9d9cd3a2b47eced78545092dbefdb638",
+    "source_revision": "8f6c49fd91850b924524494e26c5c17d14072796",
+    "state_format": "42"
+  },
   "runtime_users": {
     "aq-git": "10001",
     "server": "10001"
@@ -62,7 +67,7 @@
       "local_fixture": true,
       "url": "/fixture/scratch.git"
     },
-    "node_id": "9c5bacd3-ed9e-4139-a24d-2995de9ab55c",
+    "node_id": "ef40b48b-8a66-4648-ba1b-6ecd2db83804",
     "project_id": "e0000000-0000-4000-8000-000000000002",
     "repository_id": "e0000000-0000-4000-8000-000000000003",
     "task_id": "e0000000-0000-4000-8000-000000000004",
