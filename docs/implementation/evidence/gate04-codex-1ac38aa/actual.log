@@ -1,0 +1,22 @@
+
+running 1 test
+test actual_finite_codex_task_claim_source_and_protected_graph_closure ... GATE04_PRIVATE_ROOT /tmp/aq-g04-H6ZTn5
+SOURCE_RETENTION_OWNER group=1082506 start=25106803 session=1082442 root=/tmp/aq-g04-H6ZTn5/central-git
+GATE04_STAGE preflight
+GATE04_STAGE ordinary_run_once
+GATE04_DIAGNOSTICS {"accepted":true,"accepted_output_exchanges":0,"b1_receipt":false,"execution":false,"fixture_sender_exited":true,"http_statuses":[["/v1/worker/heartbeat",200],["/v1/worker/probe",200],["/v1/worker/profiled/register",200],["/v1/worker/heartbeat",200],["/v1/worker/profiled/inventory-v2",200],["/v1/worker/profiled/poll",200],["/v1/worker/profiled-v2/proposal",200],["/v1/worker/profiled-v2/accept",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/material",200],["/v1/worker/profiled/artifact",200],["/v1/worker/profiled/source/f542b1ad-0733-595f-8200-0adc81de2a26",200],["/v1/worker/profiled/source/f542b1ad-0733-595f-8200-0adc81de2a26/manifest",200],["/v1/worker/profiled/source/f542b1ad-0733-595f-8200-0adc81de2a26/bundle",200]],"journal_format":12,"journal_revision":16,"kernel_wait_echild":null,"local_claim":false,"original_execution_deadline_boot_ns":null,"original_reservation_deadline_boot_ns":251093733822205,"prepared_inputs":false,"running":false,"source_receipt":false,"started_ack":false,"stopped":false,"stopped_ack":false}
+SOURCE_RETENTION_OWNER_DRAINED group=1082506
+GATE04_OUTCOME_REFUSAL stage=ordinary_worker_execution no_success_claim
+
+thread 'actual_finite_codex_task_claim_source_and_protected_graph_closure' (1082444) panicked at crates/aq-server/tests/actual_codex_task.rs:919:5:
+actual finite Codex composed qualification failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    actual_finite_codex_task_claim_source_and_protected_graph_closure
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 13 filtered out; finished in 38.15s
+

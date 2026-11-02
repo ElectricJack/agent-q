@@ -1,0 +1,23 @@
+
+running 1 test
+test actual_finite_codex_task_claim_source_and_protected_graph_closure ... GATE04_PRIVATE_ROOT /tmp/aq-g04-XqDlaT
+SOURCE_RETENTION_OWNER group=1078185 start=25009658 session=1078121 root=/tmp/aq-g04-XqDlaT/central-git
+GATE04_STAGE preflight
+GATE04_STAGE ordinary_run_once
+GATE04_OPERATOR_REFUSAL freshness
+GATE04_DIAGNOSTICS {"accepted":false,"accepted_output_exchanges":0,"b1_receipt":false,"execution":false,"fixture_sender_exited":true,"http_statuses":[["/v1/worker/heartbeat",200],["/v1/worker/probe",200],["/v1/worker/heartbeat",200],["/v1/worker/profiled/register",200],["/v1/worker/profiled/inventory-v2",200],["fixture_operator:freshness",503]],"journal_format":12,"journal_revision":1,"kernel_wait_echild":null,"local_claim":false,"original_execution_deadline_boot_ns":null,"original_reservation_deadline_boot_ns":null,"prepared_inputs":false,"running":false,"source_receipt":false,"started_ack":false,"stopped":false,"stopped_ack":false}
+SOURCE_RETENTION_OWNER_DRAINED group=1078185
+GATE04_OUTCOME_REFUSAL stage=ordinary_worker_execution no_success_claim
+
+thread 'actual_finite_codex_task_claim_source_and_protected_graph_closure' (1078123) panicked at crates/aq-server/tests/actual_codex_task.rs:916:5:
+actual finite Codex composed qualification failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    actual_finite_codex_task_claim_source_and_protected_graph_closure
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 10 filtered out; finished in 33.60s
+

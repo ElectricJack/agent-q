@@ -1,0 +1,26 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-gate04-actual-codex-v2/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 50.32s
+     Running tests/actual_codex_task.rs (/tmp/aq-worker-artifact-overlap-target/debug/deps/actual_codex_task-e73904dca2197967)
+
+running 18 tests
+test actual_finite_codex_task_claim_source_and_protected_graph_closure ... ignored, explicit pinned worker0.5.1/Codex/tmux/aq-git/Graph, disposable PostgreSQL and fresh SID; finite local provider only
+test actual_git_rpc_uses_closed_algorithm_wire_without_changing_source_identity ... ok
+test codex_operator_assessment::tests::temporal_refusal_exports_only_static_code_and_numeric_clocks ... ok
+test codex_finite_provider::tests::unauthorized_request_cannot_start_cli_or_record_model_input ... ok
+test codex_runtime_recipe::tests::mapper_harness_matches_manifest_projection_without_offer_only_requirements ... ok
+test codex_runtime_recipe::tests::public_definition_ref_is_exact_canonical_body_and_not_label_hash ... ok
+test codex_runtime_recipe::tests::runtime_code_selects_new_worker_version_without_changing_journal_format ... ok
+test codex_runtime_recipe::tests::selected_policy_is_accepted_by_actual_b2_owner_before_project_creation ... ok
+test native_runner_transport::git::tests::registration_preserves_actual_binding_and_never_copies_remote_authority ... ok
+test native_runner_transport::tests::listener_requires_an_actual_bound_tcp_origin_and_refuses_wrong_kind_or_origin ... ok
+test real_graph::tests::listening_log_is_bounded_exact_loopback_and_rejects_ambiguity ... ok
+test codex_runtime_recipe::tests::project_binds_real_ids_catalog_and_exact_twenty_second_policy ... ok
+test native_runner_transport::git::tests::held_state_socket_provisions_exact_binding_then_reads_current_and_refuses_conflict ... ok
+test native_runner_transport::tests::state_audit_reads_beneath_held_directory_and_refuses_escape_symlink_and_growth_bound ... ok
+test codex_operator_assessment::tests::image_seals_require_real_hash_and_original_pin ... ok
+test codex_operator_assessment::tests::image_seals_refuse_metadata_change_and_same_bytes_route_replacement ... ok
+test codex_runtime_recipe::tests::actual_catalog_is_canonical_and_requests_only_existing_scoped_permissions ... ok
+test codex_finite_provider::tests::pure_json_child_receives_eof_before_parent_waits_for_output ... ok
+
+test result: ok. 17 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 0.04s
+

@@ -1,0 +1,19 @@
+
+running 1 test
+test actual_finite_codex_task_claim_source_and_protected_graph_closure ... GATE04_PRIVATE_ROOT /tmp/aq-g04-c4RWm7
+SOURCE_RETENTION_OWNER group=1076747 start=24979242 session=1076685 root=/tmp/aq-g04-c4RWm7/central-git
+SOURCE_RETENTION_OWNER_DRAINED group=1076747
+GATE04_OUTCOME_REFUSAL stage=ordinary_worker_execution no_success_claim
+
+thread 'actual_finite_codex_task_claim_source_and_protected_graph_closure' (1076687) panicked at crates/aq-server/tests/actual_codex_task.rs:916:5:
+actual finite Codex composed qualification failed
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    actual_finite_codex_task_claim_source_and_protected_graph_closure
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 9 filtered out; finished in 13.33s
+

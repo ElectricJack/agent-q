@@ -1,0 +1,11 @@
+# Actual Codex Running, claim and ECHILD; source-capture shape refusal
+
+Source15d8270, immutable test SHA2568a43358a9878d9cf37a10dc7298d5d0de48643b1775d08a1e98d9b9582f96316 (106,700,152B). Sixteen focused hostless checks and strict passed. Actual changed case failed51.01s.
+
+Actual pinned Codex0.166 reached native Running through ordinary worker0.5 run_once, after genuine source hydration/Prepared/Execution. StartedACK and terminal registration returned200. Five real upload requests returnedHTTP200 and were retained by the typed observer; the final gapless authorized-tail assertion was not reached, so no complete terminal-tail qualification is claimed here. The real local result claim was retained. Physical stop recorded kernel ECHILD and StoppedACK200. Original execution deadline252037801455671 bootns remained unchanged.
+
+Post-stop source capture refused before its first mutation intent: failurecode source_retention_unknown, no head/checkpoint/export/upload/central source receipt, no B1 or Graph completion. The private full journal is retained outside source control at /tmp/aq-g04-j9NAtB/refused-journal.json mode600, with its live-state limitations unchanged. Safe actual shape comparisons are recorded in safe-shape.json.
+
+Two independent source audits identified the deterministic codec mismatch: result capture checks workspace.inspect top-level workspace_id/generation, but the actual pinned aq-git response has the full workspace nested under workspace. The retained genuine inspection has no flat fields and its nested identity/generation match the retained workspace. The pending production correction must validate the real full nested binding/current lifecycle/head; no condition or deadline is relaxed.
+
+Sender pidfd observed exit and central Git reported DRAINED. Independent owned SID1087964 scan found zero remaining and zero unknown processes. Source root /tmp/aq-g04-j9NAtB is retained. Fixed file bytes and all tool-output protocol assertions were not independently retained by this failed run; a claim conclusion alone is not that proof. Earlier negatives remain preserved. No external provider, real human approval, B1/task completion or production model qualification is claimed.

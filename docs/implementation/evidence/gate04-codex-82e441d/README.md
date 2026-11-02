@@ -1,0 +1,9 @@
+# Changed attempt: project reference refusal before worker
+
+Source82e441da8ac688399de6ecfa2a0e3b9237f3da87; pinned test SHA256f3de6982ae1520d8698c0f7beda58e29f223ec77d0d2b72d53d3b043b3ad17e2. Typed Git wire regression and9 hostless cases/strict passed before this changed attempt. Actual case failed11.16s; real Git create/checkpoint passed, fixing the prior schema refusal.
+
+The retained private root `/tmp/aq-g04-ALm6Hz` contains seed, central-git and central-staging only. No synthetic peer-key, tool script or worker stderr file exists. Thus no worker, Codex, offer/grant, Started/Stopped, Watch, result or task completion occurred. Source inspection identifies the deterministic constructor refusal: the helper policy identity contained `/`; actual ProjectBinding::validate rejects it through its closed logical-reference label grammar. ActualSetup reaches that check after Graph/Git runtime and AQ Owner/enrollment initialization, matching these breadcrumbs. The helper's new unpublished policy identity uses allowed `:` consistently; production label grammar and issued authorities are untouched.
+
+The Git owner printed DRAINED. Independent /proc/stat scan of exact fresh SID1073608 found0 remaining processes and0 unknown reads. The normal Result cleanup path invokes explicit Graph.shutdown; this attempt emitted no separate structured Graph cleanup record, so no independent database-absence claim is made from its log. First negative6a1bc4b remains preserved separately.
+
+The changed test adds direct real ProjectBinding validation against the actual pure worker-group mapping, with the former slash form rejected. New safe stage tags report only fixed constants on future failures. No raw error chains/config/auth bodies are emitted, and no timer, disk profile or runtime capability is relaxed.
