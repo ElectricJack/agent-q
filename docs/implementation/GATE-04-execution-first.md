@@ -41,9 +41,10 @@ state must retain their existing refusal/hold behavior.
    composed actual-harness task run remains pending. Reuse existing components;
    do not build another executor framework or label a static peer as a real agent.
 4. **Explicit completion and retained result.** Adapt v1's completion instructions
-   to v2's scoped command surface. The state38 result owner now records both phase origins from their actual typed
+   to v2's scoped command surface. The state38 result owner now records both
+   phase origins from their actual typed
    Started/Stopped receipts, preserving the existing report wire and keeping
-   phase release closed. Its gate passed18 phase, seven legacy and two schema
+   phase release closed. Its gate passed 18 phase, seven legacy and two schema
    cases, plus a populated archive migration proof. The local result client is
    implemented and qualified; native0.5 stopped-source capture/retention/report
    production is still being connected.
@@ -57,8 +58,8 @@ Steps 2–5 can develop in parallel at their existing ownership boundaries. The
 acceptance run follows their dependencies. UI redesign, generalized policy,
 additional providers, parking and cross-node wake are outside this increment.
 
-The next unpublished main migration,0038, is assigned to the phase result-origin
-bridge. The isolated wait-owner0038 candidate was tested only in disposable
+Main migration 0038 implements the phase result-origin bridge. The isolated
+wait-owner0038 candidate was tested only in disposable
 databases and is not a prerequisite for execution. Preserve that candidate and
 its evidence unchanged; a future wait integration must rebase to0039 or later
 and qualify again. Main source now supports state38; the running canonical
@@ -74,7 +75,8 @@ qualified again, without making execution depend on suspension.
 
 The first pilot task is deliberately self-contained: its only mutable Graph
 input is the task itself; other admitted inputs are immutable source/catalog
-artifacts. Verify complete selected context with no required neighbor inputs. The initial
+artifacts. Verify complete selected context with no required neighbor inputs. The
+initial
 fixture has no edges/dependencies; task and structural dependency/parent changes
 are fenced by the actual endpoint CAS rules. Do not claim that task CAS proves
 forever-absence of arbitrary incoming nonstructural citations.
@@ -101,7 +103,7 @@ is a starting point, not full coverage of the following execution path.
 | --- | --- |
 | `src/sessions/default_harnesses/codex.md` | Launch/configuration behavior, observed trust/readiness/input quirks and regression cases; verify against the explicitly supported v2 CLI. |
 | `src/sessions/tmux.py`, `src/sessions/terminal_input.py` | Terminal behavior and failure scenarios for the existing v2 host/relay. |
-| `src/prime/templates/completion_protocol.md` | Explicit completion instructions and evidence requirements, translated to supported v2 commands. |
+| `src/prime/templates/completion_protocol.md` | Explicit completion and acknowledgment-before-exit requirements, translated to the bounded v2 result submit/status channel. |
 | `src/sessions/transcripts/codex.py` and its tests | Session identity, deduplication and usage interpretation where required for the first harness. |
 | V1 result/close/integration owners | Trace the working task lifecycle and reuse its edge cases through v2 result/source/Graph owners. Record exact symbols before adapting behavior. |
 
