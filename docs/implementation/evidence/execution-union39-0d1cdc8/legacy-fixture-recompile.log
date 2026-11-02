@@ -1,0 +1,153 @@
+   Compiling syn v3.0.9
+   Compiling libc v0.2.191
+   Compiling serde_core v1.0.229
+   Compiling getrandom v0.2.17
+   Compiling rand_core v0.6.4
+   Compiling crypto-common v0.1.7
+   Compiling rand_core v0.10.1
+   Compiling serde_json v1.0.154
+   Compiling serde_derive v1.0.229
+   Compiling getrandom v0.4.3
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling thiserror-impl v2.0.21
+   Compiling thiserror v2.0.21
+   Compiling sha2 v0.10.9
+   Compiling uuid v1.29.0
+   Compiling serde v1.0.229
+   Compiling synstructure v0.14.0
+   Compiling smallvec v1.16.4
+   Compiling parking_lot_core v0.9.12
+   Compiling zerofrom-derive v0.1.8
+   Compiling parking_lot v0.12.5
+   Compiling errno v0.3.14
+   Compiling signal-hook-registry v1.4.8
+   Compiling yoke-derive v0.8.4
+   Compiling zerofrom v0.1.8
+   Compiling tokio-macros v2.7.2
+   Compiling ref-cast-impl v1.0.27
+   Compiling serde_derive_internals v0.30.0
+   Compiling mio v1.2.4
+   Compiling socket2 v0.6.5
+   Compiling yoke v0.8.4
+   Compiling schemars_derive v1.2.3
+   Compiling tokio v1.54.1
+   Compiling ref-cast v1.0.27
+   Compiling log v0.4.34
+   Compiling schemars v1.2.3
+   Compiling num-traits v0.2.19
+   Compiling zerovec-derive v0.11.7
+   Compiling zerovec v0.11.9
+   Compiling displaydoc v0.2.7
+   Compiling aq-session-protocol v0.1.0 (/tmp/aq-human-actions-union-v2/vendor/aq-session-protocol-0.1.0)
+   Compiling futures-util v0.3.34
+   Compiling syn v2.0.119
+   Compiling tinystr v0.8.5
+   Compiling base64 v0.22.1
+   Compiling icu_locale_core v2.4.0
+   Compiling zerotrie v0.2.5
+   Compiling potential_utf v0.1.6
+   Compiling icu_collections v2.4.0
+   Compiling icu_provider v2.4.0
+   Compiling ring v0.17.14
+   Compiling tracing-attributes v0.1.31
+   Compiling tracing v0.1.44
+   Compiling crypto-common v0.2.2
+   Compiling icu_properties v2.4.0
+   Compiling digest v0.11.3
+   Compiling icu_normalizer v2.4.0
+   Compiling chrono v0.4.45
+   Compiling idna_adapter v1.2.2
+   Compiling rustls-webpki v0.103.16
+   Compiling rustls v0.23.46
+   Compiling idna v1.1.0
+   Compiling chacha20 v0.10.2
+   Compiling aq-lifecycle-protocol v0.1.0 (/tmp/aq-human-actions-union-v2/vendor/aq-lifecycle-protocol-0.1.0)
+   Compiling rand v0.10.3
+   Compiling url v2.5.8
+   Compiling sha2 v0.11.1
+   Compiling hmac v0.13.0
+   Compiling md-5 v0.11.0
+   Compiling num-integer v0.1.47
+   Compiling hyper v1.12.0
+   Compiling postgres-protocol v0.6.12
+   Compiling rand_chacha v0.3.1
+   Compiling hyper-util v0.1.21
+   Compiling cipher v0.4.4
+   Compiling rand v0.8.8
+   Compiling postgres-types v0.2.14
+   Compiling tower v0.5.3
+   Compiling tokio-util v0.7.20
+   Compiling toml_datetime v0.6.11
+   Compiling serde_spanned v0.6.9
+   Compiling aq-playbooks-model v0.1.0 (/tmp/aq-human-actions-union-v2/vendor/aq-playbooks-0173673/crates/aq-playbooks-model)
+   Compiling async-trait v0.1.92
+   Compiling universal-hash v0.5.1
+   Compiling whoami v2.1.3
+   Compiling toml_edit v0.22.27
+   Compiling serde_urlencoded v0.7.1
+   Compiling clap_derive v4.6.7
+   Compiling poly1305 v0.8.0
+   Compiling tokio-postgres v0.7.18
+   Compiling nix v0.29.0
+   Compiling chacha20 v0.9.1
+   Compiling tokio-rustls v0.26.6
+   Compiling aq-session-api v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-session-api)
+   Compiling tokio-stream v0.1.19
+   Compiling futures-intrusive v0.5.0
+   Compiling either v1.19.0
+   Compiling hmac v0.12.1
+   Compiling aead v0.5.2
+   Compiling chacha20poly1305 v0.10.1
+   Compiling hkdf v0.12.4
+   Compiling sqlx-core v0.8.6
+   Compiling hyper-rustls v0.27.10
+   Compiling postgres v0.19.14
+   Compiling clap v4.6.7
+   Compiling toml v0.8.23
+   Compiling aq-playbooks-runner v0.1.3 (/tmp/aq-human-actions-union-v2/vendor/aq-playbooks-0173673/crates/aq-playbooks-runner)
+   Compiling tower-http v0.6.11
+   Compiling num-bigint v0.4.8
+   Compiling aq-lifecycle-api v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-lifecycle-api)
+   Compiling aq-agent-api v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-agent-api)
+   Compiling atoi v2.0.0
+   Compiling md-5 v0.10.6
+   Compiling sqlx-postgres v0.8.6
+   Compiling axum-core v0.5.6
+   Compiling aq-profiles v0.1.2 (/tmp/aq-human-actions-union-v2/crates/aq-profiles)
+   Compiling aq-playbooks-postgres v0.1.3 (/tmp/aq-human-actions-union-v2/vendor/aq-playbooks-0173673/crates/aq-playbooks-postgres)
+   Compiling simple_asn1 v0.6.4
+   Compiling reqwest v0.12.28
+   Compiling aq-admission v0.1.10 (/tmp/aq-human-actions-union-v2/crates/aq-admission)
+   Compiling pem v3.0.6
+   Compiling tracing-log v0.2.0
+   Compiling aq-terminal-relay-protocol v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-terminal-relay-protocol)
+   Compiling serde_path_to_error v0.1.20
+   Compiling semver v1.0.28
+   Compiling axum v0.8.9
+   Compiling tracing-subscriber v0.3.23
+   Compiling aq-phase-terminal-protocol v0.1.1 (/tmp/aq-human-actions-union-v2/crates/aq-phase-terminal-protocol)
+   Compiling aq-release v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-release)
+   Compiling aq-terminal-relay v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-terminal-relay)
+   Compiling jsonwebtoken v9.3.1
+   Compiling aq-notifications v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-notifications)
+   Compiling aq-playbook-host v0.1.3 (/tmp/aq-human-actions-union-v2/crates/aq-playbook-host)
+   Compiling aq-result-media v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-result-media)
+   Compiling aq-selection v0.1.4 (/tmp/aq-human-actions-union-v2/crates/aq-selection)
+   Compiling sqlx v0.8.6
+   Compiling aq-observation-api v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-observation-api)
+   Compiling num-iter v0.1.46
+   Compiling aq-accounting v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-accounting)
+   Compiling aq-observation-admission v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-observation-admission)
+   Compiling aq-protocol v0.1.0 (/tmp/aq-human-actions-union-v2/vendor/aq-protocol-0.1.0)
+   Compiling aq-review-protocol v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-review-protocol)
+   Compiling aq-central-authority v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-central-authority)
+   Compiling aq-worker-protocol v0.2.0 (/tmp/aq-human-actions-union-v2/vendor/aq-worker-protocol-0.2.0)
+   Compiling aq-server v0.1.0 (/tmp/aq-human-actions-union-v2/crates/aq-server)
+   Compiling num-bigint-dig v0.8.6
+   Compiling signature v2.2.0
+   Compiling tempfile v3.27.0
+   Compiling rsa v0.9.10
+   Compiling aq-playbooks-compiler v0.1.0 (/tmp/aq-human-actions-union-v2/vendor/aq-playbooks-0173673/crates/aq-playbooks-compiler)
+    Finished `test` profile [unoptimized] target(s) in 1m 46s
+  Executable tests/profiled_results.rs (/tmp/aq-native-union-target/debug/deps/profiled_results-f7b4ac5951bc7fec)

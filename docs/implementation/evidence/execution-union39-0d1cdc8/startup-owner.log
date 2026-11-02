@@ -1,0 +1,8 @@
+
+running 3 tests
+test ordinary_plain_profile_keeps_original_instruction_and_artifact_path ... ok
+test production_compile_seal_count_retain_uses_exact_public_reporting_instruction_once ... ok
+test selected_result_profile_without_exact_owned_reporting_bytes_publishes_no_offer ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.33s
+

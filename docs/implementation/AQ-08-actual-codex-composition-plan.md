@@ -13,15 +13,18 @@ owners and receipts. No canonical configuration or data is used.
   `ae67975`. Root is importing these into its union; retain all earlier failures.
 - Qualified worker 0.4.0/FORMAT11: `3146cf4`, documentation `81860d2`.
 - Production Frozen/Refresh runner dispatch: qualified worker `350732d`, evidence
-  `cfa4c68`, now integrated. The native result-producing successor remains isolated
-  as worker0.5/FORMAT12 until its joined qualification completes.
+  `cfa4c68`, now integrated. The native result-producing worker0.5/FORMAT12 is also
+  integrated at `850d6b7`, with 58 component cases and composed CLI/strict/build
+  evidence. Its actual-harness composition remains this gate.
 - Actual named-readonly factory: Adapter, same tree, source `a66e293`.
 - Scoped local completion bootstrap/client: Work's final source `7b671cd`, now
   integrated as worker `91e5439`. Its exact public startup artifact is 1929 bytes;
   actual counted delivery remains part of this composed run.
 - Phase result recording: Results' qualified state38 bridge is integrated. The
-  actual two-profile source-retention cases and Decisions' state39 settlement/
-  Graph-completion owner remain under qualification and independent review.
+  actual two-profile source-retention cases passed with reviewed cleanup.
+  Decisions' internal state39 settlement/Graph-completion owner passed the
+  composed 32-case gate and strict checks; actual Graph/Codex completion remains
+  pending. See [integrated evidence](evidence/execution-union39-0d1cdc8/README.md).
 - Actual initial owner setup: `77ccceb` plus `ab74e03`, evidence `dc46f73`, now
   integrated. Its three pure and four historical regression cases passed; the
   real Graph/Git constructor consumer is still this run's responsibility.

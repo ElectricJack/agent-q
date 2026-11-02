@@ -46,17 +46,20 @@ state must retain their existing refusal/hold behavior.
    Started/Stopped receipts, preserving the existing report wire and keeping
    phase release closed. Its gate passed 18 phase, seven legacy and two schema
    cases, plus a populated archive migration proof. The local result client is
-   implemented and qualified; native0.5 stopped-source capture/retention/report
-   production has passed 42 focused component cases. Its later metadata and
-   attempt-directory corrections still require affected checks. The first
-   real-Git Frozen case passed functionally, but fixture descendants survived
-   parent cleanup; both profiles must pass again with the corrected owned
-   process-group cleanup before that pair is qualified.
+   implemented and qualified. Native worker0.5/FORMAT12 is now integrated with
+   58 focused component cases, strict checks and separately qualified composed
+   CLI/build checks. The corrected real-Git Frozen/Refresh source-retention pair
+   passed in 7.708s/7.939s with independently verified cleanup; the initial cleanup
+   failure remains retained. Actual Codex-to-B1 composition remains pending.
 5. **Review, settlement and Graph completion.** Finish AQ-10 B2/C using the pinned
    outcome policy, actual decision/check owners, source-retention observation and
    AQ-07 expected-version mutation owner. Record the actual Graph receipt before
    calling the scenario complete. Keep result recording, eligibility, release
-   and domain completion distinct.
+   and domain completion distinct. The internal state39 owner and counted-startup
+   integration passed 32 focused cases plus strict checks, including legacy review
+   compatibility and a populated archive38→39 preservation proof. Settlement
+   component tests use labelled synthetic launch/source/Graph peers; the actual
+   Graph completion and real human decision remain end-to-end requirements.
 
 Steps 2–5 can develop in parallel at their existing ownership boundaries. The
 acceptance run follows their dependencies. UI redesign, generalized policy,
@@ -71,15 +74,15 @@ remains pending; the setup tests alone do not prove the end-to-end scenario.
 Main migration 0038 implements the phase result-origin bridge. The isolated
 wait-owner0038 candidate was tested only in disposable
 databases and is not a prerequisite for execution. Preserve that candidate and
-its evidence unchanged; a future wait integration must rebase to0039 or later
-and qualify again. Main source now supports state38; the running canonical
+its evidence unchanged; a future wait integration must use the next free number
+after execution39 and qualify again. Main source now supports state39; the running canonical
 server and database remain on their accepted state37 binary. No live migration
 is part of this source integration.
 
-The next execution settlement migration is reserved as0039. Deferred wait work
-must select the next free number after the execution migrations, not assume0039
-remains available. Likewise the next unpublished worker0.5/FORMAT12 is assigned
-to the native result outbox. Preserve the isolated parking0.5/FORMAT12 candidate
+Execution settlement migration0039 implements the bounded internal owner.
+Deferred wait work must select the next free number after the execution
+migrations. Worker0.5/FORMAT12 implements the native result outbox.
+Preserve the isolated parking0.5/FORMAT12 candidate
 and evidence; future parking integration must use the next free format and be
 qualified again, without making execution depend on suspension.
 

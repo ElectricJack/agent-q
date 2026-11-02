@@ -1,0 +1,7 @@
+
+running 1 test
+test populated_archive38_to39_preserves_legacy_rows_and_receipts ... populated settlement39 proof old_tables=116 reports=1 retained_png_receipts=2
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.63s
+

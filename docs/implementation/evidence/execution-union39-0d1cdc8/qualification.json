@@ -1,0 +1,119 @@
+{
+  "integration_source": "0d1cdc8a9972e82ba6fe068dc92d53b76226da92",
+  "phase_source_retention_source": "ecd26e2f8e5618bb6b064f118865b5bd8cc7dcde",
+  "settlement_source": "824e2cb with accepted post-IO fence bef321f",
+  "counted_startup_source": "161289f15297a62fa4e8c6c372cb1d67d6888fea",
+  "root_test_only_stack_fixes": [
+    "a056e00",
+    "0d1cdc8"
+  ],
+  "unique_focused_cases": 32,
+  "runs": [
+    {
+      "label": "old-code-review",
+      "returncode": 0,
+      "seconds": 1.769,
+      "expected_passed": 1,
+      "actual_passed": 1,
+      "passed": true
+    },
+    {
+      "label": "old-review-inbox",
+      "returncode": 0,
+      "seconds": 1.216,
+      "expected_passed": 1,
+      "actual_passed": 1,
+      "passed": true
+    },
+    {
+      "label": "settlement-unit",
+      "returncode": 0,
+      "seconds": 1.418,
+      "expected_passed": 12,
+      "actual_passed": 12,
+      "passed": true
+    },
+    {
+      "label": "startup-unit",
+      "returncode": 0,
+      "seconds": 0.016,
+      "expected_passed": 4,
+      "actual_passed": 4,
+      "passed": true
+    },
+    {
+      "label": "settlement-integration",
+      "returncode": 0,
+      "seconds": 16.35,
+      "expected_passed": 10,
+      "actual_passed": 10,
+      "passed": true
+    },
+    {
+      "label": "startup-owner",
+      "returncode": 0,
+      "seconds": 3.372,
+      "expected_passed": 3,
+      "actual_passed": 3,
+      "passed": true
+    },
+    {
+      "label": "populated-archive",
+      "returncode": 0,
+      "seconds": 0.666,
+      "expected_passed": 1,
+      "actual_passed": 1,
+      "passed": true
+    }
+  ],
+  "first_source_scope": "startup-owner and populated archive executed on245f6ed; their producer/migration/data-guard bytes unchanged by later post-I/O review fence, test boxing and fixture extraction",
+  "final_scope": "settlement12+startup4 unit, settlement10 integration, legacy review1/inbox1 on composed9696db7 plus test-only0d1cdc8 boxing",
+  "strict": {
+    "passed": true,
+    "seconds": 50.88,
+    "scope": "lib and profiled_results/native_result_startup/phase_source_retention/settlement_migration/result_origin_migration; all features; warnings denied"
+  },
+  "phase_bridge_compile": {
+    "passed": true,
+    "seconds": 96,
+    "actual_git_rerun": false
+  },
+  "populated_archive": {
+    "original_archive_sha256": "c3f6f2e310f64ec60214de4c74eb27fd17ddfa0dff04c6bd712bdc29f84ad93d",
+    "original_archive_bytes": 508147,
+    "old_tables": 116,
+    "old_columns": 914,
+    "sequence_states": 5,
+    "original_reports": 1,
+    "retained_png_receipts": 2,
+    "snapshot_sha256": "62f14a2b73b3f78b91e214fc67a1b302cf416c9d04c3ec1d1e49459bd926da5c",
+    "snapshot_bytes_identical": true,
+    "actual_migrations": "36 archive\u219238\u219239\u219239 reattestation",
+    "only_legacy_or_null_new_fields": true,
+    "no_synthesized_settlement_or_completion": true,
+    "media_files_or_runtime_changed": false
+  },
+  "retained_failures": [
+    "legacy-stack-first.log",
+    "legacy-stack-wrapper-only.log"
+  ],
+  "limits": [
+    "actual code/SQL owners with labelled synthetic launch/Git/Graph peers for settlement and startup",
+    "real populated archive migration preserves receipts but runs no media owner",
+    "actual Codex task/source/result/Graph composition pending",
+    "real human decision and canonical rollout not established"
+  ],
+  "canonical_state": 37,
+  "source_state": 39,
+  "canonical_changed": false,
+  "observed_test_binary_hashes_during_exclusive_cache_lease": {
+    "lib": {
+      "path": "/tmp/aq-native-union-target/debug/deps/aq_server-a6d767ae0f9dde38",
+      "sha256": "da1208a4d0904127f280291623f6b4fd72637e2b8f68442d6e4ab303804c748c"
+    },
+    "results": {
+      "path": "/tmp/aq-native-union-target/debug/deps/profiled_results-f7b4ac5951bc7fec",
+      "sha256": "a5986f1347e4ee9693372c50b4557ac08e053b17bde3f55bf331459c7c9aa396"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+
+running 1 test
+test result_source_owner_requires_a_real_retained_transfer_and_exact_native_binding ... 
+thread 'result_source_owner_requires_a_real_retained_transfer_and_exact_native_binding' (1049255) has overflowed its stack
+fatal runtime error: stack overflow, aborting
