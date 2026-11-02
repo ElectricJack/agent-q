@@ -250,7 +250,16 @@ pub async fn prepare_question(
             && local["report_id"] == json!(report_id),
         "actual tool output/local binding cross-identity mismatch"
     );
-    let _: Digest = serde_json::from_value(tools["submission_digest"].clone())?;
+    let _: Digest = serde_json::from_value(local["execution_record_digest"].clone())?;
+    ensure!(
+        tools["completion"]
+            == "AQ finite tool sequence ended; worker finalization remains separate."
+            && tools["submission_digest"]
+                == json!(Digest::of(&canonical(
+                    &json!({"schema_version":1,"binding":local,"conclusion":CONCLUSION})
+                )?)),
+        "actual tool validation differs from the fixed original claim"
+    );
     let owner = current_owner(state, actor).await?;
     let mut tx = state.store.pool.begin().await?;
     sqlx::query("SELECT set_config('lock_timeout','500ms',true),set_config('statement_timeout','2000ms',true)").execute(&mut *tx).await?;

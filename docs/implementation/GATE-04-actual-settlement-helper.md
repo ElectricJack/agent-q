@@ -26,7 +26,8 @@ actual complete bounded tree must contain exactly the fixed file and Git blob
 OID for the independently checked31-byte literal. Source checkpoint/repository
 come from actual central confirmation, never a caller-invented receipt. Evidence
 ArtifactRefs hash the observations; they are NOT retention or check receipts.
-No source/status/graph row is inserted or rewritten by this fixture helper.
+No source/status/Graph proof row is directly seeded or rewritten by this helper.
+Mutations occur only through the actual protected owner methods.
 
 One NEW explicit combined question is prepared/admitted/inspected through real
 owners. `human_handoff` returns its exact subject/request for a later human
