@@ -1,0 +1,2 @@
+{"case": "frozen::actual_phase_stopped_checkpoint_http_import_and_current_retention_are_not_legacy_gated", "exit_code": 0, "seconds": 7.708, "owners": 2, "remaining": 0, "unknown": 0}
+{"case": "refresh::actual_phase_stopped_checkpoint_http_import_and_current_retention_are_not_legacy_gated", "exit_code": 0, "seconds": 7.939, "owners": 2, "remaining": 0, "unknown": 0}

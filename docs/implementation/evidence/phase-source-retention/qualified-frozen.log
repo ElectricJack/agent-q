@@ -1,0 +1,11 @@
+
+running 1 test
+test frozen::actual_phase_stopped_checkpoint_http_import_and_current_retention_are_not_legacy_gated ... SOURCE_RETENTION_OWNER group=1042742 start=24548913 session=1042728 root=/tmp/.tmpZH3T58/rc
+SOURCE_RETENTION_OWNER group=1042864 start=24549032 session=1042728 root=/tmp/.tmpZH3T58/rw
+SOURCE_RETENTION_OWNER_DRAINED group=1042864
+SOURCE_RETENTION_OWNER_DRAINED group=1042742
+actual phase source retained checkpoint upload report and current-retention proof; no physical/provider/settlement claim
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 7.65s
+

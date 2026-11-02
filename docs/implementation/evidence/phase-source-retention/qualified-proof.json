@@ -1,0 +1,77 @@
+{
+  "pins": {
+    "source": "ecd26e2f8e5618bb6b064f118865b5bd8cc7dcde",
+    "binary": "/tmp/aq-phase-source-qualified/phase-source-retention-group-test",
+    "binary_sha256": "e143ee76a14eafada6ebdeb61743ceb30c7902021185c2b1e13e17f6ff2d2893",
+    "aq_git": "/tmp/aq-wrk08-git-pin/aq-git",
+    "aq_git_sha256": "c2ff26f5e63008aec0fbd4082a547e87825e651d4aba0744c4b9fdf752d58c39",
+    "git": "/usr/bin/git",
+    "git_sha256": "eb54b535467e0975c1284d4c4d08eea779aeb248a5d34b02e2ee171382e22201",
+    "minimum_free_bytes": 11005853696,
+    "aq_git_source": "2035654eeda57ded8880ea3f518ff0b4d324fa49",
+    "wrapper_sha256": "f21cd04cfa7561e7b2bd57d1e06410fa7b28f10a9d6f6d1eb4f9153cd8d7a4be"
+  },
+  "actual_git_version": "git version 2.43.0",
+  "cases": [
+    {
+      "case": "frozen::actual_phase_stopped_checkpoint_http_import_and_current_retention_are_not_legacy_gated",
+      "exit_code": 0,
+      "elapsed_seconds": 7.708,
+      "available_before_case": 11811758080,
+      "minimum_free_bytes": 11005853696,
+      "timeout": false,
+      "cleanup_unknown": false,
+      "owners": [
+        {
+          "group": 1042742,
+          "start": 24548913,
+          "session": 1042728,
+          "root": "/tmp/.tmpZH3T58/rc"
+        },
+        {
+          "group": 1042864,
+          "start": 24549032,
+          "session": 1042728,
+          "root": "/tmp/.tmpZH3T58/rw"
+        }
+      ],
+      "drained_groups": [
+        1042742,
+        1042864
+      ],
+      "remaining": [],
+      "unknown_observations": [],
+      "state_retained_for_audit": true
+    },
+    {
+      "case": "refresh::actual_phase_stopped_checkpoint_http_import_and_current_retention_are_not_legacy_gated",
+      "exit_code": 0,
+      "elapsed_seconds": 7.939,
+      "available_before_case": 11810893824,
+      "minimum_free_bytes": 11005853696,
+      "timeout": false,
+      "cleanup_unknown": false,
+      "owners": [
+        {
+          "group": 1043087,
+          "start": 24549676,
+          "session": 1043079,
+          "root": "/tmp/.tmpJn1iPV/rc"
+        },
+        {
+          "group": 1043203,
+          "start": 24549792,
+          "session": 1043079,
+          "root": "/tmp/.tmpJn1iPV/rw"
+        }
+      ],
+      "drained_groups": [
+        1043087,
+        1043203
+      ],
+      "remaining": [],
+      "unknown_observations": [],
+      "state_retained_for_audit": true
+    }
+  ]
+}
