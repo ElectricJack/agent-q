@@ -4,8 +4,9 @@ Status: internal owner39 source and bounded component/integration qualification 
 Main migration39 is allocated to this owner after execution result-origin38.
 The source includes actual combined-review, live applicability, finite
 evaluation/release and dedicated completion ports. SQL39 was applied only to
-owned disposable qualification databases/clones. This increment installs no
-public router and performs no canonical upgrade. The finite planner remains
+owned disposable qualification databases/clones. Five qualified protected HTTP
+ports now use the existing configured review owner; default constructors have
+no review-owner injection. No canonical upgrade occurred. The finite planner remains
 data-only; only an actual confirmed C receipt/outbox transaction can clear the
 common task claim. Architecture0002 sections5–7 and AQ-10-result-settlement-plan remain
 normative. The physical runner, B1 recording and this settlement owner are distinct.
@@ -245,5 +246,10 @@ See [scoped evidence](evidence/aq10-owner39/qualification.json) and Root's
 Test-only large futures were heap allocated; no stack/deadline/TTL limits were
 increased. The simulated fixture answers and synthetic Git/Graph/launch peers
 qualify protected owner joins, not real human or physical/provider execution.
-Actual B1→combined question→real Graph composition, protected HTTP exposure and
-real human choice are independent next boundaries. Canonical state stayed37.
+The [protected HTTP interface](GATE-04-human-settlement-http.md) passed five
+router/SQL cases, the current-pending owner case and affected strict checks.
+It exposes exact combined-subject inspection/resolution and evaluation/recovery
+through the actual owners. A pending question returns503 without creating an
+evaluation, release or completion. No route supplies a human answer automatically.
+Actual B1→combined question→real Graph composition, dashboard integration and
+real human choice remain independent next boundaries. Canonical state stayed37.

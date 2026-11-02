@@ -146,7 +146,7 @@ Requirements name implementation responsibility, not passing test coverage. E re
 | [AQ-19](#aq-19): Implement project execution bindings and policy administration | agent-q | [AQ-18](#aq-18), [AQ-03](#aq-03) | complete |
 | [AQ-20](#aq-20): Resolve intelligence and execution choices with bounded provider availability | agent-q | [AQ-18](#aq-18), [AQ-19](#aq-19), [AQ-03](#aq-03) | complete |
 | [WRK-10](#wrk-10): Implement the guarded tmux session host and reusable adapter interface | aq-worker | [CON-02](#con-02), [WRK-04](#wrk-04) | complete |
-| [GATE-04](#gate-04): Demonstrate a real agent with retained source and graph outcome | agent-q | [GATE-03](#gate-03), [AQ-08](#aq-08), [AQ-10](#aq-10), [WRK-07](#wrk-07), [WRK-08](#wrk-08) | planned |
+| [GATE-04](#gate-04): Demonstrate a real agent with retained source and graph outcome | agent-q | [GATE-03](#gate-03), [AQ-08](#aq-08), [AQ-10](#aq-10), [WRK-07](#wrk-07), [WRK-08](#wrk-08) | in_progress |
 | [WRK-17](#wrk-17): Implement concrete pinned native harness adapter and exec boundary | aq-worker | [WRK-05](#wrk-05), [WRK-06](#wrk-06), [CON-02](#con-02), [WRK-10](#wrk-10), [AQ-20](#aq-20) | in_progress |
 | [WRK-18](#wrk-18): Implement production native runner orchestration and preflight | aq-worker | [WRK-05](#wrk-05), [WRK-06](#wrk-06), [GATE-03](#gate-03), [CON-02](#con-02), [WRK-10](#wrk-10), [AQ-20](#aq-20) | in_progress |
 
@@ -827,7 +827,7 @@ Acceptance:
 
 Requirement links: D3, D5, D6, D9, X6, X7, X10, X12.
 
-Evidence: [AQ-10-result-settlement-plan.md](../implementation/AQ-10-result-settlement-plan.md), [AQ-10-stopped-owner-qualification.md](../implementation/AQ-10-stopped-owner-qualification.md), [AQ-10-outcome-contract-qualification.md](../implementation/AQ-10-outcome-contract-qualification.md), [aq-admission-0.1.6-qualification.md](../implementation/aq-admission-0.1.6-qualification.md), [AQ-10-result-ledger-qualification.md](../implementation/AQ-10-result-ledger-qualification.md), [three-area-state24-qualification.json](../implementation/three-area-state24-qualification.json), [GATE-04-execution-first.md](../implementation/GATE-04-execution-first.md), [AQ-10-phase-result-origin38-plan.md](../implementation/AQ-10-phase-result-origin38-plan.md), [AQ-10-phase-result-origin38-qualification.md](../implementation/AQ-10-phase-result-origin38-qualification.md), [AQ-10-execution-closure-reference-map.md](../implementation/AQ-10-execution-closure-reference-map.md), [qualification.json](../implementation/evidence/result-origin38-union-6727cce/qualification.json).
+Evidence: [AQ-10-result-settlement-plan.md](../implementation/AQ-10-result-settlement-plan.md), [AQ-10-stopped-owner-qualification.md](../implementation/AQ-10-stopped-owner-qualification.md), [AQ-10-outcome-contract-qualification.md](../implementation/AQ-10-outcome-contract-qualification.md), [aq-admission-0.1.6-qualification.md](../implementation/aq-admission-0.1.6-qualification.md), [AQ-10-result-ledger-qualification.md](../implementation/AQ-10-result-ledger-qualification.md), [three-area-state24-qualification.json](../implementation/three-area-state24-qualification.json), [GATE-04-execution-first.md](../implementation/GATE-04-execution-first.md), [AQ-10-phase-result-origin38-plan.md](../implementation/AQ-10-phase-result-origin38-plan.md), [AQ-10-phase-result-origin38-qualification.md](../implementation/AQ-10-phase-result-origin38-qualification.md), [AQ-10-execution-closure-reference-map.md](../implementation/AQ-10-execution-closure-reference-map.md), [qualification.json](../implementation/evidence/result-origin38-union-6727cce/qualification.json), [AQ-10-pilot-settlement-owner39.md](../implementation/AQ-10-pilot-settlement-owner39.md), [GATE-04-human-settlement-http.md](../implementation/GATE-04-human-settlement-http.md), [qualification.json](../implementation/evidence/execution-union39-0d1cdc8/qualification.json), [AQ-10-phase-source-retention-qualification.md](../implementation/AQ-10-phase-source-retention-qualification.md).
 
 ### CON-02
 
@@ -943,7 +943,7 @@ Evidence: [WRK-10.md](../../../aq-worker/docs/implementation/WRK-10.md), [WRK-10
 
 **Demonstrate a real agent with retained source and graph outcome**
 
-Owner: `agent-q`. Milestone: M4. Kind: gate. Status: planned.
+Owner: `agent-q`. Milestone: M4. Kind: gate. Status: in_progress.
 
 Hard prerequisites: [GATE-03](#gate-03), [AQ-08](#aq-08), [AQ-10](#aq-10), [WRK-07](#wrk-07), [WRK-08](#wrk-08).
 
@@ -957,7 +957,7 @@ Acceptance:
 
 Requirement links: E3, D4, D5, D6, W7, W18, W19, W20, X4, X10, X12, P2, P4, P5, P6, P8, H1, H3.
 
-Evidence: [GATE-04-execution-first.md](../implementation/GATE-04-execution-first.md), [README.md](../implementation/evidence/refresh-static-output-3146cf4/README.md), [qualification.json](../implementation/evidence/refresh-owner-union-e510e7d/qualification.json), [WRK-17-registry-refresh-adoption.md](../../../aq-worker/docs/implementation/WRK-17-registry-refresh-adoption.md), [qualification.json](../../../aq-worker/docs/implementation/evidence/worker-output-refresh-3146cf4/qualification.json), [WRK-17-trusted-node-codex-pilot.md](../../../aq-worker/docs/implementation/WRK-17-trusted-node-codex-pilot.md), [WRK-17-production-profile-dispatch.md](../../../aq-worker/docs/implementation/WRK-17-production-profile-dispatch.md), [qualification.json](../../../aq-worker/docs/implementation/evidence/execution-client-union-6829fe9/qualification.json), [GATE-04-real-graph-fixture-plan.md](../implementation/GATE-04-real-graph-fixture-plan.md), [README.md](../implementation/evidence/gate04-real-graph/README.md).
+Evidence: [GATE-04-execution-first.md](../implementation/GATE-04-execution-first.md), [README.md](../implementation/evidence/refresh-static-output-3146cf4/README.md), [qualification.json](../implementation/evidence/refresh-owner-union-e510e7d/qualification.json), [WRK-17-registry-refresh-adoption.md](../../../aq-worker/docs/implementation/WRK-17-registry-refresh-adoption.md), [qualification.json](../../../aq-worker/docs/implementation/evidence/worker-output-refresh-3146cf4/qualification.json), [WRK-17-trusted-node-codex-pilot.md](../../../aq-worker/docs/implementation/WRK-17-trusted-node-codex-pilot.md), [WRK-17-production-profile-dispatch.md](../../../aq-worker/docs/implementation/WRK-17-production-profile-dispatch.md), [qualification.json](../../../aq-worker/docs/implementation/evidence/execution-client-union-6829fe9/qualification.json), [GATE-04-real-graph-fixture-plan.md](../implementation/GATE-04-real-graph-fixture-plan.md), [README.md](../implementation/evidence/gate04-real-graph/README.md), [AQ-08-actual-codex-composition-plan.md](../implementation/AQ-08-actual-codex-composition-plan.md), [GATE-04-counted-result-startup.md](../implementation/GATE-04-counted-result-startup.md), [qualification.json](../implementation/evidence/execution-union39-0d1cdc8/qualification.json), [qualification.json](../../../aq-worker/docs/implementation/evidence/native-worker-union-d268028/qualification.json).
 
 ### AQ-11
 

@@ -1263,7 +1263,11 @@
         "../implementation/AQ-10-phase-result-origin38-plan.md",
         "../implementation/AQ-10-phase-result-origin38-qualification.md",
         "../implementation/AQ-10-execution-closure-reference-map.md",
-        "../implementation/evidence/result-origin38-union-6727cce/qualification.json"
+        "../implementation/evidence/result-origin38-union-6727cce/qualification.json",
+        "../implementation/AQ-10-pilot-settlement-owner39.md",
+        "../implementation/GATE-04-human-settlement-http.md",
+        "../implementation/evidence/execution-union39-0d1cdc8/qualification.json",
+        "../implementation/AQ-10-phase-source-retention-qualification.md"
       ]
     },
     {
@@ -1444,7 +1448,7 @@
       "repo": "agent-q",
       "milestone": "M4",
       "kind": "gate",
-      "status": "planned",
+      "status": "in_progress",
       "depends_on": [
         "GATE-03",
         "AQ-08",
@@ -1489,7 +1493,11 @@
         "../../../aq-worker/docs/implementation/WRK-17-production-profile-dispatch.md",
         "../../../aq-worker/docs/implementation/evidence/execution-client-union-6829fe9/qualification.json",
         "../implementation/GATE-04-real-graph-fixture-plan.md",
-        "../implementation/evidence/gate04-real-graph/README.md"
+        "../implementation/evidence/gate04-real-graph/README.md",
+        "../implementation/AQ-08-actual-codex-composition-plan.md",
+        "../implementation/GATE-04-counted-result-startup.md",
+        "../implementation/evidence/execution-union39-0d1cdc8/qualification.json",
+        "../../../aq-worker/docs/implementation/evidence/native-worker-union-d268028/qualification.json"
       ]
     },
     {
