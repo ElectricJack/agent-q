@@ -197,5 +197,17 @@
     }
   ],
   "repair": "Restore exact frozen transport.rs; retain additive interactive methods in delivery_clock_interactive.rs. Match established partial-use shared terminal fixture annotation.",
-  "validation_status": "All frozen source/publication hashes and focused rustfmt pass. Cargo tests and Clippy pending supervisor guidance because aq test has pytest/Bazel backends only."
+  "validation_status": "All 32 frozen inventory entries match. Admission tests: 99 pass; strict admission Clippy passes. Phase tests: 9 pass in serial retry; initial two-thread native Poll409 retained. Focused phase Clippy with -D dead_code passes, with only known sibling no_grant unnecessary_unwrap warning. Focused rustfmt and diff checks pass. Exact commands/log hashes/limits: validation.json.",
+  "repair_commit": "d2a0285171fdbd4ab1afeb9ba640393a950b472c",
+  "synchronization": {
+    "command": "aq git pull --branch main --brief",
+    "fetched_origin_main": "cc7b74e6a723a6dade7b632af514e6d90b7c7abb",
+    "result": "Already contained in task branch; no merge commit needed.",
+    "authorization_message": "msg-1f3953d12ad64b838488a047ee5fcd1d",
+    "override": "origin/main replaces nonexistent origin/dev; train disabled."
+  },
+  "repair_rationale": {
+    "archive": "No hash inventory or publication bytes changed. Interactive DeliveryClock inherent methods live in a private additive module and remain callable through the original public type. Repeated arithmetic preserves the byte-frozen original module.",
+    "fixture": "Match existing terminal consumer module annotations (phase_refresh_terminal, phase_terminal_started/stopped, phase_source_retention). Only the partially used test fixture module permits dead code; production and workspace lint rules stay unchanged."
+  }
 }
