@@ -2,10 +2,13 @@
 """Validate the repository's planning DAG and optionally render its Markdown view.
 
 This does not call an AQ daemon, create issues, or execute implementation tasks.
+Set AQ_PLAN_PLATFORM_ROOT to a platform reference containing sibling checkouts
+when the local clones do not contain the historical evidence documents.
 """
 
 import argparse
 import json
+import os
 from pathlib import Path
 import re
 import sys
@@ -14,6 +17,33 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "docs/plans/0001-v2-milestones.json"
 OUTPUT = SOURCE.with_suffix(".md")
+
+
+def checkout_root(root):
+    """Find the common checkout for sibling docs, including linked worktrees."""
+    marker = root / ".git"
+    if marker.is_file():
+        git_dir = (root / marker.read_text().strip().removeprefix("gitdir: ")).resolve()
+        common = git_dir / "commondir"
+        if common.is_file():
+            return (git_dir / common.read_text().strip()).resolve().parent
+    return root
+
+
+CHECKOUT_ROOT = checkout_root(ROOT)
+
+
+def owner_directory(name):
+    name = {"agent-q": "aq-server"}.get(name, name)
+    platform_root = Path(os.environ.get("AQ_PLAN_PLATFORM_ROOT", CHECKOUT_ROOT.parent))
+    return ROOT if name == "aq-server" else platform_root / name
+
+
+def plan_path(relative):
+    parts = Path(relative).parts
+    if parts[:3] == ("..", "..", ".."):
+        return owner_directory(parts[3]).joinpath(*parts[4:])
+    return SOURCE.parent / relative
 
 
 def require(condition, message):
@@ -32,7 +62,7 @@ def read_plan():
     requirements = set()
     for prefix, sources in plan["requirement_sources"].items():
         for relative in sources:
-            path = SOURCE.parent / relative
+            path = plan_path(relative)
             require(path.is_file(), f"missing requirement source: {relative}")
             requirements.update(re.findall(r"^\| (" + prefix + r"\d+) \|", path.read_text(), re.M))
     covered = set()
@@ -41,7 +71,7 @@ def read_plan():
         require(re.fullmatch(r"[A-Z]+-\d{2}", name), f"invalid task ID: {name}")
         require(task["status"] in plan["status_values"], f"invalid status: {name}")
         require(task["milestone"] in milestones, f"invalid milestone: {name}")
-        require((ROOT.parent / task["repo"]).is_dir(), f"missing owner repo/directory: {name}")
+        require(owner_directory(task["repo"]).is_dir(), f"missing owner repo/directory: {name}")
         require(task["scope"] and task["acceptance"], f"missing task contract: {name}")
         deps = task["depends_on"]
         require(len(deps) == len(set(deps)), f"duplicate dependencies: {name}")
@@ -53,7 +83,7 @@ def read_plan():
             require(task["evidence"], f"completed task lacks evidence: {name}")
             require(all(by_id[d]["status"] == "complete" for d in deps), f"incomplete prerequisite: {name}")
         for relative in task["evidence"]:
-            require((SOURCE.parent / relative).exists(), f"missing evidence for {name}: {relative}")
+            require(plan_path(relative).exists(), f"missing evidence for {name}: {relative}")
     require(covered == requirements, f"unassigned requirements: {sorted(requirements - covered)}")
 
     visiting, visited, order = set(), set(), []
@@ -90,7 +120,7 @@ def read_plan():
     for key in ("audit", "snapshot"):
         require((SOURCE.parent / plan[key]).is_file(), f"missing {key}")
     for update in plan.get("design_updates", []):
-        require((SOURCE.parent / update["source"]).is_file(), "missing design update source")
+        require(plan_path(update["source"]).is_file(), "missing design update source")
         require(update["summary"], "missing design update summary")
     for reference in plan.get("implementation_reference_maps", []):
         inventory_path = SOURCE.parent / reference["inventory"]
@@ -122,10 +152,14 @@ def link(name):
 def render(plan):
     lines = [
         "# Agent Q v2 implementation milestones", "",
+        f"> **Frozen historical baseline:** {plan['freeze_note']} "
+        f"Tracking authority: [{Path(plan['tracking_authority']).name}](../../{plan['tracking_authority']}).", "",
         f"**Planning baseline:** {plan['date']}", "",
-        "This is the execution plan for the [implementation audit](" + plan["audit"] + "). "
-        "The [JSON task graph](0001-v2-milestones.json) is the canonical planning source. "
-        "This Markdown view is generated with `python3 scripts/check-v2-plan.py --render`; edit the JSON and regenerate it.", "",
+        "This is the historical execution plan for the [implementation audit](" + plan["audit"] + "). "
+        "The [JSON task graph](0001-v2-milestones.json) is the canonical source for this frozen snapshot. "
+        "This Markdown view is generated with `python3 scripts/check-v2-plan.py --render`. "
+        "Preserve historical task data; track current work in the authority above. "
+        "See the [requirement sources and old-to-new mapping](requirement-sources.md).", "",
         plan["format_note"], "",
         "## How to execute this plan", "",
         "Start with the ready tasks below. Before claiming a task, compare the "

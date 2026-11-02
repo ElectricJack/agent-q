@@ -1,8 +1,11 @@
 # Supplemental PNG evidence for an exact retained report
 
-Status: bounded API-11/UI-18 design delta for review, November 1, 2026. No storage
-implementation or migration is authorized by this document alone. Migration 35 is
-reserved for conversations; the separate proposed DDL has no migration number.
+Status (2026-11-02): bounded API-11/UI-18 supplemental-media contract, partially
+implemented. The storage schema is committed in
+`crates/aq-server/migrations/0036_result_media_owner.sql`, and
+`crates/aq-result-media` implements the media core. Migration 35 owns conversations.
+These artifacts do not establish configured-store deployment or full paired
+upload/finalize/content and dashboard acceptance; G6/G7 track the remaining work.
 
 ## Existing owners and the selected boundary
 
