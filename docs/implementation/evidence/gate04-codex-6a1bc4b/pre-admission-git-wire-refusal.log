@@ -1,0 +1,20 @@
+
+running 1 test
+test actual_finite_codex_task_claim_source_and_protected_graph_closure ... GATE04_PRIVATE_ROOT /tmp/aq-g04-vwbe0O
+SOURCE_RETENTION_OWNER group=1071470 start=24875536 session=1071385 root=/tmp/aq-g04-vwbe0O/central-git
+
+thread 'actual_finite_codex_task_claim_source_and_protected_graph_closure' (1071387) panicked at crates/aq-server/tests/support/actual_git_owner.rs:175:9:
+assertion `left == right` failed: {"error":{"code":"invalid_request","details":null,"message":"unknown field `format`, expected `algorithm` or `hex`","retry":"manual"},"ok":false,"operation_id":"ea1e3689-de11-4b85-a786-17e7828259a8","operation_state":"failed","protocol_version":1,"request_id":"ea1e3689-de11-4b85-a786-17e7828259a8"}
+  left: Bool(false)
+ right: true
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+SOURCE_RETENTION_OWNER_DRAINED group=1071470
+FAILED
+
+failures:
+
+failures:
+    actual_finite_codex_task_claim_source_and_protected_graph_closure
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 8 filtered out; finished in 11.51s
+
