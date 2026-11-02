@@ -448,6 +448,18 @@ impl Service {
                     return Err(forbidden());
                 }
                 pin.fence(&mut tx).await?;
+                if profile == SubjectProfile::SourceAndEffects
+                    && (old[0]
+                        .get::<Option<String>, _>("combined_actor_digest")
+                        .as_deref()
+                        != Some(pin.identity_digest()?.as_str())
+                        || old[0]
+                            .get::<Option<String>, _>("combined_actor_revision")
+                            .as_deref()
+                            != Some(pin.revision()))
+                {
+                    return Err(forbidden());
+                }
             }
             tx.commit().await.map_err(db)?;
             return Ok(receipt);

@@ -340,6 +340,27 @@ impl Observation {
         };
         Ok(CurrentApplicability::from_owner(&fact))
     }
+    /// CPU-only last fence, after every SQL/user/review wait and immediately
+    /// before commit. It does not turn saved graph bytes into a new request.
+    pub(crate) fn validate_fresh(&self, state: &AppState) -> Result<(), AppError> {
+        let p = &self.original.project;
+        let projection = context_projection::project(
+            &self.graph,
+            p.project_id,
+            p.repository_id,
+            p.graph_workspace_id,
+            &self.original.permissions,
+            now(state)?,
+        )
+        .map_err(|_| changed())?;
+        if !no_required_neighbors(&projection.context, &self.original.task)
+            || !same_content(&self.original.context, &projection.context)
+        {
+            return Err(changed());
+        }
+        self.retention
+            .validate_current(state, &self.original.source)
+    }
     pub(crate) fn evidence(&self) -> Result<Value, AppError> {
         Ok(
             json!({"policy":"task_only_mutable_inputs_v1","report":self.original.report,"task":self.original.task,"source":source_digest(&self.original.source)?,"graph_response_digest":self.graph.digest,"graph_requested_at_ms":self.graph.stamp.requested_at_ms,"graph_received_at_ms":self.graph.stamp.received_at_ms,"graph_expires_at_ms":self.graph.stamp.expires_at_ms,"project_digest":self.original.project_digest,"scope":"initial/current task-only context observed; original task CAS fences admitted mutable inputs, not all future incoming citations"}),

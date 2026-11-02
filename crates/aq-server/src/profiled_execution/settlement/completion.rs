@@ -240,6 +240,12 @@ impl Service {
         sqlx::query("UPDATE profiled_task_completions SET state='possible',dispatch_count=dispatch_count+1,lease_id=$2,lease_expires_at_ms=$3 WHERE operation_id=$1").bind(operation).bind(lease).bind(time.checked_add(15000).ok_or_else(unavailable)?).execute(&mut *tx).await.map_err(db)?;
         let payload: Vec<u8> = row.get("payload_bytes");
         let workspace = row.get("workspace_id");
+        if count == 0 {
+            observation
+                .as_ref()
+                .ok_or_else(unavailable)?
+                .validate_fresh(&self.state)?;
+        }
         tx.commit().await.map_err(db)?;
         let outcome = tokio::time::timeout(
             std::time::Duration::from_secs(3),
@@ -262,12 +268,12 @@ impl Service {
                 .fetch_one(&mut *tx)
                 .await
                 .map_err(db)?;
+        actor.fence(&mut tx).await?;
         if current.get::<Option<Uuid>, _>("lease_id") != Some(lease) {
             let s = status(&current)?;
             tx.commit().await.map_err(db)?;
             return Ok(s);
         }
-        actor.fence(&mut tx).await?;
         sqlx::query("SELECT set_config('aq.settlement_owner','aq.settlement-owner.1',true)")
             .execute(&mut *tx)
             .await

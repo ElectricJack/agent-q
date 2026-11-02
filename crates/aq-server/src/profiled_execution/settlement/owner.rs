@@ -315,6 +315,7 @@ impl Service {
             self.accept_locked(&mut tx, &result, &source, &receipt)
                 .await?;
         }
+        observation.validate_fresh(&self.state)?;
         tx.commit().await.map_err(db)?;
         Ok(receipt)
     }

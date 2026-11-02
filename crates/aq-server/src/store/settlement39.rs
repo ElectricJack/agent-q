@@ -17,16 +17,20 @@ pub(super) async fn validate(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
         return Err(corrupt());
     }
     result38::validate_data(tx).await?;
+    // Finite global reservation caps this read at341*128KiB. Bound metadata
+    // BEFORE fetching retained JSON; never silently repair or hash only a prefix.
+    let size:(i64,i64)=sqlx::query_as("SELECT count(*),COALESCE(sum(octet_length(request::text)+octet_length(receipt::text)+octet_length(evidence::text)),0)::BIGINT FROM (SELECT request,receipt,evidence FROM profiled_settlement_evaluations LIMIT 342) bounded").fetch_one(&mut **tx).await?;
+    if size.0 > 341 || size.1 > 67108864 {
+        return Err(corrupt());
+    }
+    let completions:i64=sqlx::query_scalar("SELECT count(*) FROM (SELECT operation_id FROM profiled_task_completions LIMIT 342) bounded").fetch_one(&mut **tx).await?;
+    if completions > 341 {
+        return Err(corrupt());
+    }
     let valid: bool = sqlx::query_scalar(include_str!("settlement39_data.sql"))
         .fetch_one(&mut **tx)
         .await?;
     if !valid {
-        return Err(corrupt());
-    }
-    // Finite global reservation caps this read at341*128KiB. Bound metadata
-    // BEFORE fetching retained JSON; never silently repair or hash only a prefix.
-    let size:(i64,i64)=sqlx::query_as("SELECT count(*),COALESCE(sum(octet_length(request::text)+octet_length(receipt::text)+octet_length(evidence::text)),0)::BIGINT FROM profiled_settlement_evaluations").fetch_one(&mut **tx).await?;
-    if size.0 > 341 || size.1 > 67108864 {
         return Err(corrupt());
     }
     let rows=sqlx::query("SELECT request,request_digest,receipt,receipt_digest,evidence FROM profiled_settlement_evaluations ORDER BY operation_id LIMIT 342").fetch_all(&mut **tx).await?;

@@ -390,8 +390,8 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
              ('profiled_stopped_receipts','profiled_phase_terminal_origin_guard'),
              ('profiled_launch_closures','profiled_phase_terminal_origin_guard'),
              ('profiled_result_reports','profiled_phase_unqualified_result_guard'),
-             ('profiled_verified_releases','profiled_phase_unqualified_release_guard')
-            ) expected(rel,name) WHERE NOT EXISTS(SELECT 1 FROM pg_trigger t WHERE t.tgrelid=to_regclass(expected.rel) AND t.tgname=expected.name AND NOT t.tgisinternal AND t.tgenabled IN ('O','A') AND t.tgfoid=to_regprocedure(CASE WHEN expected.name='profiled_phase_unqualified_release_guard' THEN 'profiled_phase_unqualified_result_guard()' ELSE expected.name||'()' END)))
+             ('profiled_verified_releases',CASE WHEN $1>=39 THEN 'profiled_phase_qualified_release_guard' ELSE 'profiled_phase_unqualified_release_guard' END)
+            ) expected(rel,name) WHERE NOT EXISTS(SELECT 1 FROM pg_trigger t WHERE t.tgrelid=to_regclass(expected.rel) AND t.tgname=expected.name AND NOT t.tgisinternal AND t.tgenabled IN ('O','A') AND t.tgfoid=to_regprocedure(CASE WHEN expected.name='profiled_phase_unqualified_release_guard' THEN 'profiled_phase_unqualified_result_guard()' WHEN expected.name='profiled_phase_qualified_release_guard' THEN 'settlement_release_guard()' ELSE expected.name||'()' END)))
           AND NOT EXISTS(
             SELECT 1 FROM (VALUES ('profiled_started_receipts'),('profiled_stopped_receipts'),('profiled_launch_closures')) expected(rel)
             CROSS JOIN (VALUES ('initial_authority_kind','text'),('initial_authority_receipt_digest','text'),('phase_request_digest','text'),('phase_envelope_bytes','bytea'),('phase_ack_bytes','bytea'),('phase_terminal_qualification','jsonb')) col(name,kind)
@@ -406,7 +406,7 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
             WHERE NOT EXISTS(SELECT 1 FROM pg_attribute a WHERE a.attrelid=to_regclass('profiled_launch_closures') AND a.attname=col.name AND a.attgenerated='s' AND a.atttypid='uuid'::regtype AND NOT a.attisdropped))
           AND EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid=to_regclass('profiled_launch_closures') AND conname='profiled_launch_closures_legacy_origin_fk' AND contype='f' AND convalidated AND confrelid=to_regclass('profiled_execution_receipts'))
           AND EXISTS(SELECT 1 FROM pg_constraint WHERE conrelid=to_regclass('profiled_launch_closures') AND conname='profiled_launch_closures_phase_origin_fk' AND contype='f' AND convalidated AND confrelid=to_regclass('profiled_phase_execution_grants'))
-        "#).fetch_one(&mut *tx).await?;
+        "#).bind(supported as i32).fetch_one(&mut *tx).await?;
         if !complete {
             return Err(StoreError::Corrupt(
                 "phase terminal origin/capacity storage missing or disabled in current schema"
