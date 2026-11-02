@@ -468,6 +468,42 @@ pub async fn settle_recorded_answer(
     )
     .await
 }
+/// Reconcile only the original, already accepted completion after response loss.
+/// This does not answer a question, reevaluate, replace IDs, or infer success.
+pub async fn reconcile_completion(
+    state: &AppState,
+    reviews: &reviews::Service,
+    prepared: &PreparedQuestion,
+    first: &FixtureSettlement,
+) -> Result<settlement::CompletionStatus> {
+    let subject = subject_reference(&prepared.subject)?;
+    let operation = first
+        .evaluation
+        .completion_operation_id
+        .context("original accepted completion identity absent")?;
+    ensure!(
+        first.subject == subject
+            && first.answer.subject == subject
+            && first.evaluation.subject == subject
+            && first.evaluation.operation_id == prepared.ids.evaluation_operation
+            && first.evaluation.disposition == EvaluationDisposition::Accepted
+            && first.original_task == prepared.original_task
+            && first.checkpoint == prepared.checkpoint
+            && first.completion.operation_id == operation
+            && first.completion.evaluation_operation_id == first.evaluation.operation_id
+            && first.completion.state == "possible"
+            && first.completion.dispatch_count == 1
+            && first.completion.receipt.is_none()
+            && first.completion.recovery == "replay_identical",
+        "recovery requires the original exact accepted possible completion"
+    );
+    Box::pin(
+        settlement::Service::new(state.clone(), reviews.clone())
+            .complete(&prepared.owner, operation),
+    )
+    .await
+    .map_err(|e| stage_error("reconcile original completion only", e))
+}
 async fn settle_after_answer(
     state: &AppState,
     reviews: &reviews::Service,
