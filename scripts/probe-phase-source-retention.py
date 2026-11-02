@@ -49,6 +49,7 @@ for family in ('frozen', 'refresh'):
                                     '--nocapture', '--test-threads=1'], stdout=output,
                                    stderr=subprocess.STDOUT, env=env, start_new_session=True)
         timed_out = False
+        cleanup_unknown = False
         try:
             code = process.wait(timeout=120)
         except subprocess.TimeoutExpired:
@@ -60,7 +61,10 @@ for family in ('frozen', 'refresh'):
                 process.wait(timeout=3)
             except subprocess.TimeoutExpired:
                 os.killpg(process.pid, signal.SIGKILL)
-                process.wait()
+                try:
+                    process.wait(timeout=3)
+                except subprocess.TimeoutExpired:
+                    cleanup_unknown = True
             code = process.returncode
     text = log.read_text()
     owners = [dict(group=int(g), start=int(t), session=int(s), root=r)
@@ -87,7 +91,8 @@ for family in ('frozen', 'refresh'):
     drained = {int(g) for g in re.findall(r'SOURCE_RETENTION_OWNER_DRAINED group=(\d+)', text)}
     item = dict(case=case, exit_code=code, elapsed_seconds=round(time.monotonic()-started, 3),
                 available_before_case=free, minimum_free_bytes=pins['minimum_free_bytes'],
-                timeout=timed_out, owners=owners, drained_groups=sorted(drained),
+                timeout=timed_out, cleanup_unknown=cleanup_unknown,
+                owners=owners, drained_groups=sorted(drained),
                 remaining=remaining, unknown_observations=unknown,
                 state_retained_for_audit=True)
     summary['cases'].append(item)
@@ -96,7 +101,9 @@ for family in ('frozen', 'refresh'):
     proof.chmod(0o600)
     print(json.dumps(dict(case=case, exit_code=code, seconds=item['elapsed_seconds'],
                          owners=len(owners), remaining=len(remaining), unknown=len(unknown))), flush=True)
+    assert not timed_out and not cleanup_unknown, 'timed-out case cannot qualify even after graceful exit'
     assert not remaining and not unknown, 'cleanup uncertain: preserve private state, do not retry'
+    assert all(owner['session'] == process.pid for owner in owners), 'owner must belong to the exact unique case SID'
     assert len(owners) == 2 and drained == {o['group'] for o in owners}, 'both owned drains required'
     assert code == 0, 'case failed: preserve exact evidence before any changed retry'
 assert len(summary['cases']) == 2
