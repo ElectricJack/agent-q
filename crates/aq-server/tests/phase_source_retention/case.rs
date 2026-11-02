@@ -3,7 +3,7 @@ use aq_admission::{
     Digest, Label, SessionIdentity, result_record,
     transport::{ProcessOutcome, ResultReport, WorkerIdentity},
 };
-use aq_server::{AppState, profiled_execution::results};
+use aq_server::profiled_execution::results;
 use aq_worker_protocol::{SourceRole, TransferManifest, TransferStatus, TransferStatusRequest};
 use axum::{
     Router,
@@ -74,9 +74,9 @@ async fn chunk(
     assert_eq!(status, 200, "{body}");
     body
 }
-async fn invariants(state: &AppState, attempt: Uuid) -> Value {
+async fn invariants(pool: &sqlx::PgPool, attempt: Uuid) -> Value {
     sqlx::query_scalar("SELECT jsonb_build_object('hot',h.state,'record_revision',h.record_revision,'authority_revision',h.authority_revision,'grant_revision',h.grant_revision,'holds_task',a.holds_task,'effects',(SELECT count(*) FROM agent_graph_operations WHERE attempt_id=$1),'releases',(SELECT count(*) FROM profiled_verified_releases WHERE attempt_id=$1)) FROM execution_attempts a JOIN profiled_authority_hot h USING(attempt_id) WHERE attempt_id=$1")
-        .bind(attempt).fetch_one(&state.store.pool).await.unwrap()
+        .bind(attempt).fetch_one(pool).await.unwrap()
 }
 // Exact published GitManifest field order, matching both the worker's source
 // protocol and server import verifier. Raw uploaded bytes have an independent
@@ -124,6 +124,7 @@ async fn actual_phase_stopped_checkpoint_http_import_and_current_retention_are_n
         .await
         .unwrap();
     let state = &f.c.env.env.state;
+    let pool = &f.c.env.env.pool;
     let credential = &f.c.env.env.credential;
     let binding = &start.original.binding;
     let SessionIdentity::Remote {
@@ -132,8 +133,8 @@ async fn actual_phase_stopped_checkpoint_http_import_and_current_retention_are_n
     else {
         panic!()
     };
-    let before = invariants(state, binding.attempt_id).await;
-    let mut tx = state.store.pool.begin().await.unwrap();
+    let before = invariants(pool, binding.attempt_id).await;
+    let mut tx = pool.begin().await.unwrap();
     let view =
         aq_server::execution::authority::load_source_locked(&mut tx, node_id, binding.attempt_id)
             .await
@@ -309,7 +310,7 @@ async fn actual_phase_stopped_checkpoint_http_import_and_current_retention_are_n
     assert_eq!(code, 200, "{recorded}");
     let recorded: result_record::Receipt = serde_json::from_value(recorded).unwrap();
     recorded.validate_for(&report).unwrap();
-    let mut tx = state.store.pool.begin().await.unwrap();
+    let mut tx = pool.begin().await.unwrap();
     let result = results::load_locked(state, &mut tx, report.report_id)
         .await
         .unwrap();
@@ -366,7 +367,7 @@ async fn actual_phase_stopped_checkpoint_http_import_and_current_retention_are_n
             .is_err(),
         "historical import is not current retention after release"
     );
-    assert_eq!(before, invariants(state, binding.attempt_id).await);
+    assert_eq!(before, invariants(pool, binding.attempt_id).await);
     assert!(before["holds_task"].as_bool().unwrap());
     actual.central.stop().await;
     println!(
