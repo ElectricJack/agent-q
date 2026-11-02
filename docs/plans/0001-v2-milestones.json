@@ -1267,7 +1267,11 @@
         "../implementation/AQ-10-pilot-settlement-owner39.md",
         "../implementation/GATE-04-human-settlement-http.md",
         "../implementation/evidence/execution-union39-0d1cdc8/qualification.json",
-        "../implementation/AQ-10-phase-source-retention-qualification.md"
+        "../implementation/AQ-10-phase-source-retention-qualification.md",
+        "../implementation/evidence/gate04-codex-5d33c3a/README.md",
+        "../implementation/GATE-04-recovery-case-plan.md",
+        "../implementation/AQ-10-human-phase-result-reads.md",
+        "../implementation/evidence/human-phase-results/qualification.json"
       ]
     },
     {
@@ -1497,7 +1501,11 @@
         "../implementation/AQ-08-actual-codex-composition-plan.md",
         "../implementation/GATE-04-counted-result-startup.md",
         "../implementation/evidence/execution-union39-0d1cdc8/qualification.json",
-        "../../../aq-worker/docs/implementation/evidence/native-worker-union-d268028/qualification.json"
+        "../../../aq-worker/docs/implementation/evidence/native-worker-union-d268028/qualification.json",
+        "../implementation/evidence/gate04-codex-5d33c3a/README.md",
+        "../implementation/GATE-04-recovery-case-plan.md",
+        "../implementation/evidence/terminal-output-poll-5f21f79/qualification.json",
+        "../../../aq-worker/docs/implementation/evidence/output-only-poll-f33d8ec/manifest.json"
       ]
     },
     {
@@ -2699,7 +2707,10 @@
         "../implementation/AQ-08-phase-history-evidence/qualification.md",
         "../../../aq-worker/docs/implementation/WRK-08-phase-terminal-producer-evidence.md",
         "../implementation/AQ-08-phase-terminal-integration/README.md",
-        "../implementation/AQ-08-terminal-tail-integration/README.md"
+        "../implementation/AQ-08-terminal-tail-integration/README.md",
+        "../implementation/evidence/terminal-output-poll-5f21f79/qualification.json",
+        "../../../aq-worker/docs/implementation/evidence/output-only-poll-f33d8ec/manifest.json",
+        "../implementation/evidence/gate04-codex-5d33c3a/README.md"
       ]
     },
     {
@@ -3637,7 +3648,8 @@
         "../../../aq-worker/docs/implementation/WRK-17-registry-refresh-adoption.md",
         "../../../aq-worker/docs/implementation/evidence/worker-output-refresh-3146cf4/qualification.json",
         "../../../aq-worker/docs/implementation/WRK-17-trusted-node-codex-pilot.md",
-        "../../../aq-worker/docs/implementation/WRK-17-production-profile-dispatch.md"
+        "../../../aq-worker/docs/implementation/WRK-17-production-profile-dispatch.md",
+        "../implementation/evidence/gate04-codex-5d33c3a/README.md"
       ]
     },
     {
