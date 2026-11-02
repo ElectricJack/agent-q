@@ -1,5 +1,6 @@
 //! Explicit disposable actual Codex/finite-peer task integration. No external
 //! provider, canonical data, or universal runtime/model qualification.
+#[allow(dead_code)] // Shared Git helper has APIs used by the source-retention fixture.
 #[path = "support/actual_git_owner.rs"]
 mod actual_git_owner;
 #[path = "support/codex_finite_provider.rs"]
@@ -17,6 +18,7 @@ mod common;
 mod native_result_settlement;
 #[path = "support/native_runner_transport.rs"]
 mod native_runner_transport;
+#[allow(dead_code)] // Shared Graph helper also serves its standalone component proof.
 #[path = "support/real_graph.rs"]
 mod real_graph;
 use anyhow::{Context, Result, ensure};
@@ -383,12 +385,22 @@ fn control_router(owners: Arc<ControlOwners>) -> axum::Router {
             Box::pin(async move {
                 match assessed_request(request, &owners).await {
                     Ok(request) => owners.observed.inspect(request, next).await,
-                    Err(_) => axum::response::Response::builder()
-                        .status(503)
-                        .body(axum::body::Body::from(
-                            "finite fixture operator assessment refused",
-                        ))
-                        .unwrap(),
+                    Err(error) => {
+                        let code = codex_operator_assessment::refusal_code(&error);
+                        owners
+                            .observed
+                            .statuses
+                            .lock()
+                            .unwrap()
+                            .push((format!("fixture_operator:{code}"), 503));
+                        eprintln!("GATE04_OPERATOR_REFUSAL {code}");
+                        axum::response::Response::builder()
+                            .status(503)
+                            .body(axum::body::Body::from(
+                                "finite fixture operator assessment refused",
+                            ))
+                            .unwrap()
+                    }
                 }
             })
         },
@@ -431,72 +443,64 @@ async fn running_watch(
     tokio::time::timeout(Duration::from_secs(40), async {
         loop {
             ensure!(!worker.finished()?, "ordinary runner exited before Watch");
-            if let Ok(state) = journal(&transfer.state, actual.env.node) {
-                if let Some(attempts) = state["attempts"].as_object() {
-                    ensure!(attempts.len() <= 1, "one actual attempt required");
-                    if let Some(attempt) = attempts.values().next() {
-                        if let Some(deadline) = attempt["refresh_execution"]["deadline_ns"].as_u64()
-                        {
-                            let mut now: nix::libc::timespec = unsafe { std::mem::zeroed() };
-                            ensure!(
-                                unsafe {
-                                    nix::libc::clock_gettime(nix::libc::CLOCK_BOOTTIME, &mut now)
-                                } == 0,
-                                "original boot clock"
+            if let Ok(state) = journal(&transfer.state, actual.env.node)
+                && let Some(attempts) = state["attempts"].as_object()
+            {
+                ensure!(attempts.len() <= 1, "one actual attempt required");
+                if let Some(attempt) = attempts.values().next()
+                    && let Some(deadline) = attempt["refresh_execution"]["deadline_ns"].as_u64()
+                {
+                    let mut now: nix::libc::timespec = unsafe { std::mem::zeroed() };
+                    ensure!(
+                        unsafe { nix::libc::clock_gettime(nix::libc::CLOCK_BOOTTIME, &mut now) }
+                            == 0,
+                        "original boot clock"
+                    );
+                    ensure!(
+                        (now.tv_sec as u64) * 1_000_000_000 + (now.tv_nsec as u64) < deadline,
+                        "original grant expired before Watch"
+                    );
+                    if attempt["native_host"]["refresh_terminal"]["started"]["receipt"].is_object()
+                    {
+                        let terminal: Option<Uuid> = sqlx::query_scalar(
+                            "SELECT terminal_id FROM terminal_sessions WHERE node_id=$1",
+                        )
+                        .bind(actual.env.node)
+                        .fetch_optional(&actual.env.pool)
+                        .await?;
+                        if let Some(terminal) = terminal {
+                            let watched = codex_terminal_output::watch_registered(
+                                &actual.env.state,
+                                terminal,
+                            )
+                            .await?;
+                            let root = PathBuf::from(
+                                attempt["result"]["scope"]["root"]
+                                    .as_str()
+                                    .context("actual result channel root")?,
                             );
+                            let relative = root.strip_prefix(STATE)?.join("binding.json");
+                            let binding: Value =
+                                serde_json::from_slice(&transfer.state.read(&relative, 16384)?)?;
                             ensure!(
-                                (now.tv_sec as u64) * 1_000_000_000 + (now.tv_nsec as u64)
-                                    < deadline,
-                                "original grant expired before Watch"
+                                binding == attempt["result"]["scope"]["binding"],
+                                "actual published result binding changed"
                             );
-                            if attempt["native_host"]["refresh_terminal"]["started"]["receipt"]
-                                .is_object()
-                            {
-                                let terminal: Option<Uuid> = sqlx::query_scalar(
-                                    "SELECT terminal_id FROM terminal_sessions WHERE node_id=$1",
-                                )
-                                .bind(actual.env.node)
-                                .fetch_optional(&actual.env.pool)
-                                .await?;
-                                if let Some(terminal) = terminal {
-                                    let watched = codex_terminal_output::watch_registered(
-                                        &actual.env.state,
-                                        terminal,
-                                    )
-                                    .await?;
-                                    let root = PathBuf::from(
-                                        attempt["result"]["scope"]["root"]
-                                            .as_str()
-                                            .context("actual result channel root")?,
-                                    );
-                                    let relative = root.strip_prefix(STATE)?.join("binding.json");
-                                    let binding: Value = serde_json::from_slice(
-                                        &transfer.state.read(&relative, 16384)?,
-                                    )?;
-                                    ensure!(
-                                        binding == attempt["result"]["scope"]["binding"],
-                                        "actual published result binding changed"
-                                    );
-                                    let launch =
-                                        attempt["native_host"]["running"]["request"]["launch_id"]
-                                            .as_str()
-                                            .context("actual launch ID")?;
-                                    Uuid::parse_str(launch)?;
-                                    let auth = PathBuf::from("host")
-                                        .join(launch)
-                                        .join("codex-home/auth.json");
-                                    let auth_value: Value =
-                                        serde_json::from_slice(&transfer.state.read(&auth, 8192)?)?;
-                                    let cap = auth_value["OPENAI_API_KEY"]
-                                        .as_str()
-                                        .context("actual scoped capability")?
-                                        .to_owned();
-                                    ensure!(!cap.is_empty(), "scoped capability empty");
-                                    return Ok::<_, anyhow::Error>((
-                                        watched, binding, deadline, auth, cap,
-                                    ));
-                                }
-                            }
+                            let launch = attempt["native_host"]["running"]["request"]["launch_id"]
+                                .as_str()
+                                .context("actual launch ID")?;
+                            Uuid::parse_str(launch)?;
+                            let auth = PathBuf::from("host")
+                                .join(launch)
+                                .join("codex-home/auth.json");
+                            let auth_value: Value =
+                                serde_json::from_slice(&transfer.state.read(&auth, 8192)?)?;
+                            let cap = auth_value["OPENAI_API_KEY"]
+                                .as_str()
+                                .context("actual scoped capability")?
+                                .to_owned();
+                            ensure!(!cap.is_empty(), "scoped capability empty");
+                            return Ok::<_, anyhow::Error>((watched, binding, deadline, auth, cap));
                         }
                     }
                 }
@@ -506,6 +510,94 @@ async fn running_watch(
     })
     .await
     .context("actual prelaunch/Watch outer bound")?
+}
+async fn model_input_evidence(
+    actual: &common::selection::ActualSelectionFixture,
+    attempt: &Value,
+    requests: &[Value],
+) -> Result<Value> {
+    let offered: aq_admission::startup::NativeOffer =
+        serde_json::from_value(attempt["reservation"]["offer"].clone())?;
+    let payload = &offered.startup.payload;
+    let descriptor = offered
+        .offered
+        .artifacts
+        .iter()
+        .find(|a| a.artifact == *payload)
+        .context("actual sealed payload descriptor")?;
+    let id = Uuid::parse_str(
+        descriptor
+            .retention_receipt
+            .id
+            .as_str()
+            .strip_prefix("aq.inline-retention/")
+            .context("actual payload retention identity")?,
+    )?;
+    let mut tx = actual.env.pool.begin().await?;
+    let retained = aq_server::profiled_execution::artifacts::load_locked(&mut tx, id)
+        .await
+        .map_err(|_| anyhow::anyhow!("actual payload owner read refused"))?;
+    ensure!(
+        retained.project_id == actual.project.binding.project_id
+            && serde_json::to_value(&retained.descriptor)? == serde_json::to_value(descriptor)?,
+        "actual sealed payload owner mismatch"
+    );
+    offered.startup.verify_payload(&retained.bytes)?;
+    tx.commit().await?;
+    let text = std::str::from_utf8(&retained.bytes)?;
+    let startup = include_str!("fixtures/agent-result-startup-v1.md");
+    ensure!(
+        text.matches(startup).count() == 1,
+        "reporting startup must be counted exactly once"
+    );
+    fn strings<'a>(value: &'a Value, out: &mut Vec<&'a str>) {
+        match value {
+            Value::String(s) => out.push(s),
+            Value::Array(a) => {
+                for v in a {
+                    strings(v, out)
+                }
+            }
+            Value::Object(a) => {
+                for v in a.values() {
+                    strings(v, out)
+                }
+            }
+            _ => {}
+        }
+    }
+    let first = requests.first().context("actual model request absent")?;
+    let mut input = Vec::new();
+    strings(&first["input"], &mut input);
+    ensure!(
+        input.iter().map(|s| s.matches(text).count()).sum::<usize>() == 1,
+        "actual Codex input must contain exact sealed payload once"
+    );
+    ensure!(
+        input
+            .iter()
+            .map(|s| s.matches(startup).count())
+            .sum::<usize>()
+            == 1,
+        "actual Codex input must contain reporting startup once"
+    );
+    let input_bytes = serde_json::to_vec(&first["input"])?.len();
+    let tool_bytes = serde_json::to_vec(&first["tools"])?.len();
+    let implicit_units = input_bytes
+        .checked_add(tool_bytes)
+        .and_then(|n| n.checked_sub(retained.bytes.len()))
+        .context("finite input measurement underflow")?;
+    ensure!(
+        (implicit_units as u64) <= offered.startup.implicit_tokens_upper_bound,
+        "actual finite implicit/tool bytes exceed declared conservative planning allowance"
+    );
+    Ok(
+        json!({"model":first["model"],"max_output_tokens":first["max_output_tokens"],"sealed_payload_bytes":retained.bytes.len(),"sealed_payload_digest":payload.digest,
+        "public_reporting_bytes":startup.len(),"public_reporting_digest":Digest::of(startup.as_bytes()),"payload_occurrences":1,"reporting_occurrences":1,
+        "canonical_first_request_bytes":serde_json::to_vec(first)?.len(),"canonical_first_input_encoded_bytes":input_bytes,"canonical_tool_definition_bytes":tool_bytes,"finite_implicit_tool_planning_units":implicit_units,"declared_implicit_planning_units":offered.startup.implicit_tokens_upper_bound,"actual_tools":first["tools"].as_array().context("actual tools missing")?.iter().map(|t|json!({"type":t["type"],"name":t["name"]})).collect::<Vec<_>>(),
+        "canonical_request_metadata":requests.iter().map(|r|serde_json::to_vec(r).map(|b|json!({"bytes":b.len(),"digest":Digest::of(&b)}))).collect::<std::result::Result<Vec<_>,_>>()?,
+        "scope":"measured finite-peer wire/input only; no external tokenizer/window/provider qualification"}),
+    )
 }
 fn diagnostics(
     transfer: &native_runner_transport::Transferred,
@@ -531,6 +623,7 @@ fn diagnostics(
         "b1_receipt":attempt.is_some_and(|a|a["result"]["receipt"].is_object()),"http_statuses":*observed.statuses.lock().unwrap(),
         "accepted_output_exchanges":observed.uploads.lock().unwrap().len(),"fixture_sender_exited":transfer.sender_exited().ok()})
 }
+#[allow(clippy::too_many_arguments)] // Explicit existing fixture owners and exact synthetic material; no new authority facade.
 async fn execute_case(
     root: &Path,
     pins: &Pins,
@@ -637,6 +730,8 @@ async fn execute_case(
         ensure!(host["running"].is_object() && host["stopped"]["observation"]["kernel_wait_echild"]==true &&host["refresh_terminal"]["started"]["receipt"].is_object()&&host["refresh_terminal"]["stopped"]["receipt"].is_object(),"actual physical stop/paired ACK required");
         ensure!(transferred.state.missing(&auth)? &&transferred.sender_exited()?,"actual private auth/fixture sender cleanup");
         let tools=peer.tool_validation(&program,&binding).await?;
+        let requests=peer.requests.lock().unwrap().clone();
+        let model_input=model_input_evidence(actual,attempt,&requests).await?;
         let workspace=Path::new(attempt["result"]["scope"]["workspace"]["path"].as_str().context("actual retained worktree")?).strip_prefix(STATE)?;
         let proof=transferred.state.read(&workspace.join("gate04-proof.txt"),128)?;
         ensure!(proof==b"AQ native result fixture proof\n","actual fixed file differs");
@@ -653,7 +748,7 @@ async fn execute_case(
         let settled=Box::pin(native_result_settlement::finish_fixture_choice(&actual.env.state,&reviews,&question,native_result_settlement::FixtureOwnerDecision::ApproveAfterExactProof)).await?;
         ensure!(settled.completion.state=="confirmed" &&settled.completion.receipt.is_some(),"actual Graph completion remains held");
         let task=graph.task().await?;ensure!(task["task_state"]=="completed" &&task["version"]==json!(actual.task.version+1)&&task["content_revision"]==json!(actual.task.content_revision+1),"independent actual Graph task closure differs");
-        Ok::<_,anyhow::Error>(json!({"scope":"actual pinned Codex finite local peer only; simulated fixture Owner approval","runtime":recipe.runtime,"qualification":recipe.qualification,"execution_deadline_boot_ns":deadline,"request_count":peer.requests.lock().unwrap().len(),"tool_validation":tools,"terminal":terminal,"physical_running":true,"physical_stopped_echild":true,"started_ack":true,"stopped_ack":true,"private_auth_removed":true,"b1_receipt":attempt["result"]["receipt"],"settlement":settled,"actual_graph_task":task}))
+        Ok::<_,anyhow::Error>(json!({"scope":"actual pinned Codex finite local peer only; simulated fixture Owner approval","runtime":recipe.runtime,"qualification":recipe.qualification,"execution_deadline_boot_ns":deadline,"request_count":peer.requests.lock().unwrap().len(),"model_input":model_input,"tool_validation":tools,"terminal":terminal,"physical_running":true,"physical_stopped_echild":true,"started_ack":true,"stopped_ack":true,"private_auth_removed":true,"b1_receipt":attempt["result"]["receipt"],"settlement":settled,"actual_graph_task":task}))
     }).await;
     if result.is_err() {
         let metadata = diagnostics(&transferred, actual.env.node, &observed);

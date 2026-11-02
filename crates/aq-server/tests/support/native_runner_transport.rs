@@ -382,7 +382,8 @@ impl ControlListener {
                         let base = libc::CMSG_LEN(0) as usize;
                         let length = (*item).cmsg_len as usize;
                         ensure!(
-                            length >= base && (length - base) % std::mem::size_of::<i32>() == 0,
+                            length >= base
+                                && (length - base).is_multiple_of(std::mem::size_of::<i32>()),
                             "fixture rights framing"
                         );
                         for index in 0..(length - base) / std::mem::size_of::<i32>() {
