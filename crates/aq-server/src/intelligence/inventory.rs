@@ -89,6 +89,7 @@ pub(super) async fn report(
                     &delivery,
                     observed,
                     observed_expires,
+                    None,
                 )
             }),
         )
@@ -234,6 +235,7 @@ pub(super) async fn report(
         }
     }
     let snapshot = CapabilitySnapshot {
+        backend_kind: None,
         material_delivery: delivery.clone(),
         target: ExecutionTarget::Worker {
             node_id: node.id,

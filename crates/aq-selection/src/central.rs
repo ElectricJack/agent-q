@@ -96,6 +96,7 @@ pub fn select_central(
         validated.execution,
         policy,
         &CoreInputs {
+            backend_kind: None,
             target: ObservationTarget::CentralInstallation,
             installation: CoreInstallation {
                 harnesses: &inst.harnesses,

@@ -199,6 +199,7 @@ pub fn fixture() -> (ValidatedCatalog, SelectionInputs) {
             enabled: true,
             provisionable: true,
             material_owner: None,
+            allowed_backends: aq_selection::default_allowed_backends(),
         })
         .collect();
     let models = vec![
@@ -216,6 +217,7 @@ pub fn fixture() -> (ValidatedCatalog, SelectionInputs) {
         },
     ];
     let node = CapabilitySnapshot {
+        backend_kind: None,
         material_delivery: None,
         target: target.clone(),
         revision: 1,

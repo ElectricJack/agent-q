@@ -206,6 +206,7 @@ fn select_internal(
         execution,
         policy,
         &CoreInputs {
+            backend_kind: input.node.backend_kind,
             target,
             installation: CoreInstallation {
                 harnesses: &input.node.harnesses,

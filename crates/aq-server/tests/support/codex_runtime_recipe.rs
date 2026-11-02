@@ -725,6 +725,8 @@ impl Prepared {
         let registry = IntelligenceConfig {
             revision: 1,
             credentials: vec![CredentialConfig {
+                kind: Default::default(),
+                allowed_backends: aq_selection::default_allowed_backends(),
                 credential: aq_selection::AuthorizedCredential {
                     profile: self.credential.clone(),
                     provider: "openai".into(),
@@ -734,6 +736,7 @@ impl Prepared {
                     enabled: true,
                     provisionable: false,
                     material_owner: None,
+                    allowed_backends: aq_selection::default_allowed_backends(),
                 },
                 allowed_node_ids: vec![node],
                 secret_file: Some(secret_file),
