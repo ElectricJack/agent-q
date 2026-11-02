@@ -68,6 +68,16 @@ The existing actual tool proof measured7.30s preflight and8.25s execution, so
 preflight must never consume or extend an issued grant. Every later wait uses
 remaining original authority, never a fresh stage budget.
 
+Current phase/refresh execution supports one original bounded run only. The
+ordinary native runner never invokes renewal, and its retained phase execution
+owner exposes no renewable authority. The existing server renewal loader
+requires the legacy initial-grant history, whereas phase receipts have their
+own table; phase closure also rejects unexpected renewal history. Do not assume
+that the presence of a generic `NativeClient::renew` method enables this profile.
+The first finite-peer cycle stays at20s. A later real coding task needs an
+explicitly supported initial lease and hard bound, or separately designed and
+qualified renewal; neither minutes of work nor automatic extension is promised.
+
 ## Test-support entry point
 
 Extend only the test-support build of ordinary `RunNative` with an explicit
