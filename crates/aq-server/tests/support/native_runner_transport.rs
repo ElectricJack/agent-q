@@ -17,6 +17,8 @@ use std::{
 const MAX_PACKET: usize = 131072;
 const PRIVATE_STATE: &str = "/var/lib/aq-qualification/state";
 const MINIMUM_FREE: u64 = 11005853696;
+#[path = "native_runner_transport/git.rs"]
+mod git;
 fn timeout(fd: i32) -> Result<()> {
     let value = libc::timeval {
         tv_sec: 10,
@@ -107,7 +109,8 @@ pub struct ListenerInfo {
 }
 /// Trusted outer fixture audit access, not a read-only directory capability.
 /// O_RDONLY on a directory still permits openat writes; this API uses only
-/// bounded O_RDONLY/openat2 reads and the harness never inherits its descriptor.
+/// bounded reads and explicit trusted-operator Git provisioning; the harness
+/// never inherits its descriptor. Neither operation creates AQ launch authority.
 pub struct PrivateState {
     root: File,
 }

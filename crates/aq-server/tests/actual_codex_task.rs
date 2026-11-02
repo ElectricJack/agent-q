@@ -229,6 +229,8 @@ fn actual_git_rpc_uses_closed_algorithm_wire_without_changing_source_identity() 
     assert!(serde_json::from_value::<aq_worker_protocol::ObjectId>(json!(base)).is_err());
 }
 struct Source {
+    central_binding: Value,
+    provisioning_operation: Uuid,
     owner: actual_git_owner::Owner,
     base: ObjectId,
     retention: Uuid,
@@ -253,7 +255,7 @@ async fn source(root: &Path, repository: Uuid) -> Result<Source> {
     };
     let wire = git_object(&base)?;
     let owner = actual_git_owner::Owner::start(root, "central-git").await;
-    owner.call(repository,"repo.register",json!({"identity":"aq-gate04-actual-source","mode":"central","remote_url":seed,"allow_file_transport":true,"allowed_refs":["refs/heads/main"],"allowed_targets":["refs/heads/main"]})).await;
+    let central_binding = owner.call(repository,"repo.register",json!({"identity":"aq-gate04-actual-source","mode":"central","remote_url":seed,"allow_file_transport":true,"allowed_refs":["refs/heads/main"],"allowed_targets":["refs/heads/main"]})).await;
     owner.call(repository, "repo.sync", json!({})).await;
     let workspace = owner
         .call(repository, "workspace.create", json!({"base":wire}))
@@ -270,6 +272,8 @@ async fn source(root: &Path, repository: Uuid) -> Result<Source> {
         incomplete_ttl_secs: 60,
     };
     Ok(Source {
+        central_binding,
+        provisioning_operation: Uuid::new_v4(),
         owner,
         base,
         retention,
@@ -640,6 +644,11 @@ fn diagnostics(
     let field = |key: &str| attempt.map(|a| a[key].is_object()).unwrap_or(false);
     let host = attempt.map(|a| &a["native_host"]);
     json!({"journal_format":state.as_ref().map(|s|&s["format"]),"journal_revision":state.as_ref().map(|s|&s["revision"]),
+        "source_progress":attempt.map(|a| {let s=&a["source"]; json!({
+            "plan":s.is_object(),"manifest":s["manifest"].is_object(),"verified":s["verified"].is_object(),
+            "manifest_offset":s["manifest_offset"].as_u64(),"bundle_offset":s["bundle_offset"].as_u64(),
+            "operations":["repository","import","create","retention","workspace"].map(|key| json!({"stage":key,
+                "intent":s["operations"][key].is_object(),"result":s["operations"][key]["result"].is_object()}))})}),
         "accepted":field("refresh_acceptance"),"prepared_inputs":field("refresh_prepared"),"execution":field("refresh_execution"),
         "original_execution_deadline_boot_ns":attempt.and_then(|a|a["refresh_execution"]["deadline_ns"].as_u64()),
         "original_reservation_deadline_boot_ns":attempt.and_then(|a|a["reservation"]["deadline_ns"].as_u64()),
@@ -750,6 +759,12 @@ async fn execute_case(
         eprintln!("GATE04_STAGE preflight");
         let ready=worker.preflight().await?;
         ensure!(ready["runtime"]==json!(recipe.runtime)&&ready["qualification"]==json!(recipe.qualification)&&ready["adapter"]==json!(recipe.adapter),"genuine selected preflight pins differ");
+        eprintln!("GATE04_STAGE worker_repository_provisioning");
+        let state_owner=transferred.clone();let central=source.central_binding.clone();let operation=source.provisioning_operation;
+        let repository=tokio::task::spawn_blocking(move||state_owner.state.provision_worker_repository(&central,operation)).await??;
+        ensure!(repository["current"]["repository_id"]==json!(actual.project.binding.repository_id)
+            &&repository["current"]["binding_generation"]==actual.project.binding.repository_binding_generation,"actual project repository provisioning mismatch");
+        private(&root.join("worker-repository-provisioning.json"),&serde_json::to_vec(&repository)?,0o600)?;
         headroom()?;ensure!(transferred.state.free_bytes()? >= recipe.source_disk_bytes,"actual private source reservation unavailable");eprintln!("GATE04_STAGE ordinary_run_once");worker.continue_once().await?;
         let (watched,binding,deadline,auth,cap)=Box::pin(running_watch(actual,&transferred,&mut worker)).await?;
         ensure!(cap!=key && cap!=actual.env.credential,"fresh scoped capability required");
