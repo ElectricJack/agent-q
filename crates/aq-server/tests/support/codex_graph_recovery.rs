@@ -380,9 +380,9 @@ impl http_body::Body for LostReply {
     }
 }
 async fn serve(State(shared): State<Arc<Shared>>, request: Request) -> Response {
-    match shared.forward(request).await {
-        Ok(response) => response,
-        Err(_) => {
+    match tokio::time::timeout(IO_TIMEOUT, shared.forward(request)).await {
+        Ok(Ok(response)) => response,
+        Ok(Err(_)) | Err(_) => {
             shared.audit.lock().await.failed = true;
             StatusCode::BAD_GATEWAY.into_response()
         }
@@ -414,6 +414,7 @@ impl GraphRecoveryGate {
             client: reqwest::Client::builder()
                 .no_proxy()
                 .redirect(reqwest::redirect::Policy::none())
+                .retry(reqwest::retry::never())
                 .timeout(IO_TIMEOUT)
                 .build()?,
             upstream: origin(&original.graph_url)?,
