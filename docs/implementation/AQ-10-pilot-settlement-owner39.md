@@ -113,6 +113,31 @@ completion intent/receipt/outbox. Preserve SQL13/33/38 historical definitions;
 extend the phase release refusal ONLY for the exact new owner join. No arbitrary
 DTO or completeness-shaped JSON authorizes the release row.
 
+Freeze these first-owner envelopes before SQL qualification:
+
+| Retained owner | Per-attempt maximum | Payload envelope |
+| --- | --- | --- |
+| New combined review subjects |16 |existing review64KiB canonical subject bound, including required external declaration; no larger legacy envelope |
+| External declaration within combined subject |1 per subject |8KiB total, at most16 resource/effect entries, required reason/residual-uncertainty fields |
+| Immutable evaluation operations |16; at most1 accepted |128KiB aggregate canonical request/receipt/evidence per operation; reserve final receipt before acceptance |
+| Completion intent |1, bound to accepted evaluation |64KiB total frozen payload/service mapping, status, compact verified receipt and completion outbox reservation |
+| Completion dispatch |8 attempts,60s automatic elapsed budget |3s network attempt;15s recorded lease; exhaustion holds for exact-ID manual reconciliation |
+
+Existing review global/lineage quotas remain in force; this adds the smaller
+combined-subject attempt cap. All histories remain retained at capacity. A
+reevaluation consumes a new operation; unchanged replay consumes none. The
+completion owner reads at most1MiB from Graph and retains a bounded verified
+compact receipt plus exact response digest, as AQ-07 does, rather than copying
+arbitrary upstream bodies into its64KiB envelope. No quota failure may discard
+an already-possible operation or prevent recording its final receipt/outbox.
+
+After an accepted evaluation, the winning report, source, review and ledger pins
+are immutable. Reject further B1 head changes under the SAME common authority
+lock and a schema39 head guard; old exact report replay remains available. This
+applies even while Graph is only prepared/possible/unknown. The dispatcher reads
+the accepted record, never the current report head to retarget an old intent.
+Nonaccepted evaluations may be followed by new report heads/evaluation IDs.
+
 Set actual retained-source and reconciled-effect hot projections and record the
 verified release, but keep `holds_task=true` while Graph completion is pending.
 Existing publication admits another task attempt when that claim is false. The
