@@ -89,6 +89,22 @@ impl Owner {
         keys: Arc<Keyring>,
         policy: engine::ResolvedPolicy,
     ) -> Result<Self> {
+        Self::open_mode(state, keys, policy, false).await
+    }
+    #[cfg(feature = "test-support")]
+    pub async fn open_fixture(
+        state: AppState,
+        keys: Arc<Keyring>,
+        policy: engine::ResolvedPolicy,
+    ) -> Result<Self> {
+        Self::open_mode(state, keys, policy, true).await
+    }
+    async fn open_mode(
+        state: AppState,
+        keys: Arc<Keyring>,
+        policy: engine::ResolvedPolicy,
+        fixture_sources: bool,
+    ) -> Result<Self> {
         policy.body.validate()?;
         if wire::canonical_digest(&policy.body)? != policy.reference.digest {
             return Err(Error::Corrupt);
@@ -100,19 +116,9 @@ impl Owner {
             policy,
             physical,
             active,
-            fixture_sources: false,
+            fixture_sources,
         };
         owner.validate_retained().await?;
-        Ok(owner)
-    }
-    #[cfg(feature = "test-support")]
-    pub async fn open_fixture(
-        state: AppState,
-        keys: Arc<Keyring>,
-        policy: engine::ResolvedPolicy,
-    ) -> Result<Self> {
-        let mut owner = Self::open(state, keys, policy).await?;
-        owner.fixture_sources = true;
         Ok(owner)
     }
     async fn transaction(&self) -> Result<Transaction<'_, Postgres>> {

@@ -837,3 +837,68 @@ async fn known_cycle_through_wait_to_owner_bridge_refuses_without_reserving() {
         .await
         .unwrap();
 }
+#[tokio::test]
+async fn default_owner_clock_profile_refuses_graph_and_fixture_history() {
+    let t = setup().await;
+    let local = Owner::open(t.f.state.clone(), t.keys.clone(), policy())
+        .await
+        .unwrap();
+    let auth = context(&t.f).await;
+    let mut request = t.request.clone();
+    if let wire::Command::RegisterWait(r) = &mut request.body.command {
+        let wire::Predicate::Single { member } = &mut r.predicate else {
+            panic!()
+        };
+        member.condition = wire::Condition::Task {
+            task_id: Uuid::new_v4(),
+            revision: wire::Text::new("1").unwrap(),
+            requirement: wire::TaskRequirement::Settled,
+        };
+        r.predicate_digest = wire::canonical_digest(&r.predicate).unwrap();
+    }
+    request.body_digest = wire::canonical_digest(&request.body).unwrap();
+    assert!(matches!(
+        local
+            .register(
+                &auth,
+                reg(&t).binding.attempt_id,
+                &serde_json::to_vec(&request).unwrap()
+            )
+            .await,
+        Err(Error::Unsupported)
+    ));
+    local
+        .register(&auth, reg(&t).binding.attempt_id, &t.raw)
+        .await
+        .unwrap();
+    local
+        .drive_clock(&auth, reg(&t).binding.attempt_id, reg(&t).wait_id)
+        .await
+        .unwrap();
+    t.f.time.store((NOW + 200) as i64, Ordering::SeqCst);
+    assert_eq!(
+        local
+            .drive_clock(&auth, reg(&t).binding.attempt_id, reg(&t).wait_id)
+            .await
+            .unwrap()
+            .snapshot
+            .outcome()
+            .unwrap()
+            .kind,
+        wire::WaitOutcomeKind::Satisfied
+    );
+    let profile: String = sqlx::query_scalar("SELECT source_profile FROM wait_owner_records")
+        .fetch_one(&t.f.db.pool().await)
+        .await
+        .unwrap();
+    assert_eq!(profile, "local_v1");
+    Owner::open(t.f.state.clone(), t.keys.clone(), policy())
+        .await
+        .unwrap();
+    let fixture = setup().await;
+    register(&fixture).await;
+    assert!(matches!(
+        Owner::open(fixture.f.state.clone(), fixture.keys.clone(), policy()).await,
+        Err(Error::Unsupported)
+    ));
+}

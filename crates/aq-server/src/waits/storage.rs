@@ -410,6 +410,12 @@ impl Owner {
             .fetch_optional(&mut **tx)
             .await?
             .ok_or(Error::NotFound)?;
+        let source_profile: String = row.get("source_profile");
+        if source_profile != "local_v1"
+            && !(self.fixture_sources && source_profile == "test_fixture_v1")
+        {
+            return Err(Error::Unsupported);
+        }
         let request_digest: String = row.get("request_digest");
         let original_bytes = self
             .get_slot(tx, wait, &request_digest, "original")
