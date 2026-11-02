@@ -30,13 +30,16 @@ state must retain their existing refusal/hold behavior.
    Codex or task-settlement claim. See the [positive physical record](evidence/refresh-static-output-3146cf4/README.md); retain the first attachment failure separately.
 2. **Production runner profile dispatch.** Reuse the tested typed orchestration
    for explicit Frozen/Refresh configuration, preparation and corresponding
-   terminal history. The ordinary runner currently selects only the frozen
-   profile. Do not obtain authority by converting one profile's DTOs into another.
+   terminal history. This source is now integrated at worker `350732d`, with
+   qualification evidence at `cfa4c68`. Do not obtain authority by converting one
+   profile's DTOs into another.
 3. **Concrete first harness.** Join the existing reviewed Codex mapper, installed
    image, scoped provider transport and physical host under an explicit supported
-   runtime qualification. The ordinary Codex constructor currently refuses before
-   admission. Reuse existing components; do not build another executor framework
-   or label a static peer as a real agent.
+   runtime qualification. An explicit trusted-node named-readonly factory is now
+   implemented at worker `a66e293`; the legacy memfd tag still refuses. Together
+   with profile dispatch it passed 29 focused tests and strict checks. The
+   composed actual-harness task run remains pending. Reuse existing components;
+   do not build another executor framework or label a static peer as a real agent.
 4. **Explicit completion and retained result.** Adapt v1's completion instructions
    to v2's scoped command surface. The current result owner accepts only legacy
    native Started/Stopped receipts. Add the exact phase/refresh origin using the
