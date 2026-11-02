@@ -68,3 +68,14 @@ authorization and failed at the existing output-attachment profile join; see
 [the preserved attempt](evidence/refresh-static-output-1139ced/README.md).
 The compiled artifact's filtered `--list` reports exactly the new ignored case;
 listing it executes no fixture setup or test body.
+
+The diagnosed relay join is corrected in worker source
+`3146cf462093be887864a492f86a0ff5ee0ca97d`, independently source-accepted.
+Ten hostless old/new relay cases passed in 1.02s; all-feature strict passed in
+11.65s. The smoke-only binary rebuild passed in 10.35s and is separately pinned
+at `/tmp/aq-refresh-worker-pin-v2/native-prepare-smoke`, SHA256
+`251063f948e116add528539d51b9935752884878012b29ac9c912723cd4c1b13`.
+It remains worker 0.4.0/FORMAT11 and changes only nominal retained Started/ACK
+dispatch inside the same existing output relay. The first pin and failed
+attempt above remain intact. No changed-case physical retry has occurred;
+Root's separate bounded decision is pending.
