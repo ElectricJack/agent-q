@@ -92,13 +92,17 @@ fn permissions(project: Uuid, repository: Uuid) -> Vec<aq_session_api::Permissio
     ]
 }
 fn policy(project: Uuid, repository: Uuid) -> Result<Definition> {
+    ensure!(
+        !project.is_nil() && !repository.is_nil(),
+        "real project/repository policy scope"
+    );
+    // This body is the closed policy understood by the actual B2 owner. Runtime
+    // scope and scoped permissions remain in their own definitions/ceilings;
+    // adding them here would make the strict policy parser refuse settlement.
     definition(
         &format!("aq.codex-pilot-project-policy/{project}"),
         json!({
-            "schema_version":1,"project":project,"repository":repository,
-            "scope":SCOPE,"permissions":permissions(project,repository),
-            "result":"local source claim only; mandatory central validation; no task-close authority",
-            "maximum_execution_lease_ms":EXECUTION_MS,"terminal_input_enabled":false
+            "schema_version":1,"kind":"source_change_reviewed_human_owner_no_checks_v1"
         }),
     )
 }
@@ -758,6 +762,23 @@ impl Prepared {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn selected_policy_is_accepted_by_actual_b2_owner_before_project_creation() {
+        use aq_server::profiled_execution::settlement::eligibility::PilotPolicy;
+        let project = Uuid::new_v4();
+        let repository = Uuid::new_v4();
+        let selected = policy(project, repository).unwrap();
+        assert_eq!(
+            serde_json::from_str::<Value>(selected.body()).unwrap(),
+            json!({"schema_version":1,"kind":"source_change_reviewed_human_owner_no_checks_v1"})
+        );
+        assert!(PilotPolicy::from_definition(&selected).is_ok());
+        let mut unsupported: Value = serde_json::from_str(selected.body()).unwrap();
+        unsupported["permissions"] = json!(permissions(project, repository));
+        let unsupported = definition("aq.recipe-test-unsupported-policy", unsupported).unwrap();
+        assert!(PilotPolicy::from_definition(&unsupported).is_err());
+    }
 
     #[test]
     fn actual_catalog_is_canonical_and_requests_only_existing_scoped_permissions() {
