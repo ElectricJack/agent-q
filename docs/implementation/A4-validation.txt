@@ -1,0 +1,1235 @@
+A4 validation output — source base 86ca279; Cargo environment documented in A4.md.
+ANSI color control sequences removed; command output otherwise retained.
+
+=== red-image-labels: cargo test --locked -p aq-server --test image_labels (exit 101) ===
+   Compiling proc-macro2 v1.0.107
+   Compiling unicode-ident v1.0.27
+   Compiling quote v1.0.47
+   Compiling cfg-if v1.0.5
+   Compiling libc v0.2.191
+   Compiling syn v3.0.9
+   Compiling serde_core v1.0.229
+   Compiling serde v1.0.229
+   Compiling typenum v1.20.1
+   Compiling getrandom v0.2.17
+   Compiling memchr v2.8.3
+   Compiling serde_derive v1.0.229
+   Compiling version_check v0.9.5
+   Compiling itoa v1.0.18
+   Compiling generic-array v0.14.7
+   Compiling rand_core v0.6.4
+   Compiling subtle v2.6.1
+   Compiling crypto-common v0.1.7
+   Compiling zmij v1.0.23
+   Compiling const-oid v0.9.6
+   Compiling serde_json v1.0.154
+   Compiling getrandom v0.4.3
+   Compiling rand_core v0.10.1
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling cpufeatures v0.2.17
+   Compiling thiserror v2.0.21
+   Compiling smallvec v1.16.4
+   Compiling thiserror-impl v2.0.21
+   Compiling sha2 v0.10.9
+   Compiling sha1_smol v1.0.1
+   Compiling uuid v1.29.0
+   Compiling bytes v1.12.1
+   Compiling pin-project-lite v0.2.17
+   Compiling zeroize v1.9.1
+   Compiling futures-core v0.3.34
+   Compiling parking_lot_core v0.9.12
+   Compiling synstructure v0.14.0
+   Compiling scopeguard v1.2.0
+   Compiling lock_api v0.4.14
+   Compiling parking_lot v0.12.5
+   Compiling zerofrom-derive v0.1.8
+   Compiling errno v0.3.14
+   Compiling libm v0.2.16
+   Compiling ref-cast v1.0.27
+   Compiling autocfg v1.5.1
+   Compiling zerofrom v0.1.8
+   Compiling num-traits v0.2.19
+   Compiling signal-hook-registry v1.4.8
+   Compiling yoke-derive v0.8.4
+   Compiling ref-cast-impl v1.0.27
+   Compiling tokio-macros v2.7.2
+   Compiling serde_derive_internals v0.30.0
+   Compiling socket2 v0.6.5
+   Compiling mio v1.2.4
+   Compiling stable_deref_trait v1.2.1
+   Compiling yoke v0.8.4
+   Compiling tokio v1.54.1
+   Compiling schemars_derive v1.2.3
+   Compiling dyn-clone v1.0.20
+   Compiling log v0.4.34
+   Compiling once_cell v1.21.4
+   Compiling schemars v1.2.3
+   Compiling zerovec-derive v0.11.7
+   Compiling futures-sink v0.3.34
+   Compiling zerovec v0.11.9
+   Compiling displaydoc v0.2.7
+   Compiling percent-encoding v2.3.2
+   Compiling aq-session-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-session-protocol-0.1.0)
+   Compiling slab v0.4.12
+   Compiling find-msvc-tools v0.1.15
+   Compiling futures-io v0.3.34
+   Compiling futures-task v0.3.34
+   Compiling shlex v2.0.1
+   Compiling cc v1.10.0
+   Compiling futures-util v0.3.34
+   Compiling tracing-core v0.1.36
+   Compiling syn v2.0.119
+   Compiling ring v0.17.14
+   Compiling tinystr v0.8.5
+   Compiling utf_types v1.0.0
+   Compiling base64 v0.22.1
+   Compiling litemap v0.8.3
+   Compiling bitflags v2.13.2
+   Compiling writeable v0.6.4
+   Compiling icu_locale_core v2.4.0
+   Compiling tracing-attributes v0.1.31
+   Compiling utf8_iter v1.1.0
+   Compiling tracing v0.1.44
+   Compiling zerotrie v0.2.5
+   Compiling potential_utf v0.1.6
+   Compiling hybrid-array v0.4.15
+   Compiling icu_normalizer_data v2.4.0
+   Compiling icu_properties_data v2.4.0
+   Compiling icu_collections v2.4.0
+   Compiling icu_provider v2.4.0
+   Compiling futures-channel v0.3.34
+   Compiling rustls-pki-types v1.15.1
+   Compiling untrusted v0.9.0
+   Compiling cmov v0.5.4
+   Compiling ctutils v0.4.7
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling http v1.5.0
+   Compiling equivalent v1.0.3
+   Compiling const-oid v0.10.2
+   Compiling tinyvec v1.13.3
+   Compiling digest v0.11.3
+   Compiling http-body v1.1.0
+   Compiling unicode-normalization v0.1.26
+   Compiling icu_normalizer v2.4.0
+   Compiling icu_properties v2.4.0
+   Compiling form_urlencoded v1.2.2
+   Compiling unicode-bidi v0.3.18
+   Compiling iana-time-zone v0.1.65
+   Compiling rustls v0.23.46
+   Compiling zerocopy v0.8.63
+   Compiling cpufeatures v0.3.1
+   Compiling unicode-properties v0.1.4
+   Compiling idna_adapter v1.2.2
+   Compiling stringprep v0.1.5
+   Compiling chrono v0.4.45
+   Compiling rustls-webpki v0.103.16
+   Compiling tower-service v0.3.3
+   Compiling hashbrown v0.17.1
+   Compiling byteorder v1.5.0
+   Compiling httparse v1.10.1
+   Compiling indexmap v2.14.2
+   Compiling idna v1.1.0
+   Compiling chacha20 v0.10.2
+   Compiling webpki-roots v1.0.11
+   Compiling aq-lifecycle-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-lifecycle-protocol-0.1.0)
+   Compiling try-lock v0.2.5
+   Compiling want v0.3.2
+   Compiling rand v0.10.3
+   Compiling ppv-lite86 v0.2.21
+   Compiling url v2.5.8
+   Compiling sha2 v0.11.1
+   Compiling hmac v0.13.0
+   Compiling md-5 v0.11.0
+   Compiling num-integer v0.1.47
+   Compiling sync_wrapper v1.0.2
+   Compiling siphasher v1.0.4
+   Compiling tower-layer v0.3.3
+   Compiling crossbeam-utils v0.8.23
+   Compiling simd-adler32 v0.3.10
+   Compiling atomic-waker v1.1.2
+   Compiling cfg_aliases v0.2.2
+   Compiling fallible-iterator v0.2.0
+   Compiling utf8parse v0.2.2
+   Compiling httpdate v1.0.3
+   Compiling hyper v1.12.0
+   Compiling postgres-protocol v0.6.12
+   Compiling anstyle-parse v1.0.0
+   Compiling nix v0.29.0
+   Compiling phf_shared v0.13.1
+   Compiling rand_chacha v0.3.1
+   Compiling inout v0.1.4
+   Compiling aho-corasick v1.1.5
+   Compiling spin v0.9.9
+   Compiling anstyle-query v1.1.5
+   Compiling anstyle v1.0.14
+   Compiling colorchoice v1.0.5
+   Compiling ipnet v2.12.2
+   Compiling foldhash v0.1.5
+   Compiling adler2 v2.0.1
+   Compiling base64 v0.23.1
+   Compiling crc32fast v1.5.3
+   Compiling regex-syntax v0.8.11
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling allocator-api2 v0.2.21
+   Compiling hashbrown v0.15.5
+   Compiling anstream v1.0.0
+   Compiling hyper-util v0.1.21
+   Compiling regex-automata v0.4.18
+   Compiling lazy_static v1.5.1
+   Compiling rand v0.8.8
+   Compiling cipher v0.4.4
+   Compiling phf v0.13.1
+   Compiling postgres-types v0.2.14
+   Compiling tower v0.5.3
+   Compiling http-body-util v0.1.5
+   Compiling tokio-util v0.7.20
+   Compiling aq-playbooks-model v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-playbooks-0173673/crates/aq-playbooks-model)
+   Compiling toml_datetime v0.6.11
+   Compiling serde_spanned v0.6.9
+   Compiling universal-hash v0.5.1
+   Compiling async-trait v0.1.92
+   Compiling whoami v2.1.3
+   Compiling opaque-debug v0.3.1
+   Compiling winnow v0.7.15
+   Compiling parking v2.2.1
+   Compiling base64ct v1.8.3
+   Compiling toml_write v0.1.2
+   Compiling heck v0.5.0
+   Compiling crc-catalog v2.5.0
+   Compiling time-core v0.1.9
+   Compiling hex v0.4.3
+   Compiling clap_lex v1.1.1
+   Compiling ryu v1.0.23
+   Compiling strsim v0.11.1
+   Compiling num-conv v0.2.2
+   Compiling time-macros v0.2.32
+   Compiling clap_builder v4.6.7
+   Compiling serde_urlencoded v0.7.1
+   Compiling clap_derive v4.6.7
+   Compiling crc v3.4.0
+   Compiling pem-rfc7468 v0.7.0
+   Compiling toml_edit v0.22.27
+   Compiling event-listener v5.4.2
+   Compiling poly1305 v0.8.0
+   Compiling tokio-postgres v0.7.18
+   Compiling crossbeam-queue v0.3.14
+   Compiling chacha20 v0.9.1
+   Compiling hashlink v0.10.0
+   Compiling miniz_oxide v0.9.1
+   Compiling webpki-roots v0.26.11
+   Compiling tokio-rustls v0.26.6
+   Compiling aq-session-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-session-api)
+   Compiling tokio-stream v0.1.19
+   Compiling futures-intrusive v0.5.0
+   Compiling hmac v0.12.1
+   Compiling either v1.19.0
+   Compiling aead v0.5.2
+   Compiling powerfmt v0.2.1
+   Compiling deranged v0.5.9
+   Compiling chacha20poly1305 v0.10.1
+   Compiling sqlx-core v0.8.6
+   Compiling time v0.3.55
+   Compiling hkdf v0.12.4
+   Compiling hyper-rustls v0.27.10
+   Compiling flate2 v1.1.10
+   Compiling postgres v0.19.14
+   Compiling toml v0.8.23
+   Compiling clap v4.6.7
+   Compiling der v0.7.10
+   Compiling aq-playbooks-runner v0.1.3 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-playbooks-0173673/crates/aq-playbooks-runner)
+   Compiling tower-http v0.6.11
+   Compiling miniz_oxide v0.8.9
+   Compiling fdeflate v0.3.7
+   Compiling num-bigint v0.4.8
+   Compiling aq-lifecycle-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-lifecycle-api)
+   Compiling aq-agent-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-agent-api)
+   Compiling atoi v2.0.0
+   Compiling md-5 v0.10.6
+   Compiling anyhow v1.0.104
+   Compiling mime v0.3.17
+   Compiling home v0.5.12
+   Compiling dotenvy v0.15.7
+   Compiling whoami v1.6.1
+   Compiling sqlx-postgres v0.8.6
+   Compiling axum-core v0.5.6
+   Compiling aq-profiles v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-profiles)
+   Compiling aq-playbooks-postgres v0.1.3 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-playbooks-0173673/crates/aq-playbooks-postgres)
+   Compiling simple_asn1 v0.6.4
+   Compiling png v0.18.1 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/png-0.18.1-aq1)
+   Compiling reqwest v0.12.28
+   Compiling spki v0.7.3
+   Compiling matchers v0.2.0
+   Compiling regex v1.13.1
+   Compiling sharded-slab v0.1.7
+   Compiling aq-admission v0.1.11 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-admission)
+   Compiling pem v3.0.6
+   Compiling tracing-log v0.2.0
+   Compiling aq-terminal-relay-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-terminal-relay-protocol)
+   Compiling serde_path_to_error v0.1.20
+   Compiling semver v1.0.28
+   Compiling thread_local v1.1.10
+   Compiling matchit v0.8.4
+   Compiling num-bigint-dig v0.8.6
+   Compiling nu-ansi-term v0.50.3
+   Compiling rustix v1.1.6
+   Compiling tracing-subscriber v0.3.23
+   Compiling axum v0.8.9
+   Compiling aq-phase-terminal-protocol v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-phase-terminal-protocol)
+   Compiling aq-release v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-release)
+   Compiling aq-terminal-relay v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-terminal-relay)
+   Compiling jsonwebtoken v9.3.1
+   Compiling aq-notifications v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-notifications)
+   Compiling pkcs8 v0.10.2
+   Compiling aq-result-media v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-result-media)
+   Compiling aq-playbook-host v0.1.3 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-playbook-host)
+   Compiling aq-selection v0.1.4 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-selection)
+   Compiling sqlx v0.8.6
+   Compiling aq-observation-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-api)
+   Compiling num-iter v0.1.46
+   Compiling aq-observation-admission v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-admission)
+   Compiling aq-accounting v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-accounting)
+   Compiling aq-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-protocol-0.1.0)
+   Compiling aq-central-authority v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-central-authority)
+   Compiling aq-review-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-review-protocol)
+   Compiling aq-worker-protocol v0.2.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-worker-protocol-0.2.0)
+   Compiling linux-raw-sys v0.12.1
+   Compiling aq-server v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server)
+   Compiling pkcs1 v0.7.5
+   Compiling signature v2.2.0
+   Compiling fastrand v2.5.0
+   Compiling tempfile v3.27.0
+   Compiling rsa v0.9.10
+   Compiling aq-playbooks-compiler v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-playbooks-0173673/crates/aq-playbooks-compiler)
+    Finished `test` profile [unoptimized] target(s) in 5m 25s
+     Running tests/image_labels.rs (target/debug/deps/image_labels-90db991e7471cf2b)
+
+running 2 tests
+test dockerfile_protocol_max_matches_source ... ok
+test dockerfile_state_format_matches_source ... FAILED
+
+failures:
+
+---- dockerfile_state_format_matches_source stdout ----
+
+thread 'dockerfile_state_format_matches_source' (766348) panicked at crates/aq-server/tests/image_labels.rs:18:5:
+assertion `left == right` failed: bump Dockerfile's AQ_STATE_FORMAT default with STATE_FORMAT_VERSION
+  left: 40
+ right: 41
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    dockerfile_state_format_matches_source
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p aq-server --test image_labels`
+
+=== red-profile-cli: cargo test --locked -p aq-profiles --test cli profile_cli_uses_distinct_binary_name -- --exact (exit 101) ===
+    Blocking waiting for file lock on build directory
+   Compiling serde_core v1.0.229
+   Compiling syn v3.0.9
+   Compiling serde v1.0.229
+   Compiling typenum v1.20.1
+   Compiling serde_derive v1.0.229
+   Compiling generic-array v0.14.7
+   Compiling serde_json v1.0.154
+   Compiling block-buffer v0.10.4
+   Compiling crypto-common v0.1.7
+   Compiling memchr v2.8.3
+   Compiling num-traits v0.2.19
+   Compiling digest v0.10.7
+   Compiling ref-cast-impl v1.0.27
+   Compiling uuid v1.29.0
+   Compiling serde_derive_internals v0.30.0
+   Compiling sha2 v0.10.9
+   Compiling ref-cast v1.0.27
+   Compiling thiserror-impl v2.0.21
+   Compiling schemars_derive v1.2.3
+   Compiling nix v0.29.0
+   Compiling thiserror v2.0.21
+   Compiling schemars v1.2.3
+   Compiling toml_datetime v0.6.11
+   Compiling serde_spanned v0.6.9
+   Compiling clap_builder v4.6.7
+   Compiling aq-session-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-session-protocol-0.1.0)
+   Compiling toml_edit v0.22.27
+   Compiling chrono v0.4.45
+   Compiling clap_derive v4.6.7
+   Compiling getrandom v0.4.3
+   Compiling clap v4.6.7
+   Compiling toml v0.8.23
+   Compiling aq-agent-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-agent-api)
+   Compiling aq-session-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-session-api)
+   Compiling once_cell v1.21.4
+   Compiling tempfile v3.27.0
+   Compiling aq-profiles v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-profiles)
+    Finished `test` profile [unoptimized] target(s) in 5m 35s
+     Running tests/cli.rs (target/debug/deps/cli-273fdd3b5b84cfde)
+
+running 1 test
+test profile_cli_uses_distinct_binary_name ... FAILED
+
+failures:
+
+---- profile_cli_uses_distinct_binary_name stdout ----
+
+thread 'profile_cli_uses_distinct_binary_name' (768419) panicked at crates/aq-profiles/tests/cli.rs:15:5:
+AQ profile catalog inspection (no daemon required)
+
+Usage: aq <COMMAND>
+
+Commands:
+  profile  
+  help     Print this message or the help of the given subcommand(s)
+
+Options:
+  -h, --help  Print help
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    profile_cli_uses_distinct_binary_name
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p aq-profiles --test cli`
+
+=== green-focused: Initial combined green invocation without DATABASE_URL (configuration failure) (exit 101) ===
+   Compiling aq-server v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server)
+   Compiling aq-profiles v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-profiles)
+    Finished `test` profile [unoptimized] target(s) in 11.03s
+     Running tests/cli.rs (target/debug/deps/cli-61f7877973c8fc10)
+
+running 4 tests
+test profile_cli_uses_distinct_binary_name ... ok
+test canonical_artifact_export_is_not_an_activation ... ok
+test request_fifo_refuses_without_waiting_for_a_writer ... ok
+test requested_aq_profile_commands_work_without_db_and_separate_selection_pending ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.22s
+
+     Running tests/cli.rs (target/debug/deps/cli-372560b6b1a832dc)
+
+running 4 tests
+test admin_and_worker_listen_on_separate_ports ... FAILED
+test production_deployment_refuses_dev_vault_before_database ... ok
+test serve_without_database_url_exits_2 ... ok
+test healthcheck_uses_vault_admin_port ... ok
+
+failures:
+
+---- admin_and_worker_listen_on_separate_ports stdout ----
+
+thread 'admin_and_worker_listen_on_separate_ports' (769803) panicked at crates/aq-server/src/test_support.rs:43:43:
+set DATABASE_URL via scripts/test-db: NotPresent
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    admin_and_worker_listen_on_separate_ports
+
+test result: FAILED. 3 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.25s
+
+error: test failed, to rerun pass `-p aq-server --test cli`
+
+=== fmt-workspace: cargo fmt --check (exit 1) ===
+Diff in /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server/src/lib.rs:14:
+ pub mod playbooks;
+ pub mod profile_catalog;
+ pub mod profiled_execution;
+-pub mod provider_accounts;
+(B pub mod project_bindings;
+ pub mod protected_storage;
++pub mod provider_accounts;
+(B pub mod readiness;
+ pub mod result_media;
+ pub mod reviews;
+Diff in /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server/src/profiled_execution/phase_terminal/closure.rs:1:
+ //! No-Started phase closure: revoke permission, retain task/source/effect holds.
+ use super::common::{self, canonical, conflict, database, now};
++use super::wire;
+(B use crate::{
+     AppState,
+     error::AppError,
+Diff in /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server/src/profiled_execution/phase_terminal/closure.rs:7:
+     worker_api::AuthenticatedNode,
+ };
+ use aq_admission::granted_closure::{Disposition, Evidence};
+-use super::wire;
+(B use sqlx::Row;
+ 
+ pub async fn record(
+Diff in /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server/src/profiled_execution/phase_terminal/started.rs:1:
+ //! Qualified phase start observation. No lease extension or task/resource release.
+ use super::common::{self, Loaded};
++use super::wire;
+(B use crate::{AppState, error::AppError, execution::profiled::Stop, worker_api::AuthenticatedNode};
+ use aq_admission::{Digest, started};
+-use super::wire;
+(B use sqlx::{Postgres, Row, Transaction, postgres::PgRow};
+ 
+ pub async fn record(
+Diff in /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server/src/profiled_execution/phase_terminal/stopped.rs:1:
+ //! Paired actual phase Started→Stopped owner. No renewal or release is implied.
+ use super::common::{self, canonical, conflict, database, now};
++use super::wire;
+(B use crate::{
+     AppState,
+     error::AppError,
+Diff in /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server/src/profiled_execution/phase_terminal/stopped.rs:8:
+     worker_api::AuthenticatedNode,
+ };
+ use aq_admission::Digest;
+-use super::wire;
+(B use sqlx::Row;
+ 
+ pub async fn record(
+Diff in /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server/src/profiled_execution.rs:4:
+ pub mod api;
+ pub mod artifact_api;
+ pub mod artifacts;
+-pub mod config;
+(B pub(crate) mod compute;
++pub mod config;
+(B pub mod context_budget;
+ pub mod context_projection;
+ pub mod expiry;
+Diff in /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server/src/store.rs:268:
+         include_str!("../migrations/0038_profiled_result_origins.sql"),
+     ),
+     (39, include_str!("../migrations/0039_pilot_settlement.sql")),
+-    (40, include_str!("../migrations/0040_phase_never_granted.sql")),
+(B-    (41, include_str!("../migrations/0041_native_compute_occupancy.sql")),
+(B+    (
+(B+        40,
+(B+        include_str!("../migrations/0040_phase_never_granted.sql"),
+(B+    ),
+(B+    (
+(B+        41,
+(B+        include_str!("../migrations/0041_native_compute_occupancy.sql"),
+(B+    ),
+(B ];
+ 
+ /// Applies missing migrations in one transaction under an advisory lock.
+Diff in /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server/src/store.rs:1030:
+ #[path = "store/settlement39_tests.rs"]
+ mod settlement39_tests;
+ 
+-#[path = "store/never_granted40.rs"]
+(B-mod never_granted40;
+(B #[path = "store/compute41.rs"]
+ mod compute41;
++#[path = "store/never_granted40.rs"]
+(B+mod never_granted40;
+(B 
+Diff in /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server/tests/codex_runtime_recipe.rs:1:
+ //! Pure recipe checks only: no DB, source process, worker or model is started.
+-mod common;
+(B #[path = "support/codex_runtime_recipe.rs"]
+ mod codex_runtime_recipe;
++mod common;
+(B 
+
+=== fmt: cargo fmt --all --check (exit 1) ===
+`cargo metadata` exited with an error: error: current package believes it's in a workspace when it's not:
+current:   /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-lifecycle-protocol-0.1.0/Cargo.toml
+workspace: /home/jkern/dev/aq-platform-agents/aq-server/Cargo.toml
+
+this may be fixable by adding `.aq/worktrees/slot-7/vendor/aq-lifecycle-protocol-0.1.0` to the `workspace.members` array of the manifest located at: /home/jkern/dev/aq-platform-agents/aq-server/Cargo.toml
+Alternatively, to keep it out of the workspace, add the package to the `workspace.exclude` array, or add an empty `[workspace]` table to the package's manifest.
+
+This utility formats all bin and lib files of the current crate using rustfmt.
+
+Usage: cargo fmt [OPTIONS] [-- <rustfmt_options>...]
+
+Arguments:
+  [rustfmt_options]...  Options passed to rustfmt
+
+Options:
+  -q, --quiet
+          No output printed to stdout
+  -v, --verbose
+          Use verbose output
+      --version
+          Print rustfmt version and exit
+  -p, --package <package>...
+          Specify package to format
+      --manifest-path <manifest-path>
+          Specify path to Cargo.toml
+      --message-format <message-format>
+          Specify message-format: short|json|human
+      --all
+          Format all packages, and also their local path-based dependencies
+      --check
+          Run rustfmt in check mode
+  -h, --help
+          Print help
+
+
+=== workspace-clippy: cargo clippy --locked --workspace --all-targets -- -D warnings (exit 101) ===
+    Checking cfg-if v1.0.5
+    Checking libc v0.2.191
+    Checking serde_core v1.0.229
+    Checking memchr v2.8.3
+    Checking itoa v1.0.18
+    Checking serde v1.0.229
+    Checking typenum v1.20.1
+    Checking getrandom v0.2.17
+    Checking zmij v1.0.23
+    Checking serde_json v1.0.154
+    Checking rand_core v0.10.1
+    Checking getrandom v0.4.3
+    Checking rand_core v0.6.4
+    Checking generic-array v0.14.7
+    Checking subtle v2.6.1
+    Checking sha1_smol v1.0.1
+    Checking uuid v1.29.0
+    Checking crypto-common v0.1.7
+    Checking const-oid v0.9.6
+    Checking thiserror v2.0.21
+    Checking block-buffer v0.10.4
+    Checking cpufeatures v0.2.17
+    Checking ref-cast v1.0.27
+    Checking digest v0.10.7
+    Checking dyn-clone v1.0.20
+    Checking schemars v1.2.3
+    Checking sha2 v0.10.9
+    Checking bitflags v2.13.2
+    Checking smallvec v1.16.4
+    Checking once_cell v1.21.4
+    Checking aq-session-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-session-protocol-0.1.0)
+    Checking bytes v1.12.1
+    Checking pin-project-lite v0.2.17
+    Checking scopeguard v1.2.0
+    Checking lock_api v0.4.14
+    Checking libm v0.2.16
+    Checking aq-lifecycle-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking parking_lot_core v0.9.12
+    Checking parking_lot v0.12.5
+    Checking num-traits v0.2.19
+    Checking errno v0.3.14
+    Checking signal-hook-registry v1.4.8
+    Checking aq-admission v0.1.11 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-admission)
+    Checking mio v1.2.4
+    Checking socket2 v0.6.5
+    Checking tokio v1.54.1
+    Checking log v0.4.34
+    Checking nix v0.29.0
+    Checking zeroize v1.9.1
+    Checking futures-core v0.3.34
+    Checking iana-time-zone v0.1.65
+    Checking chrono v0.4.45
+    Checking utf8parse v0.2.2
+    Checking anstyle-parse v1.0.0
+    Checking anstyle v1.0.14
+    Checking colorchoice v1.0.5
+    Checking is_terminal_polyfill v1.70.2
+    Checking anstyle-query v1.1.5
+    Checking anstream v1.0.0
+    Checking tracing-core v0.1.36
+    Checking equivalent v1.0.3
+    Checking clap_lex v1.1.1
+    Checking futures-sink v0.3.34
+    Checking strsim v0.11.1
+    Checking percent-encoding v2.3.2
+    Checking tracing v0.1.44
+    Checking clap_builder v4.6.7
+    Checking futures-io v0.3.34
+    Checking hashbrown v0.17.1
+    Checking slab v0.4.12
+    Checking futures-task v0.3.34
+    Checking futures-util v0.3.34
+    Checking clap v4.6.7
+    Checking indexmap v2.14.2
+    Checking zerofrom v0.1.8
+    Checking base64 v0.22.1
+    Checking stable_deref_trait v1.2.1
+    Checking yoke v0.8.4
+    Checking linux-raw-sys v0.12.1
+    Checking rustix v1.1.6
+    Checking futures-channel v0.3.34
+    Checking serde_spanned v0.6.9
+    Checking toml_datetime v0.6.11
+    Checking fastrand v2.5.0
+    Checking winnow v0.7.15
+    Checking toml_write v0.1.2
+    Checking tempfile v3.27.0
+    Checking zerovec v0.11.9
+    Checking aq-session-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-session-api)
+    Checking toml_edit v0.22.27
+    Checking tinystr v0.8.5
+    Checking litemap v0.8.3
+    Checking utf_types v1.0.0
+    Checking toml v0.8.23
+    Checking writeable v0.6.4
+    Checking icu_locale_core v2.4.0
+    Checking utf8_iter v1.1.0
+    Checking zerotrie v0.2.5
+    Checking potential_utf v0.1.6
+    Checking icu_collections v2.4.0
+    Checking icu_provider v2.4.0
+    Checking rustls-pki-types v1.15.1
+    Checking untrusted v0.9.0
+    Checking ring v0.17.14
+    Checking icu_properties_data v2.4.0
+    Checking icu_normalizer_data v2.4.0
+    Checking http v1.5.0
+    Checking http-body v1.1.0
+    Checking icu_normalizer v2.4.0
+    Checking icu_properties v2.4.0
+    Checking form_urlencoded v1.2.2
+    Checking rustls-webpki v0.103.16
+    Checking tower-service v0.3.3
+    Checking rustls v0.23.46
+    Checking idna_adapter v1.2.2
+    Checking idna v1.1.0
+    Checking webpki-roots v1.0.11
+    Checking aq-agent-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-agent-api)
+    Checking aq-lifecycle-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-lifecycle-api)
+    Checking hybrid-array v0.4.15
+    Checking try-lock v0.2.5
+    Checking want v0.3.2
+    Checking url v2.5.8
+    Checking httparse v1.10.1
+    Checking sync_wrapper v1.0.2
+    Checking aho-corasick v1.1.5
+    Checking regex-syntax v0.8.11
+    Checking atomic-waker v1.1.2
+    Checking httpdate v1.0.3
+    Checking tower-layer v0.3.3
+    Checking cmov v0.5.4
+    Checking ctutils v0.4.7
+    Checking hyper v1.12.0
+    Checking regex-automata v0.4.18
+    Checking block-buffer v0.12.1
+    Checking crypto-common v0.2.2
+    Checking const-oid v0.10.2
+    Checking base64 v0.23.1
+    Checking ipnet v2.12.2
+    Checking tinyvec v1.13.3
+    Checking unicode-normalization v0.1.26
+    Checking hyper-util v0.1.21
+    Checking digest v0.11.3
+    Checking tower v0.5.3
+    Checking aq-profiles v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-profiles)
+    Checking http-body-util v0.1.5
+    Checking ryu v1.0.23
+    Checking unicode-bidi v0.3.18
+    Checking cpufeatures v0.3.1
+    Checking unicode-properties v0.1.4
+    Checking stringprep v0.1.5
+    Checking serde_urlencoded v0.7.1
+    Checking tokio-rustls v0.26.6
+    Checking spin v0.9.9
+    Checking byteorder v1.5.0
+    Checking hex v0.4.3
+    Checking lazy_static v1.5.1
+    Checking hyper-rustls v0.27.10
+    Checking chacha20 v0.10.2
+    Checking tower-http v0.6.11
+    Checking regex v1.13.1
+    Checking semver v1.0.28
+    Checking reqwest v0.12.28
+    Checking rand v0.10.3
+    Checking sha2 v0.11.1
+    Checking hmac v0.13.0
+    Checking md-5 v0.11.0
+    Checking siphasher v1.0.4
+    Checking fallible-iterator v0.2.0
+    Checking phf_shared v0.13.1
+    Checking postgres-protocol v0.6.12
+    Checking aq-release v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-release)
+    Checking inout v0.1.4
+    Checking cipher v0.4.4
+    Checking postgres-types v0.2.14
+    Checking phf v0.13.1
+    Checking sharded-slab v0.1.7
+    Checking matchers v0.2.0
+    Checking tokio-util v0.7.20
+    Checking tracing-log v0.2.0
+    Checking aq-playbooks-model v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-playbooks-0173673/crates/aq-playbooks-model)
+    Checking universal-hash v0.5.1
+    Checking whoami v2.1.3
+    Checking thread_local v1.1.10
+    Checking simd-adler32 v0.3.10
+    Checking nu-ansi-term v0.50.3
+    Checking opaque-debug v0.3.1
+    Checking poly1305 v0.8.0
+    Checking tracing-subscriber v0.3.23
+    Checking tokio-postgres v0.7.18
+    Checking chacha20 v0.9.1
+    Checking aq-terminal-relay-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-terminal-relay-protocol)
+    Checking aead v0.5.2
+    Checking mime v0.3.17
+    Checking adler2 v2.0.1
+    Checking axum-core v0.5.6
+    Checking chacha20poly1305 v0.10.1
+    Checking postgres v0.19.14
+    Checking aq-playbooks-runner v0.1.3 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-playbooks-0173673/crates/aq-playbooks-runner)
+    Checking serde_path_to_error v0.1.20
+    Checking matchit v0.8.4
+    Checking axum v0.8.9
+    Checking aq-playbooks-postgres v0.1.3 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-playbooks-0173673/crates/aq-playbooks-postgres)
+    Checking crc32fast v1.5.3
+    Checking miniz_oxide v0.9.1
+    Checking zerocopy v0.8.63
+    Checking aq-phase-terminal-protocol v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-phase-terminal-protocol)
+    Checking flate2 v1.1.10
+    Checking miniz_oxide v0.8.9
+    Checking aq-terminal-relay v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-terminal-relay)
+    Checking ppv-lite86 v0.2.21
+    Checking fdeflate v0.3.7
+    Checking aq-notifications v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-notifications)
+    Checking num-integer v0.1.47
+    Checking png v0.18.1 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/png-0.18.1-aq1)
+    Checking rand_chacha v0.3.1
+    Checking aq-playbook-host v0.1.3 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-playbook-host)
+    Checking aq-observation-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-api)
+    Checking allocator-api2 v0.2.21
+    Checking foldhash v0.1.5
+    Checking rand v0.8.8
+    Checking hashbrown v0.15.5
+    Checking crossbeam-utils v0.8.23
+    Checking aq-selection v0.1.4 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-selection)
+    Checking base64ct v1.8.3
+    Checking parking v2.2.1
+    Checking crc-catalog v2.5.0
+    Checking crc v3.4.0
+    Checking event-listener v5.4.2
+    Checking pem-rfc7468 v0.7.0
+    Checking crossbeam-queue v0.3.14
+    Checking hashlink v0.10.0
+    Checking aq-result-media v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-result-media)
+    Checking webpki-roots v0.26.11
+    Checking tokio-stream v0.1.19
+    Checking futures-intrusive v0.5.0
+    Checking hmac v0.12.1
+    Checking either v1.19.0
+    Checking deranged v0.5.9
+    Checking powerfmt v0.2.1
+    Checking time-core v0.1.9
+    Checking num-conv v0.2.2
+    Checking sqlx-core v0.8.6
+    Checking time v0.3.55
+    Checking hkdf v0.12.4
+    Checking der v0.7.10
+    Checking num-bigint v0.4.8
+    Checking aq-observation-admission v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-admission)
+    Checking atoi v2.0.0
+    Checking aq-central-authority v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-central-authority)
+    Checking aq-review-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-review-protocol)
+    Checking md-5 v0.10.6
+    Checking whoami v1.6.1
+    Checking dotenvy v0.15.7
+    Checking home v0.5.12
+    Checking sqlx-postgres v0.8.6
+    Checking simple_asn1 v0.6.4
+    Checking spki v0.7.3
+    Checking pem v3.0.6
+    Checking aq-accounting v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-accounting)
+    Checking jsonwebtoken v9.3.1
+    Checking pkcs8 v0.10.2
+    Checking anyhow v1.0.104
+    Checking num-iter v0.1.46
+    Checking aq-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-protocol-0.1.0)
+    Checking aq-worker-protocol v0.2.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-worker-protocol-0.2.0)
+    Checking sqlx v0.8.6
+    Checking num-bigint-dig v0.8.6
+    Checking pkcs1 v0.7.5
+    Checking signature v2.2.0
+    Checking rsa v0.9.10
+    Checking aq-server v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server)
+    Checking aq-playbooks-compiler v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/vendor/aq-playbooks-0173673/crates/aq-playbooks-compiler)
+    Checking filetime v0.2.29
+    Checking tar v0.4.46
+    Checking aq-updater v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-updater)
+    Checking aq-human-http v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-human-http)
+    Checking aq-notify v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-notify)
+    Checking aq-session-cli v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-session-cli)
+    Checking aq-wait-engine v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-wait-engine)
+error: called `unwrap` on `phase` after checking its variant with `is_some`
+   --> crates/aq-server/src/profiled_execution/no_grant.rs:112:15
+    |
+ 88 |     if hot.status == crate::execution::profiled::Status::Preparing && phase.is_some() {
+    |                                                                       --------------- the check is happening here
+...
+112 |         match phase.unwrap() {
+    |               ^^^^^^^^^^^^^^
+    |
+    = help: try using `if let` or `match`
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.96.0/index.html#unnecessary_unwrap
+    = note: `-D clippy::unnecessary-unwrap` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::unnecessary_unwrap)]`
+
+error: could not compile `aq-server` (lib) due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+
+=== workspace-test: cargo test --locked --workspace (exit 101) ===
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/export
+  |
+  = note: the example target `export` in package `aq-central-authority v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-central-authority)` has the same output filename as the example target `export` in package `aq-admission v0.1.11 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-admission)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/export.dwp
+  |
+  = note: the example target `export` in package `aq-central-authority v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-central-authority)` has the same output filename as the example target `export` in package `aq-admission v0.1.11 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-admission)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/export
+  |
+  = note: the example target `export` in package `aq-lifecycle-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-lifecycle-api)` has the same output filename as the example target `export` in package `aq-central-authority v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-central-authority)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/export.dwp
+  |
+  = note: the example target `export` in package `aq-lifecycle-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-lifecycle-api)` has the same output filename as the example target `export` in package `aq-central-authority v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-central-authority)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/export
+  |
+  = note: the example target `export` in package `aq-observation-admission v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-admission)` has the same output filename as the example target `export` in package `aq-lifecycle-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-lifecycle-api)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/export.dwp
+  |
+  = note: the example target `export` in package `aq-observation-admission v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-admission)` has the same output filename as the example target `export` in package `aq-lifecycle-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-lifecycle-api)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/export
+  |
+  = note: the example target `export` in package `aq-observation-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-api)` has the same output filename as the example target `export` in package `aq-observation-admission v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-admission)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/export.dwp
+  |
+  = note: the example target `export` in package `aq-observation-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-api)` has the same output filename as the example target `export` in package `aq-observation-admission v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-admission)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/export
+  |
+  = note: the example target `export` in package `aq-profiles v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-profiles)` has the same output filename as the example target `export` in package `aq-observation-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-api)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/export.dwp
+  |
+  = note: the example target `export` in package `aq-profiles v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-profiles)` has the same output filename as the example target `export` in package `aq-observation-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-api)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/export
+  |
+  = note: the example target `export` in package `aq-review-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-review-protocol)` has the same output filename as the example target `export` in package `aq-profiles v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-profiles)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/export.dwp
+  |
+  = note: the example target `export` in package `aq-review-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-review-protocol)` has the same output filename as the example target `export` in package `aq-profiles v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-profiles)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/publish
+  |
+  = note: the example target `publish` in package `aq-terminal-relay v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-terminal-relay)` has the same output filename as the example target `publish` in package `aq-session-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-session-api)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/target/debug/examples/publish.dwp
+  |
+  = note: the example target `publish` in package `aq-terminal-relay v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-terminal-relay)` has the same output filename as the example target `publish` in package `aq-session-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-session-api)`
+  = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
+  = help: consider changing their names to be unique or compiling them separately
+   Compiling aq-human-http v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-human-http)
+   Compiling aq-updater v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-updater)
+   Compiling aq-wait-engine v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-wait-engine)
+   Compiling aq-session-cli v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-session-cli)
+   Compiling aq-notify v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-notify)
+   Compiling aq-server v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-server)
+warning: function `prepared_terminal_from_presence` is never used
+  --> crates/aq-server/tests/common/phase_terminal_core.rs:37:8
+   |
+37 | pub fn prepared_terminal_from_presence(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `checkpoint` is never used
+  --> crates/aq-server/tests/common/phase_terminal_core.rs:77:8
+   |
+77 | pub fn checkpoint(f: &Prepared) -> aq_admission::granted_closure::JournalCheckpoint {
+   |        ^^^^^^^^^^
+
+warning: function `context` is never used
+  --> crates/aq-server/tests/common/phase_terminal_core.rs:83:8
+   |
+83 | pub fn context<'a>(
+   |        ^^^^^^^
+
+warning: function `started_request` is never used
+   --> crates/aq-server/tests/common/phase_terminal_core.rs:110:8
+    |
+110 | pub fn started_request(f: &Prepared, execution: &ExecutionReceipt) -> wire::StartedRequest {
+    |        ^^^^^^^^^^^^^^^
+
+warning: function `stop_request` is never used
+   --> crates/aq-server/tests/common/phase_terminal_core.rs:144:8
+    |
+144 | pub fn stop_request(previous: &wire::StartedRequest) -> wire::StoppedRequest {
+    |        ^^^^^^^^^^^^
+
+warning: `aq-server` (test "phase_never_granted") generated 5 warnings
+warning: function `prepared_from_presence` is never used
+   --> crates/aq-server/tests/common/phase_execution_core.rs:246:8
+    |
+246 | pub fn prepared_from_presence(
+    |        ^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `aq-server` (test "phase_refresh_execution") generated 1 warning
+warning: `aq-server` (test "phase_execution") generated 1 warning (1 duplicate)
+   Compiling aq-accounting v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-accounting)
+   Compiling aq-central-authority v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-central-authority)
+   Compiling aq-review-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-review-protocol)
+   Compiling aq-observation-admission v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-admission)
+   Compiling aq-result-media v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-result-media)
+   Compiling aq-selection v0.1.4 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-selection)
+   Compiling aq-observation-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-observation-api)
+   Compiling aq-playbook-host v0.1.3 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-playbook-host)
+   Compiling aq-notifications v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-notifications)
+   Compiling aq-terminal-relay v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-terminal-relay)
+   Compiling aq-phase-terminal-protocol v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-phase-terminal-protocol)
+   Compiling aq-terminal-relay-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-terminal-relay-protocol)
+   Compiling aq-release v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-release)
+   Compiling aq-profiles v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-profiles)
+   Compiling aq-agent-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-agent-api)
+   Compiling aq-lifecycle-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-lifecycle-api)
+   Compiling aq-session-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-session-api)
+   Compiling aq-admission v0.1.11 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-7/crates/aq-admission)
+    Finished `test` profile [unoptimized] target(s) in 10m 49s
+     Running unittests src/lib.rs (target/debug/deps/aq_accounting-42eea94446798b82)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/accounting.rs (target/debug/deps/accounting-b2658ed174d1799f)
+
+running 20 tests
+test cumulative_baseline_cannot_be_borrowed_from_another_counter ... ok
+test canonical_fact_pricing_requires_its_pinned_card_and_category_semantics ... ok
+test cumulative_reset_mixed_model_and_unknown_baselines_cannot_manufacture_new_spending ... ok
+test deterministic_pricing_uses_explicit_disjoint_billing_rules_not_all_raw_fields ... ok
+test empty_projection_and_unresolved_events_do_not_look_like_reported_zero ... ok
+test cumulative_usage_requires_a_verified_baseline_and_preserves_it_on_updates ... ok
+test exact_call_replay_and_cross_source_precedence_do_not_add_two_bills ... ok
+test explicit_correction_replaces_prior_contribution_and_rejects_stale_target ... ok
+test history_import_preserves_original_lineage_and_namespace_separates_unrelated_calls ... ok
+test parser_artifact_category_claims_map_to_stable_owner_layout_during_reparse ... ok
+test partial_pricing_exposes_lower_bound_currency_and_unknown_cost ... ok
+test parser_revision_and_model_attribution_are_not_new_call_identity ... ok
+test partial_source_stays_unknown_until_exact_complete_correction ... ok
+test pricing_rounds_once_per_contribution_and_refuses_overflow ... ok
+test projection_corrects_in_place_without_resetting_other_attempts_or_unknown_categories ... ok
+test reported_zero_is_distinct_from_unknown_and_overlap_is_not_double_counted ... ok
+test price_reference_is_pinned_and_unverified_reported_cost_does_not_change_tokens ... ok
+test stored_fact_mutation_and_unknown_policy_are_refused ... ok
+test unknown_corrections_and_equal_precedence_conflicts_remain_incomplete ... ok
+test worker_complete_claim_requires_owner_parser_qualification ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+     Running unittests src/lib.rs (target/debug/deps/aq_admission-3317ec28fac497af)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/common.rs (target/debug/deps/common-2b7940288fcff159)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/contracts.rs (target/debug/deps/contracts-28b45ce0f64d934e)
+
+running 7 tests
+test material_bytes_and_receipts_are_exact_attempt_binding_not_presence_claims ... ok
+test artifact_requires_real_matching_bytes_and_current_retention_metadata ... ok
+test mutations_reject_unknown_duplicate_nil_unbounded_and_wrong_versions ... ok
+test retained_role_and_byte_coverage_validates_against_resealed_public_offer ... ok
+test published_schema_and_fixtures_drift_test_packaged_artifacts ... ok
+test source_requires_explicit_safe_ref_or_matching_immutable_object_and_freshness ... ok
+test shipped_shared_offer_uses_exact_existing_launch_binding_bridge ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/control.rs (target/debug/deps/control-2361763cdb1573b4)
+
+running 10 tests
+test immutable_six_receipts_have_fresh_nonce_clocks_without_retiming_history ... ok
+test frozen_six_source_and_publication_bytes_match_the_exact_archived_baseline ... FAILED
+test initial_revision_cannot_change_expiry_and_new_revision_extends_only_live_prior_permit ... ok
+test material_receipt_time_is_server_watermark_not_unqualified_worker_wall_clock ... ok
+test mismatched_original_owner_material_and_historical_clocks_never_get_positive_delivery ... ok
+test native_poll_refuses_scope_duplicate_cancellation_and_requested_limit_overflow ... ok
+test reconciliation_is_readonly_complete_scoped_and_cannot_hide_unknown_attempts ... ok
+test renewal_outlives_delivery_lease_only_for_exact_same_grant_owner_and_hard_deadline ... ok
+test typed_decode_rejects_nil_versions_scope_unknown_duplicates_and_oversized_bodies ... ok
+test published_control_fixtures_schema_and_independent_hashes_do_not_drift ... ok
+
+failures:
+
+---- frozen_six_source_and_publication_bytes_match_the_exact_archived_baseline stdout ----
+
+thread 'frozen_six_source_and_publication_bytes_match_the_exact_archived_baseline' (830151) panicked at crates/aq-admission/tests/control.rs:305:9:
+assertion `left == right` failed: "src/transport.rs"
+  left: "223682461648bbb6eae9bcf5ca17cc045982a3eca3ee46e6a09f6c35c418ea52"
+ right: "4f19c6c0bb728e781fb6349c4a994e28c31b0ff665fe11628c70169df9ceea50"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    frozen_six_source_and_publication_bytes_match_the_exact_archived_baseline
+
+test result: FAILED. 9 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+
+error: test failed, to rerun pass `-p aq-admission --test control`
+
+=== green-historical-contracts: cargo test --locked -p aq-server --test playbook_contract --test playbook_review_contract --test cli (exit 0) ===
+    Finished `test` profile [unoptimized] target(s) in 0.52s
+     Running tests/cli.rs (target/debug/deps/cli-372560b6b1a832dc)
+
+running 4 tests
+test healthcheck_uses_vault_admin_port ... ok
+test production_deployment_refuses_dev_vault_before_database ... ok
+test serve_without_database_url_exits_2 ... ok
+test admin_and_worker_listen_on_separate_ports ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.84s
+
+     Running tests/playbook_contract.rs (target/debug/deps/playbook_contract-9bd90755e8758014)
+
+running 2 tests
+test graph_read_capability_does_not_authorize_mail_and_exact_session_scope_does_not_retarget ... ok
+test registry_and_public_mailbox_dispositions_match_generated_profile ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/playbook_review_contract.rs (target/debug/deps/playbook_review_contract-b05fbadc1fe0c5e1)
+
+running 4 tests
+test catalog1_bytes_and_capabilities_do_not_silently_gain_human_decision_authority ... ok
+test catalog2_snapshot_is_generated_and_operation_lookup_has_no_generic_service_or_url ... ok
+test decision_input_refuses_authority_fields_duplicate_owners_and_mismatched_subject_id ... ok
+test actual_compiler_refuses_old_catalog_and_accepts_explicit_registered_async_owner_contract ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+
+=== docker-build-final: docker build -t aq-a4-server:eager-grove-45-4 . (exit 0) ===
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 4.32kB 0.0s done
+#1 DONE 0.1s
+
+#2 [internal] load metadata for docker.io/library/rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663
+#2 DONE 0.0s
+
+#3 [internal] load metadata for docker.io/library/debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3
+#3 DONE 0.0s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 136B 0.0s done
+#4 DONE 0.1s
+
+#5 [git-build 1/6] FROM docker.io/library/rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663
+#5 DONE 0.0s
+
+#6 [runtime 1/2] FROM docker.io/library/debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3
+#6 DONE 0.0s
+
+#7 [internal] load build context
+#7 transferring context: 117.13kB 0.2s done
+#7 DONE 0.3s
+
+#8 [build 2/7] WORKDIR /build
+#8 CACHED
+
+#9 [build 3/7] COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+#9 CACHED
+
+#10 [build 4/7] COPY crates ./crates
+#10 DONE 1.9s
+
+#11 [build 5/7] COPY vendor ./vendor
+#11 DONE 0.6s
+
+#12 [build 6/7] COPY protocol ./protocol
+#12 DONE 0.3s
+
+#13 [build 7/7] RUN --mount=type=cache,target=/usr/local/cargo/registry     --mount=type=cache,sharing=locked,target=/build/target     cargo clean --release -p aq-server -p aq-release -p aq-protocol -p aq-worker-protocol     && cargo build --locked --release --bin aq-server     && mkdir -p /out     && cp target/release/aq-server /out/
+#13 1.453      Removed 36 files, 288.4MiB total
+#13 2.607    Compiling aq-release v0.1.0 (/build/crates/aq-release)
+#13 2.608    Compiling aq-worker-protocol v0.2.0 (/build/vendor/aq-worker-protocol-0.2.0)
+#13 2.608    Compiling aq-protocol v0.1.0 (/build/vendor/aq-protocol-0.1.0)
+#13 5.908    Compiling aq-server v0.1.0 (/build/crates/aq-server)
+#13 391.1     Finished `release` profile [optimized] target(s) in 6m 20s
+#13 DONE 395.7s
+
+#14 [git-build 4/6] RUN echo '26c56c296b38c0695b26fa95f475f1d01704d2d38e73465ca30b0b2f5dc789d3  /tmp/git.tar.xz' | sha256sum -c - && mkdir /git && tar -xf /tmp/git.tar.xz -C /git --strip-components=1
+#14 CACHED
+
+#15 [server 1/5] COPY --from=build /out/aq-server /usr/local/bin/aq-server
+#15 CACHED
+
+#16 [git-build 3/6] COPY vendor/aq-git-0.1.0/git-2.56.0.tar.xz /tmp/git.tar.xz
+#16 CACHED
+
+#17 [server 4/5] RUN ln -s /opt/aq-git-runtime/bin/git /usr/bin/git
+#17 CACHED
+
+#18 [git-build 6/6] RUN make -j4 prefix=/opt/aq-git-runtime RUNTIME_PREFIX=YesPlease NO_TCLTK=YesPlease NO_GETTEXT=YesPlease all && make prefix=/opt/aq-git-runtime RUNTIME_PREFIX=YesPlease NO_TCLTK=YesPlease NO_GETTEXT=YesPlease install
+#18 CACHED
+
+#19 [aq-git-build 5/5] RUN cargo build --locked --release -p aq-git-cli
+#19 CACHED
+
+#20 [runtime 2/2] RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libcurl4 libexpat1 libssl3 zlib1g     && rm -rf /var/lib/apt/lists/*     && groupadd --gid 10001 aq && useradd --uid 10001 --gid aq --create-home --home-dir /home/aq aq
+#20 CACHED
+
+#21 [server 3/5] COPY --from=git-build /opt/aq-git-runtime /opt/aq-git-runtime
+#21 CACHED
+
+#22 [aq-git-build 3/5] COPY vendor/aq-git-source.tar.gz /tmp/source.tar.gz
+#22 CACHED
+
+#23 [git-build 5/6] WORKDIR /git
+#23 CACHED
+
+#24 [aq-git-build 2/5] WORKDIR /src
+#24 CACHED
+
+#25 [aq-git-build 4/5] RUN echo '8f6a2f8ce04361c3cabaff5de7274505e28a042235da18cc346086f47e4c6cd5  /tmp/source.tar.gz' | sha256sum -c - && tar -xzf /tmp/source.tar.gz -C /src
+#25 CACHED
+
+#26 [server 2/5] COPY --from=aq-git-build /src/target/release/aq-git /usr/local/bin/aq-git
+#26 CACHED
+
+#27 [git-build 2/6] RUN apt-get update && apt-get install -y --no-install-recommends libssl-dev libcurl4-openssl-dev libexpat1-dev gettext zlib1g-dev && rm -rf /var/lib/apt/lists/*
+#27 CACHED
+
+#28 [server 5/5] COPY vendor/git-candidate.json /usr/share/agent-q/git-candidate.json
+#28 CACHED
+
+#29 exporting to image
+#29 exporting layers done
+#29 writing image sha256:e2c8f18a8dc5292cb189ee9934922a3be891d9ddd481b18b89bf3e44e05b1183 0.0s done
+#29 naming to docker.io/library/aq-a4-server:eager-grove-45-4 done
+#29 DONE 0.0s
+
+=== Baseline identity ===
+crates/aq-admission/src/transport.rs: unchanged from 86ca279; SHA256 223682461648bbb6eae9bcf5ca17cc045982a3eca3ee46e6a09f6c35c418ea52
+crates/aq-admission/tests/control.rs: unchanged from 86ca279; SHA256 92bc15ab7543dca7bdcbbe1bc3bbf20a754c8ea8b528d4cf04cd161bd3d6083a
+crates/aq-admission/artifacts/control.compatibility-sha256.json: unchanged from 86ca279; SHA256 23d083519430c8e4156f73b0b7c41723fd43abe2ddf2a91bbc0ad5db3507304d

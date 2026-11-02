@@ -37,6 +37,10 @@ jobs:
         run: python3 scripts/check-session-contract.py
       - name: Verify pinned aq-git sources and Docker build stages
         run: python3 scripts/check-git-candidate.py --official
+      - name: Verify the pinned playbook source closure
+        run: python3 scripts/check-playbook-source.py
+      - name: Verify the pinned independent lifecycle contract
+        run: python3 scripts/check-lifecycle-contract.py
       - name: cargo clippy (default features)
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: cargo clippy (aq-updater with test-verifier)
