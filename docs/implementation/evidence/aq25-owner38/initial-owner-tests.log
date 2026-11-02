@@ -1,0 +1,63 @@
+    Blocking waiting for file lock on package cache
+   Compiling aq-server v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 51.59s
+     Running tests/verified_wait_owner.rs (/tmp/aq-native-union-target/debug/deps/verified_wait_owner-4f2e41c186b6fa53)
+
+running 17 tests
+test abort_does_not_release_physical_callback_or_allow_duplicate_work ... ok
+test actual_cancellation_during_source_io_wins_before_any_source_outcome ... ok
+test actual_clock_install_then_unconditional_reobserve_and_immutable_terminal ... FAILED
+test cancellation_after_satisfaction_retires_resume_without_rewriting_outcome ... FAILED
+test current_aq08_registered_boot_fences_old_attempt_even_with_live_grant ... FAILED
+test default_owner_clock_profile_refuses_graph_and_fixture_history ... FAILED
+test encrypted_slot_tampering_refuses_configured_owner_without_deleting_history ... FAILED
+test fixed_deadline_survives_rollback_and_full_capacity ... ok
+test full_capacity_cancellation_uses_reserved_slots_without_budget_lock ... ok
+test held_source_has_no_sql_locks_and_postio_waits_gate_before_node_and_registry ... ok
+test immutable_registration_replay_restart_and_exact_actual_authority ... ok
+test installation_quota_race_across_actual_distinct_tasks_reserves_exactly_one_envelope ... ok
+test known_cycle_through_wait_to_owner_bridge_refuses_without_reserving ... ok
+test mailbox_head_precedes_registry_and_held_head_cannot_revive_expired_grant ... ok
+test observed_status_waits_project_gate_before_node_and_registry ... ok
+test project_quota_race_counts_retired_history_and_rolls_back_installation_charge ... ok
+test reserved_deadline_completion_does_not_wait_for_live_physical_callback ... ok
+
+failures:
+
+---- actual_clock_install_then_unconditional_reobserve_and_immutable_terminal stdout ----
+
+thread 'actual_clock_install_then_unconditional_reobserve_and_immutable_terminal' (960428) panicked at crates/aq-server/tests/verified_wait_owner.rs:226:10:
+called `Result::unwrap()` on an `Err` value: Database(Database(PgDatabaseError { severity: Error, code: "P0001", message: "wait work projection mismatch", detail: None, hint: None, position: None, where: Some("PL/pgSQL function wait38_check_wait(uuid) line 15 at RAISE\nSQL statement \"SELECT wait38_check_wait(NEW.wait_id)\"\nPL/pgSQL function wait38_consistency() line 18 at PERFORM"), schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("pl_exec.c"), line: Some(3897), routine: Some("exec_stmt_raise") }))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- cancellation_after_satisfaction_retires_resume_without_rewriting_outcome stdout ----
+
+thread 'cancellation_after_satisfaction_retires_resume_without_rewriting_outcome' (960437) panicked at crates/aq-server/tests/verified_wait_owner.rs:323:10:
+called `Result::unwrap()` on an `Err` value: Database(Database(PgDatabaseError { severity: Error, code: "P0001", message: "wait work projection mismatch", detail: None, hint: None, position: None, where: Some("PL/pgSQL function wait38_check_wait(uuid) line 15 at RAISE\nSQL statement \"SELECT wait38_check_wait(NEW.wait_id)\"\nPL/pgSQL function wait38_consistency() line 18 at PERFORM"), schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("pl_exec.c"), line: Some(3897), routine: Some("exec_stmt_raise") }))
+
+---- current_aq08_registered_boot_fences_old_attempt_even_with_live_grant stdout ----
+
+thread 'current_aq08_registered_boot_fences_old_attempt_even_with_live_grant' (960447) panicked at crates/aq-server/tests/verified_wait_owner.rs:929:204:
+called `Result::unwrap()` on an `Err` value: Database(PgDatabaseError { severity: Error, code: "P0001", message: "invalid native incarnation metadata", detail: None, hint: None, position: None, where: Some("PL/pgSQL function native_incarnation_guard() line 9 at RAISE"), schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("pl_exec.c"), line: Some(3897), routine: Some("exec_stmt_raise") })
+
+---- default_owner_clock_profile_refuses_graph_and_fixture_history stdout ----
+
+thread 'default_owner_clock_profile_refuses_graph_and_fixture_history' (960455) panicked at crates/aq-server/tests/verified_wait_owner.rs:900:14:
+called `Result::unwrap()` on an `Err` value: Database(Database(PgDatabaseError { severity: Error, code: "P0001", message: "wait work projection mismatch", detail: None, hint: None, position: None, where: Some("PL/pgSQL function wait38_check_wait(uuid) line 15 at RAISE\nSQL statement \"SELECT wait38_check_wait(NEW.wait_id)\"\nPL/pgSQL function wait38_consistency() line 18 at PERFORM"), schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("pl_exec.c"), line: Some(3897), routine: Some("exec_stmt_raise") }))
+
+---- encrypted_slot_tampering_refuses_configured_owner_without_deleting_history stdout ----
+
+thread 'encrypted_slot_tampering_refuses_configured_owner_without_deleting_history' (960458) panicked at crates/aq-server/tests/verified_wait_owner.rs:498:340:
+called `Result::unwrap()` on an `Err` value: Database(PgDatabaseError { severity: Error, code: "42601", message: "syntax error at or near \"'hex'\"", detail: None, hint: None, position: Some(Original(220)), where: None, schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("scan.l"), line: Some(1244), routine: Some("scanner_yyerror") })
+
+
+failures:
+    actual_clock_install_then_unconditional_reobserve_and_immutable_terminal
+    cancellation_after_satisfaction_retires_resume_without_rewriting_outcome
+    current_aq08_registered_boot_fences_old_attempt_even_with_live_grant
+    default_owner_clock_profile_refuses_graph_and_fixture_history
+    encrypted_slot_tampering_refuses_configured_owner_without_deleting_history
+
+test result: FAILED. 12 passed; 5 failed; 0 ignored; 0 measured; 0 filtered out; finished in 15.46s
+
+error: test failed, to rerun pass `-p aq-server --test verified_wait_owner`

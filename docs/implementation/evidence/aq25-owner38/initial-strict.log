@@ -1,0 +1,51 @@
+    Checking aq-admission v0.1.9 (/tmp/aq-verified-wait-owner-v2/crates/aq-admission)
+    Checking aq-wait-engine v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-wait-engine)
+    Checking aq-phase-terminal-protocol v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-phase-terminal-protocol)
+    Checking aq-server v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-server)
+error: this `if` statement can be collapsed
+   --> crates/aq-server/src/waits/storage.rs:391:9
+    |
+391 | /         if let Some(outcome) = snapshot.outcome() {
+392 | |             if serde_json::to_vec(outcome)?.len() > 131072 {
+393 | |                 return Err(Error::Capacity);
+394 | |             }
+395 | |         }
+    | |_________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.96.0/index.html#collapsible_if
+    = note: `-D clippy::collapsible-if` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::collapsible_if)]`
+help: collapse nested if block
+    |
+391 ~         if let Some(outcome) = snapshot.outcome()
+392 ~             && serde_json::to_vec(outcome)?.len() > 131072 {
+393 |                 return Err(Error::Capacity);
+394 ~             }
+    |
+
+error: this `if` statement can be collapsed
+   --> crates/aq-server/src/waits/storage.rs:573:17
+    |
+573 | /                 if let Some(resume) = &resume {
+574 | |                     if resume.intent_id != original.ids.resume_intent_id
+575 | |                         || resume.outcome != outcome.outcome
+576 | |                         || resume.continuation.continuation_id != original.ids.continuation_id
+...   |
+582 | |                 }
+    | |_________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.96.0/index.html#collapsible_if
+help: collapse nested if block
+    |
+573 ~                 if let Some(resume) = &resume
+574 ~                     && (resume.intent_id != original.ids.resume_intent_id
+575 |                         || resume.outcome != outcome.outcome
+576 |                         || resume.continuation.continuation_id != original.ids.continuation_id
+577 |                         || resume.continuation.generation != reg.continuation_generation
+578 ~                         || resume.continuation.wait != reg.wait_ref())
+579 |                     {
+580 |                         return Err(Error::Corrupt);
+581 ~                     }
+    |
+
+error: could not compile `aq-server` (lib) due to 2 previous errors

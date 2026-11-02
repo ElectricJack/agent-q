@@ -1,0 +1,11 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 1m 40s
+     Running unittests src/lib.rs (/tmp/aq-native-union-target/debug/deps/aq_server-4490cc22dd20db13)
+
+running 3 tests
+test store::wait38_tests::fresh38_and_actual37_upgrade_preserve_rows_and_reject_old_reader ... ok
+test store::wait38_tests::named_guard_replacements_and_required_identity_drift_refuse_startup ... ok
+test store::wait38_tests::reviewed_ddl_catalog_export ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 124 filtered out; finished in 2.22s
+

@@ -1,0 +1,190 @@
+    Checking aq-session-protocol v0.1.0 (/tmp/aq-verified-wait-owner-v2/vendor/aq-session-protocol-0.1.0)
+    Checking aq-playbooks-model v0.1.0 (/tmp/aq-verified-wait-owner-v2/vendor/aq-playbooks-0173673/crates/aq-playbooks-model)
+    Checking aq-lifecycle-protocol v0.1.0 (/tmp/aq-verified-wait-owner-v2/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking aq-session-api v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-session-api)
+    Checking aq-playbooks-runner v0.1.3 (/tmp/aq-verified-wait-owner-v2/vendor/aq-playbooks-0173673/crates/aq-playbooks-runner)
+    Checking aq-lifecycle-api v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-lifecycle-api)
+    Checking aq-agent-api v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-agent-api)
+    Checking aq-profiles v0.1.2 (/tmp/aq-verified-wait-owner-v2/crates/aq-profiles)
+    Checking aq-playbooks-postgres v0.1.3 (/tmp/aq-verified-wait-owner-v2/vendor/aq-playbooks-0173673/crates/aq-playbooks-postgres)
+    Checking png v0.18.1 (/tmp/aq-verified-wait-owner-v2/vendor/png-0.18.1-aq1)
+    Checking aq-admission v0.1.9 (/tmp/aq-verified-wait-owner-v2/crates/aq-admission)
+    Checking aq-terminal-relay-protocol v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-terminal-relay-protocol)
+    Checking aq-release v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-release)
+    Checking aq-terminal-relay v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-terminal-relay)
+    Checking aq-selection v0.1.4 (/tmp/aq-verified-wait-owner-v2/crates/aq-selection)
+    Checking aq-notifications v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-notifications)
+    Checking aq-result-media v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-result-media)
+    Checking aq-phase-terminal-protocol v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-phase-terminal-protocol)
+    Checking aq-playbook-host v0.1.3 (/tmp/aq-verified-wait-owner-v2/crates/aq-playbook-host)
+    Checking aq-wait-engine v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-wait-engine)
+    Checking aq-observation-api v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-observation-api)
+    Checking aq-observation-admission v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-observation-admission)
+    Checking aq-accounting v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-accounting)
+    Checking aq-central-authority v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-central-authority)
+    Checking aq-review-protocol v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-review-protocol)
+    Checking aq-protocol v0.1.0 (/tmp/aq-verified-wait-owner-v2/vendor/aq-protocol-0.1.0)
+    Checking aq-worker-protocol v0.2.0 (/tmp/aq-verified-wait-owner-v2/vendor/aq-worker-protocol-0.2.0)
+    Checking aq-server v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-server)
+error[E0277]: the trait bound `(&str, uuid::Uuid, &aq_central_authority::SessionIdentity): aq_session_protocol::Validate` is not satisfied
+   --> crates/aq-server/src/waits/authority.rs:118:36
+    |
+118 |             wire::canonical_digest(&("aq.wait.machine-principal.1", node_id, &binding.session))?;
+    |             ---------------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the trait `aq_session_protocol::Validate` is not implemented for `(&str, uuid::Uuid, &aq_central_authority::SessionIdentity)`
+    |             |
+    |             required by a bound introduced by this call
+    |
+    = help: the following other types implement trait `aq_session_protocol::Validate`:
+              AccountingMark
+              AckRequest
+              CheckpointClaim
+              Condition
+              ContinuationAttachment
+              ContinuationRef
+              ControllerLease
+              CostBudget
+            and 85 others
+note: required by a bound in `canonical_digest`
+   --> vendor/aq-session-protocol-0.1.0/src/lib.rs:112:40
+    |
+112 | pub fn canonical_digest<T: Serialize + Validate>(value: &T) -> Result<Digest, ContractError> {
+    |                                        ^^^^^^^^ required by this bound in `canonical_digest`
+
+error[E0277]: the trait bound `(&str, &Scope, &Binding, &Digest, &Option<Digest>, Uuid): Validate` is not satisfied
+   --> crates/aq-server/src/waits/authority.rs:121:52
+    |
+121 |           let source_access = wire::canonical_digest(&(
+    |  _____________________________----------------------_^
+    | |                             |
+    | |                             required by a bound introduced by this call
+122 | |             "aq.wait.source-access.1",
+123 | |             &scope,
+124 | |             &binding,
+...   |
+127 | |             grant_id,
+128 | |         ))?;
+    | |_________^ the trait `aq_session_protocol::Validate` is not implemented for `(&str, &Scope, &Binding, &Digest, &Option<Digest>, Uuid)`
+    |
+    = help: the following other types implement trait `aq_session_protocol::Validate`:
+              AccountingMark
+              AckRequest
+              CheckpointClaim
+              Condition
+              ContinuationAttachment
+              ContinuationRef
+              ControllerLease
+              CostBudget
+            and 85 others
+note: required by a bound in `canonical_digest`
+   --> vendor/aq-session-protocol-0.1.0/src/lib.rs:112:40
+    |
+112 | pub fn canonical_digest<T: Serialize + Validate>(value: &T) -> Result<Digest, ContractError> {
+    |                                        ^^^^^^^^ required by this bound in `canonical_digest`
+    = note: the full name for the type has been written to '/tmp/aq-native-union-target/debug/deps/aq_server-c516a7f90ef0b543.long-type-17707700685391390599.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `(&str, &Scope, i64, &Vec<(DependencyKey, DependencyKey)>): Validate` is not satisfied
+   --> crates/aq-server/src/waits/storage.rs:101:36
+    |
+101 |             wire::canonical_digest(&("aq.wait.known-project-graph.1", &a.scope, revision, &edges))?;
+    |             ---------------------- ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+    |             |
+    |             required by a bound introduced by this call
+    |
+    = help: the trait `aq_session_protocol::Validate` is not implemented for `(&str, &aq_lifecycle_api::Scope, i64, &Vec<(DependencyKey, DependencyKey)>)`
+    = help: the following other types implement trait `aq_session_protocol::Validate`:
+              AccountingMark
+              AckRequest
+              CheckpointClaim
+              Condition
+              ContinuationAttachment
+              ContinuationRef
+              ControllerLease
+              CostBudget
+            and 85 others
+note: required by a bound in `canonical_digest`
+   --> vendor/aq-session-protocol-0.1.0/src/lib.rs:112:40
+    |
+112 | pub fn canonical_digest<T: Serialize + Validate>(value: &T) -> Result<Digest, ContractError> {
+    |                                        ^^^^^^^^ required by this bound in `canonical_digest`
+    = note: the full name for the type has been written to '/tmp/aq-native-union-target/debug/deps/aq_server-c516a7f90ef0b543.long-type-3181092979779882668.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `(&str, &Scope, i64, &Vec<(DependencyKey, DependencyKey)>): Validate` is not satisfied
+   --> crates/aq-server/src/waits/storage.rs:526:39
+    |
+526 |               || wire::canonical_digest(&(
+    |  ________________----------------------_^
+    | |                |
+    | |                required by a bound introduced by this call
+527 | |                 "aq.wait.known-project-graph.1",
+528 | |                 &a.scope,
+529 | |                 original.graph.revision as i64,
+530 | |                 &edges,
+531 | |             ))? != original.graph.digest
+    | |_____________^ unsatisfied trait bound
+    |
+    = help: the trait `aq_session_protocol::Validate` is not implemented for `(&str, &aq_lifecycle_api::Scope, i64, &Vec<(DependencyKey, DependencyKey)>)`
+    = help: the following other types implement trait `aq_session_protocol::Validate`:
+              AccountingMark
+              AckRequest
+              CheckpointClaim
+              Condition
+              ContinuationAttachment
+              ContinuationRef
+              ControllerLease
+              CostBudget
+            and 85 others
+note: required by a bound in `canonical_digest`
+   --> vendor/aq-session-protocol-0.1.0/src/lib.rs:112:40
+    |
+112 | pub fn canonical_digest<T: Serialize + Validate>(value: &T) -> Result<Digest, ContractError> {
+    |                                        ^^^^^^^^ required by this bound in `canonical_digest`
+    = note: the full name for the type has been written to '/tmp/aq-native-union-target/debug/deps/aq_server-c516a7f90ef0b543.long-type-908317669608271852.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `(&str, &Scope, &Binding, Uuid, u64, u64): Validate` is not satisfied
+   --> crates/aq-server/src/waits/work.rs:295:49
+    |
+295 |           let owner_bytes = wire::canonical_bytes(&(
+    |  ___________________________---------------------_^
+    | |                           |
+    | |                           required by a bound introduced by this call
+296 | |             "aq.wait.clock-observation.1",
+297 | |             &source.scope,
+298 | |             &source.binding,
+...   |
+301 | |             at,
+302 | |         ))?;
+    | |_________^ unsatisfied trait bound
+    |
+    = help: the trait `aq_session_protocol::Validate` is not implemented for `(&str, &aq_lifecycle_api::Scope, &aq_lifecycle_api::Binding, uuid::Uuid, u64, u64)`
+    = help: the following other types implement trait `aq_session_protocol::Validate`:
+              AccountingMark
+              AckRequest
+              CheckpointClaim
+              Condition
+              ContinuationAttachment
+              ContinuationRef
+              ControllerLease
+              CostBudget
+            and 85 others
+note: required by a bound in `aq_session_protocol::canonical_bytes`
+   --> vendor/aq-session-protocol-0.1.0/src/lib.rs:103:39
+    |
+103 | pub fn canonical_bytes<T: Serialize + Validate>(value: &T) -> Result<Vec<u8>, ContractError> {
+    |                                       ^^^^^^^^ required by this bound in `canonical_bytes`
+    = note: the full name for the type has been written to '/tmp/aq-native-union-target/debug/deps/aq_server-c516a7f90ef0b543.long-type-18291032664822516760.txt'
+    = note: consider using `--verbose` to print the full type name to the console
+
+warning: unused import: `Validate`
+ --> crates/aq-server/src/waits/authority.rs:4:42
+  |
+4 | use aq_session_protocol::{ProfiledOffer, Validate as _};
+  |                                          ^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+For more information about this error, try `rustc --explain E0277`.
+warning: `aq-server` (lib) generated 1 warning
+error: could not compile `aq-server` (lib) due to 5 previous errors; 1 warning emitted

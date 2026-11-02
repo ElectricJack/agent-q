@@ -1,0 +1,40 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 50.77s
+     Running tests/verified_wait_owner.rs (/tmp/aq-native-union-target/debug/deps/verified_wait_owner-4f2e41c186b6fa53)
+
+running 19 tests
+test abort_does_not_release_physical_callback_or_allow_duplicate_work ... ok
+test actual_cancellation_can_retire_wait_after_original_grant_is_cleared ... FAILED
+test actual_cancellation_during_source_io_wins_before_any_source_outcome ... ok
+test actual_clock_install_then_unconditional_reobserve_and_immutable_terminal ... ok
+test cancellation_after_satisfaction_retires_resume_without_rewriting_outcome ... ok
+test credential_rotation_during_held_source_refuses_late_apply_without_erasing_intent ... ok
+test default_owner_clock_profile_refuses_graph_and_fixture_history ... ok
+test encrypted_slot_tampering_refuses_configured_owner_without_deleting_history ... ok
+test fixed_deadline_survives_rollback_and_full_capacity ... ok
+test full_capacity_cancellation_uses_reserved_slots_without_budget_lock ... ok
+test held_source_has_no_sql_locks_and_postio_waits_gate_before_node_and_registry ... ok
+test immutable_registration_replay_restart_and_exact_actual_authority ... ok
+test installation_quota_race_across_actual_distinct_tasks_reserves_exactly_one_envelope ... ok
+test known_cycle_through_wait_to_owner_bridge_refuses_without_reserving ... ok
+test mailbox_head_precedes_registry_and_held_head_cannot_revive_expired_grant ... ok
+test native_incarnation_owner_refuses_rebinding_a_current_held_attempt ... ok
+test observed_status_waits_project_gate_before_node_and_registry ... ok
+test project_quota_race_counts_retired_history_and_rolls_back_installation_charge ... ok
+test reserved_deadline_completion_does_not_wait_for_live_physical_callback ... ok
+
+failures:
+
+---- actual_cancellation_can_retire_wait_after_original_grant_is_cleared stdout ----
+
+thread 'actual_cancellation_can_retire_wait_after_original_grant_is_cleared' (962277) panicked at crates/aq-server/tests/verified_wait_owner.rs:1043:175:
+called `Result::unwrap()` on an `Err` value: Database(PgDatabaseError { severity: Error, code: "23514", message: "issued grant identity and binding immutable", detail: None, hint: None, position: None, where: Some("PL/pgSQL function profiled_hot_guard() line 50 at RAISE"), schema: None, table: None, column: None, data_type: None, constraint: None, file: Some("pl_exec.c"), line: Some(3897), routine: Some("exec_stmt_raise") })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    actual_cancellation_can_retire_wait_after_original_grant_is_cleared
+
+test result: FAILED. 18 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.31s
+
+error: test failed, to rerun pass `-p aq-server --test verified_wait_owner`

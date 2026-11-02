@@ -38,31 +38,31 @@ owner. No caller-selected Binding or cancellation boolean grants authority.
 Admission locks installation/project budgets, project cycle guard and task gate
 before node/attempt/hot authority. Progress omits budget locks. The existing
 mailbox head precedes registry/member/work/slot rows. External source callbacks
-run after claim commit, behind component-global nonwaiting capacity2 and per-wait
+run after claim commit, behind component-global nonwaiting capacity 2 and per-wait
 activity retained by the actual blocking job. Async cancellation/timeout cannot
 free a still-running callback. Fresh lease/ticket/dirty/authority/deadline checks
 refuse late results. No external source IO occurs under SQL locks.
 
-The [allocation contract](AQ-25-owner38-envelope.md) reserves one1MiB envelope
+The [allocation contract](AQ-25-owner38-envelope.md) reserves one 1 MiB envelope
 and all eight slots before acceptance. Terminal and cancellation slots cannot be
 spent on progress. Known-cycle history includes virtual wait-to-owning-task
 bridges, with trigger-assigned activation/retirement project revisions. These are
 internal locked registry revisions, not Graph committed-source cursors or wake
 proofs. Non-Timer fixture predicates retain external-closure uncertainty.
 
-The schema guard compares280 frozen catalog objects, including actual definitions
+The schema guard compares 280 frozen catalog objects, including actual definitions
 and internal FK trigger state. Configured open additionally authenticates AEAD,
 original bytes/actor/policy/IDs, snapshot/index/work, cycle receipt, terminal,
 cancellation and resume/completion projections. The catalog reference was generated
-only from the reviewed migration on a new disposable PostgreSQL17 database.
+only from the reviewed migration on a new disposable PostgreSQL 17 database.
 
-[Durable qualification](evidence/aq25-owner38/qualification.json) records20 actual
-owner cases in20.08s,18 pure cases in0.10s, three SQL upgrade/drift cases in2.22s,
+[Durable qualification](evidence/aq25-owner38/qualification.json) records 20 actual
+owner cases in 20.08s,18 pure cases in 0.10s, three SQL upgrade/drift cases in 2.22s,
 and selected strict checks. Actual fixtures use synthetic launches/clocks/source
 owners; they perform no provider, worker-host or live Graph activity. Earlier
 compile, projection and fixture failures are retained alongside the fixes.
 
 No canonical database, existing live Graph, service, backup or media fixture was
-read or changed. No production binary was built. Frozen migrations1–37 remain
-unchanged. A future format38 promotion needs its own reviewed backup/rehearsal;
-an old37 binary refuses a38 database, so format rollback requires restoration.
+read or changed. No production binary was built. Frozen migrations 1–37 remain
+unchanged. A future format 38 promotion needs its own reviewed backup/rehearsal;
+an old 37 binary refuses a 38 database, so format rollback requires restoration.

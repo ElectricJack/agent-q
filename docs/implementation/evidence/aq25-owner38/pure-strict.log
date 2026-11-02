@@ -1,0 +1,5 @@
+    Checking aq-session-protocol v0.1.0 (/tmp/aq-verified-wait-owner-v2/vendor/aq-session-protocol-0.1.0)
+    Checking aq-lifecycle-protocol v0.1.0 (/tmp/aq-verified-wait-owner-v2/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking aq-lifecycle-api v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-lifecycle-api)
+    Checking aq-wait-engine v0.1.0 (/tmp/aq-verified-wait-owner-v2/crates/aq-wait-engine)
+    Finished `dev` profile [unoptimized] target(s) in 4.28s
