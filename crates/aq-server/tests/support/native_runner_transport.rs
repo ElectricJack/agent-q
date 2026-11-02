@@ -177,8 +177,22 @@ pub struct Transferred {
     pub provider: TcpListener,
     pub state: PrivateState,
     channel: Option<OwnedFd>,
+    sender: OwnedFd,
 }
 impl Transferred {
+    /// Exit observation of the exact provisioning process; this is not an AQ
+    /// Stopped proof or authority to release a workspace/result resource.
+    pub fn sender_exited(&self) -> Result<bool> {
+        let mut event = libc::pollfd {
+            fd: self.sender.as_raw_fd(),
+            events: libc::POLLIN,
+            revents: 0,
+        };
+        let ready = unsafe { libc::poll(&mut event, 1, 0) };
+        ensure!(ready >= 0, "fixture sender exit observation");
+        Ok(ready == 1 && event.revents & libc::POLLIN != 0)
+    }
+
     pub fn configure(mut self, packet: &serde_json::Value) -> Result<Self> {
         let bytes = serde_json::to_vec(packet)?;
         ensure!(bytes.len() <= MAX_PACKET, "bounded fixture configure");
@@ -387,6 +401,7 @@ impl ControlListener {
             provider,
             state: PrivateState { root: state },
             channel: Some(channel),
+            sender: witness,
         })
     }
 }
