@@ -1,0 +1,3 @@
+   Compiling aq-server v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-server)
+    Finished `test` profile [unoptimized] target(s) in 2.64s
+  Executable tests/codex_graph_recovery.rs (/tmp/aq-native-union-target/debug/deps/codex_graph_recovery-f725d42d6dde36e4)

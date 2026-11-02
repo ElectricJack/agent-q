@@ -1,0 +1,44 @@
+    Checking aq-session-protocol v0.1.0 (/tmp/aq-codex-graph-recovery-v1/vendor/aq-session-protocol-0.1.0)
+    Checking aq-playbooks-model v0.1.0 (/tmp/aq-codex-graph-recovery-v1/vendor/aq-playbooks-0173673/crates/aq-playbooks-model)
+    Checking aq-lifecycle-protocol v0.1.0 (/tmp/aq-codex-graph-recovery-v1/vendor/aq-lifecycle-protocol-0.1.0)
+    Checking aq-session-api v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-session-api)
+    Checking aq-playbooks-runner v0.1.3 (/tmp/aq-codex-graph-recovery-v1/vendor/aq-playbooks-0173673/crates/aq-playbooks-runner)
+    Checking aq-lifecycle-api v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-lifecycle-api)
+    Checking aq-agent-api v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-agent-api)
+    Checking aq-profiles v0.1.2 (/tmp/aq-codex-graph-recovery-v1/crates/aq-profiles)
+    Checking png v0.18.1 (/tmp/aq-codex-graph-recovery-v1/vendor/png-0.18.1-aq1)
+    Checking aq-playbooks-postgres v0.1.3 (/tmp/aq-codex-graph-recovery-v1/vendor/aq-playbooks-0173673/crates/aq-playbooks-postgres)
+    Checking aq-admission v0.1.10 (/tmp/aq-codex-graph-recovery-v1/crates/aq-admission)
+    Checking aq-terminal-relay-protocol v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-terminal-relay-protocol)
+    Checking aq-release v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-release)
+    Checking aq-terminal-relay v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-terminal-relay)
+    Checking aq-selection v0.1.4 (/tmp/aq-codex-graph-recovery-v1/crates/aq-selection)
+    Checking aq-playbook-host v0.1.3 (/tmp/aq-codex-graph-recovery-v1/crates/aq-playbook-host)
+    Checking aq-notifications v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-notifications)
+    Checking aq-result-media v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-result-media)
+    Checking aq-phase-terminal-protocol v0.1.1 (/tmp/aq-codex-graph-recovery-v1/crates/aq-phase-terminal-protocol)
+    Checking aq-observation-api v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-observation-api)
+    Checking aq-accounting v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-accounting)
+    Checking aq-observation-admission v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-observation-admission)
+    Checking aq-review-protocol v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-review-protocol)
+    Checking aq-central-authority v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-central-authority)
+    Checking aq-protocol v0.1.0 (/tmp/aq-codex-graph-recovery-v1/vendor/aq-protocol-0.1.0)
+    Checking aq-worker-protocol v0.2.0 (/tmp/aq-codex-graph-recovery-v1/vendor/aq-worker-protocol-0.2.0)
+    Checking aq-playbooks-compiler v0.1.0 (/tmp/aq-codex-graph-recovery-v1/vendor/aq-playbooks-0173673/crates/aq-playbooks-compiler)
+    Checking aq-server v0.1.0 (/tmp/aq-codex-graph-recovery-v1/crates/aq-server)
+error: enclosing `Ok` and `?` operator are unneeded
+   --> crates/aq-server/tests/support/codex_graph_recovery.rs:187:9
+    |
+187 |         Ok(serde_json::from_slice(&bytes).context("Graph gate actual read JSON")?)
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.96.0/index.html#needless_question_mark
+    = note: `-D clippy::needless-question-mark` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_question_mark)]`
+help: remove the enclosing `Ok` and `?` operator
+    |
+187 -         Ok(serde_json::from_slice(&bytes).context("Graph gate actual read JSON")?)
+187 +         serde_json::from_slice(&bytes).context("Graph gate actual read JSON")
+    |
+
+error: could not compile `aq-server` (test "codex_graph_recovery") due to 1 previous error

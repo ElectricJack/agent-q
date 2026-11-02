@@ -1,0 +1,10 @@
+
+running 5 tests
+test real_graph::tests::listening_log_is_bounded_exact_loopback_and_rejects_ambiguity ... ok
+test recovery::tests::recovery_gate_refuses_noncanonical_extra_effects_and_remote_origins ... ok
+test recovery::tests::recovery_gate_requires_closed_original_canonical_completion ... ok
+test recovery::tests::recovery_gate_requires_complete_history_and_actual_expected_receipt ... ok
+test synthetic_http_gate_loses_first_body_without_automatic_client_or_upstream_retry ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

@@ -1,0 +1,56 @@
+{
+  "source_commit": "7f598b9d11eb1b2e62d44bfa4bfa78893888d931",
+  "source_base": "5d33c3a668402dc234e53dd2562eff1f2dc6a3a2",
+  "recorded_utc": "2026-11-02T06:21:09.442835+00:00",
+  "result": "pass",
+  "new_pure_cases": 3,
+  "new_http_cases": 1,
+  "inherited_pure_cases": 1,
+  "total_cases": 5,
+  "ignored_cases": 0,
+  "exact_case_names": [
+    "recovery::tests::recovery_gate_refuses_noncanonical_extra_effects_and_remote_origins",
+    "recovery::tests::recovery_gate_requires_closed_original_canonical_completion",
+    "recovery::tests::recovery_gate_requires_complete_history_and_actual_expected_receipt",
+    "synthetic_http_gate_loses_first_body_without_automatic_client_or_upstream_retry",
+    "real_graph::tests::listening_log_is_bounded_exact_loopback_and_rejects_ambiguity"
+  ],
+  "tests_seconds": 0.01,
+  "final_compile_cargo_seconds": 2.86,
+  "strict_cargo_seconds": 1.45,
+  "source_sha256": {
+    "crates/aq-server/tests/support/codex_graph_recovery.rs": "c34543cc80ae2127e5097138739e9aa4a9063281f31cd936f06942c1d8e4ae50",
+    "crates/aq-server/tests/codex_graph_recovery.rs": "e06578c65903aeed7304343e644a54a0d7be02e67abbd469bf078bd75097dc6e",
+    "crates/aq-server/tests/support/native_result_settlement.rs": "410672a63c7187923af40f4fbe51012b937075282bab116accc1f08cb985ae6b"
+  },
+  "tested_binary": {
+    "name": "codex_graph_recovery-f725d42d6dde36e4",
+    "sha256": "45f9f13111791e2bbec4997282484459c89efd3b58e361d54782baba81c66ff2"
+  },
+  "environment": {
+    "target": "/tmp/aq-native-union-target",
+    "offline": true,
+    "jobs": 2,
+    "debug": 0,
+    "incremental": 0
+  },
+  "commands": {
+    "no_run": "cargo test -p aq-server --test codex_graph_recovery --offline --no-run",
+    "test": "codex_graph_recovery-f725d42d6dde36e4 --test-threads=1 --nocapture",
+    "strict": "cargo clippy -p aq-server --test codex_graph_recovery --all-features --offline -- -D warnings"
+  },
+  "initial_findings": [
+    "Initial compile passed with one unused Bytes test import; removed in b34ade9.",
+    "Initial strict refused needless_question_mark in Shared::read; equivalent direct contextual parse return in7f598b9.",
+    "Final no-run/tests/strict executed against exact corrected source."
+  ],
+  "scope": [
+    "Pure parsing and SYNTHETIC loopback HTTP transport checks only.",
+    "No Graph binary, PostgreSQL, Codex, tmux, Git or native worker process started.",
+    "HTTP baseline history and receipt are synthetic transport fixtures, never real Graph proof.",
+    "HTTP check proves actual gate loses first response, no automatic upstream/caller retry, and a second manual request forwards identical bytes.",
+    "Actual Graph history/CAS and AQ possible/holds_task, same-operation reconciliation, release/outbox remain Runner integration gates.",
+    "Coordinated native_result_settlement::reconcile_completion addition96898f7 was independently source-reviewed; this independent entry does not compile or run that helper.",
+    "No product/public API, schema, service, canonical data or external provider change."
+  ]
+}
