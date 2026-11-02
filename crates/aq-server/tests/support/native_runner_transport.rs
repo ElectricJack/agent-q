@@ -105,6 +105,9 @@ pub struct ListenerInfo {
     pub state_free_bytes: u64,
     private_pid_namespace: PathBuf,
 }
+/// Trusted outer fixture audit access, not a read-only directory capability.
+/// O_RDONLY on a directory still permits openat writes; this API uses only
+/// bounded O_RDONLY/openat2 reads and the harness never inherits its descriptor.
 pub struct PrivateState {
     root: File,
 }
@@ -173,15 +176,16 @@ pub struct Transferred {
     pub control: TcpListener,
     pub provider: TcpListener,
     pub state: PrivateState,
-    channel: OwnedFd,
+    channel: Option<OwnedFd>,
 }
 impl Transferred {
-    pub fn configure(self, packet: &serde_json::Value) -> Result<Self> {
+    pub fn configure(mut self, packet: &serde_json::Value) -> Result<Self> {
         let bytes = serde_json::to_vec(packet)?;
         ensure!(bytes.len() <= MAX_PACKET, "bounded fixture configure");
+        let channel = self.channel.take().context("fixture already configured")?;
         let sent = unsafe {
             libc::send(
-                self.channel.as_raw_fd(),
+                channel.as_raw_fd(),
                 bytes.as_ptr().cast(),
                 bytes.len(),
                 libc::MSG_NOSIGNAL,
@@ -191,6 +195,7 @@ impl Transferred {
             sent >= 0 && sent as usize == bytes.len(),
             "exact fixture configure send"
         );
+        drop(channel);
         Ok(self)
     }
 }
@@ -254,7 +259,7 @@ impl ControlListener {
     }
     /// Call in a blocking job. Kernel socket timeouts bound accept/receive;
     /// cancellation creates no worker/admission permission or side effect.
-    pub fn receive(&self, wrapper_pid: u32) -> Result<Transferred> {
+    pub fn receive(self, wrapper_pid: u32) -> Result<Transferred> {
         let raw = unsafe {
             libc::accept4(
                 self.fd.as_raw_fd(),
@@ -381,7 +386,7 @@ impl ControlListener {
             control,
             provider,
             state: PrivateState { root: state },
-            channel,
+            channel: Some(channel),
         })
     }
 }
