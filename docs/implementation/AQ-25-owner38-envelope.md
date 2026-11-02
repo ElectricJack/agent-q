@@ -127,3 +127,10 @@ bridge history; source-edge rows retain their own activation/retirement revision
 Both are read at the original locked project graph revision when authenticating
 an old cycle receipt. These two bounded registry integers fit its existing8192
 metadata allowance, and add no rows or bytes to the fixed reservation.
+
+The retained basis guard applies to terminal projections too. Its conservative
+size reserves maximum timestamp/counter width, the longest phase/recovery reason,
+and later resume retirement. The size calculation preserves an already committed
+Any-selected outcome when measuring later cancellation; replacing it with a new
+deadline outcome could undercount. This is a count only, never an alternate state
+or source proof. Source progress cannot use the reserved future metadata space.

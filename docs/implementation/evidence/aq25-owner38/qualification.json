@@ -1,0 +1,96 @@
+{
+  "status": "qualified_internal_candidate_pending_independent_review_and_parent_integration",
+  "source_commit": "c1714ca366127e3b93c0d68477b047c291156564",
+  "base": "a47daf9d2e37da921cba976039251c87f342a08a",
+  "scope": "internal AQ08 authenticated owner only; no routes/runtime/scheduler hold/WaitRegistered or source Graph admission",
+  "migration": {
+    "number": 38,
+    "path": "crates/aq-server/migrations/0038_verified_wait_owner.sql",
+    "sha256": "12cea15d2c81fd17a3bad5059657d3a653491843b08483edb64a9ae55c3f9a4a",
+    "frozen_prefix_1_through_37_unchanged": true
+  },
+  "schema_reference": {
+    "sha256": "0e0a3f464072d28888dbd7caa247e3bf08380fb85ccad86eb4d7877af2dba628",
+    "bytes": 108753,
+    "objects": 280,
+    "source": "fresh disposable reviewed37-to38 DDL only; never learned from existing runtime DB"
+  },
+  "allocation": {
+    "logical_bytes_per_retained_wait": 1048576,
+    "protected_terminal_and_cancellation_bytes": 172032,
+    "maximum_charged_rows_per_wait": 78,
+    "member_limit": 32,
+    "slot_count": 8,
+    "nonterminal_and_terminal_member_basis_bound": 131072,
+    "snapshot_slot_bound": 262144,
+    "project_lifetime_wait_limit": 256,
+    "installation_lifetime_wait_limit": 2048,
+    "gc_or_capacity_release": false,
+    "physical_disk_or_RSS_hard_bound": false
+  },
+  "qualification": {
+    "typecheck": {
+      "pass": true,
+      "seconds": 23.7
+    },
+    "reviewed_ddl_export": {
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "test_seconds": 0.59,
+      "build": "2m15s"
+    },
+    "schema_and_upgrade": {
+      "passed": 3,
+      "failed": 0,
+      "ignored": 0,
+      "test_seconds": 2.22,
+      "build": "1m40s",
+      "coverage": [
+        "all prior data table bags preserved with retained legacy fixture rows",
+        "old37 reader refusal",
+        "named check/index/FK/identity/nullability/function/user-trigger/internal-FK-trigger drift refusal"
+      ]
+    },
+    "actual_owner": {
+      "passed": 20,
+      "failed": 0,
+      "ignored": 0,
+      "test_seconds": 20.08,
+      "build": "48.58s",
+      "scope": "real disposable PostgreSQL/AQ08 owners; synthetic launch, clock and fake source fixtures; no provider/host/Graph"
+    },
+    "pure_engine": {
+      "passed": 18,
+      "failed": 0,
+      "ignored": 0,
+      "test_seconds": 0.1,
+      "build": "1.13s"
+    },
+    "affected_server_strict": {
+      "pass": true,
+      "seconds": 24.77,
+      "selection": "aq-server --lib --test verified_wait_owner --features test-support"
+    },
+    "pure_all_target_strict": {
+      "pass": true,
+      "seconds": 4.28
+    }
+  },
+  "initial_failures_retained": [
+    "Five tuple canonical calls incorrectly used wire Serialize+Validate API; replaced with separate neutral canonical encoding after owner validation, not blanket Validate.",
+    "First actual owner12pass/5fail: real lease-claim clock advancement not persisted in Snapshot caused three correctly refused projection cases; fixed via pure Drive persistence before claim. Other two were invalid native-incarnation fixture mutation and malformed tamper SQL.",
+    "Proposed cleared-grant fixture was refused by actual existing AQ08 issued-grant immutability, not a wait-owner bug. Unnecessary optional-grant change reverted; regression now verifies the real invariant and successful cancel.",
+    "Two collapsible-if strict lints corrected without behavior changes."
+  ],
+  "limitations": [
+    "No default Owner construction/background loop/public API/capability",
+    "No enforcement by existing ordinary admission paths; internal gate is not a hold receipt",
+    "Default real source adapter is Clock only; Graph/mailbox proofs and live Graph snapshot/subscription/replay joins unsupported",
+    "Mailbox identity/head lock reuses existing owner but source verifier not implemented",
+    "Progress needs current original AQ08 grant; no detached continuation authority or stopped-agent wake/admission integration",
+    "Lifetime quotas have no GC/release in this slice",
+    "Independent owner38 review and parent integration pending; no production binary or canonical migration"
+  ],
+  "resource_handoff": "SERVER explicitly released directly to native_runner_v2 after final checks; no Cargo remains in this lane"
+}
