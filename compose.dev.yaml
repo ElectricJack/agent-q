@@ -1,33 +1,117 @@
-# Development overlay: builds from source, uses the example vault and a local
-# updater spool, publishes the listeners on loopback only and keeps
-# cloudflared off by default. compose.yaml still requires AQ_VAULT_DIR and
-# AQ_UPDATER_SPOOL to be set (scripts/dev-up and scripts/smoke set them).
+# Development overlay. scripts/dev-up prepares the private vault and state.
+# Graph source is pinned independently of the server and Git candidate.
 services:
+  graph-db-init:
+    image: postgres:17-bookworm
+    networks: [database]
+    secrets: [postgres_password]
+    depends_on:
+      postgres: {condition: service_healthy}
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - |
+        export PGPASSWORD="$$(cat /run/secrets/postgres_password)"
+        if ! psql -h postgres -U agent_q -d agent_q -v ON_ERROR_STOP=1 -tAc "SELECT 1 FROM pg_database WHERE datname = 'aq_graph'" | grep -q 1; then
+          createdb -h postgres -U agent_q aq_graph
+        fi
+    restart: on-failure
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging: &dev-logging
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+  aq-graph:
+    image: ${AQ_DEV_GRAPH_IMAGE:-aq-graph:225329cd6acf5a775fd2a0b016dd1c45fb16c79b}
+    build:
+      context: https://github.com/ElectricJack/aq-graph.git#225329cd6acf5a775fd2a0b016dd1c45fb16c79b
+    user: '${AQ_DEV_UID:-1000}:${AQ_DEV_GID:-1000}'
+    environment:
+      AQ_GRAPH_BIND: 0.0.0.0:8741
+      AQ_GRAPH_BOOTSTRAP_WORKSPACE: ${AQ_DEV_GRAPH_WORKSPACE:-e0000000-0000-4000-8000-000000000001}
+      AQ_GRAPH_BOOTSTRAP_ACTOR: dev-service
+      AQ_GRAPH_BOOTSTRAP_TOKEN_FILE: /run/secrets/graph_token
+    entrypoint: [/bin/sh, -ec]
+    command:
+      - 'export PGPASSWORD="$$(cat /run/secrets/postgres_password)" DATABASE_URL="postgres://agent_q@postgres:5432/aq_graph"; exec aq-graph serve'
+    secrets: [postgres_password, graph_token]
+    networks: [database, edge]
+    depends_on:
+      graph-db-init: {condition: service_completed_successfully}
+    ports: ['127.0.0.1:${AQ_DEV_GRAPH_PORT:-8741}:8741']
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging: *dev-logging
+    healthcheck:
+      test: [CMD, aq-graph, --endpoint, 'http://127.0.0.1:8741', health]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  aq-git:
+    image: ${AQ_DEV_GIT_IMAGE:-aq-git:f3660a89cbeac0e068105af2926dfdcb06a1daad}
+    build:
+      context: .
+      dockerfile: scripts/Dockerfile.aq-git
+    user: '${AQ_DEV_UID:-1000}:${AQ_DEV_GID:-1000}'
+    entrypoint: [/bin/sh, /dev-git-supervisor.sh]
+    volumes:
+      - ./scripts/dev-git-supervisor.sh:/dev-git-supervisor.sh:ro
+      - ${AQ_DEV_STATE_DIR:-./state.dev}/git:/git-state
+      - ${AQ_DEV_STATE_DIR:-./state.dev}/git-run:/git-run
+      - ${AQ_DEV_STATE_DIR:-./state.dev}/fixture:/fixture:ro
+    networks: [edge]
+    init: true
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    logging: *dev-logging
+    healthcheck:
+      test: [CMD, aq-git, --socket, /git-run/aq-git.sock, --json, capabilities]
+      interval: 2s
+      timeout: 3s
+      retries: 30
   server:
     build:
       context: .
       target: server
     image: ${AQ_SERVER_IMAGE:-agent-q-server:dev}
+    user: '${AQ_DEV_UID:-1000}:${AQ_DEV_GID:-1000}'
     environment:
       # compose.yaml sets production; the example vault is a development vault.
       AQ_DEPLOYMENT: development
     volumes:
       - type: bind
-        source: ./vault.example
+        source: ${AQ_VAULT_DIR:?run scripts/dev-up to prepare the dev vault}
         target: /vault
         read_only: true
       # The updater spool (scripts/dev-up creates it; gitignored). The example
       # vault has no [updates] section, so updates stay unavailable in dev.
       - type: bind
-        source: ./state.dev/updater-spool/requests
+        source: ${AQ_UPDATER_SPOOL}/requests
         target: /updater/requests
       - type: bind
-        source: ./state.dev/updater-spool/status
+        source: ${AQ_UPDATER_SPOOL}/status
         target: /updater/status
         read_only: true
+      - ${AQ_DEV_STATE_DIR:-./state.dev}/git:/git-state
+      - ${AQ_DEV_STATE_DIR:-./state.dev}/git-run:/git-run:ro
+      - ${AQ_DEV_STATE_DIR:-./state.dev}/staging:/staging
+    secrets: [postgres_password, graph_token]
+    depends_on:
+      aq-graph: {condition: service_healthy}
+      aq-git: {condition: service_healthy}
+    healthcheck:
+      test: [CMD, aq-server, readiness, --vault, /vault]
+      interval: 2s
+      timeout: 5s
+      retries: 30
     ports:
-      - '127.0.0.1:8080:8080'
-      - '127.0.0.1:8081:8081'
+      - '127.0.0.1:${AQ_DEV_ADMIN_PORT:-8080}:8080'
+      - '127.0.0.1:${AQ_DEV_WORKER_PORT:-8081}:8081'
   cloudflared:
     profiles: [tunnel]
   # Only used by scripts/smoke: the worker image, run as a container.
@@ -54,4 +138,6 @@ volumes:
   worker_config:
 secrets:
   postgres_password:
-    file: ./secrets.dev/postgres_password
+    file: ${AQ_SECRETS_DIR:?run scripts/dev-up}/postgres_password
+  graph_token:
+    file: ${AQ_SECRETS_DIR:?run scripts/dev-up}/graph_token

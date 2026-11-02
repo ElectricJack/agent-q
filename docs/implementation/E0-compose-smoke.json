@@ -1,0 +1,76 @@
+{
+  "after_git_kill": {
+    "auth_mode": "dev",
+    "database": "ok",
+    "dependencies": {
+      "aq_git": "degraded",
+      "graph": "ready"
+    },
+    "protocol_max": 1,
+    "protocol_min": 1,
+    "source_revision": "unknown",
+    "state_format": 41,
+    "version": "0.1.0"
+  },
+  "after_git_restart": {
+    "auth_mode": "dev",
+    "database": "ok",
+    "dependencies": {
+      "aq_git": "ready",
+      "graph": "ready"
+    },
+    "protocol_max": 1,
+    "protocol_min": 1,
+    "source_revision": "unknown",
+    "state_format": 41,
+    "version": "0.1.0"
+  },
+  "cleanup": "owned Compose containers and volumes removed",
+  "graph_outage_degraded": {
+    "auth_mode": "dev",
+    "database": "ok",
+    "dependencies": {
+      "aq_git": "ready",
+      "graph": "degraded"
+    },
+    "protocol_max": 1,
+    "protocol_min": 1,
+    "source_revision": "unknown",
+    "state_format": 41,
+    "version": "0.1.0"
+  },
+  "images": {
+    "aq-git": "ad68eec4eb7208bac9314a01d02694c4e422df8aebd24a7afd5c674389f15f01",
+    "aq-graph": "807beba98dcd20b0ae335f09cae8c06ecb182a352ee78de278cb47fccb2ee3be",
+    "postgres": "99445113a4a19e82dd3713c65bd9f6fb5bf972065ab043df8d1e1c93e957da9a",
+    "server": "ca297b693a54df3251974ca130421d04c95885af9f7db6cd6b7e200dfb8249be"
+  },
+  "initial_readiness": {
+    "auth_mode": "dev",
+    "database": "ok",
+    "dependencies": {
+      "aq_git": "ready",
+      "graph": "ready"
+    },
+    "protocol_max": 1,
+    "protocol_min": 1,
+    "source_revision": "unknown",
+    "state_format": 41,
+    "version": "0.1.0"
+  },
+  "killed_engine_pid": "9",
+  "seed": {
+    "designation": {
+      "base_branch": "main",
+      "credential_ref": "none",
+      "local_fixture": true,
+      "url": "/fixture/scratch.git"
+    },
+    "node_id": "0eb0bf7c-8157-4d41-81c9-db64bc2bd321",
+    "project_id": "e0000000-0000-4000-8000-000000000002",
+    "repository_id": "e0000000-0000-4000-8000-000000000003",
+    "task_id": "e0000000-0000-4000-8000-000000000004",
+    "workspace_id": "e0000000-0000-4000-8000-000000000001"
+  },
+  "test": "compose_dev_reaches_ready_with_graph_and_git"
+}

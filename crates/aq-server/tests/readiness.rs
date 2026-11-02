@@ -77,6 +77,10 @@ async fn readyz_loopback_only() {
         assert_eq!(s, StatusCode::NOT_FOUND, "no ConnectInfo fails closed");
         let (s, v) = get(router.clone(), Some("127.0.0.1:4000")).await;
         assert_eq!(s, StatusCode::OK);
+        assert!(
+            v.get("dependencies").is_none(),
+            "legacy vault keeps its wire shape"
+        );
         let report: ReadinessReport = serde_json::from_value(v).unwrap();
         assert_eq!(report.database, "ok");
         assert_eq!(report.version.to_string(), env!("CARGO_PKG_VERSION"));
@@ -85,6 +89,39 @@ async fn readyz_loopback_only() {
         let (s, _) = get(router, Some("[::1]:4000")).await;
         assert_eq!(s, StatusCode::OK);
     }
+}
+
+#[tokio::test]
+async fn configured_dependencies_fail_closed_with_a_bounded_probe() {
+    let db = TestDb::create().await;
+    let mut st = state(&db).await;
+    let tmp = tempfile::tempdir().unwrap();
+    let mut cfg = config();
+    cfg.agent_access = Some(
+        toml::from_str(&format!(
+            "graph_url = 'http://127.0.0.1:1'\ngraph_token_file = '{}'",
+            tmp.path().join("token").display()
+        ))
+        .unwrap(),
+    );
+    cfg.source_retention = Some(
+        toml::from_str(&format!(
+            "staging_root = '/staging'\ngit_root = '/git'\ngit_socket = '{}'",
+            tmp.path().join("absent.sock").display()
+        ))
+        .unwrap(),
+    );
+    st.config = Arc::new(cfg);
+    let (status, body) = tokio::time::timeout(
+        std::time::Duration::from_secs(3),
+        get(build_admin_router(st), Some("127.0.0.1:4000")),
+    )
+    .await
+    .unwrap();
+    assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(body["database"], "ok");
+    assert_eq!(body["dependencies"]["graph"], "degraded");
+    assert_eq!(body["dependencies"]["aq_git"], "degraded");
 }
 
 #[tokio::test]
