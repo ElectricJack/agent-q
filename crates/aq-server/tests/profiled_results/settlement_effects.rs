@@ -56,7 +56,9 @@ async fn setup(message: bool) -> Case {
         binding,
     }
 }
-async fn inspect(case: &Case) -> Result<effects::AqEffectsSnapshot, aq_server::error::AppError> {
+async fn inspect(
+    case: &Case,
+) -> std::result::Result<effects::AqEffectsSnapshot, aq_server::error::AppError> {
     let pool = case.f.db.pool().await;
     let mut tx = pool.begin().await.unwrap();
     let recorded = results::load_locked(&case.f.state, &mut tx, case.report.report_id)
