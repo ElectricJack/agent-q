@@ -97,3 +97,28 @@ provide the bounded dependency report used by development healthchecks.
 Supervisor message `msg-f3bde02e8fee4a90a47aa21ecf37b623` explicitly replaces the
 absent `origin/dev` merge step with `origin/main`; this branch merged it without
 changing the default branch.
+
+
+### Task 5: Conform to UID 10001 without a development exception
+
+The fixed UID is already specified; satisfying it removes the pending exception
+rather than waiting to waive a clear contract. Preserve the existing designated
+stack during qualification; do not chown its host state or delete its volume.
+
+- [ ] RED: named smoke requires server and Git user `10001:10001`; expect current
+  host UID to fail before starting disposable containers.
+- [ ] Add a bounded one-shot root initializer for new private named volumes:
+  generated vault, server token copy, shared Git/source root and Unix socket.
+  Runtime services stay UID 10001, read-only, cap-drop ALL. Refuse changed
+  retained config/token; never recursively chown existing source data.
+- [ ] Mount Git and staging under one `/var/lib/aq` volume for atomic rename;
+  share `/run/aq-git`. Keep original host credentials private and unchanged.
+- [ ] Run seed requests through `aq-git --socket ... --input - --json request`
+  under Compose exec as UID 10001, retaining bounded/correlated response checks.
+  Observe diagnostic PID through the container rather than host-owned state.
+- [ ] GREEN: named smoke verifies numeric runtime users, 0700 directory owners,
+  seed replay/refusals, Git degraded/restarted-ready, Graph outage and cleanup.
+  Python bootstrap checks remain green. Rust code/image is unchanged.
+- [ ] Qualify a fresh designated stack with preserved old stack, retain its base,
+  update I0 handoff/evidence, commit and guarded publish. Resolve attempt-specific
+  export boundary without creating a fake execution attempt.
