@@ -7,6 +7,7 @@ use super::{
 };
 use crate::{AppState, error::AppError, reviews, source_retention, store::User};
 use aq_admission::{ArtifactRef, Digest, Text};
+use aq_session_protocol::Validate;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::{Postgres, Row, Transaction};
