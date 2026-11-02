@@ -933,7 +933,8 @@
         "../implementation/AQ-08-terminal-tail-integration/README.md",
         "../implementation/AQ-08-native-runner-delivery.md",
         "../implementation/protocol-wait-union-qualification.md",
-        "../implementation/evidence/terminal-refresh-b4503bd/qualification.json"
+        "../implementation/evidence/terminal-refresh-b4503bd/qualification.json",
+        "../implementation/GATE-04-execution-first.md"
       ]
     },
     {
@@ -1168,7 +1169,8 @@
         "../implementation/AQ-08-phase-terminal-integration/README.md",
         "../implementation/AQ-08-terminal-tail-integration/README.md",
         "../implementation/AQ-08-native-runner-delivery.md",
-        "../../../aq-worker/docs/implementation/WRK-08-installed-adapter-handoff.md"
+        "../../../aq-worker/docs/implementation/WRK-08-installed-adapter-handoff.md",
+        "../implementation/GATE-04-execution-first.md"
       ]
     },
     {
@@ -1243,7 +1245,8 @@
         "../implementation/AQ-10-outcome-contract-qualification.md",
         "../implementation/aq-admission-0.1.6-qualification.md",
         "../implementation/AQ-10-result-ledger-qualification.md",
-        "../implementation/three-area-state24-qualification.json"
+        "../implementation/three-area-state24-qualification.json",
+        "../implementation/GATE-04-execution-first.md"
       ]
     },
     {
@@ -1459,7 +1462,9 @@
         "The first real agent uses a frozen composed profile and explicit project/intelligence selection inside the qualified tmux host. This gate covers Codex CLI; INT-02 is required for the four-harness/remote-terminal product claim."
       ],
       "out_of_scope": [],
-      "evidence": []
+      "evidence": [
+        "../implementation/GATE-04-execution-first.md"
+      ]
     },
     {
       "id": "AQ-11",
@@ -3591,7 +3596,8 @@
         "../../../aq-worker/docs/implementation/WRK-17-responses-transport-extraction.md",
         "../../../aq-worker/docs/implementation/evidence/responses-transport-extraction/qualification.json",
         "../../../aq-worker/docs/implementation/WRK-17-prepared-responses-composition.md",
-        "../../../aq-worker/docs/implementation/evidence/prepared-responses-composition/qualification.json"
+        "../../../aq-worker/docs/implementation/evidence/prepared-responses-composition/qualification.json",
+        "../implementation/GATE-04-execution-first.md"
       ]
     },
     {
@@ -3626,7 +3632,8 @@
       ],
       "evidence": [
         "../../../aq-worker/docs/implementation/WRK-18-native-runner.md",
-        "../implementation/dashboard-canonical-state35-2026-11-01.md"
+        "../implementation/dashboard-canonical-state35-2026-11-01.md",
+        "../implementation/GATE-04-execution-first.md"
       ]
     },
     {
@@ -3911,6 +3918,10 @@
     {
       "source": "../implementation/AQ-17-central-authority-core.md",
       "summary": "The isolated taskless central-session model is implemented with 16 fast tests and retained-history replay fences. Authenticated mailbox/storage ownership, central host startup and replies remain pending; structural data validation grants no runtime authority."
+    },
+    {
+      "source": "../implementation/GATE-04-execution-first.md",
+      "summary": "Prioritize the complete first-harness execution cycle: typed production runner, reviewed concrete host/transport join, phase-native result retention and explicit review/settlement through expected-version Graph completion. Reuse pinned v1 harness/completion behavior and tests; park further suspend/wake expansion."
     }
   ],
   "implementation_reference_maps": [
