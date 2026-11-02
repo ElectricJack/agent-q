@@ -31,3 +31,24 @@ fixture files. A check of `store.rs` reports only existing migration registry
 formatting and module ordering; normalized findings exactly match the unmodified
 source-base file. `cargo fmt --all -- --check` cannot discover the vendored
 `aq-lifecycle-protocol-0.1.0` workspace from this nested worktree.
+
+## Final verification after authorized main merge
+
+Supervisor message `msg-b6b62f83119e4d1e88ee6b0c9cc3e8bd` confirmed that
+`origin/main` replaces the nonexistent `origin/dev` prerequisite. The guarded
+`aq git pull --branch main --brief` fetched and merged
+`e6babbafe807c311e508e1a7743cc6621da83117`, creating conflict-free merge
+`f93afc82d977dc88d452361e7c5136cf5a3126d3`. No `dev` branch was created.
+
+The fetched main advances current state format to42. Both exact bounded Cargo
+commands above were rerun against this merged source: **12 reservation tests and
+25 Store tests passed**, with no failures or ignores. Complete final output is in
+`post-merge-reservations.log` and `post-merge-store.log`.
+
+The merged source also includes upstream formatting corrections: direct
+`rustfmt --edition 2024 --check --config skip_children=true` now passes for all
+five touched Rust files (`store.rs`, `test_support.rs`, `central37_tests.rs`,
+`settlement39_tests.rs` and reservation `tests.rs`). `git diff --check` passes.
+Only the five fixture-related source files and qualification evidence differ
+from the fetched main. No full-suite validation or default-branch delivery is
+claimed.
