@@ -34,6 +34,11 @@ fn install(c: &mut ProfiledConfig) {
 pub fn prepared_terminal() -> impl std::future::Future<Output = Prepared> {
     phase_fixture::prepared_with_config(true, install)
 }
+pub fn prepared_terminal_from_presence(
+    ready: crate::common::presence::Case,
+) -> impl std::future::Future<Output = Prepared> {
+    phase_fixture::prepared_from_presence(ready, install)
+}
 pub async fn auth(f: &Prepared) -> aq_server::worker_api::AuthenticatedNode {
     phase_fixture::auth(&f.c).await
 }
