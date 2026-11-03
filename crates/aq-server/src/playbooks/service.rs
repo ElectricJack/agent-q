@@ -102,6 +102,28 @@ impl Service {
         service.host = Some(Arc::new(super::host_adapters::HostPorts {
             state: state.clone(),
             graph,
+            checks: None,
+            judgments: None,
+        }));
+        Ok(service)
+    }
+    /// D6 host catalog 2.0.0 (profile 6) for a new namespace/generation. The
+    /// sandbox check executor and judgment provider are injected ports; an
+    /// unbound port refuses with a typed outcome, never a fabricated result.
+    pub async fn new_host7(
+        state: &crate::AppState,
+        namespace: Namespace,
+        keys: Arc<Keyring>,
+        graph: Arc<dyn super::host_adapters::WorkGraph>,
+        checks: Option<Arc<dyn super::host_adapters::CheckExecutor>>,
+        judgments: Option<Arc<dyn super::host_adapters::JudgmentProvider>>,
+    ) -> Result<Self> {
+        let mut service = Self::with_profile(state, namespace, keys, CatalogProfile::Host7).await?;
+        service.host = Some(Arc::new(super::host_adapters::HostPorts {
+            state: state.clone(),
+            graph,
+            checks,
+            judgments,
         }));
         Ok(service)
     }
@@ -117,6 +139,8 @@ impl Service {
         service.host = Some(Arc::new(super::host_adapters::HostPorts {
             state: state.clone(),
             graph,
+            checks: None,
+            judgments: None,
         }));
         Ok(service)
     }
