@@ -91,4 +91,4 @@ ALTER TABLE playbook_outbox DROP CONSTRAINT playbook_outbox_producer_check;
 ALTER TABLE playbook_outbox ADD CHECK(producer IN ('aq.host.bridge@1','aq.human.decisions@1','aq.graph.operations@1'));
 ALTER TABLE playbook_namespaces DROP CONSTRAINT playbook_namespaces_catalog_profile_check;
 ALTER TABLE playbook_namespaces ADD CHECK(catalog_profile IN (1,2,3));
-UPDATE meta SET value='54' WHERE key='state_format_version';
+UPDATE meta SET value='55' WHERE key='state_format_version';

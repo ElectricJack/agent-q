@@ -1,19 +1,19 @@
-//! Exact D3 format-54 auto-settlement owner and the two widened holds_task
-//! release guards; prior catalogs substitute these bodies only at format >= 54.
+//! Exact D3 format-55 auto-settlement owner and the two widened holds_task
+//! release guards; prior catalogs substitute these bodies only at format >= 55.
 use super::{Result, StoreError};
 use sqlx::{Postgres, Transaction};
 fn corrupt() -> StoreError {
-    StoreError::Corrupt("auto settlement54 guard drift".into())
+    StoreError::Corrupt("auto settlement55 guard drift".into())
 }
 pub(super) fn function_body(name: &str) -> Result<&'static str> {
-    include_str!("../../migrations/0054_auto_settlement.sql")
+    include_str!("../../migrations/0055_auto_settlement.sql")
         .split_once(&format!("FUNCTION {name}("))
         .and_then(|(_, tail)| tail.split_once("AS $$"))
         .and_then(|(_, tail)| tail.split_once("$$;"))
         .map(|(body, _)| body)
         .ok_or_else(corrupt)
 }
-/// The claim guards format 54 replaces again (over format 52's bodies).
+/// The claim guards format 55 replaces again (over format 52's bodies).
 pub(super) fn guard_overrides() -> Result<Vec<(&'static str, &'static str)>> {
     [
         "profiled_historical_snapshot_guard",

@@ -22,8 +22,8 @@ pub(super) fn guard_overrides(supported: u32) -> Result<Vec<(&'static str, &'sta
     if supported < 52 {
         return Ok(Vec::new());
     }
-    if supported >= 54 {
-        return super::auto54::guard_overrides();
+    if supported >= 55 {
+        return super::auto55::guard_overrides();
     }
     GUARDS
         .into_iter()

@@ -159,6 +159,35 @@ async fn resolve_with_principal(
         None => None,
     };
     let ceiling = &request.project.project.binding.ceilings;
+    // H2: lineage spend from the observation ledger. Retries and wakes share
+    // the lineage, so spend accumulates. A cost limit without hard enforcement
+    // is a soft ceiling and records a policy event. The ledger is never a hard
+    // budget provider, so hard requirements stay refused (0004 §2.2).
+    let soft = match (
+        ceiling.cost_limit_microunits,
+        &ceiling.currency,
+        ceiling.require_hard_cost_enforcement,
+    ) {
+        (Some(limit_microunits), Some(currency), false) => {
+            Some(crate::observations::budget::SoftCeiling {
+                limit_microunits,
+                currency: currency.clone(),
+            })
+        }
+        _ => None,
+    };
+    let ledger = match aq_admission::transport::task_lineage_id(
+        request.lineage.project_id,
+        request.lineage.workspace_id,
+        request.lineage.task_id,
+    ) {
+        Ok(lineage) => crate::observations::budget::lineage(state, lineage, soft.as_ref())
+            .await
+            .ok()
+            .flatten()
+            .map(|budget| budget.snapshot()),
+        Err(_) => None,
+    };
     let input = SelectionInputs {
         project: ProjectSnapshot {
             lineage: request.lineage.clone(),
@@ -218,10 +247,15 @@ async fn resolve_with_principal(
                 None if count.started == 0 => Some(0),
                 None => None,
             },
-            spent_microunits: None,
-            currency: None,
-            accounting: AccountingCompleteness::Unavailable,
-            accounting_source: artifact("aq.accounting.unavailable"),
+            spent_microunits: ledger.as_ref().and_then(|l| l.spent_microunits),
+            currency: ledger.as_ref().and_then(|l| l.currency.clone()),
+            accounting: ledger
+                .as_ref()
+                .map_or(AccountingCompleteness::Unavailable, |l| l.accounting),
+            accounting_source: ledger.as_ref().map_or_else(
+                || artifact("aq.accounting.unavailable"),
+                |l| l.accounting_source.clone(),
+            ),
             hard_budget_provider: None,
             observed_at_ms: time,
             expires_at_ms: time.checked_add(2000).ok_or(AppError::Internal)?,

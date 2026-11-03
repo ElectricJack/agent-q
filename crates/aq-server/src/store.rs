@@ -312,7 +312,11 @@ const MIGRATIONS: &[(i32, &str)] = &[
         53,
         include_str!("../migrations/0053_replacement_retained_source.sql"),
     ),
-    (54, include_str!("../migrations/0054_auto_settlement.sql")),
+    (
+        54,
+        include_str!("../migrations/0054_accounting_policy_events.sql"),
+    ),
+    (55, include_str!("../migrations/0055_auto_settlement.sql")),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -554,8 +558,8 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
     if supported >= 53 {
         retained_source53::validate(&mut tx).await?;
     }
-    if supported >= 54 {
-        auto54::validate(&mut tx).await?;
+    if supported >= 55 {
+        auto55::validate(&mut tx).await?;
     }
     tx.commit().await?;
     Ok(())
@@ -1152,8 +1156,8 @@ mod settlement39;
 #[path = "store/settlement39_tests.rs"]
 mod settlement39_tests;
 
-#[path = "store/auto54.rs"]
-mod auto54;
+#[path = "store/auto55.rs"]
+mod auto55;
 #[path = "store/compute41.rs"]
 mod compute41;
 #[path = "store/never_granted40.rs"]
