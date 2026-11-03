@@ -131,3 +131,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Deleted `target/` in the 8 idle slots only, after re-checking each slot's lock and that no process used it. Usage went from 940 GB to 819 GB (137 GB free).
   - The monitor now reports disk usage on every check and repeats the idle-slot cleanup automatically above 85%.
   - Agents had already filed the investigation `bright-zenith-30`, which is working on a lasting policy; I left it a note about the cleanup.
+- **21:40 check.**
+  - Status: 26 of 91 plan tasks completed (29%, about 26% weighted by effort), plus 80 follow-ups. E1a (production Compose) completed. Disk is at 81–87% after the cleanup.
+  - B1 (`rev-keen-ember`, round 5) and B5a (`rev-grand-meadow`, round 3) are still waiting for supervisor decisions. B1b, B2 and B6a2 remain queued behind B1.
+  - **Owner decision surfaced: B6b (`noble-summit-37.8`).** Clearing the agent's capability bounding set requires CAP_SETPCAP, which the three-capability fixture does not grant. The agent asks whether bootstrap may require CAP_SETPCAP. It is continuing with the signal-denial probe in the meantime (`bright-nexus-60`).
