@@ -58,13 +58,13 @@ use the same version. Change all three together.
 | `/etc/agent-q/updater.toml` | `root:aq-updater 0640` | updater config |
 | `/etc/agent-q/agent-q.env` | `root:aq-updater 0640` | operator env file: `AQ_VAULT_DIR`, `AQ_SECRETS_DIR` |
 | `/etc/agent-q/vault/` | `root:root 0755`, files `0644` | the vault, mounted read-only into the server (UID 10001 must read it) |
-| `/etc/agent-q/secrets/` | `root:aq-updater 0750`, files `0644` | `postgres_password`, `tunnel_token` (bind-mounted as-is, so readable by the container users) |
+| `/etc/agent-q/secrets/` | `root:aq-updater 0750`, files `0644` | `postgres_password`, `server_database_password`, `graph_database_password`, `graph_token`, `tunnel_token` (bind-mounted as-is, so readable by the container users) |
 | `/opt/agent-q/compose.yaml` | `root:root 0644` | the production Compose file, from the release tag |
 | `/var/lib/agent-q/updater/` | `aq-updater:aq-updater 0750` | updater state: `journal.json`, `history.jsonl`, `release.env`, the lock |
 | `/var/lib/agent-q/updater/spool/` | `aq-updater 0755` | the spool shared with the server |
 | `/var/lib/agent-q/updater/spool/requests/` | `aq-updater:10001 2770` | server writes request files here (read-write mount) |
 | `/var/lib/agent-q/updater/spool/status/` | `aq-updater 0755` | `status.json`, `maintenance` (read-only mount) |
-| `/var/lib/agent-q/backups/` | `aq-updater:aq-updater 0700` | pre-update `pg_dump` backups, the last 5 kept |
+| `/var/lib/agent-q/backups/` | `aq-updater:aq-updater 0700` | pre-update `pg_dump` backups of the server's `aq_server` database (provisioned first with `server-db-init`), the last 5 kept |
 
 `state_dir` may use only the characters `A-Z a-z 0-9 . _ / + @ : -`: its spool
 path is written unquoted into `release.env`, and the updater refuses a config
