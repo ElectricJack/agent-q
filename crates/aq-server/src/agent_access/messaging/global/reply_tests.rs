@@ -118,6 +118,7 @@ impl Fixture {
                 message_id: Uuid::new_v4(),
                 dispatch_id: dispatch.dispatch_id,
                 body: "late reply".into(),
+                attachments: vec![],
             },
             dispatch,
             2000,

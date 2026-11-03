@@ -266,6 +266,16 @@ pub fn precheck(counts: &super::no_grant::AttemptCounts) -> Option<Assessment> {
     (counts.started == 0).then_some(Assessment::Fresh)
 }
 pub async fn assess_task(state: &AppState, task: Uuid, now: u64) -> Result<Assessment, AppError> {
+    let disposed: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM profiled_stopped_dispositions WHERE task_id=$1)",
+    )
+    .bind(task)
+    .fetch_one(&state.store.pool)
+    .await
+    .map_err(|_| AppError::Internal)?;
+    if disposed {
+        return Ok(Assessment::Blocked("task_terminally_disposed"));
+    }
     let counts = super::no_grant::attempt_counts(&state.store.pool, task).await?;
     if let Some(decided) = precheck(&counts) {
         return Ok(decided);

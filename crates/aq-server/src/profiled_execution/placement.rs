@@ -68,21 +68,32 @@ pub fn accounted(summary: &aq_accounting::pricing::Summary, limit: &Money) -> Op
     })
 }
 
-/// Accounted spend for each node whose advertisement has a spend ceiling. A
-/// ledger read failure leaves that node unaccounted, so it refuses.
+/// Accounted spend for nodes with ceilings: current-month VM time for Boat,
+/// lifetime provider calls otherwise. A read failure leaves the node
+/// unaccounted, so it refuses.
 async fn spends(
+    conn: &mut PgConnection,
     ledger: &Ledger<'_>,
     nodes: &[(Uuid, &BackendAdvertisement)],
+    now_ms: u64,
+    exclude_attempt: Option<Uuid>,
 ) -> Vec<(Uuid, Option<Money>)> {
     let mut out = Vec::new();
     for (node, adv) in nodes {
         let Some(limit) = adv.spend_ceiling.as_ref() else {
             continue;
         };
-        let spent = crate::observations::budget::node(ledger.pool, ledger.book, *node)
-            .await
-            .ok()
-            .and_then(|summary| accounted(&summary, limit));
+        let spent = if crate::observations::vm_time::is_monthly_backend(adv.kind) {
+            crate::observations::vm_time::node(conn, *node, limit, now_ms, exclude_attempt)
+                .await
+                .ok()
+                .flatten()
+        } else {
+            crate::observations::budget::node(ledger.pool, ledger.book, *node)
+                .await
+                .ok()
+                .and_then(|summary| accounted(&summary, limit))
+        };
         out.push((*node, spent));
     }
     out
@@ -335,9 +346,23 @@ pub async fn derive(
     let mut advertised: Vec<(Uuid, &BackendAdvertisement)> =
         peers.iter().map(|(n, r)| (*n, &r.backend)).collect();
     advertised.push((node_id, &own.backend));
-    let spends = spends(ledger, &advertised).await;
+    let spends = spends(
+        conn,
+        ledger,
+        &advertised,
+        now_ms,
+        derivation.exclude_attempt,
+    )
+    .await;
+    // SBX25: a node above the disk refusal line is in the ceiling family.
+    let pressured = crate::node_storage::pressured(&mut *conn, &nodes).await?;
+    let limit = |adv: &BackendAdvertisement, node: Uuid| {
+        ceiling(adv, count(&active, node), spent(&spends, node)).or(pressured
+            .contains(&node)
+            .then_some(aq_selection::NodeCeiling::DiskPressure))
+    };
     let eligible = |adv: &BackendAdvertisement, node: Uuid| {
-        ceiling(adv, count(&active, node), spent(&spends, node)).is_none()
+        limit(adv, node).is_none()
             && policy
                 .required_capabilities
                 .iter()
@@ -391,7 +416,7 @@ pub async fn derive(
                 })
             })
             .collect::<Result<_, AppError>>()?,
-        ceiling: ceiling(backend, count(&active, node_id), spent(&spends, node_id)),
+        ceiling: limit(backend, node_id),
         preferred_peer: preferred_peer(backend.kind, &preference, &peers)
             .map(convert)
             .transpose()?,
@@ -748,6 +773,33 @@ mod tests {
                 .unwrap()
                 .preferred_peer
                 .is_none()
+        );
+        // SBX25: a node above 85% used refuses with node_disk_pressure, and
+        // a pressured peer is no reason to hold work for it.
+        let disk = |id: Uuid, used: u64| {
+            let pool = pool.clone();
+            async move {
+                let report = crate::node_storage::StorageReport {
+                    disk_total_bytes: 100,
+                    disk_used_bytes: used,
+                    disk_free_bytes: 100 - used,
+                    ..Default::default()
+                };
+                let mut conn = pool.acquire().await.unwrap();
+                crate::node_storage::record(&mut conn, &id.to_string(), Some(id), &report, 1)
+                    .await
+                    .unwrap();
+            }
+        };
+        disk(boat, 85).await;
+        assert_eq!(facts(boat, 1_000).await.unwrap().unwrap().ceiling, None);
+        disk(boat, 86).await;
+        let pressured = facts(boat, 1_000).await.unwrap().unwrap();
+        assert_eq!(pressured.ceiling, Some(NodeCeiling::DiskPressure));
+        assert_eq!(NodeCeiling::DiskPressure.reason(), "node_disk_pressure");
+        assert_eq!(
+            facts(cloud, 1_000).await.unwrap().unwrap().preferred_peer,
+            None
         );
         // Host-native nodes carry no placement facts.
         assert_eq!(facts(Uuid::new_v4(), 1_000).await.unwrap(), None);

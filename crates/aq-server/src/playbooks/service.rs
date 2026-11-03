@@ -90,22 +90,37 @@ impl Service {
     ) -> Result<Self> {
         Self::with_profile(state, namespace, keys, CatalogProfile::HumanReview2).await
     }
-    /// Explicit D4 host catalog (profile 3) for a new namespace/generation.
+    /// Explicit D4 host catalog (profile 5) for a new namespace/generation.
     /// The graph port is the gateway in production and a fake in tests.
-    pub async fn new_host3(
+    pub async fn new_host5(
         state: &crate::AppState,
         namespace: Namespace,
         keys: Arc<Keyring>,
         graph: Arc<dyn super::host_adapters::WorkGraph>,
     ) -> Result<Self> {
-        let mut service = Self::with_profile(state, namespace, keys, CatalogProfile::Host3).await?;
+        let mut service = Self::with_profile(state, namespace, keys, CatalogProfile::Host5).await?;
         service.host = Some(Arc::new(super::host_adapters::HostPorts {
             state: state.clone(),
             graph,
         }));
         Ok(service)
     }
-    async fn with_profile(
+    /// Profile 2 plus delivery of confirmed graph operations as typed events.
+    pub async fn new_profile3(
+        state: &crate::AppState,
+        namespace: Namespace,
+        keys: Arc<Keyring>,
+    ) -> Result<Self> {
+        Self::with_profile(state, namespace, keys, CatalogProfile::GraphEvents3).await
+    }
+    pub async fn new_profile4(
+        state: &crate::AppState,
+        namespace: Namespace,
+        keys: Arc<Keyring>,
+    ) -> Result<Self> {
+        Self::with_profile(state, namespace, keys, CatalogProfile::SettlementEvents4).await
+    }
+    pub(crate) async fn with_profile(
         state: &crate::AppState,
         namespace: Namespace,
         keys: Arc<Keyring>,
@@ -125,7 +140,7 @@ impl Service {
                     .application_name("aq-playbook-bridge"),
             )
             .await?;
-        let reviews = if profile == CatalogProfile::HumanReview2 {
+        let reviews = if profile.has_reviews() {
             Some(Arc::new(crate::reviews::Service::new(
                 state.clone(),
                 keys.clone(),
@@ -946,6 +961,21 @@ impl Service {
             return Err(Error::Conflict);
         }
         sqlx::query("UPDATE playbook_outbox SET status='engine_accepted',engine_receipt=$4,fanout_complete=fanout_complete OR $5 WHERE namespace_id=$1 AND generation=$2 AND event_id=$3").bind(self.namespace.namespace_id).bind(self.namespace.generation).bind(id).bind(stable).bind(fanout_complete).execute(&mut *tx).await?;
+        if producer == super::review_domain::GRAPH_PRODUCER {
+            // The engine has durably accepted this exact event key; only now is
+            // the graph outbox row delivered. The owner route keeps the row.
+            sqlx::query("UPDATE agent_graph_outbox SET delivered=true WHERE event_id=$1")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+        }
+        if producer == super::review_domain::SETTLEMENT_PRODUCER {
+            sqlx::query("SELECT set_config('aq.settlement_owner','aq.settlement-owner.1',true)")
+                .execute(&mut *tx)
+                .await?;
+            sqlx::query("UPDATE profiled_task_completions SET outbox_acknowledged=true WHERE operation_id=$1 AND state='confirmed' AND NOT outbox_acknowledged")
+                .bind(id).execute(&mut *tx).await?;
+        }
         tx.commit().await?;
         Ok(())
     }
@@ -1026,7 +1056,7 @@ impl Service {
         self.reviews.clone()
     }
     fn decision_input(&self, intent: &Intent) -> Result<super::review_domain::DecisionInput> {
-        if self.profile != CatalogProfile::HumanReview2
+        if !self.profile.has_reviews()
             || intent.command != super::review_domain::decision_contract()
         {
             return Err(Error::Forbidden);
@@ -1265,7 +1295,7 @@ impl Service {
         revision: i64,
         intent: &Intent,
     ) -> Result<DecisionResult> {
-        if self.profile != CatalogProfile::HumanReview2
+        if !self.profile.has_reviews()
             || intent.command != super::review_domain::operation_contract()
             || intent.input_digest != digest(&intent.input)?
         {
@@ -1491,6 +1521,80 @@ impl Service {
         tx.commit().await?;
         Ok(rows.len())
     }
+    /// Bounded seal of undelivered confirmed graph operations bound to this
+    /// namespace's project into the engine outbox. `delivered` is set only by
+    /// `acknowledge_event`, after durable engine acceptance; a crash between
+    /// seal and ACK replays the same sealed event and the engine dedups on
+    /// (producer, epoch 0, event_id).
+    pub(super) async fn collect_graph_events(
+        &self,
+        owner: &RuntimeOwner,
+        limit: u32,
+    ) -> Result<usize> {
+        if !matches!(
+            self.profile,
+            CatalogProfile::GraphEvents3 | CatalogProfile::SettlementEvents4
+        ) {
+            return Ok(0);
+        }
+        if !(1..=2).contains(&limit) {
+            return Err(Error::Invalid);
+        }
+        let producer = super::review_domain::GRAPH_PRODUCER;
+        let mut tx = self.tx().await?;
+        let ns = self.namespace_locked(&mut tx).await?;
+        self.runtime(&ns, owner)?;
+        let rows = sqlx::query("SELECT o.event_id,g.operation_id,g.attempt_id,b.binding->>'task_id' AS task_id FROM agent_graph_outbox o JOIN agent_graph_operations g ON g.operation_id=o.operation_id JOIN agent_launch_bindings b ON b.attempt_id=g.attempt_id WHERE NOT o.delivered AND g.phase='confirmed' AND b.binding->>'project_id'=$1 AND b.binding->>'workspace_id'=$2 AND NOT EXISTS(SELECT 1 FROM playbook_outbox p WHERE p.namespace_id=$3 AND p.generation=$4 AND p.event_id=o.event_id) ORDER BY g.operation_seq LIMIT $5")
+            .bind(self.namespace.project_id.to_string())
+            .bind(self.namespace.workspace_id.to_string())
+            .bind(self.namespace.namespace_id)
+            .bind(self.namespace.generation)
+            .bind(limit as i64)
+            .fetch_all(&mut *tx)
+            .await?;
+        let c = super::review_domain::graph_operation_event();
+        let fingerprint = c.fingerprint().map_err(|_| Error::Invalid)?;
+        for row in &rows {
+            let id: Uuid = row.get("event_id");
+            let operation: Uuid = row.get("operation_id");
+            let attempt: Uuid = row.get("attempt_id");
+            let task: Uuid = row
+                .get::<Option<String>, _>("task_id")
+                .and_then(|t| t.parse().ok())
+                .ok_or(Error::Conflict)?;
+            let at = self.now()?;
+            let event = EventEnvelope {
+                producer: producer.into(),
+                event_id: id.to_string(),
+                contract: ContractRef {
+                    name: c.name.clone(),
+                    fingerprint: fingerprint.clone(),
+                },
+                scope: "project".into(),
+                correlation: BTreeMap::from([("operation".into(), operation.to_string())]),
+                subject: None,
+                revision: None,
+                causation: None,
+                occurred_at_ms: None,
+                observed_at_ms: Some(at),
+                payload: json!({"operation_id":operation,"task_id":task,"attempt_id":attempt}),
+            };
+            aq_playbook_host::model::validate_event(&event, &self.profile.registry())
+                .map_err(|_| Error::Invalid)?;
+            let digest = digest(&event)?;
+            let bytes = canonical_bytes(&event).map_err(|_| Error::Invalid)?;
+            let sealed = self
+                .keys
+                .seal(&self.aad("aq.playbooks.outbox", id, &digest)?, &bytes)
+                .map_err(|_| Error::Unknown)?;
+            self.budget(&mut tx, 0, 0, 0, 1, sealed.ciphertext.len() as i64 + 4096)
+                .await?;
+            sqlx::query("INSERT INTO playbook_outbox(namespace_id,generation,producer,epoch,event_id,event_digest,sealed_version,key_id,nonce,ciphertext,created_at_ms,status) VALUES($1,$2,$3,0,$4,$5,$6,$7,$8,$9,$10,'pending')").bind(self.namespace.namespace_id).bind(self.namespace.generation).bind(producer).bind(id).bind(digest).bind(sealed.version as i32).bind(sealed.key_id).bind(sealed.nonce).bind(sealed.ciphertext).bind(at).execute(&mut *tx).await?;
+        }
+        Self::owner(&mut tx, self.namespace.owner_user_id).await?;
+        tx.commit().await?;
+        Ok(rows.len())
+    }
 }
 
 #[path = "inspection/admissions.rs"]
@@ -1498,3 +1602,6 @@ mod inspection_admissions;
 
 #[path = "inspection/catalog_auth.rs"]
 mod catalog_auth;
+
+#[path = "settlement_events.rs"]
+mod settlement_events;

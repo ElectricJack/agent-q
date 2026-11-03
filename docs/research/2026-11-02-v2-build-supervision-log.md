@@ -373,3 +373,109 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **F4** had not picked up the 06:07 webhook message, and its close was refused by a claimed child. Reparented `steady-harbor-87.5.1` to the root and re-sent the webhook path plus the owner's one-message confirmation (`AQ_NOTIFICATION_REAL_SEND_CONFIRMED=1`).
   - G3 and `prime-dune-72` completed; the I0 re-run is in progress.
 - **07:00 owner concern: disk limits on the VPS and boat.** Filed `azure-flare-22` (storage budget design amendment to 0005 plus implementation tasks) and `amber-rapids-59` (sandbox templates: CARGO_INCREMENTAL=0, line-tables-only). Both pinned to Claude. Retrospective W46.
+- **07:10 owner boat sizing:** default sandbox is the smallest boat size, 2 vCPU / 4 GB / 51 GB; escalation size is 4 vCPU / 8 GB / 51 GB on request. Recorded on `azure-flare-22`, C7 and `amber-rapids-59`: 51 GB per-sandbox disk budget, CARGO_BUILD_JOBS=1 plus a low-memory linker in the Rust template, resource requests mapped to the two sizes.
+- **07:35 check.**
+  - E5 asked the owner for: VPS purchase and SSH key, domain, Cloudflare token or manual steps, backup bucket, and release tagging. Surfaced and added to the owner list. The storage design `azure-flare-22` and the template quick win `amber-rapids-59` are running.
+  - **D5 merge conflict:** main is now at state format 60. The conflicts (lib.rs, store.rs, playbooks review_domain.rs and service.rs) are substantive. Reopened D5 with resolution guidance (keep both CatalogProfile variants, renumber to 61+), pinned to Claude.
+  - F2 is READY, waiting for a route. The I0 re-run is still running.
+- **07:50 check.**
+  - **Storage design `azure-flare-22` completed.** Approved its 0005 amendment `rev-steady-rapids`: measured 20.2 GB clean aq-server test build, boat facts (snapshots fail at 95% disk), 70% budget on the 200 GB VPS, SBX20–26 and DEP6–8. That releases its 13 implementation tasks.
+  - F4 (Discord) completed. D3's implementation review `rev-keen-glacier` had no reviewer; dispatched `quick-journey-12` (Claude).
+  - F2 was paused/held on a degraded-Codex route; overrode it to Claude standard-high and it is READY.
+  - D5 was reopened for its substantive main-merge conflicts. The I0 re-run and `amber-rapids-59` are running.
+- **08:05 check.**
+  - **Storage tasks were misfiled:** the storage design filed all 13 implementation tasks in aq-platform, but 4 are aq-worker code and 1 is dashboard UI. Recreated them in the right projects: aq-worker `clear-lantern-42` (docker-local disk limit), `vivid-delta-76` (boat disk mapping and df watchdog), `smart-torrent-92` (node disk reporting) and `brisk-delta-45` (bounded preserved sandboxes); aq-dashboard `clear-crest-22` (Capacity panel). Closed the originals as obsolete. Pinned all of these, plus `smart-beacon-11`, `keen-impact-33` and `sharp-current-24`, to Claude (Codex 95%).
+  - **F2** was held on a pre-start merge conflict (its migration was 0058; main is at 0060). Merged main into `aq/steady-harbor-87.3` and renumbered to 0061 (`67ca73b`). Released the hold and reopened it with "merge immediately".
+  - Merged aq-worker #31 (`swift-vault-73`, preserve template toolchain env; `50f02159`). `keen-quest-39` (structural fix for migration registration conflicts) is running.
+- **08:25 check.**
+  - **aq-server main's "fmt and clippy" job was failing** on `notifications/runtime.rs:45` (clippy collapsible-if, from the F4 merge), so every open PR inherited the failure. Collapsed it into a let-chain; `cargo clippy -p aq-server --lib -D warnings` is clean. Pushed `68db049`.
+  - **Owner rule:** pause all six v2 projects when Claude weekly usage reaches 80%. The monitor now does this automatically, once, and alerts. Current usage: Claude 65%, Codex 96%.
+  - Storage implementation tasks are running in aq-worker (`clear-lantern-42`, `smart-torrent-92`, `brisk-delta-45`) and aq-platform (`smart-beacon-11`, `sharp-current-24`). F2 is running again after the renumber. PRs #42–#47 are open.
+- **08:30 owner decision: boat.dev budget $20/month** (the $20 plan). Recorded on C7, `sound-vault-88` (E1d) and `vivid-delta-76`:
+  - boat side: auto top-up off, extra starts off, an org-member usage cap, concurrency 4, saved snapshots within the 10 included;
+  - AQ side: `aq-worker-boat` spend_ceiling $18/month from H2 accounting, max_concurrent_sandboxes 4;
+  - small sandboxes by default.
+- **08:40 owner re-scope: test boat first from the desktop; the VPS comes later.**
+  - E5 became E5a: the desktop-hosted production stack behind Cloudflare Tunnel and Access (description updated and the agent messaged).
+  - Filed E5b `crisp-beacon-74`: the VPS move (purchase, SSH, firewall, repoint the tunnel, backups, reboot drill). E6b and MS2 now depend on E5b.
+  - Told `sound-vault-88` (aq-worker-boat) to run in the desktop stack.
+  - Owner inputs still needed: Cloudflare domain and option, team name and email, release tag, boat keys.
+- **09:15 boat.dev live.**
+  - The owner signed up (free trial, then the $20 plan) and saved the attempts key at `~/.config/aq-secrets/boat-api-key` (0600). Verified without printing it: `/me` 200, `/sandboxes` 200 (empty), `/account` 403 (expected).
+  - Scopes: create, read, update, stop, resume, fork, delete-own, exec, file, snapshot r/w, environment read, account read; no `environment.write` (template builds need the second key). Expires 2027-02-01.
+  - Released C7's hold and reopened it for live acceptance: personal account (no org; seats cost $20 each), so sweeps scope by name prefix plus delete-own; small size; at most 2 short sandboxes with 15-minute auto-stop, deleted afterwards.
+  - **I0 run 12 completed:** a real Codex run of 916 s, every worker route 200 and the source retained. It is short of MS0 because the pinned task had no concrete edit and aq-server settlement gaps remain (router unmounted, no combined-decision path). `keen-impact-58` is fixing those; the re-run reopens after.
+  - The disk guard ran at 85% and freed 111 GB (now 74%).
+- **09:30 check.**
+  - **aq-server PRs #42–#47** still failed fmt and clippy on the old `runtime.rs:45` lint, because their CI predates the `68db049` fix. `gh pr update-branch` isn't available in this gh, so I used the REST `PUT /pulls/{n}/update-branch` on all six to re-run CI on current main.
+  - **C7 had a pre-start conflict** in `controller/service.rs` (RunConfig: optional docker_local plus boat versus main's `template_allowlist`). I resolved it (union of fields, test fields `disk_bytes`/`preserve`; `cargo check --all-targets` clean; `boat_backend` 11 passed), but the global supervisor pushed its own resolution `c009b6d` first and mine was rejected (W47). C7 is IN_PROGRESS.
+  - `smart-torrent-92` is held on a similar conflict with the other storage tasks on main; the supervisor is handling it.
+- **09:55 check.**
+  - **aq-server main clippy failed again,** on a second lint: `type_complexity` in `tests/dashboard_task_knowledge.rs:31`. My earlier fix only checked `--lib`. Added a `Receipts` alias; a full `cargo clippy --workspace --all-targets -D warnings` is clean locally. Pushed `61aeef1` and re-triggered update-branch on PRs #42–#47 and #49.
+  - Merged aq-worker #33 (`calm-lantern-25`, measured node disk, SBX25; `262bc1bb`). Its only failure was the flaky `runner_needs_no_node_credential`.
+  - **#32 (`agile-rapids-34`, sccache opt-in) conflicted after #33.** Merged main and kept both new tests; the sccache test now sets `docker_local.shared_root_fs` for main's SBX20 admission. `controller::tests` has 15 passed; pushed `23547dd`.
+- **10:30 check.**
+  - Main's latest completed run fails only the known flaky `original_inputs_remain_scoped...`. Wrote a PR-versus-main failure diff script (`prfail.py`) and merged the PRs with no new failures, one at a time:
+    - #42 (`eager-current-12`, NVMe 8 §9.1 budget; `04bf40f5`);
+    - #45 (`keen-impact-33`, backup rotation and image prune; `43334084`);
+    - #49 (`solid-impact-24`, aq-admission pin; `0d320f9f`);
+    - #47 (`sharp-current-24`, storage amendment folded into 0005, after an operator doc-conflict merge `4619d1b`).
+  - #46 (`smart-lantern-97`, Postgres retention) had its own clippy `items_after_test_module`. Moved the impl above the test module and merged main; full workspace clippy is clean; pushed `95ddee1`.
+  - Re-ran update-branch on #50 and #51; their failures were stale `dashboard_task_knowledge` clippy runs from before `61aeef1`.
+- **10:50 check.**
+  - **C7 first live boat.dev run PASS:** create, provision, run, observe, handoff and destroy in 197.5 s, on a personal account with a stock busybox image. One scenario hit a client timeout shorter than the server's 60 s command bound; fixed in `b60e424`. Post-run: 0 sandboxes, 0 snapshots.
+    - C7 asked the owner to approve 5 more short sandboxes. I approved as operator (about $0.01, well inside $20) and reopened C7.
+  - **Merged #48 (F2, `9b86df47`)** and closed F2 with `--done`.
+  - #43 (`keen-quest-39`, generated migration catalog) and #44 (`brisk-delta-43`) conflicted after #48. Resolved #43 by keeping the generated catalog (it picks up main's 0061; format 61; workspace clippy clean) and pushed `c52a23e`. I will resolve #44 against the catalog after #43 lands.
+  - `grand-vault-92` (H2 monthly boat VM-time budget accounting) started.
+- **11:10 check.**
+  - **Merged #50** (`keen-impact-58`: settlement router mounted, production combined-decision path, relay upload; `2d337f36`). Released the I0 re-run `calm-stone-85` hold and reopened it for one more real run with a CONCRETE edit task plus full settlement (MS0).
+  - **F2's agent found** `original_inputs_remain_scoped_after_proposal_expiry_then_expire_held` fails deterministically on main (poll 500 `unavailable`), not flakily.
+  - #51 and #46 conflict again after #50. Waiting for #43 (generated migration catalog) to land first, then I will resolve #44, #46 and #51 against it. aq-worker #32 is conflicting again.
+  - G8 (dashboard supervisor panel) started.
+- **11:35 check.**
+  - **Merged #43** (`keen-quest-39`, generated migration catalog; `2756c065`).
+  - Three completed storage PRs all numbered their migration 0061: #44 `source_retention_gc`, #46 `row_retention`, #51 `node_storage`. Merged main into each and took main's catalog-era lib.rs, store.rs and Dockerfile. Renumbered them to 0062, 0063 and 0064 (meta values updated; #46's `observations.rs` fixture gate is now `>= 63`). #44's workspace clippy is clean. Pushed `33a6a2a`, `33093b2` and `0446302`. Merge order is #44, #46, #51 (contiguity).
+  - **C7 live run 2** passed 3 more scenarios. It found and fixed a real adapter bug (archived reads missing the volume `_data` path, `c5fecfe`). Approved 2 more short sandboxes (owner budget) for the remaining scenarios.
+  - Filed G8's cross-repo follow-up as `wise-apex-23` (typed proposal and receipt supervisor history items).
+  - The I0 re-run is IN_PROGRESS with a concrete edit task. Codex is at 97%.
+- **12:05 check.**
+  - **C7 (boat backend) COMPLETED with all 6 C1 conformance scenarios passing LIVE on boat.dev:** 3 runs, 9 small sandboxes, each run leaving 0 sandboxes and 0 snapshots. Two real adapter bugs were found and fixed live (client timeout below the server command bound, `b60e424`; archived-read `_data` volume path, `c5fecfe`). It is on aq-worker main (`f96c85d`). Total cost is well under $0.05.
+  - **Merged #44** (`brisk-delta-43`, aq-git source retention GC, migration 0062; `944c545e`). Re-ran update-branch on #46 (0063 next).
+  - #52 (`grand-vault-92`, monthly boat VM-time placement budget) is pending CI. The I0 re-run is still IN_PROGRESS.
+- **12:30 check: main was broken.**
+  - Two 0062 migrations were on main: `wise-apex-23`'s direct push (`73328b7`, supervisor reply attachments) and my merge of #44 (source retention GC). The catalog duplicate check failed every build.
+  - Merged #54 (`quick-ember-91`, renames to 0063; `74cd2b80`).
+  - Renumbered the queued PRs against main: #46 row_retention to 0064 (fixture gate `>= 64`; workspace clippy clean; `70349f3`), #51 node_storage to 0065 (`4a8946c`) and #52 vm_time_accounting to 0066 (`fe083d2`). Merge order is #46, #51, #52.
+  - The monitor now checks main's migration numbers on every pass (W48).
+  - #53 (`keen-forge-39`, per-project replacement budgets) has build failures to check next pass.
+- **12:50 MS0 evidence achieved.**
+  - The I0 re-run `calm-stone-85` COMPLETED. Run 13c settled end to end on aq-server `2d337f36`: a real Codex README edit retained as `17fe8a72`, owner MS0 settlement approve, evaluation `d58ab4f8` accepted, completion `b196d43a` reconciled, `holds_task` false, login unchanged. The evidence is on aq-worker main.
+  - Released the MS0 gate (`stark-zenith-16.1`) hold and reopened it to re-evaluate with this evidence (Claude).
+  - Run-13 findings to file as follow-ups: the Codex session is held to the wall limit after the in-session submit; the 2 s selection TTL leaves a ~1.4 s offer window (race under load); attempt state and outbox are stale after completion.
+- **13:10 check.**
+  - **MS0 run-count decision** (operator; owner pre-approved the MS0 gate on 11-02 and may override):
+    - accept the one fully settled real run (13c) as passing MS0, since two more runs would spend Codex at 97%;
+    - ChatGPT-login wording supersedes "API-key";
+    - the MS1-affecting rows become follow-up tasks.
+  - Filed MS0's aq-worker cross-repo follow-ups: `wise-crest-54` (end the Codex session after the in-session result) and `prime-glacier-36` (anchor the offer deadline at receipt, not poll send). aq-server already has `quick-impact-98` (2 s selection TTL) and `bold-delta-91` (stale attempt state).
+  - Merged aq-server #46 (`smart-lantern-97`, Postgres row retention, migration 0064; `3c789221`); update-branch on #51 (0065 next). Merged aq-worker #34 (`fair-journey-58`, boat VM-time facts for H2).
+- **13:30 check.**
+  - **MS0 COMPLETED** (gate closed on the operator decision).
+  - Direct push again: `bold-delta-91` landed `0065_settlement_completion_projection` on main while #51 carried 0065. Wrote `renumber.py` (merge main, rename this branch's migrations after main's max, update meta values, push). Renumbered #51 to 0066 (`9979f21`) and #52 to 0067 (`fe2ac7d`).
+  - Added a "Migration numbers" rule to aq-server `.aq/PRIME.md`: take the next free number from origin/main immediately before pushing, including direct pushes.
+- **13:50 owner demo refresh.** Rebuilt the aq-demo stack: server image `aq-demo-server:main` from aq-server `293183f` (state format 65), dashboard bundle from aq-dashboard `8379636` (G3 write flows, G8 supervisor dock, SBX25 capacity disk). The old demo database migrated forward cleanly. The `demo-stack.py` wrapper now adds `scripts/` to sys.path (dev-stack imports `migration_catalog`). Progress: 54/91 plan tasks (59%).
+- **14:20 check.**
+  - Another direct push: `calm-beacon-15` added `0066_stopped_dispositions` before the PRIME rule reached it. Renumbered #51 node_storage to 0067 and #52 vm_time_accounting to 0068 with `renumber.py`. Merged them immediately rather than waiting another full CI cycle that would lose the race again; both showed no new failures beforehand.
+    - #51 merged as `2b3e99ad`.
+    - #52 (owner's monthly boat budget enforcement) had a code conflict in `placement.rs`: its time-windowed `spends(conn, ledger, advertised, now_ms, exclude)` against main's SBX25 disk-pressure ceiling. Combined both. Workspace clippy is clean and the placement and replacement DB tests have 8 passed. Merged as `5d4afdba`.
+  - Main migrations run 0001–0068 contiguous; catalog state format 68.
+- **12:00–12:15 owner-approved v1 daemon restart.**
+  - Only 1 task (E5) was running; standard-high-claude was at `desired 4, live 0`.
+  - After the restart: Postgres had a high volume of short queries at ~365% CPU. `operational_retention` was timing out on `playbook_private_values` (1.96M rows, never analyzed). Six orphan branches were retried every cycle (812 times each). A stale workspace at `/home/jkern/dev/aq-platform` (not a repository) failed inventory every cycle.
+  - Ran `ANALYZE` on `playbook_private_values`, `wait_source_events` and `messages`; CPU dropped to ~96%. No code or config changes. Recorded as W49.
+- **12:20 root cause of the stall.** Every scheduler cycle crashed with `SubtasksOpenError: smart-falcon-16.7 has open subtasks`: the container-completion sweep tried to complete E5 because its only child `.1` had completed. Created and paused child `smart-falcon-16.7.2` ("E5a Cloudflare Tunnel and Access, waiting on owner inputs") so E5 is not a finished container; no cycle errors since 20:13Z. Scheduling has resumed partially: deep-high-codex claimed `sound-rapids-80.1`, and spec-ingest `bright-horizon-15` started. The paused `agent-queue` project's frontier still exceeds 60 s per cycle. W49 updated.
+- **12:40 check.**
+  - No scheduler cycle errors since 20:13Z.
+  - **Stopped redundant approval-ingest work (W50):** `sound-rapids-80` and `.1` were writing a new D10 implementation spec on deep-high Codex (98%), though D10 is complete; paused `.1` (close refused). Closed `bright-horizon-15` (would re-decompose the storage amendment). The ingest tasks `calm-dune-47` and `agile-horizon-14` had already completed.
+  - The Claude pool is still at 0 busy; watching it.

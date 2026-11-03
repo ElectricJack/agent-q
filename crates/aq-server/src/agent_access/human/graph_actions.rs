@@ -10,6 +10,7 @@ use crate::dashboard_api::{
     errors::ApiError,
 };
 use async_trait::async_trait;
+use axum::http::StatusCode;
 use schemars::JsonSchema;
 use std::collections::{BTreeMap, BTreeSet};
 mod journal;
@@ -20,6 +21,7 @@ type ApiResult<T> = std::result::Result<T, ApiError>;
 pub(crate) struct Current<'a> {
     pub(crate) subject: Uuid,
     pub(crate) actor: Uuid,
+    pub(crate) supervisor_actor: Option<Uuid>,
     pub(crate) project: Uuid,
     pub(crate) version: u64,
     pub(crate) node: &'a Value,
@@ -424,18 +426,48 @@ impl GraphPayload for KnowledgeRestore {
 
 pub(crate) struct GraphAction<P> {
     runtime: Arc<ReadRuntime>,
+    supervisor: Option<super::super::supervisor_conversation::reply::SupervisorPrincipal>,
     payload: std::marker::PhantomData<P>,
 }
 impl<P> GraphAction<P> {
+    pub(super) fn for_supervisor(
+        state: &AppState,
+        principal: super::super::supervisor_conversation::reply::SupervisorPrincipal,
+    ) -> Self {
+        let mut adapter = Self::new(state);
+        adapter.supervisor = Some(principal);
+        adapter
+    }
+    async fn project(&self, state: &AppState, user: &User, project: Uuid) -> Result<ProjectRecord> {
+        if let Some(principal) = &self.supervisor {
+            if user.id != principal.session_id || !principal.scopes.iter().any(|s| s == "enqueue") {
+                return Err(invalid());
+            }
+            let record = project_bindings::current(state, project).await?;
+            if record.binding.graph_workspace_id.is_nil()
+                || record.binding.graph_adapter_reference != "aq.graph.configured"
+            {
+                return Err(unavailable());
+            }
+            Ok(record)
+        } else {
+            Ok(access(state, &self.runtime, user.clone(), project)
+                .await?
+                .record)
+        }
+    }
     pub(crate) fn new(state: &AppState) -> Self {
         Self {
             runtime: Arc::new(ReadRuntime::new(state)),
+            supervisor: None,
             payload: std::marker::PhantomData,
         }
     }
 }
 
 pub(crate) fn register(state: &AppState, r: &mut Registry) {
+    r.register(GraphAction::<super::enqueue::GraphCreate>::new(state))
+        .expect("graph create adapter");
     r.register(GraphAction::<TaskEdit>::new(state))
         .expect("task edit adapter");
     r.register(GraphAction::<TaskReprioritize>::new(state))
@@ -456,6 +488,8 @@ pub(crate) fn register(state: &AppState, r: &mut Registry) {
         .expect("knowledge restore adapter");
 }
 pub(crate) fn schemas(r: &mut Registry) {
+    r.register_schema::<GraphAction<super::enqueue::GraphCreate>>()
+        .expect("graph create schema");
     r.register_schema::<GraphAction<TaskEdit>>()
         .expect("task edit schema");
     r.register_schema::<GraphAction<TaskReprioritize>>()
@@ -613,18 +647,41 @@ impl<P: GraphPayload> ActionKind for GraphAction<P> {
         {
             return Err(ApiError::invalid());
         }
-        admit(
-            state,
-            &self.runtime,
-            user,
-            request,
-            payload.operation_id(),
-            payload.project_id(),
-            P::ENTITY,
-            payload.expected(),
-            &payload.tasks(),
-        )
-        .await?;
+        if self.supervisor.is_none() {
+            admit(
+                state,
+                &self.runtime,
+                user,
+                request,
+                payload.operation_id(),
+                payload.project_id(),
+                P::ENTITY,
+                payload.expected(),
+                &payload.tasks(),
+            )
+            .await?;
+        } else if request.operation_id != payload.operation_id()
+            || version(payload.expected()).is_none()
+            || existing::subject(request, P::ENTITY, P::ENTITY, payload.expected())?
+                != payload.project_id()
+        {
+            return Err(ApiError::invalid());
+        }
+        if self.supervisor.is_some() || P::KIND == "task.graph.create" {
+            let record = self
+                .project(state, user, payload.project_id())
+                .await
+                .map_err(ApiError::from)?;
+            let rt = runtime(state).map_err(ApiError::from)?;
+            for id in payload.tasks() {
+                let node = current(rt, record.binding.graph_workspace_id, id, "task")
+                    .await
+                    .map_err(ApiError::from)?;
+                if node["metadata"]["aq:project_id"] != json!(payload.project_id()) {
+                    return Err(ApiError::for_status(StatusCode::FORBIDDEN));
+                }
+            }
+        }
         Ok(Scope::Project {
             project_id: payload.project_id(),
         })
@@ -636,7 +693,23 @@ impl<P: GraphPayload> ActionKind for GraphAction<P> {
         scope: &Scope,
         operation: Option<&actions::Operation>,
     ) -> ApiResult<()> {
-        lookup(state, &self.runtime, user, scope, operation, P::ENTITY).await
+        if self.supervisor.is_none() {
+            return lookup(state, &self.runtime, user, scope, operation, P::ENTITY).await;
+        }
+        let Scope::Project { project_id } = scope else {
+            return Err(ApiError::invalid());
+        };
+        self.project(state, user, *project_id)
+            .await
+            .map_err(ApiError::from)?;
+        if operation.is_some_and(|op| {
+            op.subject_refs.len() != 1
+                || op.subject_refs[0].entity_type != "project"
+                || op.subject_refs[0].id != project_id.to_string()
+        }) {
+            return Err(ApiError::invalid());
+        }
+        Ok(())
     }
     async fn reconcile(
         &self,
@@ -651,7 +724,8 @@ impl<P: GraphPayload> ActionKind for GraphAction<P> {
             // Pre-journal operations have no exact body to replay safely.
             return Ok(None);
         };
-        let a = access(state, &self.runtime, user.clone(), intent.project)
+        let record = self
+            .project(state, user, intent.project)
             .await
             .map_err(ApiError::from)?;
         let rt = runtime(state).map_err(ApiError::from)?;
@@ -659,8 +733,8 @@ impl<P: GraphPayload> ActionKind for GraphAction<P> {
             != (Scope::Project {
                 project_id: intent.project,
             })
-            || a.record.revision != intent.revision
-            || json!(a.record.binding) != intent.binding
+            || record.revision != intent.revision
+            || json!(record.binding) != intent.binding
             || super::super::settlement_service_identity(rt, intent.workspace)
                 .ok()
                 .as_ref()
@@ -707,11 +781,11 @@ impl<P: GraphPayload> GraphAction<P> {
         let subject: Uuid = request.subject.id.parse().map_err(|_| invalid())?;
         let expected = version(payload.expected()).ok_or_else(invalid)?;
         let project = payload.project_id();
-        let a = access(state, &self.runtime, user.clone(), project).await?;
-        let workspace = a.record.binding.graph_workspace_id;
+        let record = self.project(state, user, project).await?;
+        let workspace = record.binding.graph_workspace_id;
         let rt = runtime(state)?;
         let (node, live) = if P::ENTITY == "project" {
-            (Value::Null, a.record.revision)
+            (Value::Null, record.revision)
         } else {
             let raw = current(rt, workspace, subject, P::ENTITY).await?;
             let v = raw["version"].as_u64().ok_or_else(unavailable)?;
@@ -724,6 +798,7 @@ impl<P: GraphPayload> GraphAction<P> {
             .operations(&Current {
                 subject,
                 actor: user.id,
+                supervisor_actor: self.supervisor.as_ref().map(|p| p.actor_id),
                 project,
                 version: live,
                 node: &node,
@@ -742,7 +817,7 @@ impl<P: GraphPayload> GraphAction<P> {
         // Integer-only canonical hashing belongs to the action request boundary.
         let bytes = serde_json::to_vec(&body).map_err(|_| invalid())?;
         let service = super::super::settlement_service_identity(rt, workspace)?;
-        journal::retain(state, user, id, &a.record, &service, &bytes).await?;
+        journal::retain(state, user, id, &record, &service, &bytes).await?;
         // From here an error is an unknown effect, never a rejection.
         let posted = tokio::time::timeout(
             Duration::from_secs(3),

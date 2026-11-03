@@ -1,4 +1,4 @@
-//! D5 host adapters for catalog profile 3 (vendored D4 host catalog 1.0.0):
+//! D5 host adapters for catalog profile 5 (vendored D4 host catalog 1.0.0):
 //! context.read, work.ensure, work.change and operation.cancel.
 //!
 //! Every adapter persists the AQ intent (namespace, Intent.id, contract
@@ -73,7 +73,7 @@ pub struct HostResult {
     pub output: Value,
 }
 
-pub const HOST3_COMMANDS: [&str; 4] = [
+pub const HOST5_COMMANDS: [&str; 4] = [
     "context.read",
     "work.ensure",
     "work.change",
@@ -107,7 +107,7 @@ fn node_version(node: &Value) -> Result<i64> {
 
 impl Service {
     fn ports(&self) -> Result<&HostPorts> {
-        if self.profile != CatalogProfile::Host3 {
+        if self.profile != CatalogProfile::Host5 {
             return Err(Error::Forbidden);
         }
         self.host.as_deref().ok_or(Error::Forbidden)
@@ -158,7 +158,7 @@ impl Service {
         intent: &Intent,
     ) -> Result<(Transaction<'_, Postgres>, Option<Stage>, String)> {
         self.ports()?;
-        if !HOST3_COMMANDS.contains(&intent.command.name.as_str())
+        if !HOST5_COMMANDS.contains(&intent.command.name.as_str())
             || self.profile.registry().commands.get(&intent.command.name) != Some(&intent.command)
         {
             return Err(Error::Invalid);
@@ -978,7 +978,7 @@ impl Service {
                     None => ("incomplete", subject_id.clone(), 0, String::new(), false),
                 }
             }
-            // No typed health owner is bound to profile 3 yet.
+            // No typed health owner is bound to profile 5 yet.
             _ => ("incomplete", subject_id.clone(), 0, String::new(), false),
         };
         let outcome = if view.0 == "observed" && !asked.is_empty() && asked != view.3 {

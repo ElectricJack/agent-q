@@ -9,19 +9,23 @@ use uuid::Uuid;
 pub enum CatalogProfile {
     Mail1,
     HumanReview2,
-    /// D4 host catalog 1.0.0, vendored and fingerprint-pinned (D5).
-    Host3,
+    /// HumanReview2 plus the confirmed graph-operation event.
+    GraphEvents3,
+    /// GraphEvents3 plus confirmed reviewed-task settlement events.
+    SettlementEvents4,
+    /// D4 host catalog 1.0.0, vendored and fingerprint-pinned (D5), numbered 5 after the main-line event profiles 3 and 4.
+    Host5,
 }
-pub const HOST3_VERSION: &str = "1.0.0";
-pub const HOST3_FINGERPRINT: &str =
+pub const HOST5_VERSION: &str = "1.0.0";
+pub const HOST5_FINGERPRINT: &str =
     "sha256:627125cc393d8274bfaa9ffc785c338e566cc69af362ac027a3daa355c3509e1";
-pub const HOST3_CAPABILITIES: [&str; 4] = [
+pub const HOST5_CAPABILITIES: [&str; 4] = [
     "context.read",
     "work.ensure",
     "work.change",
     "operation.cancel",
 ];
-fn host3_registry() -> Registry {
+fn host5_registry() -> Registry {
     static REGISTRY: std::sync::OnceLock<Registry> = std::sync::OnceLock::new();
     REGISTRY
         .get_or_init(|| {
@@ -30,10 +34,10 @@ fn host3_registry() -> Registry {
             ))
             .expect("vendored D4 host catalog parses");
             assert_eq!(
-                aq_playbook_host::model::digest(&(HOST3_VERSION, &registry))
+                aq_playbook_host::model::digest(&(HOST5_VERSION, &registry))
                     .ok()
                     .as_deref(),
-                Some(HOST3_FINGERPRINT),
+                Some(HOST5_FINGERPRINT),
                 "vendored D4 host catalog fingerprint"
             );
             registry
@@ -45,15 +49,28 @@ impl CatalogProfile {
         match self {
             Self::Mail1 => 1,
             Self::HumanReview2 => 2,
-            Self::Host3 => 3,
+            Self::GraphEvents3 => 3,
+            Self::SettlementEvents4 => 4,
+            Self::Host5 => 5,
         }
     }
+    pub fn has_reviews(self) -> bool {
+        !matches!(self, Self::Mail1 | Self::Host5)
+    }
     pub fn registry(self) -> Registry {
-        if self == Self::Host3 {
-            return host3_registry();
+        if self == Self::Host5 {
+            return host5_registry();
         }
         let mut registry = super::domain::registry();
-        if self == Self::HumanReview2 {
+        if matches!(self, Self::GraphEvents3 | Self::SettlementEvents4) {
+            let event = graph_operation_event();
+            registry.events.insert(event.name.clone(), event);
+        }
+        if self == Self::SettlementEvents4 {
+            let event = task_completed_event();
+            registry.events.insert(event.name.clone(), event);
+        }
+        if self.has_reviews() {
             let decision = decision_contract();
             let operation = operation_contract();
             let event = decision_event();
@@ -67,9 +84,9 @@ impl CatalogProfile {
         if self == Self::Mail1 {
             return scope.validate();
         }
-        if self == Self::Host3 {
+        if self == Self::Host5 {
             let allowed: BTreeSet<String> =
-                HOST3_CAPABILITIES.iter().map(|c| c.to_string()).collect();
+                HOST5_CAPABILITIES.iter().map(|c| c.to_string()).collect();
             if scope.workspace_id.is_nil()
                 || scope.project_id.is_nil()
                 || !scope.recipients.is_empty()
@@ -272,6 +289,67 @@ pub fn operation_contract() -> CommandContract {
         sensitive_output_fields: BTreeSet::new(),
         max_payload_bytes: 65536,
         deadline_ms: 5000,
+    }
+}
+pub const GRAPH_PRODUCER: &str = "aq.graph.operations@1";
+pub const SETTLEMENT_PRODUCER: &str = "aq.task.settlement@1";
+/// The exact retained completion outbox body, keyed by completion operation.
+pub fn task_completed_event() -> EventContract {
+    let revision = || Schema::Integer {
+        minimum: 1,
+        maximum: i64::MAX,
+    };
+    EventContract {
+        name: "task.completed".into(),
+        version: "1".into(),
+        payload: object([
+            ("event_id", Schema::string(36)),
+            ("producer", fixed(SETTLEMENT_PRODUCER)),
+            ("event", fixed("task.completed")),
+            ("attempt_id", Schema::string(36)),
+            ("evaluation_operation_id", Schema::string(36)),
+            ("report", artifact()),
+            ("release_id", Schema::string(36)),
+            (
+                "receipt",
+                object([
+                    ("workspace_id", Schema::string(36)),
+                    ("task_id", Schema::string(36)),
+                    ("change_set_id", Schema::string(36)),
+                    ("version", revision()),
+                    ("content_revision", revision()),
+                    ("response_digest", Schema::string(64)),
+                ]),
+            ),
+        ]),
+        trusted_producers: BTreeSet::from([SETTLEMENT_PRODUCER.into()]),
+        scopes: BTreeSet::from(["project".into()]),
+        correlation_fields: BTreeSet::from(["operation".into()]),
+        subject_field: None,
+        revision_field: None,
+        max_payload_bytes: 8192,
+        retention_ms: 86400000,
+        sensitive_payload_fields: BTreeSet::new(),
+    }
+}
+/// One event per confirmed graph operation; `event_id` is the graph outbox id.
+pub fn graph_operation_event() -> EventContract {
+    EventContract {
+        name: "aq.graph.operation.confirmed".into(),
+        version: "1".into(),
+        payload: object([
+            ("operation_id", Schema::string(36)),
+            ("task_id", Schema::string(36)),
+            ("attempt_id", Schema::string(36)),
+        ]),
+        trusted_producers: BTreeSet::from([GRAPH_PRODUCER.into()]),
+        scopes: BTreeSet::from(["project".into()]),
+        correlation_fields: BTreeSet::from(["operation".into()]),
+        subject_field: None,
+        revision_field: None,
+        max_payload_bytes: 16384,
+        retention_ms: 86400000,
+        sensitive_payload_fields: BTreeSet::new(),
     }
 }
 pub fn decision_event() -> EventContract {

@@ -16,6 +16,9 @@ pub struct Config {
     pub delegated_permits: Option<std::sync::Arc<crate::delegated_permits::CredentialKey>>,
     #[serde(default, deserialize_with = "crate::playbooks::config::deserialize")]
     pub playbooks: Option<std::sync::Arc<crate::playbooks::config::Loaded>>,
+    /// Standalone human review/settlement owner, independent of the policy engine.
+    #[serde(default, deserialize_with = "crate::reviews::deserialize_config")]
+    pub reviews: Option<std::sync::Arc<crate::protected_storage::Keyring>>,
     #[serde(default, deserialize_with = "crate::terminal::config::deserialize")]
     pub terminals: Option<std::sync::Arc<crate::terminal::config::Loaded>>,
     #[serde(
@@ -331,6 +334,7 @@ mod tests {
         Config {
             delegated_permits: None,
             playbooks: None,
+            reviews: None,
             notifications: None,
             profiled_execution: None,
             templates: None,

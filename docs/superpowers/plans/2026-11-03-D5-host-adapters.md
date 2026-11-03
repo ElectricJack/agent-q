@@ -24,11 +24,11 @@ adapters in the embedded playbook host, bound to the pinned D4 catalog
      replay returns the retained result.
    - catalog test: the vendored registry decodes, matches the manifest
      fingerprint and every `fixtures.json` input/output/event case validates
-     (or is refused) through the Host3 registry.
+     (or is refused) through the Host5 registry.
 3. **Registry relaxation** — `aq-playbook-host::validate_registry` admits the
    contract's declared recovery classes (Observation, KeyedIdempotent,
    Reconcilable); `NaturallyIdempotent`/`Unsafe` stay refused.
-4. **Catalog profile 3** (`CatalogProfile::Host3`) — registry is the vendored D4
+4. **Catalog profile 3** (`CatalogProfile::Host5`) — registry is the vendored D4
    registry, verified against the fingerprint; scopes carry only
    `{context.read, work.ensure, work.change, operation.cancel}`; existing
    profile 1/2 namespaces and grants are never widened (namespace stamps are

@@ -5,12 +5,14 @@ use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, fs, path::Path};
 
 const FIXTURES: &str =
-    include_str!("../../../vendor/aq-admission-0.3.2/artifacts/sandbox-v1.fixtures.json");
+    include_str!("../../../vendor/aq-admission-0.3.3/artifacts/sandbox-v1.fixtures.json");
 
 #[test]
 fn permit_fixture_conformance() {
     let fixtures: Vec<Fixture> = serde_json::from_str(FIXTURES).unwrap();
     for required in [
+        "shared_build_cache_supported",
+        "shared_build_cache_disabled",
         "ended_stopped_readopted_original_boot_replay",
         "ended_stopped_readopted_stale_permit",
         "ended_stopped_readopted_forged_permit",
@@ -61,7 +63,7 @@ fn permit_fixture_conformance() {
             ("stopped_replay", 13),
             ("readoption", 5),
             ("replay", 4),
-            ("compatibility", 3),
+            ("compatibility", 5),
             ("registration", 3),
             ("handoff", 4),
             ("renewal", 18),
@@ -77,21 +79,66 @@ fn permit_fixture_conformance() {
     assert_eq!(
         outcomes,
         BTreeMap::from([
-            ("accepted", 28),
+            ("accepted", 29),
             ("binding_mismatch", 30),
             ("deadline_mismatch", 12),
             ("expired", 13),
             ("invalid_shape", 5),
             ("replay_conflict", 11),
             ("scope_denied", 30),
-            ("unsupported_required_capability", 3),
+            ("unsupported_required_capability", 4),
         ])
     );
     let published_schema: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../vendor/aq-admission-0.3.2/artifacts/sandbox-v1.schema.json"
+        "../../../vendor/aq-admission-0.3.3/artifacts/sandbox-v1.schema.json"
     ))
     .unwrap();
     assert_eq!(sandbox::schema(), published_schema);
+}
+
+#[test]
+fn permit_fixture_conformance_shared_build_cache_opt_in() {
+    use sandbox::{BackendCapability, CompatibilityReply};
+
+    let fixtures: Vec<Fixture> = serde_json::from_str(FIXTURES).unwrap();
+    let fixture = fixtures
+        .iter()
+        .find(|f| f.name == "valid_registration")
+        .unwrap();
+    let FixtureCase::Registration { mut registration } = fixture.case.clone() else {
+        panic!("valid_registration must exercise the registration envelope");
+    };
+    let required = vec!["shared-build-cache".to_owned()];
+    let supported = |registration: &sandbox::Registration| -> Vec<String> {
+        registration.validate().unwrap();
+        serde_json::from_value(serde_json::to_value(&registration.backend.capabilities).unwrap())
+            .unwrap()
+    };
+    // Existing nodes do not acquire cache support by upgrading the contract.
+    assert!(
+        !registration
+            .backend
+            .capabilities
+            .contains(&BackendCapability::SharedBuildCache)
+    );
+    assert_eq!(
+        sandbox::negotiate(&required, &supported(&registration)).unwrap(),
+        CompatibilityReply::UnsupportedRequiredCapability {
+            missing: required.clone()
+        }
+    );
+    registration
+        .backend
+        .capabilities
+        .push(BackendCapability::SharedBuildCache);
+    let bytes = serde_json::to_vec(&SandboxDocument::Register(registration)).unwrap();
+    let SandboxDocument::Register(registration) = sandbox::decode_document(&bytes).unwrap() else {
+        panic!("registration must round-trip");
+    };
+    assert_eq!(
+        sandbox::negotiate(&required, &supported(&registration)).unwrap(),
+        CompatibilityReply::Compatible
+    );
 }
 
 #[test]

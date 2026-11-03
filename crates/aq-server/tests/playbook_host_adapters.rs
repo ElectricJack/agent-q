@@ -131,7 +131,7 @@ async fn host(state: &aq_server::AppState, actor: Uuid, workspace: Uuid, project
     })
     .unwrap();
     let graph = Arc::new(FakeGraph::default());
-    let service = Service::new_host3(
+    let service = Service::new_host5(
         state,
         Namespace {
             namespace_id: Uuid::new_v4(),
@@ -185,10 +185,10 @@ impl Host {
             step: name.replace('.', "-"),
             invocation: 1,
             deadline_at_ms: self.now + 5000,
-            command: CatalogProfile::Host3.registry().commands[name].clone(),
+            command: CatalogProfile::Host5.registry().commands[name].clone(),
             input_digest: digest(&input).unwrap(),
             input,
-            authority: CatalogProfile::Host3
+            authority: CatalogProfile::Host5
                 .authority(self.grant, 1, &self.scope)
                 .unwrap(),
             status: IntentStatus::Dispatched,
@@ -424,7 +424,7 @@ async fn operation_cancel_reaches_native_attempt() {
 /// profile-3 registry the host adapters validate against.
 #[test]
 fn host3_registry_runs_vendored_d4_fixtures() {
-    let registry = CatalogProfile::Host3.registry();
+    let registry = CatalogProfile::Host5.registry();
     let fixtures: Value = serde_json::from_str(include_str!(
         "../../../vendor/aq-host-catalog-1.0.0/fixtures.json"
     ))

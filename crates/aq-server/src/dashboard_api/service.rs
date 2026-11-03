@@ -221,6 +221,11 @@ pub(super) async fn bootstrap(
             "Task creation requires an owner account and configured Graph mutation identity",
         ),
         capability(
+            "tasks.graph.create",
+            graph_mutation,
+            "Task graph creation requires an owner account and configured Graph mutation identity",
+        ),
+        capability(
             "tasks.edit",
             graph_mutation,
             "Task edits require an owner account and configured Graph mutation identity",

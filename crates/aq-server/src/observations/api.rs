@@ -14,8 +14,21 @@ pub fn routes(mut state: AppState) -> Router<AppState> {
     state.store = state.store.observation_view();
     Router::new()
         .route("/v1/worker/observations/batch", post(batch))
+        .route("/v1/worker/observations/vm-time", post(vm_time))
         .layer(DefaultBodyLimit::max(MAX_BATCH_BYTES))
         .with_state(state)
+}
+async fn vm_time(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+    ApiJson(fact): ApiJson<aq_accounting::vm_time::Fact>,
+) -> std::result::Result<([(header::HeaderName, &'static str); 1], Json<Value>), AppError> {
+    let node = crate::worker_api::authenticate_context(&state, &headers).await?;
+    super::vm_time::record(&state, &node, &fact).await?;
+    Ok((
+        [(header::CACHE_CONTROL, "no-store")],
+        Json(json!({"recorded": true})),
+    ))
 }
 /// Transport ownership only, not source catalog enrollment or execution authority.
 pub fn transport_routes(mut state: AppState) -> Router<AppState> {

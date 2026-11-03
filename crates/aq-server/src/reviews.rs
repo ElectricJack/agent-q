@@ -24,6 +24,25 @@ pub use inbox::{InboxItem, InboxPage, InboxQuery, InboxState};
 use subject_owner::{Profile as SubjectProfile, Subject as OwnedSubject};
 
 type Result<T> = std::result::Result<T, AppError>;
+/// Load retained review keys before listeners start. Never invent ephemeral keys:
+/// they must also decrypt decisions and settlement receipts after restart.
+pub fn deserialize_config<'de, D: serde::Deserializer<'de>>(
+    deserializer: D,
+) -> std::result::Result<Option<Arc<Keyring>>, D::Error> {
+    #[derive(serde::Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Config {
+        protection: crate::protected_storage::ProtectionConfig,
+    }
+    use serde::Deserialize;
+    Option::<Config>::deserialize(deserializer)?
+        .map(|config| {
+            Keyring::load(&config.protection)
+                .map(Arc::new)
+                .map_err(serde::de::Error::custom)
+        })
+        .transpose()
+}
 fn db(_: sqlx::Error) -> AppError {
     AppError::Internal
 }

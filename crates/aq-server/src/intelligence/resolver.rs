@@ -269,7 +269,9 @@ async fn resolve_with_principal(
             ),
             hard_budget_provider: None,
             observed_at_ms: time,
-            expires_at_ms: time.checked_add(2000).ok_or(AppError::Internal)?,
+            expires_at_ms: time
+                .checked_add(OFFER_SELECTION_TTL_MS)
+                .ok_or(AppError::Internal)?,
         },
         replacement: replacement.map(|r| r.evidence),
         estimates: vec![],
@@ -277,7 +279,8 @@ async fn resolve_with_principal(
         now_ms: time,
         placement,
     };
-    let outcome = select(&catalog, &input).map_err(|_| bad("selection snapshot refused"))?;
+    let outcome =
+        select_for_offer(&catalog, &input).map_err(|_| bad("selection snapshot refused"))?;
     let decision = Decision {
         decision_id: Uuid::new_v4(),
         project: request.project,

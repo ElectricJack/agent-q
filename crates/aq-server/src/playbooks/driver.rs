@@ -45,7 +45,7 @@ impl Host for MailHost {
             .is_ok()
     }
     fn dispatch(&mut self, intent: &Intent) -> DispatchResult {
-        if super::host_adapters::HOST3_COMMANDS.contains(&intent.command.name.as_str()) {
+        if super::host_adapters::HOST5_COMMANDS.contains(&intent.command.name.as_str()) {
             let Ok((id, revision)) = grant_actor(&intent.authority) else {
                 return DispatchResult::Rejected {
                     reason: "grant binding refused".into(),
@@ -155,7 +155,7 @@ impl Host for MailHost {
         if intent.command.name == "operation.get" {
             return self.dispatch(intent);
         }
-        if super::host_adapters::HOST3_COMMANDS.contains(&intent.command.name.as_str()) {
+        if super::host_adapters::HOST5_COMMANDS.contains(&intent.command.name.as_str()) {
             let Ok((id, revision)) = grant_actor(&intent.authority) else {
                 return DispatchResult::Unknown {
                     reason: "grant binding refused".into(),
@@ -202,7 +202,7 @@ impl Host for MailHost {
         let Ok((id, revision)) = grant_actor(&intent.authority) else {
             return CancellationResult::Refused;
         };
-        if super::host_adapters::HOST3_COMMANDS.contains(&intent.command.name.as_str()) {
+        if super::host_adapters::HOST5_COMMANDS.contains(&intent.command.name.as_str()) {
             // Host effects are cancelled through operation.cancel, never by
             // the runner withdrawing an admitted effect.
             return CancellationResult::Refused;
@@ -247,6 +247,11 @@ pub struct Driver {
     gate: tokio::sync::Mutex<i64>,
     automatic: std::sync::atomic::AtomicU8,
     stopped_ack: std::sync::atomic::AtomicBool,
+    /// Set once an installed artifact consumes the exact graph event contract.
+    /// The engine refuses events no installed artifact declares, so collection
+    /// before a consumer exists would wedge the outbox page.
+    graph_consumer: std::sync::atomic::AtomicBool,
+    settlement_consumer: std::sync::atomic::AtomicBool,
     #[cfg(feature = "test-support")]
     lose_decision_reply: Arc<std::sync::atomic::AtomicBool>,
 }
@@ -318,6 +323,8 @@ impl Driver {
             gate: tokio::sync::Mutex::new(0),
             automatic: std::sync::atomic::AtomicU8::new(0),
             stopped_ack: std::sync::atomic::AtomicBool::new(false),
+            graph_consumer: std::sync::atomic::AtomicBool::new(false),
+            settlement_consumer: std::sync::atomic::AtomicBool::new(false),
             #[cfg(feature = "test-support")]
             lose_decision_reply,
         })
@@ -336,6 +343,11 @@ impl Driver {
         }
     }
     pub async fn install(&self, artifact: aq_playbook_host::model::Artifact) -> Result<()> {
+        let event = super::review_domain::graph_operation_event();
+        let consumer = artifact.content.registry.events.get(&event.name) == Some(&event);
+        let completed = super::review_domain::task_completed_event();
+        let settlement_consumer =
+            artifact.content.registry.events.get(&completed.name) == Some(&completed);
         self.owner
             .call(
                 Request::Install {
@@ -345,6 +357,14 @@ impl Driver {
             )
             .await
             .map_err(|_| Error::Unknown)?;
+        if consumer {
+            self.graph_consumer
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+        }
+        if settlement_consumer {
+            self.settlement_consumer
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+        }
         Ok(())
     }
     pub async fn activate(
@@ -464,6 +484,20 @@ impl Driver {
         self.service
             .collect_decision_events(&self.runtime, 2)
             .await?;
+        if self
+            .graph_consumer
+            .load(std::sync::atomic::Ordering::SeqCst)
+        {
+            self.service.collect_graph_events(&self.runtime, 2).await?;
+        }
+        if self
+            .settlement_consumer
+            .load(std::sync::atomic::Ordering::SeqCst)
+        {
+            self.service
+                .collect_settlement_events(&self.runtime, 2)
+                .await?;
+        }
         let page = self.service.outbox(&self.runtime, *cursor, 2).await?;
         if page.is_empty() {
             *cursor = 0;
@@ -642,6 +676,14 @@ impl Driver {
     }
     pub async fn test_collect_decision_events(&self) -> Result<usize> {
         self.service.collect_decision_events(&self.runtime, 2).await
+    }
+    pub async fn test_collect_graph_events(&self) -> Result<usize> {
+        self.service.collect_graph_events(&self.runtime, 2).await
+    }
+    pub async fn test_collect_settlement_events(&self) -> Result<usize> {
+        self.service
+            .collect_settlement_events(&self.runtime, 2)
+            .await
     }
     /// Exact retained-event cut fixture: engine commits, AQ ACK is omitted.
     /// Not mounted as an HTTP route or present in ordinary release builds.

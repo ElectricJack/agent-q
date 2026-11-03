@@ -2,6 +2,10 @@
 //! binding, Git inspection and Graph peers. Not provider/physical/real-Git or
 //! GATE04 qualification. Every positive owner fact is obtained through its port.
 use super::*;
+#[path = "settlement_owner39/completion_outbox.rs"]
+mod completion_outbox;
+#[path = "settlement_owner39/source_retention_gc.rs"]
+mod source_retention_gc;
 use aq_server::{
     profiled_execution::settlement::{self, EvaluationDisposition},
     reviews::combined::*,
@@ -410,6 +414,17 @@ async fn settlement39_actual_owners_accept_one_combined_decision_hold_until_exac
     assert_eq!(receipt.disposition, EvaluationDisposition::Accepted);
     let op = receipt.completion_operation_id.unwrap();
     let pool = c.env.f.db.pool().await;
+    let original: (Value, i64) =
+        sqlx::query_as("SELECT state,record_revision FROM execution_attempts WHERE attempt_id=$1")
+            .bind(receipt.attempt_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(original.0["status"], "offered");
+    assert_eq!(original.0["retention"]["kind"], "pending");
+    // An accepted evaluation alone cannot refresh or release the snapshot.
+    assert!(sqlx::query("UPDATE execution_attempts a SET state=a.state || (h.state-ARRAY['owner','preparation_operation_id']),holds_task=false,execution_deadline_ms=(h.state->>'execution_deadline_ms')::bigint FROM profiled_authority_hot h WHERE a.attempt_id=$1 AND h.attempt_id=a.attempt_id")
+        .bind(receipt.attempt_id).execute(&pool).await.is_err());
     assert!(
         sqlx::query_scalar::<_, bool>(
             "SELECT holds_task FROM execution_attempts WHERE attempt_id=$1"
@@ -436,6 +451,16 @@ async fn settlement39_actual_owners_accept_one_combined_decision_hold_until_exac
     let unknown = Box::pin(c.service.complete(&c.actor, op)).await.unwrap();
     assert_eq!(unknown.state, "possible");
     assert!(unknown.receipt.is_none());
+    let possible: (Value, i64) =
+        sqlx::query_as("SELECT state,record_revision FROM execution_attempts WHERE attempt_id=$1")
+            .bind(receipt.attempt_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        original, possible,
+        "an uncertain Graph result preserves the snapshot"
+    );
     assert!(
         sqlx::query_scalar::<_, bool>(
             "SELECT holds_task FROM execution_attempts WHERE attempt_id=$1"
@@ -447,6 +472,42 @@ async fn settlement39_actual_owners_accept_one_combined_decision_hold_until_exac
     );
     let done = Box::pin(c.service.complete(&c.actor, op)).await.unwrap();
     assert_eq!(done.state, "confirmed");
+    let settled: (Value, i64) =
+        sqlx::query_as("SELECT state,record_revision FROM execution_attempts WHERE attempt_id=$1")
+            .bind(receipt.attempt_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(settled.0["status"], "finished");
+    assert_eq!(settled.0["retention"]["kind"], "retained");
+    assert_eq!(settled.0["effects"]["kind"], "quiescent");
+    assert_eq!(settled.0["stop"]["kind"], "stopped");
+    for field in ["offer", "source", "graph"] {
+        assert_eq!(settled.0[field], original.0[field]);
+    }
+    assert_eq!(settled.1, original.1 + 1);
+    let compatibility: aq_server::execution::profiled::ProfiledState =
+        serde_json::from_value(settled.0.clone()).unwrap();
+    compatibility.validate().unwrap();
+    // Restart with an empty immutable-facts cache: the compatibility snapshot
+    // must still validate, including the persisted deadline column.
+    let mut restarted = c.env.f.state.clone();
+    restarted.store = c.env.f.db.store().await;
+    let mut cold_tx = pool.begin().await.unwrap();
+    let cold = aq_server::execution::authority::load_locked(
+        &restarted,
+        &mut cold_tx,
+        &compatibility.offer.binding.session,
+        aq_server::execution::authority::Policy::IdentityOnly,
+    )
+    .await
+    .unwrap();
+    assert!(cold.release_ready);
+    assert!(!cold.holds_task);
+    cold_tx.commit().await.unwrap();
+    assert!(sqlx::query("UPDATE execution_attempts SET state=jsonb_set(state,'{retention}', '{\"kind\":\"pending\"}') WHERE attempt_id=$1")
+        .bind(receipt.attempt_id).execute(&pool).await.is_err(),
+        "confirmation only permits the exact verified terminal projection");
     assert_eq!(c.writes.load(Ordering::SeqCst), 1);
     assert!(
         !sqlx::query_scalar::<_, bool>(
@@ -469,6 +530,16 @@ async fn settlement39_actual_owners_accept_one_combined_decision_hold_until_exac
     assert_eq!(
         json!(done),
         json!(Box::pin(c.service.complete(&c.actor, op)).await.unwrap())
+    );
+    let replayed: (Value, i64) =
+        sqlx::query_as("SELECT state,record_revision FROM execution_attempts WHERE attempt_id=$1")
+            .bind(receipt.attempt_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        settled, replayed,
+        "confirmed replay does not advance the revision"
     );
     c.env.peer.abort();
     c._graph.abort();
@@ -705,6 +776,8 @@ async fn settlement39_prepare_held_git_reply_fences_revoked_preparer_before_priv
     c.env.f.state.source_retention = Some(Arc::new(
         aq_server::source_retention::Runtime::new(
             aq_server::source_retention::SourceRetentionConfig {
+                keep_per_task: 2,
+                max_age: 30 * 86400,
                 staging_root: c.env._directory.path().join("held-stage"),
                 git_root: c.env._directory.path().join("held-git"),
                 git_socket: path,

@@ -84,6 +84,8 @@ struct Reply {
     body_digest: String,
     created_at_ms: u64,
     dispatch: DispatchRef,
+    /// Typed proposed-draft and action-receipt items this reply produced.
+    attachments: Vec<Value>,
     logical_admission: &'static str,
     host_delivery: &'static str,
     agent_receipt: Option<Value>,
@@ -223,12 +225,12 @@ pub(super) async fn history(
     let (human_sql, reply_sql) = if forward {
         (
             "SELECT * FROM mailbox_messages WHERE mailbox_key=$1 AND (cursor,0::bigint)>($2,$3) AND cursor<=$4 ORDER BY cursor LIMIT $5",
-            "SELECT * FROM (SELECT r.dispatch_id,d.host_operation_id,d.batch_digest,d.actor_id,d.generation,d.session_id,m.*,(SELECT max(mm.cursor) FROM central_supervisor_mail_members mm WHERE mm.actor_id=d.actor_id AND mm.reservation_id=d.reservation_id) AS anchor FROM central_supervisor_replies r JOIN central_supervisor_dispatches d ON d.dispatch_id=r.dispatch_id JOIN mailbox_messages m ON m.message_id=r.reply_message_id WHERE m.mailbox_key=$1) x WHERE (x.anchor,x.cursor)>($2,$3) AND x.anchor<=$4 ORDER BY x.anchor,x.cursor LIMIT $5",
+            "SELECT * FROM (SELECT r.dispatch_id,r.attachments,d.host_operation_id,d.batch_digest,d.actor_id,d.generation,d.session_id,m.*,(SELECT max(mm.cursor) FROM central_supervisor_mail_members mm WHERE mm.actor_id=d.actor_id AND mm.reservation_id=d.reservation_id) AS anchor FROM central_supervisor_replies r JOIN central_supervisor_dispatches d ON d.dispatch_id=r.dispatch_id JOIN mailbox_messages m ON m.message_id=r.reply_message_id WHERE m.mailbox_key=$1) x WHERE (x.anchor,x.cursor)>($2,$3) AND x.anchor<=$4 ORDER BY x.anchor,x.cursor LIMIT $5",
         )
     } else {
         (
             "SELECT * FROM mailbox_messages WHERE mailbox_key=$1 AND (cursor,0::bigint)<($2,$3) AND cursor<=$4 ORDER BY cursor DESC LIMIT $5",
-            "SELECT * FROM (SELECT r.dispatch_id,d.host_operation_id,d.batch_digest,d.actor_id,d.generation,d.session_id,m.*,(SELECT max(mm.cursor) FROM central_supervisor_mail_members mm WHERE mm.actor_id=d.actor_id AND mm.reservation_id=d.reservation_id) AS anchor FROM central_supervisor_replies r JOIN central_supervisor_dispatches d ON d.dispatch_id=r.dispatch_id JOIN mailbox_messages m ON m.message_id=r.reply_message_id WHERE m.mailbox_key=$1) x WHERE (x.anchor,x.cursor)<($2,$3) AND x.anchor<=$4 ORDER BY x.anchor DESC,x.cursor DESC LIMIT $5",
+            "SELECT * FROM (SELECT r.dispatch_id,r.attachments,d.host_operation_id,d.batch_digest,d.actor_id,d.generation,d.session_id,m.*,(SELECT max(mm.cursor) FROM central_supervisor_mail_members mm WHERE mm.actor_id=d.actor_id AND mm.reservation_id=d.reservation_id) AS anchor FROM central_supervisor_replies r JOIN central_supervisor_dispatches d ON d.dispatch_id=r.dispatch_id JOIN mailbox_messages m ON m.message_id=r.reply_message_id WHERE m.mailbox_key=$1) x WHERE (x.anchor,x.cursor)<($2,$3) AND x.anchor<=$4 ORDER BY x.anchor DESC,x.cursor DESC LIMIT $5",
         )
     };
     let fetch = i64::from(limit) + 1;
@@ -365,6 +367,16 @@ fn reply(row: sqlx::postgres::PgRow, id: Uuid) -> Result<(Position, Reply)> {
     let cursor: i64 = row.get("cursor");
     let at: i64 = row.get("created_at_ms");
     let anchor: Option<i64> = row.get("anchor");
+    let message_id: Uuid = row.get("message_id");
+    let attachments = match row.get::<Value, _>("attachments") {
+        Value::Array(items)
+            if items.len() <= reply::MAX_ATTACHMENTS
+                && items.iter().all(|a| a["message_id"] == json!(message_id)) =>
+        {
+            items
+        }
+        _ => return Err(unavailable()),
+    };
     let expected = json!({"kind":"central_supervisor","actor_id":actor_id,"generation":generation,"session_id":session_id});
     if sender != expected
         || row.get::<Value, _>("recipient") != reply::reply_recipient(id)
@@ -380,7 +392,7 @@ fn reply(row: sqlx::postgres::PgRow, id: Uuid) -> Result<(Position, Reply)> {
     Ok((
         (anchor, cursor),
         Reply {
-            message_id: row.get("message_id"),
+            message_id,
             thread_id: id,
             conversation_id: id,
             cursor: render((anchor, cursor)),
@@ -398,6 +410,7 @@ fn reply(row: sqlx::postgres::PgRow, id: Uuid) -> Result<(Position, Reply)> {
                 host_operation_id: row.get("host_operation_id"),
                 batch_digest: row.get("batch_digest"),
             },
+            attachments,
             logical_admission: "queued",
             host_delivery: "not_attempted",
             agent_receipt: None,
