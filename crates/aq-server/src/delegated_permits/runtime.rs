@@ -352,6 +352,43 @@ pub fn require_document(auth: &AuthenticatedNode, value: &impl Serialize) -> Res
     if found { Ok(()) } else { Err(refused()) }
 }
 
+/// Historical proof for terminal cleanup, never live runner authorization.
+/// Revoked/expired credentials do not erase an actually committed extension.
+pub(crate) async fn verify_extended_grant_locked(
+    tx: &mut Transaction<'_, Postgres>,
+    original: &aq_session_protocol::ProfiledGrant,
+    live: &aq_session_protocol::ProfiledGrant,
+    receipt_digest: &aq_admission::Digest,
+    hard_deadline_ms: u64,
+) -> Result<(), AppError> {
+    if live.binding != original.binding
+        || live.grant_id != original.grant_id
+        || live.expires_at_ms <= original.expires_at_ms
+        || live.expires_at_ms > hard_deadline_ms
+    {
+        return Err(refused());
+    }
+    let rows: Vec<serde_json::Value> = sqlx::query_scalar("SELECT c.state FROM delegated_permit_current c WHERE c.state#>>'{record,binding,attempt_id}'=$1 AND EXISTS(SELECT 1 FROM delegated_operations o WHERE o.node_id=(c.state#>>'{record,binding,node,node_id}')::uuid AND o.kind='renewal' AND o.evidence->'current'=c.state) LIMIT 2")
+        .bind(live.binding.attempt_id.to_string()).fetch_all(&mut **tx).await.map_err(db)?;
+    if rows.len() != 1 {
+        return Err(refused());
+    }
+    let current: Current = parse(rows.into_iter().next().ok_or_else(refused)?)?;
+    let origin = current.authority.ok_or_else(refused)?;
+    if origin.grant != *original
+        || origin.receipt_digest.as_str() != receipt_digest.as_str()
+        || origin.hard_deadline_ms != hard_deadline_ms
+        || current.record.scope != PermitScope::Execution
+        || current.record.binding.attempt_id != original.binding.attempt_id
+        || current.record.binding.grant_generation != original.binding.assignment_generation
+        || current.record.expires_at_ms != live.expires_at_ms
+        || current.record.hard_deadline_ms != hard_deadline_ms
+    {
+        return Err(refused());
+    }
+    Ok(())
+}
+
 pub(crate) fn key(state: &AppState) -> Result<&CredentialKey, AppError> {
     state
         .config

@@ -3,6 +3,8 @@
 // A module alias would cross the old/new contract boundary instead.
 #![allow(clippy::duplicate_mod)]
 mod current;
+mod delegated_renewal;
+pub use delegated_renewal::renew_delegated;
 mod facts;
 pub(crate) mod history;
 mod observations;
