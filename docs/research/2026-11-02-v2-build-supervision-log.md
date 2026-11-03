@@ -289,3 +289,18 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - Released and reopened A4 to re-apply the commit's intent, without blindly re-deleting the vendor dirs.
   - Shared the diagnosis with the supervisor's investigation `steady-quest-28`.
   - `steady-harbor-87.2.2` completed.
+- **02:20 check.**
+  - **I0 closed: real progress, but MS0 is not met.** Run 11 on `aq-e0-qual` reached a real Codex 0.166.0 session in the sandbox:
+    - the owner's ChatGPT login, delivered through the material lease;
+    - the "Trust this folder?" prompt answered through the public terminal relay;
+    - gpt-6.1-sol high.
+    Every tool call failed, because the image lacks `codex-code-mode-host`. No result or settlement followed; the permit expired and the attempt stopped. The owner's auth.json is unchanged.
+  - **Follow-ups from I0:**
+    - `22.1.1`: full Codex package in the native image.
+    - `22.1.2`: workspace pre-trust; already on main as `d14fa91`.
+    - `22.1.3`: worker recovery for stopped attempts.
+    - `22.1.4`: error causes are hidden.
+  - **Filed** the aq-server half as `bold-ember-98` (priority 30): release held graph tasks for stopped unsettled attempts, the relay 409 storm, a typed input-deadline refusal, and `[terminals]` validation.
+  - **Filed the I0 re-run** `calm-stone-85`. It depends on `22.1.1`, `22.1.3` and `bold-ember-98`; MS0 now waits on it. Deadline: the measured fact expires 2026-11-04 07:22 UTC. Both pinned to Claude standard-high.
+  - The MS0 gate (`stark-zenith-16.1`) is running and recording "unmet" with evidence, as instructed.
+  - Routed `steady-harbor-87.2.4`'s History cursor change to G8. B2, B4 and D10 are running. aq-server #33 is still failing smoke ("expected one heartbeat connector container"); its task is still working on it.
