@@ -433,3 +433,13 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **F2's agent found** `original_inputs_remain_scoped_after_proposal_expiry_then_expire_held` fails deterministically on main (poll 500 `unavailable`), not flakily.
   - #51 and #46 conflict again after #50. Waiting for #43 (generated migration catalog) to land first, then I will resolve #44, #46 and #51 against it. aq-worker #32 is conflicting again.
   - G8 (dashboard supervisor panel) started.
+- **11:35 check.**
+  - **Merged #43** (`keen-quest-39`, generated migration catalog; `2756c065`).
+  - Three completed storage PRs all numbered their migration 0061: #44 `source_retention_gc`, #46 `row_retention`, #51 `node_storage`. Merged main into each and took main's catalog-era lib.rs, store.rs and Dockerfile. Renumbered them to 0062, 0063 and 0064 (meta values updated; #46's `observations.rs` fixture gate is now `>= 63`). #44's workspace clippy is clean. Pushed `33a6a2a`, `33093b2` and `0446302`. Merge order is #44, #46, #51 (contiguity).
+  - **C7 live run 2** passed 3 more scenarios. It found and fixed a real adapter bug (archived reads missing the volume `_data` path, `c5fecfe`). Approved 2 more short sandboxes (owner budget) for the remaining scenarios.
+  - Filed G8's cross-repo follow-up as `wise-apex-23` (typed proposal and receipt supervisor history items).
+  - The I0 re-run is IN_PROGRESS with a concrete edit task. Codex is at 97%.
+- **12:05 check.**
+  - **C7 (boat backend) COMPLETED with all 6 C1 conformance scenarios passing LIVE on boat.dev:** 3 runs, 9 small sandboxes, each run leaving 0 sandboxes and 0 snapshots. Two real adapter bugs were found and fixed live (client timeout below the server command bound, `b60e424`; archived-read `_data` volume path, `c5fecfe`). It is on aq-worker main (`f96c85d`). Total cost is well under $0.05.
+  - **Merged #44** (`brisk-delta-43`, aq-git source retention GC, migration 0062; `944c545e`). Re-ran update-branch on #46 (0063 next).
+  - #52 (`grand-vault-92`, monthly boat VM-time placement budget) is pending CI. The I0 re-run is still IN_PROGRESS.
