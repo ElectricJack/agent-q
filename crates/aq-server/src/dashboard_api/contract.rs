@@ -281,6 +281,10 @@ pub struct SessionSummary {
     pub source_kind: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub lifecycle: Option<SessionLifecycle>,
+    /// Last terminal output the relay recorded for this session. Output is
+    /// not progress: repaints and heartbeats also advance it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub last_output_at: Option<Timestamp>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
