@@ -23,6 +23,17 @@ fn now(state: &AppState) -> Result<u64, AppError> {
 fn refused() -> AppError {
     AppError::Conflict("native offer admission requirements unavailable".into())
 }
+/// Builds a large owner future in this helper's own frame and moves it to the
+/// heap. Unoptimized builds give every temporary its own slot in the caller's
+/// poll frame, so awaiting owners inline made offer scheduling use most of a
+/// default 2 MiB test-thread stack. The caller then keeps only a pointer.
+fn on_heap<F, Fut>(build: F) -> std::pin::Pin<Box<Fut>>
+where
+    F: FnOnce() -> Fut,
+    Fut: std::future::Future,
+{
+    Box::pin(build())
+}
 
 /// Actual configured whole adapter definitions, not runtime labels, select the
 /// one supported long interactive factory.

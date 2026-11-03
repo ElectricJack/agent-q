@@ -2,7 +2,7 @@
 //! It uses installed owner facts and never calls a model provider.
 use super::{
     artifacts::{RetainedSet, canonical},
-    build, compose, now, publication, refused,
+    build, compose, now, on_heap, publication, refused,
 };
 use crate::{
     AppState,
@@ -263,7 +263,7 @@ pub async fn poll(
     }
     // Offer assembly has a large future. Keep this shared scheduling boundary
     // on the heap instead of embedding it in every control/fixture caller.
-    Box::pin(offers(state, auth, request, page)).await
+    on_heap(|| offers(state, auth, request, page)).await
 }
 async fn offers(
     state: &AppState,
@@ -276,13 +276,13 @@ async fn offers(
         .get_or_init(|| Semaphore::new(4))
         .try_acquire()
         .map_err(|_| refused())?;
-    let (runtime, snapshot) = runtime(state, auth, request).await?;
+    let (runtime, snapshot) = on_heap(|| runtime(state, auth, request)).await?;
     if request.available.slots == 0 {
         return Ok(page);
     }
     // Redelivery precedes new scheduling. Preparing/granted rows are not offers;
     // those require their independently fenced control/reconciliation owners.
-    if let Some(native) = super::redelivery::existing(state, auth, request).await? {
+    if let Some(native) = on_heap(|| super::redelivery::existing(state, auth, request)).await? {
         page.server_time_ms = native.offered.clock.server_time_ms;
         page.offers.push(native);
         page.validate_for(request).map_err(|_| refused())?;
@@ -314,31 +314,36 @@ async fn offers(
     if !matches!(policy.source, SourceSelection::Immutable { .. }) {
         return Err(refused());
     }
-    let record = crate::project_bindings::current(state, policy.project_id).await?;
+    let record = on_heap(|| crate::project_bindings::current(state, policy.project_id)).await?;
     let graph = state.agent_access.as_ref().ok_or_else(refused)?;
-    let ready = graph
-        .scheduling_ready_current(
+    let ready = on_heap(|| {
+        graph.scheduling_ready_current(
             record.binding.graph_workspace_id,
             8,
             None,
             state.clock.as_ref(),
         )
-        .await
-        .map_err(|_| refused())?;
-    let Some(task) = first_eligible_task(&ready, |task| {
-        super::super::no_grant::attempt_counts(&state.store.pool, task)
+    })
+    .await
+    .map_err(|_| refused())?;
+    let Some(task) = on_heap(|| {
+        first_eligible_task(&ready, |task| {
+            super::super::no_grant::attempt_counts(&state.store.pool, task)
+        })
     })
     .await?
     else {
         return Ok(page);
     };
     let generation =
-        super::super::no_grant::next_generation(&state.store.pool, task.task_id).await?;
-    let context = graph
-        .scheduling_context_current(&task, 1, 64, 1_048_576, state.clock.as_ref())
-        .await
-        .map_err(|_| refused())?;
-    let compiled = compose::compile(state, &record, auth.id(), &snapshot, &context).await?;
+        on_heap(|| super::super::no_grant::next_generation(&state.store.pool, task.task_id))
+            .await?;
+    let context =
+        on_heap(|| graph.scheduling_context_current(&task, 1, 64, 1_048_576, state.clock.as_ref()))
+            .await
+            .map_err(|_| refused())?;
+    let compiled =
+        on_heap(|| compose::compile(state, &record, auth.id(), &snapshot, &context)).await?;
     super::observation::ReadProvenance::capture(
         &task,
         &ready,
@@ -354,7 +359,7 @@ async fn offers(
             .ok_or_else(refused)?
             .node,
     )?;
-    let decision = selection(state, &task, &compiled).await?;
+    let decision = on_heap(|| selection(state, &task, &compiled)).await?;
     let selected = decision.outcome.resolved.as_ref().ok_or_else(refused)?;
     let composition = compiled
         .candidates
@@ -382,11 +387,11 @@ async fn offers(
                 .map_err(|_| refused())?,
         ))?,
     );
-    let reserved = reservation(state, &compiled, source_operation).await?;
+    let reserved = on_heap(|| reservation(state, &compiled, source_operation)).await?;
     let (token, fact) = match reserved {
         source_exports::Reservation::Pending(token) => {
-            let fact = profiled_base::verify_export(state, &token).await?;
-            source_exports::finalize(state, &token, &fact).await?;
+            let fact = on_heap(|| profiled_base::verify_export(state, &token)).await?;
+            on_heap(|| source_exports::finalize(state, &token, &fact)).await?;
             (token, fact)
         }
         source_exports::Reservation::Verified {
@@ -400,15 +405,16 @@ async fn offers(
     };
     // External export can consume the original graph/selection freshness. Read
     // actual owners again; a task CAS/content change refuses this original task.
-    let ready = graph
-        .scheduling_ready_current(
+    let ready = on_heap(|| {
+        graph.scheduling_ready_current(
             record.binding.graph_workspace_id,
             8,
             None,
             state.clock.as_ref(),
         )
-        .await
-        .map_err(|_| refused())?;
+    })
+    .await
+    .map_err(|_| refused())?;
     if canonical(
         &ready
             .items
@@ -420,37 +426,36 @@ async fn offers(
     {
         return Err(refused());
     }
-    let context = graph
-        .scheduling_context_current(&task, 1, 64, 1_048_576, state.clock.as_ref())
-        .await
+    let context =
+        on_heap(|| graph.scheduling_context_current(&task, 1, 64, 1_048_576, state.clock.as_ref()))
+            .await
+            .map_err(|_| refused())?;
+    let compiled =
+        on_heap(|| compose::compile(state, &record, auth.id(), &snapshot, &context)).await?;
+    let decision = on_heap(|| selection(state, &task, &compiled)).await?;
+    let policy_record = config
+        .project_policy_record(policy.project_id)
         .map_err(|_| refused())?;
-    let compiled = compose::compile(state, &record, auth.id(), &snapshot, &context).await?;
-    let decision = selection(state, &task, &compiled).await?;
-    let source = source::observe(
-        state,
-        &compiled.frozen,
-        &config
-            .project_policy_record(policy.project_id)
-            .map_err(|_| refused())?,
-    )
-    .await?;
+    let source = on_heap(|| source::observe(state, &compiled.frozen, &policy_record)).await?;
     if source.admission.resolved_object.hex != token.request().base.hex
         || source.admission.repository_binding_generation != token.request().binding_generation
     {
         return Err(refused());
     }
-    let built = build::assemble(build::Assembly {
-        state,
-        runtime: &runtime,
-        compiled,
-        decision,
-        task: &task,
-        context: &context,
-        ready: &ready,
-        source,
-        source_operation,
-        logical_identity: &token.request().logical_identity,
-        generation,
+    let built = on_heap(|| {
+        build::assemble(build::Assembly {
+            state,
+            runtime: &runtime,
+            compiled,
+            decision,
+            task: &task,
+            context: &context,
+            ready: &ready,
+            source,
+            source_operation,
+            logical_identity: &token.request().logical_identity,
+            generation,
+        })
     })
     .await?;
     let limits = &built.native.offered.offer.manifest.resources;
@@ -460,8 +465,9 @@ async fn offers(
     {
         return Err(refused());
     }
-    let inspection = profiled_base::inspect_retained(state, &token, &fact).await?;
-    let offer = publication::publish(state, auth, built, &token, &fact, &inspection).await?;
+    let inspection = on_heap(|| profiled_base::inspect_retained(state, &token, &fact)).await?;
+    let offer =
+        on_heap(|| publication::publish(state, auth, built, &token, &fact, &inspection)).await?;
     page.server_time_ms = offer.offered.clock.server_time_ms;
     page.offers.push(offer);
     page.validate_for(request).map_err(|_| refused())?;
