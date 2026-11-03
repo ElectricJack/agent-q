@@ -443,3 +443,20 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **C7 (boat backend) COMPLETED with all 6 C1 conformance scenarios passing LIVE on boat.dev:** 3 runs, 9 small sandboxes, each run leaving 0 sandboxes and 0 snapshots. Two real adapter bugs were found and fixed live (client timeout below the server command bound, `b60e424`; archived-read `_data` volume path, `c5fecfe`). It is on aq-worker main (`f96c85d`). Total cost is well under $0.05.
   - **Merged #44** (`brisk-delta-43`, aq-git source retention GC, migration 0062; `944c545e`). Re-ran update-branch on #46 (0063 next).
   - #52 (`grand-vault-92`, monthly boat VM-time placement budget) is pending CI. The I0 re-run is still IN_PROGRESS.
+- **12:30 check: main was broken.**
+  - Two 0062 migrations were on main: `wise-apex-23`'s direct push (`73328b7`, supervisor reply attachments) and my merge of #44 (source retention GC). The catalog duplicate check failed every build.
+  - Merged #54 (`quick-ember-91`, renames to 0063; `74cd2b80`).
+  - Renumbered the queued PRs against main: #46 row_retention to 0064 (fixture gate `>= 64`; workspace clippy clean; `70349f3`), #51 node_storage to 0065 (`4a8946c`) and #52 vm_time_accounting to 0066 (`fe083d2`). Merge order is #46, #51, #52.
+  - The monitor now checks main's migration numbers on every pass (W48).
+  - #53 (`keen-forge-39`, per-project replacement budgets) has build failures to check next pass.
+- **12:50 MS0 evidence achieved.**
+  - The I0 re-run `calm-stone-85` COMPLETED. Run 13c settled end to end on aq-server `2d337f36`: a real Codex README edit retained as `17fe8a72`, owner MS0 settlement approve, evaluation `d58ab4f8` accepted, completion `b196d43a` reconciled, `holds_task` false, login unchanged. The evidence is on aq-worker main.
+  - Released the MS0 gate (`stark-zenith-16.1`) hold and reopened it to re-evaluate with this evidence (Claude).
+  - Run-13 findings to file as follow-ups: the Codex session is held to the wall limit after the in-session submit; the 2 s selection TTL leaves a ~1.4 s offer window (race under load); attempt state and outbox are stale after completion.
+- **13:10 check.**
+  - **MS0 run-count decision** (operator; owner pre-approved the MS0 gate on 11-02 and may override):
+    - accept the one fully settled real run (13c) as passing MS0, since two more runs would spend Codex at 97%;
+    - ChatGPT-login wording supersedes "API-key";
+    - the MS1-affecting rows become follow-up tasks.
+  - Filed MS0's aq-worker cross-repo follow-ups: `wise-crest-54` (end the Codex session after the in-session result) and `prime-glacier-36` (anchor the offer deadline at receipt, not poll send). aq-server already has `quick-impact-98` (2 s selection TTL) and `bold-delta-91` (stale attempt state).
+  - Merged aq-server #46 (`smart-lantern-97`, Postgres row retention, migration 0064; `3c789221`); update-branch on #51 (0065 next). Merged aq-worker #34 (`fair-journey-58`, boat VM-time facts for H2).

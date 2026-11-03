@@ -1584,3 +1584,35 @@ mod accounting {
         drop(f);
     }
 }
+
+#[tokio::test]
+async fn retention_closes_late_packet_window_without_resetting_sequence() {
+    let (f, s) = setup().await;
+    let first = packet(&f, vec![event(&s, 1, 10)]);
+    observations::ingest(&f.state, f.node.node_id, &first)
+        .await
+        .unwrap();
+    let charge: i64 = sqlx::query_scalar(
+        "SELECT charged_bytes FROM observation_packet_retention WHERE node_id=$1 AND message_id=$2",
+    )
+    .bind(f.node.node_id)
+    .bind(first.body.message_id)
+    .fetch_one(&f.db.pool().await)
+    .await
+    .unwrap();
+    assert!(charge > 0);
+    sqlx::query("INSERT INTO retention_closed_attempts(attempt_id,closed_at_ms) VALUES($1,$2)")
+        .bind(s.binding.attempt_id)
+        .bind(NOW as i64)
+        .execute(&f.db.pool().await)
+        .await
+        .unwrap();
+    for p in [first, packet(&f, vec![event(&s, 2, 20)])] {
+        assert!(matches!(
+            observations::ingest(&f.state, f.node.node_id, &p).await,
+            Err(observations::Error::Refused)
+        ));
+    }
+    assert_eq!(counts(&f).await, (1, 1));
+    assert_eq!(projection(&f, &s).await.known_subtotals[0], 10);
+}

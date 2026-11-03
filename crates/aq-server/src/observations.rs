@@ -320,7 +320,27 @@ async fn ingest_subject(
         .iter()
         .map(|e| (e.body.binding.attempt_id, &e.body.binding))
         .collect();
+    let retention_enabled = {
+        #[cfg(any(test, feature = "test-support"))]
+        {
+            state.store.fixture_profile.is_none_or(|v| v >= 64)
+        }
+        #[cfg(not(any(test, feature = "test-support")))]
+        {
+            true
+        }
+    };
     for binding in sessions.values() {
+        if retention_enabled
+            && sqlx::query_scalar::<_, bool>(
+                "SELECT EXISTS(SELECT 1 FROM retention_closed_attempts WHERE attempt_id=$1)",
+            )
+            .bind(binding.attempt_id)
+            .fetch_one(&mut *tx)
+            .await?
+        {
+            return Err(Error::Refused);
+        }
         let view = authority::load_locked(
             state,
             &mut tx,
@@ -627,6 +647,11 @@ async fn ingest_subject(
         sqlx::query("UPDATE observation_attempt_projections SET revision=revision+1,projection=$2,last_recorded_at_ms=GREATEST(last_recorded_at_ms,$3) WHERE attempt_id=$1").bind(attempt).bind(value(&projection)?).bind(recorded_at).execute(&mut *tx).await?;
     }
     sqlx::query("INSERT INTO observation_packets(node_id,message_id,body_digest,receipt) VALUES($1,$2,$3,$4)").bind(authenticated_node).bind(packet.body.message_id).bind(packet.body_digest.as_str()).bind(value(&receipt)?).execute(&mut *tx).await?;
+    if retention_enabled {
+        sqlx::query("INSERT INTO observation_packet_retention(node_id,message_id,first_sequence,last_sequence,attempt_ids,recorded_at_ms,charged_bytes) VALUES($1,$2,$3,$4,$5,$6,$7)")
+        .bind(authenticated_node).bind(packet.body.message_id).bind(integer(batch.first_sequence)?).bind(integer(batch.last_sequence)?)
+        .bind(sessions.keys().copied().collect::<Vec<_>>()).bind(recorded_at).bind(retained).execute(&mut *tx).await?;
+    }
     sqlx::query("UPDATE observation_nodes SET through_sequence=$2,retained_bytes=retained_bytes+$3,event_count=event_count+$4 WHERE node_id=$1").bind(authenticated_node).bind(integer(batch.last_sequence)?).bind(retained).bind(batch.events.len() as i64).execute(&mut *tx).await?;
     tx.commit().await?;
     Ok(receipt)
