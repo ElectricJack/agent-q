@@ -24,7 +24,8 @@ tracks the current completion work; B2.md records final evidence and limitations
 - Unsupported required capabilities refuse explicitly.
 - No edits to architecture or specification documents in this task.
 - Evidence belongs in `docs/implementation/B2.md`. Required named tests must run and pass, not match zero tests.
-- Cross-family adversarial review and guarded branch publication precede passing close.
+- Guarded branch publication precedes passing close. The original cross-family
+  review hold is waived by supervisor message `msg-4aa6b727f6244d9bb857eaa84b2fb2ba`.
 
 ## 1. Durable permit model and credential replay
 
@@ -172,8 +173,9 @@ the existing implementation and immutable 0.3.2 owner pin. The remaining work is
   No full suite or provider qualification is required by the owner's velocity rules.
 - [x] Replace stale current-status prose in B2.md with final evidence; publish
   the branch and PR and request cross-family review through the supervisor.
-- [ ] Handle the required cross-family review outcome and resolve findings.
-  Preserve the claim until that outcome is delivered; do not claim passing close.
+- [x] Record supervisor waiver of the cross-family review hold in
+  `msg-4aa6b727f6244d9bb857eaa84b2fb2ba`. No reviewer approval is claimed.
+  Close after passing validation and publication; Jack's comments become revisions.
 
 Ruling: the task's explicit targeted-validation and AQ review rules govern this
 continuation over generic skill full-suite and local review defaults. Historical
@@ -183,4 +185,6 @@ changes. Existing parent merge ancestry must not be rewritten during publication
 Publication: code SHA `1a5879628491192836d4b6216e0b274133a42666`, with main
 `f504b86d` merged; PR https://github.com/ElectricJack/aq-server/pull/35.
 Review `rev-sound-stone` revision 1 submitted and supervisor dispatch requested
-via `msg-352c758f3c9b42b992ebe5c21ebd6b38`. Review approval remains pending.
+via `msg-352c758f3c9b42b992ebe5c21ebd6b38`. Supervisor subsequently declined
+dispatch under Jack's "Skip approvals entirely" choice and explicitly authorized
+closure without waiting (`msg-4aa6b727f6244d9bb857eaa84b2fb2ba`).
