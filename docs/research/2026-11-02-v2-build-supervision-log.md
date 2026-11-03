@@ -372,3 +372,4 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **E5 `slot_reset_failed`** ("branch holder reservation is not clean and taskless"): `origin/aq/smart-falcon-16.7` did not exist, so the slot could never match origin; same cause as `stark-dune-58`. Pushed the clean slot branch (`fad8115e`) and ran `aq task resume`; E5 is READY.
   - **F4** had not picked up the 06:07 webhook message, and its close was refused by a claimed child. Reparented `steady-harbor-87.5.1` to the root and re-sent the webhook path plus the owner's one-message confirmation (`AQ_NOTIFICATION_REAL_SEND_CONFIRMED=1`).
   - G3 and `prime-dune-72` completed; the I0 re-run is in progress.
+- **07:00 owner concern: disk limits on the VPS and boat.** Filed `azure-flare-22` (storage budget design amendment to 0005 plus implementation tasks) and `amber-rapids-59` (sandbox templates: CARGO_INCREMENTAL=0, line-tables-only). Both pinned to Claude. Retrospective W46.
