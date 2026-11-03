@@ -79,3 +79,19 @@ for route in ('overview', 'search'):
         if route == 'overview' and case in ('empty', 'unknown'):
             assert not fixture['data']['attention'] and not fixture['data']['recent_outcomes']
 print('8 aggregate/search examples validate with empty and unknown semantics')
+
+# X1/X2 capacity: unknown slot totals stay null, eligibility reasons are closed.
+capacity = json.loads((root / "fixtures" / "capacity.json").read_text())
+jsonschema.validate(capacity, schema)
+assert capacity["data"]["slots"]["total"] == {"accuracy": "unknown", "value": None}
+assert {p["state"] for p in capacity["data"]["providers"]} == {"available", "unavailable", "unknown"}
+for path, value in ((("nodes", 0, "eligibility", "reasons"), ["invented_reason"]),
+                    (("providers", 0, "state"), "surprising"),
+                    (("nodes", 0, "extra"), True)):
+    invalid = deepcopy(capacity)
+    target = invalid["data"]
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    assert not jsonschema.Draft202012Validator(schema).is_valid(invalid), path
+print("Capacity fixture and invalid eligibility/availability fields checked")

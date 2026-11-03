@@ -349,6 +349,11 @@ pub(super) async fn bootstrap(
             "Provider account usage is unavailable",
         ),
         capability(
+            "capacity.read",
+            a.owner,
+            "Capacity and provider availability require an owner account",
+        ),
+        capability(
             "supervisor.history.read",
             mounted.supervisor_conversation && a.owner,
             "Global supervisor history requires an owner account and mounted conversation owner",
