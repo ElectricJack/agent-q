@@ -10,4 +10,4 @@ CREATE TABLE source_retention_releases (
  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
  released_at TIMESTAMPTZ
 );
-UPDATE meta SET value='61' WHERE key='state_format_version';
+UPDATE meta SET value='62' WHERE key='state_format_version';

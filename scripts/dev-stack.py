@@ -17,6 +17,8 @@ import urllib.parse
 import urllib.request
 import uuid
 
+from migration_catalog import state_format
+
 ROOT = Path(__file__).resolve().parents[1]
 WORKSPACE = "e0000000-0000-4000-8000-000000000001"
 PROJECT = "e0000000-0000-4000-8000-000000000002"
@@ -91,7 +93,8 @@ git_socket = "/run/aq-git/central.sock"
     if target.exists() and target.read_text() != config:
         raise ValueError("development vault differs from generated configuration; preserve it and use a new AQ_DEV_STATE_DIR")
     target.write_text(config)
-    return dict(AQ_DEV_STATE_DIR=str(state), AQ_VAULT_DIR=str(vault), AQ_SECRETS_DIR=str(secret),
+    return dict(AQ_STATE_FORMAT=str(state_format(ROOT)), AQ_DEV_STATE_DIR=str(state),
+                AQ_VAULT_DIR=str(vault), AQ_SECRETS_DIR=str(secret),
                 AQ_UPDATER_SPOOL=str(state / "updater-spool"), AQ_DEV_UID=str(os.getuid()),
                 AQ_DEV_GID=str(os.getgid()), AQ_DEV_GRAPH_WORKSPACE=WORKSPACE,
                 AQ_SERVER_IMAGE=os.environ.get("AQ_SERVER_IMAGE", "agent-q-server:dev"))

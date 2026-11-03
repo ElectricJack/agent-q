@@ -2,6 +2,11 @@
 
 Task: `smart-falcon-16.4`. Completed 2026-11-03 (America/Los_Angeles).
 
+**Historical evidence:** the original 8 vCPU / 16 GB limits and measurements below
+are superseded for deployment by [0005 §9.1](../architecture/0005-sandboxed-execution-and-deployment-topology.md#91-service-limits-and-aggregate-sandbox-budget),
+which budgets the owner's 4 vCPU / 8 GB NVMe 8 VPS. The old load run does not
+qualify the revised limits.
+
 Worker-image follow-up: [E1c worker image](E1c-worker-image.md) replaces the
 0.3.1 candidate and extends `prod-workers` to start the real cloud worker.
 The limitations below describe this original task's evidence; the follow-up

@@ -232,11 +232,12 @@ def compose_dev_reaches_ready_with_graph_and_git():
 
 
 if __name__ == "__main__":
-    scripted = {"prod": "compose-prod-smoke.py", "prod-workers": "compose-workers-smoke.py"}
+    scripted = {"prod": "compose-prod-smoke.py", "prod-workers": "compose-workers-smoke.py",
+                "prod-boat": "compose-boat-smoke.py"}
     if len(sys.argv) == 2 and sys.argv[1] in scripted:
         import runpy
         runpy.run_path(str(Path(__file__).with_name(scripted[sys.argv[1]])), run_name="__main__")
         sys.exit(0)
     if sys.argv[1:] != ["dev"]:
-        raise SystemExit("usage: scripts/compose-smoke.sh dev|prod|prod-workers")
+        raise SystemExit("usage: scripts/compose-smoke.sh dev|prod|prod-workers|prod-boat")
     compose_dev_reaches_ready_with_graph_and_git()

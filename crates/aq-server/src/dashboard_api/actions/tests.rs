@@ -698,6 +698,7 @@ async fn lookup_requires_current_policy_for_retired_and_unregistered_kinds() {
 fn dashboard_action_schema_lists_task_and_knowledge_kinds() {
     let registry = existing::schemas();
     for kind in [
+        "task.graph.create",
         "task.edit",
         "task.cancel",
         "task.retry",
