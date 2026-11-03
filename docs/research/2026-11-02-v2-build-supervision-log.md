@@ -275,3 +275,32 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Merged aq-worker #29 (`fleet-flare-68`, original-boot stopped replay; CI green).
   - aq-server #33 (cloud worker image) has the fix and its checks are re-running.
   - aq-platform now has 7 tasks in progress.
+- **01:50 check.**
+  - F1b and H7 completed; F1b's 4 follow-ups are running.
+  - **B2 blocked again** on a store.rs child merge conflict: F1b took migration 0048 (supervisor_dispatch). I merged main into `aq/noble-summit-37.2` and renumbered delegated permits to 0049 (state format 49, Dockerfile ARG; `be8a33e`). Reopened B2 and told it to finish and open the PR promptly (W41 recurrence).
+  - A4 is READY again; pinned it to standard-medium Claude (Codex 90%).
+  - All 11 aq-worker READY tasks are dependency-blocked; I0 is running. aq-server #33 is re-running CI.
+- **02:05 check.**
+  - **B2 blocked a third time:** main took 0049 (`0049_supervisor_reservation_consumption`, from F1b follow-up `.2.1`), and slot_reset's automatic merge of main (`d616375f`) conflicted in store.rs.
+    - Merged main again and renumbered to 0050 (`1e3b87c`). Updated the base clone's stale local branch ref.
+    - Released the hold and reopened B2. Reserved migration 50 for B2 with the running F1b follow-ups `.2.3` and `.2.4`.
+  - **A4 blocked on the same slot_reset conflict class:** its single commit `a427134` sat on a very old base and conflicted in ci.yml, Cargo.toml and Dockerfile.
+    - Backed it up to `aq/eager-grove-45.4-old` and reset `aq/eager-grove-45.4` to main (force-with-lease).
+    - Released and reopened A4 to re-apply the commit's intent, without blindly re-deleting the vendor dirs.
+  - Shared the diagnosis with the supervisor's investigation `steady-quest-28`.
+  - `steady-harbor-87.2.2` completed.
+- **02:20 check.**
+  - **I0 closed: real progress, but MS0 is not met.** Run 11 on `aq-e0-qual` reached a real Codex 0.166.0 session in the sandbox:
+    - the owner's ChatGPT login, delivered through the material lease;
+    - the "Trust this folder?" prompt answered through the public terminal relay;
+    - gpt-6.1-sol high.
+    Every tool call failed, because the image lacks `codex-code-mode-host`. No result or settlement followed; the permit expired and the attempt stopped. The owner's auth.json is unchanged.
+  - **Follow-ups from I0:**
+    - `22.1.1`: full Codex package in the native image.
+    - `22.1.2`: workspace pre-trust; already on main as `d14fa91`.
+    - `22.1.3`: worker recovery for stopped attempts.
+    - `22.1.4`: error causes are hidden.
+  - **Filed** the aq-server half as `bold-ember-98` (priority 30): release held graph tasks for stopped unsettled attempts, the relay 409 storm, a typed input-deadline refusal, and `[terminals]` validation.
+  - **Filed the I0 re-run** `calm-stone-85`. It depends on `22.1.1`, `22.1.3` and `bold-ember-98`; MS0 now waits on it. Deadline: the measured fact expires 2026-11-04 07:22 UTC. Both pinned to Claude standard-high.
+  - The MS0 gate (`stark-zenith-16.1`) is running and recording "unmet" with evidence, as instructed.
+  - Routed `steady-harbor-87.2.4`'s History cursor change to G8. B2, B4 and D10 are running. aq-server #33 is still failing smoke ("expected one heartbeat connector container"); its task is still working on it.

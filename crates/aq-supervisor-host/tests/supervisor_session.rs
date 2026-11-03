@@ -971,8 +971,26 @@ async fn owner_message_reaches_supervisor_and_reply_is_recorded() {
     // Host Running is not delivery: until the handoff proof the owner sees pending.
     let (_, history) = call(&owner_app, "GET", &messages, &as_owner, None).await;
     assert_eq!(history["items"][0]["host_delivery"], "pending", "{history}");
-    // 5. Record the handoff proof; it is idempotent.
-    let handed = host.handoff(actor).await.unwrap();
+    // Uncertain handoff must not issue a credential or start native reply access.
+    let staged_input = directory.join("context-0.bin");
+    std::fs::write(&staged_input, b"mismatched input").unwrap();
+    assert!(host.enable_replies(actor, 998_999).await.is_err());
+    assert!(!directory.join("supervisor.credential").exists());
+    let issued: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM central_supervisor_credentials WHERE actor_id=$1")
+            .bind(actor)
+            .fetch_one(&case.pool)
+            .await
+            .unwrap();
+    assert_eq!(issued, 0);
+    assert!(matches!(
+        host.inspect(actor).await.unwrap().run.dispatch(),
+        DispatchState::Unknown { .. }
+    ));
+    std::fs::write(&staged_input, &turn.input).unwrap();
+    // 5. Use the binary's activation path: verified handoff, issue and install.
+    let path = host.enable_replies(actor, 999_000).await.unwrap();
+    let handed = host.inspect(actor).await.unwrap();
     let DispatchState::Resolved { evidence } = handed.run.dispatch() else {
         panic!("handoff resolved: {:?}", handed.run.dispatch())
     };
@@ -982,17 +1000,42 @@ async fn owner_message_reaches_supervisor_and_reply_is_recorded() {
         handed.run.dispatch()
     );
     // 6. One scoped credential, bound to this generation, only beside the session.
-    let token = reply::issue_credential(&case.pool, actor, 60_000, 999_000)
-        .await
-        .unwrap();
-    let path = host.install_credential(actor, &token).await.unwrap();
     assert!(path.starts_with(&directory));
     use std::os::unix::fs::PermissionsExt;
     assert_eq!(
         std::fs::metadata(&path).unwrap().permissions().mode() & 0o777,
         0o600
     );
-    let installed = std::fs::read_to_string(&path).unwrap();
+    let token = std::fs::read_to_string(&path).unwrap();
+    // Controller re-adoption must not revoke the token held by the native child.
+    let resumed = case.controller_with(Dispatched);
+    assert_eq!(resumed.enable_replies(actor, 999_001).await.unwrap(), path);
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), token);
+    let issued: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM central_supervisor_credentials WHERE actor_id=$1")
+            .bind(actor)
+            .fetch_one(&case.pool)
+            .await
+            .unwrap();
+    assert_eq!(issued, 1, "restart reuses the installed credential");
+    let lifetime: i64 = sqlx::query_scalar(
+        "SELECT expires_at_ms-issued_at_ms FROM central_supervisor_credentials WHERE actor_id=$1",
+    )
+    .bind(actor)
+    .fetch_one(&case.pool)
+    .await
+    .unwrap();
+    assert!(lifetime > 0 && lifetime <= 60_000);
+    // The root wrapper stages a 0600 supervisor-home copy before native spawn.
+    let home = tempfile::tempdir().unwrap();
+    let native_path = aq_supervisor_host::credentials::stage_supervisor_credential(
+        &path,
+        home.path(),
+        case.host.deadline_boot_ms,
+    )
+    .await
+    .unwrap();
+    let installed = std::fs::read_to_string(native_path).unwrap();
     assert_eq!(installed, token);
     let principal = reply::authenticate(&case.pool, &installed, "messaging", 1_000_000)
         .await
@@ -1088,6 +1131,7 @@ async fn owner_message_reaches_supervisor_and_reply_is_recorded() {
     // 9. Stopping the generation ends the credential and the live capability.
     let stopped = host.stop(actor).await.unwrap();
     assert_eq!(stopped.run.phase(), Phase::StoppedReported);
+    assert!(host.enable_replies(actor, 1_000_000).await.is_err());
     assert!(!dispatch::live(&case.pool).await);
     let late = json!({"operation_id":Uuid::new_v4(),"message_id":Uuid::new_v4(),"dispatch_id":turn.dispatch_id,"body":"too late"}).to_string();
     let (c, _) = call(

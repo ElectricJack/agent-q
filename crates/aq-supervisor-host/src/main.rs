@@ -97,6 +97,12 @@ async fn run() -> Result<()> {
             let ttl = c.central.max_permit_ms.min(120_000);
             let startup = aq_supervisor_host::config::protected_read(&c.startup_file, 1048576)?;
             let mut s = Box::pin(host.start(c.central, c.host, startup, ttl)).await?;
+            let at_ms = u64::try_from(
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)?
+                    .as_millis(),
+            )?;
+            host.enable_replies(actor, at_ms).await?;
             let shutdown = signals.recv();
             tokio::pin!(shutdown);
             loop {
