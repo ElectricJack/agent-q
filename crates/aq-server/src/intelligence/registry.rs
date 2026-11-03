@@ -5,7 +5,14 @@ fn configuration(registry: &config::LoadedRegistry) -> Result<aq_selection::Dige
         .config
         .credentials
         .iter()
-        .map(|c| (&c.credential, &c.allowed_node_ids))
+        .map(|c| {
+            (
+                &c.credential,
+                &c.allowed_node_ids,
+                c.kind,
+                &c.allowed_backends,
+            )
+        })
         .collect();
     aq_selection::digest(&(
         registry.config.revision,
@@ -188,4 +195,38 @@ pub(super) async fn machine_quota(
         return Err(conflict("node intelligence receipt retention limit"));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn credential_kind_and_backend_policy_change_registry_digest() {
+        let credential: aq_selection::AuthorizedCredential =
+            serde_json::from_value(serde_json::json!({
+                "profile": {"id":"test", "version":"1", "digest":"a".repeat(64)},
+                "provider":"test", "account_reference":"test", "endpoint_reference":"test",
+                "revision":1, "enabled":true, "provisionable":false
+            }))
+            .unwrap();
+        let cfg = config::IntelligenceConfig {
+            revision: 1,
+            credentials: vec![config::CredentialConfig {
+                kind: Default::default(),
+                allowed_backends: aq_selection::default_allowed_backends(),
+                credential,
+                allowed_node_ids: vec![],
+                secret_file: None,
+                delivery_mode: None,
+            }],
+            qualified_harnesses: vec![],
+        };
+        let baseline = configuration(&cfg.load().unwrap()).unwrap();
+        let mut changed = cfg.clone();
+        changed.credentials[0].kind = aq_selection::CredentialKind::SubscriptionLogin;
+        assert_ne!(configuration(&changed.load().unwrap()).unwrap(), baseline);
+        let mut changed = cfg;
+        changed.credentials[0].allowed_backends = vec![aq_selection::BackendKind::Boat];
+        assert_ne!(configuration(&changed.load().unwrap()).unwrap(), baseline);
+    }
 }

@@ -17,6 +17,11 @@ pub enum MaterialDeliveryMode {
 #[derive(Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CredentialConfig {
+    #[serde(default)]
+    pub kind: aq_selection::CredentialKind,
+    #[serde(default = "aq_selection::default_allowed_backends")]
+    pub allowed_backends: Vec<aq_selection::BackendKind>,
+    /// Material state and the nested backend policy are derived by `load`.
     pub credential: AuthorizedCredential,
     pub allowed_node_ids: Vec<uuid::Uuid>,
     pub secret_file: Option<PathBuf>,
@@ -27,6 +32,8 @@ impl std::fmt::Debug for CredentialConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CredentialConfig")
             .field("credential", &self.credential)
+            .field("kind", &self.kind)
+            .field("allowed_backends", &self.allowed_backends)
             .field("allowed_node_ids", &self.allowed_node_ids)
             .field("delivery_mode", &self.delivery_mode)
             .field(
@@ -67,6 +74,8 @@ impl IntelligenceConfig {
                 .map_err(|_| "invalid credential profile artifact")?;
             if c.revision == 0
                 || c.revision > i64::MAX as u64
+                || !aq_selection::valid_allowed_backends(&item.allowed_backends)
+                || !aq_selection::unrestricted_backends(&c.allowed_backends)
                 || c.provisionable
                 || c.material_owner.is_some()
                 || (item.delivery_mode.is_some() && item.secret_file.is_none())
@@ -101,6 +110,7 @@ impl IntelligenceConfig {
         let mut fingerprints = Vec::new();
         for item in &self.credentials {
             let mut credential = item.credential.clone();
+            credential.allowed_backends = item.allowed_backends.clone();
             let fingerprint = match &item.secret_file {
                 None => None,
                 Some(path) => match OpenOptions::new()

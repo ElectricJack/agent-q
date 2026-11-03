@@ -92,6 +92,9 @@ pub struct CredentialBinding {
 #[derive(JsonSchema, Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct CapabilitySnapshot {
+    /// Trusted backend identity; absent until the node adapter supplies it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub backend_kind: Option<crate::BackendKind>,
     pub target: ExecutionTarget,
     pub revision: u64,
     pub observed_at_ms: u64,
@@ -106,6 +109,12 @@ pub struct CapabilitySnapshot {
 #[derive(JsonSchema, Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct AuthorizedCredential {
+    /// Derived from the operator credential profile, independently of node bindings.
+    #[serde(
+        default = "crate::default_allowed_backends",
+        skip_serializing_if = "crate::unrestricted_backends"
+    )]
+    pub allowed_backends: Vec<crate::BackendKind>,
     pub profile: ArtifactRef,
     pub provider: String,
     pub account_reference: String,
