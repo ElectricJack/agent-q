@@ -164,6 +164,7 @@ pub async fn setup_with_capabilities(qualified_required: bool, registered_journa
             lineage: env.lineage.clone(),
             project: env.frozen.clone(),
             compositions: env.input.compositions.clone(),
+            replacement: None,
         },
     )
     .await
