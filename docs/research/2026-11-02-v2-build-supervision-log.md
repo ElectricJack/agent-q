@@ -383,3 +383,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - F4 (Discord) completed. D3's implementation review `rev-keen-glacier` had no reviewer; dispatched `quick-journey-12` (Claude).
   - F2 was paused/held on a degraded-Codex route; overrode it to Claude standard-high and it is READY.
   - D5 was reopened for its substantive main-merge conflicts. The I0 re-run and `amber-rapids-59` are running.
+- **08:05 check.**
+  - **Storage tasks were misfiled:** the storage design filed all 13 implementation tasks in aq-platform, but 4 are aq-worker code and 1 is dashboard UI. Recreated them in the right projects: aq-worker `clear-lantern-42` (docker-local disk limit), `vivid-delta-76` (boat disk mapping and df watchdog), `smart-torrent-92` (node disk reporting) and `brisk-delta-45` (bounded preserved sandboxes); aq-dashboard `clear-crest-22` (Capacity panel). Closed the originals as obsolete. Pinned all of these, plus `smart-beacon-11`, `keen-impact-33` and `sharp-current-24`, to Claude (Codex 95%).
+  - **F2** was held on a pre-start merge conflict (its migration was 0058; main is at 0060). Merged main into `aq/steady-harbor-87.3` and renumbered to 0061 (`67ca73b`). Released the hold and reopened it with "merge immediately".
+  - Merged aq-worker #31 (`swift-vault-73`, preserve template toolchain env; `50f02159`). `keen-quest-39` (structural fix for migration registration conflicts) is running.
