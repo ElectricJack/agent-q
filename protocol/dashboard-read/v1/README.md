@@ -1,15 +1,18 @@
 # dashboard-read-1
 
 This is the implemented read-only subset: authenticated bootstrap, overview,
-session list/detail and owner-only configured projects. Capability versions are
+grouped search, provider-account quota, session list/detail and owner-only
+configured projects. Capability versions are
 `1`; the envelope and contract profile version are `dashboard-read-1`.
 
 Generate `schema.json` with `cargo run -p aq-server --example dashboard_contract
 --offline`; add `-- --check` for drift verification. Fixtures are sanitized,
 synthetic owned SQL projection responses, never evidence of a native process.
 
-Session identities are historical immutable bindings. Activity and aggregate
-counts remain unknown until their owning projection is connected. Authorization
+Session identities are historical immutable bindings. Overview counts come from
+bounded owner observations; missing owners produce unknown counts and explicit
+partial coverage. Session activity remains unknown until its owning projection
+is connected. Authorization
 revision is a decimal cache partition derived from current role and a bounded
 visibility set, not a database revision. A changed partition refuses cursor
 reuse. Snapshot membership expires after 30 seconds and never grants inspection:
@@ -27,8 +30,9 @@ changed scope/limit or invalid token returns 410 `cursor_restart_required` and
 requires a fresh list; authorization changes
 return 403. No source paths, credentials, tokens or launch manifests are projected.
 
-`python3 protocol/dashboard-read/v1/check.py` validates the five retained route
-fixtures using the development `jsonschema` package. The route integration test
+`python3 protocol/dashboard-read/v1/check.py` validates the five prior read
+fixtures plus G4 aggregate/search/quota cases using the development `jsonschema`
+package. The route integration test
 can deliberately replace fixtures with `AQ_DASHBOARD_WRITE_FIXTURES=1`; normal
 checks never rewrite them. Fixtures contain random synthetic UUIDs from their
 retained test execution. They are shape examples, not stable resource handles.
@@ -68,3 +72,12 @@ Revision 0 and null last-recorded time mean no projection; counter unknown value
 must not become zero. Known category subtotals may overlap and remain partial
 when counters are unknown. Costs are unknown/not_reported; session usage does
 not establish provider account quota, invoice cost, or fleet-wide totals.
+
+G4 examples include `provider-usage-{empty,nonempty,partial,stale,unknown}.json`,
+`overview-{empty,nonempty,partial,unknown}.json` and
+`search-{empty,nonempty,partial,unknown}.json`. The latter synthetic variants
+illustrate source coverage and null/zero distinctions, not separately captured
+responses. Expired overview observations and search cursors are refused, so no
+stale aggregate/search success fixture is asserted. The retained search cursor is
+an opaque shape example, not reusable across processes; replay and restart are
+verified by the owning integration test. Prior five read fixtures remain checked.

@@ -43,6 +43,14 @@ pub struct ReadRuntime {
     cursors: cursor::Codec,
 }
 impl ReadRuntime {
+    /// Internal aggregate readers share their existing bounded SQL pool.
+    pub(crate) fn with_pool(pool: PgPool) -> Self {
+        Self {
+            pool,
+            gate: Semaphore::new(2),
+            cursors: cursor::Codec::new(),
+        }
+    }
     pub(crate) fn new(state: &AppState) -> Self {
         Self {
             pool: PgPoolOptions::new()
@@ -438,6 +446,33 @@ async fn list(
         None => None,
     };
     finish(state, r, a, json!({"items":items,"next_cursor":next})).await
+}
+/// Internal sanitized search adapter; retains the same owner and binding fences.
+pub(crate) async fn search_display(
+    state: &AppState,
+    r: &ReadRuntime,
+    actor: &User,
+    project: Uuid,
+    q: &str,
+    kind: &str,
+) -> Result<Value> {
+    if !matches!(kind, "task" | "knowledge") {
+        return Err(invalid());
+    }
+    let Json(envelope) = list(
+        state,
+        r,
+        actor.clone(),
+        project,
+        Page {
+            limit: Some(32),
+            cursor: None,
+            q: Some(q.into()),
+        },
+        kind,
+    )
+    .await?;
+    Ok(envelope.data)
 }
 async fn tasks(
     State(s): State<AppState>,
