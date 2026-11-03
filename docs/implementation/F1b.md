@@ -132,3 +132,29 @@ the merge, the `acceptance` check was rerun and
 `F1b-evidence/acceptance.txt` now holds that post-merge run:
 `owner_message_reaches_supervisor_and_reply_is_recorded ... ok`, 1 passed and 0
 failed, with every other test binary matching 0 tests.
+
+## Typed History attachments (wise-apex-23, for G8)
+
+Supervisor replies may attach up to four typed items, which History serves on
+the supervisor item: `proposed_task_draft` (project and revision pins and a
+canonical payload digest) and `action_receipt` (a confirmed F2 `task.create` or
+`task.graph.create` operation of the same supervisor session, with created
+task/edge IDs and receipt refs). Each item carries its reply's `message_id`. The
+server resolves and snapshots items in the reply transaction, in
+`central_supervisor_replies.attachments` (state format 62, migration 0062), so
+receipt access survives retirement and credential rotation. Unknown, pending,
+retired or other-principal operations are 409 before any write. Cursoring is
+unchanged. The protocol change is additive. The README publishes the schema
+digest, and `schema.sha256` pins it.
+
+Evidence: `supervisor_turns`
+`reply_attachments_serve_typed_drafts_and_session_receipts_through_history` and
+`attachment_fixtures_match_schema_and_published_digest`.
+Commands (logs in `F1b-attachments-evidence/`, run through
+`CHECKS=<list> aq test docs/implementation/F1b-attachments-evidence/test_cargo.py -n 0`
+with the disposable PostgreSQL on 127.0.0.1:55432): `turns` (supervisor_turns:
+7 passed, including the pre-upgrade format-48 reply tests, which still pass
+because replies without attachments write the pre-0062 row), `conversation`
+(6 passed), `reply_lib` (`--lib messaging::global`: 17 passed),
+`format_version` (1 passed, state format 62), and `clippy -D warnings` and
+`fmt --check` (both clean).

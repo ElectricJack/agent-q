@@ -439,3 +439,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **C7 live run 2** passed 3 more scenarios. It found and fixed a real adapter bug (archived reads missing the volume `_data` path, `c5fecfe`). Approved 2 more short sandboxes (owner budget) for the remaining scenarios.
   - Filed G8's cross-repo follow-up as `wise-apex-23` (typed proposal and receipt supervisor history items).
   - The I0 re-run is IN_PROGRESS with a concrete edit task. Codex is at 97%.
+- **12:05 check.**
+  - **C7 (boat backend) COMPLETED with all 6 C1 conformance scenarios passing LIVE on boat.dev:** 3 runs, 9 small sandboxes, each run leaving 0 sandboxes and 0 snapshots. Two real adapter bugs were found and fixed live (client timeout below the server command bound, `b60e424`; archived-read `_data` volume path, `c5fecfe`). It is on aq-worker main (`f96c85d`). Total cost is well under $0.05.
+  - **Merged #44** (`brisk-delta-43`, aq-git source retention GC, migration 0062; `944c545e`). Re-ran update-branch on #46 (0063 next).
+  - #52 (`grand-vault-92`, monthly boat VM-time placement budget) is pending CI. The I0 re-run is still IN_PROGRESS.
