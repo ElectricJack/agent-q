@@ -26,6 +26,11 @@ def test_workspace_regressions():
     environment = os.environ.copy()
     environment["CARGO_BUILD_JOBS"] = "2"
     environment["RUST_TEST_THREADS"] = "1"
+    # Workspace debug artifacts exhausted the shared filesystem before tests
+    # started. Keep default optimization/features while bounding build storage.
+    environment["CARGO_PROFILE_DEV_DEBUG"] = "0"
+    environment["CARGO_PROFILE_TEST_DEBUG"] = "0"
+    environment["CARGO_INCREMENTAL"] = "0"
     if scope != "checks":
         assert environment.get("DATABASE_URL"), "use scripts/test-db"
         binary = Path(environment["AQ_TEST_GRAPH_BINARY"])
@@ -66,7 +71,10 @@ def test_workspace_regressions():
         "source": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
         "diff_sha256": hashlib.sha256(subprocess.check_output(["git", "diff", "HEAD"], cwd=ROOT)).hexdigest(),
         "harness_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        "resource_controls": {key: environment[key] for key in ("CARGO_BUILD_JOBS", "RUST_TEST_THREADS")},
+        "resource_controls": {key: environment[key] for key in (
+            "CARGO_BUILD_JOBS", "RUST_TEST_THREADS", "CARGO_PROFILE_DEV_DEBUG",
+            "CARGO_PROFILE_TEST_DEBUG", "CARGO_INCREMENTAL",
+        )},
         "graph_sha256": environment.get("AQ_TEST_GRAPH_SHA256"),
         "expected_regressions": expected,
         "runs": [],
