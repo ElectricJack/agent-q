@@ -1087,3 +1087,6 @@ async fn credential_rotation_during_import_keeps_uncertain_intent_and_current_ke
         .unwrap()
         .unwrap();
 }
+
+#[path = "source_retention/delivery.rs"]
+mod delivery;

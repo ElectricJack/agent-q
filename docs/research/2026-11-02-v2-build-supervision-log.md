@@ -116,3 +116,22 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Released G5:** its "deployed preview" exists as E0's local compose stack. It was told to run live acceptance there or defer a specific item to G11, instead of holding.
   - Queued F1a's release for when `crisp-nexus-12` publishes the HostPlan.
   - Merged aq-server #22.
+- **20:49 check.**
+  - `crisp-nexus-12` (the subject-neutral HostPlan) completed; F1a resumed.
+  - G5 is closing as a pass, with live/full-page acceptance deferred to G11.
+  - Filed G5's follow-up as `fleet-stone-84`: rebuild the retained E0 stack from current main (it predates G4). G11 depends on it.
+  - **B1's review (`rev-keen-ember`) is changes-requested again after round 4; round 5 (`steady-nexus-22`) is running.** Review cycling on B1 is now the critical-path bottleneck: B1b, B2, B6a2.
+  - Merged aq-worker #19 and #20.
+- **21:04 check.**
+  - G5 completed. B1's round-5 revision finished; `rev-keen-ember` r5 and `rev-grand-meadow` (B5a) r3 are waiting for the supervisor's decision.
+  - `fleet-stone-84` (E0 refresh) started.
+  - Merged aq-server #23 (D1a: durable central aq-git candidate creation and publication) and aq-worker #21 (B1 review reconciliation docs).
+- **21:23 — disk emergency.**
+  - `/` hit **99% (16 GB free of 1 TB)**. `aq-platform-agents` held 559 GB, almost all of it per-slot Cargo `target/` directories; aq-server slot-0 alone was 141 GB.
+  - Deleted `target/` in the 8 idle slots only, after re-checking each slot's lock and that no process used it. Usage went from 940 GB to 819 GB (137 GB free).
+  - The monitor now reports disk usage on every check and repeats the idle-slot cleanup automatically above 85%.
+  - Agents had already filed the investigation `bright-zenith-30`, which is working on a lasting policy; I left it a note about the cleanup.
+- **21:40 check.**
+  - Status: 26 of 91 plan tasks completed (29%, about 26% weighted by effort), plus 80 follow-ups. E1a (production Compose) completed. Disk is at 81–87% after the cleanup.
+  - B1 (`rev-keen-ember`, round 5) and B5a (`rev-grand-meadow`, round 3) are still waiting for supervisor decisions. B1b, B2 and B6a2 remain queued behind B1.
+  - **Owner decision surfaced: B6b (`noble-summit-37.8`).** Clearing the agent's capability bounding set requires CAP_SETPCAP, which the three-capability fixture does not grant. The agent asks whether bootstrap may require CAP_SETPCAP. It is continuing with the signal-denial probe in the meantime (`bright-nexus-60`).
