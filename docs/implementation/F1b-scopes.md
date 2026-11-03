@@ -12,6 +12,12 @@ the named owner-message/reply acceptance check is rerun against that wiring.
 The final build-hygiene merge preserves the current vendor exclusions, pinned
 image bases and image-label checks; both label checks pass at format 51.
 
+AQ's publication identity guard required replaying the prerequisite merges under
+the project committer identity. Original B2 checkpoint `1e3b87c8` corresponds to
+`4f6d7085` in this branch; its author and tree are unchanged. The complete checkout
+tree before and after that repair was identical
+(`c615f5c91dc032ab7401d482122fd6f6725ffd2a`), preserving the recorded test results.
+
 ## Credential and reply transactions
 
 `reply::authenticate` preserves the existing generation-bound principal and
