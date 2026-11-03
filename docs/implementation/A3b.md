@@ -1,8 +1,11 @@
 # A3b: aq-git v0.2.0 consumer pin
 
-Status: release pin and named consumer qualifications pass. The server and worker
-images contain the exact released aq-git executable. Locked workspace acceptance
-remains blocked by a pre-existing historical reservation fixture failure.
+Status: release pin, image builds and named consumer qualifications pass. The
+server and worker images contain the exact released aq-git executable. Workspace
+acceptance did not pass: three runs failed on different closure expiry cases.
+The complete isolated closure suite passes. The supervisor explicitly accepted
+this disposition under `smart-delta-18`; all failed logs remain retained below.
+A3b depends on PR #19 landing first.
 
 ## Inputs and implementation
 
@@ -51,7 +54,8 @@ commit, binary digest and release-copy choice.
 See [environment.json](A3b-checks/environment.json). Commands were run in the
 assigned task worktree with Rust/Cargo 1.96.1, Python 3.12, Docker BuildKit and
 disposable PostgreSQL 17. Rust commands use `CARGO_BUILD_JOBS=2` and
-`RUST_TEST_THREADS=1`; Python behavior tests use AQ's unchanged worker defaults.
+`RUST_TEST_THREADS=1`, except the supervisor-directed workspace retry uses two
+test threads; Python behavior tests use AQ's unchanged worker defaults.
 `DATABASE_URL` for database tests selects only the disposable database started by
 `scripts/test-db`.
 
@@ -59,16 +63,18 @@ disposable PostgreSQL 17. Rust commands use `CARGO_BUILD_JOBS=2` and
 | --- | --- |
 | `aq test scripts/test-git-candidate.py` before implementation | 5 failed, 3 passed: missing executable/provenance/path validation and old release pin; [red log](A3b-checks/verifier-red.log) |
 | `aq test scripts/test-git-candidate.py` after implementation | 10 passed, including release acceptance, executable tampering, provenance tampering, unsafe paths, archive traversal, inventory mismatch, bundle/source disagreement, official overrides and Docker drift; [post-repair green log](A3b-checks/verifier-after-repair.log) |
-| `python3 scripts/check-git-candidate.py --official` | Passed; [post-merge verified manifest](A3b-checks/candidate-after-lint-repair.json) |
+| `python3 scripts/check-git-candidate.py --official` | Passed; [final verified manifest](A3b-checks/candidate-final.json) |
 | `gh api repos/ElectricJack/aq-git/git/ref/tags/v0.2.0` | Published tag resolves to retained commit; [tag receipt](A3b-checks/release-tag.json) |
 | `gh api repos/ElectricJack/aq-git/releases/tags/v0.2.0` with asset name/digest projection | Published source/binary/build-record digests match; [asset receipt](A3b-checks/published-assets.json) |
 | `DOCKER_BUILDKIT=1 docker build --progress=plain -f scripts/Dockerfile.aq-git -t aq-git-a3b:0.2.0 .` | Passed; [build log](A3b-checks/build-aq-git.log) |
 | `DOCKER_BUILDKIT=1 docker build --progress=plain -t aq-server-a3b:0.2.0 .` | Passed after prerequisite repair; [server build log](A3b-checks/build-server-after-repair.log) |
 | `docker build --progress=plain -f Dockerfile.worker --build-arg AQ_SOURCE_REVISION=3fb2bcb2f63f73838ddd97e44580fe721a539bdd --build-arg AQ_WORKER_ARCHIVE_SHA256=ed33076d62d37884cab04f1206d1fda3dd5e06181ddb1ccdebec58fda789b535 --build-arg AQ_VERSION=0.3.1 -t aq-worker-a3b:0.2.0 .` | Passed; [worker build log](A3b-checks/build-worker.log) |
 | `docker build --target aq-git-build` with a deliberately corrupted retained executable in a disposable context | Correctly refused by `sha256sum -c`; [negative build log](A3b-checks/corrupt-binary-build.log) |
-| `cargo fmt --check` | Passed; [post-merge format log](A3b-checks/fmt-after-lint-repair.log) |
-| `cargo clippy --locked --all-targets -- -D warnings` | Initial post-repair run exposed a duplicate attribute in phase_never_granted.rs:4/6; eager-grove-45.3.2 removed it. Final rerun passed; [initial lint failure](A3b-checks/clippy-after-repair.log) and [passing rerun](A3b-checks/clippy-after-lint-repair.log) |
-| `cargo test --locked --workspace` | Failed: 349 tests passed in earlier completed suites; aq-server lib 172 passed, 9 failed, 1 ignored. All failures stop in the same historical reservation fixture seed; [workspace log](A3b-checks/workspace-tests-after-repair.log) |
+| `cargo fmt --check` | Passed; [final format log](A3b-checks/fmt-final.log) |
+| `cargo clippy --locked --all-targets -- -D warnings` | Initial post-repair run exposed a duplicate attribute in phase_never_granted.rs:4/6; eager-grove-45.3.2 removed it. Passed on final prerequisite stack; [final Clippy log](A3b-checks/clippy-after-reservation-repair.log) |
+| `cargo test --locked --workspace` | Not passed: two serial attempts failed on different grant/permit expiry cases; [first repaired-stack run](A3b-checks/workspace-after-reservation-repair.log), [serial retry](A3b-checks/workspace-final-retry.log). All 12 repaired reservation tests pass |
+| `cargo test --locked --workspace -- --test-threads=2` | Exit101: a third closure expiry; [retry log](A3b-checks/workspace-test-threads2.log). Supervisor explicitly accepts the known timing-flake exception; later suites were not reached by these fail-fast runs |
+| `cargo test --locked -p aq-server --test granted_closure -- --test-threads=1 --nocapture` | Passed unchanged: 10 passed, 0 failed, 0 ignored; [serial suite log](A3b-checks/granted-closure-serial.log) |
 | `cargo test --locked -p aq-server --test source_retention --test project_bindings` | Passed: project_bindings 12 passed/1 ignored; source_retention 10 passed/1 ignored. Ignored cases run separately; [focused log](A3b-checks/focused-rust-after-repair.log) |
 | `AQ_TEST_GIT_CANDIDATE=/tmp/aq-a3b-qualification/aq-git AQ_TEST_GIT_EXECUTABLE=/tmp/aq-a3b-qualification/aq-git-runtime/bin/git cargo test --locked -p aq-server --test source_retention selected_real_aq_git_import_survives_worker_volume_loss_and_base_download_is_scoped -- --ignored --nocapture` | Passed: the named ignored test ran, 1 passed; [qualification log](A3b-checks/source-retention-after-repair.log) |
 | `python3 scripts/test-project-bindings.py` | Passed: selected_real_public_repository_and_graph_workspace_bind ran, 1 passed; pinned graph guards also passed and synthetic resources cleaned up; [wrapper log](A3b-checks/project-bindings-after-repair.log) |
@@ -110,21 +116,59 @@ explicitly uses registered schema37, but its seed calls `writes::enqueue`,
 which now delegates to the dashboard action journal. The journal queries
 `dashboard_operations`, introduced by migration0042. The returned error is
 `IdentityUnavailable("dashboard operation unavailable or conflicting")`.
-Required child `eager-grove-45.3.3` owns reconciliation of that historical
-fixture with action routing. Its status is COMPLETED, but its repair is absent
-from fetched main `18af3900f5fae76bdc9797017cd4cbd9f4987b8a`. Merge
-`256ccccf39cfee0c9062b58b822d4c679c90b051` contains only three additional
-supervision/plan documents compared with the lint-qualified tree. The fixture
-seed and public enqueue path are unchanged. The supervisor was notified with
-these exact commits to resolve repair delivery. No passing workspace result is
-claimed.
+Required child `eager-grove-45.3.3` reconciles that historical fixture with action
+routing. The repair is on `aq/eager-grove-45.3.3` in unmerged PR #19; a human owns
+that PR's merge. Supervisor message `msg-41efaa94f6ce40f093a85cb3b25549b1`
+explicitly authorizes stacking A3b on the prerequisite branch. Guarded
+`aq git pull --branch aq/eager-grove-45.3.3 --json` merged it cleanly as
+`46fb7a19db91d3f6cd08fa2c46084c7cf507c0f7`. A3b depends on PR #19 landing
+first. The repair adds only a `cfg(test)` adapter through the existing mailbox
+writer, preserves registered schema37 and asserts the dashboard journal remains
+absent. The child's focused historical and current-route regression evidence is
+retained in [schema37-reservation-checks](schema37-reservation-checks/README.md).
+Strict Clippy passes on the repaired stack. The first workspace run on that
+stack passed all 12 reservation cases, then failed in
+`granted_closure::actual_grant_closes_once_and_replays_without_release_or_execution_clock`:
+`granted_closure.rs:18` unwrapped `Conflict("native initial grant is not currently available")`.
+The suite reported 9 passed and 1 failed; the complete
+[failed run](A3b-checks/workspace-after-reservation-repair.log) is retained.
+An unchanged isolated reproduction passed (1 passed, 9 filtered, 2.39 seconds);
+see [reproduction](A3b-checks/granted-closure-reproduction.log). The fixture uses
+wall time in its clock, making timing under load a possible explanation, not a
+proven diagnosis. No source or test edits were made for this failure.
+
+The next serial workspace run passed that exact test, then failed the different
+`renewal_counter_fences_old_suppression_and_closure_fences_all_later_authority`
+case at `granted_closure.rs:222` with
+`Conflict("continuing permit expired, changed, or cannot be extended")` (9 passed,
+1 failed). Its [log](A3b-checks/workspace-final-retry.log) is retained separately.
+Supervisor message `msg-c2c0462778e7417fa3401f21ddb350d0` identifies the existing
+shared-PostgreSQL timing investigation `smart-delta-18` and requests an isolated
+serial suite followed by the workspace with two test threads. The full isolated
+`granted_closure` suite passed unchanged: 10 passed, 0 failed, 0 ignored in
+28.02 seconds, including both prior failures. The requested
+`cargo test --locked --workspace -- --test-threads=2` then failed a third case,
+`started_and_closure_serialize_to_exactly_one_terminal_history`, at
+`granted_closure.rs:18:43` with
+`Conflict("selection expired during admission locks")` (9 passed, 1 failed).
+Both prior failures passed in that run. UTC timestamps, thread counts and exit
+codes are retained in [timing-triage.json](A3b-checks/timing-triage.json).
+
+Supervisor message `msg-e40950af47e1431dbacdefa146c507cd` identifies these as
+pre-existing nondeterministic wall-clock expiries, adds the evidence to
+`smart-delta-18`, and explicitly accepts closure with the passing serial suite
+and honest workspace exception. No tests were edited or skipped. All completed
+preceding suites passed; fail-fast stopped these workspace runs at
+`granted_closure`, so later suites are unverified by those runs. The separately
+executed A3b source-retention and project-binding suites and both real-component
+qualifications pass. No passing full-workspace result is claimed.
 
 A diagnostic `cargo test --locked --workspace --no-fail-fast` run was started
 to expose failures beyond the original early stop. It was interrupted with
 exit130 during compilation when the repair task reported completion, before
 modifying the compiling checkout. This diagnostic is not a passing test result;
 its [log](A3b-checks/workspace-all-results.log) is retained. No compiler remained
-active when the final main merge ran.
+active when the main or prerequisite merges ran.
 
 Supervisor message `msg-c6f2114e7cd64deeb8ab1aed23c51a9c` explicitly waives
 the completion profile's missing `origin/dev` ref: fetch and merge `origin/main`,

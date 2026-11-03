@@ -19,5 +19,19 @@
   "lint_repair_main_commit": "c13cf4bf",
   "latest_sync_source_commit": "256ccccf39cfee0c9062b58b822d4c679c90b051",
   "latest_fetched_main_commit": "18af3900f5fae76bdc9797017cd4cbd9f4987b8a",
-  "workspace_diagnostic_exit": 130
+  "workspace_diagnostic_exit": 130,
+  "workspace_prerequisite_source_commit": "46fb7a19db91d3f6cd08fa2c46084c7cf507c0f7",
+  "prerequisite_branch": "aq/eager-grove-45.3.3",
+  "prerequisite_pull_request": 19,
+  "stack_authorization_message": "msg-41efaa94f6ce40f093a85cb3b25549b1",
+  "final_clippy_source_commit": "46fb7a19db91d3f6cd08fa2c46084c7cf507c0f7",
+  "timing_triage": {
+    "evidence": "timing-triage.json",
+    "investigation": "smart-delta-18",
+    "supervisor_disposition_message": "msg-e40950af47e1431dbacdefa146c507cd",
+    "explicit_test_threads": [
+      1,
+      2
+    ]
+  }
 }

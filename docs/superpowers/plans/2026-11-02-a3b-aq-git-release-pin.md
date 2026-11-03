@@ -70,10 +70,14 @@ RUN echo '3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2  /src
 - [x] Run format, strict Clippy and the required locked workspace test command with bounded jobs/test threads; heartbeat before long foreground commands and retain logs.
 - [x] Reconcile all A3b requirements, record commands/results, image digests, commit identity, source/tag/build-record evidence and remaining limits.
 - [x] Commit implementation, squash own unpublished implementation history onto its recorded source base preserving the tree and attribution. Merge `origin/main` (supervisor waiver for absent `origin/dev`) into the task branch, resolve with context, run only targeted checks after the merge, and guarded-push the final SHA.
-- [ ] Settle subtasks and close with `--outcome pass --work-outcome shipped --changes ... --verification ... --test ...` only if all required checks passed; otherwise record precise unmet requirements and fail truthfully. Run `aq session drain-ack` after an accepted close.
+- [x] Record final verification and prepare publication/close evidence. Full workspace acceptance has an explicit supervisor-approved exception (`msg-e40950af47e1431dbacdefa146c507cd`): three different pre-existing closure expiry failures, with the complete unchanged serial suite passing. Final AQ close must carry that exception and the PR #19 dependency; its receipt and subsequent `aq session drain-ack` are recorded by AQ.
 
-Current completion limit: strict Clippy, formatting, pin verification, image builds
-and both named real-component qualifications pass. Locked workspace acceptance
-fails in the historical schema37 reservation fixture. Child eager-grove-45.3.3
-is marked complete but its repair is absent from fetched main18af3900; supervisor
-notified with source evidence. No passing close or skipped-test workaround is claimed.
+Current integration dependency: supervisor message
+`msg-41efaa94f6ce40f093a85cb3b25549b1` explicitly authorizes stacking A3b on
+`aq/eager-grove-45.3.3` (PR #19). That genuine historical-fixture prerequisite
+was merged into A3b as `46fb7a19`. Strict Clippy, fmt, official verifier, image
+builds and named A3b qualifications pass. Complete isolated `granted_closure`
+passes 10/0; full workspace attempts fail on three different nondeterministic
+expiry cases accepted by the supervisor under `smart-delta-18`. All logs and
+the unexecuted later-suite limit are retained in `docs/implementation/A3b.md`.
+A3b depends on PR #19 landing first; the human owns that PR merge.
