@@ -13,18 +13,22 @@ pub(super) fn function_body(name: &str) -> Result<&'static str> {
         .ok_or_else(corrupt)
 }
 pub(super) async fn validate(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
-    validate_composed(tx, false, false).await
+    validate_composed(tx, false, false, false).await
 }
 pub(super) async fn validate_compute_reuse(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
-    validate_composed(tx, true, false).await
+    validate_composed(tx, true, false, false).await
 }
 pub(super) async fn validate_native_cancellation(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
-    validate_composed(tx, true, true).await
+    validate_composed(tx, true, true, false).await
+}
+pub(super) async fn validate_auto_settlement(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
+    validate_composed(tx, true, true, true).await
 }
 async fn validate_composed(
     tx: &mut Transaction<'_, Postgres>,
     compute_reuse: bool,
     cancellation: bool,
+    auto_settlement: bool,
 ) -> Result<()> {
     let sql = include_str!("../../migrations/0040_phase_never_granted.sql");
     for (name, signature) in [
@@ -36,7 +40,9 @@ async fn validate_composed(
         ("profiled_phase_never_granted_fence", ""),
         ("settlement_claim_guard", ""),
     ] {
-        let tail = if cancellation && name == "profiled_close_expired_ungranted" {
+        let tail = if auto_settlement && name == "settlement_claim_guard" {
+            super::auto52::function_body(name)?
+        } else if cancellation && name == "profiled_close_expired_ungranted" {
             super::cancellation43::function_body(name)?
         } else if compute_reuse && name == "profiled_close_expired_ungranted" {
             super::compute41::function_body(name)?

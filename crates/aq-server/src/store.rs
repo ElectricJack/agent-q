@@ -304,6 +304,7 @@ const MIGRATIONS: &[(i32, &str)] = &[
         51,
         include_str!("../migrations/0051_supervisor_credential_revocation.sql"),
     ),
+    (52, include_str!("../migrations/0052_auto_settlement.sql")),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -522,7 +523,9 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
     if supported == 38 {
         result38::validate(&mut tx).await?;
     }
-    if supported >= 41 {
+    if supported >= 52 {
+        settlement39::validate_auto_settlement(&mut tx).await?;
+    } else if supported >= 41 {
         settlement39::validate_compute_reuse(&mut tx).await?;
     } else if supported >= 40 {
         settlement39::validate_phase_absence(&mut tx).await?;
@@ -530,7 +533,12 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         settlement39::validate(&mut tx).await?;
     }
     if supported >= 43 {
-        never_granted40::validate_native_cancellation(&mut tx).await?;
+        if supported >= 52 {
+            never_granted40::validate_auto_settlement(&mut tx).await?;
+            auto52::validate(&mut tx).await?;
+        } else {
+            never_granted40::validate_native_cancellation(&mut tx).await?;
+        }
         compute41::validate(&mut tx).await?;
         cancellation43::validate(&mut tx).await?;
     } else if supported >= 41 {
@@ -1134,6 +1142,8 @@ mod settlement39;
 #[path = "store/settlement39_tests.rs"]
 mod settlement39_tests;
 
+#[path = "store/auto52.rs"]
+mod auto52;
 #[path = "store/compute41.rs"]
 mod compute41;
 #[path = "store/never_granted40.rs"]

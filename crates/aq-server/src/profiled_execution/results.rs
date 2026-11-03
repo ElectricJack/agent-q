@@ -59,7 +59,21 @@ pub(crate) async fn compute_stop_locked(
         "stopped_ack": pin.stopped_ack_bytes.ok_or_else(conflict)?,
     }))
 }
+/// Records the result, then lets the D3 default-policy actor settle it. A
+/// settlement failure never fails the durable record; it is replayed by the
+/// next (duplicate) record of the same report.
 pub async fn record(
+    state: &AppState,
+    node: &AuthenticatedNode,
+    report: &ResultReport,
+) -> Result<Receipt, AppError> {
+    let receipt = record_only(state, node, report).await?;
+    if let Err(error) = super::settlement::settle_after_record(state, report.report_id).await {
+        tracing::warn!(report_id = %report.report_id, ?error, "automatic settlement deferred");
+    }
+    Ok(receipt)
+}
+async fn record_only(
     state: &AppState,
     node: &AuthenticatedNode,
     report: &ResultReport,
