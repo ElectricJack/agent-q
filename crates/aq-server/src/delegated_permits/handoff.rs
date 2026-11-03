@@ -239,6 +239,10 @@ pub async fn response_header(
         HeaderValue::from_str(&serde_json::to_string(&value).map_err(|_| AppError::Internal)?)
             .map_err(|_| AppError::Internal)?,
     );
+    response.headers_mut().insert(
+        "aq-permit-revision",
+        HeaderValue::from_str(&current.revision.to_string()).map_err(|_| AppError::Internal)?,
+    );
     response
         .headers_mut()
         .insert("cache-control", HeaderValue::from_static("no-store"));

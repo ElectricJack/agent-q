@@ -5,6 +5,8 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 COMMANDS = {
+    "legacy-renewal": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "native_initial_grant", "original_cold_inventory_actual_installation_can_renew_without_retiming_originals"],
+    "renewal": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "delegated_permit_runtime", "--test", "phase_refresh_terminal", "--test", "phase_terminal_started"],
     "polls": ["cargo", "test", "--locked", "-p", "aq-server", "--lib", "delegated"],
     "runtime": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "delegated_permit_runtime", "--test", "permit_fixture_conformance"],
     "check": ["cargo", "check", "--locked", "-p", "aq-server"],

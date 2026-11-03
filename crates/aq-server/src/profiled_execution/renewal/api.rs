@@ -24,8 +24,42 @@ async fn renew(
     body: Result<Bytes, BytesRejection>,
 ) -> Result<Response, Error> {
     let nonce = nonce(&headers)?;
-    let auth = crate::worker_api::authenticate_context(&state, &headers).await?;
+    let auth = crate::delegated_permits::runtime::authenticate_runner(
+        &state,
+        &headers,
+        aq_admission_sandbox::sandbox::RunnerOperation::Renew,
+        None,
+    )
+    .await?;
     let body = body.map_err(|_| AppError::PayloadTooLarge("renewal body bound".into()))?;
+    if auth.delegated().is_some() {
+        use aq_admission_sandbox::sandbox::{PhaseProfile, SandboxDocument};
+        let SandboxDocument::RunnerRenewalRequest(request) = serde_json::from_slice(&body)
+            .map_err(|_| AppError::BadRequest("invalid delegated renewal document".into()))?
+        else {
+            return Err(AppError::BadRequest("expected runner renewal request".into()).into());
+        };
+        crate::delegated_permits::runtime::require_document(&auth, &request)?;
+        let reply = match request.authority.profile {
+            PhaseProfile::PhaseV2 => {
+                crate::profiled_execution::phase_execution::renew_delegated(
+                    &state, &auth, &request, nonce,
+                )
+                .await?
+            }
+            PhaseProfile::PhaseRefreshV1 => {
+                crate::profiled_execution::phase_refresh_execution::renew_delegated(
+                    &state, &auth, &request, nonce,
+                )
+                .await?
+            }
+        };
+        let mut response = Json(SandboxDocument::RunnerRenewalResponse(reply)).into_response();
+        response
+            .headers_mut()
+            .insert(header::CACHE_CONTROL, "no-store".parse().unwrap());
+        return Ok(response);
+    }
     let request: Renew = serde_json::from_slice(&body)
         .map_err(|_| AppError::BadRequest("invalid renewal document".into()))?;
     let reply = super::service::renew(&state, &auth, &request, nonce).await?;
