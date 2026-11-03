@@ -378,3 +378,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - E5 asked the owner for: VPS purchase and SSH key, domain, Cloudflare token or manual steps, backup bucket, and release tagging. Surfaced and added to the owner list. The storage design `azure-flare-22` and the template quick win `amber-rapids-59` are running.
   - **D5 merge conflict:** main is now at state format 60. The conflicts (lib.rs, store.rs, playbooks review_domain.rs and service.rs) are substantive. Reopened D5 with resolution guidance (keep both CatalogProfile variants, renumber to 61+), pinned to Claude.
   - F2 is READY, waiting for a route. The I0 re-run is still running.
+- **07:50 check.**
+  - **Storage design `azure-flare-22` completed.** Approved its 0005 amendment `rev-steady-rapids`: measured 20.2 GB clean aq-server test build, boat facts (snapshots fail at 95% disk), 70% budget on the 200 GB VPS, SBX20–26 and DEP6–8. That releases its 13 implementation tasks.
+  - F4 (Discord) completed. D3's implementation review `rev-keen-glacier` had no reviewer; dispatched `quick-journey-12` (Claude).
+  - F2 was paused/held on a degraded-Codex route; overrode it to Claude standard-high and it is READY.
+  - D5 was reopened for its substantive main-merge conflicts. The I0 re-run and `amber-rapids-59` are running.
