@@ -400,3 +400,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Filed E5b `crisp-beacon-74`: the VPS move (purchase, SSH, firewall, repoint the tunnel, backups, reboot drill). E6b and MS2 now depend on E5b.
   - Told `sound-vault-88` (aq-worker-boat) to run in the desktop stack.
   - Owner inputs still needed: Cloudflare domain and option, team name and email, release tag, boat keys.
+- **09:15 boat.dev live.**
+  - The owner signed up (free trial, then the $20 plan) and saved the attempts key at `~/.config/aq-secrets/boat-api-key` (0600). Verified without printing it: `/me` 200, `/sandboxes` 200 (empty), `/account` 403 (expected).
+  - Scopes: create, read, update, stop, resume, fork, delete-own, exec, file, snapshot r/w, environment read, account read; no `environment.write` (template builds need the second key). Expires 2027-02-01.
+  - Released C7's hold and reopened it for live acceptance: personal account (no org; seats cost $20 each), so sweeps scope by name prefix plus delete-own; small size; at most 2 short sandboxes with 15-minute auto-stop, deleted afterwards.
+  - **I0 run 12 completed:** a real Codex run of 916 s, every worker route 200 and the source retained. It is short of MS0 because the pinned task had no concrete edit and aq-server settlement gaps remain (router unmounted, no combined-decision path). `keen-impact-58` is fixing those; the re-run reopens after.
+  - The disk guard ran at 85% and freed 111 GB (now 74%).
