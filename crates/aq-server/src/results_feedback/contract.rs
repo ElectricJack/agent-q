@@ -204,10 +204,63 @@ impl Command {
     }
 }
 
-/// Immutable result content and the separately observed mutable assessment.
+/// Additive read contract revision; missing markers identify legacy v1 responses.
+#[derive(Default, Serialize, Deserialize, JsonSchema)]
+pub enum FeedbackReadVersion {
+    #[default]
+    #[serde(rename = "results-feedback-1")]
+    V1,
+    #[serde(rename = "results-feedback-1.1")]
+    V1_1,
+}
+
+/// No submission owner exists yet. Links and resolution never imply submission.
+#[derive(Default, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "state", rename_all = "snake_case", deny_unknown_fields)]
+pub enum FollowUpSubmission {
+    #[default]
+    Unsupported,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FeedbackOrigin {
+    pub result_id: Uuid,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    pub revision: String,
+    pub thread_id: Uuid,
+    pub comment_id: Uuid,
+    #[schemars(regex(pattern = "^[1-9][0-9]{0,18}$"))]
+    pub comment_revision: String,
+    #[schemars(length(max = 20))]
+    pub artifacts: Vec<ArtifactPin>,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct FeedbackLinkProjection {
+    pub operation_id: Uuid,
+    pub project_id: Uuid,
+    pub task_id: Uuid,
+    pub origin: FeedbackOrigin,
+}
+
+#[derive(Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ThreadResolution {
+    pub resolved_by: Uuid,
+    pub reason: String,
+    pub follow_up: RevisionRef,
+    pub follow_up_report_id: Uuid,
+}
+
+/// Result identity and principal preference, independent of mutable assessment.
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct ResultProjection {
+    /// Direct principal preference, independent of thread opt-in membership.
+    #[serde(default)]
+    pub directly_following: bool,
     pub id: Uuid,
     pub version: String,
     pub project_id: Uuid,
@@ -231,6 +284,8 @@ pub struct ResultRevision {
     pub artifacts: Vec<ArtifactPin>,
     pub check_refs: Vec<Uuid>,
     pub evidence_refs: Vec<Uuid>,
+    /// Compatibility projection of thread IDs explicitly resolved against this revision.
+    /// This supplemental observation is not part of the immutable native report.
     pub addressed_feedback: Vec<Uuid>,
 }
 #[derive(Serialize, Deserialize, JsonSchema)]
@@ -271,6 +326,10 @@ pub struct ResultAssessment {
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct Detail {
+    #[serde(default)]
+    pub feedback_read_version: FeedbackReadVersion,
+    #[serde(default)]
+    pub follow_up_submission: FollowUpSubmission,
     pub result: ResultProjection,
     pub revision: ResultRevision,
     pub assessment: ResultAssessment,
@@ -287,6 +346,10 @@ pub struct CommentRevision {
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CommentProjection {
+    #[serde(default)]
+    pub feedback_links: Vec<FeedbackLinkProjection>,
+    #[serde(default)]
+    pub resolution: Option<ThreadResolution>,
     pub id: Uuid,
     pub position: String,
     pub revision: String,
@@ -308,6 +371,10 @@ pub struct ResultsPage {
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
 pub struct CommentsPage {
+    #[serde(default)]
+    pub feedback_read_version: FeedbackReadVersion,
+    #[serde(default)]
+    pub follow_up_submission: FollowUpSubmission,
     pub items: Vec<CommentProjection>,
     pub next_cursor: Option<String>,
 }
@@ -347,4 +414,40 @@ pub fn schema_bytes() -> Vec<u8> {
         serde_json::to_vec_pretty(&schemars::schema_for!(Wire)).expect("static Results schema");
     bytes.push(b'\n');
     bytes
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn additive_reads_decode_legacy_and_current_results_feedback() {
+        let fixtures: serde_json::Value = serde_json::from_str(include_str!(
+            "../../../../protocol/results-feedback/v1/fixtures/compatibility.json"
+        ))
+        .unwrap();
+        let reads = &fixtures["additive_reads"];
+        let old: Detail = serde_json::from_value(reads["legacy_detail"].clone()).unwrap();
+        assert!(matches!(old.feedback_read_version, FeedbackReadVersion::V1));
+        let current: Detail = serde_json::from_value(reads["detail_1_1"].clone()).unwrap();
+        assert!(matches!(
+            current.feedback_read_version,
+            FeedbackReadVersion::V1_1
+        ));
+        assert!(matches!(
+            current.follow_up_submission,
+            FollowUpSubmission::Unsupported
+        ));
+        let old: CommentsPage = serde_json::from_value(reads["legacy_comments"].clone()).unwrap();
+        assert!(matches!(old.feedback_read_version, FeedbackReadVersion::V1));
+        assert!(old.items[0].feedback_links.is_empty());
+        assert!(old.items[0].resolution.is_none());
+        let current: CommentsPage = serde_json::from_value(reads["comments_1_1"].clone()).unwrap();
+        assert_eq!(
+            current.items[0].feedback_links[0].origin.comment_revision,
+            "1"
+        );
+        assert_eq!(current.items[0].revision, "2");
+        assert!(current.items[0].resolution.is_some());
+    }
 }

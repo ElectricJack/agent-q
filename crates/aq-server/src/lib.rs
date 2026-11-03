@@ -6,6 +6,7 @@ pub mod config;
 pub mod dashboard_api;
 pub mod dashboard_assets;
 pub mod delegated_permits;
+pub mod delivery;
 pub mod error;
 pub mod execution;
 pub mod identity;
@@ -51,11 +52,11 @@ use std::sync::Arc;
 /// every migration is a state-format change (`store` tests enforce it). The
 /// updater restores the pre-update backup on rollback only when the format
 /// changes, so a migration without a bump would strand the old release.
-pub const STATE_FORMAT_VERSION: u32 = 45;
+pub const STATE_FORMAT_VERSION: u32 = 46;
 /// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
 pub const READABLE_STATE_FORMATS: &[u32] = &[
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-    27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45,
+    27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46,
 ];
 /// Versions that may be upgraded to this release.
 pub const UPGRADE_FROM: &str = ">=0.1.0";
@@ -128,13 +129,22 @@ impl AppState {
 }
 
 async fn harden(req: Request, next: Next) -> Response {
+    let api = req.uri().path() == "/api" || req.uri().path().starts_with("/api/");
     let mut resp = next.run(req).await;
+    let success = resp.status().is_success();
     let h = resp.headers_mut();
     h.insert(
         header::X_CONTENT_TYPE_OPTIONS,
         HeaderValue::from_static("nosniff"),
     );
-    if h.get(header::CACHE_CONTROL).and_then(|v| v.to_str().ok()) != Some("private, no-store") {
+    let cache = h.get(header::CACHE_CONTROL).and_then(|v| v.to_str().ok());
+    let cacheable_asset = !api
+        && success
+        && matches!(
+            cache,
+            Some("no-cache" | "private, max-age=31536000, immutable")
+        );
+    if cache != Some("private, no-store") && !cacheable_asset {
         h.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
     }
     resp
@@ -233,7 +243,10 @@ pub fn build_admin_router_with_optional_owners(
             .as_ref()
             .map(|d| d.service.namespace.owner_user_id),
     };
-    let policy_routes = playbooks.map(playbooks::api::routes).unwrap_or_default();
+    let policy_routes = playbooks
+        .clone()
+        .map(playbooks::api::routes)
+        .unwrap_or_default();
     let review_routes = reviews
         .clone()
         .map(reviews::admin_routes)
@@ -252,7 +265,10 @@ pub fn build_admin_router_with_optional_owners(
         .merge(review_routes)
         .merge(media_routes)
         .merge(admin_api::admin_routes())
-        .merge(dashboard_api::routes_with_reviews(state.clone(), reviews))
+        .merge(
+            dashboard_api::routes_with_reviews(state.clone(), reviews)
+                .layer(axum::Extension(playbooks)),
+        )
         .merge(agent_access::human::routes(&state))
         .merge(agent_access::supervisor_conversation::routes(&state))
         .merge(profiled_execution::human_results::routes())

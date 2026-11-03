@@ -106,14 +106,25 @@ socket ownership or infer source durability when that service is unavailable.
 
 # Reproducible aq-git package
 
-`python3 scripts/check-git-candidate.py --official` checks retained archive,
-bundle and complete source inventory; it never reads sibling checkouts.
-The adopted commit is `f3660a89cbeac0e068105af2926dfdcb06a1daad`.
-The qualified archive was compared byte for byte against its retained Git
-bundle's committed blobs. The original untracked sibling was not changed.
-`docker build -f scripts/Dockerfile.aq-git .` builds it with locked dependencies
-in pinned Rust 1.96.1 bookworm. The previous native executable required
-GLIBC2.39; this build requires at most GLIBC2.34 and executes in bookworm.
+`python3 scripts/check-git-candidate.py --official` verifies the retained
+v0.2.0 release archive, executable, build record, Git bundle and complete source
+inventory without reading sibling checkouts. The release tag is `v0.2.0`, at
+commit `e75f7b4bc36a83ae5001fefa0d5f87618e87ad4a`. The checker compares every
+archived source file with both the build record and the bundle's committed
+blobs, and checks the archive's embedded commit and locked package version.
+
+The [A3a release](https://github.com/ElectricJack/aq-git/releases/tag/v0.2.0)
+executable has SHA-256
+`3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2`.
+`docker build -f scripts/Dockerfile.aq-git .` verifies it with `sha256sum -c`
+and copies those exact bytes. The server and worker embed the same canonical
+stages. Copying the released executable makes the consumer pin match the
+release digest without relying on a reproducible rebuild. A3a built it with
+locked dependencies in the digest-pinned Rust 1.96.1 bookworm builder retained
+by these recipes; it requires at most GLIBC2.34 and executes in bookworm.
+The retained executable targets Linux x86_64. The retained build record's
+pending-publication fields describe its preparation time; the published tag
+and fresh consumer qualification are recorded in `docs/implementation/A3b.md`.
 
 Bookworm's distribution Git2.39 fails aq-git's Git2.43 minimum. The recipe also
 builds retained upstream Git2.56.0, the latest source release listed by the
@@ -127,7 +138,8 @@ runtime libraries. The recipes also link `/usr/bin/git` to the pinned runtime,
 so the component and worker defaults select Git 2.56.0. The whole application
 base image need not change.
 
-Evidence is in `docs/evidence/m4-git-*.{json,log}`. The process/socket scenario
+Current release-pin evidence is in `docs/implementation/A3b.md`; earlier
+qualification evidence is in `docs/evidence/m4-git-*.{json,log}`. The process/socket scenario
 imports source centrally, stops and removes the complete worker volume, then
 constructs a candidate from central retention. These are local qualification
 results, with no hosted-production, performance or power-loss claim.

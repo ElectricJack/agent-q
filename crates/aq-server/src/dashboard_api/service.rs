@@ -14,14 +14,13 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256};
 use sqlx::{Postgres, Row, Transaction};
-use std::collections::BTreeMap;
-fn stamp(state: &AppState) -> Result<u64> {
+pub(super) fn stamp(state: &AppState) -> Result<u64> {
     u64::try_from((state.clock)().timestamp_millis())
         .ok()
         .filter(|n| *n > 0)
         .ok_or(Error::Unavailable)
 }
-fn timestamp(ms: u64) -> Result<Timestamp> {
+pub(super) fn timestamp(ms: u64) -> Result<Timestamp> {
     let value =
         DateTime::<Utc>::from_timestamp_millis(ms.try_into().map_err(|_| Error::Unavailable)?)
             .ok_or(Error::Unavailable)?;
@@ -29,19 +28,19 @@ fn timestamp(ms: u64) -> Result<Timestamp> {
         value.to_rfc3339_opts(SecondsFormat::Millis, true),
     ))
 }
-async fn tx(runtime: &Runtime) -> Result<Transaction<'_, Postgres>> {
+pub(super) async fn tx(runtime: &Runtime) -> Result<Transaction<'_, Postgres>> {
     let mut tx = runtime.pool.begin().await?;
     sqlx::query("SELECT set_config('statement_timeout','500ms',true),set_config('lock_timeout','250ms',true)").execute(&mut *tx).await?;
     Ok(tx)
 }
-struct Auth {
+pub(super) struct Auth {
     actor: Uuid,
-    owner: bool,
+    pub(super) owner: bool,
     email: String,
-    partition: String,
+    pub(super) partition: String,
     visibility_complete: bool,
 }
-async fn auth(state: &AppState, runtime: &Runtime, user: &User) -> Result<Auth> {
+pub(super) async fn auth(state: &AppState, runtime: &Runtime, user: &User) -> Result<Auth> {
     let mut tx = tx(runtime).await?;
     let row = sqlx::query(
         "SELECT role,email,issuer,subject,xmin::text AS version FROM users WHERE id=$1 FOR SHARE",
@@ -100,7 +99,12 @@ async fn auth(state: &AppState, runtime: &Runtime, user: &User) -> Result<Auth> 
     }
     Ok(value)
 }
-async fn fence(state: &AppState, runtime: &Runtime, user: &User, expected: &Auth) -> Result<()> {
+pub(super) async fn fence(
+    state: &AppState,
+    runtime: &Runtime,
+    user: &User,
+    expected: &Auth,
+) -> Result<()> {
     let current = auth(state, runtime, user).await?;
     if current.partition != expected.partition {
         return Err(Error::AuthorizationChanged);
@@ -116,7 +120,7 @@ fn capability(name: &str, enabled: bool, reason: &str) -> Capability {
         reason: if enabled { None } else { Some(reason.into()) },
     }
 }
-fn envelope<T>(
+pub(super) fn envelope<T>(
     state: &AppState,
     scope: Scope,
     data: T,
@@ -219,8 +223,8 @@ pub(super) async fn bootstrap(
         ),
         capability(
             "search.read",
-            graph,
-            "Search requires an owner account and configured Graph runtime",
+            a.visibility_complete,
+            "Session visibility exceeds the bounded authorization partition",
         ),
         capability(
             "decisions.read",
@@ -239,7 +243,7 @@ pub(super) async fn bootstrap(
         ),
         capability(
             "provider.quota",
-            false,
+            a.owner,
             "Provider account usage is unavailable",
         ),
         capability(
@@ -383,7 +387,7 @@ pub(super) async fn bootstrap(
     response.pending_operations = pending;
     Ok(response)
 }
-async fn membership(
+pub(super) async fn membership(
     state: &AppState,
     runtime: &Runtime,
     a: &Auth,
@@ -397,6 +401,7 @@ async fn membership(
     let project = scope.project();
     let now = stamp(state)?;
     let mut ids:Vec<Uuid>=match resource {
+  Resource::Search => return Err(Error::Invalid),
   Resource::Projects=>{
    if !a.owner {return Err(AppError::Forbidden("project inspection requires owner".into()).into());}
    sqlx::query_scalar("SELECT project_id FROM project_execution_bindings WHERE ($1::uuid IS NULL OR project_id=$1) ORDER BY project_id LIMIT 257").bind(project).fetch_all(&mut *tx).await?
@@ -436,6 +441,8 @@ async fn snapshot(
         scope,
         resource,
         ids,
+        filters: json!({}),
+        search: None,
         truncated,
         created: now,
         expires: now.checked_add(runtime::TTL).ok_or(Error::Unavailable)?,
@@ -501,7 +508,7 @@ async fn project_label(
     };
     Ok(ProjectRef { id: project, label })
 }
-async fn session(
+pub(super) async fn session(
     state: &AppState,
     runtime: &Runtime,
     user: &User,
@@ -609,7 +616,9 @@ async fn session(
                 terminal = Some(EntityRef {
                     kind: "terminal".into(),
                     id: row.get("terminal_id"),
-                    revision: Some(Revision(row.get::<i64, _>("terminal_epoch").to_string())),
+                    revision: Some(
+                        Revision(row.get::<i64, _>("terminal_epoch").to_string()).into(),
+                    ),
                 });
                 let at: i64 = row.get("last_output_at_ms");
                 if at > 0 {
@@ -641,7 +650,7 @@ async fn session(
         task: Some(TitledRef {
             kind: "task".into(),
             id: view.task_id,
-            revision: task_revision,
+            revision: task_revision.map(Into::into),
             title: view.task_id.to_string(),
         }),
         attempt_id: Some(attempt),
@@ -796,51 +805,27 @@ pub(super) async fn projects(
         },
     )
 }
-pub(super) async fn overview(
+pub(super) async fn provider_usage(
     state: &AppState,
     runtime: &Runtime,
     user: &User,
     scope: Scope,
-) -> Result<Envelope<Overview>> {
+) -> Result<Envelope<Vec<ProviderUsage>>> {
     let a = auth(state, runtime, user).await?;
-    let (ids, _) = membership(state, runtime, &a, &scope, Resource::Sessions).await?;
-    let mut projects = BTreeMap::new();
-    for id in ids.iter().take(8) {
-        match session(state, runtime, user, *id, &scope).await {
-            Ok(value) => {
-                projects.insert(value.summary.project.id, value.summary.project);
-            }
-            Err(Error::Api(AppError::Forbidden(_) | AppError::NotFound(_))) => {}
-            Err(e) => return Err(e),
-        }
+    if !a.owner {
+        return Err(AppError::Forbidden("provider account usage requires owner".into()).into());
     }
+    let now = stamp(state)?;
+    let inventory = crate::provider_accounts::project(state.config.intelligence.as_deref(), now);
+    let (data, partial) = runtime
+        .quota
+        .collect(inventory.accounts, &state.config.provider_quota, now)
+        .await;
     fence(state, runtime, user, &a).await?;
-    let data = Overview {
-        counts: Counts {
-            running: Total::unknown(),
-            ready: Total::unknown(),
-            needs_you: Total::unknown(),
-            recovering: Total::unknown(),
-        },
-        attention: vec![],
-        in_motion: projects
-            .into_values()
-            .map(|project| InMotion {
-                project,
-                running: Total::unknown(),
-                next_constraint: Some(Constraint {
-                    kind: "unknown".into(),
-                    explanation: "Task constraints are not connected yet".into(),
-                }),
-                last_progress_at: None,
-            })
-            .collect(),
-        recent_outcomes: vec![],
-    };
     envelope(
         state,
         scope,
         data,
-        Some("Task readiness, decisions, and result summaries are not connected yet"),
+        partial.then_some("Some account quota observations are unavailable or stale"),
     )
 }

@@ -10,7 +10,17 @@ use uuid::Uuid;
 pub mod control_diagnostics;
 
 #[cfg(feature = "test-support")]
-tokio::task_local! { static STATE32_STORE: (); }
+tokio::task_local! { static STORE_PROFILE: u32; }
+
+/// Build a fixture with a real registered migration prefix. The scope affects
+/// construction only; the Store keeps its profile across router/spawn boundaries.
+#[cfg(feature = "test-support")]
+pub fn with_store_profile<F: std::future::Future>(
+    version: u32,
+    future: F,
+) -> impl std::future::Future<Output = F::Output> {
+    STORE_PROFILE.scope(version, Box::pin(future))
+}
 
 /// Scope a fixture to a real frozen32 migration prefix. It does not relabel a
 /// database and does not alter normal Store startup or inherited spawned tasks.
@@ -20,13 +30,13 @@ pub fn with_state32_store<F: std::future::Future>(
 ) -> impl std::future::Future<Output = F::Output> {
     // Keep large async fixture state on the heap rather than embedding another
     // complete copy in this wrapper's async state machine.
-    STATE32_STORE.scope((), Box::pin(future))
+    with_store_profile(32, future)
 }
 /// Expected actual fixture format; ordinary fixtures always use current Store.
 pub fn fixture_store_state_version() -> u32 {
     #[cfg(feature = "test-support")]
-    if STATE32_STORE.try_with(|_| ()).is_ok() {
-        return 32;
+    if let Ok(version) = STORE_PROFILE.try_with(|version| *version) {
+        return version;
     }
     crate::STATE_FORMAT_VERSION
 }
@@ -69,10 +79,10 @@ impl TestDb {
     /// Connects (and migrates) a fresh `Store` to this database.
     pub async fn store(&self) -> Store {
         #[cfg(feature = "test-support")]
-        if STATE32_STORE.try_with(|_| ()).is_ok() {
-            return Store::connect_state32_for_testing(self.options())
+        if let Ok(version) = STORE_PROFILE.try_with(|version| *version) {
+            return Store::connect_profile_for_testing(self.options(), version)
                 .await
-                .expect("connect actual state32 store");
+                .expect("connect actual historical store");
         }
         Store::connect_with(self.options())
             .await

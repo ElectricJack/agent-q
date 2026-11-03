@@ -802,3 +802,55 @@ async fn settlement39_valid_pending_combined_review_is_unavailable_without_settl
 
 #[path = "settlement_http.rs"]
 mod settlement_http;
+
+#[tokio::test]
+async fn overview_settlement_acceptance_does_not_claim_graph_completion() {
+    let c = Box::pin(setup()).await;
+    let receipt = Box::pin(c.service.evaluate(&c.actor, &c.request))
+        .await
+        .unwrap();
+    assert_eq!(receipt.disposition, EvaluationDisposition::Accepted);
+    let app = aq_server::build_admin_router_with_policy_owners(
+        c.env.f.state.clone(),
+        None,
+        Some(Arc::new(c.env.service.clone())),
+    );
+    let other = super::review_inbox::overview_as(&app, "/api/v1/overview", "owner@localhost").await;
+    assert!(
+        !other["data"]["recent_outcomes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v["outcome"] == "settlement_accepted")
+    );
+    let body = super::review_inbox::overview_as(
+        &app,
+        "/api/v1/overview",
+        "settlement-requester@localhost",
+    )
+    .await;
+    let outcomes = body["data"]["recent_outcomes"].as_array().unwrap();
+    let outcome = outcomes
+        .iter()
+        .find(|v| v["outcome"] == "settlement_accepted")
+        .unwrap_or_else(|| panic!("accepted evaluation is observed: {body}"));
+    assert_eq!(outcome["subject"]["type"], "settlement_evaluation");
+    assert_eq!(outcome["subject"]["id"], json!(receipt.operation_id));
+    let digest: String = sqlx::query_scalar(
+        "SELECT receipt_digest FROM profiled_settlement_evaluations WHERE operation_id=$1",
+    )
+    .bind(receipt.operation_id)
+    .fetch_one(&c.env.f.db.pool().await)
+    .await
+    .unwrap();
+    assert_eq!(outcome["subject"]["revision"], format!("sha256:{digest}"));
+    assert_eq!(outcome["at"], "1970-01-01T00:16:40.000Z");
+    assert!(!outcomes.iter().any(|v| v["outcome"] == "completed"));
+    assert_eq!(
+        c.writes.load(Ordering::SeqCst),
+        0,
+        "overview must not dispatch Graph completion"
+    );
+    c.env.peer.abort();
+    c._graph.abort();
+}

@@ -55,13 +55,13 @@ async fn mounted_routes_and_absent_owners_have_granular_truthful_capabilities() 
         "human.overview.tasks.read",
         "tasks.read",
         "knowledge.read",
-        "search.read",
         "decisions.read",
         "decisions.resolve",
         "playbooks.inspect",
     ] {
         assert!(!cap(&b, name), "{name}")
     }
+    assert!(cap(&b, "search.read"));
     assert!(cap(&b, "results.read"));
     assert!(cap(&b, "results.comment"));
     assert!(cap(&b, "results.feedback"));
@@ -135,7 +135,6 @@ async fn configured_graph_and_injected_review_owner_are_visible_only_to_owner() 
         "human.overview.tasks.read",
         "tasks.read",
         "knowledge.read",
-        "search.read",
         "results.read",
     ] {
         assert!(
@@ -143,6 +142,7 @@ async fn configured_graph_and_injected_review_owner_are_visible_only_to_owner() 
             "standalone dashboard cannot advertise absent router: {name}"
         );
     }
+    assert!(cap(&standalone_bootstrap, "search.read"));
     let key = dir.path().join("review-key");
     std::fs::write(&key, [23u8; 32]).unwrap();
     std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o600)).unwrap();
@@ -166,13 +166,13 @@ async fn configured_graph_and_injected_review_owner_are_visible_only_to_owner() 
         "human.overview.tasks.read",
         "tasks.read",
         "knowledge.read",
-        "search.read",
         "decisions.read",
         "decisions.resolve",
         "results.read",
     ] {
         assert!(cap(&b, name), "{name}: {b}")
     }
+    assert!(cap(&b, "search.read"));
     assert!(!cap(&b, "playbooks.inspect"));
     assert_eq!(
         read(&app, "/api/reviews/decisions", "owner@localhost")
@@ -183,12 +183,12 @@ async fn configured_graph_and_injected_review_owner_are_visible_only_to_owner() 
     let viewer = Uuid::new_v4();
     sqlx::query("INSERT INTO users(id,email,role,issuer,subject,created_at) VALUES($1,'viewer@localhost','viewer','dev','viewer@localhost',now())").bind(viewer).execute(&f.db.pool().await).await.unwrap();
     let (_, b) = read(&app, "/api/v1/bootstrap", "viewer@localhost").await;
+    assert!(cap(&b, "search.read"));
     for name in [
         "human.graph.read",
         "human.overview.tasks.read",
         "tasks.read",
         "knowledge.read",
-        "search.read",
         "decisions.read",
         "decisions.resolve",
         "results.read",

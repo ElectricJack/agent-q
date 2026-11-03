@@ -315,6 +315,13 @@
           "type": "integer",
           "format": "int64"
         },
+        "feedback_links": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/FeedbackLinkProjection"
+          }
+        },
         "history": {
           "type": "array",
           "items": {
@@ -327,6 +334,17 @@
         },
         "position": {
           "type": "string"
+        },
+        "resolution": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ThreadResolution"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "revision": {
           "type": "string"
@@ -386,6 +404,16 @@
     "CommentsPage": {
       "type": "object",
       "properties": {
+        "feedback_read_version": {
+          "$ref": "#/$defs/FeedbackReadVersion",
+          "default": "results-feedback-1"
+        },
+        "follow_up_submission": {
+          "$ref": "#/$defs/FollowUpSubmission",
+          "default": {
+            "state": "unsupported"
+          }
+        },
         "items": {
           "type": "array",
           "items": {
@@ -459,6 +487,16 @@
       "properties": {
         "assessment": {
           "$ref": "#/$defs/ResultAssessment"
+        },
+        "feedback_read_version": {
+          "$ref": "#/$defs/FeedbackReadVersion",
+          "default": "results-feedback-1"
+        },
+        "follow_up_submission": {
+          "$ref": "#/$defs/FollowUpSubmission",
+          "default": {
+            "state": "unsupported"
+          }
         },
         "result": {
           "$ref": "#/$defs/ResultProjection"
@@ -826,6 +864,82 @@
         "artifacts"
       ]
     },
+    "FeedbackLinkProjection": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "origin": {
+          "$ref": "#/$defs/FeedbackOrigin"
+        },
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "task_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "operation_id",
+        "project_id",
+        "task_id",
+        "origin"
+      ]
+    },
+    "FeedbackOrigin": {
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactPin"
+          },
+          "maxItems": 20
+        },
+        "comment_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "comment_revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,18}$"
+        },
+        "result_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "thread_id": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "result_id",
+        "revision",
+        "thread_id",
+        "comment_id",
+        "comment_revision",
+        "artifacts"
+      ]
+    },
+    "FeedbackReadVersion": {
+      "description": "Additive read contract revision; missing markers identify legacy v1 responses.",
+      "type": "string",
+      "enum": [
+        "results-feedback-1",
+        "results-feedback-1.1"
+      ]
+    },
     "FeedbackTaskStatus": {
       "type": "object",
       "properties": {
@@ -885,6 +999,24 @@
         "operation_id",
         "expected_version",
         "following"
+      ]
+    },
+    "FollowUpSubmission": {
+      "description": "No submission owner exists yet. Links and resolution never imply submission.",
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "state": {
+              "type": "string",
+              "const": "unsupported"
+            }
+          },
+          "additionalProperties": false,
+          "required": [
+            "state"
+          ]
+        }
       ]
     },
     "ObjectFormat": {
@@ -1054,12 +1186,17 @@
       ]
     },
     "ResultProjection": {
-      "description": "Immutable result content and the separately observed mutable assessment.",
+      "description": "Result identity and principal preference, independent of mutable assessment.",
       "type": "object",
       "properties": {
         "current_revision": {
           "type": "string",
           "pattern": "^[0-9a-f]{64}$"
+        },
+        "directly_following": {
+          "description": "Direct principal preference, independent of thread opt-in membership.",
+          "type": "boolean",
+          "default": false
         },
         "id": {
           "type": "string",
@@ -1090,6 +1227,7 @@
       "type": "object",
       "properties": {
         "addressed_feedback": {
+          "description": "Compatibility projection of thread IDs explicitly resolved against this revision.\nThis supplemental observation is not part of the immutable native report.",
           "type": "array",
           "items": {
             "type": "string",
@@ -1255,6 +1393,32 @@
       "required": [
         "repository_id",
         "base"
+      ]
+    },
+    "ThreadResolution": {
+      "type": "object",
+      "properties": {
+        "follow_up": {
+          "$ref": "#/$defs/RevisionRef"
+        },
+        "follow_up_report_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "resolved_by": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "resolved_by",
+        "reason",
+        "follow_up",
+        "follow_up_report_id"
       ]
     },
     "Timestamp": {

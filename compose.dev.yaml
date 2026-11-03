@@ -1,6 +1,10 @@
 # Development overlay. scripts/dev-up prepares the private vault and state.
 # Graph source is pinned independently of the server and Git candidate.
 services:
+  server-db-init:
+    profiles: [production]
+  prod-state-init:
+    profiles: [production]
   postgres-socket-init:
     image: postgres:17-bookworm
     user: '0:0'
@@ -11,7 +15,7 @@ services:
     read_only: true
     cap_drop: [ALL]
     cap_add: [CHOWN, DAC_OVERRIDE, FOWNER]
-    security_opt: [no-new-privileges:true]
+    security_opt: !override [no-new-privileges:true]
   postgres:
     environment:
       POSTGRES_INITDB_ARGS: --auth-local=scram-sha-256
@@ -40,7 +44,7 @@ services:
     read_only: true
     cap_drop: [ALL]
     cap_add: [CHOWN, DAC_OVERRIDE, FOWNER]
-    security_opt: [no-new-privileges:true]
+    security_opt: !override [no-new-privileges:true]
   graph-db-init:
     image: postgres:17-bookworm
     networks: [database]
@@ -64,7 +68,7 @@ services:
     restart: on-failure
     read_only: true
     cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    security_opt: !override [no-new-privileges:true]
     logging: &dev-logging
       driver: json-file
       options: {max-size: 10m, max-file: '3'}
@@ -81,7 +85,7 @@ services:
     restart: 'no'
     read_only: true
     cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    security_opt: !override [no-new-privileges:true]
     logging: *dev-logging
   aq-graph:
     image: ${AQ_DEV_GRAPH_IMAGE:-aq-graph:225329cd6acf5a775fd2a0b016dd1c45fb16c79b}
@@ -97,15 +101,16 @@ services:
     command:
       - 'export PGPASSWORD="$$(cat /run/secrets/graph_database_password)" DATABASE_URL="postgres://aq_graph@postgres:5432/aq_graph"; exec aq-graph serve'
     secrets: [graph_database_password, graph_token]
+    volumes: !override []
     networks: [database, edge]
-    depends_on:
+    depends_on: !override
       graph-db-init: {condition: service_completed_successfully}
     ports: ['127.0.0.1:${AQ_DEV_GRAPH_PORT:-8741}:8741']
     init: true
     restart: unless-stopped
     read_only: true
     cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    security_opt: !override [no-new-privileges:true]
     logging: *dev-logging
     healthcheck:
       test: [CMD, aq-graph, --endpoint, 'http://127.0.0.1:8741', health]
@@ -119,19 +124,19 @@ services:
       target: server
     user: '10001:10001'
     entrypoint: [/bin/sh, /dev-git-supervisor.sh]
-    volumes:
+    volumes: !override
       - ./scripts/dev-git-supervisor.sh:/dev-git-supervisor.sh:ro
       - dev_source:/var/lib/aq
       - dev_git_run:/run/aq-git
       - ${AQ_DEV_STATE_DIR:-./state.dev}/fixture:/fixture:ro
     networks: [edge]
-    depends_on:
+    depends_on: !override
       dev-state-init: {condition: service_completed_successfully}
     init: true
     restart: unless-stopped
     read_only: true
     cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    security_opt: !override [no-new-privileges:true]
     logging: *dev-logging
     healthcheck:
       test: [CMD, aq-git, --socket, /run/aq-git/central.sock, --json, capabilities]
@@ -156,8 +161,8 @@ services:
       - dev_source:/var/lib/aq
       - dev_git_run:/run/aq-git:ro
       - dev_postgres_socket:/run/aq-postgresql:ro
-    secrets: [postgres_password]
-    depends_on:
+    secrets: !override [postgres_password]
+    depends_on: !override
       dev-state-init: {condition: service_completed_successfully}
       aq-graph: {condition: service_healthy}
       aq-git: {condition: service_healthy}
@@ -191,7 +196,7 @@ services:
       - worker_config:/config
     read_only: true
     cap_drop: [ALL]
-    security_opt: [no-new-privileges:true]
+    security_opt: !override [no-new-privileges:true]
 volumes:
   worker_config:
   dev_vault:

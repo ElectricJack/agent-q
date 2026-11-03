@@ -141,6 +141,20 @@ pub(super) async fn enqueue(
     }
     Ok(receipt.outcome())
 }
+/// Seed historical fixtures through the real mailbox writer without requiring
+/// the dashboard action journal introduced after their migration prefix.
+#[cfg(test)]
+pub(super) async fn enqueue_historical_fixture(
+    state: &AppState,
+    user: &User,
+    id: Uuid,
+    bytes: Bytes,
+) -> Result<Response> {
+    enqueue_domain(state, &Service::new(state), user, id, bytes)
+        .await
+        .map(Receipt::outcome)
+}
+
 async fn enqueue_domain(
     state: &AppState,
     service: &Service,

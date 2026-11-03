@@ -49,6 +49,9 @@ pub struct Config {
     pub source_retention: Option<crate::source_retention::SourceRetentionConfig>,
     #[serde(default)]
     pub result_media: Option<crate::result_media::config::MediaConfig>,
+    /// Explicit mappings to protected Codex OAuth files; never a browser credential.
+    #[serde(default)]
+    pub provider_quota: Vec<crate::dashboard_api::quota::CodexSource>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -213,6 +216,26 @@ fn validate(c: &Config) -> Result<(), (String, String)> {
     {
         return invalid("updates.spool_dir", "must be an absolute path".into());
     }
+    if c.provider_quota.len() > 32 {
+        return invalid("provider_quota", "at most 32 quota sources".into());
+    }
+    let mut quota_accounts = std::collections::BTreeSet::new();
+    for source in &c.provider_quota {
+        if !source.validate()
+            || !quota_accounts.insert((&source.provider_id, &source.account_ref))
+            || !c.intelligence.as_ref().is_some_and(|inventory| {
+                inventory.credentials.iter().any(|account| {
+                    account.provider == source.provider_id
+                        && account.account_reference == source.account_ref
+                })
+            })
+        {
+            return invalid(
+                "provider_quota",
+                "invalid, duplicate, or unconfigured quota account".into(),
+            );
+        }
+    }
     c.projects.validate().map_err(|e| ("projects".into(), e))?;
     if let Some(settings) = &c.result_media {
         settings
@@ -325,6 +348,7 @@ mod tests {
             terminals: None,
 
             intelligence: None,
+            provider_quota: vec![],
         }
     }
 

@@ -349,7 +349,7 @@ async fn comments(
         Scope::Project {
             project_id: p.project,
         },
-        json!({"items":items,"next_cursor":next}),
+        json!({"feedback_read_version":FeedbackReadVersion::V1_1,"follow_up_submission":FollowUpSubmission::Unsupported,"items":items,"next_cursor":next}),
     )))
 }
 type Body =

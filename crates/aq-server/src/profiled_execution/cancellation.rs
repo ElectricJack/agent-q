@@ -202,6 +202,18 @@ pub(crate) async fn pending(
     let mut tx = state.store.pool.begin().await.map_err(db)?;
     crate::worker_api::lock_current_node(&mut tx, auth).await?;
     super::registration::admitted_runtime_locked(&mut tx, auth.id(), identity.boot_id).await?;
+    // Frozen fixture binaries predate cancellation delivery. Only explicit
+    // historical construction selects this path; current startup still refuses
+    // missing cancellation storage, including in test-support builds.
+    #[cfg(feature = "test-support")]
+    if state
+        .store
+        .fixture_profile
+        .is_some_and(|version| version < 43)
+    {
+        tx.commit().await.map_err(db)?;
+        return Ok(Vec::new());
+    }
     let rows=sqlx::query("SELECT c.cancellation_id,c.binding,h.authority_revision FROM profiled_cancellations c JOIN execution_attempts a USING(attempt_id) JOIN profiled_authority_hot h USING(attempt_id) WHERE a.node_id=$1 AND c.binding#>>'{session,boot_id}'=$2 AND NOT EXISTS(SELECT 1 FROM profiled_cancelled_settlements s WHERE s.attempt_id=c.attempt_id) ORDER BY (h.state->>'status'='never_granted'),c.recorded_at_ms DESC,c.attempt_id LIMIT 32")
         .bind(auth.id()).bind(identity.boot_id.to_string()).fetch_all(&mut *tx).await.map_err(db)?;
     let directives = rows
