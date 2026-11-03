@@ -89,3 +89,14 @@ def test_published_graph_reads_private_token_from_initialized_shared_runtime():
     runtime = [{v["target"]: v["source"] for v in services[name]["volumes"]}
                for name in ("server", "aq-graph", "prod-state-init")]
     assert len({v["/run/aq"] for v in runtime}) == 1
+
+
+def test_worker_overlay_limits_and_socket_boundaries():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("workers_smoke", ROOT / "scripts/compose-workers-smoke.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    report = module.validate_production(module.merged_config(), module.slice_properties())
+    assert report["budget"]["cpus"] <= 8.0
+    # The base stack stays the E1a service set; workers come only from the overlay.
+    assert not {"aq-supervisor-host", "aq-worker-cloud"} & set(config()["services"])

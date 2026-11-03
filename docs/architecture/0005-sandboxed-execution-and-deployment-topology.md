@@ -69,7 +69,7 @@ flowchart LR
         Server --> Graph[aq-graph]
         Server --> Git[aq-git, supervised]
         CW[Cloud worker node, backend: docker-local]
-        VSD[VPS sandbox Docker daemon]
+        VSD[Host rootless Podman daemon, dedicated user]
         V1[Sandbox container: runner plus agent]
         BW[boat worker node, backend: boat, later phase]
         Updater[Host updater]
@@ -102,7 +102,8 @@ flowchart LR
 | --- | --- | --- |
 | VPS, server stack (Compose) | `aq-server` (including the dashboard bundle built into the image), PostgreSQL, `aq-graph`, a supervised `aq-git serve`, `cloudflared`, and the existing host updater as a host service | Agent processes; Docker socket access for the application container (infrastructure spec, "Application container does not receive the Docker socket") |
 | VPS, supervisor host container | Central supervisor CLI sessions (AQ-17): the shared tmux host and harness adapters, running under a central session identity and an expiring execution permit (architecture 0003 §4). Supervisor provider credentials come from the central vault. | Worker-placed attempts; Docker access. This is not a worker node, and supervisor credentials never reach worker nodes or sandboxes (W1). |
-| VPS, cloud worker container (`aq-worker-cloud`) | aq-worker with the `docker-local` backend and its own dedicated rootless sandbox daemon. It holds its journal volume and a credential-lease cache. Agent sandboxes on the VPS have per-service CPU and memory limits, so they cannot starve the server stack. | Agent processes outside sandboxes; the host's main Docker socket; the boat API key |
+| VPS, cloud worker container (`aq-worker-cloud`) | aq-worker with the `docker-local` backend, connected to the dedicated host rootless Podman daemon through its Docker-compatible API. It holds its journal volume and a credential-lease cache. The controller has Compose limits; sandbox limits and the aggregate user slice are separate (section 9). | Agent processes outside sandboxes; the host's main Docker socket; the boat API key |
+| VPS, sandbox daemon (host service) | Rootless Podman ≥ 5 owned by a dedicated user, with the `systemd` cgroup driver on cgroup v2. The daemon and all its sandboxes share the capped `user-<uid>.slice` (section 9). | A Compose service; the host's main Docker daemon |
 | VPS, boat worker container (`aq-worker-boat`, later phase) | A second enrolled aq-worker node with the `boat` backend. It holds its own node identity, service tokens, journal volume, the boat API key and a credential-lease cache. Its sandboxes run on boat.dev, not on the VPS. | Agent processes; any Docker socket |
 | VPS, agent sandboxes | One container per attempt, created by the cloud worker on its sandbox daemon | Node, backend, Git remote or supervisor credentials |
 | boat.dev | One sandbox VM per attempt, forked from the template's saved snapshot | Node credentials, any other attempt |
@@ -110,6 +111,10 @@ flowchart LR
 | Cloudflare (later) | A small Cloudflare Worker and Durable Object that creates Containers on request from an enrolled worker node | AQ server functions |
 
 The cloud worker (and later the boat worker) runs on the same VPS as the server for cost and simplicity. If the VPS goes down, the server and the VPS worker nodes go down together, and that is accepted. Each VPS worker node still connects to the server through the public machine hostname and Cloudflare Access, exactly as a remote worker would, not over the internal Compose network. This keeps one authentication and transport path for all workers and lets a VPS worker node move to another host without changing configuration semantics.
+
+**E1c sandbox daemon decision (2026-11-03).** The dedicated host user (for example `aq-sandbox`, with linger enabled) runs `podman system service` at `/run/user/<uid>/aq-sandbox/podman.sock`. `aq-worker-cloud` runs as that user's UID:GID and bind-mounts only the socket directory at `/run/aq-sandbox`, with `DOCKER_HOST=unix:///run/aq-sandbox/podman.sock`. No Compose service receives the host's main Docker socket. Rootless `dockerd` remains an equivalent alternative subject to the cgroup delegation requirements in SBX10.
+
+Running `docker:29.3.1-dind-rootless` as a Compose service was rejected: it reported `CgroupDriver none` and silently dropped per-sandbox `NanoCpus`, `Memory` and `PidsLimit`, failing SBX10 despite reporting `name=rootless`. The selected host Podman setup reports `CgroupDriver systemd` and `CgroupVersion 2`. See [E1c evidence](../implementation/E1c.md) for the qualification and its limits.
 
 ### 3.2 Scheduling across workers
 
@@ -387,12 +392,32 @@ A harness whose subscription credential cannot be stored as a file, or whose API
 
 The VPS follows the infrastructure spec, with these additions:
 
-- **Compose services:** `postgres`, `aq-server` (dashboard bundle built into the image), `aq-graph` (pinned image digest), `aq-git` (pinned, supervised, restarted on failure, readiness-checked by aq-server), `cloudflared`, and `aq-worker-cloud` (backend `docker-local`, with its own rootless sandbox daemon and per-service resource limits). When boat is added, a second worker service, `aq-worker-boat` (backend `boat`), is enrolled as its own node; `aq-worker-cloud` stays on `docker-local`.
+- **Compose services:** [compose.yaml](../../compose.yaml) defines `postgres`, `server` (aq-server with the dashboard bundle built into the image), `aq-graph` (pinned image digest), `aq-git` (pinned, supervised, restarted on failure, readiness-checked by aq-server), `cloudflared`, and the one-shot init jobs. [compose.workers.yaml](../../compose.workers.yaml) adds `aq-supervisor-host` and `aq-worker-cloud` (backend `docker-local`); use both files for this topology. The sandbox daemon is a host service owned by a dedicated user (section 3.1). When boat is added, a second worker service, `aq-worker-boat` (backend `boat`), is enrolled as its own node; `aq-worker-cloud` stays on `docker-local`.
 - **Hostnames:** the existing human hostname, behind Cloudflare Access with owner login, and machine hostname, behind Access service tokens. All workers and sandbox runners use the machine hostname. Each worker node has two service tokens, one for the node and one for its runners (section 7).
 - **Supervisor host:** a supervisor host container (section 3.1) runs supervisor CLI sessions. Its memory is part of the sizing below.
 - **VPS sizing:** the infrastructure spec's starting size (2 vCPU / 4 GB) was chosen for the foundation server alone. The VPS now also hosts the supervisor host and the cloud worker's agent sandboxes. Size it from measured memory for the stack plus the cloud worker's sandbox ceiling, roughly 8 vCPU / 16 GB for two concurrent Rust-building sandboxes, before purchase. Check Bluehost's sustained-CPU terms.
 - **Local desktop:** the worker container plus the dedicated sandbox Docker daemon on WSL2. It must survive desktop reboot. On restart it reconciles as in section 4.1.
 - **Backups** follow the infrastructure spec. Sandboxes are never backed up; central retention is the durable copy.
+
+### 9.1 Service limits and aggregate sandbox budget
+
+The E1c limits for the 8 vCPU / 16 GB VPS are below. Every Compose service sets `memswap_limit` equal to `mem_limit`, allowing no swap beyond its memory ceiling. CPU and memory values are ceilings, not reserved capacity.
+
+| Service | CPU ceiling (vCPU) | Memory ceiling | PID ceiling |
+| --- | --- | --- | --- |
+| `postgres` | 1.0 | 1 GiB | 256 |
+| `server` | 1.0 | 1 GiB | 512 |
+| `aq-graph` | 0.5 | 512 MiB | 256 |
+| `aq-git` | 0.5 | 512 MiB | 512 |
+| `cloudflared` | 0.25 | 128 MiB | 128 |
+| `graph-db-init`, `server-db-init`, `prod-state-init` (each) | 0.25 | 128 MiB | 64 |
+| `aq-supervisor-host` | 0.5 | 2 GiB | 512 |
+| `aq-worker-cloud` (controller only) | 0.25 | 256 MiB | 256 |
+| Sandbox user slice (daemon and all sandboxes) | 4.0 (`CPUQuota=400%`, `CPUWeight=50`) | 8 GiB (`MemoryMax=8G`, `MemorySwapMax=0`) | 4096 (`TasksMax`) |
+
+Install [deploy/systemd/aq-sandbox-user.slice.conf](../../deploy/systemd/aq-sandbox-user.slice.conf) as `/etc/systemd/system/user-<uid>.slice.d/50-aq-sandbox.conf` for the dedicated sandbox user, then run `systemctl daemon-reload`. Every process of that user, including the Podman API service, conmon and each sandbox, is charged to this slice. This aggregate cap applies in addition to each sandbox's C2 limits and requires no `CgroupParent` support in `docker-local`. Limiting the worker controller's Compose container alone would not cap its sandboxes, which run outside that container.
+
+The long-running Compose services total 4.0 vCPU and 5.375 GiB; together with the sandbox slice, the ceilings total 8.0 vCPU and 13.375 GiB, leaving about 2.6 GiB for the kernel, daemons and page cache. The lower sandbox `CPUWeight` yields under contention. One-shot init jobs run before the long-running services start and are excluded from these totals. [E1c](../implementation/E1c.md) records the load evidence; installation of the production user slice and qualification on the 8 vCPU VPS belong to E5.
 
 ## 10. Requirements
 

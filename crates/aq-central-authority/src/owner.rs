@@ -99,7 +99,12 @@ async fn bounded<T>(future: impl Future<Output = OwnerResult<T>>) -> OwnerResult
 }
 async fn begin(pool: &PgPool) -> OwnerResult<Transaction<'_, Postgres>> {
     let mut tx = pool.begin().await?;
-    sqlx::raw_sql("SET LOCAL lock_timeout='2s'; SET LOCAL statement_timeout='3s'")
+    // Two prepared statements, not raw_sql: raw_sql's Executor bound defeats
+    // Send inference for owner futures awaited from HTTP handlers.
+    sqlx::query("SET LOCAL lock_timeout='2s'")
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("SET LOCAL statement_timeout='3s'")
         .execute(&mut *tx)
         .await?;
     Ok(tx)
@@ -218,11 +223,13 @@ impl<V: EvidenceVerifier> SessionOwner<V> {
             plan.validate()?;
             clock.validate()?;
             let mut tx = begin(&self.pool).await?;
-            let inserted = sqlx::query("INSERT INTO central_session_heads(actor_id,conversation_id,authority_id,current_generation) VALUES($1,$2,$3,0) ON CONFLICT(actor_id) DO NOTHING")
+            let inserted = sqlx::query("INSERT INTO central_session_heads(actor_id,conversation_id,authority_id,current_generation) VALUES($1,$2,$3,0) ON CONFLICT DO NOTHING")
                 .bind(plan.subject.actor_id()).bind(plan.subject.conversation_id()).bind(session(&plan).0).execute(&mut *tx).await?.rows_affected() == 1;
             // An inserted row is already exclusively owned by this transaction;
             // an existing head must be locked before authorization is checked.
-            let h = if inserted { None } else { head(&mut tx, plan.subject.actor_id()).await? };
+            // A skipped insert with no head for this actor means another actor
+            // owns the UNIQUE conversation_id: a typed conflict, not storage.
+            let h = if inserted { None } else { Some(head(&mut tx, plan.subject.actor_id()).await?.ok_or(OwnerError::Conflict)?) };
             self.verifier.authorize_plan(&mut tx, &plan).await?;
             let run = if let Some(h) = h {
                 if h.conversation != plan.subject.conversation_id() || h.authority != session(&plan).0 { return Err(OwnerError::Conflict); }
@@ -360,14 +367,15 @@ impl<V: EvidenceVerifier> SessionOwner<V> {
 
     /// Historical data only: neither inspection nor reconstruction renews a
     /// permit, observes a live process, or authorizes physical re-adoption.
-    pub async fn inspect(&self, actor: Uuid) -> OwnerResult<Option<Snapshot>> {
-        self.read(actor, None).await
+    // Reads return boxed Send futures so HTTP handlers can await them.
+    pub fn inspect(&self, actor: Uuid) -> Read<'_> {
+        Box::pin(self.read(actor, None))
     }
-    pub async fn generation(&self, actor: Uuid, generation: u64) -> OwnerResult<Option<Snapshot>> {
+    pub fn generation(&self, actor: Uuid, generation: u64) -> Read<'_> {
         if generation == 0 || generation > MAX_GENERATIONS {
-            return Err(OwnerError::Conflict);
+            return Box::pin(async { Err(OwnerError::Conflict) });
         }
-        self.read(actor, Some(generation)).await
+        Box::pin(self.read(actor, Some(generation)))
     }
     async fn read(&self, actor: Uuid, generation: Option<u64>) -> OwnerResult<Option<Snapshot>> {
         bounded(async {
@@ -386,6 +394,9 @@ impl<V: EvidenceVerifier> SessionOwner<V> {
         .await
     }
 }
+/// A boxed, Send snapshot read.
+pub type Read<'a> =
+    std::pin::Pin<Box<dyn Future<Output = OwnerResult<Option<Snapshot>>> + Send + 'a>>;
 
 fn issue(run: &Run, sequence: u64, ttl_ms: u64, clock: &Clock) -> OwnerResult<PermitData> {
     clock.validate()?;

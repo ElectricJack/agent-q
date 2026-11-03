@@ -207,6 +207,9 @@ pub async fn native(path: &Path, expected: &str) -> Result<()> {
         .stdin(std::process::Stdio::piped());
     unsafe {
         command.pre_exec(move || {
+            // Leave the root wrapper's session and controlling tty first. The
+            // guardian's kill domain is subreaper/pidfd based, not session based.
+            new_session()?;
             if libc::fcntl(fd, libc::F_SETFD, 0) < 0
                 || libc::setgroups(0, std::ptr::null()) != 0
                 || libc::setgid(10001) != 0
@@ -229,4 +232,41 @@ pub async fn native(path: &Path, expected: &str) -> Result<()> {
     transport.stop().await?;
     ensure!(result?.success(), "native process failed");
     Ok(())
+}
+/// Async-signal-safe `pre_exec` step: make the child a new session leader with
+/// no controlling terminal, detached from the root wrapper's session.
+pub(crate) fn new_session() -> std::io::Result<()> {
+    if unsafe { libc::setsid() } < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::new_session;
+    use std::os::unix::process::CommandExt;
+
+    fn session_of(stat: &str) -> i32 {
+        // Field 6 of /proc/<pid>/stat, after the parenthesised command name.
+        let rest = &stat[stat.rfind(')').unwrap() + 2..];
+        rest.split_whitespace().nth(3).unwrap().parse().unwrap()
+    }
+
+    #[test]
+    fn native_child_pre_exec_starts_its_own_session() {
+        let parent = unsafe { libc::getsid(0) };
+        let mut command = std::process::Command::new("/bin/cat");
+        command
+            .arg("/proc/self/stat")
+            .stdout(std::process::Stdio::piped());
+        unsafe { command.pre_exec(new_session) };
+        let child = command.spawn().unwrap();
+        let pid = child.id() as i32;
+        let output = child.wait_with_output().unwrap();
+        assert!(output.status.success());
+        let sid = session_of(std::str::from_utf8(&output.stdout).unwrap());
+        assert_eq!(sid, pid, "child must lead its own session");
+        assert_ne!(sid, parent, "child must leave the wrapper session");
+    }
 }

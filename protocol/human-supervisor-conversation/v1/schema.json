@@ -183,80 +183,16 @@
         },
         "items": {
           "type": "array",
-          "maxItems": 16,
+          "maxItems": 80,
           "items": {
-            "type": "object",
-            "properties": {
-              "message_id": {
-                "type": "string",
-                "format": "uuid"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/HumanItem"
               },
-              "thread_id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "conversation_id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "cursor": {
-                "type": "string",
-                "pattern": "^[1-9][0-9]{0,18}$"
-              },
-              "author": {
-                "type": "object",
-                "properties": {
-                  "kind": {
-                    "const": "human"
-                  },
-                  "user_id": {
-                    "type": "string",
-                    "format": "uuid"
-                  }
-                },
-                "required": [
-                  "kind",
-                  "user_id"
-                ],
-                "additionalProperties": false
-              },
-              "body": {
-                "type": "string",
-                "minLength": 1,
-                "x-utf8-maxBytes": 16384
-              },
-              "body_digest": {
-                "type": "string",
-                "pattern": "^sha256:[0-9a-f]{64}$"
-              },
-              "created_at_ms": {
-                "type": "integer",
-                "minimum": 1
-              },
-              "logical_admission": {
-                "const": "queued"
-              },
-              "host_delivery": {
-                "const": "not_attempted"
-              },
-              "agent_receipt": {
-                "type": "null"
+              {
+                "$ref": "#/$defs/SupervisorItem"
               }
-            },
-            "required": [
-              "message_id",
-              "thread_id",
-              "conversation_id",
-              "cursor",
-              "author",
-              "body",
-              "body_digest",
-              "created_at_ms",
-              "logical_admission",
-              "host_delivery",
-              "agent_receipt"
-            ],
-            "additionalProperties": false
+            ]
           }
         },
         "next_cursor": {
@@ -442,6 +378,195 @@
           }
         }
       ]
+    },
+    "HumanItem": {
+      "type": "object",
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "thread_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "conversation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "cursor": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,18}$"
+        },
+        "author": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "human"
+            },
+            "user_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "required": [
+            "kind",
+            "user_id"
+          ],
+          "additionalProperties": false
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "x-utf8-maxBytes": 16384
+        },
+        "body_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "created_at_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "logical_admission": {
+          "const": "queued"
+        },
+        "host_delivery": {
+          "enum": [
+            "not_attempted",
+            "pending",
+            "delivery_unknown",
+            "delivered",
+            "not_delivered"
+          ]
+        },
+        "agent_receipt": {
+          "type": "null"
+        }
+      },
+      "required": [
+        "message_id",
+        "thread_id",
+        "conversation_id",
+        "cursor",
+        "author",
+        "body",
+        "body_digest",
+        "created_at_ms",
+        "logical_admission",
+        "host_delivery",
+        "agent_receipt"
+      ],
+      "additionalProperties": false
+    },
+    "SupervisorItem": {
+      "type": "object",
+      "properties": {
+        "message_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "thread_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "conversation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "cursor": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,18}$"
+        },
+        "author": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "supervisor"
+            },
+            "actor_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "generation": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1024
+            },
+            "session_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "required": [
+            "kind",
+            "actor_id",
+            "generation",
+            "session_id"
+          ],
+          "additionalProperties": false
+        },
+        "body": {
+          "type": "string",
+          "minLength": 1,
+          "x-utf8-maxBytes": 16384
+        },
+        "body_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "created_at_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "logical_admission": {
+          "const": "queued"
+        },
+        "host_delivery": {
+          "const": "not_attempted"
+        },
+        "agent_receipt": {
+          "type": "null"
+        },
+        "dispatch": {
+          "type": "object",
+          "properties": {
+            "dispatch_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "host_operation_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "batch_digest": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            }
+          },
+          "required": [
+            "dispatch_id",
+            "host_operation_id",
+            "batch_digest"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "message_id",
+        "thread_id",
+        "conversation_id",
+        "cursor",
+        "author",
+        "body",
+        "body_digest",
+        "dispatch",
+        "created_at_ms",
+        "logical_admission",
+        "host_delivery",
+        "agent_receipt"
+      ],
+      "additionalProperties": false
     }
   },
   "oneOf": [
