@@ -31,7 +31,7 @@ These were decided by the product owner on 2026-11-02:
 3. **Worker nodes are long-lived controllers that run no agents themselves.** A worker node enrolls once and holds its node identity, capacity accounting, caches and credentials. It creates and destroys sandboxes for the attempts it accepts.
 4. **Target topology:**
    - One Bluehost VPS runs the server stack and a cloud worker container.
-   - The cloud worker first runs `docker-local` sandboxes on the VPS itself (decided 2026-11-02 after review), then adds boat.dev sandboxes.
+   - The cloud worker runs `docker-local` sandboxes on the VPS itself (decided 2026-11-02 after review). boat.dev sandboxes come later through a second enrolled VPS worker node with the `boat` backend, because each worker node has exactly one backend (section 2).
    - One local worker on the owner's desktop, itself running as a container on WSL2, runs the same templates locally for extra compute.
 5. **Cloud placement must support both boat.dev and Cloudflare.** boat.dev is the first remote backend. Cloudflare Containers is a second remote backend behind the same interface.
 6. **Provider authentication is a mix of API keys and subscription logins** (for example, a ChatGPT login for Codex CLI or a Claude subscription for Claude Code). **Subscription logins are the primary path, and no API key is required** (product owner, 2026-11-02). API-key profiles remain supported as an option. **Both are allowed on every backend.** AQ is a personal deployment: running the owner's own agent with the owner's login on cloud compute is ordinary use, because the cloud only supplements limited desktop compute (product owner, 2026-11-02). The per-credential backend list (section 7) remains available as an operator restriction.
@@ -68,7 +68,10 @@ flowchart LR
         Server --> PG[(PostgreSQL)]
         Server --> Graph[aq-graph]
         Server --> Git[aq-git, supervised]
-        CW[Cloud worker node, backend: boat]
+        CW[Cloud worker node, backend: docker-local]
+        VSD[VPS sandbox Docker daemon]
+        V1[Sandbox container: runner plus agent]
+        BW[boat worker node, backend: boat, later phase]
         Updater[Host updater]
     end
     subgraph Boat[boat.dev]
@@ -83,11 +86,14 @@ flowchart LR
     Browser[Owner browser and CLI] --> Access --> cloudflared
     CW -->|outbound HTTPS via Access| Access
     LW -->|outbound HTTPS via Access| Access
+    BW -->|outbound HTTPS via Access| Access
+    V1 -->|outbound HTTPS via Access| Access
     B1 -->|outbound HTTPS via Access| Access
     L1 -->|outbound HTTPS via Access| Access
-    CW -->|boat API| Boat
+    CW --> VSD --> V1
+    BW -->|boat API| Boat
     LW --> SD --> L1
-    CW -.->|later| CFC
+    CFW[Worker node, backend: cloudflare-containers, later phase] -.->|gateway API| CFC
 ```
 
 ### 3.1 What runs where
@@ -96,13 +102,14 @@ flowchart LR
 | --- | --- | --- |
 | VPS, server stack (Compose) | `aq-server` (including the dashboard bundle built into the image), PostgreSQL, `aq-graph`, a supervised `aq-git serve`, `cloudflared`, and the existing host updater as a host service | Agent processes; Docker socket access for the application container (infrastructure spec, "Application container does not receive the Docker socket") |
 | VPS, supervisor host container | Central supervisor CLI sessions (AQ-17): the shared tmux host and harness adapters, running under a central session identity and an expiring execution permit (architecture 0003 §4). Supervisor provider credentials come from the central vault. | Worker-placed attempts; Docker access. This is not a worker node, and supervisor credentials never reach worker nodes or sandboxes (W1). |
-| VPS, cloud worker container | aq-worker with the `docker-local` backend and its own dedicated rootless sandbox daemon (first deployment), then the `boat` backend. It holds its journal volume, the boat API key once boat is added, and a credential-lease cache. Agent sandboxes on the VPS have per-service CPU and memory limits, so they cannot starve the server stack. | Agent processes outside sandboxes; the host's main Docker socket |
+| VPS, cloud worker container (`aq-worker-cloud`) | aq-worker with the `docker-local` backend and its own dedicated rootless sandbox daemon. It holds its journal volume and a credential-lease cache. Agent sandboxes on the VPS have per-service CPU and memory limits, so they cannot starve the server stack. | Agent processes outside sandboxes; the host's main Docker socket; the boat API key |
+| VPS, boat worker container (`aq-worker-boat`, later phase) | A second enrolled aq-worker node with the `boat` backend. It holds its own node identity, service tokens, journal volume, the boat API key and a credential-lease cache. Its sandboxes run on boat.dev, not on the VPS. | Agent processes; any Docker socket |
 | VPS, agent sandboxes | One container per attempt, created by the cloud worker on its sandbox daemon | Node, backend, Git remote or supervisor credentials |
 | boat.dev | One sandbox VM per attempt, forked from the template's saved snapshot | Node credentials, any other attempt |
 | Desktop | aq-worker running as a container on WSL2 with the `docker-local` backend, plus a dedicated rootless sandbox daemon (section 5.1). The WSL VM is kept alive while the worker is enabled. | Agents directly on the desktop filesystem |
 | Cloudflare (later) | A small Cloudflare Worker and Durable Object that creates Containers on request from an enrolled worker node | AQ server functions |
 
-The cloud worker runs on the same VPS as the server for cost and simplicity. If the VPS goes down, the server and the cloud worker go down together, and that is accepted. The cloud worker still connects to the server through the public machine hostname and Cloudflare Access, exactly as a remote worker would, not over the internal Compose network. This keeps one authentication and transport path for all workers and lets the cloud worker move to another host without changing configuration semantics.
+The cloud worker (and later the boat worker) runs on the same VPS as the server for cost and simplicity. If the VPS goes down, the server and the VPS worker nodes go down together, and that is accepted. Each VPS worker node still connects to the server through the public machine hostname and Cloudflare Access, exactly as a remote worker would, not over the internal Compose network. This keeps one authentication and transport path for all workers and lets a VPS worker node move to another host without changing configuration semantics.
 
 ### 3.2 Scheduling across workers
 
@@ -373,7 +380,7 @@ A harness whose subscription credential cannot be stored as a file, or whose API
 
 The VPS follows the infrastructure spec, with these additions:
 
-- **Compose services:** `postgres`, `aq-server` (dashboard bundle built into the image), `aq-graph` (pinned image digest), `aq-git` (pinned, supervised, restarted on failure, readiness-checked by aq-server), `cloudflared`, and `aq-worker-cloud` (backend `boat`).
+- **Compose services:** `postgres`, `aq-server` (dashboard bundle built into the image), `aq-graph` (pinned image digest), `aq-git` (pinned, supervised, restarted on failure, readiness-checked by aq-server), `cloudflared`, and `aq-worker-cloud` (backend `docker-local`, with its own rootless sandbox daemon and per-service resource limits). When boat is added, a second worker service, `aq-worker-boat` (backend `boat`), is enrolled as its own node; `aq-worker-cloud` stays on `docker-local`.
 - **Hostnames:** the existing human hostname, behind Cloudflare Access with owner login, and machine hostname, behind Access service tokens. All workers and sandbox runners use the machine hostname. Each worker node has two service tokens, one for the node and one for its runners (section 7).
 - **Supervisor host:** a supervisor host container (section 3.1) runs supervisor CLI sessions. Its memory is part of the sizing below.
 - **VPS sizing:** the infrastructure spec's starting size (2 vCPU / 4 GB) was chosen for the foundation server alone. The VPS now also hosts the supervisor host and the cloud worker's agent sandboxes. Size it from measured memory for the stack plus the cloud worker's sandbox ceiling, roughly 8 vCPU / 16 GB for two concurrent Rust-building sandboxes, before purchase. Check Bluehost's sustained-CPU terms.
@@ -404,7 +411,7 @@ The VPS follows the infrastructure spec, with these additions:
 | SBX18 | Templates vary by toolchain, not harness. Each template is a toolchain image (normally `FROM aq-sandbox-os`) plus the `aq-sandbox-runtime` bundle as its final layer, carrying all qualified harness CLIs at pinned versions. Templates advertise those versions, and selection requires a match. |
 | SBX19 | Each attempt uses a private, file-based harness credential directory and a declared confinement mode (`native` or `container`); `container` mode requires explicit profile permission and backend isolation, and is never a silent fallback. |
 | DEP1 | The VPS runs the full server stack (server with built-in dashboard, PostgreSQL, aq-graph, supervised aq-git, cloudflared) from pinned images through Compose. |
-| DEP2 | The cloud worker runs on the VPS as a separate enrolled worker using the public machine hostname through Access, first with `docker-local` sandboxes on the VPS, then with `boat`. |
+| DEP2 | The cloud worker runs on the VPS as a separate enrolled worker using the public machine hostname through Access, with `docker-local` sandboxes on the VPS. `boat` is added later as a second enrolled VPS worker node (`aq-worker-boat`) under the same rules; each node keeps exactly one backend. |
 | DEP3 | A local desktop worker runs as a container on WSL2 with a dedicated rootless sandbox daemon, survives reboot and reconciles on restart. |
 | DEP5 | Central supervisor sessions run in a supervisor host container on the VPS under central session identity, separate from worker nodes. |
 | DEP4 | Releases include the worker image, sandbox base template and runner versions as manifest-pinned artifacts (product release manifest, ecosystem §5). |
@@ -487,7 +494,7 @@ These calls were made by the designer while resolving a builder review on 2026-1
 
 Decisions after the independent review and owner answers (2026-11-02):
 
-12. **Cloud worker rollout:** the VPS cloud worker runs `docker-local` sandboxes first. boat follows, and Cloudflare Containers is built after the core product (owner). The desktop worker itself runs as a container on WSL2 (owner).
+12. **Cloud worker rollout:** the VPS cloud worker runs `docker-local` sandboxes first. boat follows as a second enrolled VPS worker node, `aq-worker-boat`, because each worker node has exactly one backend; `aq-worker-cloud` stays on `docker-local` (program plan revision log, 2026-11-02). Cloudflare Containers is built after the core product (owner). The desktop worker itself runs as a container on WSL2 (owner).
 13. **Subscription logins are allowed on every backend** (owner, personal deployment). The design states plainly that the agent can read them.
 14. **`docker-local` defaults to `container` confinement,** because Docker blocks the user namespaces Codex's bubblewrap sandbox needs.
 15. **boat warm-start hibernation is deferred.** Hibernation uses checkpoint-to-retention only (owner deferral).
