@@ -479,3 +479,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - No scheduler cycle errors since 20:13Z.
   - **Stopped redundant approval-ingest work (W50):** `sound-rapids-80` and `.1` were writing a new D10 implementation spec on deep-high Codex (98%), though D10 is complete; paused `.1` (close refused). Closed `bright-horizon-15` (would re-decompose the storage amendment). The ingest tasks `calm-dune-47` and `agile-horizon-14` had already completed.
   - The Claude pool is still at 0 busy; watching it.
+- **12:45–13:00 second owner-approved restart and diagnosis.**
+  - After the restart only Codex pools started sessions (D6, D8); the Claude pools stayed at 0. Ruled out: the crash loop (fixed), slot capacity (aq-platform slots 3–7 free; slot 0 held by paused `sharp-pinnacle-28`), quarantine and usage.
+  - Re-routing C5a1 to the operator Claude pool did not start anything either.
+  - The cycle await chains show pool reconciliation spending minutes in `_measure_pools → _delivery_admission → observe_pr_admission`, and the hierarchy frontier in `GitTruthSnapshot.is_delivered → _whole_patch → patch_id`. That is per-cycle GitHub PR reads plus git patch-id computation over aq-server's now-large merged diffs. W44 is now the dominant throughput limit.
+  - Proposed to the owner: a v1 fix on a separate branch (cache delivered answers per commit, skip paused projects, decouple pool starts from admission), awaiting a decision.
