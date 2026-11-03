@@ -102,6 +102,13 @@ pub async fn issue_locked(
     if boot(tx, auth.id()).await? != q.node.boot_id {
         return Err(refused());
     }
+    let registration = super::incarnation::registered(tx, auth.id()).await?;
+    if registration
+        .as_ref()
+        .is_some_and(|r| r.registration.identity != q.node)
+    {
+        return Err(refused());
+    }
     let id = Uuid::new_v4();
     let permit = DelegatedPermit {
         schema_version: 1,
@@ -130,6 +137,7 @@ pub async fn issue_locked(
         preparation: Some(authority),
         authority: None,
         revision: 1,
+        registration,
     };
     save(tx, &current).await?;
     remember(tx, auth.id(), q.operation_id, "issuance", q, &current).await
@@ -149,6 +157,13 @@ pub async fn upgrade_locked(
         };
     };
     let delegate = auth.delegated().ok_or_else(refused)?;
+    if super::incarnation::registered(tx, auth.id())
+        .await?
+        .as_ref()
+        .is_some_and(|r| r.registration.identity != q.binding.node)
+    {
+        return Err(refused());
+    }
     if delegate.current.record.permit_id != q.permit_id {
         return Err(refused());
     }

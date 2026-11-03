@@ -332,6 +332,7 @@ fn build_worker_router_inner(
     Router::new()
         .merge(closure)
         .merge(worker_api::worker_routes(state.clone()))
+        .merge(delegated_permits::incarnation::routes(state.clone()))
         .merge(profiled_execution::api::routes(state.clone()))
         .merge(profiled_execution::control_api::routes(state.clone()))
         .merge(profiled_execution::accepted_preparation::routes(

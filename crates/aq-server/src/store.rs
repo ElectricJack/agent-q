@@ -379,6 +379,7 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
           AND to_regclass('delegated_node_boots') IS NOT NULL
           AND to_regclass('delegated_operations') IS NOT NULL
           AND to_regclass('delegated_permits_verifier') IS NOT NULL
+          AND to_regclass('delegated_current_verifier') IS NOT NULL
           AND to_regclass('delegated_current_attempt') IS NOT NULL
           AND to_regclass('delegated_current_channel') IS NOT NULL AND NOT EXISTS(
             SELECT 1 FROM (VALUES

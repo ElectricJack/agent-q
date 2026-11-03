@@ -115,24 +115,87 @@ async fn request(
     for (name, value) in headers {
         request = request.header(name, value);
     }
-    aq_server::build_worker_router(state.clone())
-        .oneshot(
-            request
-                .body(axum::body::Body::from(serde_json::to_vec(&body).unwrap()))
-                .unwrap(),
-        )
+    let app = aq_server::build_worker_router(state.clone());
+    let request = request
+        .body(axum::body::Body::from(serde_json::to_vec(&body).unwrap()))
+        .unwrap();
+    // Poll the HTTP service as its own task, as the listener does, instead of
+    // nesting its large phase-owner future in the lifecycle fixture's stack.
+    tokio::spawn(async move { app.oneshot(request).await.unwrap() })
         .await
         .unwrap()
 }
 
 #[tokio::test]
 async fn accept_issues_and_grant_atomically_upgrades_same_permit() {
+    Box::pin(exercise_phase(0)).await;
+}
+#[tokio::test]
+async fn node_reboot_requires_readoption_before_renewal_extends() {
+    Box::pin(exercise_phase(1)).await;
+}
+#[tokio::test]
+async fn readoption_refuses_backend_template_capability_changes_and_expired_grants() {
+    for mode in 2..=6 {
+        Box::pin(exercise_phase(mode)).await;
+    }
+}
+async fn exercise_phase(mode: u8) {
     use aq_admission::preparation_refresh_v1::Document;
-    let mut f = phase_refresh_fixture::prepared_terminal().await;
+    let mut f = Box::pin(phase_refresh_fixture::prepared_terminal()).await;
     let mut config = (*f.c.env.env.state.config).clone();
     config.delegated_permits = Some(std::sync::Arc::new(CredentialKey::new([7; 32])));
     f.c.env.env.state.config = std::sync::Arc::new(config);
     let state = &f.c.env.env.state;
+    let native: serde_json::Value =
+        sqlx::query_scalar("SELECT state#>'{native,request}' FROM execution_nodes LIMIT 1")
+            .fetch_one(&f.c.env.env.pool)
+            .await
+            .unwrap();
+    let registration = Registration {
+        schema_version: 2,
+        registration: serde_json::from_value(native).unwrap(),
+        backend: BackendAdvertisement {
+            kind: BackendKind::Boat,
+            capabilities: vec![
+                BackendCapability::VmIsolation,
+                BackendCapability::PersistentDiskDuringAttempt,
+            ],
+            max_concurrent_sandboxes: 2,
+            spend_ceiling: None,
+            templates: vec![TemplateAdvertisement {
+                digest: aq_admission_sandbox::Digest::of(b"pinned template"),
+                harnesses: vec![HarnessVersion {
+                    harness: "test".into(),
+                    version: "1.0.0".into(),
+                }],
+                estimated_cold_start_ms: 1000,
+                estimated_cold_start_cost: Money {
+                    currency: "USD".into(),
+                    micros: 100,
+                },
+            }],
+        },
+    };
+    let mut node_headers = HeaderMap::new();
+    node_headers.insert(
+        "authorization",
+        format!("Bearer {}", f.c.env.env.credential)
+            .parse()
+            .unwrap(),
+    );
+    let registration_body =
+        serde_json::to_value(SandboxDocument::Register(registration.clone())).unwrap();
+    if mode != 6 {
+        let registered = request(
+            state,
+            "/v2/worker/register",
+            &node_headers,
+            registration_body,
+        )
+        .await;
+        assert_eq!(registered.status(), 200, "registration v2");
+    }
     let q = PermitIssuanceRequest {
         schema_version: 1,
         operation_id: f.q.original.operation_id,
@@ -283,7 +346,20 @@ async fn accept_issues_and_grant_atomically_upgrades_same_permit() {
         .await
         .unwrap();
     assert_eq!(status, 200, "started: {}", String::from_utf8_lossy(&bytes));
-    exercise_same_boot_renewal(&f, &upgraded, &started, installed_revision).await;
+    if mode != 0 {
+        exercise_reboot(
+            &f,
+            &upgraded,
+            &started,
+            installed_revision,
+            &registration,
+            &node_headers,
+            mode,
+        )
+        .await;
+    } else {
+        exercise_same_boot_renewal(&f, &upgraded, &started, installed_revision).await;
+    }
 }
 
 async fn exercise_same_boot_renewal(
@@ -478,5 +554,381 @@ async fn reconstructed_auth_fences_revocation_and_stale_boot() {
         runtime::authenticate_runner(&restarted, &h, RunnerOperation::Observe, None)
             .await
             .is_err()
+    );
+}
+
+async fn document(response: axum::response::Response) -> SandboxDocument {
+    let status = response.status();
+    let bytes = axum::body::to_bytes(response.into_body(), 131072)
+        .await
+        .unwrap();
+    assert_eq!(status, 200, "{}", String::from_utf8_lossy(&bytes));
+    serde_json::from_slice(&bytes).unwrap()
+}
+async fn exercise_reboot(
+    f: &phase_refresh_fixture::Prepared,
+    upgraded: &PermitUpgradeResponse,
+    started: &aq_phase_terminal_protocol::refresh_v1::StartedRequest,
+    revision: u64,
+    original_registration: &Registration,
+    node_headers: &HeaderMap,
+    mode: u8,
+) {
+    use std::sync::atomic::Ordering;
+    let state = &f.c.env.env.state;
+    let pool = &f.c.env.env.pool;
+    let clock = f.c.controlled_clock.as_ref().unwrap();
+    let snapshot_sql = "SELECT jsonb_build_object('node',(SELECT state FROM execution_nodes LIMIT 1),'grants',(SELECT jsonb_agg(to_jsonb(g)) FROM profiled_phase_execution_grants g),'runtime',(SELECT jsonb_agg(to_jsonb(r)) FROM native_registration_receipts r))";
+    let history: serde_json::Value = sqlx::query_scalar(snapshot_sql)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    let old_auth = runtime::authenticate_runner(
+        state,
+        &headers(&upgraded.permit),
+        RunnerOperation::Observe,
+        None,
+    )
+    .await
+    .unwrap();
+    let mut registration = original_registration.clone();
+    registration.registration.operation_id = Uuid::new_v4();
+    registration.registration.identity.boot_id = Uuid::new_v4();
+    match mode {
+        2 => registration.backend.kind = BackendKind::CloudflareContainers,
+        3 => {
+            registration.backend.templates[0].digest =
+                aq_admission_sandbox::Digest::of(b"different template")
+        }
+        4 => registration.backend.capabilities.clear(),
+        _ => (),
+    }
+    let body = serde_json::to_value(SandboxDocument::Register(registration.clone())).unwrap();
+    let SandboxDocument::RegistrationResponse(reply) =
+        document(request(state, "/v2/worker/register", node_headers, body.clone()).await).await
+    else {
+        panic!("registration response");
+    };
+    reply.validate_for(&registration).unwrap();
+    assert_eq!(
+        request(
+            state,
+            "/v2/worker/register",
+            &headers(&upgraded.permit),
+            body.clone()
+        )
+        .await
+        .status(),
+        401
+    );
+    assert_eq!(
+        request(state, "/v2/worker/register", node_headers, body)
+            .await
+            .status(),
+        200
+    );
+    let mut q = RunnerRenewalRequest {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        authority: upgraded.authority.clone(),
+        permit: upgraded.permit.clone(),
+        revision,
+    };
+    let before: serde_json::Value =
+        sqlx::query_scalar("SELECT state FROM profiled_authority_hot LIMIT 1")
+            .fetch_one(pool)
+            .await
+            .unwrap();
+    clock.fetch_add(1, Ordering::SeqCst);
+    let SandboxDocument::RunnerRenewalResponse(awaiting) = document(
+        request(
+            state,
+            "/v1/worker/profiled/renew",
+            &headers(&q.permit),
+            serde_json::to_value(SandboxDocument::RunnerRenewalRequest(q.clone())).unwrap(),
+        )
+        .await,
+    )
+    .await
+    else {
+        panic!("renewal response");
+    };
+    assert!(matches!(
+        awaiting.reply,
+        RenewalReply::AwaitingNodeReadoption { .. }
+    ));
+    assert_eq!(awaiting.revision, revision);
+    assert!(awaiting.delivery.is_none());
+    let after: serde_json::Value =
+        sqlx::query_scalar("SELECT state FROM profiled_authority_hot LIMIT 1")
+            .fetch_one(pool)
+            .await
+            .unwrap();
+    assert_eq!(before, after);
+    let readopt = ReadoptionRequest {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        previous: upgraded.permit.binding.node.clone(),
+        current: registration.registration.identity.clone(),
+        sandboxes: vec![LiveSandbox {
+            permit_id: upgraded.permit.permit_id,
+            attempt_id: upgraded.permit.binding.attempt_id,
+            grant_generation: upgraded.permit.binding.grant_generation,
+            sandbox_id: upgraded.permit.binding.sandbox_id,
+        }],
+    };
+    let body = serde_json::to_value(SandboxDocument::ReadoptionRequest(readopt.clone())).unwrap();
+    assert_eq!(
+        request(
+            state,
+            "/v2/worker/readopt",
+            &headers(&q.permit),
+            body.clone()
+        )
+        .await
+        .status(),
+        401
+    );
+    if mode == 5 {
+        clock.store(upgraded.permit.expires_at_ms as i64, Ordering::SeqCst);
+    }
+    let SandboxDocument::ReadoptionResponse(adopted) =
+        document(request(state, "/v2/worker/readopt", node_headers, body.clone()).await).await
+    else {
+        panic!("readoption response");
+    };
+    adopted
+        .validate_for(
+            &readopt,
+            std::slice::from_ref(&upgraded.permit),
+            clock.load(Ordering::SeqCst) as u64,
+        )
+        .unwrap();
+    if mode >= 2 {
+        assert!(
+            matches!(adopted.results[0], ReadoptionResult::Refused { .. }),
+            "mode {mode}"
+        );
+        assert!(
+            runtime::authenticate_runner(
+                state,
+                &headers(&upgraded.permit),
+                RunnerOperation::Observe,
+                None
+            )
+            .await
+            .is_err()
+        );
+        let after: serde_json::Value =
+            sqlx::query_scalar("SELECT state FROM profiled_authority_hot LIMIT 1")
+                .fetch_one(pool)
+                .await
+                .unwrap();
+        assert_eq!(before, after);
+        let unchanged: serde_json::Value = sqlx::query_scalar(snapshot_sql)
+            .fetch_one(pool)
+            .await
+            .unwrap();
+        assert_eq!(history, unchanged);
+        let mut stale = original_registration.clone();
+        stale.registration.operation_id = Uuid::new_v4();
+        assert_eq!(
+            request(
+                state,
+                "/v2/worker/register",
+                node_headers,
+                serde_json::to_value(SandboxDocument::Register(stale)).unwrap()
+            )
+            .await
+            .status(),
+            403
+        );
+        // Refusal leaves ordinary node-authenticated stop/preserve available.
+        let mut stop_headers = node_headers.clone();
+        stop_headers.insert("aq-phase-terminal-api-version", "1".parse().unwrap());
+        assert_eq!(
+            request(
+                state,
+                "/v1/worker/profiled-v2/stopped",
+                &stop_headers,
+                serde_json::to_value(phase_refresh_fixture::stop_request(started)).unwrap()
+            )
+            .await
+            .status(),
+            200
+        );
+        return;
+    }
+    let ReadoptionResult::Rebound { permit } = &adopted.results[0] else {
+        panic!("not rebound: {:?}", adopted.results);
+    };
+    assert!(permit.credential.expose() != upgraded.permit.credential.expose());
+    assert_eq!(permit.expires_at_ms, upgraded.permit.expires_at_ms);
+    let replay = document(request(state, "/v2/worker/readopt", node_headers, body).await).await;
+    let SandboxDocument::ReadoptionResponse(replay) = replay else {
+        panic!("wrong replay");
+    };
+    assert!(replay == adopted);
+    let mut conflict = readopt.clone();
+    conflict.sandboxes.clear();
+    assert_eq!(
+        request(
+            state,
+            "/v2/worker/readopt",
+            node_headers,
+            serde_json::to_value(SandboxDocument::ReadoptionRequest(conflict)).unwrap()
+        )
+        .await
+        .status(),
+        409
+    );
+    assert!(
+        runtime::authenticate_runner(
+            state,
+            &headers(&upgraded.permit),
+            RunnerOperation::Observe,
+            None
+        )
+        .await
+        .is_err()
+    );
+    let mut stolen_binding = headers(&upgraded.permit);
+    stolen_binding.insert(
+        "aq-runner-channel",
+        serde_json::to_string(&permit.binding)
+            .unwrap()
+            .parse()
+            .unwrap(),
+    );
+    assert!(
+        runtime::authenticate_runner(state, &stolen_binding, RunnerOperation::Observe, None)
+            .await
+            .is_err()
+    );
+    let mut tx = pool.begin().await.unwrap();
+    assert!(
+        aq_server::worker_api::lock_current_node(&mut tx, &old_auth)
+            .await
+            .is_err()
+    );
+    tx.rollback().await.unwrap();
+    // A new op cannot revive the original incarnation.
+    let mut stale = original_registration.clone();
+    stale.registration.operation_id = Uuid::new_v4();
+    assert_eq!(
+        request(
+            state,
+            "/v2/worker/register",
+            node_headers,
+            serde_json::to_value(SandboxDocument::Register(stale)).unwrap()
+        )
+        .await
+        .status(),
+        403
+    );
+    q.permit = permit.clone();
+    q.operation_id = Uuid::new_v4();
+    clock.fetch_add(1, Ordering::SeqCst);
+    // Reconstruct the store: re-adoption must not depend on an in-memory flag.
+    let mut restarted = state.clone();
+    restarted.store = f.c.env.env._db.store().await;
+    let body = serde_json::to_value(SandboxDocument::RunnerRenewalRequest(q.clone())).unwrap();
+    let SandboxDocument::RunnerRenewalResponse(renewed) = document(
+        request(
+            &restarted,
+            "/v1/worker/profiled/renew",
+            &headers(&q.permit),
+            body.clone(),
+        )
+        .await,
+    )
+    .await
+    else {
+        panic!("renewal response");
+    };
+    renewed
+        .validate_for(
+            &q,
+            &PermitContext {
+                binding: q.permit.binding.clone(),
+                phase: GrantPhase::Granted,
+                grant_expires_at_ms: q.permit.expires_at_ms,
+                hard_deadline_ms: q.permit.hard_deadline_ms,
+            },
+            renewed.delivery.as_ref().unwrap().nonce,
+            clock.load(Ordering::SeqCst) as u64,
+        )
+        .unwrap();
+    let RenewalReply::Renewed { permit: live, .. } = &renewed.reply else {
+        panic!("not renewed");
+    };
+    assert_eq!(live.hard_deadline_ms, upgraded.permit.hard_deadline_ms);
+    assert_eq!(
+        live.expires_at_ms,
+        (clock.load(Ordering::SeqCst) as u64 + 120_000).min(live.hard_deadline_ms)
+    );
+    assert_eq!(renewed.revision, revision + 1);
+    let SandboxDocument::RunnerRenewalResponse(replay) = document(
+        request(
+            &restarted,
+            "/v1/worker/profiled/renew",
+            &headers(&q.permit),
+            body,
+        )
+        .await,
+    )
+    .await
+    else {
+        panic!("renewal replay");
+    };
+    assert_eq!(replay.revision, renewed.revision);
+    assert!(
+        serde_json::to_value(replay.reply).unwrap()
+            == serde_json::to_value(&renewed.reply).unwrap()
+    );
+    let unchanged: serde_json::Value = sqlx::query_scalar(snapshot_sql)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    assert_eq!(history, unchanged);
+    let stored: String =
+        sqlx::query_scalar("SELECT string_agg(evidence::text,'') FROM delegated_operations")
+            .fetch_one(pool)
+            .await
+            .unwrap();
+    assert!(!stored.contains(live.credential.expose()));
+    assert!(!stored.contains(upgraded.permit.credential.expose()));
+    let mut stop_headers = headers(live);
+    stop_headers.insert("aq-phase-terminal-api-version", "1".parse().unwrap());
+    let stopped = request(
+        &restarted,
+        "/v1/worker/profiled-v2/stopped",
+        &stop_headers,
+        serde_json::to_value(phase_refresh_fixture::stop_request(started)).unwrap(),
+    )
+    .await;
+    let status = stopped.status();
+    let bytes = axum::body::to_bytes(stopped.into_body(), 16384)
+        .await
+        .unwrap();
+    assert_eq!(
+        status,
+        200,
+        "stop after reboot: {}",
+        String::from_utf8_lossy(&bytes)
+    );
+    q.permit = live.clone();
+    q.revision = renewed.revision;
+    q.operation_id = Uuid::new_v4();
+    assert_eq!(
+        request(
+            &restarted,
+            "/v1/worker/profiled/renew",
+            &headers(&q.permit),
+            serde_json::to_value(SandboxDocument::RunnerRenewalRequest(q)).unwrap()
+        )
+        .await
+        .status(),
+        403
     );
 }

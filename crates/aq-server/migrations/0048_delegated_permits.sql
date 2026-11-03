@@ -63,6 +63,7 @@ CREATE TABLE delegated_permit_current (
  CHECK(state#>>'{record,permit_id}'=permit_id::TEXT),
  CHECK(NOT (state->'record') ? 'credential')
 );
+CREATE UNIQUE INDEX delegated_current_verifier ON delegated_permit_current((state#>'{record,verifier}'));
 CREATE UNIQUE INDEX delegated_current_attempt ON delegated_permit_current((state#>>'{record,binding,attempt_id}'),(state#>>'{record,binding,grant_generation}'));
 CREATE UNIQUE INDEX delegated_current_channel ON delegated_permit_current((state#>>'{record,binding,channel_id}'));
 CREATE TABLE delegated_node_boots (
