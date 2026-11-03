@@ -12,5 +12,7 @@
     "RUST_TEST_THREADS": "1",
     "python_tests": "aq test defaults (-n 6, loadfile)"
   },
-  "database": "disposable PostgreSQL 17 bookworm, scripts/test-db, loopback port 55432"
+  "database": "disposable PostgreSQL 17 bookworm, scripts/test-db, loopback port 55432",
+  "qualification_source_commit": "912155a13392ab4a3176d2202acf9355b5170d1c",
+  "prerequisite_repair_commit": "d6ed24319745d8030e71c526b498b83f5bdde5e0"
 }

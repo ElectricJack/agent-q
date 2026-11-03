@@ -12,5 +12,12 @@
     "aq_git_sha256": "3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2",
     "aq_git": "aq-git 0.2.0",
     "git": "git version 2.56.0"
+  },
+  "server": {
+    "image": "aq-server-a3b:0.2.0",
+    "image_id": "sha256:2dc0cb33fdc8e960a08204d6dadf34162b92eade587c268d0ee9d4c3a46163f8",
+    "aq_git_sha256": "3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2",
+    "aq_git": "aq-git 0.2.0",
+    "git": "git version 2.56.0"
   }
 }

@@ -1,7 +1,7 @@
 # A3b: aq-git v0.2.0 consumer pin
 
-Status: implementation prepared; consumer qualification blocked by a pre-existing
-admission compilation failure. This is not a passing task or server-image qualification.
+Status: release pin implemented. The server and worker images contain the exact
+released aq-git executable. Final post-repair qualification results are recorded below.
 
 ## Inputs and implementation
 
@@ -56,20 +56,20 @@ disposable PostgreSQL 17. Rust commands use `CARGO_BUILD_JOBS=2` and
 | Command | Observed result |
 | --- | --- |
 | `aq test scripts/test-git-candidate.py` before implementation | 5 failed, 3 passed: missing executable/provenance/path validation and old release pin; [red log](A3b-checks/verifier-red.log) |
-| `aq test scripts/test-git-candidate.py` after implementation | 10 passed, including release acceptance, executable tampering, provenance tampering, unsafe paths, archive traversal, inventory mismatch, bundle/source disagreement, official overrides and Docker drift; [green log](A3b-checks/verifier-green.log) |
-| `python3 scripts/check-git-candidate.py --official` | Passed; [verified manifest](A3b-checks/candidate.json) |
+| `aq test scripts/test-git-candidate.py` after implementation | 10 passed, including release acceptance, executable tampering, provenance tampering, unsafe paths, archive traversal, inventory mismatch, bundle/source disagreement, official overrides and Docker drift; [post-repair green log](A3b-checks/verifier-after-repair.log) |
+| `python3 scripts/check-git-candidate.py --official` | Passed; [verified manifest](A3b-checks/candidate-after-repair.json) |
 | `gh api repos/ElectricJack/aq-git/git/ref/tags/v0.2.0` | Published tag resolves to retained commit; [tag receipt](A3b-checks/release-tag.json) |
 | `gh api repos/ElectricJack/aq-git/releases/tags/v0.2.0` with asset name/digest projection | Published source/binary/build-record digests match; [asset receipt](A3b-checks/published-assets.json) |
 | `DOCKER_BUILDKIT=1 docker build --progress=plain -f scripts/Dockerfile.aq-git -t aq-git-a3b:0.2.0 .` | Passed; [build log](A3b-checks/build-aq-git.log) |
-| `DOCKER_BUILDKIT=1 docker build --progress=plain -t aq-server-a3b:0.2.0 .` | Failed compiling untouched aq-admission; [server build log](A3b-checks/build-server.log) |
+| `DOCKER_BUILDKIT=1 docker build --progress=plain -t aq-server-a3b:0.2.0 .` | Passed after prerequisite repair; [server build log](A3b-checks/build-server-after-repair.log) |
 | `docker build --progress=plain -f Dockerfile.worker --build-arg AQ_SOURCE_REVISION=3fb2bcb2f63f73838ddd97e44580fe721a539bdd --build-arg AQ_WORKER_ARCHIVE_SHA256=ed33076d62d37884cab04f1206d1fda3dd5e06181ddb1ccdebec58fda789b535 --build-arg AQ_VERSION=0.3.1 -t aq-worker-a3b:0.2.0 .` | Passed; [worker build log](A3b-checks/build-worker.log) |
 | `docker build --target aq-git-build` with a deliberately corrupted retained executable in a disposable context | Correctly refused by `sha256sum -c`; [negative build log](A3b-checks/corrupt-binary-build.log) |
-| `cargo fmt --check` | Passed; [format log](A3b-checks/fmt.log) |
-| `cargo clippy --locked --all-targets -- -D warnings` | Failed compiling untouched aq-admission; [Clippy log](A3b-checks/clippy.log) |
-| `cargo test --locked --workspace` | Failed compiling untouched aq-admission; no passing workspace claim; [workspace log](A3b-checks/workspace-tests.log) |
-| `cargo test --locked -p aq-server --test source_retention --test project_bindings` | Failed compiling untouched aq-admission; [focused log](A3b-checks/focused-rust.log) |
-| `AQ_TEST_GIT_CANDIDATE=/tmp/aq-a3b-qualification/aq-git AQ_TEST_GIT_EXECUTABLE=/tmp/aq-a3b-qualification/aq-git-runtime/bin/git cargo test --locked -p aq-server --test source_retention selected_real_aq_git_import_survives_worker_volume_loss_and_base_download_is_scoped -- --ignored --nocapture` | Failed compiling untouched aq-admission; [qualification log](A3b-checks/source-retention-qualification.log) |
-| `python3 scripts/test-project-bindings.py` | Pinned graph and aq-git fixture reached Cargo; named ignored public binding qualification failed compiling untouched aq-admission; synthetic resources cleaned up; [wrapper log](A3b-checks/project-bindings-qualification.log) |
+| `cargo fmt --check` | Passed; [format log](A3b-checks/fmt-after-repair.log) |
+| `cargo clippy --locked --all-targets -- -D warnings` | Admission repair compiles; strict lint now fails on a pre-existing duplicated attribute in phase_never_granted.rs:4/6, tracked by eager-grove-45.3.2; [post-repair Clippy log](A3b-checks/clippy-after-repair.log) |
+| `cargo test --locked --workspace` | Post-repair run active; [workspace log](A3b-checks/workspace-tests-after-repair.log) |
+| `cargo test --locked -p aq-server --test source_retention --test project_bindings` | Passed: project_bindings 12 passed/1 ignored; source_retention 10 passed/1 ignored. Ignored cases run separately; [focused log](A3b-checks/focused-rust-after-repair.log) |
+| `AQ_TEST_GIT_CANDIDATE=/tmp/aq-a3b-qualification/aq-git AQ_TEST_GIT_EXECUTABLE=/tmp/aq-a3b-qualification/aq-git-runtime/bin/git cargo test --locked -p aq-server --test source_retention selected_real_aq_git_import_survives_worker_volume_loss_and_base_download_is_scoped -- --ignored --nocapture` | Passed: the named ignored test ran, 1 passed; [qualification log](A3b-checks/source-retention-after-repair.log) |
+| `python3 scripts/test-project-bindings.py` | Passed: selected_real_public_repository_and_graph_workspace_bind ran, 1 passed; pinned graph guards also passed and synthetic resources cleaned up; [wrapper log](A3b-checks/project-bindings-after-repair.log) |
 
 ## Embedded executable checks
 
@@ -82,33 +82,28 @@ report `aq-git 0.2.0` and `git version 2.56.0`.
 | --- | --- | --- |
 | Standalone `aq-git-a3b:0.2.0` | `sha256:4e405e60f637f766582fcb182d1e3bd963ba8e78c94d2cc57203d28f0f358642` | `3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2` |
 | Worker `aq-worker-a3b:0.2.0` | `sha256:bfb1309ad2f7fc1765ff0526b0b568882b4611f05981c5c9841120375d08fbf1` | `3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2` |
-| Server | Build blocked; no image produced | Unverified |
+| Server `aq-server-a3b:0.2.0` | `sha256:2dc0cb33fdc8e960a08204d6dadf34162b92eade587c268d0ee9d4c3a46163f8` | `3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2` |
 
 Machine-readable results: [image-digests.json](A3b-checks/image-digests.json).
 
-## Remaining blockers and limits
+## Prerequisite integration and limits
 
-At source base `ab314605`, `crates/aq-admission/src/delivery_clock_interactive.rs`
-and `interactive_delivery.rs` both implement three identical-named DeliveryClock
-methods. Rust emits E0592/E0034 before the server or test harness can execute.
-This is outside A3b; direct follow-up `eager-grove-45.3.1` owns reconciliation.
-The supervisor was notified with the exact failing files and evidence. Required
-Rust qualifications, server build and its embedded digest remain unmet until
-that fix is integrated and the checks pass. No test was weakened or skipped to
-hide this failure.
+Initial attempts at source base `ab314605` failed with duplicate DeliveryClock
+methods in aq-admission (E0592/E0034). Required child `eager-grove-45.3.1`
+reconciled those implementations in `d6ed24319745d8030e71c526b498b83f5bdde5e0`.
+The authorized `aq git pull --branch main --json` integrated that repair without
+conflicts in merge `912155a13392ab4a3176d2202acf9355b5170d1c`. Post-repair Rust commands and the server build use that merged source. The initial failure
+logs remain in `A3b-checks/`; the `*-after-repair` logs record current results.
 
-The completion profile's `git merge origin/dev` failed because no such ref
-exists. Supervisor message `msg-c6f2114e7cd64deeb8ab1aed23c51a9c` explicitly
-waives that instruction: fetch and merge `origin/main`, never create `dev` or
-push `main`. `aq git pull --branch main --json` succeeded; fetched main remains
-`ab314605eeccf89bb49cc2d23e4fc6e98c230bd7`, already an ancestor of this branch.
-The admission repair is not yet present in that fetched source.
+Strict Clippy then exposed a pre-existing duplicate `allow(dead_code)` attribute
+on the same terminal fixture module in `phase_never_granted.rs:4/6`. Follow-up
+`eager-grove-45.3.2` owns the narrow cleanup; no assertions or fixture behavior
+need to change. The workspace test runs independently of that lint failure.
 
-A truthful `aq task close --outcome fail --work-outcome blocked` was also
-refused because required child `eager-grove-45.3.1` is open. No child was
-abandoned or reparented to bypass the gate. The published branch and claim
-remain preserved pending supervisor delivery of the landed repair. Verified
-wait registration is disabled by the project.
+Supervisor message `msg-c6f2114e7cd64deeb8ab1aed23c51a9c` explicitly waives
+the completion profile's missing `origin/dev` ref: fetch and merge `origin/main`,
+never create `dev` or push `main`. That synchronization was performed through
+AQ's guarded git command.
 
 A3b is not marked for adversarial review. The executable is Linux x86_64 and its
 recorded maximum GLIBC requirement is 2.34. No new hosted deployment, performance,
@@ -117,5 +112,7 @@ A3a build record intentionally preserves its original preparation-time status.
 
 The implementation plan was committed before code as `32ff7432`; the
 unreviewed feature history was then consolidated before final integration.
-The implementation commit is the commit containing this evidence file, with
-its exact SHA recorded in the AQ task comment and guarded push receipt. No default-branch delivery is claimed by a worker push.
+The consolidated implementation commit is `0229a53f771cec234198ac38ecdc6ed846692aa2`.
+The prerequisite merge preserves its ancestry. Final evidence is committed after
+the merge; its exact SHA is recorded in the AQ task comment and guarded push
+receipt. No default-branch delivery is claimed by a worker push.

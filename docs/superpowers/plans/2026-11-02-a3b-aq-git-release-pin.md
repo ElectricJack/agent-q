@@ -27,7 +27,7 @@
 
 **Interfaces:** Consume release commit `e75f7b4bc36a83ae5001fefa0d5f87618e87ad4a`, archive digest `f64891f03e2d28263cf3af20b38123935ae08d6917699becb9d77e76af2fd3c6`, executable digest `3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2` from A3a's build record. Produce a self-contained candidate manifest with binary, inventory and build-record paths/digests.
 
-- [ ] Add tests that run the real checker against retained inputs, then copied fixtures with one byte appended to the executable, a changed build-record source revision, an archive traversal entry, an inventory mismatch and bundle/source disagreement. Verify official override refusal and Docker stage drift refusal.
+- [x] Add tests that run the real checker against retained inputs, then copied fixtures with one byte appended to the executable, a changed build-record source revision, an archive traversal entry, an inventory mismatch and bundle/source disagreement. Verify official override refusal and Docker stage drift refusal.
 
 ```python
 def test_changed_binary_refused(self):
@@ -38,10 +38,10 @@ def test_changed_binary_refused(self):
         self.checker.candidate(official=True)
 ```
 
-- [ ] Run `aq test scripts/test-git-candidate.py`; observe missing binary validation before implementing.
-- [ ] Copy byte-verified A3a downloaded assets; create bundle using `git bundle create <absolute-path> HEAD` in the clean detached release checkout. Compute and record bundle SHA-256. Rename only the aq-git vendor directory, preserving Git bytes.
-- [ ] Implement candidate checks for safe retained paths, archive prefix/commit/version/lockfile, complete inventory, build-record provenance and matching bundle committed files. Continue rejecting local official overrides.
-- [ ] Run behavior tests and `python3 scripts/check-git-candidate.py --official`.
+- [x] Run `aq test scripts/test-git-candidate.py`; observe missing binary validation before implementing.
+- [x] Copy byte-verified A3a downloaded assets; create bundle using `git bundle create <absolute-path> HEAD` in the clean detached release checkout. Compute and record bundle SHA-256. Rename only the aq-git vendor directory, preserving Git bytes.
+- [x] Implement candidate checks for safe retained paths, archive prefix/commit/version/lockfile, complete inventory, build-record provenance and matching bundle committed files. Continue rejecting local official overrides.
+- [x] Run behavior tests and `python3 scripts/check-git-candidate.py --official`.
 
 ### Task 2: Embed verified executable and qualify consumers
 
@@ -49,19 +49,19 @@ def test_changed_binary_refused(self):
 
 **Interfaces:** Consume manifest binary digest. Produce identical canonical builder blocks and images with that executable digest; update the synthetic project fixture's immutable image ID.
 
-- [ ] Replace the aq-git source build with verification and copying of the retained release binary. Keep source-archive digest verification in the stage and preserve the existing output path to consumers.
+- [x] Replace the aq-git source build with verification and copying of the retained release binary. Keep source-archive digest verification in the stage and preserve the existing output path to consumers.
 
 ```dockerfile
 COPY vendor/aq-git-v0.2.0-linux-x86_64 /src/target/release/aq-git
 RUN echo '3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2  /src/target/release/aq-git' | sha256sum -c - && chmod 755 /src/target/release/aq-git
 ```
 
-- [ ] Generate both marked Dockerfile blocks from canonical text before the third `FROM`; run checker and drift behavior test.
-- [ ] Build standalone qualification image, server and worker. Supply worker source revision/archive digest from `vendor/worker-candidate.json`. Save build logs, image IDs and embedded aq-git/Git versions/digests. Update `GIT_IMAGE`/`GIT_IMAGE_ID` to the new standalone image.
-- [ ] Extract aq-git and the relocatable Git runtime from the new image into task-owned temporary storage. Start disposable PostgreSQL with `scripts/test-db`.
-- [ ] Run source_retention and project_bindings Rust suites with `--locked`, including the ignored source retention qualification using `AQ_TEST_GIT_EXECUTABLE` and `AQ_TEST_AQ_GIT_BIN`. Inspect the test's actual variable names before invoking.
-- [ ] Run `DATABASE_URL=... python3 scripts/test-project-bindings.py`, ensuring its named ignored public binding test passes. Keep all resources synthetic and let the wrapper clean up.
-- [ ] Update the reproducible package documentation with provenance, direct-copy choice, digest verification and qualification limits.
+- [x] Generate both marked Dockerfile blocks from canonical text before the third `FROM`; run checker and drift behavior test.
+- [x] Build standalone qualification image, server and worker. Supply worker source revision/archive digest from `vendor/worker-candidate.json`. Save build logs, image IDs and embedded aq-git/Git versions/digests. Update `GIT_IMAGE`/`GIT_IMAGE_ID` to the new standalone image.
+- [x] Extract aq-git and the relocatable Git runtime from the new image into task-owned temporary storage. Start disposable PostgreSQL with `scripts/test-db`.
+- [x] Run source_retention and project_bindings Rust suites with `--locked`, including the ignored source retention qualification using `AQ_TEST_GIT_EXECUTABLE` and `AQ_TEST_AQ_GIT_BIN`. Inspect the test's actual variable names before invoking.
+- [x] Run `DATABASE_URL=... python3 scripts/test-project-bindings.py`, ensuring its named ignored public binding test passes. Keep all resources synthetic and let the wrapper clean up.
+- [x] Update the reproducible package documentation with provenance, direct-copy choice, digest verification and qualification limits.
 
 ### Task 3: Definition of done, evidence and publication
 
@@ -69,5 +69,5 @@ RUN echo '3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2  /src
 
 - [ ] Run format, strict Clippy and the required locked workspace test command with bounded jobs/test threads; heartbeat before long foreground commands and retain logs.
 - [ ] Reconcile all A3b requirements, record commands/results, image digests, commit identity, source/tag/build-record evidence and remaining limits.
-- [ ] Commit implementation, squash own unpublished implementation history onto its recorded source base preserving the tree and attribution. Merge `origin/dev` into the task branch, resolve with context, run only targeted checks after the merge, and guarded-push the final SHA.
+- [ ] Commit implementation, squash own unpublished implementation history onto its recorded source base preserving the tree and attribution. Merge `origin/main` (supervisor waiver for absent `origin/dev`) into the task branch, resolve with context, run only targeted checks after the merge, and guarded-push the final SHA.
 - [ ] Settle subtasks and close with `--outcome pass --work-outcome shipped --changes ... --verification ... --test ...` only if all required checks passed; otherwise record precise unmet requirements and fail truthfully. Run `aq session drain-ack` after an accepted close.
