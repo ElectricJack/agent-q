@@ -275,3 +275,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Merged aq-worker #29 (`fleet-flare-68`, original-boot stopped replay; CI green).
   - aq-server #33 (cloud worker image) has the fix and its checks are re-running.
   - aq-platform now has 7 tasks in progress.
+- **01:50 check.**
+  - F1b and H7 completed; F1b's 4 follow-ups are running.
+  - **B2 blocked again** on a store.rs child merge conflict: F1b took migration 0048 (supervisor_dispatch). I merged main into `aq/noble-summit-37.2` and renumbered delegated permits to 0049 (state format 49, Dockerfile ARG; `be8a33e`). Reopened B2 and told it to finish and open the PR promptly (W41 recurrence).
+  - A4 is READY again; pinned it to standard-medium Claude (Codex 90%).
+  - All 11 aq-worker READY tasks are dependency-blocked; I0 is running. aq-server #33 is re-running CI.
