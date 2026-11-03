@@ -182,6 +182,6 @@ async fn report(
         None,
     )
     .await?;
-    crate::delegated_permits::runtime::require_document(&node, &request)?;
+    crate::delegated_permits::runtime::require_binding(&node, &request.binding)?;
     Ok(axum::Json(record(&state, &node, &request).await?))
 }

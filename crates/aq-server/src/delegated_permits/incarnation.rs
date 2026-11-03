@@ -1,5 +1,6 @@
 //! Operator-approved Option A: native history keeps its original boot. Only the
-//! delegated incarnation and current permit change; no fresh native facts arise.
+//! delegated incarnation and current permit change on readoption. Renewal may
+//! extend the hot grant lease without collecting fresh native observations.
 use super::{handoff, runtime::*};
 use crate::{
     AppState,
@@ -337,6 +338,8 @@ async fn readopt(
         return Err(refused());
     }
     let active = boot(&mut tx, auth.id()).await?;
+    // ReportResult is allowed for both live and ended execution grants. Rebinding
+    // restores only the operations the current phase permits, never ended renewal.
     let retained = if let Some(value) =
         handoff::replay(&mut tx, auth.id(), q.operation_id, "readoption", &q).await?
     {
@@ -354,7 +357,7 @@ async fn readopt(
             check_rebound(&mut tx, &current).await?;
             current
                 .record
-                .authorize(&context, RunnerOperation::Renew, now(&state)?)
+                .authorize(&context, RunnerOperation::ReportResult, now(&state)?)
                 .map_err(|_| refused())?;
         }
         retained
@@ -400,7 +403,7 @@ async fn readopt(
                 let context = context(&mut tx, &current).await?;
                 current
                     .record
-                    .authorize(&context, RunnerOperation::Renew, now(&state)?)
+                    .authorize(&context, RunnerOperation::ReportResult, now(&state)?)
                     .map_err(|_| refused())
             }
             .await;
@@ -442,7 +445,7 @@ async fn readopt(
         let context = context(&mut tx, current).await?;
         current
             .record
-            .authorize(&context, RunnerOperation::Renew, now(&state)?)
+            .authorize(&context, RunnerOperation::ReportResult, now(&state)?)
             .map_err(|_| refused())?;
     }
     // Even omitted/refused sandboxes are fenced by the node incarnation switch.
