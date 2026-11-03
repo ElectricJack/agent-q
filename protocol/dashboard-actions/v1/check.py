@@ -17,13 +17,18 @@ def load(name):
     return json.loads((root / 'fixtures' / (name + '.json')).read_text())
 def canonical(value):
     return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False).encode()
+TYPED = ('task.edit', 'task.cancel', 'task.retry', 'task.reprioritize', 'task.dependency.add',
+         'task.dependency.remove', 'knowledge.author', 'knowledge.correct', 'knowledge.verify',
+         'knowledge.retire', 'knowledge.restore')
 def validate_request(value):
     validator.validate(value)
     payload, subject = value['payload'], value['subject']
     assert UUID(value['operation_id']).int and payload['operation_id'] == value['operation_id']
     kind = value['kind']
-    key = {'task.create':'project', 'decision.resolve':'decision', 'supervisor.message.send':'conversation'}[kind]
-    revision = str(payload[{'task.create':'expected_project_revision', 'decision.resolve':'expected_decision_revision', 'supervisor.message.send':'expected_conversation_revision'}[kind]])
+    key = {'task.create':'project', 'decision.resolve':'decision', 'supervisor.message.send':'conversation'}.get(kind)
+    key = key or ('project' if kind == 'knowledge.author' else kind.split('.')[0])
+    field = {'task.create':'expected_project_revision', 'decision.resolve':'expected_decision_revision', 'supervisor.message.send':'expected_conversation_revision', 'knowledge.author':'expected_project_revision'}.get(kind, 'expected_version')
+    revision = str(payload[field])
     assert value['expected_versions'] == {key:revision} and subject['revision'] == revision
     assert subject['type'] == key and UUID(subject['id']).int
     assert 0 < int(revision) <= 2**63 - 1
@@ -36,13 +41,28 @@ def validate_request(value):
         assert UUID(payload['message_id']).int and payload['message_id'] != value['operation_id']
         assert payload['body'].strip() and len(payload['body'].encode()) <= 16384
         assert payload['context'] == [] and payload['attachments'] == []
+    elif kind in TYPED:
+        assert UUID(payload['project_id']).int
+        if kind == 'knowledge.author':
+            assert subject['id'] == payload['project_id'] and payload['title'].strip() and payload['body'].strip()
+        if kind in ('task.cancel', 'knowledge.verify'):
+            assert value['reason'].strip()
+        if kind == 'task.reprioritize':
+            assert -1_000_000 <= payload['priority'] <= 1_000_000
     else:
         assert payload['decision_id'] == subject['id'] and payload['schema_version'] == 1
         assert payload['expected_subject']['version'] == '1'
     assert len(canonical(value)) <= 65536
 
-for name in ('task-create', 'decision-resolve', 'supervisor-message-send'):
+for name in ('task-create', 'decision-resolve', 'supervisor-message-send') + tuple(k.replace('.', '-') for k in TYPED):
     validate_request(load('request-' + name))
+conflict = load('operation-conflict-current-versions')
+validator.validate(conflict)
+operation = conflict['data']
+assert operation['disposition'] == 'conflict' and operation['recovery'] == 'refresh_and_review'
+assert operation['current_versions'] == {'knowledge':'3'} and conflict['pending_operations'] == []
+assert not operation['receipt_refs'] and not operation['affected_entities']
+assert operation['request_digest'] == 'sha256:' + hashlib.sha256(canonical({'request':load('request-knowledge-correct'), 'scope':operation['scope']})).hexdigest()
 for disposition in ('pending', 'confirmed', 'conflict', 'rejected', 'unknown'):
     value = load('operation-' + disposition)
     validator.validate(value)
@@ -87,4 +107,4 @@ for contract in compat['read']['data']['contracts']:
     assert contract['digest'] == 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest()
 assert len(compat['read']['data']['contracts']) == 2
 assert compat['read']['api_version'] == 'dashboard-read-1'
-print('3 requests, 5 dispositions, 10 errors, cursor, replay, invalid and compatibility fixtures passed')
+print('14 requests, 5 dispositions, current-versions conflict, 10 errors, cursor, replay, invalid and compatibility fixtures passed')

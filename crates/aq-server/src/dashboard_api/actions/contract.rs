@@ -68,6 +68,10 @@ pub struct Operation {
     #[schemars(length(max = 100))]
     pub affected_entities: Vec<EntityRef>,
     pub recovery: Recovery,
+    /// Live versions observed when the disposition is `conflict`; empty otherwise.
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    #[schemars(extend("maxProperties" = 32))]
+    pub current_versions: BTreeMap<String, String>,
 }
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub enum ActionVersion {
@@ -144,6 +148,8 @@ pub struct Outcome {
     pub disposition: Disposition,
     pub receipt_refs: Vec<EntityRef>,
     pub affected_entities: Vec<EntityRef>,
+    /// Conflict evidence only: the live versions a caller must refresh to.
+    pub current_versions: BTreeMap<String, String>,
 }
 impl Outcome {
     pub fn unknown() -> Self {
@@ -151,6 +157,15 @@ impl Outcome {
             disposition: Disposition::Unknown,
             receipt_refs: vec![],
             affected_entities: vec![],
+            current_versions: BTreeMap::new(),
+        }
+    }
+    pub fn conflict(current_versions: BTreeMap<String, String>) -> Self {
+        Self {
+            disposition: Disposition::Conflict,
+            receipt_refs: vec![],
+            affected_entities: vec![],
+            current_versions,
         }
     }
     pub fn confirmed(receipt_refs: Vec<EntityRef>, affected_entities: Vec<EntityRef>) -> Self {
@@ -158,6 +173,7 @@ impl Outcome {
             disposition: Disposition::Confirmed,
             receipt_refs,
             affected_entities,
+            current_versions: BTreeMap::new(),
         }
     }
 }
@@ -165,7 +181,7 @@ impl Outcome {
 #[serde(untagged)]
 enum Wire {
     Request(ActionRequest),
-    Operation(OperationResponse),
+    Operation(Box<OperationResponse>),
     Error(super::super::errors::ErrorEnvelope),
 }
 pub fn schema(registry: &super::Registry) -> Value {
