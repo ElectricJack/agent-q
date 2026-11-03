@@ -67,7 +67,13 @@ RUN echo '3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2  /src
 
 **Files:** `docs/implementation/A3b.md` and this plan's checklist.
 
-- [ ] Run format, strict Clippy and the required locked workspace test command with bounded jobs/test threads; heartbeat before long foreground commands and retain logs.
-- [ ] Reconcile all A3b requirements, record commands/results, image digests, commit identity, source/tag/build-record evidence and remaining limits.
-- [ ] Commit implementation, squash own unpublished implementation history onto its recorded source base preserving the tree and attribution. Merge `origin/main` (supervisor waiver for absent `origin/dev`) into the task branch, resolve with context, run only targeted checks after the merge, and guarded-push the final SHA.
+- [x] Run format, strict Clippy and the required locked workspace test command with bounded jobs/test threads; heartbeat before long foreground commands and retain logs.
+- [x] Reconcile all A3b requirements, record commands/results, image digests, commit identity, source/tag/build-record evidence and remaining limits.
+- [x] Commit implementation, squash own unpublished implementation history onto its recorded source base preserving the tree and attribution. Merge `origin/main` (supervisor waiver for absent `origin/dev`) into the task branch, resolve with context, run only targeted checks after the merge, and guarded-push the final SHA.
 - [ ] Settle subtasks and close with `--outcome pass --work-outcome shipped --changes ... --verification ... --test ...` only if all required checks passed; otherwise record precise unmet requirements and fail truthfully. Run `aq session drain-ack` after an accepted close.
+
+Current completion limit: strict Clippy, formatting, pin verification, image builds
+and both named real-component qualifications pass. Locked workspace acceptance
+fails in the historical schema37 reservation fixture. Child eager-grove-45.3.3
+is marked complete but its repair is absent from fetched main18af3900; supervisor
+notified with source evidence. No passing close or skipped-test workaround is claimed.

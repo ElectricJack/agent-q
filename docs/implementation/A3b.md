@@ -38,7 +38,8 @@ They verify the release archive and executable with `sha256sum -c`, then copy
 the executable's exact bytes. Copying the released executable meets the consumer
 release pin without requiring a reproducible Rust rebuild. Both stages preserve
 `rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663`.
-Non-aq-git base stages, state labels and Compose supervision are untouched.
+A3b does not change non-aq-git base stages, state labels or Compose supervision.
+The later main merge retains concurrently landed changes outside this scope.
 
 The project-binding wrapper selects the newly built immutable image ID and runs
 its named Rust qualification with `--locked`. The existing fixture-derived
@@ -58,14 +59,14 @@ disposable PostgreSQL 17. Rust commands use `CARGO_BUILD_JOBS=2` and
 | --- | --- |
 | `aq test scripts/test-git-candidate.py` before implementation | 5 failed, 3 passed: missing executable/provenance/path validation and old release pin; [red log](A3b-checks/verifier-red.log) |
 | `aq test scripts/test-git-candidate.py` after implementation | 10 passed, including release acceptance, executable tampering, provenance tampering, unsafe paths, archive traversal, inventory mismatch, bundle/source disagreement, official overrides and Docker drift; [post-repair green log](A3b-checks/verifier-after-repair.log) |
-| `python3 scripts/check-git-candidate.py --official` | Passed; [verified manifest](A3b-checks/candidate-after-repair.json) |
+| `python3 scripts/check-git-candidate.py --official` | Passed; [post-merge verified manifest](A3b-checks/candidate-after-lint-repair.json) |
 | `gh api repos/ElectricJack/aq-git/git/ref/tags/v0.2.0` | Published tag resolves to retained commit; [tag receipt](A3b-checks/release-tag.json) |
 | `gh api repos/ElectricJack/aq-git/releases/tags/v0.2.0` with asset name/digest projection | Published source/binary/build-record digests match; [asset receipt](A3b-checks/published-assets.json) |
 | `DOCKER_BUILDKIT=1 docker build --progress=plain -f scripts/Dockerfile.aq-git -t aq-git-a3b:0.2.0 .` | Passed; [build log](A3b-checks/build-aq-git.log) |
 | `DOCKER_BUILDKIT=1 docker build --progress=plain -t aq-server-a3b:0.2.0 .` | Passed after prerequisite repair; [server build log](A3b-checks/build-server-after-repair.log) |
 | `docker build --progress=plain -f Dockerfile.worker --build-arg AQ_SOURCE_REVISION=3fb2bcb2f63f73838ddd97e44580fe721a539bdd --build-arg AQ_WORKER_ARCHIVE_SHA256=ed33076d62d37884cab04f1206d1fda3dd5e06181ddb1ccdebec58fda789b535 --build-arg AQ_VERSION=0.3.1 -t aq-worker-a3b:0.2.0 .` | Passed; [worker build log](A3b-checks/build-worker.log) |
 | `docker build --target aq-git-build` with a deliberately corrupted retained executable in a disposable context | Correctly refused by `sha256sum -c`; [negative build log](A3b-checks/corrupt-binary-build.log) |
-| `cargo fmt --check` | Passed; [format log](A3b-checks/fmt-after-repair.log) |
+| `cargo fmt --check` | Passed; [post-merge format log](A3b-checks/fmt-after-lint-repair.log) |
 | `cargo clippy --locked --all-targets -- -D warnings` | Initial post-repair run exposed a duplicate attribute in phase_never_granted.rs:4/6; eager-grove-45.3.2 removed it. Final rerun passed; [initial lint failure](A3b-checks/clippy-after-repair.log) and [passing rerun](A3b-checks/clippy-after-lint-repair.log) |
 | `cargo test --locked --workspace` | Failed: 349 tests passed in earlier completed suites; aq-server lib 172 passed, 9 failed, 1 ignored. All failures stop in the same historical reservation fixture seed; [workspace log](A3b-checks/workspace-tests-after-repair.log) |
 | `cargo test --locked -p aq-server --test source_retention --test project_bindings` | Passed: project_bindings 12 passed/1 ignored; source_retention 10 passed/1 ignored. Ignored cases run separately; [focused log](A3b-checks/focused-rust-after-repair.log) |
@@ -110,7 +111,20 @@ which now delegates to the dashboard action journal. The journal queries
 `dashboard_operations`, introduced by migration0042. The returned error is
 `IdentityUnavailable("dashboard operation unavailable or conflicting")`.
 Required child `eager-grove-45.3.3` owns reconciliation of that historical
-fixture with action routing. No passing workspace result is claimed.
+fixture with action routing. Its status is COMPLETED, but its repair is absent
+from fetched main `18af3900f5fae76bdc9797017cd4cbd9f4987b8a`. Merge
+`256ccccf39cfee0c9062b58b822d4c679c90b051` contains only three additional
+supervision/plan documents compared with the lint-qualified tree. The fixture
+seed and public enqueue path are unchanged. The supervisor was notified with
+these exact commits to resolve repair delivery. No passing workspace result is
+claimed.
+
+A diagnostic `cargo test --locked --workspace --no-fail-fast` run was started
+to expose failures beyond the original early stop. It was interrupted with
+exit130 during compilation when the repair task reported completion, before
+modifying the compiling checkout. This diagnostic is not a passing test result;
+its [log](A3b-checks/workspace-all-results.log) is retained. No compiler remained
+active when the final main merge ran.
 
 Supervisor message `msg-c6f2114e7cd64deeb8ab1aed23c51a9c` explicitly waives
 the completion profile's missing `origin/dev` ref: fetch and merge `origin/main`,
