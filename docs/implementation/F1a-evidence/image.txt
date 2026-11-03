@@ -1,144 +1,69 @@
 #0 building with "default" instance using docker driver
 
 #1 [internal] load build definition from Dockerfile.supervisor-host
-#1 transferring dockerfile:
-#1 transferring dockerfile: 2.04kB 0.0s done
-#1 DONE 0.2s
+#1 transferring dockerfile: 2.07kB 0.0s done
+#1 DONE 0.1s
 
-#2 [internal] load metadata for docker.io/library/rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663
+#2 [internal] load metadata for docker.io/library/debian:bookworm-slim
 #2 DONE 0.0s
 
-#3 [internal] load metadata for docker.io/library/debian:bookworm-slim
+#3 [internal] load metadata for docker.io/library/rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663
 #3 DONE 0.0s
 
 #4 [internal] load .dockerignore
-#4 transferring context:
 #4 transferring context: 136B done
-#4 DONE 0.2s
+#4 DONE 0.1s
 
-#5 [runtime 1/2] FROM docker.io/library/debian:bookworm-slim
+#5 [stage-1 1/4] FROM docker.io/library/debian:bookworm-slim
 #5 DONE 0.0s
 
-#6 [git-build 1/6] FROM docker.io/library/rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663
+#6 [build 1/9] FROM docker.io/library/rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663
 #6 DONE 0.0s
 
-#5 [runtime 1/2] FROM docker.io/library/debian:bookworm-slim
-#5 CACHED
-
 #7 [internal] load build context
-#7 transferring context: 77.21MB 4.7s
-#7 transferring context: 158.36MB 8.5s done
-#7 DONE 8.8s
+#7 transferring context: 259.70kB 0.3s done
+#7 DONE 0.4s
 
-#8 [stage-1 2/4] RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tmux libssl3     && rm -rf /var/lib/apt/lists/*     && groupadd --gid 10001 native && useradd --uid 10001 --gid native --no-create-home native     && install -d -m 700 /host     && install -d -m 711 /native-homes     && install -d -m 700 -o 10001 -g 10001 /workspace
-#8 1.671 Get:1 http://deb.debian.org/debian bookworm InRelease [151 kB]
-#8 1.776 Get:2 http://deb.debian.org/debian bookworm-updates InRelease [55.4 kB]
-#8 1.799 Get:3 http://deb.debian.org/debian-security bookworm-security InRelease [34.8 kB]
-#8 2.100 Get:4 http://deb.debian.org/debian bookworm/main amd64 Packages [8790 kB]
-#8 5.696 Get:5 http://deb.debian.org/debian bookworm-updates/main amd64 Packages [6924 B]
-#8 5.697 Get:6 http://deb.debian.org/debian-security bookworm-security/main amd64 Packages [360 kB]
-#8 7.224 Fetched 9398 kB in 6s (1647 kB/s)
-#8 7.224 Reading package lists...
-#8 8.817 Reading package lists...
-#8 ...
+#8 [build 2/9] WORKDIR /build
+#8 CACHED
 
-#9 [build 2/9] WORKDIR /build
+#9 [build 3/9] COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 #9 CACHED
 
-#10 [build 3/9] COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
-#10 DONE 1.7s
+#10 [build 4/9] COPY crates ./crates
+#10 DONE 1.8s
 
-#8 [stage-1 2/4] RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tmux libssl3     && rm -rf /var/lib/apt/lists/*     && groupadd --gid 10001 native && useradd --uid 10001 --gid native --no-create-home native     && install -d -m 700 /host     && install -d -m 711 /native-homes     && install -d -m 700 -o 10001 -g 10001 /workspace
-#8 8.817 Reading package lists...
-#8 10.11 Building dependency tree...
-#8 10.73 Reading state information...
-#8 11.83 The following additional packages will be installed:
-#8 11.84   libevent-core-2.1-7 libutempter0 openssl
-#8 11.98 The following NEW packages will be installed:
-#8 ...
+#11 [build 5/9] COPY vendor ./vendor
+#11 DONE 3.7s
 
-#11 [build 4/9] COPY crates ./crates
-#11 DONE 1.5s
+#12 [build 6/9] COPY protocol ./protocol
+#12 DONE 0.7s
 
-#8 [stage-1 2/4] RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tmux libssl3     && rm -rf /var/lib/apt/lists/*     && groupadd --gid 10001 native && useradd --uid 10001 --gid native --no-create-home native     && install -d -m 700 /host     && install -d -m 711 /native-homes     && install -d -m 700 -o 10001 -g 10001 /workspace
-#8 11.99   ca-certificates libevent-core-2.1-7 libssl3 libutempter0 openssl tmux
-#8 12.14 0 upgraded, 6 newly installed, 0 to remove and 1 not upgraded.
-#8 12.14 Need to get 4237 kB of archives.
-#8 12.14 After this operation, 10.4 MB of additional disk space will be used.
-#8 12.14 Get:1 http://deb.debian.org/debian-security bookworm-security/main amd64 libssl3 amd64 3.0.22-1~deb12u2 [2040 kB]
-#8 12.34 Get:2 http://deb.debian.org/debian-security bookworm-security/main amd64 openssl amd64 3.0.22-1~deb12u2 [1442 kB]
-#8 12.49 Get:3 http://deb.debian.org/debian-security bookworm-security/main amd64 ca-certificates all 20250419~deb12u2 [161 kB]
-#8 12.51 Get:4 http://deb.debian.org/debian-security bookworm-security/main amd64 libevent-core-2.1-7 amd64 2.1.12-stable-8+deb12u1 [131 kB]
-#8 12.52 Get:5 http://deb.debian.org/debian bookworm/main amd64 libutempter0 amd64 1.2.1-3 [8960 B]
-#8 12.53 Get:6 http://deb.debian.org/debian bookworm/main amd64 tmux amd64 3.3a-3 [455 kB]
-#8 13.46 debconf: delaying package configuration, since apt-utils is not installed
-#8 13.63 Fetched 4237 kB in 0s (8734 kB/s)
-#8 ...
+#13 [build 7/9] RUN echo 'e68ad4071935cec0bf7d67b5ab52e5e30364c12869e8e6b99b964b8fd69f3f1a  vendor/aq-session-host-0.1.6-source.tar.gz' | sha256sum -c -
+#13 0.789 vendor/aq-session-host-0.1.6-source.tar.gz: OK
+#13 DONE 0.8s
 
-#12 [build 5/9] COPY vendor ./vendor
-#12 DONE 1.9s
+#14 [build 8/9] RUN mkdir /pinned && tar -xzf vendor/aq-session-host-0.1.6-source.tar.gz -C /pinned --strip-components=1     && diff -r /pinned/crates/aq-session-host/src vendor/aq-session-host-0.1.6/src     && diff -r /pinned/crates/aq-codex-mapper/src vendor/aq-codex-mapper-0.1.1/src     && diff -r /pinned/crates/aq-responses-transport/src vendor/aq-responses-transport-0.1.0/src
+#14 DONE 1.3s
 
-#8 [stage-1 2/4] RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tmux libssl3     && rm -rf /var/lib/apt/lists/*     && groupadd --gid 10001 native && useradd --uid 10001 --gid native --no-create-home native     && install -d -m 700 /host     && install -d -m 711 /native-homes     && install -d -m 700 -o 10001 -g 10001 /workspace
-#8 14.09 Selecting previously unselected package libssl3:amd64.
-#8 14.09 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 6096 files and directories currently installed.)
-#8 14.34 Preparing to unpack .../0-libssl3_3.0.22-1~deb12u2_amd64.deb ...
-#8 14.40 Unpacking libssl3:amd64 (3.0.22-1~deb12u2) ...
-#8 ...
+#15 [build 9/9] RUN --mount=type=cache,target=/usr/local/cargo/registry     --mount=type=cache,id=aq-supervisor-host-release,sharing=locked,target=/build/target     cargo build --locked --release -p aq-supervisor-host --bins     && mkdir /out && cp target/release/aq-supervisor-host target/release/aq-session-host /out/
+#15 5.867    Compiling aq-supervisor-host v0.1.0 (/build/crates/aq-supervisor-host)
+#15 140.1     Finished `release` profile [optimized] target(s) in 2m 19s
+#15 DONE 140.6s
 
-#13 [build 6/9] COPY protocol ./protocol
-#13 DONE 0.5s
+#16 [stage-1 2/4] RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tmux libssl3     && rm -rf /var/lib/apt/lists/*     && groupadd --gid 10001 native && useradd --uid 10001 --gid native --no-create-home native     && install -d -m 700 /host     && install -d -m 711 /native-homes     && install -d -m 700 -o 10001 -g 10001 /workspace
+#16 CACHED
 
-#14 [build 7/9] RUN echo 'e68ad4071935cec0bf7d67b5ab52e5e30364c12869e8e6b99b964b8fd69f3f1a  vendor/aq-session-host-0.1.6-source.tar.gz' | sha256sum -c -
-#14 1.565 vendor/aq-session-host-0.1.6-source.tar.gz: OK
-#14 DONE 1.7s
+#17 [stage-1 3/4] COPY --from=build /out/aq-supervisor-host /usr/local/bin/aq-supervisor-host
+#17 DONE 0.3s
 
-#15 [build 8/9] RUN mkdir /pinned && tar -xzf vendor/aq-session-host-0.1.6-source.tar.gz -C /pinned --strip-components=1     && diff -r /pinned/crates/aq-session-host/src vendor/aq-session-host-0.1.6/src     && diff -r /pinned/crates/aq-codex-mapper/src vendor/aq-codex-mapper-0.1.1/src     && diff -r /pinned/crates/aq-responses-transport/src vendor/aq-responses-transport-0.1.0/src
-#15 DONE 2.1s
+#18 [stage-1 4/4] COPY --from=build /out/aq-session-host /usr/local/bin/aq-session-host
+#18 DONE 0.3s
 
-#8 [stage-1 2/4] RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tmux libssl3     && rm -rf /var/lib/apt/lists/*     && groupadd --gid 10001 native && useradd --uid 10001 --gid native --no-create-home native     && install -d -m 700 /host     && install -d -m 711 /native-homes     && install -d -m 700 -o 10001 -g 10001 /workspace
-#8 14.96 Selecting previously unselected package openssl.
-#8 14.97 Preparing to unpack .../1-openssl_3.0.22-1~deb12u2_amd64.deb ...
-#8 15.00 Unpacking openssl (3.0.22-1~deb12u2) ...
-#8 15.48 Selecting previously unselected package ca-certificates.
-#8 15.48 Preparing to unpack .../2-ca-certificates_20250419~deb12u2_all.deb ...
-#8 15.50 Unpacking ca-certificates (20250419~deb12u2) ...
-#8 16.18 Selecting previously unselected package libevent-core-2.1-7:amd64.
-#8 16.19 Preparing to unpack .../3-libevent-core-2.1-7_2.1.12-stable-8+deb12u1_amd64.deb ...
-#8 16.24 Unpacking libevent-core-2.1-7:amd64 (2.1.12-stable-8+deb12u1) ...
-#8 16.61 Selecting previously unselected package libutempter0:amd64.
-#8 16.62 Preparing to unpack .../4-libutempter0_1.2.1-3_amd64.deb ...
-#8 16.66 Unpacking libutempter0:amd64 (1.2.1-3) ...
-#8 16.94 Selecting previously unselected package tmux.
-#8 16.95 Preparing to unpack .../5-tmux_3.3a-3_amd64.deb ...
-#8 17.00 Unpacking tmux (3.3a-3) ...
-#8 17.31 Setting up libssl3:amd64 (3.0.22-1~deb12u2) ...
-#8 17.46 Setting up libevent-core-2.1-7:amd64 (2.1.12-stable-8+deb12u1) ...
-#8 17.64 Setting up libutempter0:amd64 (1.2.1-3) ...
-#8 17.76 Setting up openssl (3.0.22-1~deb12u2) ...
-#8 17.91 Setting up tmux (3.3a-3) ...
-#8 18.06 Setting up ca-certificates (20250419~deb12u2) ...
-#8 18.71 debconf: unable to initialize frontend: Dialog
-#8 18.71 debconf: (TERM is not set, so the dialog frontend is not usable.)
-#8 18.71 debconf: falling back to frontend: Readline
-#8 18.72 debconf: unable to initialize frontend: Readline
-#8 18.72 debconf: (Can't locate Term/ReadLine.pm in @INC (you may need to install the Term::ReadLine module) (@INC contains: /etc/perl /usr/local/lib/x86_64-linux-gnu/perl/5.36.0 /usr/local/share/perl/5.36.0 /usr/lib/x86_64-linux-gnu/perl5/5.36 /usr/share/perl5 /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/x86_64-linux-gnu/perl/5.36 /usr/share/perl/5.36 /usr/local/lib/site_perl) at /usr/share/perl5/Debconf/FrontEnd/Readline.pm line 7.)
-#8 18.72 debconf: falling back to frontend: Teletype
-#8 20.98 Updating certificates in /etc/ssl/certs...
-#8 23.44 148 added, 0 removed; done.
-#8 23.57 Processing triggers for libc-bin (2.36-9+deb12u14) ...
-#8 23.82 Processing triggers for ca-certificates (20250419~deb12u2) ...
-#8 23.87 Updating certificates in /etc/ssl/certs...
-#8 25.96 0 added, 0 removed; done.
-#8 25.96 Running hooks in /etc/ca-certificates/update.d...
-#8 25.97 done.
-#8 DONE 26.7s
-
-#16 [build 9/9] RUN --mount=type=cache,target=/usr/local/cargo/registry     --mount=type=cache,sharing=locked,target=/build/target     cargo build --locked --release -p aq-supervisor-host --bins     && mkdir /out && cp target/release/aq-supervisor-host target/release/aq-session-host /out/
-#16 CANCELED
-ERROR: failed to build: failed to solve: Canceled: context canceled
-Traceback (most recent call last):
-  File "/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/docs/implementation/F1a-evidence/image_check.py", line 21, in <module>
-    subprocess.run(["docker", "build", "--progress=plain", "-f", "Dockerfile.supervisor-host", "-t", IMAGE, "."], cwd=ROOT, check=True)
-  File "/usr/lib/python3.12/subprocess.py", line 571, in run
-    raise CalledProcessError(retcode, process.args,
-subprocess.CalledProcessError: Command '['docker', 'build', '--progress=plain', '-f', 'Dockerfile.supervisor-host', '-t', 'aq-supervisor-host:f1a-steady-harbor-87-1', '.']' returned non-zero exit status 130.
+#19 exporting to image
+#19 exporting layers
+#19 exporting layers 0.2s done
+#19 writing image sha256:b102f5ed4910946cd7f2b22fa6d492fa9de8589c513a115b102208899031ad54 0.0s done
+#19 naming to docker.io/library/aq-supervisor-host:f1a-steady-harbor-87-1 0.0s done
+#19 DONE 0.4s
+Image built; native UID 10001 received exact stdin and could not read provider placement; no provider request made.

@@ -1,7 +1,4 @@
-    Blocking waiting for file lock on build directory
-   Compiling aq-central-authority v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-central-authority)
-   Compiling aq-server v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-server)
-    Finished `test` profile [unoptimized] target(s) in 5m 08s
+    Finished `test` profile [unoptimized] target(s) in 1.56s
      Running tests/central_sessions.rs (target/debug/deps/central_sessions-938860d1640cca72)
 
 running 8 tests
@@ -14,5 +11,5 @@ test central_owner_reopens_committed_permit_without_new_generation ... ok
 test central_owner_retained_history_blocks_old_mail_and_cross_role_ids ... ok
 test central_owner_serializes_start_and_successor_races ... ok
 
-test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 14.11s
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 12.57s
 

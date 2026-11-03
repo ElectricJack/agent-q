@@ -6,6 +6,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 COMMANDS = {
+    "upgrade": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", "main_delivery_database_upgrades_without_losing_history"],
     "start_revocation_red": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", "revocation_before_physical_start"],
     "image": [sys.executable, "docs/implementation/F1a-evidence/image_check.py"],
     "host_all": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--", "--test-threads=1"],
@@ -18,11 +19,11 @@ COMMANDS = {
     "credentials_red": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "credentials"],
     "host": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", "--", "--test-threads=1"],
     "host_red": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session"],
-    "owner": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "central_sessions", "--", "--test-threads=1"],
+    "owner": ["cargo", "test", "--locked", "-p", "aq-server", "--features", "test-support", "--test", "central_sessions", "--", "--test-threads=1"],
     "model": ["cargo", "test", "--locked", "-p", "aq-central-authority"],
     "format": ["cargo", "fmt", "--check"],
-    "clippy": ["cargo", "clippy", "--locked", "-p", "aq-central-authority", "-p", "aq-server", "--lib", "--test", "central_sessions", "--", "-D", "warnings"],
-    "format_version": ["cargo", "test", "--locked", "-p", "aq-server", "--lib", "state_format_is_the_latest_migration"],
+    "clippy": ["cargo", "clippy", "--locked", "-p", "aq-central-authority", "-p", "aq-server", "--features", "test-support", "--lib", "--test", "central_sessions", "--", "-D", "warnings"],
+    "format_version": ["cargo", "test", "--locked", "-p", "aq-server", "--features", "test-support", "--lib", "state_format_is_the_latest_migration"],
 }
 
 

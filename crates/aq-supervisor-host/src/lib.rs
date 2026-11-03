@@ -120,7 +120,7 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
                 .await?;
         let root: String = row.try_get("root")?;
         ensure!(
-            PathBuf::from(root) == self.root,
+            std::path::Path::new(&root) == self.root,
             "host root changed; preserve original owner"
         );
         let body: String = row.try_get("host_plan")?;
