@@ -550,6 +550,14 @@
             "batch_digest"
           ],
           "additionalProperties": false
+        },
+        "attachments": {
+          "type": "array",
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/SupervisorAttachment"
+          },
+          "description": "Additive in v1: always present (possibly empty) on current servers; absent on older ones."
         }
       },
       "required": [
@@ -567,6 +575,363 @@
         "agent_receipt"
       ],
       "additionalProperties": false
+    },
+    "DraftTask": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "body": {
+          "type": "string",
+          "maxLength": 32768
+        },
+        "acceptance_criteria": {
+          "type": "string",
+          "maxLength": 8192
+        },
+        "labels": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          }
+        },
+        "task_state": {
+          "enum": [
+            "draft",
+            "active"
+          ]
+        },
+        "parent_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "priority": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 300
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "profile_hint": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "intelligence_hint": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "task_type": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "title"
+      ],
+      "additionalProperties": false,
+      "description": "Same task fields as dashboard-actions-1 task.graph.create."
+    },
+    "DraftDependency": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "source": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target": {
+          "type": "string",
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "target"
+      ],
+      "additionalProperties": false
+    },
+    "TaskGraphCreate": {
+      "type": "object",
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "expected_version": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,18}$"
+        },
+        "tasks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "$ref": "#/$defs/DraftTask"
+          }
+        },
+        "edges": {
+          "type": "array",
+          "maxItems": 99,
+          "items": {
+            "$ref": "#/$defs/DraftDependency"
+          }
+        }
+      },
+      "required": [
+        "operation_id",
+        "project_id",
+        "expected_version",
+        "tasks"
+      ],
+      "additionalProperties": false,
+      "description": "The exact dashboard-actions-1 task.graph.create payload the Owner may submit after review. Server checks the same relational rules (unique nonnil IDs, at most 100 total mutations)."
+    },
+    "ProposedTaskDraft": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "proposed_task_draft"
+        },
+        "message_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "draft_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[1-9][0-9]{0,18}$"
+        },
+        "payload_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "payload": {
+          "$ref": "#/$defs/TaskGraphCreate"
+        }
+      },
+      "required": [
+        "type",
+        "message_id",
+        "draft_id",
+        "project_id",
+        "revision",
+        "payload_digest",
+        "payload"
+      ],
+      "additionalProperties": false,
+      "description": "A proposal only; nothing was created. project_id and revision equal payload.project_id and payload.expected_version. payload_digest is sha256 over the canonical (sorted-key, compact) JSON of payload. message_id is the supervisor reply that produced it."
+    },
+    "ActionReceipt": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "const": "action_receipt"
+        },
+        "message_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "kind": {
+          "enum": [
+            "task.create",
+            "task.graph.create"
+          ]
+        },
+        "project_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "project_revision": {
+          "anyOf": [
+            {
+              "type": "string",
+              "pattern": "^[1-9][0-9]{0,18}$"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "created_task_ids": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "created_edge_ids": {
+          "type": "array",
+          "maxItems": 100,
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "receipt_refs": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            },
+            "required": [
+              "type",
+              "id"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "request_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "type",
+        "message_id",
+        "operation_id",
+        "kind",
+        "project_id",
+        "project_revision",
+        "created_task_ids",
+        "created_edge_ids",
+        "receipt_refs",
+        "request_digest"
+      ],
+      "additionalProperties": false,
+      "description": "Snapshot, taken when the reply was written, of a confirmed operation in the replying supervisor session's own journal. Retained with the reply; Owners need no supervisor operation lookup."
+    },
+    "SupervisorAttachment": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProposedTaskDraft"
+        },
+        {
+          "$ref": "#/$defs/ActionReceipt"
+        }
+      ]
+    },
+    "ReplyAttachmentRequest": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "proposed_task_draft"
+            },
+            "draft_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "payload": {
+              "$ref": "#/$defs/TaskGraphCreate"
+            }
+          },
+          "required": [
+            "type",
+            "draft_id",
+            "payload"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "action_receipt"
+            },
+            "operation_id": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "required": [
+            "type",
+            "operation_id"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "Entry of the optional attachments array (at most 4, at most 65536 serialized bytes, unique nonnil draft/operation IDs) on POST /v1/supervisor/conversation/replies. The server derives every other History field."
     }
   },
   "oneOf": [

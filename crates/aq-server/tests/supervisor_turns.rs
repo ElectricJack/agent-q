@@ -650,3 +650,214 @@ async fn upgrade_consumes_known_failure_and_retains_unknown_delivery() {
         }
     }
 }
+
+fn conversation_schema(v: &Value) {
+    let s: Value = serde_json::from_str(include_str!(
+        "../../../protocol/human-supervisor-conversation/v1/schema.json"
+    ))
+    .unwrap();
+    assert!(aq_agent_api::check(&s, &s, v), "public schema {v}");
+}
+
+#[test]
+fn attachment_fixtures_match_schema_and_published_digest() {
+    use sha2::Digest as _;
+    let schema = include_bytes!("../../../protocol/human-supervisor-conversation/v1/schema.json");
+    let pinned = include_str!("../../../protocol/human-supervisor-conversation/v1/schema.sha256");
+    assert_eq!(
+        format!("sha256:{}", hex::encode(sha2::Sha256::digest(schema))),
+        pinned.trim(),
+        "update schema.sha256 and README when the schema changes"
+    );
+    let history: Value = serde_json::from_str(include_str!(
+        "../../../protocol/human-supervisor-conversation/v1/history-attachments.example.json"
+    ))
+    .unwrap();
+    conversation_schema(&history);
+    let draft = &history["items"][1]["attachments"][0];
+    assert_eq!(
+        draft["payload_digest"],
+        format!(
+            "sha256:{}",
+            aq_agent_api::digest(&draft["payload"]).unwrap()
+        )
+    );
+    let s: Value = serde_json::from_slice(schema).unwrap();
+    let request: Value = serde_json::from_str(include_str!(
+        "../../../protocol/human-supervisor-conversation/v1/reply-attachments.example.json"
+    ))
+    .unwrap();
+    for a in request["attachments"].as_array().unwrap() {
+        assert!(aq_agent_api::check(
+            &s,
+            &s["$defs"]["ReplyAttachmentRequest"],
+            a
+        ));
+    }
+    // Additive: a pre-attachment supervisor item remains valid.
+    let mut old = history.clone();
+    old["items"][1]
+        .as_object_mut()
+        .unwrap()
+        .remove("attachments");
+    conversation_schema(&old);
+    old["items"][1]["attachments"] = json!([{"type": "unknown"}]);
+    assert!(!aq_agent_api::check(&s, &s, &old));
+}
+
+#[tokio::test]
+async fn reply_attachments_serve_typed_drafts_and_session_receipts_through_history() {
+    let f = Fixture::new(aq_server::STATE_FORMAT_VERSION).await;
+    f.send().await;
+    let receipt = f.reserve().await;
+    let reservation = receipt.reservation.as_ref().unwrap();
+    let p = f.plan(reservation.id, 1).await;
+    let s = f.start(&p).await;
+    f.report(
+        &p,
+        Event::Handoff {
+            evidence: HandoffEvidence {
+                association: s.run.association().unwrap().clone(),
+                disposition: HandoffDisposition::HandedOff,
+                receipt: artifact(),
+            },
+        },
+    )
+    .await;
+    let session = dispatch_session(&p);
+    let project = Uuid::new_v4();
+    let (task_a, task_b, edge, change_set) = (
+        Uuid::new_v4(),
+        Uuid::new_v4(),
+        Uuid::new_v4(),
+        Uuid::new_v4(),
+    );
+    let journal = |principal: Uuid, disposition: &'static str| {
+        let operation = Uuid::new_v4();
+        let request_digest = format!("sha256:{}", "ab".repeat(32));
+        let response = json!({"operation_id":operation,"disposition":disposition,"request_digest":request_digest,"scope":{},"created_at":"2026-01-01T00:00:00.000Z","updated_at":"2026-01-01T00:00:00.000Z",
+            "subject_refs":[{"type":"project","id":project,"revision":"3"}],
+            "receipt_refs":[{"type":"graph_change_set","id":change_set}],
+            "affected_entities":[{"type":"task","id":task_a,"revision":"1"},{"type":"task","id":task_b,"revision":"1"},{"type":"graph_edge","id":edge,"revision":"1"}],
+            "recovery":"lookup_original","current_versions":{}});
+        let pool = f.pool.clone();
+        async move {
+            sqlx::query("INSERT INTO dashboard_operations(operation_id,principal_id,kind,scope,request_digest,disposition,response,created_at,updated_at) VALUES($1,$2,'task.graph.create','{}',$3,$4,$5,now(),now())")
+                .bind(operation).bind(principal).bind(&request_digest).bind(disposition).bind(response)
+                .execute(&pool).await.unwrap();
+            (operation, request_digest)
+        }
+    };
+    let (confirmed, request_digest) = journal(session, "confirmed").await;
+    let (pending, _) = journal(session, "pending").await;
+    let (owners, _) = journal(f.user.id, "confirmed").await;
+    let draft = Uuid::new_v4();
+    let payload = json!({"operation_id":Uuid::new_v4(),"project_id":project,"expected_version":"4",
+        "tasks":[{"id":Uuid::new_v4(),"title":"Draft task","priority":10}],"edges":[]});
+    let token = reply::issue_credential(&f.pool, f.actor, 60_000, 999_000)
+        .await
+        .unwrap();
+    let message = Uuid::new_v4();
+    let request = |attachments: Value| json!({"operation_id":Uuid::new_v4(),"message_id":message,"dispatch_id":p.dispatch_id,"body":"supervisor answer","attachments":attachments});
+    let path = "/v1/supervisor/conversation/replies";
+    let draft_item = json!({"type":"proposed_task_draft","draft_id":draft,"payload":payload});
+    // Refusals precede any write and leave the turn answerable.
+    let mut bad_payload = payload.clone();
+    bad_payload["tasks"][0]["title"] = json!(" ");
+    for (attachments, status) in [
+        (
+            json!([{"type":"action_receipt","operation_id":owners}]),
+            StatusCode::CONFLICT,
+        ),
+        (
+            json!([{"type":"action_receipt","operation_id":pending}]),
+            StatusCode::CONFLICT,
+        ),
+        (
+            json!([{"type":"action_receipt","operation_id":Uuid::new_v4()}]),
+            StatusCode::CONFLICT,
+        ),
+        (
+            json!([{"type":"proposed_task_draft","draft_id":draft,"payload":bad_payload}]),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            json!([draft_item.clone(), draft_item.clone()]),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            json!([{"type":"proposed_task_draft","draft_id":Uuid::nil(),"payload":payload}]),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            json!([{"type":"action_receipt","operation_id":confirmed,"extra":1}]),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            json!(
+                (0..5)
+                    .map(|_| json!({"type":"action_receipt","operation_id":Uuid::new_v4()}))
+                    .collect::<Vec<_>>()
+            ),
+            StatusCode::BAD_REQUEST,
+        ),
+    ] {
+        let (got, body) = f
+            .post(path, Some(&token), request(attachments.clone()))
+            .await;
+        assert_eq!(got, status, "{attachments} -> {body}");
+    }
+    let accepted = request(json!([draft_item, {"type":"action_receipt","operation_id":confirmed}]));
+    let (status, first) = f.post(path, Some(&token), accepted.clone()).await;
+    assert_eq!(status, StatusCode::OK, "{first}");
+    let (status, replayed) = f.post(path, Some(&token), accepted).await;
+    assert_eq!((status, &replayed), (StatusCode::OK, &first));
+    f.assert_consumed(reservation.id).await;
+
+    let response = f
+        .app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri(format!(
+                    "/api/human/conversations/{}/messages",
+                    f.conversation
+                ))
+                .header("x-aq-dev-email", "owner@localhost")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let history: Value =
+        serde_json::from_slice(&response.into_body().collect().await.unwrap().to_bytes()).unwrap();
+    conversation_schema(&history);
+    let items = history["items"].as_array().unwrap();
+    assert_eq!(items.len(), 2, "{history}");
+    assert!(
+        items[0].get("attachments").is_none(),
+        "owner items are unchanged"
+    );
+    let reply = &items[1];
+    assert_eq!(reply["message_id"], json!(message));
+    // The draft is stored in its normalized form (defaults materialized), and
+    // its digest covers exactly the served payload.
+    let mut normalized = payload.clone();
+    normalized["tasks"][0].as_object_mut().unwrap().extend([
+        ("body".into(), json!("")),
+        ("acceptance_criteria".into(), json!("")),
+        ("labels".into(), json!([])),
+        ("task_state".into(), json!("active")),
+    ]);
+    assert_eq!(
+        reply["attachments"],
+        json!([
+            {"type":"proposed_task_draft","message_id":message,"draft_id":draft,"project_id":project,"revision":"4",
+             "payload_digest":format!("sha256:{}",aq_agent_api::digest(&normalized).unwrap()),"payload":normalized},
+            {"type":"action_receipt","message_id":message,"operation_id":confirmed,"kind":"task.graph.create","project_id":project,"project_revision":"3",
+             "created_task_ids":[task_a,task_b],"created_edge_ids":[edge],
+             "receipt_refs":[{"type":"graph_change_set","id":change_set}],"request_digest":request_digest}
+        ])
+    );
+}
