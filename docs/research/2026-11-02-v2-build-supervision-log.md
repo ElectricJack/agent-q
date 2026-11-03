@@ -224,3 +224,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - E6a's Windows restart drill (it would kill all agents);
     - C7's boat.dev live credentials. C7 was told to close blocked and free its slot.
   - Merged aq-dashboard #9. **aq-worker main CI is green** (`sharp-forge-44`).
+- **00:00 check (11-03).**
+  - **Only 5–6 agents running**, with 35 READY in aq-platform. 29 are dependency-blocked; 6 are claimable but waiting on pools with free capacity.
+    - Root cause: v1 scheduler cycles stall in PR admission (`observe_pr_admission`) and `list_sessions`. Postgres is at about 113% CPU, and `pool.scaler_stalled` repeats.
+    - Not restarted unattended. Recorded as W44; owner option in the morning.
+  - Merged aq-server #31 (F1a closure evidence). H1 and H7 started. C7 and E6a are blocked on owner-only items (morning list).
