@@ -77,7 +77,27 @@ macro_rules! endpoint {
                 .map_err(|_| AppError::Maintenance("phase terminal ingress full".into()))?;
             tokio::time::timeout(std::time::Duration::from_secs(5), async {
                 check_headers(request.headers())?;
-                let node = worker_api::authenticate_context(&state, request.headers()).await?;
+                let node = match stringify!($name) {
+                    "started" => {
+                        crate::delegated_permits::runtime::authenticate_runner(
+                            &state,
+                            request.headers(),
+                            aq_admission_sandbox::sandbox::RunnerOperation::Started,
+                            None,
+                        )
+                        .await?
+                    }
+                    "stopped" => {
+                        crate::delegated_permits::runtime::authenticate_runner(
+                            &state,
+                            request.headers(),
+                            aq_admission_sandbox::sandbox::RunnerOperation::ReportResult,
+                            None,
+                        )
+                        .await?
+                    }
+                    _ => worker_api::authenticate_context(&state, request.headers()).await?,
+                };
                 let bytes = to_bytes(request.into_body(), wire::MAX_BYTES)
                     .await
                     .map_err(|_| AppError::PayloadTooLarge("phase terminal body".into()))?;
@@ -86,6 +106,7 @@ macro_rules! endpoint {
                         let q = wire::$decode(&bytes).map_err(|_| {
                             AppError::BadRequest("invalid phase terminal request".into())
                         })?;
+                        crate::delegated_permits::runtime::require_document(&node, &q)?;
                         super::$owner::$method(&state, &node, &q)
                             .await
                             .map(|r| Json(r).into_response())
@@ -94,6 +115,7 @@ macro_rules! endpoint {
                         let q = refresh_wire::$decode(&bytes).map_err(|_| {
                             AppError::BadRequest("invalid phase terminal request".into())
                         })?;
+                        crate::delegated_permits::runtime::require_document(&node, &q)?;
                         super::super::phase_refresh_terminal::$owner::$method(&state, &node, &q)
                             .await
                             .map(|r| Json(r).into_response())

@@ -94,10 +94,12 @@ impl Drop for Poll {
             .store(false, std::sync::atomic::Ordering::Release);
     }
 }
+type Polls = BTreeMap<(Uuid, Option<Uuid>), Weak<PollState>>;
+
 #[derive(Default)]
 pub struct Runtime {
     buffers: Mutex<Buffers>,
-    polls: Mutex<BTreeMap<Uuid, Weak<PollState>>>,
+    polls: Mutex<Polls>,
 }
 fn fail() -> AppError {
     AppError::Internal
@@ -275,9 +277,13 @@ impl Runtime {
         Ok(())
     }
     pub fn poll(&self, node: Uuid) -> Result<Poll, AppError> {
+        self.poll_channel(node, None)
+    }
+    pub fn poll_channel(&self, node: Uuid, attempt: Option<Uuid>) -> Result<Poll, AppError> {
+        let key = (node, attempt);
         let mut polls = self.polls.lock().map_err(|_| fail())?;
         polls.retain(|_, v| v.strong_count() > 0);
-        let state = match polls.get(&node).and_then(Weak::upgrade) {
+        let state = match polls.get(&key).and_then(Weak::upgrade) {
             Some(v) => v,
             None => {
                 if polls.len() >= 32 {
@@ -291,7 +297,7 @@ impl Runtime {
                     #[cfg(feature = "test-support")]
                     waiting: Default::default(),
                 });
-                polls.insert(node, Arc::downgrade(&v));
+                polls.insert(key, Arc::downgrade(&v));
                 v
             }
         };
@@ -299,7 +305,7 @@ impl Runtime {
             .slot
             .clone()
             .try_acquire_owned()
-            .map_err(|_| AppError::Conflict("one terminal poll per node".into()))?;
+            .map_err(|_| AppError::Conflict("one terminal poll per channel".into()))?;
         Ok(Poll {
             state,
             _permit: permit,
@@ -310,14 +316,18 @@ impl Runtime {
         self.polls
             .lock()
             .ok()
-            .and_then(|p| p.get(&node).and_then(Weak::upgrade))
+            .and_then(|p| p.get(&(node, None)).and_then(Weak::upgrade))
             .is_some_and(|p| p.waiting.load(std::sync::atomic::Ordering::Acquire))
     }
     pub fn wake(&self, node: Uuid) {
-        if let Ok(polls) = self.polls.lock()
-            && let Some(state) = polls.get(&node).and_then(Weak::upgrade)
-        {
-            state.wake.notify_one();
+        if let Ok(polls) = self.polls.lock() {
+            for ((owner, _), value) in polls.iter() {
+                if *owner == node
+                    && let Some(state) = value.upgrade()
+                {
+                    state.wake.notify_one();
+                }
+            }
         }
     }
 }
@@ -388,5 +398,38 @@ pub async fn run(state: crate::AppState, mut stop: tokio::sync::watch::Receiver<
                 match maintenance(&state,cursor).await {Ok(next)=>cursor=next,Err(AppError::IdentityUnavailable(_))=>break,Err(_)=>tracing::warn!("terminal maintenance unavailable")}
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod delegated_poll_tests {
+    use super::*;
+    #[tokio::test]
+    async fn delegated_polls_are_exclusive_per_attempt_and_share_node_wakeup() {
+        let runtime = Runtime::default();
+        let node = Uuid::new_v4();
+        let attempt = Uuid::new_v4();
+        let first = runtime.poll_channel(node, Some(attempt)).unwrap();
+        let second = runtime.poll_channel(node, Some(Uuid::new_v4())).unwrap();
+        assert!(runtime.poll_channel(node, Some(attempt)).is_err());
+        assert!(runtime.poll(node).is_ok());
+        runtime.wake(node);
+        tokio::time::timeout(
+            std::time::Duration::from_millis(100),
+            first.state.wake.notified(),
+        )
+        .await
+        .unwrap();
+        tokio::time::timeout(
+            std::time::Duration::from_millis(100),
+            second.state.wake.notified(),
+        )
+        .await
+        .unwrap();
+        // Both live channels retain their own exclusive slots after a wake.
+        assert_eq!(first.state.slot.available_permits(), 0);
+        assert_eq!(second.state.slot.available_permits(), 0);
+        drop(first);
+        assert!(runtime.poll_channel(node, Some(attempt)).is_ok());
     }
 }

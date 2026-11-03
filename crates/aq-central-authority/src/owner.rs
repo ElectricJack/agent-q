@@ -400,6 +400,19 @@ impl<V: EvidenceVerifier> SessionOwner<V> {
     pub fn inspect(&self, actor: Uuid) -> Read<'_> {
         Box::pin(self.read(actor, None))
     }
+    /// Read and validate the current head under the caller's transaction. The
+    /// actor lock is retained until that transaction commits or rolls back, so
+    /// an embedding can authorize a write atomically with lifecycle changes.
+    pub async fn inspect_in_transaction(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        actor: Uuid,
+    ) -> OwnerResult<Option<Snapshot>> {
+        let Some(h) = head(tx, actor).await? else {
+            return Ok(None);
+        };
+        load(tx, &h, h.generation).await.map(Some)
+    }
     pub fn generation(&self, actor: Uuid, generation: u64) -> Read<'_> {
         if generation == 0 || generation > MAX_GENERATIONS {
             return Box::pin(async { Err(OwnerError::Conflict) });

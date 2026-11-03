@@ -87,6 +87,20 @@ acceptance test fail at `supervisor_session.rs:886` (left `"pending"`, right
   (`F1b-reply-cursoring.md`): replies have their own `A.R` cursor, pagination
   counts them, `maxItems` is back to 16, and `inspect` reads a lock-free
   snapshot.
+
+  message needs a successor generation. A completed turn releases its
+  reservation; see [F1b-reservation-consumption.md](F1b-reservation-consumption.md).
+- Credential lifecycle and authenticate/write races are addressed by
+  `steady-harbor-87.2.3`; see [F1b-scopes.md](F1b-scopes.md) for explicit
+  transactional revocation and the reply write check.
+- Only the `messaging` route exists at this checkpoint. All five issued
+  scopes are checked by the shared authenticator and tested in the scope
+  follow-up; [F1b-scopes.md](F1b-scopes.md) defines the required integration
+  for F2/F5 routes when those features land.
+- History anchors replies at the batch's max cursor. Reply-level cursoring
+  and pagination are not separate.
+- `inspect` takes a `FOR UPDATE` row lock, including from the `live` read
+  path.
 - The `aq-supervisor-host` binary (`main.rs`) does not yet call
   `handoff`/`install_credential` or carry the credential to the session
   daemon wiring. The library API and the test drive them directly.
