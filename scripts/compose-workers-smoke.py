@@ -29,7 +29,9 @@ spec.loader.exec_module(prod)
 SANDBOX_IMAGE = "docker.io/library/busybox@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec"
 MAIN_SOCKETS = ("/var/run/docker.sock", "/run/docker.sock")
 SLICE_TEMPLATE = ROOT / "deploy/systemd/aq-sandbox-user.slice.conf"
-VPS = {"cpus": 8.0, "memory": 16 * 2**30}
+# Bluehost NVMe 8 (E5); the upgrade path is 8 vCPU / 16 GiB.
+VPS = {"cpus": 4.0, "memory": 8 * 2**30}
+HOST_RESERVE = 3 * 2**29  # 1.5 GiB for kernel, dockerd, containerd, Podman, page cache
 STACK = ("postgres", "server", "aq-graph", "aq-git")
 LOAD_SECONDS = 30
 READINESS_DEADLINE = 5.0  # server healthcheck timeout
@@ -144,7 +146,7 @@ def validate_production(config, slice_values):
     total_cpus = long_running["cpus"] + sandbox_cpus
     total_memory = long_running["memory"] + sandbox_memory
     assert total_cpus <= VPS["cpus"], ("CPU budget exceeds VPS", total_cpus)
-    assert total_memory <= VPS["memory"] - 2 * 2**30, ("memory budget leaves under 2 GiB for the host", total_memory)
+    assert total_memory <= VPS["memory"] - HOST_RESERVE, ("memory budget leaves under 1.5 GiB for the host", total_memory)
 
     worker = services["aq-worker-cloud"]
     assert set(worker["networks"]) == {"workers"}, "worker must not join edge/database"

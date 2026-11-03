@@ -35,9 +35,9 @@ services:
     init: true
     stop_grace_period: 45s
     restart: unless-stopped
-    cpus: 0.5
-    mem_limit: 2g
-    memswap_limit: 2g
+    cpus: 0.25
+    mem_limit: 1g
+    memswap_limit: 1g
     pids_limit: 512
   aq-worker-cloud:
     <<: *hardening
@@ -70,9 +70,9 @@ services:
     init: true
     stop_grace_period: 30s
     restart: unless-stopped
-    cpus: 0.25
-    mem_limit: 256m
-    memswap_limit: 256m
+    cpus: 0.125
+    mem_limit: 128m
+    memswap_limit: 128m
     pids_limit: 256
   aq-worker-state-init:
     <<: *hardening

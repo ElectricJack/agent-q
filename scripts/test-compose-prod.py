@@ -97,7 +97,11 @@ def test_worker_overlay_limits_and_socket_boundaries():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     report = module.validate_production(module.merged_config(), module.slice_properties())
-    assert report["budget"]["cpus"] <= 8.0
+    # Bluehost NVMe 8 (owner, E5): 4 vCPU / 8 GiB, at least 1.5 GiB left to the host.
+    budget = report["budget"]
+    assert budget["vps"] == {"cpus": 4.0, "memory": 8 * 2**30}
+    assert budget["cpus"] <= 4.0
+    assert budget["memory_bytes"] <= 8 * 2**30 - 3 * 2**29
     # The base stack stays the E1a service set; workers come only from the overlay.
     assert not {"aq-supervisor-host", "aq-worker-cloud"} & set(config()["services"])
 

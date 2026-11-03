@@ -1,0 +1,12 @@
+# /etc/systemd/system/aq-prune.service (E5). Script: deploy/aq-prune.sh.
+[Unit]
+Description=Agent Q disk pruning (sandbox containers, images, caches)
+After=docker.service
+
+[Service]
+Type=oneshot
+# The sandbox user's rootless Podman socket; see docs/operations/vps-install.md.
+EnvironmentFile=/etc/agent-q/prune.env
+ExecStart=/usr/local/sbin/aq-prune
+Nice=10
+IOSchedulingClass=idle

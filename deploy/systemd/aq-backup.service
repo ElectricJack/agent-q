@@ -1,0 +1,13 @@
+# /etc/systemd/system/aq-backup.service (E5). Script: deploy/aq-backup.sh.
+[Unit]
+Description=Agent Q off-host encrypted backup (restic)
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+# RESTIC_REPOSITORY, RESTIC_PASSWORD_FILE and the S3 keys; root 0600, never in git.
+EnvironmentFile=/etc/agent-q/backup.env
+ExecStart=/usr/local/sbin/aq-backup
+Nice=10
+IOSchedulingClass=idle
