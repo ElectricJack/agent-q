@@ -57,3 +57,15 @@ Resolved implementation findings (self-review, not the required adversarial verd
 Review: supervisor will dispatch a non-OpenAI reviewer against the final pushed SHA. No review pass is claimed. Policy, onboarding, reconciliation and playbook adapters remain outside this task.
 
 Reproduce the AQ-controlled Cargo invocations with [the pytest subprocess wrapper](D1a-checks/run_cargo.py): set `DATABASE_URL`, `D1A_CHECK` to the exact Cargo command, and `D1A_CARGO_LOG` to a fresh log path, then run `aq test docs/implementation/D1a-checks/run_cargo.py -q`. The wrapper fixes Cargo jobs and Rust test threads at two, preserving AQ's test semaphore and marker/worker defaults. Real qualification also sets `AQ_TEST_GIT_CANDIDATE` and `AQ_TEST_GIT_EXECUTABLE` as described above.
+
+## Follow-up: clear-meadow-17
+
+Applied publication replies must match the ready OID in the immutable candidate creation receipt, including on replay. This validation context stays local; publication wire parameters are unchanged. Operation observations must match `payload.expected_binding_generation`; the top-level `generation` is aq-git's independent journal revision.
+
+For `candidate.create`, `overloaded`, `io_error` and `state_busy` with `retry:safe_same_operation` and no uncertainty flags return an attempt error without creating a terminal delivery receipt. The caller can retry the same operation UUID and frozen bytes, even after source-owner state changes; changed inputs still conflict. Other responses remain immutable. Publication keeps its committed dispatch marker, immutable replies and no-redispatch rule; D1b owns publication reconciliation and retry policy (coordination message `msg-c56dcd0b65d1447b938f9e6652e6525b`).
+
+Non-publication calls commit before socket I/O and hold no database connection or row lock during the exchange. Concurrent calls rely on aq-git's same-operation idempotency and return the first persisted terminal response. Destination holds use NFC, Unicode lowercase, then NFC, preserving the exact wire target. A short repository advisory lock also protects comparisons against legacy hold spellings. Empty and duplicate source receipt lists are rejected before creating an intent; distinct sources keep their order.
+
+The four focused regressions in `tests/source_retention/delivery.rs` are `delivery_cross_checks_candidate_oid_and_binding_generation`, `delivery_candidate_transients_replay_same_frozen_operation`, `delivery_socket_exchange_releases_rows_and_pool_connection`, and `delivery_canonical_hold_targets_and_nonempty_unique_sources`. The socket test uses one pooled connection and gates overlapping calls on actual socket requests, without sleeps. Run them with the required `cargo test --locked -p aq-server --test source_retention delivery_` filter through the AQ wrapper above.
+
+Validation: the required locked Cargo filter passed all 9 matching tests (0 failed, 0 ignored), including all four regressions, under `aq test docs/implementation/D1a-checks/run_cargo.py -q` with Cargo jobs and Rust test threads fixed at two. `cargo fmt --check` and `git diff --check` passed. [Targeted Cargo output](D1a-checks/followup.log).
