@@ -87,3 +87,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Owner approved GHCR publication:** `docker login ghcr.io` using the owner's gh token (write:packages), with public packages under ghcr.io/electricjack. C3c was released.
   - Asked the supervisor again to decide six delegated reviews (B1 round 2, B5a, C5a1, C2, J7, a flakiness investigation), and flagged D10's inconsistent round-3 changes-requested.
   - The 12 imported-policy-playbook reviews are owner-only but non-blocking; system defaults apply.
+- **19:47 check.**
+  - C3c completed: sandbox images published to GHCR. A3b and B6a1 also completed. B6b and F1a started.
+  - Holds now queued for release when their prerequisites finish:
+    - B2 (partial checkpoint) after B1b;
+    - B1b after B1's review revision (`bold-summit-78`);
+    - D10 (claim-binding mismatch, retries exhausted) reopened after its revision (`stark-dune-58`) is approved;
+    - I0 after `sharp-harbor-18`.
