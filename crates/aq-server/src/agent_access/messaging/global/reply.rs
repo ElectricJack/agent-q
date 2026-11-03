@@ -2,6 +2,7 @@
 //! writer. The author is derived from the credential only; the reply carries
 //! the exact dispatch association of the turn it answers.
 use super::*;
+use crate::agent_access::human::{enqueue::GraphCreate, graph_actions::GraphPayload};
 use aq_central_authority::{Digest, DispatchAssociation, ReplyAssociation};
 use axum::http::{HeaderMap, header::AUTHORIZATION};
 
@@ -181,6 +182,27 @@ struct ReplyRequest {
     message_id: Uuid,
     dispatch_id: Uuid,
     body: String,
+    /// Optional typed History items. Omitted when empty, so pre-attachment
+    /// replay digests are unchanged.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    attachments: Vec<AttachmentRequest>,
+}
+
+pub const MAX_ATTACHMENTS: usize = 4;
+const MAX_ATTACHMENT_BYTES: usize = 65536;
+
+/// A supervisor-authored attachment. Drafts carry their exact proposed graph
+/// payload; receipts name one of this session's confirmed creation operations.
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case", deny_unknown_fields)]
+enum AttachmentRequest {
+    ProposedTaskDraft {
+        draft_id: Uuid,
+        payload: GraphCreate,
+    },
+    ActionReceipt {
+        operation_id: Uuid,
+    },
 }
 impl ReplyRequest {
     fn parse(bytes: &[u8]) -> Result<Self> {
@@ -196,8 +218,27 @@ impl ReplyRequest {
             || v.body.trim().is_empty()
             || v.body.len() > 16384
             || v.body.contains('\0')
+            || v.attachments.len() > MAX_ATTACHMENTS
+            || serde_json::to_vec(&v.attachments)
+                .map_err(|_| invalid())?
+                .len()
+                > MAX_ATTACHMENT_BYTES
         {
             return Err(invalid());
+        }
+        let mut ids = std::collections::BTreeSet::new();
+        for a in &v.attachments {
+            let fresh = match a {
+                AttachmentRequest::ProposedTaskDraft { draft_id, payload } => {
+                    !draft_id.is_nil() && payload.valid() && ids.insert(*draft_id)
+                }
+                AttachmentRequest::ActionReceipt { operation_id } => {
+                    !operation_id.is_nil() && ids.insert(*operation_id)
+                }
+            };
+            if !fresh {
+                return Err(invalid());
+            }
         }
         Ok(v)
     }
@@ -315,7 +356,12 @@ async fn write(
     {
         return Err(unknown_dispatch());
     }
-    let reserved = i64::try_from(request.body.len() + 4096).map_err(|_| invalid())?;
+    let attachments = resolve(&mut tx, p, &request).await?;
+    let attachment_bytes = serde_json::to_vec(&attachments)
+        .map_err(|_| unavailable())?
+        .len();
+    let reserved =
+        i64::try_from(request.body.len() + attachment_bytes + 4096).map_err(|_| invalid())?;
     let budget = sqlx::query("UPDATE global_supervisor_conversation SET retained_operations=retained_operations+1,retained_bytes=retained_bytes+$1 WHERE singleton AND retained_operations<$2 AND retained_bytes<=$3-$1 RETURNING conversation_id")
         .bind(reserved)
         .bind(MAX_OPERATIONS)
@@ -362,15 +408,22 @@ async fn write(
     // Migration 49 consumes the associated reservation and clears its actor's
     // current pointer in this transaction. Reply replay returns the original
     // receipt above, so it cannot release a newer reservation.
-    sqlx::query("INSERT INTO central_supervisor_replies(reply_message_id,reply_operation_id,dispatch_id,body_digest,association) VALUES($1,$2,$3,$4,$5)")
+    // Without attachments the row is exactly the pre-0062 row (column default).
+    let insert = if attachments.is_empty() {
+        "INSERT INTO central_supervisor_replies(reply_message_id,reply_operation_id,dispatch_id,body_digest,association) VALUES($1,$2,$3,$4,$5)"
+    } else {
+        "INSERT INTO central_supervisor_replies(reply_message_id,reply_operation_id,dispatch_id,body_digest,association,attachments) VALUES($1,$2,$3,$4,$5,$6)"
+    };
+    let mut insert = sqlx::query(insert)
         .bind(request.message_id)
         .bind(request.operation_id)
         .bind(request.dispatch_id)
         .bind(body_digest.as_str())
-        .bind(json!(link))
-        .execute(&mut *tx)
-        .await
-        .map_err(|_| conflict())?;
+        .bind(json!(link));
+    if !attachments.is_empty() {
+        insert = insert.bind(Value::Array(attachments));
+    }
+    insert.execute(&mut *tx).await.map_err(|_| conflict())?;
     let result = ReplyReceipt {
         contract: REPLY_CONTRACT.into(),
         reply_message_id: request.message_id,
@@ -393,6 +446,85 @@ async fn write(
     .map_err(|_| unavailable())?;
     tx.commit().await.map_err(db)?;
     Ok(result)
+}
+
+fn receipt_unavailable() -> AppError {
+    AppError::Conflict("attached operation is not a confirmed receipt of this session".into())
+}
+
+/// Server-derived History items, linked to the reply that produced them.
+/// Receipts are snapshotted from this session's journal in the reply
+/// transaction, so Owners retain access after the journal row retires.
+async fn resolve(
+    tx: &mut Transaction<'_, Postgres>,
+    p: &SupervisorPrincipal,
+    request: &ReplyRequest,
+) -> Result<Vec<Value>> {
+    let message = request.message_id;
+    let mut out = Vec::with_capacity(request.attachments.len());
+    for a in &request.attachments {
+        out.push(match a {
+            AttachmentRequest::ProposedTaskDraft { draft_id, payload } => {
+                let payload = json!(payload);
+                let payload_digest =
+                    format!("sha256:{}", digest(&payload).map_err(|_| invalid())?);
+                json!({"type":"proposed_task_draft","message_id":message,"draft_id":draft_id,"project_id":payload["project_id"],"revision":payload["expected_version"],"payload_digest":payload_digest,"payload":payload})
+            }
+            AttachmentRequest::ActionReceipt { operation_id } => {
+                let row = sqlx::query("SELECT kind,request_digest,response FROM dashboard_operations WHERE operation_id=$1 AND supervisor_session_id=$2 AND disposition='confirmed' AND retired_at IS NULL AND kind IN ('task.create','task.graph.create')")
+                    .bind(operation_id)
+                    .bind(p.session_id)
+                    .fetch_optional(&mut **tx)
+                    .await
+                    .map_err(db)?
+                    .ok_or_else(receipt_unavailable)?;
+                let response: Value = row.get("response");
+                action_receipt(
+                    message,
+                    *operation_id,
+                    row.get("kind"),
+                    row.get("request_digest"),
+                    &response,
+                )
+                .ok_or_else(unavailable)?
+            }
+        });
+    }
+    Ok(out)
+}
+
+fn action_receipt(
+    message: Uuid,
+    operation: Uuid,
+    kind: String,
+    request: String,
+    op: &Value,
+) -> Option<Value> {
+    let subject = op["subject_refs"].as_array()?.first()?;
+    let project: Uuid = subject["id"].as_str()?.parse().ok()?;
+    if subject["type"] != "project" {
+        return None;
+    }
+    let ids = |entity: &str| -> Option<Vec<Uuid>> {
+        op["affected_entities"]
+            .as_array()?
+            .iter()
+            .filter(|e| e["type"] == entity)
+            .map(|e| e["id"].as_str()?.parse().ok())
+            .collect()
+    };
+    let refs: Vec<Value> = op["receipt_refs"]
+        .as_array()?
+        .iter()
+        .map(|r| json!({"type":r["type"],"id":r["id"]}))
+        .collect();
+    let tasks = ids("task")?;
+    if tasks.is_empty() || refs.is_empty() {
+        return None;
+    }
+    Some(
+        json!({"type":"action_receipt","message_id":message,"operation_id":operation,"kind":kind,"project_id":project,"project_revision":subject.get("revision"),"created_task_ids":tasks,"created_edge_ids":ids("graph_edge")?,"receipt_refs":refs,"request_digest":request}),
+    )
 }
 
 #[cfg(test)]
