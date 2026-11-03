@@ -29,6 +29,8 @@ pub(crate) struct Create {
     #[schemars(length(max = 16))]
     labels: Vec<String>,
     task_state: TaskState,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    parent_id: Option<Uuid>,
 }
 #[derive(Clone, Serialize, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "snake_case")]
@@ -45,6 +47,8 @@ impl Create {
             serde_json::from_slice(bytes).map_err(|_| invalid())?;
         let v: Self = serde_json::from_value(raw).map_err(|_| invalid())?;
         if v.operation_id.is_nil()
+            || v.parent_id
+                .is_some_and(|p| p.is_nil() || p == v.operation_id)
             || v.revision().is_err()
             || v.title.trim().is_empty()
             || v.title.chars().count() > 512
@@ -287,7 +291,13 @@ async fn create_domain(
     let service =
         super::super::mutations::service_identity(rt, a.record.binding.graph_workspace_id)
             .map_err(|_| unavailable())?;
-    let payload = json!({"idempotency_key":format!("aq-human-task-create:{}",request.operation_id),"reason":format!("AQ human task create {}",request.operation_id),"operations":[{"op":"create_node","id":request.operation_id,"kind":"task","title":request.title,"body":request.body,"acceptance_criteria":request.acceptance_criteria,"labels":request.labels,"task_state":request.task_state,"metadata":{"aq:human_actor_id":actor.id,"aq:human_operation_id":request.operation_id,"aq:project_id":project}}]});
+    if let Some(parent) = request.parent_id {
+        super::authorize_task(state, actor, project, parent).await?;
+    }
+    let mut payload = json!({"idempotency_key":format!("aq-human-task-create:{}",request.operation_id),"reason":format!("AQ human task create {}",request.operation_id),"operations":[{"op":"create_node","id":request.operation_id,"kind":"task","title":request.title,"body":request.body,"acceptance_criteria":request.acceptance_criteria,"labels":request.labels,"task_state":request.task_state,"metadata":{"aq:human_actor_id":actor.id,"aq:human_operation_id":request.operation_id,"aq:project_id":project}}]});
+    if let Some(parent) = request.parent_id {
+        payload["operations"].as_array_mut().ok_or_else(unavailable)?.push(json!({"op":"add_edge","id":Uuid::from_bytes(sha2::Sha256::digest([request.operation_id.as_bytes().as_slice(),b"feedback-parent"].concat())[..16].try_into().map_err(|_|unavailable())?),"source":parent,"target":request.operation_id,"edge_type":"parent-child","description":"Feedback draft parent","source_revision":null,"target_revision":null}));
+    }
     if !contract::upstream_valid("MutationRequest", &payload) {
         return Err(unavailable());
     }

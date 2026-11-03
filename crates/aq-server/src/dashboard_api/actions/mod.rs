@@ -2,7 +2,7 @@
 pub mod contract;
 pub(crate) mod existing;
 pub mod journal;
-mod json;
+pub(crate) mod json;
 mod registry;
 use super::{DashboardUser, contract::Scope, errors::ApiError};
 use crate::{AppState, store::User};
@@ -59,7 +59,7 @@ enum RequestOrigin {
     Legacy,
 }
 
-fn operation_status(operation: &Operation) -> StatusCode {
+pub(crate) fn operation_status(operation: &Operation) -> StatusCode {
     if matches!(
         operation.disposition,
         Disposition::Pending | Disposition::Unknown
@@ -172,7 +172,7 @@ fn neutral_lookup(error: ApiError) -> ApiError {
         error
     }
 }
-fn response(state: &AppState, operation: Operation) -> OperationResponse {
+pub(crate) fn response(state: &AppState, operation: Operation) -> OperationResponse {
     use super::contract::{Completeness, Coverage, Observation, Quality, Timestamp};
     let now = (state.clock)().to_rfc3339_opts(chrono::SecondsFormat::Millis, true);
     OperationResponse {

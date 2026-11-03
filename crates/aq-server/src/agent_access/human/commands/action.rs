@@ -22,6 +22,50 @@ pub(super) fn request(project: Uuid, payload: &Create) -> ActionRequest {
     )
 }
 impl TaskCreate {
+    pub(crate) async fn retained_outcome(
+        &self,
+        state: &AppState,
+        user: &User,
+        id: Uuid,
+    ) -> std::result::Result<Option<Outcome>, ApiError> {
+        let Some(op) = journal::load(&self.runtime, id)
+            .await
+            .map_err(ApiError::from)?
+        else {
+            return Ok(None);
+        };
+        journal::owns(&op, user).map_err(ApiError::from)?;
+        existing::owner(state, user).await?;
+        access(state, &self.runtime, user.clone(), op.project)
+            .await
+            .map_err(ApiError::from)?;
+        journal::status(state, &self.runtime, user, &op)
+            .await
+            .map(result)
+            .map(Some)
+            .map_err(ApiError::from)
+    }
+    /// Explicit human recovery retains the original native key and dispatch guards.
+    pub(crate) async fn recover(
+        &self,
+        state: &AppState,
+        user: &User,
+        id: Uuid,
+    ) -> std::result::Result<Option<Outcome>, ApiError> {
+        let Some(op) = journal::load(&self.runtime, id)
+            .await
+            .map_err(ApiError::from)?
+        else {
+            return Ok(None);
+        };
+        journal::owns(&op, user).map_err(ApiError::from)?;
+        dispatch::run(state, &self.runtime, user, id)
+            .await
+            .map(result)
+            .map(Some)
+            .map_err(ApiError::from)
+    }
+
     /// Recover pre-union admission metadata without re-entering create or dispatch.
     pub(crate) async fn retained_request(
         &self,
@@ -106,6 +150,11 @@ impl ActionKind for TaskCreate {
         access(state, &self.runtime, user.clone(), project)
             .await
             .map_err(ApiError::from)?;
+        if let Some(parent) = payload.parent_id {
+            super::super::authorize_task(state, user, project, parent)
+                .await
+                .map_err(ApiError::from)?;
+        }
         if let Some(old) = journal::load(&self.runtime, request.operation_id)
             .await
             .map_err(ApiError::from)?

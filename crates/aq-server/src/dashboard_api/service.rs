@@ -278,6 +278,16 @@ pub(super) async fn bootstrap(
             "Result inspection requires an owner account",
         ),
         capability(
+            "results.comment",
+            mounted.results && a.owner,
+            "Comments require an owner account and a mounted Results owner",
+        ),
+        capability(
+            "results.feedback",
+            mounted.results && a.owner,
+            "Feedback requires an owner account and a mounted Results owner",
+        ),
+        capability(
             "results.media.read",
             mounted.media_read && a.owner,
             "Supplemental images require an owner account and mounted media storage",
@@ -285,7 +295,13 @@ pub(super) async fn bootstrap(
         capability(
             "results.media.upload",
             mounted.media_upload && a.owner,
-            "Supplemental image uploads require an owner account and enabled uploads",
+            if !a.owner {
+                "Supplemental image uploads require an owner account"
+            } else if !mounted.media_read {
+                "Result media store is not configured"
+            } else {
+                "Result media uploads are disabled"
+            },
         ),
         capability(
             "playbooks.inspect",

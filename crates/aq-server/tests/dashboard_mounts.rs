@@ -63,6 +63,8 @@ async fn mounted_routes_and_absent_owners_have_granular_truthful_capabilities() 
         assert!(!cap(&b, name), "{name}")
     }
     assert!(cap(&b, "results.read"));
+    assert!(cap(&b, "results.comment"));
+    assert!(cap(&b, "results.feedback"));
     assert!(cap(&b, "session.events.read"));
     let binding = aq_admission::transport::lifecycle_binding(&f.profiled.offer).unwrap();
     let events_path = format!("/api/observations/sessions/{}/events", binding.attempt_id);
@@ -75,6 +77,8 @@ async fn mounted_routes_and_absent_owners_have_granular_truthful_capabilities() 
     let standalone = aq_server::dashboard_api::routes(f.state.clone()).with_state(f.state.clone());
     let (_, standalone_bootstrap) = read(&standalone, "/api/v1/bootstrap", "owner@localhost").await;
     assert!(!cap(&standalone_bootstrap, "session.events.read"));
+    assert!(!cap(&standalone_bootstrap, "results.comment"));
+    assert!(!cap(&standalone_bootstrap, "results.feedback"));
     assert_eq!(
         read(&app, "/api/human/results", "owner@localhost").await.0,
         StatusCode::OK
@@ -188,6 +192,8 @@ async fn configured_graph_and_injected_review_owner_are_visible_only_to_owner() 
         "decisions.read",
         "decisions.resolve",
         "results.read",
+        "results.comment",
+        "results.feedback",
         "playbooks.inspect",
     ] {
         assert!(!cap(&b, name), "{name}")

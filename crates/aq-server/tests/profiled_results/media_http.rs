@@ -309,7 +309,8 @@ async fn actual_http_closed_requests_shared_csrf_and_read_only_upload_optin() {
         ))
         .await
         .unwrap();
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    assert_eq!(value(response).await["code"], "media_upload_disabled");
     runtime
         .owner()
         .reserve(&actor, report.report_id, &revision, &request(id))
