@@ -2,7 +2,7 @@
 
 Task `steady-harbor-87.2` (parent `steady-harbor-87`). Plan:
 `docs/superpowers/plans/2026-11-03-f1b-supervisor-dispatch-reply.md` (commit
-`0b6b012f`). Implementation commit: `baf26451`, followed by the final
+`0b6b012f`). Implementation commit: `4efb2e62` (squashed), followed by the final
 `git merge origin/main` recorded below.
 
 ## Acceptance
