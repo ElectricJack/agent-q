@@ -465,3 +465,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Direct push again: `bold-delta-91` landed `0065_settlement_completion_projection` on main while #51 carried 0065. Wrote `renumber.py` (merge main, rename this branch's migrations after main's max, update meta values, push). Renumbered #51 to 0066 (`9979f21`) and #52 to 0067 (`fe2ac7d`).
   - Added a "Migration numbers" rule to aq-server `.aq/PRIME.md`: take the next free number from origin/main immediately before pushing, including direct pushes.
 - **13:50 owner demo refresh.** Rebuilt the aq-demo stack: server image `aq-demo-server:main` from aq-server `293183f` (state format 65), dashboard bundle from aq-dashboard `8379636` (G3 write flows, G8 supervisor dock, SBX25 capacity disk). The old demo database migrated forward cleanly. The `demo-stack.py` wrapper now adds `scripts/` to sys.path (dev-stack imports `migration_catalog`). Progress: 54/91 plan tasks (59%).
+- **14:20 check.**
+  - Another direct push: `calm-beacon-15` added `0066_stopped_dispositions` before the PRIME rule reached it. Renumbered #51 node_storage to 0067 and #52 vm_time_accounting to 0068 with `renumber.py`. Merged them immediately rather than waiting another full CI cycle that would lose the race again; both showed no new failures beforehand.
+    - #51 merged as `2b3e99ad`.
+    - #52 (owner's monthly boat budget enforcement) had a code conflict in `placement.rs`: its time-windowed `spends(conn, ledger, advertised, now_ms, exclude)` against main's SBX25 disk-pressure ceiling. Combined both. Workspace clippy is clean and the placement and replacement DB tests have 8 passed. Merged as `5d4afdba`.
+  - Main migrations run 0001–0068 contiguous; catalog state format 68.
