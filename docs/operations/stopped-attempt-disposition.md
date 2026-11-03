@@ -2,7 +2,7 @@
 
 An installation owner can terminally abandon a profiled attempt whose actual
 stop receipt is recorded but whose result cannot be settled. This includes old
-stopped attempts left holding a task before this endpoint was added. Schema 65
+stopped attempts left holding a task before this endpoint was added. Schema 66
 is required; no background reaper or current worker connection is needed.
 
 Send an authenticated, CSRF-protected request:

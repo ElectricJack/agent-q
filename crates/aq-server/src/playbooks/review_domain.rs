@@ -11,6 +11,8 @@ pub enum CatalogProfile {
     HumanReview2,
     /// HumanReview2 plus the confirmed graph-operation event.
     GraphEvents3,
+    /// GraphEvents3 plus confirmed reviewed-task settlement events.
+    SettlementEvents4,
 }
 impl CatalogProfile {
     pub fn number(self) -> i16 {
@@ -18,6 +20,7 @@ impl CatalogProfile {
             Self::Mail1 => 1,
             Self::HumanReview2 => 2,
             Self::GraphEvents3 => 3,
+            Self::SettlementEvents4 => 4,
         }
     }
     pub fn has_reviews(self) -> bool {
@@ -25,8 +28,12 @@ impl CatalogProfile {
     }
     pub fn registry(self) -> Registry {
         let mut registry = super::domain::registry();
-        if self == Self::GraphEvents3 {
+        if matches!(self, Self::GraphEvents3 | Self::SettlementEvents4) {
             let event = graph_operation_event();
+            registry.events.insert(event.name.clone(), event);
+        }
+        if self == Self::SettlementEvents4 {
+            let event = task_completed_event();
             registry.events.insert(event.name.clone(), event);
         }
         if self.has_reviews() {
@@ -234,6 +241,46 @@ pub fn operation_contract() -> CommandContract {
     }
 }
 pub const GRAPH_PRODUCER: &str = "aq.graph.operations@1";
+pub const SETTLEMENT_PRODUCER: &str = "aq.task.settlement@1";
+/// The exact retained completion outbox body, keyed by completion operation.
+pub fn task_completed_event() -> EventContract {
+    let revision = || Schema::Integer {
+        minimum: 1,
+        maximum: i64::MAX,
+    };
+    EventContract {
+        name: "task.completed".into(),
+        version: "1".into(),
+        payload: object([
+            ("event_id", Schema::string(36)),
+            ("producer", fixed(SETTLEMENT_PRODUCER)),
+            ("event", fixed("task.completed")),
+            ("attempt_id", Schema::string(36)),
+            ("evaluation_operation_id", Schema::string(36)),
+            ("report", artifact()),
+            ("release_id", Schema::string(36)),
+            (
+                "receipt",
+                object([
+                    ("workspace_id", Schema::string(36)),
+                    ("task_id", Schema::string(36)),
+                    ("change_set_id", Schema::string(36)),
+                    ("version", revision()),
+                    ("content_revision", revision()),
+                    ("response_digest", Schema::string(64)),
+                ]),
+            ),
+        ]),
+        trusted_producers: BTreeSet::from([SETTLEMENT_PRODUCER.into()]),
+        scopes: BTreeSet::from(["project".into()]),
+        correlation_fields: BTreeSet::from(["operation".into()]),
+        subject_field: None,
+        revision_field: None,
+        max_payload_bytes: 8192,
+        retention_ms: 86400000,
+        sensitive_payload_fields: BTreeSet::new(),
+    }
+}
 /// One event per confirmed graph operation; `event_id` is the graph outbox id.
 pub fn graph_operation_event() -> EventContract {
     EventContract {

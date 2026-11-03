@@ -1,25 +1,27 @@
-//! Schema-65 disposition storage and the two widened release guards.
+//! Schema-66 disposition storage and the two widened release guards.
 use super::{Result, StoreError};
 use sqlx::{Postgres, Transaction};
 fn corrupt() -> StoreError {
-    StoreError::Corrupt("stopped disposition65 storage drift".into())
+    StoreError::Corrupt("stopped disposition66 storage drift".into())
 }
 fn function_body(name: &str) -> Result<&'static str> {
-    include_str!("../../migrations/0065_stopped_dispositions.sql")
+    include_str!("../../migrations/0066_stopped_dispositions.sql")
         .split_once(&format!("FUNCTION {name}("))
         .and_then(|(_, tail)| tail.split_once("AS $$"))
         .and_then(|(_, tail)| tail.split_once("$$;"))
         .map(|(body, _)| body)
         .ok_or_else(corrupt)
 }
-pub(super) fn guard_overrides() -> Result<Vec<(&'static str, &'static str)>> {
-    [
+pub(super) fn guard_overrides(supported: u32) -> Result<Vec<(&'static str, &'static str)>> {
+    let mut guards = super::auto56::guard_overrides(supported)?;
+    for name in [
         "profiled_historical_snapshot_guard",
         "settlement_claim_guard",
-    ]
-    .into_iter()
-    .map(|name| function_body(name).map(|body| (name, body)))
-    .collect()
+    ] {
+        guards.retain(|(existing, _)| *existing != name);
+        guards.push((name, function_body(name)?));
+    }
+    Ok(guards)
 }
 pub(super) async fn validate(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
     for name in [

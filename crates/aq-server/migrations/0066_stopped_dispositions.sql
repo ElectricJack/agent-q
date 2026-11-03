@@ -58,6 +58,18 @@ CREATE OR REPLACE FUNCTION profiled_historical_snapshot_guard() RETURNS trigger 
 BEGIN
  IF OLD.kind='profiled_v1' AND EXISTS(SELECT 1 FROM profiled_authority_hot WHERE attempt_id=OLD.attempt_id)
     AND (NEW.state IS DISTINCT FROM OLD.state OR NEW.execution_deadline_ms IS DISTINCT FROM OLD.execution_deadline_ms)
+    AND NOT (
+      NOT NEW.holds_task
+      AND EXISTS(SELECT 1 FROM profiled_authority_hot h
+        JOIN profiled_task_completions c USING(attempt_id)
+        JOIN profiled_verified_releases r USING(attempt_id,release_id)
+        WHERE h.attempt_id=OLD.attempt_id AND c.state='confirmed'
+          AND c.receipt IS NOT NULL AND c.outbox IS NOT NULL
+          AND h.state->>'status'='finished' AND h.state#>>'{stop,kind}'='stopped'
+          AND h.state#>>'{retention,kind}'='retained' AND h.state#>>'{effects,kind}'='quiescent'
+          AND NEW.execution_deadline_ms IS NOT DISTINCT FROM (h.state->>'execution_deadline_ms')::bigint
+          AND NEW.state IS NOT DISTINCT FROM OLD.state || (h.state-ARRAY['owner','preparation_operation_id']))
+    )
  THEN RAISE EXCEPTION 'hot authority owns current profiled state' USING ERRCODE='23514'; END IF;
  IF OLD.kind='profiled_v1' AND NOT OLD.holds_task AND NEW.holds_task
     AND EXISTS(SELECT 1 FROM profiled_authority_hot WHERE attempt_id=OLD.attempt_id)
@@ -72,4 +84,4 @@ BEGIN
  THEN RAISE EXCEPTION 'actual owner-verified release record required' USING ERRCODE='23514'; END IF;
  RETURN NEW;
 END $$;
-UPDATE meta SET value='65' WHERE key='state_format_version';
+UPDATE meta SET value='66' WHERE key='state_format_version';
