@@ -3,7 +3,7 @@
 use crate::{Invalid, Result, require, transport::DeliveryClock};
 
 impl DeliveryClock {
-    /// Explicit long interactive execution only; normal delivery TTLs stay120s.
+    /// Explicit long interactive execution only; normal delivery TTLs stay 120s.
     pub fn new_interactive_session(server_time_ms: u64, expires_at_ms: u64) -> Result<Self> {
         let value = Self {
             server_time_ms,
