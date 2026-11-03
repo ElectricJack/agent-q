@@ -232,6 +232,10 @@ def compose_dev_reaches_ready_with_graph_and_git():
 
 
 if __name__ == "__main__":
+    if sys.argv[1:] == ["prod"]:
+        import runpy
+        runpy.run_path(str(Path(__file__).with_name("compose-prod-smoke.py")), run_name="__main__")
+        sys.exit(0)
     if sys.argv[1:] != ["dev"]:
-        raise SystemExit("usage: scripts/compose-smoke.sh dev")
+        raise SystemExit("usage: scripts/compose-smoke.sh dev|prod")
     compose_dev_reaches_ready_with_graph_and_git()
