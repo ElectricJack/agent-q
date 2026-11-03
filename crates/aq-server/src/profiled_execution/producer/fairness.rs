@@ -47,6 +47,21 @@ pub fn order(projects: &[Candidate], served: &BTreeMap<Uuid, u64>, now: u64) -> 
     ordered
 }
 
+/// First store format carrying `profiled_project_schedule` (migration 52).
+pub const SCHEDULE_FORMAT: u32 = 52;
+
+/// Whether this store records fair-share service. A store held at an earlier
+/// migration prefix has no schedule table, so it schedules every project as
+/// never served and records nothing, instead of failing the whole poll.
+pub async fn recorded(pool: &sqlx::PgPool) -> Result<bool, AppError> {
+    let version: String =
+        sqlx::query_scalar("SELECT value FROM meta WHERE key='state_format_version'")
+            .fetch_one(pool)
+            .await
+            .map_err(|_| AppError::Internal)?;
+    Ok(version.parse::<u32>().map_err(|_| AppError::Internal)? >= SCHEDULE_FORMAT)
+}
+
 pub async fn served(pool: &sqlx::PgPool) -> Result<BTreeMap<Uuid, u64>, AppError> {
     let rows: Vec<(Uuid, i64)> =
         sqlx::query_as("SELECT project_id,last_served_at_ms FROM profiled_project_schedule")

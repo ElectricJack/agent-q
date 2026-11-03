@@ -150,9 +150,10 @@ pub(super) async fn check_current(
     let row = sqlx::query(
         "SELECT revision,config_digest FROM intelligence_registry WHERE singleton=TRUE FOR UPDATE",
     )
-    .fetch_one(&mut **tx)
+    .fetch_optional(&mut **tx)
     .await
-    .map_err(db)?;
+    .map_err(db)?
+    .ok_or_else(|| conflict("intelligence registry has not been installed"))?;
     if row.get::<String, _>("config_digest") != configuration(loaded(state)?)?.as_str() {
         return Err(conflict("daemon intelligence configuration is stale"));
     }

@@ -66,9 +66,10 @@ async fn inspect(
 ) -> Result<Json<Value>> {
     let row =
         sqlx::query("SELECT revision,active_digest FROM profile_catalog_registry WHERE singleton")
-            .fetch_one(&state.store.pool)
+            .fetch_optional(&state.store.pool)
             .await
-            .map_err(db)?;
+            .map_err(db)?
+            .ok_or_else(|| conflict("profile catalog registry has not been installed"))?;
     Ok(Json(
         json!({"revision":row.get::<i64,_>("revision"),"active_digest":row.get::<Option<String>,_>("active_digest")}),
     ))
