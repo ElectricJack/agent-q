@@ -18,8 +18,12 @@ struct Env {
     grant: Uuid,
     runtime: RuntimeOwner,
     recipient: Recipient,
+    attempt: Uuid,
 }
 async fn setup() -> Env {
+    setup_with(false).await
+}
+async fn setup_with(graph_events: bool) -> Env {
     let f = fixture().await;
     let attempt = insert(&f).await;
     let pool = f.db.pool().await;
@@ -80,19 +84,19 @@ async fn setup() -> Env {
         }],
     })
     .unwrap();
-    let service = Service::new(
-        &f.state,
-        Namespace {
-            namespace_id: Uuid::new_v4(),
-            generation: 1,
-            name: format!("fixture-{}", Uuid::new_v4()),
-            workspace_id: f.selection.lineage.workspace_id,
-            project_id: f.selection.lineage.project_id,
-            owner_user_id: f.actor,
-        },
-        Arc::new(keys),
-    )
-    .await
+    let namespace = Namespace {
+        namespace_id: Uuid::new_v4(),
+        generation: 1,
+        name: format!("fixture-{}", Uuid::new_v4()),
+        workspace_id: f.selection.lineage.workspace_id,
+        project_id: f.selection.lineage.project_id,
+        owner_user_id: f.actor,
+    };
+    let service = if graph_events {
+        Service::new_profile3(&f.state, namespace, Arc::new(keys)).await
+    } else {
+        Service::new(&f.state, namespace, Arc::new(keys)).await
+    }
     .unwrap();
     service.initialize(f.actor).await.unwrap();
     let recipient = Recipient::Task {
@@ -122,6 +126,7 @@ async fn setup() -> Env {
         grant,
         runtime,
         recipient,
+        attempt,
     }
 }
 fn intent(e: &Env, id: &str) -> Intent {
@@ -1211,5 +1216,72 @@ async fn expired_admission_page_is_held_without_starving_later_current_grant() {
             .status,
         "engine_accepted"
     );
+    driver.stop().await.unwrap();
+}
+
+/// D3: a confirmed graph operation reaches the engine as one typed event.
+/// The engine commit without AQ ACK is the crash cut; replay dedups on the
+/// stable (producer, epoch, event_id) key and `delivered` is set only after
+/// durable engine acceptance.
+#[tokio::test]
+async fn outbox_replay_delivers_each_event_once() {
+    let e = setup_with(true).await;
+    let pool = e.f.db.pool().await;
+    let (operation, event) = (Uuid::new_v4(), Uuid::new_v4());
+    sqlx::query("INSERT INTO agent_graph_operations(operation_id,attempt_id,node_id,request,payload_digest,mapped,policy,status,phase,created_at_ms,retained_bytes) VALUES($1,$2,$3,'{}','d3','{}','{}','{}','confirmed',0,0)")
+        .bind(operation).bind(e.attempt).bind(e.f.node.node_id).execute(&pool).await.unwrap();
+    sqlx::query("INSERT INTO agent_graph_outbox(event_id,operation_id,kind,payload) VALUES($1,$2,'graph.operation_confirmed','{}')")
+        .bind(event).bind(operation).execute(&pool).await.unwrap();
+    let delivered = || async {
+        sqlx::query_scalar::<_, bool>("SELECT delivered FROM agent_graph_outbox WHERE event_id=$1")
+            .bind(event)
+            .fetch_one(&e.f.db.pool().await)
+            .await
+            .unwrap()
+    };
+    let driver = aq_server::playbooks::driver::Driver::start(
+        e.service.clone(),
+        aq_playbook_host::Limits::default(),
+        protected_factory(source_url(&e)),
+    )
+    .await
+    .unwrap();
+    // The engine admits only events an installed artifact declares; installing
+    // the consumer is what enables collection.
+    driver.quantum().await.unwrap();
+    assert_eq!(count(&e, "playbook_outbox").await, 0);
+    let mut a = pure_artifact();
+    a.content.registry =
+        aq_server::playbooks::review_domain::CatalogProfile::GraphEvents3.registry();
+    driver
+        .install(aq_playbook_host::model::Artifact::seal(a.content).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(driver.test_collect_graph_events().await.unwrap(), 1);
+    assert_eq!(driver.test_collect_graph_events().await.unwrap(), 0);
+    let first = driver.test_commit_event_without_aq_ack().await.unwrap();
+    assert!(!first.duplicate);
+    assert!(
+        !delivered().await,
+        "engine commit without AQ ACK is not delivery"
+    );
+    let replay = driver.test_commit_event_without_aq_ack().await.unwrap();
+    assert!(replay.duplicate);
+    assert_eq!(first.key, replay.key);
+    for _ in 0..3 {
+        driver.quantum().await.unwrap();
+    }
+    assert!(delivered().await);
+    assert_eq!(count(&e, "playbook_outbox").await, 1);
+    let row = sqlx::query("SELECT producer,event_id,status,fanout_complete FROM playbook_outbox")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(row.get::<String, _>("producer"), "aq.graph.operations@1");
+    assert_eq!(row.get::<Uuid, _>("event_id"), event);
+    assert_eq!(row.get::<String, _>("status"), "engine_accepted");
+    assert!(row.get::<bool, _>("fanout_complete"));
+    driver.quantum().await.unwrap();
+    assert_eq!(count(&e, "playbook_outbox").await, 1);
     driver.stop().await.unwrap();
 }
