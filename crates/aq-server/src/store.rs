@@ -285,6 +285,7 @@ const MIGRATIONS: &[(i32, &str)] = &[
         include_str!("../migrations/0043_native_cancellation.sql"),
     ),
     (44, include_str!("../migrations/0044_results_feedback.sql")),
+    (45, include_str!("../migrations/0045_central_delivery.sql")),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
