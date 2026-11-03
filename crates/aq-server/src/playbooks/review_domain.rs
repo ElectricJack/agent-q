@@ -15,6 +15,8 @@ pub enum CatalogProfile {
     SettlementEvents4,
     /// D4 host catalog 1.0.0, vendored and fingerprint-pinned (D5), numbered 5 after the main-line event profiles 3 and 4.
     Host5,
+    /// D8 findings and daily occurrences; old catalog profiles remain frozen.
+    Monitoring6,
 }
 pub const HOST5_VERSION: &str = "1.0.0";
 pub const HOST5_FINGERPRINT: &str =
@@ -52,12 +54,20 @@ impl CatalogProfile {
             Self::GraphEvents3 => 3,
             Self::SettlementEvents4 => 4,
             Self::Host5 => 5,
+            Self::Monitoring6 => 6,
         }
     }
     pub fn has_reviews(self) -> bool {
-        !matches!(self, Self::Mail1 | Self::Host5)
+        !matches!(self, Self::Mail1 | Self::Host5 | Self::Monitoring6)
     }
     pub fn registry(self) -> Registry {
+        if self == Self::Monitoring6 {
+            let mut registry = host5_registry();
+            for event in [graph_operation_event(), task_completed_event()] {
+                registry.events.insert(event.name.clone(), event);
+            }
+            return registry;
+        }
         if self == Self::Host5 {
             return host5_registry();
         }
@@ -84,9 +94,12 @@ impl CatalogProfile {
         if self == Self::Mail1 {
             return scope.validate();
         }
-        if self == Self::Host5 {
-            let allowed: BTreeSet<String> =
+        if matches!(self, Self::Host5 | Self::Monitoring6) {
+            let mut allowed: BTreeSet<String> =
                 HOST5_CAPABILITIES.iter().map(|c| c.to_string()).collect();
+            if self == Self::Monitoring6 {
+                allowed.insert("findings.reconcile".into());
+            }
             if scope.workspace_id.is_nil()
                 || scope.project_id.is_nil()
                 || !scope.recipients.is_empty()
