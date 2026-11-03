@@ -22,6 +22,7 @@ Each finding gives what happened, how it was handled, and what v2 should do diff
 | R5 | **Recovery holds carried good diagnoses.** The supervisor's hold text explained the cause and the safe next step, which made operator release decisions quick. | Holds on A4, C5a1, E2, A3a, B6a1. | H3 (stall ladder) and the recovery explanations in API-02 and G10. |
 | R6 | **Cross-project dependencies and PR-merge detection work.** v1 kept edges across projects, and its sweep noticed when a superseding PR carried a PR's commits to main. | B2 waiting on B1 across projects; the gate for aq-worker #4 resolved through #12. | B4 and D3 must keep dependency and delivery truth across repositories. |
 | R7 | **The project split was cheap.** Moving tasks between projects kept their IDs, descriptions and edges. | 47 tasks moved in minutes. | **New:** v2 task moves between projects and repositories should be first-class, with an audit record. |
+| R8 | **The cross-repository follow-up comment convention works.** Agents record a complete, self-contained follow-up for another repository, and the operator files it in the right project. | G7 to aq-server (\`keen-current-13\`); I0 to aq-server, routed to existing tasks. | Prefer it until v2 has the emergent-work API (W4). |
 
 ## What went wrong, and what we changed
 
