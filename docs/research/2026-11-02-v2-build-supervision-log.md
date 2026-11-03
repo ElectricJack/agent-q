@@ -527,3 +527,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Dashboard throughput** is capped by `standard-high-claude` max_active=8 (8 busy), plus PR-merge gates between gap tasks.
   - **aq-platform holds:** `bright-willow-25` (PR #57) and `crisp-meadow-36.7.2` are under supervisor recovery holds (`session_close_pipeline_stop`). The work passed, but the merge slot was held. Opened PR #59 for `aq/crisp-meadow-36.7.2`, which had no PR. #57 fails only the known `native_accepted_preparation` test that #56 fixes. Plan: merge #56, update #57 and #59, merge them, then release the holds.
   - **Notes branch:** found the aq-server notes checkout on `feat/v2-execution`; three notes pushes had gone there. Pushed them to main and switched back to main.
+- **17:50 check.**
+  - **aq-server main clippy failure.** `explicit_auto_deref` at `dashboard_api/capacity.rs:108-109` (from brisk-harbor-73's `44f1516`) failed every open PR's fmt-and-clippy job. Fixed on main in `9585dc2` after a local `cargo clippy -p aq-server --lib -D warnings` passed. Updated PRs #57, #58 and #60.
+  - **PR #56 (calm-current-41).** `phase_execution::atomicity::original_proposal_expiry_does_not_limit_new_execution_lease` fails twice in a row; main passes it, so this is a regression. Reopened with the failing test, priority 8.
+  - **crisp-meadow-36.7.2.** PR #59 conflicts with main. Released its `session_close_pipeline_stop` hold with an operator retry, and left a comment saying not to redo the work: merge main, update #59, close.
+  - **SHR-L fixtures.** At the owner's request I set `calm-vault-46.14` to priority 5 and routed it to the empty standard-medium-claude pool. Claimed at 23:42Z.
+  - The notes checkout is on main (branch checked before commit). Shell gotcha: a `snip` wrapper swallows `docker exec psql` output; use `/usr/bin/docker`.
