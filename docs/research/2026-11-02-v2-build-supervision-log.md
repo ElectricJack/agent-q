@@ -365,3 +365,4 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **F4 (Discord) needs the owner's webhook** for one real message; added to the morning list. Told F4 to close blocked and free its slot.
   - E6a completed (install guide, aq-worker PR #30). The owner's Windows restart drill is still on the morning list.
   - F2, D5 and G3 started. `prime-dune-72` opened #40 (update-lifecycle fix), with CI pending.
+- **06:07 owner input.** The owner supplied the Discord webhook for F4. Stored it at `~/.config/aq-secrets/discord-webhook-url` (0600, directory 0700); it is never written to repos, logs or messages. Told F4 (still running) to send exactly one qualification message, reading the URL only from that file, and to record redacted evidence.
