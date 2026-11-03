@@ -223,6 +223,14 @@ async fn machine_authority(
     authenticated: &AuthenticatedNode,
     attempt: Uuid,
 ) -> Result<crate::execution::authority::AuthorityView> {
+    if authenticated
+        .delegated()
+        .is_some_and(|d| d.current.record.binding.attempt_id != attempt)
+    {
+        return Err(AppError::Forbidden(
+            "source transfer attempt mismatch".into(),
+        ));
+    }
     lock_current_node(tx, authenticated).await?;
     authority(tx, authenticated.id(), attempt).await
 }
@@ -323,7 +331,13 @@ async fn begin(
     r.identity
         .validate()
         .map_err(|_| bad("invalid node identity"))?;
-    let n = authenticate_context(&s, &headers).await?;
+    let n = crate::delegated_permits::runtime::authenticate_runner(
+        &s,
+        &headers,
+        aq_admission_sandbox::sandbox::RunnerOperation::ReportResult,
+        None,
+    )
+    .await?;
     if r.identity.node_id != n.id() {
         return Err(AppError::Forbidden("node identity mismatch".into()));
     }
@@ -402,10 +416,16 @@ async fn status(
     State(s): State<AppState>,
     headers: HeaderMap,
     ApiJson(r): ApiJson<TransferStatusRequest>,
-) -> Result<Json<TransferStatus>> {
+) -> Result<axum::response::Response> {
     r.validate()
         .map_err(|_| bad("invalid source status request"))?;
-    let n = authenticate_context(&s, &headers).await?;
+    let n = crate::delegated_permits::runtime::authenticate_runner(
+        &s,
+        &headers,
+        aq_admission_sandbox::sandbox::RunnerOperation::ReportResult,
+        None,
+    )
+    .await?;
     if n.id() != r.identity.node_id {
         return Err(AppError::Forbidden("node identity mismatch".into()));
     }
@@ -423,7 +443,8 @@ async fn status(
     let a = machine_authority(&mut tx, &n, attempt).await?;
     let t = transfer(&mut tx, n.id(), r.transfer_id).await?;
     check_manifest(&a, &t.manifest)?;
-    Ok(Json(response(r.transfer_id, &t)))
+    tx.commit().await.map_err(internal)?;
+    crate::delegated_permits::receipts::source(&s, &n, response(r.transfer_id, &t)).await
 }
 fn filename(name: &str) -> Result<&'static str> {
     match name {
@@ -439,7 +460,13 @@ async fn chunk(
     Query(q): Query<ChunkQuery>,
     bytes: Bytes,
 ) -> Result<Json<TransferStatus>> {
-    let n = authenticate_context(&s, &headers).await?;
+    let n = crate::delegated_permits::runtime::authenticate_runner(
+        &s,
+        &headers,
+        aq_admission_sandbox::sandbox::RunnerOperation::ReportResult,
+        None,
+    )
+    .await?;
     let rt = runtime(&s)?;
     let _bulk = rt
         .bulk
@@ -581,10 +608,16 @@ async fn finalize(
     State(s): State<AppState>,
     headers: HeaderMap,
     ApiJson(r): ApiJson<TransferStatusRequest>,
-) -> Result<Json<TransferStatus>> {
+) -> Result<axum::response::Response> {
     r.validate()
         .map_err(|_| bad("invalid source status request"))?;
-    let n = authenticate_context(&s, &headers).await?;
+    let n = crate::delegated_permits::runtime::authenticate_runner(
+        &s,
+        &headers,
+        aq_admission_sandbox::sandbox::RunnerOperation::ReportResult,
+        None,
+    )
+    .await?;
     if n.id() != r.identity.node_id {
         return Err(AppError::Forbidden("node identity mismatch".into()));
     }
@@ -611,7 +644,9 @@ async fn finalize(
         return Err(conflict("source upload expired"));
     }
     if t.receipt.is_some() {
-        return Ok(Json(response(r.transfer_id, &t)));
+        tx.commit().await.map_err(internal)?;
+        return crate::delegated_permits::receipts::source(&s, &n, response(r.transfer_id, &t))
+            .await;
     }
     if t.manifest_offset != t.manifest.manifest_bytes || t.bundle_offset != t.manifest.bundle_bytes
     {
@@ -683,7 +718,13 @@ async fn finalize(
     let latest = transfer(&mut import_tx, n.id(), r.transfer_id).await?;
     check_manifest(&a, &latest.manifest)?;
     if latest.receipt.is_some() {
-        return Ok(Json(response(r.transfer_id, &latest)));
+        import_tx.commit().await.map_err(internal)?;
+        return crate::delegated_permits::receipts::source(
+            &s,
+            &n,
+            response(r.transfer_id, &latest),
+        )
+        .await;
     }
     if latest.state == "rejected" {
         return Err(conflict("source transfer rejected"));
@@ -776,7 +817,7 @@ async fn finalize(
         }
         Err(e) => tracing::warn!(error=%e,"retained incoming staging cleanup deferred"),
     }
-    Ok(Json(response(r.transfer_id, &t)))
+    crate::delegated_permits::receipts::source(&s, &n, response(r.transfer_id, &t)).await
 }
 // Only known never-imported uploads expire. Unknown imports and retained data
 // are protected regardless of age or worker disappearance.

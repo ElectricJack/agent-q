@@ -9,6 +9,11 @@ const SUPPORTED_FORMAT_VERSION: u32 = 1;
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
+    #[serde(
+        default,
+        deserialize_with = "crate::delegated_permits::config::deserialize"
+    )]
+    pub delegated_permits: Option<std::sync::Arc<crate::delegated_permits::CredentialKey>>,
     #[serde(default, deserialize_with = "crate::playbooks::config::deserialize")]
     pub playbooks: Option<std::sync::Arc<crate::playbooks::config::Loaded>>,
     #[serde(default, deserialize_with = "crate::terminal::config::deserialize")]
@@ -321,6 +326,7 @@ mod tests {
 
     fn cfg(env: Environment, dev: bool) -> Config {
         Config {
+            delegated_permits: None,
             playbooks: None,
             notifications: None,
             profiled_execution: None,

@@ -6,7 +6,7 @@ and pure relay fixtures. It does not repeat a live provider run or qualify MS1.
 
 | Finding | Disposition and evidence |
 | --- | --- |
-| Control/output relay polls compete and produce 409 storms | Fixed. `Runtime` reserves one control permit and one output permit per node. Both share the existing 32-node bound. Duplicate requests within a lane still return 409. Output delivery continues while the control permit is held, without gaining control/input dispatch rights. `terminal_output_poll` and the runtime unit test cover delivery, exclusion, capacity and permit release. |
+| Control/output relay polls compete and produce 409 storms | Fixed. `Runtime` reserves one control permit and one output permit per node/attempt channel, preserving the delegated authentication scope merged from main. Both share the existing 32-channel bound. Duplicate requests within a lane still return 409. Output delivery continues while the control permit is held, without gaining control/input dispatch rights. `terminal_output_poll` and the runtime unit tests cover delivery, exclusion, capacity, attempt isolation and permit release. |
 | Generic human 422 for an input deadline over 2000 ms | Fixed. The relay produces `InputDeadline` after authorization and exact-operation replay checks; the server preserves a safe `input_deadline` envelope through dashboard normalization. The message names the 1–2000 ms rule and the server-time header. The human request supplies `expires_at_ms`; the server assigns `issued_at_ms` when building `InputCommand`. Finite and epoch input retain the same rule. Tests cover both deadline boundaries, rejected queue preservation, exact replay and payload redaction. |
 | Stopped, unsettled attempts retain `holds_task` | An unconditional release route is explicitly declined. Physical stop proves execution ended, but does not prove retained source or external effects were settled. Schema33/39 enforce an owner-verified release; removing the hold would let a replacement overlap unresolved prior effects. I0 produced no result, so success settlement cannot be invented. The existing qualified settlement/completion owner remains authoritative. `phase_terminal_stopped::paired_stop_does_not_qualify_old_sql_result_or_release_owners` now also attempts a direct hold clear and verifies the database refuses it without changing state. A recovery owner for unsuccessful attempts needs the B4/D3 settlement contract and worker recovery evidence; it is not supplied by this change. |
 | Missing `[terminals]` causes late registration 503 | Fixed for enabled profiled execution. Config loading refuses enabled profiled project policies without terminal protection settings, before database access or listeners. Dormant policies and servers without profiled execution remain valid. Existing key loading validates configured files. The config regression tests missing settings, disabled policies and valid synthetic keys. |
@@ -20,6 +20,12 @@ replacement and revoked credentials; the refusal logging test verifies that an
 internal 500 normalized to human 503 has a matching diagnostic line. These tests
 do not establish the cause of the historical one-off failures. The polling fix
 addresses the reproducible concurrency fault, not every possible 500 or 503.
+
+Merge compatibility: the delegated authentication helper added on main rejected
+missing bearer headers as 403 before reaching the existing worker authenticator.
+It now preserves the established `invalid_credential` 401 response for absent or
+malformed bearer headers. Delegated permit scope checks remain authoritative.
+The existing terminal HTTP boundary test covers this response.
 
 ## Affected MS1 contracts
 
@@ -43,9 +49,14 @@ database reported by `scripts/test-db`.
 
 - `cargo test -p aq-server --locked --offline --test config --test terminal_output_poll --test terminal_store --test intelligence --test profile_catalog --test project_bindings --test phase_terminal_stopped`: 68 passed, 0 failed, 1 existing selected-component test ignored.
 - `cargo test -p aq-server --locked --offline --lib dashboard_api::errors::tests`: 3 passed.
-- `cargo test -p aq-server --locked --offline --lib terminal::runtime::tests`: 1 passed.
+- `cargo test -p aq-server --locked --offline --lib terminal::runtime::`: 2 passed after merging main, including delegated channel isolation and wakeup.
 - `cargo test -p aq-terminal-relay --locked --offline --test fake_peers`: 25 passed.
 - Direct `rustfmt --edition 2024 --check` on the changed Rust files and `git diff --check`: passed. `cargo fmt --all` could not load the excluded mapper vendor workspace on the original base; no manifest workaround was applied.
 
 The final merge verification is recorded in the task comments and completion
-evidence.
+evidence. The first merged run exposed the missing-header 403 corrected above
+and one concurrent-controller `Internal` failure; the concurrent case passed
+when rerun alone. The final `cargo test -p aq-server --locked --offline --test
+terminal_store` rerun with `RUST_TEST_THREADS=1` passed all 21 tests, including
+both previously failing cases. In total, the targeted coverage passed 98 tests,
+with one existing selected-component test ignored.
