@@ -43,10 +43,12 @@ pass both. The nested `credential.allowed_backends` is not a second operator kno
 It must keep its unrestricted default in configuration, and `load` copies the
 entry-level list into the loaded `AuthorizedCredential`.
 
-The registry configuration digest covers each entry's `kind` and
-`allowed_backends`, with the credential and its node list. Changing either needs a
-newer config `revision`; registration refuses a same-revision conflict. Existing
-installations adopting this digest format must also advance their revision once.
+The registry configuration digest preserves the legacy digest for unchanged
+default configurations (`api-key` with all backends allowed), so upgrading needs
+no config `revision` bump. Changing `kind` or the effective `allowed_backends` set
+needs a newer config `revision`; registration refuses a same-revision conflict.
+Backend sets are order-insensitive: reordering a list does not change the digest,
+and explicitly listing all backends is equivalent to omitting `allowed_backends`.
 
 `CapabilitySnapshot.backend_kind` is an optional trusted node fact, never a
 caller-supplied placement hint. A credential with all three backends allowed
