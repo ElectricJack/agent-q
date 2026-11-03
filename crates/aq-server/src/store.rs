@@ -316,6 +316,14 @@ const MIGRATIONS: &[(i32, &str)] = &[
         54,
         include_str!("../migrations/0054_accounting_policy_events.sql"),
     ),
+    (
+        55,
+        include_str!("../migrations/0055_environment_templates.sql"),
+    ),
+    (
+        56,
+        include_str!("../migrations/0056_dashboard_graph_intents.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.

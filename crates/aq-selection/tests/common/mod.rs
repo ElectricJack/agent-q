@@ -332,6 +332,7 @@ pub fn fixture() -> (ValidatedCatalog, SelectionInputs) {
         estimates: vec![],
         compositions: vec![composition],
         now_ms: 2000,
+        placement: None,
     };
     (catalog, input)
 }

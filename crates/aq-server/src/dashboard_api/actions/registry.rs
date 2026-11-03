@@ -29,7 +29,9 @@ pub trait ActionKind: Send + Sync + 'static {
         scope: &Scope,
         operation: Option<&Operation>,
     ) -> Result<(), ApiError>;
-    /// Read retained native evidence without submitting or retrying an effect.
+    /// Recover evidence for the original operation. An adapter may replay a
+    /// durably retained body/key only when its native owner guarantees atomic
+    /// idempotent receipt replay; it must never construct a new operation.
     async fn reconcile(
         &self,
         _state: &AppState,

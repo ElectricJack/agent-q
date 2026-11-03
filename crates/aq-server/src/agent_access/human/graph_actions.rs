@@ -12,6 +12,7 @@ use crate::dashboard_api::{
 use async_trait::async_trait;
 use schemars::JsonSchema;
 use std::collections::{BTreeMap, BTreeSet};
+mod journal;
 
 type ApiResult<T> = std::result::Result<T, ApiError>;
 
@@ -637,6 +638,51 @@ impl<P: GraphPayload> ActionKind for GraphAction<P> {
     ) -> ApiResult<()> {
         lookup(state, &self.runtime, user, scope, operation, P::ENTITY).await
     }
+    async fn reconcile(
+        &self,
+        state: &AppState,
+        user: &User,
+        operation: &actions::Operation,
+    ) -> ApiResult<Option<Outcome>> {
+        let Some(intent) = journal::load(state, user, operation.operation_id, P::KIND)
+            .await
+            .map_err(ApiError::from)?
+        else {
+            // Pre-journal operations have no exact body to replay safely.
+            return Ok(None);
+        };
+        let a = access(state, &self.runtime, user.clone(), intent.project)
+            .await
+            .map_err(ApiError::from)?;
+        let rt = runtime(state).map_err(ApiError::from)?;
+        if operation.scope
+            != (Scope::Project {
+                project_id: intent.project,
+            })
+            || a.record.revision != intent.revision
+            || json!(a.record.binding) != intent.binding
+            || super::super::settlement_service_identity(rt, intent.workspace)
+                .ok()
+                .as_ref()
+                != Some(&intent.service)
+        {
+            return Ok(Some(Outcome::unknown()));
+        }
+        // Graph scopes receipts by actor/workspace/operation/key and checks the
+        // payload hash before executing. Replay the retained bytes, including
+        // the original reason and metadata; never rebuild from current state.
+        let posted = tokio::time::timeout(
+            Duration::from_millis(1500),
+            super::super::settlement_post(rt, intent.workspace, intent.body),
+        )
+        .await;
+        Ok(Some(match posted {
+            Ok(Ok((status, raw))) if status.is_success() => confirmed(&raw, intent.operations),
+            // A new authorization/conflict/transport failure cannot disprove
+            // an earlier commit. Only its original receipt settles the effect.
+            _ => Outcome::unknown(),
+        }))
+    }
     async fn execute(
         &self,
         state: &AppState,
@@ -692,7 +738,11 @@ impl<P: GraphPayload> GraphAction<P> {
         if !contract::upstream_valid("MutationRequest", &body) {
             return Err(invalid());
         }
-        let bytes = super::super::canonical(&body).map_err(|_| invalid())?;
+        // This is native Graph JSON, which can include fractional metadata.
+        // Integer-only canonical hashing belongs to the action request boundary.
+        let bytes = serde_json::to_vec(&body).map_err(|_| invalid())?;
+        let service = super::super::settlement_service_identity(rt, workspace)?;
+        journal::retain(state, user, id, &a.record, &service, &bytes).await?;
         // From here an error is an unknown effect, never a rejection.
         let posted = tokio::time::timeout(
             Duration::from_secs(3),

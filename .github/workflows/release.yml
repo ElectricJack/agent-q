@@ -213,14 +213,16 @@ jobs:
       # The spec's isolated test deployment: the exact pushed digests. It runs
       # before the release image exists, so a release that fails it is never
       # visible to the updater or to promote.yml.
-      # The worker side runs the smoke-only aq-worker 0.3.1 fixture
-      # (vendor/smoke-worker), not the pushed 0.5.1 worker digest: 0.5.1 `run`
-      # needs a rootless sandbox daemon and gates off `run-execution`. The
-      # pushed worker image is NOT smoke-covered until the fixture rework.
-      - name: Smoke test the pushed server image
+      # aq-worker 0.5.1 `run` binds only a dedicated rootless sandbox socket; the
+      # synthetic-runtime fixture image is built locally and never pushed.
+      - name: Start the dedicated rootless sandbox daemon
+        run: scripts/ci-sandbox-socket
+
+      - name: Smoke test the pushed images
         env:
           AQ_SMOKE_OFFICIAL: '1'
           AQ_SMOKE_SERVER_IMAGE: ${{ steps.images.outputs.server }}
+          AQ_SMOKE_WORKER_IMAGE: ${{ steps.images.outputs.worker }}
         run: scripts/execution-smoke
 
       - name: Build and push the release image

@@ -109,6 +109,7 @@ pub fn select_central(
             compositions: &compositions,
             ceilings: &ceilings,
             allowed_environments: &allowed,
+            placement: None,
             now_ms: input.now_ms,
             global,
             environment_denied: "central_environment_denied",
