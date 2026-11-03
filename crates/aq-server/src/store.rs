@@ -408,6 +408,9 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
     if supported >= 59 {
         auto56::validate(&mut tx).await?;
     }
+    if supported >= 66 {
+        stopped66::validate(&mut tx).await?;
+    }
     tx.commit().await?;
     Ok(())
 }
@@ -1014,3 +1017,5 @@ mod cancellation43;
 mod replacement52;
 #[path = "store/retained_source53.rs"]
 mod retained_source53;
+#[path = "store/stopped66.rs"]
+mod stopped66;

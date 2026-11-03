@@ -460,3 +460,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - the MS1-affecting rows become follow-up tasks.
   - Filed MS0's aq-worker cross-repo follow-ups: `wise-crest-54` (end the Codex session after the in-session result) and `prime-glacier-36` (anchor the offer deadline at receipt, not poll send). aq-server already has `quick-impact-98` (2 s selection TTL) and `bold-delta-91` (stale attempt state).
   - Merged aq-server #46 (`smart-lantern-97`, Postgres row retention, migration 0064; `3c789221`); update-branch on #51 (0065 next). Merged aq-worker #34 (`fair-journey-58`, boat VM-time facts for H2).
+- **13:30 check.**
+  - **MS0 COMPLETED** (gate closed on the operator decision).
+  - Direct push again: `bold-delta-91` landed `0065_settlement_completion_projection` on main while #51 carried 0065. Wrote `renumber.py` (merge main, rename this branch's migrations after main's max, update meta values, push). Renumbered #51 to 0066 (`9979f21`) and #52 to 0067 (`fe2ac7d`).
+  - Added a "Migration numbers" rule to aq-server `.aq/PRIME.md`: take the next free number from origin/main immediately before pushing, including direct pushes.
+- **13:50 owner demo refresh.** Rebuilt the aq-demo stack: server image `aq-demo-server:main` from aq-server `293183f` (state format 65), dashboard bundle from aq-dashboard `8379636` (G3 write flows, G8 supervisor dock, SBX25 capacity disk). The old demo database migrated forward cleanly. The `demo-stack.py` wrapper now adds `scripts/` to sys.path (dev-stack imports `migration_catalog`). Progress: 54/91 plan tasks (59%).

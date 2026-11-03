@@ -68,7 +68,8 @@ pub async fn publish(
     // schedulers; no worker-selected task state or legacy discriminator is used.
     let node_busy = super::super::compute::busy_locked(&mut tx, node).await?;
     let task_held: bool = sqlx::query_scalar(
-        "SELECT EXISTS(SELECT 1 FROM execution_attempts WHERE holds_task AND task_id=$1)",
+        "SELECT EXISTS(SELECT 1 FROM execution_attempts WHERE holds_task AND task_id=$1) \
+         OR EXISTS(SELECT 1 FROM profiled_stopped_dispositions WHERE task_id=$1)",
     )
     .bind(built.spec.task.task_id)
     .fetch_one(&mut *tx)
