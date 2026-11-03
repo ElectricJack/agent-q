@@ -218,11 +218,13 @@ impl<V: EvidenceVerifier> SessionOwner<V> {
             plan.validate()?;
             clock.validate()?;
             let mut tx = begin(&self.pool).await?;
-            let inserted = sqlx::query("INSERT INTO central_session_heads(actor_id,conversation_id,authority_id,current_generation) VALUES($1,$2,$3,0) ON CONFLICT(actor_id) DO NOTHING")
+            let inserted = sqlx::query("INSERT INTO central_session_heads(actor_id,conversation_id,authority_id,current_generation) VALUES($1,$2,$3,0) ON CONFLICT DO NOTHING")
                 .bind(plan.subject.actor_id()).bind(plan.subject.conversation_id()).bind(session(&plan).0).execute(&mut *tx).await?.rows_affected() == 1;
             // An inserted row is already exclusively owned by this transaction;
             // an existing head must be locked before authorization is checked.
-            let h = if inserted { None } else { head(&mut tx, plan.subject.actor_id()).await? };
+            // A skipped insert with no head for this actor means another actor
+            // owns the UNIQUE conversation_id: a typed conflict, not storage.
+            let h = if inserted { None } else { Some(head(&mut tx, plan.subject.actor_id()).await?.ok_or(OwnerError::Conflict)?) };
             self.verifier.authorize_plan(&mut tx, &plan).await?;
             let run = if let Some(h) = h {
                 if h.conversation != plan.subject.conversation_id() || h.authority != session(&plan).0 { return Err(OwnerError::Conflict); }
