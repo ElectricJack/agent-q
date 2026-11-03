@@ -141,7 +141,7 @@ pub(crate) async fn context(
         .map_err(db)?
         .ok_or_else(refused)?,
     )?;
-    if hot.revoked || hot.cancellation_id.is_some() || hot.stop.known_stopped() {
+    if hot.revoked || hot.cancellation_id.is_some() {
         return Err(refused());
     }
     let (phase, expiry, hard) = match p.scope {
@@ -162,7 +162,9 @@ pub(crate) async fn context(
         PermitScope::Execution => {
             let origin = current.authority.as_ref().ok_or_else(refused)?;
             let grant = hot.grant.as_ref().ok_or_else(refused)?;
-            if hot.status != Status::Granted
+            if !matches!(hot.status, Status::Granted | Status::Finished)
+                || (hot.status == Status::Finished && !hot.stop.known_stopped())
+                || (hot.status == Status::Granted && hot.stop.known_stopped())
                 || grant.grant_id != origin.grant.grant_id
                 || grant.binding != origin.grant.binding
                 || grant.binding.attempt_id != p.binding.attempt_id
@@ -172,7 +174,11 @@ pub(crate) async fn context(
                 return Err(refused());
             }
             (
-                GrantPhase::Granted,
+                if hot.status == Status::Finished {
+                    GrantPhase::Ended
+                } else {
+                    GrantPhase::Granted
+                },
                 grant.expires_at_ms,
                 origin.hard_deadline_ms,
             )

@@ -4,6 +4,7 @@ mod model;
 pub use model::{CredentialKey, PermitRecord};
 pub mod config;
 pub mod handoff;
+pub mod receipts;
 pub mod runtime;
 pub mod storage;
 

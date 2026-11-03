@@ -1,0 +1,110 @@
+{
+  "context": {
+    "binding": {
+      "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+      "channel_id": "336cc0a7-aef2-4f33-ab0a-1dbb8ad46c5a",
+      "grant_generation": 1,
+      "node": {
+        "boot_id": "07357eb4-9638-40af-8676-6d08e25e9340",
+        "node_id": "ba2bdaca-fc4f-471f-b4d2-58db850b532b"
+      },
+      "sandbox_id": "ecbd5388-5e3c-47cb-a7e7-a95c5a830983"
+    },
+    "grant_expires_at_ms": 1793696696827,
+    "hard_deadline_ms": 1793696746827,
+    "phase": "granted"
+  },
+  "request": {
+    "body": {
+      "authority": {
+        "grant": {
+          "binding": {
+            "assignment_generation": 1,
+            "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+            "execution_spec_digest": "e20a8c6e3c32a209777a77497da166758fbe987df9258814ed17bdd179f83d43",
+            "graph_access_profile_digest": "ecab8264c903154efa0721169b2a85c84aa2846aaea1fca4afefacbbcafb9775",
+            "launch_manifest_digest": "dfe3de95485575db3a119b9977b4d933040b05abed294df443c3d3b07ba330ed",
+            "offer_id": "8e87f626-e47a-59af-a505-b13d916b7aa5",
+            "schema_version": 1,
+            "session": {
+              "assignment_generation": 1,
+              "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+              "boot_id": "07357eb4-9638-40af-8676-6d08e25e9340",
+              "kind": "remote",
+              "node_id": "ba2bdaca-fc4f-471f-b4d2-58db850b532b",
+              "session_id": "90a21351-0e2d-525f-aff2-1630099ee073"
+            }
+          },
+          "expires_at_ms": 1793696696827,
+          "grant_id": "7d224bd2-57de-4fa5-96d5-6d90a49ac770"
+        },
+        "hard_deadline_ms": 1793696746827,
+        "issued_at_ms": 1793696686827,
+        "profile": "phase_refresh_v1",
+        "receipt_digest": "a4a9f8eb18c1c17b5ee04222f87aa2551b5941afabe69ba269b8a63b45d669be"
+      },
+      "operation_id": "fe4e3dcd-2ce7-49dd-83bf-2700ee80649d",
+      "permit": {
+        "binding": {
+          "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+          "channel_id": "336cc0a7-aef2-4f33-ab0a-1dbb8ad46c5a",
+          "grant_generation": 1,
+          "node": {
+            "boot_id": "07357eb4-9638-40af-8676-6d08e25e9340",
+            "node_id": "ba2bdaca-fc4f-471f-b4d2-58db850b532b"
+          },
+          "sandbox_id": "ecbd5388-5e3c-47cb-a7e7-a95c5a830983"
+        },
+        "credential": "aqp_oIqQWVyGls1oIP3x-klXQb_9l54Q9hE-dDJMPzU_WF8",
+        "expires_at_ms": 1793696696827,
+        "hard_deadline_ms": 1793696746827,
+        "issued_at_ms": 1793696686827,
+        "permit_id": "5936c4e2-f431-4adc-9193-d0190c46471f",
+        "schema_version": 1,
+        "scope": "execution"
+      },
+      "revision": 2,
+      "schema_version": 1
+    },
+    "kind": "runner_renewal_request"
+  },
+  "response": {
+    "body": {
+      "delivery": {
+        "clock": {
+          "expires_at_ms": 1793696696828,
+          "server_time_ms": 1793696686828,
+          "valid_for_ms": 10000
+        },
+        "nonce": "e49c6fd0-770f-4e73-b2c4-474f7e655210"
+      },
+      "reply": {
+        "kind": "renewed",
+        "operation_id": "fe4e3dcd-2ce7-49dd-83bf-2700ee80649d",
+        "permit": {
+          "binding": {
+            "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+            "channel_id": "336cc0a7-aef2-4f33-ab0a-1dbb8ad46c5a",
+            "grant_generation": 1,
+            "node": {
+              "boot_id": "07357eb4-9638-40af-8676-6d08e25e9340",
+              "node_id": "ba2bdaca-fc4f-471f-b4d2-58db850b532b"
+            },
+            "sandbox_id": "ecbd5388-5e3c-47cb-a7e7-a95c5a830983"
+          },
+          "credential": "aqp_oIqQWVyGls1oIP3x-klXQb_9l54Q9hE-dDJMPzU_WF8",
+          "expires_at_ms": 1793696696828,
+          "hard_deadline_ms": 1793696746827,
+          "issued_at_ms": 1793696686828,
+          "permit_id": "5936c4e2-f431-4adc-9193-d0190c46471f",
+          "schema_version": 1,
+          "scope": "execution"
+        }
+      },
+      "revision": 3,
+      "schema_version": 1
+    },
+    "kind": "runner_renewal_response"
+  },
+  "server_now_ms": 1793696686828
+}

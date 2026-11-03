@@ -382,6 +382,15 @@ async fn exercise_same_boot_renewal(
     let body = serde_json::to_value(SandboxDocument::RunnerRenewalRequest(q.clone())).unwrap();
     let h = headers(&q.permit);
     let response = request(state, "/v1/worker/profiled/renew", &h, body.clone()).await;
+    let context: PermitContext =
+        serde_json::from_str(response.headers()["aq-permit-context"].to_str().unwrap()).unwrap();
+    let server_now: u64 = response.headers()["aq-server-now-ms"]
+        .to_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert_eq!(context.grant_expires_at_ms, q.permit.expires_at_ms);
+    assert_eq!(context.binding, q.permit.binding);
     let status = response.status();
     let bytes = axum::body::to_bytes(response.into_body(), 16384)
         .await
@@ -410,6 +419,18 @@ async fn exercise_same_boot_renewal(
     else {
         panic!("not renewed")
     };
+    reply
+        .validate_for(
+            &q,
+            &context,
+            reply.delivery.as_ref().unwrap().nonce,
+            server_now,
+        )
+        .unwrap();
+    capture(
+        "renewal",
+        serde_json::json!({"request": body, "response": serde_json::from_slice::<serde_json::Value>(&bytes).unwrap(), "context":context,"server_now_ms":server_now}),
+    );
     assert_eq!(reply.revision, 3);
     assert!(renewed.expires_at_ms > q.permit.expires_at_ms);
     assert_eq!(renewed.hard_deadline_ms, q.permit.hard_deadline_ms);
@@ -480,7 +501,7 @@ async fn exercise_same_boot_renewal(
         state,
         "/v1/worker/profiled-v2/stopped",
         &stop_headers,
-        serde_json::to_value(stopped).unwrap(),
+        serde_json::to_value(&stopped).unwrap(),
     )
     .await;
     let status = response.status();
@@ -504,6 +525,129 @@ async fn exercise_same_boot_renewal(
     assert_eq!(after["permit"], snapshot["permit"]);
     assert_eq!(after["ops"], snapshot["ops"]);
     assert_eq!(after["hot"]["status"], "finished");
+    let retry = request(
+        state,
+        "/v1/worker/profiled-v2/stopped",
+        &stop_headers,
+        serde_json::to_value(&stopped).unwrap(),
+    )
+    .await;
+    assert_eq!(retry.status(), 200);
+    assert_eq!(
+        axum::body::to_bytes(retry.into_body(), 16384)
+            .await
+            .unwrap(),
+        bytes
+    );
+    let mut conflict = stopped.clone();
+    conflict.original.evidence.stop_operation_id = Uuid::new_v4();
+    assert_ne!(
+        request(
+            state,
+            "/v1/worker/profiled-v2/stopped",
+            &stop_headers,
+            serde_json::to_value(conflict).unwrap()
+        )
+        .await
+        .status(),
+        200
+    );
+    let report = aq_admission::transport::ResultReport {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        report_id: Uuid::new_v4(),
+        identity: aq_admission::transport::WorkerIdentity {
+            node_id: renewed.binding.node.node_id,
+            boot_id: renewed.binding.node.boot_id,
+        },
+        binding: started.original.binding.clone(),
+        supersedes: None,
+        outcome: aq_admission::transport::ProcessOutcome::Success,
+        stop: stopped.original.evidence.clone(),
+        source_receipt_ids: vec![],
+        pending_effect_ids: vec![],
+        conclusion: aq_admission::Label::new(
+            "Synthetic delegated receipt fixture; no task settlement",
+        )
+        .unwrap(),
+    };
+    let result = request(
+        state,
+        "/v1/worker/profiled/results",
+        &stop_headers,
+        serde_json::to_value(&report).unwrap(),
+    )
+    .await;
+    assert_eq!(result.status(), 200);
+    let envelope: aq_server::delegated_permits::receipts::Envelope =
+        serde_json::from_str(result.headers()["aq-runner-receipts"].to_str().unwrap()).unwrap();
+    let result_bytes = axum::body::to_bytes(result.into_body(), 16384)
+        .await
+        .unwrap();
+    let receipt: aq_admission::result_record::Receipt =
+        serde_json::from_slice(&result_bytes).unwrap();
+    receipt.validate_for(&report).unwrap();
+    let central = envelope.result.as_ref().unwrap();
+    assert_eq!(central.artifact_digest, receipt.report_digest);
+    assert_eq!(central.receipt_id, report.report_id);
+    assert_eq!(central.attempt.launch_id, report.stop.launch_id);
+    assert_eq!(
+        central.attempt.manifest_digest,
+        report.binding.launch_manifest_digest
+    );
+    assert_eq!(envelope.finished.as_ref().unwrap().attempt, central.attempt);
+    capture(
+        "result-finished",
+        serde_json::json!({"request":report,"response":receipt,"receipts":envelope,"stopped_request":stopped,"stopped_response":serde_json::from_slice::<serde_json::Value>(&bytes).unwrap()}),
+    );
+    let mut restarted = state.clone();
+    restarted.store = f.c.env.env._db.store().await;
+    let result = request(
+        &restarted,
+        "/v1/worker/profiled/results",
+        &stop_headers,
+        serde_json::to_value(&report).unwrap(),
+    )
+    .await;
+    assert_eq!(result.status(), 200);
+    assert_eq!(
+        axum::body::to_bytes(result.into_body(), 16384)
+            .await
+            .unwrap(),
+        result_bytes
+    );
+    let count: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM profiled_result_reports WHERE report_id=$1")
+            .bind(report.report_id)
+            .fetch_one(&f.c.env.env.pool)
+            .await
+            .unwrap();
+    assert_eq!(count, 1);
+    clock.store(renewed.expires_at_ms as i64, Ordering::SeqCst);
+    assert_eq!(
+        request(
+            state,
+            "/v1/worker/profiled/results",
+            &stop_headers,
+            serde_json::to_value(&report).unwrap()
+        )
+        .await
+        .status(),
+        403
+    );
+}
+
+fn capture(name: &str, value: serde_json::Value) {
+    if let Ok(directory) = std::env::var("B2_CAPTURE_CONTRACT") {
+        std::fs::create_dir_all(&directory).unwrap();
+        let mut bytes = serde_json::to_vec_pretty(&value).unwrap();
+        bytes.push(b'\n');
+        std::fs::write(
+            std::path::Path::new(&directory).join(format!("{name}.json")),
+            bytes,
+        )
+        .unwrap();
+    }
 }
 
 #[tokio::test]
@@ -704,6 +848,12 @@ async fn exercise_reboot(
             clock.load(Ordering::SeqCst) as u64,
         )
         .unwrap();
+    if mode == 1 {
+        capture(
+            "readoption",
+            serde_json::json!({"request":readopt,"response":adopted,"awaiting":awaiting}),
+        );
+    }
     if mode >= 2 {
         assert!(
             matches!(adopted.results[0], ReadoptionResult::Refused { .. }),
@@ -900,11 +1050,12 @@ async fn exercise_reboot(
     assert!(!stored.contains(upgraded.permit.credential.expose()));
     let mut stop_headers = headers(live);
     stop_headers.insert("aq-phase-terminal-api-version", "1".parse().unwrap());
+    let stop_request = phase_refresh_fixture::stop_request(started);
     let stopped = request(
         &restarted,
         "/v1/worker/profiled-v2/stopped",
         &stop_headers,
-        serde_json::to_value(phase_refresh_fixture::stop_request(started)).unwrap(),
+        serde_json::to_value(&stop_request).unwrap(),
     )
     .await;
     let status = stopped.status();
@@ -916,6 +1067,24 @@ async fn exercise_reboot(
         200,
         "stop after reboot: {}",
         String::from_utf8_lossy(&bytes)
+    );
+    // Owner 0.3.1 cannot correlate the immutable original boot with the rebound
+    // permit for stopped replay. Preserve that fail-closed boundary explicitly.
+    let retry = request(
+        &restarted,
+        "/v1/worker/profiled-v2/stopped",
+        &stop_headers,
+        serde_json::to_value(&stop_request).unwrap(),
+    )
+    .await;
+    assert_eq!(retry.status(), 409);
+    capture(
+        "readoption-stopped-replay-refused",
+        serde_json::json!({
+            "request":stop_request,"original_response":serde_json::from_slice::<serde_json::Value>(&bytes).unwrap(),
+            "permit":live,"context":{"binding":live.binding,"phase":"ended","grant_expires_at_ms":live.expires_at_ms,"hard_deadline_ms":live.hard_deadline_ms},
+            "server_now_ms":clock.load(Ordering::SeqCst),"http_status":409,
+        }),
     );
     q.permit = live.clone();
     q.revision = renewed.revision;

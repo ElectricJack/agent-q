@@ -62,7 +62,34 @@ async fn renew(
                 }
             }
         };
+        // The sibling headers carry the committed operation's pre-mutation
+        // context for B6a2; the owner response body remains unchanged. On exact
+        // replay this is the original request context, not a fresh lease.
+        let context = aq_admission_sandbox::sandbox::PermitContext {
+            binding: request.permit.binding.clone(),
+            phase: aq_admission_sandbox::sandbox::GrantPhase::Granted,
+            grant_expires_at_ms: request.permit.expires_at_ms,
+            hard_deadline_ms: request.permit.hard_deadline_ms,
+        };
+        let server_now = match &reply.delivery {
+            Some(delivery) => delivery.clock.server_time_ms,
+            None => crate::delegated_permits::runtime::now(&state)?,
+        };
         let mut response = Json(SandboxDocument::RunnerRenewalResponse(reply)).into_response();
+        response.headers_mut().insert(
+            "aq-permit-context",
+            serde_json::to_string(&context)
+                .map_err(|_| AppError::Internal)?
+                .parse()
+                .map_err(|_| AppError::Internal)?,
+        );
+        response.headers_mut().insert(
+            "aq-server-now-ms",
+            server_now
+                .to_string()
+                .parse()
+                .map_err(|_| AppError::Internal)?,
+        );
         response
             .headers_mut()
             .insert(header::CACHE_CONTROL, "no-store".parse().unwrap());

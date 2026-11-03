@@ -114,6 +114,21 @@ async fn record_inner(
         {
             return Err(conflict());
         }
+        if let Some(delegate) = node.delegated() {
+            let current = &delegate.current;
+            let context = crate::delegated_permits::runtime::context(&mut tx, current).await?;
+            let retained = serde_json::from_slice(&r.get::<Vec<u8>, _>("request_bytes"))
+                .map_err(|_| conflict())?;
+            let incoming =
+                serde_json::from_value(serde_json::to_value(request).map_err(|_| conflict())?)
+                    .map_err(|_| conflict())?;
+            current
+                .record
+                .delivery(crate::delegated_permits::runtime::key(state)?)
+                .map_err(|_| conflict())?
+                .validate_stopped_replay(&context, &retained, &incoming, now(state)?)
+                .map_err(|_| conflict())?;
+        }
         tx.commit().await.map_err(database)?;
         return Ok(receipt);
     }
