@@ -1826,7 +1826,7 @@ mod review_inbox;
 #[path = "profiled_results/media_http.rs"]
 mod media_http;
 
-#[path = "profiled_results/auto_settlement52.rs"]
-mod auto_settlement52;
+#[path = "profiled_results/auto_settlement54.rs"]
+mod auto_settlement54;
 #[path = "profiled_results/settlement_owner39.rs"]
 mod settlement_owner39;

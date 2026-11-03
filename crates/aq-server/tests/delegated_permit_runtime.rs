@@ -1,5 +1,9 @@
 //! Durable delegated authority, exercised with the injected server clock.
 mod common;
+#[path = "delegated_permit_runtime/restart.rs"]
+mod restart;
+#[path = "delegated_permit_runtime/routes.rs"]
+mod routes;
 use aq_admission_sandbox::sandbox::*;
 use aq_server::delegated_permits::{CredentialKey, runtime};
 use axum::http::HeaderMap;
@@ -63,7 +67,7 @@ fn headers(p: &DelegatedPermit) -> HeaderMap {
     h
 }
 #[tokio::test]
-async fn delegated_runner_scope_is_rechecked_after_authentication() {
+async fn permit_scope_refuses_foreign_attempt_and_expired_use_after_authentication() {
     let (f, p, _) = setup().await;
     let h = headers(&p);
     let auth = runtime::authenticate_runner(
@@ -84,6 +88,15 @@ async fn delegated_runner_scope_is_rechecked_after_authentication() {
             .await
             .is_err()
     );
+    // Batch attempt scoping is covered by the typed checks in
+    // delegated_typed_attempt_checks_reject_foreign_and_mixed_bindings.
+    let mut stale = p.clone();
+    stale.binding.node.boot_id = Uuid::new_v4();
+    assert!(
+        runtime::authenticate_runner(&f.state, &headers(&stale), RunnerOperation::Observe, None)
+            .await
+            .is_err()
+    );
     f.time
         .store(p.expires_at_ms as i64, std::sync::atomic::Ordering::SeqCst);
     let pool = f.db.pool().await;
@@ -94,6 +107,52 @@ async fn delegated_runner_scope_is_rechecked_after_authentication() {
             .is_err()
     );
     tx.rollback().await.unwrap();
+}
+
+#[tokio::test]
+async fn delegated_typed_attempt_checks_reject_foreign_and_mixed_bindings() {
+    let (f, p, authority) = setup().await;
+    let auth = runtime::authenticate_runner(&f.state, &headers(&p), RunnerOperation::Observe, None)
+        .await
+        .unwrap();
+    let binding = authority.grant.binding;
+    runtime::require_binding(&auth, &binding).unwrap();
+    runtime::require_attempts(&auth, [binding.attempt_id, binding.attempt_id]).unwrap();
+    assert!(runtime::require_attempts(&auth, []).is_err());
+    assert!(runtime::require_attempts(&auth, [binding.attempt_id, Uuid::new_v4()]).is_err());
+    let mut foreign = binding.clone();
+    foreign.attempt_id = Uuid::new_v4();
+    assert!(runtime::require_binding(&auth, &foreign).is_err());
+    foreign = binding.clone();
+    let aq_session_protocol::SessionIdentity::Remote { attempt_id, .. } = &mut foreign.session
+    else {
+        panic!("remote binding")
+    };
+    *attempt_id = Uuid::new_v4();
+    assert!(runtime::require_binding(&auth, &foreign).is_err());
+    // Exercise a decoded route body too: its primary attempt matches, while the
+    // nested session belongs to another sandbox. This must fail before fetch.
+    let fetch = aq_admission::transport::MaterialFetch {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        identity: aq_admission::transport::WorkerIdentity {
+            node_id: p.binding.node.node_id,
+            boot_id: p.binding.node.boot_id,
+        },
+        binding: foreign,
+        lease_id: Uuid::new_v4(),
+    };
+    assert_eq!(
+        request(
+            &f.state,
+            "/v1/worker/profiled/material",
+            &headers(&p),
+            serde_json::to_value(fetch).unwrap()
+        )
+        .await
+        .status(),
+        403
+    );
 }
 
 #[allow(dead_code)]
@@ -135,10 +194,22 @@ async fn node_reboot_requires_readoption_before_renewal_extends() {
     Box::pin(exercise_phase(1)).await;
 }
 #[tokio::test]
+async fn reboot_after_native_stop_readopts_only_result_and_exact_stopped_replay() {
+    Box::pin(exercise_phase(7)).await;
+}
+#[tokio::test]
+async fn server_restart_mid_attempt_resumes_or_preserves() {
+    Box::pin(exercise_phase(9)).await;
+}
+#[tokio::test]
 async fn readoption_refuses_backend_template_capability_changes_and_expired_grants() {
     for mode in 2..=6 {
         Box::pin(exercise_phase(mode)).await;
     }
+}
+#[tokio::test]
+async fn expired_permit_is_refused_by_every_runner_route() {
+    Box::pin(exercise_phase(8)).await;
 }
 async fn exercise_phase(mode: u8) {
     use aq_admission::preparation_refresh_v1::Document;
@@ -346,7 +417,9 @@ async fn exercise_phase(mode: u8) {
         .await
         .unwrap();
     assert_eq!(status, 200, "started: {}", String::from_utf8_lossy(&bytes));
-    if mode != 0 {
+    if mode == 8 {
+        routes::exercise(&f, &upgraded, &started, installed_revision).await;
+    } else if mode != 0 {
         exercise_reboot(
             &f,
             &upgraded,
@@ -735,6 +808,29 @@ async fn exercise_reboot(
     )
     .await
     .unwrap();
+    // Mode 7 reproduces the lost-response window: stop commits on the old
+    // incarnation, then the node reboots before the sandbox receives its receipt.
+    let ended = if mode == 7 {
+        let stopped = phase_refresh_fixture::stop_request(started);
+        let mut h = headers(&upgraded.permit);
+        h.insert("aq-phase-terminal-api-version", "1".parse().unwrap());
+        let response = request(
+            state,
+            "/v1/worker/profiled-v2/stopped",
+            &h,
+            serde_json::to_value(&stopped).unwrap(),
+        )
+        .await;
+        assert_eq!(response.status(), 200);
+        Some((
+            stopped,
+            axum::body::to_bytes(response.into_body(), 16384)
+                .await
+                .unwrap(),
+        ))
+    } else {
+        None
+    };
     let mut registration = original_registration.clone();
     registration.registration.operation_id = Uuid::new_v4();
     registration.registration.identity.boot_id = Uuid::new_v4();
@@ -784,25 +880,32 @@ async fn exercise_reboot(
             .await
             .unwrap();
     clock.fetch_add(1, Ordering::SeqCst);
-    let SandboxDocument::RunnerRenewalResponse(awaiting) = document(
-        request(
-            state,
-            "/v1/worker/profiled/renew",
-            &headers(&q.permit),
-            serde_json::to_value(SandboxDocument::RunnerRenewalRequest(q.clone())).unwrap(),
-        )
-        .await,
+    let renewal = request(
+        state,
+        "/v1/worker/profiled/renew",
+        &headers(&q.permit),
+        serde_json::to_value(SandboxDocument::RunnerRenewalRequest(q.clone())).unwrap(),
     )
-    .await
-    else {
-        panic!("renewal response");
+    .await;
+    let awaiting = if mode == 7 {
+        assert_eq!(
+            renewal.status(),
+            403,
+            "ended grants cannot renew even before adoption"
+        );
+        None
+    } else {
+        let SandboxDocument::RunnerRenewalResponse(awaiting) = document(renewal).await else {
+            panic!("renewal response")
+        };
+        assert!(matches!(
+            awaiting.reply,
+            RenewalReply::AwaitingNodeReadoption { .. }
+        ));
+        assert_eq!(awaiting.revision, revision);
+        assert!(awaiting.delivery.is_none());
+        Some(awaiting)
     };
-    assert!(matches!(
-        awaiting.reply,
-        RenewalReply::AwaitingNodeReadoption { .. }
-    ));
-    assert_eq!(awaiting.revision, revision);
-    assert!(awaiting.delivery.is_none());
     let after: serde_json::Value =
         sqlx::query_scalar("SELECT state FROM profiled_authority_hot LIMIT 1")
             .fetch_one(pool)
@@ -854,7 +957,7 @@ async fn exercise_reboot(
             serde_json::json!({"request":readopt,"response":adopted,"awaiting":awaiting}),
         );
     }
-    if mode >= 2 {
+    if (2..=6).contains(&mode) {
         assert!(
             matches!(adopted.results[0], ReadoptionResult::Refused { .. }),
             "mode {mode}"
@@ -976,9 +1079,26 @@ async fn exercise_reboot(
         .status(),
         403
     );
+    if let Some((stopped, receipt)) = ended {
+        exercise_ended_readoption(
+            f,
+            upgraded,
+            permit,
+            &readopt,
+            node_headers,
+            &stopped,
+            &receipt,
+        )
+        .await;
+        return;
+    }
     q.permit = permit.clone();
     q.operation_id = Uuid::new_v4();
     clock.fetch_add(1, Ordering::SeqCst);
+    if mode == 9 {
+        restart::exercise(f, started, &q).await;
+        return;
+    }
     // Reconstruct the store: re-adoption must not depend on an in-memory flag.
     let mut restarted = state.clone();
     restarted.store = f.c.env.env._db.store().await;
@@ -1202,4 +1322,164 @@ async fn exercise_reboot(
         "retries and refusals must preserve native history and authority"
     );
     assert_eq!(after["stops"].as_array().unwrap().len(), 1);
+}
+
+async fn exercise_ended_readoption(
+    f: &phase_refresh_fixture::Prepared,
+    upgraded: &PermitUpgradeResponse,
+    permit: &DelegatedPermit,
+    readopt: &ReadoptionRequest,
+    node_headers: &HeaderMap,
+    stopped: &aq_phase_terminal_protocol::refresh_v1::StoppedRequest,
+    receipt: &[u8],
+) {
+    use std::sync::atomic::Ordering;
+    let mut restarted = f.c.env.env.state.clone();
+    restarted.store = f.c.env.env._db.store().await;
+    let pool = &f.c.env.env.pool;
+    let snapshot_sql = "SELECT jsonb_build_object('stops',(SELECT jsonb_agg(to_jsonb(s)) FROM profiled_stopped_receipts s),'hot',(SELECT state FROM profiled_authority_hot LIMIT 1),'permit',(SELECT state FROM delegated_permit_current LIMIT 1),'ops',(SELECT count(*) FROM delegated_operations))";
+    let before: serde_json::Value = sqlx::query_scalar(snapshot_sql)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    assert_eq!(permit.expires_at_ms, upgraded.permit.expires_at_ms);
+    assert_eq!(permit.hard_deadline_ms, upgraded.permit.hard_deadline_ms);
+    // Replay readoption after reconstructing Store, while authority is Ended.
+    document(
+        request(
+            &restarted,
+            "/v2/worker/readopt",
+            node_headers,
+            serde_json::to_value(SandboxDocument::ReadoptionRequest(readopt.clone())).unwrap(),
+        )
+        .await,
+    )
+    .await;
+    for operation in [
+        RunnerOperation::Renew,
+        RunnerOperation::Started,
+        RunnerOperation::Observe,
+        RunnerOperation::Terminal,
+        RunnerOperation::FetchExecutionMaterial,
+        RunnerOperation::UploadArtifact,
+        RunnerOperation::MailboxPoll,
+        RunnerOperation::MailboxAck,
+    ] {
+        assert!(
+            runtime::authenticate_runner(&restarted, &headers(permit), operation, None)
+                .await
+                .is_err(),
+            "ended operation {operation:?}"
+        );
+    }
+    runtime::authenticate_runner(
+        &restarted,
+        &headers(permit),
+        RunnerOperation::ReportResult,
+        None,
+    )
+    .await
+    .unwrap();
+    let mut h = headers(permit);
+    h.insert("aq-phase-terminal-api-version", "1".parse().unwrap());
+    let replay = request(
+        &restarted,
+        "/v1/worker/profiled-v2/stopped",
+        &h,
+        serde_json::to_value(stopped).unwrap(),
+    )
+    .await;
+    assert_eq!(replay.status(), 200);
+    assert_eq!(
+        axum::body::to_bytes(replay.into_body(), 16384)
+            .await
+            .unwrap()
+            .as_ref(),
+        receipt
+    );
+    let mut changed = stopped.clone();
+    changed.original.evidence.stop_operation_id = Uuid::new_v4();
+    assert_eq!(
+        request(
+            &restarted,
+            "/v1/worker/profiled-v2/stopped",
+            &h,
+            serde_json::to_value(changed).unwrap()
+        )
+        .await
+        .status(),
+        409
+    );
+    let after: serde_json::Value = sqlx::query_scalar(snapshot_sql)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        before, after,
+        "readoption replay and stopped retry extend no authority"
+    );
+    let report = aq_admission::transport::ResultReport {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        report_id: Uuid::new_v4(),
+        identity: aq_admission::transport::WorkerIdentity {
+            node_id: upgraded.permit.binding.node.node_id,
+            boot_id: upgraded.permit.binding.node.boot_id,
+        },
+        binding: stopped.original.evidence.binding.clone(),
+        supersedes: None,
+        outcome: aq_admission::transport::ProcessOutcome::Success,
+        stop: stopped.original.evidence.clone(),
+        source_receipt_ids: vec![],
+        pending_effect_ids: vec![],
+        conclusion: aq_admission::Label::new("Stopped before reboot; retained original history")
+            .unwrap(),
+    };
+    for _ in 0..2 {
+        let result = request(
+            &restarted,
+            "/v1/worker/profiled/results",
+            &h,
+            serde_json::to_value(&report).unwrap(),
+        )
+        .await;
+        let status = result.status();
+        let bytes = axum::body::to_bytes(result.into_body(), 16384)
+            .await
+            .unwrap();
+        assert_eq!(status, 200, "{}", String::from_utf8_lossy(&bytes));
+        let result: aq_admission::result_record::Receipt = serde_json::from_slice(&bytes).unwrap();
+        result.validate_for(&report).unwrap();
+    }
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM profiled_result_reports")
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    assert_eq!(count, 1);
+    f.c.controlled_clock
+        .as_ref()
+        .unwrap()
+        .store(permit.expires_at_ms as i64, Ordering::SeqCst);
+    assert_eq!(
+        request(
+            &restarted,
+            "/v2/worker/readopt",
+            node_headers,
+            serde_json::to_value(SandboxDocument::ReadoptionRequest(readopt.clone())).unwrap()
+        )
+        .await
+        .status(),
+        403
+    );
+    assert_eq!(
+        request(
+            &restarted,
+            "/v1/worker/profiled/results",
+            &h,
+            serde_json::to_value(&report).unwrap()
+        )
+        .await
+        .status(),
+        403
+    );
 }

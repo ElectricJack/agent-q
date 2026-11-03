@@ -322,3 +322,28 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **`steady-harbor-87.2.4`** pre-start merge conflict: only F1b.md conflicted. Merged main (`7c2a32f`), released the hold and reopened it.
   - **I0 re-run `calm-stone-85`:** `22.1.1` (Codex package in the image) and `22.1.3` (worker recovery) are COMPLETED. Only `bright-nexus-44` (server held-task release) remains.
   - Usage: Codex 93%, Claude 56%. aq-worker has nothing claimable apart from a spec-ingest task.
+- **03:05 check.**
+  - **B2 completed and its review was approved** (`rev-sound-stone`; reviewer `sound-apex-52` found no blocking defects). The four nits are filed as `swift-willow-91` (standard-medium).
+  - **D10 completed.** D3 started.
+  - **Four aq-server PRs are waiting for CI,** to be merged next check if failures match main: #37 (`bright-nexus-44`, the I0 server findings, which unblocks the I0 re-run), #35 (B2), #36 (smoke against the 0.5.1 worker) and #33 (cloud worker image).
+  - Usage: Codex 93%, Claude 57%.
+- **03:20 check.**
+  - Merged aq-server #33 (`smart-falcon-16.10`, docker-local cloud worker image; `c4dce2a6`). Its only failure, `observations.rs:501`, also fails on main.
+  - **#37 (`bright-nexus-44`, I0 server findings) cannot merge.** Its tests job aborts with a stack overflow in `phase_results` `correction_race_and_changed_operation_bytes_keep_one_immutable_head`, which passes on main. Reopened the task to fix it properly (no `RUST_MIN_STACK` workaround) and pinned it to Claude. The I0 re-run `calm-stone-85` waits on it again.
+  - **B2 PR #35 conflicted again.** Main gained B2's follow-up `swift-willow-91`, which reused test mode 7. Merged main and moved B2's server-restart case to mode 9 (`1f3a13a`); PR #35 is mergeable, with CI pending.
+  - Moved `noble-summit-37.4.5` and `noble-summit-37.10` (B7) from Codex to Claude (Codex 93%). B4 has two follow-ups running.
+- **03:35 check.**
+  - **B2 PR #35 failed to compile.** My last merge kept B2's older test, which calls `runtime::require_document`; main's `swift-willow-91` replaced that function with typed attempt extraction. Removed those calls (main's typed test covers batch scoping; `253f4e1`). CI is re-running.
+  - Moved `clear-crest-61.2` (H2) and `steady-cascade-45.3` (G2) from Codex to Claude.
+  - #37 (`bright-nexus-44`) is still being fixed. #36 and #38 have CI pending. B4 follow-ups are running.
+- **03:50 check.**
+  - **Main CI: `observations.rs:501`** `worker_route_requires_node_credentials_and_rejects_wrong_packet_scope` fails on main (403 vs 401) and on PRs #35, #36 and #38. Filed `clear-rapids-48` (standard-medium Claude).
+  - **My doc pushes were cancelling main CI** (W45). From now on, supervision-doc commits use `[skip ci]`.
+  - **`steady-harbor-87.2.4`:** the work is done (PR #38); it is held only on a close-pipeline stop. I will merge #38 once its pending checks match main, then close the task.
+  - **B4 migration collision:** B4 used 0050, the same as main. The supervisor reopened B4 to renumber; its follow-up `.4.2` is held. B4 should take 0052 or higher.
+  - #37 still overflows its stack; its task is working on it. Codex is at 94%.
+- **04:05 check.**
+  - **Merged B2** (aq-server PR #35, `620533f6`) after three migration renumbers and two operator merges. Its failures (the observations 403/401 test and update-lifecycle case 1) also fail on other branches. This ends the B2 migration race; B4 renumbers against main.
+  - Merged #38 (`steady-harbor-87.2.4`, `53912143`) and closed the task with `--done`.
+  - **Filed** `prime-dune-72` (update-lifecycle CI: the server container fails `docker compose up` in "case 1: first install of 0.1.0", on #35 and #37) and H2's cross-repo follow-up `swift-journey-80` (aq-worker H1 readers emit server-derived source_id). Both are standard-medium Claude.
+  - G2, H2 and C4 started. #37 (I0 server findings) still overflows its stack and is in progress; MS0 waits on it.

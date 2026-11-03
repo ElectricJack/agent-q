@@ -56,11 +56,13 @@ BEGIN
 END $$;
 CREATE TRIGGER profiled_auto_settlement_owner BEFORE INSERT OR UPDATE OR DELETE ON profiled_auto_settlements
  FOR EACH ROW EXECUTE FUNCTION profiled_auto_settlement_owner();
--- A confirmed automatic completion receipt is an additional release proof.
+-- A confirmed automatic completion receipt is an additional release proof,
+-- alongside format 52's replacement release.
 CREATE OR REPLACE FUNCTION settlement_claim_guard() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
  IF OLD.kind='profiled_v1' AND OLD.holds_task AND NOT NEW.holds_task AND EXISTS(SELECT 1 FROM profiled_authority_hot WHERE attempt_id=OLD.attempt_id)
  AND NOT profiled_never_granted_valid(OLD.attempt_id)
+ AND NOT EXISTS(SELECT 1 FROM profiled_replacement_releases WHERE attempt_id=OLD.attempt_id)
  AND NOT EXISTS(SELECT 1 FROM profiled_task_completions c JOIN profiled_settlement_evaluations e ON e.operation_id=c.evaluation_operation_id JOIN profiled_verified_releases r ON r.attempt_id=c.attempt_id AND r.release_id=c.release_id WHERE c.attempt_id=OLD.attempt_id AND c.state='confirmed' AND e.disposition='accepted' AND e.operation_id=r.settlement_operation_id AND c.receipt IS NOT NULL AND c.outbox IS NOT NULL)
  AND NOT EXISTS(SELECT 1 FROM profiled_auto_settlements a WHERE a.attempt_id=OLD.attempt_id AND a.disposition='confirmed' AND a.receipt IS NOT NULL)
  THEN RAISE EXCEPTION 'claim remains held until actual Graph completion receipt'; END IF;
@@ -78,6 +80,7 @@ BEGIN
  IF OLD.kind='profiled_v1' AND OLD.holds_task AND NOT NEW.holds_task
     AND EXISTS(SELECT 1 FROM profiled_authority_hot WHERE attempt_id=OLD.attempt_id)
     AND NOT EXISTS(SELECT 1 FROM profiled_verified_releases WHERE attempt_id=OLD.attempt_id)
+    AND NOT EXISTS(SELECT 1 FROM profiled_replacement_releases WHERE attempt_id=OLD.attempt_id)
     AND NOT EXISTS(SELECT 1 FROM profiled_auto_settlements a WHERE a.attempt_id=OLD.attempt_id AND a.disposition='confirmed' AND a.receipt IS NOT NULL)
     AND NOT profiled_never_granted_valid(OLD.attempt_id)
  THEN RAISE EXCEPTION 'actual owner-verified release record required' USING ERRCODE='23514'; END IF;
@@ -88,4 +91,4 @@ ALTER TABLE playbook_outbox DROP CONSTRAINT playbook_outbox_producer_check;
 ALTER TABLE playbook_outbox ADD CHECK(producer IN ('aq.host.bridge@1','aq.human.decisions@1','aq.graph.operations@1'));
 ALTER TABLE playbook_namespaces DROP CONSTRAINT playbook_namespaces_catalog_profile_check;
 ALTER TABLE playbook_namespaces ADD CHECK(catalog_profile IN (1,2,3));
-UPDATE meta SET value='52' WHERE key='state_format_version';
+UPDATE meta SET value='54' WHERE key='state_format_version';

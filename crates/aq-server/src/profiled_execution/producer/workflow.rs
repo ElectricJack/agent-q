@@ -1,15 +1,19 @@
-//! First bounded native profile: one worker slot and one immutable-base task.
-//! It uses installed owner facts and never calls a model provider.
+//! Bounded native profile: one worker slot, one task per poll from fairly
+//! ordered projects, failed-attempt replacement within budget, and an exact
+//! commit frozen at offer time. It never calls a model provider.
 use super::{
     artifacts::{RetainedSet, canonical},
-    build, compose, now, publication, refused,
+    build, compose, fairness, now, publication, refused,
 };
 use crate::{
     AppState,
     error::AppError,
-    intelligence::resolver::{self, ResolveRequest},
+    intelligence::resolver::{self, ReplacementBudget, ResolveRequest},
     profiled_execution::{
-        artifacts::OwnerKind, context_budget, registration, source, source_exports,
+        artifacts::OwnerKind,
+        context_budget, registration,
+        replacement::{self, Assessment},
+        source, source_exports,
     },
     source_retention::profiled_base,
     worker_api::AuthenticatedNode,
@@ -24,6 +28,8 @@ use sqlx::Row;
 use std::sync::OnceLock;
 use tokio::sync::Semaphore;
 use uuid::Uuid;
+/// Bounded Graph reads per poll while looking for a project with ready work.
+const MAX_PROJECTS_PER_POLL: usize = 4;
 fn db(_: sqlx::Error) -> AppError {
     AppError::Internal
 }
@@ -107,23 +113,12 @@ async fn reservation(
     state: &AppState,
     compiled: &compose::Compiled,
     operation: Uuid,
+    observed: source::Observation,
 ) -> Result<source_exports::Reservation, AppError> {
     let project = compiled.frozen.project.binding.project_id;
     if let Some(old) = source_exports::recover_existing(state, operation, project).await? {
         return Ok(old);
     }
-    let config = state
-        .config
-        .profiled_execution
-        .as_ref()
-        .ok_or_else(refused)?;
-    let policy = config
-        .project_policy_record(project)
-        .map_err(|_| refused())?;
-    if !matches!(policy.source, SourceSelection::Immutable { .. }) {
-        return Err(refused());
-    }
-    let observed = source::observe(state, &compiled.frozen, &policy).await?;
     // Original proposal remains Context. Final Source owner publication is a
     // separate receipt of the actual admission observation, not the Git bundle.
     let mut proposals = RetainedSet::new(
@@ -172,37 +167,94 @@ async fn selection(
     state: &AppState,
     task: &aq_admission::TaskRevision,
     compiled: &compose::Compiled,
+    replacement: Option<&replacement::Replacement>,
 ) -> Result<resolver::Decision, AppError> {
+    let lineage = TaskLineage {
+        project_id: compiled.frozen.project.binding.project_id,
+        workspace_id: task.workspace_id,
+        task_id: task.task_id,
+    };
+    let replacement = replacement
+        .map(|r| {
+            Ok::<_, AppError>(ReplacementBudget {
+                attempts_started: r.attempts_started,
+                elapsed_ms: r.elapsed_ms,
+                evidence: r.evidence(lineage.clone(), now(state)?)?,
+            })
+        })
+        .transpose()?;
     resolver::resolve_for_project_policy(
         state,
         ResolveRequest {
             operation_id: Uuid::new_v4(),
-            lineage: TaskLineage {
-                project_id: compiled.frozen.project.binding.project_id,
-                workspace_id: task.workspace_id,
-                task_id: task.task_id,
-            },
+            lineage,
             project: compiled.frozen.clone(),
             compositions: compiled.candidates.clone(),
+            replacement,
         },
     )
     .await
 }
+/// The commit frozen into the export operation key. An immutable policy keeps
+/// its historical key; a named ref adds the commit it resolved to at offer
+/// time, so a moved ref is a different export and never a followed one.
+fn frozen_commit<'a>(
+    policy: &SourceSelection,
+    observed: &'a source::Observation,
+) -> Option<&'a str> {
+    match policy {
+        SourceSelection::Immutable { .. } => None,
+        SourceSelection::NamedRef { .. } => Some(observed.admission.resolved_object.hex.as_str()),
+    }
+}
+fn source_operation<T: serde::Serialize>(
+    project: Uuid,
+    task: &aq_admission::TaskRevision,
+    project_revision: u64,
+    generation: u64,
+    policy_ref: T,
+    frozen_commit: Option<&str>,
+) -> Result<Uuid, AppError> {
+    let key = match frozen_commit {
+        None => canonical(&(project, task, project_revision, generation, policy_ref))?,
+        Some(commit) => canonical(&(
+            project,
+            task,
+            project_revision,
+            generation,
+            policy_ref,
+            commit,
+        ))?,
+    };
+    Ok(Uuid::new_v5(&Uuid::from_bytes(*b"aq-native-export"), &key))
+}
 async fn first_eligible_task<F, Fut>(
     ready: &crate::agent_access::scheduling::ReadyPage,
-    mut counts: F,
-) -> Result<Option<aq_admission::TaskRevision>, AppError>
+    mut assess: F,
+) -> Result<Option<(aq_admission::TaskRevision, Assessment)>, AppError>
 where
     F: FnMut(Uuid) -> Fut,
-    Fut: std::future::Future<Output = Result<super::super::no_grant::AttemptCounts, AppError>>,
+    Fut: std::future::Future<Output = Result<Assessment, AppError>>,
 {
-    for candidate in &ready.items {
-        let counts = counts(candidate.revision.task_id).await?;
+    // Priority is AQ policy carried in Graph metadata. Order only this bounded
+    // page; stable sorting retains Graph order for ties and neutral priorities.
+    // Missing or non-integer values use zero, so arbitrary Graph metadata cannot
+    // prevent otherwise eligible tasks from being considered.
+    let mut candidates = ready.items.iter().collect::<Vec<_>>();
+    candidates.sort_by_key(|candidate| {
+        std::cmp::Reverse(
+            candidate.node["metadata"]["aq:priority"]
+                .as_i64()
+                .unwrap_or(0),
+        )
+    });
+    for candidate in candidates {
         // Graph readiness is independent of AQ's retained task claims. A held
-        // or previously started task, or an exhausted never-granted retry
-        // budget, must not starve later tasks on this same bounded page.
-        if counts.started == 0 && counts.check_retry_bound().is_ok() {
-            return Ok(Some(candidate.revision.clone()));
+        // task, an exhausted retry/time/sandbox budget or an uncertain prior
+        // must not starve later tasks on this same bounded page.
+        match assess(candidate.revision.task_id).await? {
+            Assessment::Blocked(_) => {}
+            admitted => return Ok(Some((candidate.revision.clone(), admitted))),
         }
     }
     Ok(None)
@@ -288,38 +340,60 @@ async fn offers(
         .profiled_execution
         .as_ref()
         .ok_or_else(refused)?;
-    let mut projects = config
+    let candidates = config
         .projects
         .iter()
         .filter(|p| p.enabled)
+        .map(|p| fairness::Candidate {
+            project_id: p.project_id,
+            priority: p.priority,
+        })
         .collect::<Vec<_>>();
-    projects.sort_by_key(|p| (std::cmp::Reverse(p.priority), p.project_id));
-    let Some(policy) = projects.first() else {
-        return Ok(page);
-    };
-    // Conservative finite first profile: exactly one configured candidate project
-    // per poll. Later fairness is a scheduler policy, not an invented task label.
-    if !matches!(policy.source, SourceSelection::Immutable { .. }) {
-        return Err(refused());
-    }
-    let record = crate::project_bindings::current(state, policy.project_id).await?;
     let graph = state.agent_access.as_ref().ok_or_else(refused)?;
-    let ready = graph
-        .scheduling_ready_current(
-            record.binding.graph_workspace_id,
-            8,
-            None,
-            state.clock.as_ref(),
-        )
-        .await
-        .map_err(|_| refused())?;
-    let Some(task) = first_eligible_task(&ready, |task| {
-        super::super::no_grant::attempt_counts(&state.store.pool, task)
-    })
-    .await?
-    else {
+    let polled_at = now(state)?;
+    let served = fairness::served(&state.store.pool).await?;
+    // Fair share (§8.2): priority plus aging. A project is charged a turn
+    // before its Graph read, so one with no work or a failing owner read
+    // cannot hold the head of the order and starve the others.
+    let mut chosen = None;
+    for candidate in fairness::order(&candidates, &served, polled_at)
+        .into_iter()
+        .take(MAX_PROJECTS_PER_POLL)
+    {
+        let policy = config
+            .projects
+            .iter()
+            .find(|p| p.project_id == candidate.project_id)
+            .ok_or_else(refused)?;
+        fairness::record(&state.store.pool, policy.project_id, polled_at).await?;
+        let record = crate::project_bindings::current(state, policy.project_id).await?;
+        let ready = graph
+            .scheduling_ready_current(
+                record.binding.graph_workspace_id,
+                8,
+                None,
+                state.clock.as_ref(),
+            )
+            .await
+            .map_err(|_| refused())?;
+        if let Some((task, assessment)) = first_eligible_task(&ready, |task| {
+            replacement::assess_task(state, task, polled_at)
+        })
+        .await?
+        {
+            chosen = Some((policy, record, ready, task, assessment));
+            break;
+        }
+    }
+    let Some((policy, record, ready, task, assessment)) = chosen else {
         return Ok(page);
     };
+    let replacement = assessment.replacement().cloned();
+    if let Some(replacement) = &replacement {
+        // The failed predecessor's claim is released under its locks before
+        // the successor's generation; a later refusal retries idempotently.
+        replacement::release(state, task.task_id, replacement).await?;
+    }
     let generation =
         super::super::no_grant::next_generation(&state.store.pool, task.task_id).await?;
     let context = graph
@@ -342,7 +416,7 @@ async fn offers(
             .ok_or_else(refused)?
             .node,
     )?;
-    let decision = selection(state, &task, &compiled).await?;
+    let decision = selection(state, &task, &compiled, replacement.as_ref()).await?;
     let selected = decision.outcome.resolved.as_ref().ok_or_else(refused)?;
     let composition = compiled
         .candidates
@@ -358,9 +432,19 @@ async fn offers(
         now(state)?,
     )
     .map_err(|_| refused())?;
-    let source_operation = Uuid::new_v5(
-        &Uuid::from_bytes(*b"aq-native-export"),
-        &canonical(&(
+    let policy_record = config
+        .project_policy_record(policy.project_id)
+        .map_err(|_| refused())?;
+    let (token, fact) = if let Some(replacement) = &replacement {
+        // Reuse the original verified export, including its bundle bytes and
+        // operation identity. Never resolve a moving ref or re-export on retry.
+        replacement::retained_source(state, task.task_id, replacement)
+            .await?
+            .into_parts()
+    } else {
+        // A first attempt freezes the configured source at offer time.
+        let observed = source::observe(state, &compiled.frozen, &policy_record).await?;
+        let operation = source_operation(
             policy.project_id,
             &task,
             record.revision,
@@ -368,24 +452,27 @@ async fn offers(
             config
                 .project_policy_ref(policy.project_id)
                 .map_err(|_| refused())?,
-        ))?,
-    );
-    let reserved = reservation(state, &compiled, source_operation).await?;
-    let (token, fact) = match reserved {
-        source_exports::Reservation::Pending(token) => {
-            let fact = profiled_base::verify_export(state, &token).await?;
-            source_exports::finalize(state, &token, &fact).await?;
-            (token, fact)
-        }
-        source_exports::Reservation::Verified {
-            reservation,
-            canonical_verified,
-        } => {
-            let fact =
-                profiled_base::VerifiedExport::decode_stored(&reservation, &canonical_verified)?;
-            (reservation, fact)
+            frozen_commit(&policy.source, &observed),
+        )?;
+        match reservation(state, &compiled, operation, observed).await? {
+            source_exports::Reservation::Pending(token) => {
+                let fact = profiled_base::verify_export(state, &token).await?;
+                source_exports::finalize(state, &token, &fact).await?;
+                (token, fact)
+            }
+            source_exports::Reservation::Verified {
+                reservation,
+                canonical_verified,
+            } => {
+                let fact = profiled_base::VerifiedExport::decode_stored(
+                    &reservation,
+                    &canonical_verified,
+                )?;
+                (reservation, fact)
+            }
         }
     };
+    let source_operation = token.request().operation_id;
     // External export can consume the original graph/selection freshness. Read
     // actual owners again; a task CAS/content change refuses this original task.
     let ready = graph
@@ -413,15 +500,12 @@ async fn offers(
         .await
         .map_err(|_| refused())?;
     let compiled = compose::compile(state, &record, auth.id(), &snapshot, &context).await?;
-    let decision = selection(state, &task, &compiled).await?;
-    let source = source::observe(
-        state,
-        &compiled.frozen,
-        &config
-            .project_policy_record(policy.project_id)
-            .map_err(|_| refused())?,
-    )
-    .await?;
+    let decision = selection(state, &task, &compiled, replacement.as_ref()).await?;
+    let source = if replacement.is_some() {
+        source::observe_retained(state, &compiled.frozen, &policy_record, token.request()).await?
+    } else {
+        source::observe(state, &compiled.frozen, &policy_record).await?
+    };
     if source.admission.resolved_object.hex != token.request().base.hex
         || source.admission.repository_binding_generation != token.request().binding_generation
     {
@@ -490,8 +574,66 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn ready_selection_uses_descending_priority_and_preserves_graph_order_for_ties() {
+        for (priorities, expected) in [
+            (vec![0, 10, 30, 20], 2),
+            (vec![10, 30, 30, 20], 1),
+            (vec![0, 0, 0, 0], 0),
+            (vec![-30, -10, -20, -40], 1),
+            (vec![i64::MIN, 0, i64::MAX, -1], 2),
+        ] {
+            let mut ready = ready(priorities.len());
+            for (candidate, priority) in ready.items.iter_mut().zip(priorities) {
+                candidate.node = serde_json::json!({"metadata":{"aq:priority":priority}});
+            }
+            let original = serde_json::to_value(&ready).unwrap();
+            let selected =
+                first_eligible_task(&ready, |_| std::future::ready(Ok(Assessment::Fresh)))
+                    .await
+                    .unwrap();
+            assert_eq!(
+                selected,
+                Some((ready.items[expected].revision.clone(), Assessment::Fresh))
+            );
+            assert_eq!(serde_json::to_value(&ready).unwrap(), original);
+        }
+    }
+
+    #[tokio::test]
+    async fn ready_selection_treats_missing_and_noninteger_priorities_as_zero() {
+        use serde_json::json;
+        for metadata in [
+            json!({}),
+            json!({"other:priority":100}),
+            json!({"aq:priority":null}),
+            json!({"aq:priority":"100"}),
+            json!({"aq:priority":1.5}),
+            json!({"aq:priority":true}),
+            json!({"aq:priority":[]}),
+            json!({"aq:priority":{}}),
+            json!({"aq:priority":u64::MAX}),
+        ] {
+            let mut ready = ready(3);
+            ready.items[0].node = json!({"metadata":{"aq:priority":-1}});
+            ready.items[1].node = json!({"metadata":metadata});
+            ready.items[2].node = json!({"metadata":{"aq:priority":0}});
+            let selected =
+                first_eligible_task(&ready, |_| std::future::ready(Ok(Assessment::Fresh)))
+                    .await
+                    .unwrap();
+            assert_eq!(
+                selected,
+                Some((ready.items[1].revision.clone(), Assessment::Fresh))
+            );
+        }
+    }
+
+    #[tokio::test]
     async fn ready_selection_skips_held_and_exhausted_tasks_without_starving_later_retry() {
-        let ready = ready(4);
+        let mut ready = ready(4);
+        for (candidate, priority) in ready.items.iter_mut().zip([20, 30, 10, 0]) {
+            candidate.node = serde_json::json!({"metadata":{"aq:priority":priority}});
+        }
         let counts = [
             // `started` includes held offers, not only actual kernel starts.
             AttemptCounts {
@@ -513,19 +655,58 @@ mod tests {
         ];
         let mut observed = Vec::new();
         let selected = first_eligible_task(&ready, |task| {
-            let index = observed.len();
+            let index = ready
+                .items
+                .iter()
+                .position(|r| r.revision.task_id == task)
+                .unwrap();
             observed.push(task);
-            std::future::ready(Ok(counts[index]))
+            // A started (held) attempt is not decided by counts; its history
+            // shows a running predecessor, which blocks replacement.
+            std::future::ready(Ok(replacement::precheck(&counts[index])
+                .unwrap_or(Assessment::Blocked("replacement_prior_execution_uncertain"))))
         })
         .await
         .unwrap();
-        assert_eq!(selected, Some(ready.items[2].revision.clone()));
+        assert_eq!(
+            selected,
+            Some((ready.items[2].revision.clone(), Assessment::Fresh))
+        );
         assert_eq!(
             observed,
-            ready.items[..3]
-                .iter()
-                .map(|r| r.revision.task_id)
+            [1, 0, 2]
+                .into_iter()
+                .map(|index| ready.items[index].revision.task_id)
                 .collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn named_ref_resolves_to_exact_commit_at_offer() {
+        let project = Uuid::from_u128(7);
+        let task = aq_admission::TaskRevision {
+            workspace_id: Uuid::from_u128(8),
+            task_id: Uuid::from_u128(9),
+            version: 1,
+            content_revision: 1,
+        };
+        let policy_ref = "policy";
+        let (a, b) = ("a".repeat(40), "b".repeat(40));
+        let key = |commit: Option<&str>| {
+            source_operation(project, &task, 3, 1, policy_ref, commit).unwrap()
+        };
+        // The commit resolved at offer time is part of the export identity:
+        // a moved ref is a new operation, never the old one following the ref.
+        assert_ne!(key(Some(&a)), key(Some(&b)));
+        assert_eq!(key(Some(&a)), key(Some(&a)));
+        assert_ne!(key(Some(&a)), key(None));
+        // Immutable policies keep their historical operation key.
+        assert_eq!(
+            key(None),
+            Uuid::new_v5(
+                &Uuid::from_bytes(*b"aq-native-export"),
+                &canonical(&(project, &task, 3_u64, 1_u64, policy_ref)).unwrap()
+            )
         );
     }
 
@@ -537,11 +718,16 @@ mod tests {
             history: 1,
             never_granted: 0,
         };
+        assert!(replacement::precheck(&held).is_none());
         assert!(
-            first_eligible_task(&ready, |_| std::future::ready(Ok(held)))
-                .await
-                .unwrap()
-                .is_none()
+            first_eligible_task(&ready, |_| {
+                std::future::ready(Ok(Assessment::Blocked(
+                    "replacement_prior_execution_uncertain",
+                )))
+            })
+            .await
+            .unwrap()
+            .is_none()
         );
         let mut reads = 0;
         let result = first_eligible_task(&ready, |_| {

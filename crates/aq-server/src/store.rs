@@ -304,7 +304,15 @@ const MIGRATIONS: &[(i32, &str)] = &[
         51,
         include_str!("../migrations/0051_supervisor_credential_revocation.sql"),
     ),
-    (52, include_str!("../migrations/0052_auto_settlement.sql")),
+    (
+        52,
+        include_str!("../migrations/0052_profiled_replacement_fairness.sql"),
+    ),
+    (
+        53,
+        include_str!("../migrations/0053_replacement_retained_source.sql"),
+    ),
+    (54, include_str!("../migrations/0054_auto_settlement.sql")),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -523,22 +531,15 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
     if supported == 38 {
         result38::validate(&mut tx).await?;
     }
-    if supported >= 52 {
-        settlement39::validate_auto_settlement(&mut tx).await?;
-    } else if supported >= 41 {
-        settlement39::validate_compute_reuse(&mut tx).await?;
+    if supported >= 41 {
+        settlement39::validate_compute_reuse(&mut tx, supported).await?;
     } else if supported >= 40 {
         settlement39::validate_phase_absence(&mut tx).await?;
     } else if supported >= 39 {
         settlement39::validate(&mut tx).await?;
     }
     if supported >= 43 {
-        if supported >= 52 {
-            never_granted40::validate_auto_settlement(&mut tx).await?;
-            auto52::validate(&mut tx).await?;
-        } else {
-            never_granted40::validate_native_cancellation(&mut tx).await?;
-        }
+        never_granted40::validate_native_cancellation(&mut tx, supported).await?;
         compute41::validate(&mut tx).await?;
         cancellation43::validate(&mut tx).await?;
     } else if supported >= 41 {
@@ -546,6 +547,15 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         compute41::validate(&mut tx).await?;
     } else if supported >= 40 {
         never_granted40::validate(&mut tx).await?;
+    }
+    if supported >= 52 {
+        replacement52::validate(&mut tx).await?;
+    }
+    if supported >= 53 {
+        retained_source53::validate(&mut tx).await?;
+    }
+    if supported >= 54 {
+        auto54::validate(&mut tx).await?;
     }
     tx.commit().await?;
     Ok(())
@@ -1142,8 +1152,8 @@ mod settlement39;
 #[path = "store/settlement39_tests.rs"]
 mod settlement39_tests;
 
-#[path = "store/auto52.rs"]
-mod auto52;
+#[path = "store/auto54.rs"]
+mod auto54;
 #[path = "store/compute41.rs"]
 mod compute41;
 #[path = "store/never_granted40.rs"]
@@ -1151,3 +1161,7 @@ mod never_granted40;
 
 #[path = "store/cancellation43.rs"]
 mod cancellation43;
+#[path = "store/replacement52.rs"]
+mod replacement52;
+#[path = "store/retained_source53.rs"]
+mod retained_source53;

@@ -1,17 +1,27 @@
-//! Exact D3 auto-settlement52 owner and the two widened holds_task release
-//! guards; prior catalogs substitute these bodies only at format >= 52.
+//! Exact D3 format-54 auto-settlement owner and the two widened holds_task
+//! release guards; prior catalogs substitute these bodies only at format >= 54.
 use super::{Result, StoreError};
 use sqlx::{Postgres, Transaction};
 fn corrupt() -> StoreError {
-    StoreError::Corrupt("auto settlement52 guard drift".into())
+    StoreError::Corrupt("auto settlement54 guard drift".into())
 }
 pub(super) fn function_body(name: &str) -> Result<&'static str> {
-    include_str!("../../migrations/0052_auto_settlement.sql")
+    include_str!("../../migrations/0054_auto_settlement.sql")
         .split_once(&format!("FUNCTION {name}("))
         .and_then(|(_, tail)| tail.split_once("AS $$"))
         .and_then(|(_, tail)| tail.split_once("$$;"))
         .map(|(body, _)| body)
         .ok_or_else(corrupt)
+}
+/// The claim guards format 54 replaces again (over format 52's bodies).
+pub(super) fn guard_overrides() -> Result<Vec<(&'static str, &'static str)>> {
+    [
+        "profiled_historical_snapshot_guard",
+        "settlement_claim_guard",
+    ]
+    .into_iter()
+    .map(|name| function_body(name).map(|body| (name, body)))
+    .collect()
 }
 pub(super) async fn validate(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
     let actual: Option<String> = sqlx::query_scalar("SELECT p.prosrc FROM pg_proc p JOIN pg_language l ON l.oid=p.prolang WHERE p.oid=to_regprocedure('profiled_auto_settlement_owner()') AND NOT p.prosecdef AND p.proconfig IS NULL AND l.lanname='plpgsql' AND p.prorettype=to_regtype('trigger')")
