@@ -43,7 +43,7 @@ assert!(record.authorize(&current, RunnerOperation::Observe, record.expires_at_m
 
 ## 2. PostgreSQL integration and revocation
 
-Files: create `crates/aq-server/migrations/0046_delegated_permits.sql`; modify `store.rs` migration registration and `lib.rs` state format. Add durable-store tests to `tests/delegated_permits.rs`.
+Files: create `crates/aq-server/migrations/0048_delegated_permits.sql`; modify `store.rs` migration registration and `lib.rs` state format. Add durable-store tests to `tests/delegated_permits.rs`.
 
 Interfaces: transaction-owned issue/load/revoke/update functions operate on `sqlx::Transaction<Postgres>`. Uniqueness is `(node_id, operation_id)`, one live identity per attempt/generation, and unique channel. Request digest, original metadata and verifier are immutable issuance evidence; boot/scope/current expiry change through guarded updates. Rows carry no raw credential.
 
@@ -104,7 +104,7 @@ See `docs/implementation/B2.md` for exact limits, failures and verification.
 
 ## Resumed implementation (2026-11-02)
 
-The owner prerequisite is published at a2ff7454a7851ad4662308bc55b23254c6524ca4, admission 0.3.0. Consume its immutable archive, including Prepared/mail operations and sibling issuance/upgrade envelopes. Migration 46 preserves the backend checkpoint after main took 45. Existing immutable permit issuance records remain replay evidence; mutable authority belongs in a separate current-state record.
+The owner prerequisite is published at a2ff7454a7851ad4662308bc55b23254c6524ca4, admission 0.3.0. Consume its immutable archive, including Prepared/mail operations and sibling issuance/upgrade envelopes. Migration 48 preserves the backend checkpoint after main took 46 and 47 for F1a (operator message msg-a429cdbedfe2460bb1a536a2e0ae45bd). Existing immutable permit issuance records remain replay evidence; mutable authority belongs in a separate current-state record.
 
 - [ ] Verify migrated storage and cargo check, then run the updated owner fixtures.
 - [ ] Publish registration, issuance, upgrade and re-adoption transports using the owner types. Correlate issuance and upgrade with stored frozen receipts.
