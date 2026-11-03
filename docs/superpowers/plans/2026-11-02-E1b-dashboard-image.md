@@ -1,6 +1,6 @@
 # E1b Dashboard Image Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Embed the verified E3 v0.1.0 archive in the server image and serve authenticated assets with correct caching and bootstrap digest.
 
@@ -25,10 +25,10 @@
 
 **Interfaces:** Consumes E3 release v0.1.0 archive SHA256 `162f2cd29e7123570f4568df68ff2ffffa1c97417c1f51369fcd55b1c7bd2465` and exact manifest digest `f1eefcaafe25426f84b53ea306efed0110e8629f49a09e7e67fcff5b7f3580da`. Produces `/usr/share/agent-q/dashboard`, `AQ_DASHBOARD_DIR` and test `server_image_serves_pinned_dashboard_digest`.
 
-- [ ] Add a real Cargo test that invokes the checker to verify/extract the pinned archive into a temporary directory, loads `DashboardAssets`, requests authenticated `/api/v1/bootstrap`, and asserts `body["data"]["product"]["dashboard_digest"] == format!("sha256:{}", assets.digest())` and the pin's `dashboard_digest`; request `/` and a manifest-listed JS asset too.
-- [ ] Run `cargo test --locked -p aq-server --test dashboard_assets server_image_serves_pinned_dashboard_digest` through an `aq test` subprocess adapter. Expect failure because checker/pin/schema support do not exist yet.
-- [ ] Copy E3's published inputs from the downloaded release cache only after checking SHA256. Pin release tag, URL, archive and manifest digests and source revision. Checker must reject digest/record/manifest mismatches and unsafe archive members before extraction, verify listed bytes/hashes, and check the Docker checksum/path/environment wiring.
-- [ ] In the server stage, COPY the vendored archive, RUN `echo '<archive digest>  /tmp/dashboard.tar.gz' | sha256sum -c -` before `tar -xzf ... -C /usr/share/agent-q/dashboard`, remove the temporary archive, and ENV `AQ_DASHBOARD_DIR=/usr/share/agent-q/dashboard`. Production Compose needs no mount; label overlay development-only. Add checker to CI.
+- [x] Add a real Cargo test that invokes the checker to verify/extract the pinned archive into a temporary directory, loads `DashboardAssets`, requests authenticated `/api/v1/bootstrap`, and asserts `body["data"]["product"]["dashboard_digest"] == format!("sha256:{}", assets.digest())` and the pin's `dashboard_digest`; request `/` and a manifest-listed JS asset too.
+- [x] Run `cargo test --locked -p aq-server --test dashboard_assets server_image_serves_pinned_dashboard_digest` through an `aq test` subprocess adapter. Expect failure because checker/pin/schema support do not exist yet.
+- [x] Copy E3's published inputs from the downloaded release cache only after checking SHA256. Pin release tag, URL, archive and manifest digests and source revision. Checker must reject digest/record/manifest mismatches and unsafe archive members before extraction, verify listed bytes/hashes, and check the Docker checksum/path/environment wiring.
+- [x] In the server stage, COPY the vendored archive, RUN `echo '<archive digest>  /tmp/dashboard.tar.gz' | sha256sum -c -` before `tar -xzf ... -C /usr/share/agent-q/dashboard`, remove the temporary archive, and ENV `AQ_DASHBOARD_DIR=/usr/share/agent-q/dashboard`. Production Compose needs no mount; label overlay development-only. Add checker to CI.
 
 ### Task 2: Typed compatibility and HTTP caching
 
@@ -36,17 +36,17 @@
 
 **Interfaces:** `DashboardAssets::load(directory: &Path) -> anyhow::Result<Self>` retains digest semantics. Schema 2 includes version, source {revision,dirty,official}, toolchain {node,pnpm,lockfile_sha256}, required_api_versions and required_capabilities. Bootstrap advertises dashboard-read-1 and dashboard-actions-1; capability identifiers are those implemented in `dashboard_api/service.rs`.
 
-- [ ] Add loader tests using a schema 2 fixture: accept supported requirements and development provenance; refuse unknown API/capability, missing required schema 2 metadata, malformed revision/lock digest, unknown fields and future schema. Existing security/quota tests stay intact.
-- [ ] Add router assertions: GET/HEAD `/index.html`, `/` and SPA routes use `no-cache`; manifest metadata uses `no-cache`; hashed asset uses `private, max-age=31536000, immutable`; unhashed `assets/app.js` uses `no-cache`; authenticated and unauthenticated `/api/*` and errors remain `no-store`. Update former 404 expectations for newly served index/manifest.
-- [ ] Run focused loader/router tests and retain red evidence.
-- [ ] Implement typed optional schema 2 fields with deny_unknown_fields, require them for schema 2, and validate each required API/capability against the server's implemented vocabulary. Per-principal enabled grants remain independent. Keep all existing bounds and startup integrity checks.
-- [ ] Store the exact manifest bytes as an authenticated compatibility metadata response. Add cache policy to verified assets; only names with a final Vite-style `-<8+ alphanumeric/_ token>` before extension are immutable. Index/metadata/unhashed assets revalidate.
-- [ ] Update outer hardening to preserve explicit successful asset cache headers, force APIs/errors to no-store and retain existing private no-store semantics. Run acceptance and dashboard area tests green.
+- [x] Add loader tests using a schema 2 fixture: accept supported requirements and development provenance; refuse unknown API/capability, missing required schema 2 metadata, malformed revision/lock digest, unknown fields and future schema. Existing security/quota tests stay intact.
+- [x] Add router assertions: GET/HEAD `/index.html`, `/` and SPA routes use `no-cache`; manifest metadata uses `no-cache`; hashed asset uses `private, max-age=31536000, immutable`; unhashed `assets/app.js` uses `no-cache`; authenticated and unauthenticated `/api/*` and errors remain `no-store`. Update former 404 expectations for newly served index/manifest.
+- [x] Run focused loader/router tests and retain red evidence.
+- [x] Implement typed optional schema 2 fields with deny_unknown_fields, require them for schema 2, and validate each required API/capability against the server's implemented vocabulary. Per-principal enabled grants remain independent. Keep all existing bounds and startup integrity checks.
+- [x] Store the exact manifest bytes as an authenticated compatibility metadata response. Add cache policy to verified assets; only names with a final Vite-style `-<8+ alphanumeric/_ token>` before extension are immutable. Index/metadata/unhashed assets revalidate.
+- [x] Update outer hardening to preserve explicit successful asset cache headers, force APIs/errors to no-store and retain existing private no-store semantics. Run acceptance and dashboard area tests green.
 
 ### Task 3: Verification and publication
 
 **Files:** Create `docs/implementation/E1b.md` and retained logs in `docs/implementation/evidence/E1b/`.
 
-- [ ] Run `python3 scripts/check-dashboard-candidate.py`, corruption/unsafe archive checks, `cargo fmt --check`, `cargo clippy --locked --all-targets -- -D warnings`, named command `cargo test --locked --workspace server_image_serves_pinned_dashboard_digest`, and dashboard assets/read/actions area tests under `aq test` with `CARGO_BUILD_JOBS=2`, `RUST_TEST_THREADS=2`, PostgreSQL from scripts/test-db. Keep full logs and distinguish unavailable checks.
-- [ ] Reconcile every contract item, document no Docker build claim unless executed and E3's disclosed frontend qualification limits.
-- [ ] Settle task checklist including review not required (no adversarial marker), squash own unpublished implementation history onto recorded source base, merge origin/main, rerun targeted checks if merge changes relevant files, push via `aq git push`, record exact SHA, close pass with changes/verification/test and `--work-outcome shipped`, then `aq session drain-ack`.
+- [x] Run `python3 scripts/check-dashboard-candidate.py`, corruption/unsafe archive checks, `cargo fmt --check`, `cargo clippy --locked --all-targets -- -D warnings`, named command `cargo test --locked --workspace server_image_serves_pinned_dashboard_digest`, and dashboard assets/read/actions area tests under `aq test` with `CARGO_BUILD_JOBS=2`, `RUST_TEST_THREADS=2`, PostgreSQL from scripts/test-db. Keep full logs and distinguish unavailable checks.
+- [x] Reconcile every contract item, document no Docker build claim unless executed and E3's disclosed frontend qualification limits.
+- [x] Settle task checklist including review not required (no adversarial marker), squash own unpublished implementation history onto recorded source base, merge origin/main, rerun targeted checks if merge changes relevant files, push via `aq git push`, record exact SHA, close pass with changes/verification/test and `--work-outcome shipped`, then `aq session drain-ack`.
