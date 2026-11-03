@@ -6,7 +6,7 @@
 
 **Architecture:** PostgreSQL owns permit metadata and operation replay records. A server-private derivation key reproduces credentials for exact issuance replay; PostgreSQL stores only verifiers. Authentication must recheck current node, boot, attempt, grant and cancellation state in the transaction authorizing effects. A permit must never become an unrestricted node credential.
 
-**Tech Stack:** Rust, Axum, SQLx/PostgreSQL, pinned aq-admission-sandbox 0.2.0.
+**Tech Stack:** Rust, Axum, SQLx/PostgreSQL, pinned aq-admission-sandbox 0.3.0.
 
 **Spec:** AQ task noble-summit-37.2 and `2026-11-02-v2-full-application-tasks.yaml`, B2. Operator message `msg-b5ea45f061ad46a5be367c80de20b495` additionally assigns registration-v2 and initial permit transport publication to B2. The aq-worker Controller/PermitProvider consumer must be coordinated in its owning repository.
 
@@ -43,7 +43,7 @@ assert!(record.authorize(&current, RunnerOperation::Observe, record.expires_at_m
 
 ## 2. PostgreSQL integration and revocation
 
-Files: create `crates/aq-server/migrations/0045_delegated_permits.sql`; modify `store.rs` migration registration and `lib.rs` state format. Add durable-store tests to `tests/delegated_permits.rs`.
+Files: create `crates/aq-server/migrations/0046_delegated_permits.sql`; modify `store.rs` migration registration and `lib.rs` state format. Add durable-store tests to `tests/delegated_permits.rs`.
 
 Interfaces: transaction-owned issue/load/revoke/update functions operate on `sqlx::Transaction<Postgres>`. Uniqueness is `(node_id, operation_id)`, one live identity per attempt/generation, and unique channel. Request digest, original metadata and verifier are immutable issuance evidence; boot/scope/current expiry change through guarded updates. Rows carry no raw credential.
 
@@ -101,3 +101,13 @@ The final serial focused/area run passed 11 tests. The checklist above remains
 open for full acceptance: current authority integration, owner transport
 publication, every runner route, reboot/restart scenarios and review are absent.
 See `docs/implementation/B2.md` for exact limits, failures and verification.
+
+## Resumed implementation (2026-11-02)
+
+The owner prerequisite is published at a2ff7454a7851ad4662308bc55b23254c6524ca4, admission 0.3.0. Consume its immutable archive, including Prepared/mail operations and sibling issuance/upgrade envelopes. Migration 46 preserves the backend checkpoint after main took 45. Existing immutable permit issuance records remain replay evidence; mutable authority belongs in a separate current-state record.
+
+- [ ] Verify migrated storage and cargo check, then run the updated owner fixtures.
+- [ ] Publish registration, issuance, upgrade and re-adoption transports using the owner types. Correlate issuance and upgrade with stored frozen receipts.
+- [ ] Add a runner authentication context that retains attempt and operation constraints through effect transactions; node-only routes keep node-only authentication.
+- [ ] Test reboot and process reconstruction with an injected clock, then targeted route scope and result replay.
+- [ ] Publish final evidence and request the required cross-family review through the supervisor.
