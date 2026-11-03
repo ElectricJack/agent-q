@@ -75,13 +75,13 @@ acceptance test fail at `supervisor_session.rs:886` (left `"pending"`, right
 - One turn per generation (`UNIQUE(actor_id, generation)`): a second owner
   message needs a successor generation. Reservation consumption after a turn
   is not implemented.
-- Credential revocation is check-based: the credential is unusable once the
-  generation is no longer the active head, because every use re-checks this.
-  Only re-issue writes `revoked_at_ms`; stop does not. There is a TOCTOU
-  window between `authenticate` and the reply write.
-- Only the `messaging` scope is exercised. The `graph.read`, `graph.write`,
-  `enqueue` and `decisions` scopes are issued but not yet enforced by any
-  route (F2/F5 own those commands).
+- Credential lifecycle and authenticate/write races are addressed by
+  `steady-harbor-87.2.3`; see [F1b-scopes.md](F1b-scopes.md) for explicit
+  transactional revocation and the reply write check.
+- Only the `messaging` route exists at this checkpoint. All five issued
+  scopes are checked by the shared authenticator and tested in the scope
+  follow-up; [F1b-scopes.md](F1b-scopes.md) defines the required integration
+  for F2/F5 routes when those features land.
 - History anchors replies at the batch's max cursor. Reply-level cursoring
   and pagination are not separate.
 - `inspect` takes a `FOR UPDATE` row lock, including from the `live` read

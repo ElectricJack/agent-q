@@ -295,6 +295,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         48,
         include_str!("../migrations/0048_supervisor_dispatch.sql"),
     ),
+    (
+        49,
+        include_str!("../migrations/0049_supervisor_credential_revocation.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
