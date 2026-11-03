@@ -97,9 +97,25 @@ def test_worker_overlay_limits_and_socket_boundaries():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     report = module.validate_production(module.merged_config(), module.slice_properties())
-    assert report["budget"]["cpus"] <= 8.0
+    assert report["budget"]["cpus"] <= 4.0
+    assert report["budget"]["memory_bytes"] <= 8_000_000_000 - 1_000_000_000
     # The base stack stays the E1a service set; workers come only from the overlay.
     assert not {"aq-supervisor-host", "aq-worker-cloud"} & set(config()["services"])
+
+
+@pytest.mark.parametrize("key,value,message", [
+    ("CPUQuota", "400%", "CPU budget exceeds VPS"),
+    ("MemoryMax", "8G", "memory budget leaves under 1 GB for the host"),
+])
+def test_worker_budget_rejects_previous_large_vps_slice(key, value, message):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("workers_smoke", ROOT / "scripts/compose-workers-smoke.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    properties = module.slice_properties()
+    properties[key] = value
+    with pytest.raises(AssertionError, match=message):
+        module.validate_production(module.merged_config(), properties)
 
 
 @pytest.mark.parametrize("uid,gid", [("0", "1000"), ("1000", "0"), ("bad", "1000"), ("1000", "")])

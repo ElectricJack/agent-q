@@ -430,29 +430,45 @@ The VPS follows the infrastructure spec, with these additions:
 - **Compose services:** [compose.yaml](../../compose.yaml) defines `postgres`, `server` (aq-server with the dashboard bundle built into the image), `aq-graph` (pinned image digest), `aq-git` (pinned, supervised, restarted on failure, readiness-checked by aq-server), `cloudflared`, and the one-shot init jobs. [compose.workers.yaml](../../compose.workers.yaml) adds `aq-supervisor-host` and `aq-worker-cloud` (backend `docker-local`); use both files for this topology. The sandbox daemon is a host service owned by a dedicated user (section 3.1). When boat is added, a second worker service, `aq-worker-boat` (backend `boat`), is enrolled as its own node; `aq-worker-cloud` stays on `docker-local`.
 - **Hostnames:** the existing human hostname, behind Cloudflare Access with owner login, and machine hostname, behind Access service tokens. All workers and sandbox runners use the machine hostname. Each worker node has two service tokens, one for the node and one for its runners (section 7).
 - **Supervisor host:** a supervisor host container (section 3.1) runs supervisor CLI sessions. Its memory is part of the sizing below.
-- **VPS sizing:** the infrastructure spec's starting size (2 vCPU / 4 GB) was chosen for the foundation server alone. The VPS now also hosts the supervisor host and the cloud worker's agent sandboxes. Size it from measured memory for the stack plus the cloud worker's sandbox ceiling, roughly 8 vCPU / 16 GB for two concurrent Rust-building sandboxes, before purchase. Check Bluehost's sustained-CPU terms.
+- **VPS sizing:** the owner's Bluehost NVMe 8 VPS has **4 vCPU, 8 GB RAM and 200 GB NVMe**. Budget for **one concurrent sandbox** (`max_concurrent_sandboxes = 1` on this node), including the supervisor host and central services, as in §9.1. The older 8 vCPU / 16 GB, two-sandbox assumption is superseded by the approved storage amendment's one-sandbox topology. Check actual host `MemTotal` and sustained-CPU terms during deployment.
 - **Local desktop:** the worker container plus the dedicated sandbox Docker daemon on WSL2. It must survive desktop reboot. On restart it reconciles as in section 4.1.
 - **Backups** follow the infrastructure spec. Sandboxes are never backed up; central retention is the durable copy.
 
 ### 9.1 Service limits and aggregate sandbox budget
 
-The E1c limits for the 8 vCPU / 16 GB VPS are below. Every Compose service sets `memswap_limit` equal to `mem_limit`, allowing no swap beyond its memory ceiling. CPU and memory values are ceilings, not reserved capacity.
+The NVMe 8 limits below replace E1c's larger-host budget. Every Compose service sets `memswap_limit` equal to `mem_limit`, allowing no swap beyond its memory ceiling. CPU and memory values are ceilings, not reservations or guaranteed throughput. Memory limits use binary MiB/GiB (`m`/`g` in Compose, `G` in systemd); the host budget conservatively treats the advertised 8 GB as **8,000,000,000 bytes** (7.451 GiB), pending deployment measurement.
 
 | Service | CPU ceiling (vCPU) | Memory ceiling | PID ceiling |
 | --- | --- | --- | --- |
-| `postgres` | 1.0 | 1 GiB | 256 |
-| `server` | 1.0 | 1 GiB | 512 |
-| `aq-graph` | 0.5 | 512 MiB | 256 |
-| `aq-git` | 0.5 | 512 MiB | 512 |
-| `cloudflared` | 0.25 | 128 MiB | 128 |
-| `graph-db-init`, `server-db-init`, `prod-state-init` (each) | 0.25 | 128 MiB | 64 |
-| `aq-supervisor-host` | 0.5 | 2 GiB | 512 |
-| `aq-worker-cloud` (controller only) | 0.25 | 256 MiB | 256 |
-| Sandbox user slice (daemon and all sandboxes) | 4.0 (`CPUQuota=400%`, `CPUWeight=50`) | 8 GiB (`MemoryMax=8G`, `MemorySwapMax=0`) | 4096 (`TasksMax`) |
+| `postgres` | 0.5 | 768 MiB | 256 |
+| `server` | 0.5 | 512 MiB | 512 |
+| `aq-graph` | 0.25 | 256 MiB | 256 |
+| `aq-git` | 0.25 | 256 MiB | 512 |
+| `cloudflared` | 0.125 | 128 MiB | 128 |
+| `graph-db-init`, `server-db-init`, `prod-state-init`, `aq-worker-state-init` (each, startup/update only) | 0.25 | 128 MiB | 64 |
+| `aq-supervisor-host` | 0.25 | 1536 MiB (1.5 GiB) | 512 |
+| `aq-worker-cloud` (controller only) | 0.125 | 128 MiB | 256 |
+| Sandbox user slice (daemon and one active sandbox) | 2.0 (`CPUQuota=200%`, `CPUWeight=50`) | 3 GiB (`MemoryMax=3G`, `MemorySwapMax=0`) | 4096 (`TasksMax`) |
 
-Install [deploy/systemd/aq-sandbox-user.slice.conf](../../deploy/systemd/aq-sandbox-user.slice.conf) as `/etc/systemd/system/user-<uid>.slice.d/50-aq-sandbox.conf` for the dedicated sandbox user, then run `systemctl daemon-reload`. Every process of that user, including the Podman API service, conmon and each sandbox, is charged to this slice. This aggregate cap applies in addition to each sandbox's C2 limits and requires no `CgroupParent` support in `docker-local`. Limiting the worker controller's Compose container alone would not cap its sandboxes, which run outside that container.
+Install [deploy/systemd/aq-sandbox-user.slice.conf](../../deploy/systemd/aq-sandbox-user.slice.conf) as `/etc/systemd/system/user-<uid>.slice.d/50-aq-sandbox.conf` for the dedicated sandbox user, then run `systemctl daemon-reload`. Every process of that user, including the Podman API service, conmon and each sandbox, is charged to this slice. This aggregate cap applies in addition to each sandbox's C2 limits and requires no `CgroupParent` support in `docker-local`. Limiting the worker controller's Compose container alone would not cap its sandboxes, which run outside that container. Configure the node for one concurrent sandbox; this slice bounds aggregate use but does not enforce the attempt count. The sandbox's own memory allowance must leave room inside the slice for Podman and conmon; 3 GiB is the whole slice, not a guaranteed usable payload allocation.
 
-The long-running Compose services total 4.0 vCPU and 5.375 GiB; together with the sandbox slice, the ceilings total 8.0 vCPU and 13.375 GiB, leaving about 2.6 GiB for the kernel, daemons and page cache. The lower sandbox `CPUWeight` yields under contention. One-shot init jobs run before the long-running services start and are excluded from these totals. [E1c](../implementation/E1c.md) records the load evidence; installation of the production user slice and qualification on the 8 vCPU VPS belong to E5.
+**Steady-state budget:** long-running Compose services total **2.0 vCPU and 3.5 GiB**; with the sandbox slice the ceilings total **4.0 vCPU and 6.5 GiB** (6,979,321,856 bytes). Against decimal 8 GB this leaves **1,020,678,144 bytes (0.951 GiB)** for the host kernel, Docker, other host daemons and uncharged cache. If the VM exposes 8 GiB, headroom is 1.5 GiB. The static budget check requires at least **1 decimal GB** outside the service and slice ceilings. Check actual `MemTotal` against that requirement before admitting work; do not assume the vendor's unit convention. Cache charged to a service or sandbox cgroup consumes its ceiling. The sandbox CPU ceiling is 2 vCPU on the 4-vCPU host, so CPU is not oversubscribed; quotas do not reserve CPU for host work or establish service latency. `CPUWeight=50` is a relative preference under contention within the applicable cgroup hierarchy, not a guarantee against Compose siblings.
+
+**Startup and update budget:** one-shot init jobs are excluded only from the steady-state sum. They can overlap Postgres and other services. Stop admitting attempts and finish or stop the active sandbox before running initializers during installation or updates. All four initializers plus all central services would total **3.0 vCPU and 4 GiB**, leaving room for host work and the idle sandbox daemon; do not resume sandbox admission until initializers have exited. This is an operator deployment requirement, not an automatic admission interlock implemented by these Compose files.
+
+**Sizing evidence (2026-11-03):** a read-only `docker stats --no-stream` sample of the running local `aq-demo` development stack reported:
+
+| Container | CPU sample | Memory usage reported by Docker | Proposed ceiling |
+| --- | --- | --- | --- |
+| `aq-demo-postgres-1` | 1.76% | 70.25 MiB | 768 MiB |
+| `aq-demo-server-1` | 1.29% | 12.87 MiB | 512 MiB |
+| `aq-demo-aq-graph-1` | 0.00% | 9.523 MiB | 256 MiB |
+| `aq-demo-aq-git-1` | 0.00% | 3.02 MiB | 256 MiB |
+| `aq-worker-local` (controller comparison) | 0.44% | 3.395 MiB | 128 MiB |
+
+These are single desktop snapshots on a host with about 31.34 GiB RAM, not peak measurements or a 4-vCPU VPS qualification. No supervisor host or cloudflared container was running for measurement. The Postgres ceiling retains margin for shared buffers, connections and queries; server and Git limits retain burst room over the small sampled working sets. Supervisor memory is a provisional 1.5 GiB allowance for the guardian, tmux and native harness sessions. Concurrent supervisor sessions and large Git operations still need production measurement. [E1c](../implementation/E1c.md) records historical load evidence for the old limits, not evidence that these reduced limits meet readiness deadlines.
+
+**Rust build concurrency:** a full `aq-server` workspace test build in a **3 GiB, 4-vCPU sandbox may need `CARGO_BUILD_JOBS=2`** to stay inside memory. Use `CARGO_BUILD_JOBS=2` as the initial VPS build setting, alongside the template's `CARGO_INCREMENTAL=0`; this VPS slice actually caps aggregate sandbox CPU at 2 vCPU and includes daemon overhead in its 3 GiB. Job count limits compiler concurrency, not total memory or a single linker's peak. No full workspace build under this reduced slice was run for this revision. E5 must qualify one real build and representative supervisor activity on the VPS, including readiness, cgroup memory peaks and OOM events, before treating these proposed ceilings as a proven workload capacity.
 
 ### 9.2 Storage budget for the 200 GB VPS
 
@@ -612,7 +628,7 @@ These platform facts remain to be verified:
 - **Provider terms** for running each subscription login in remote sandboxes.
 - **Confinement follow-up:** qualify runner/agent separation on WSL2 after installing `uidmap` and disabling the single-UID fallback. Codex `native` remains unavailable for the C2 docker-local configuration; any proposed change needs both user-namespace creation and UID-mapping evidence under the fixed policy. Qualify bubblewrap independently in Cloudflare Containers.
 - **`codex-universal`:** image size, license and suitability as a universal toolchain base.
-- **VPS memory** for the full stack. **Now urgent:** the production VPS is the NVMe 8 plan (4 vCPU / 8 GB), but §9.1's ceilings total 8.0 vCPU and 13.375 GiB, and the sandbox slice alone is 8 GiB. This needs its own measured re-budget, for example a 3 GiB sandbox slice with one sandbox, a 1.5 GiB supervisor host and Postgres at 768 MiB. It is a separate follow-up to the storage budget in §9.2.
+- **VPS CPU and memory:** qualify the §9.1 limits on the 4 vCPU / 8 GB NVMe 8 host with one sandbox and representative supervisor sessions; verify actual `MemTotal`, host headroom, readiness under load and build memory with `CARGO_BUILD_JOBS=2`.
 
 Record the findings in the backend qualification evidence. A finding that contradicts a requirement here requires a design revision, not a silent workaround.
 
