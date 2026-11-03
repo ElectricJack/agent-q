@@ -40,7 +40,7 @@ async fn validate_composed(
         ("profiled_phase_never_granted_fence", ""),
         ("settlement_claim_guard", ""),
     ] {
-        let replaced = super::replacement50::guard_overrides(supported)?
+        let replaced = super::replacement52::guard_overrides(supported)?
             .into_iter()
             .find(|(guard, _)| *guard == name);
         let tail = if let Some((_, body)) = replaced {

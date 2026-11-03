@@ -299,9 +299,14 @@ const MIGRATIONS: &[(i32, &str)] = &[
         49,
         include_str!("../migrations/0049_supervisor_reservation_consumption.sql"),
     ),
+    (50, include_str!("../migrations/0050_delegated_permits.sql")),
     (
-        50,
-        include_str!("../migrations/0050_profiled_replacement_fairness.sql"),
+        51,
+        include_str!("../migrations/0051_supervisor_credential_revocation.sql"),
+    ),
+    (
+        52,
+        include_str!("../migrations/0052_profiled_replacement_fairness.sql"),
     ),
 ];
 
@@ -381,6 +386,36 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         return Err(StoreError::Corrupt(
             "state format metadata does not match applied migrations".into(),
         ));
+    }
+    if supported >= 50 {
+        let intact: bool = sqlx::query_scalar(
+            r#"SELECT
+          to_regclass('delegated_permits') IS NOT NULL
+          AND to_regclass('delegated_permit_current') IS NOT NULL
+          AND to_regclass('delegated_node_boots') IS NOT NULL
+          AND to_regclass('delegated_operations') IS NOT NULL
+          AND to_regclass('delegated_permits_verifier') IS NOT NULL
+          AND to_regclass('delegated_current_verifier') IS NOT NULL
+          AND to_regclass('delegated_current_attempt') IS NOT NULL
+          AND to_regclass('delegated_current_channel') IS NOT NULL AND NOT EXISTS(
+            SELECT 1 FROM (VALUES
+              ('delegated_permits','delegated_permit_guard','delegated_permit_guard()',31),
+              ('delegated_permits','delegated_permit_truncate_guard','delegated_permit_guard()',34),
+              ('nodes','delegated_node_revoke','delegated_node_revoke()',17),
+              ('profiled_cancellations','delegated_attempt_revoke','delegated_attempt_revoke()',5)
+            ) expected(rel,name,func,kind) WHERE NOT EXISTS(
+              SELECT 1 FROM pg_trigger t WHERE t.tgrelid=to_regclass(expected.rel)
+                AND t.tgname=expected.name AND t.tgtype=expected.kind
+                AND NOT t.tgisinternal AND t.tgenabled IN ('O','A')
+                AND t.tgfoid=to_regprocedure(expected.func)))"#,
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if !intact {
+            return Err(StoreError::Corrupt(
+                "delegated permit persistence safeguards missing or disabled".into(),
+            ));
+        }
     }
     if supported >= 42 {
         let intact: bool = sqlx::query_scalar("SELECT to_regclass('dashboard_operations') IS NOT NULL AND to_regprocedure('guard_dashboard_operation()') IS NOT NULL AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='dashboard_operation_guard' AND tgrelid=to_regclass('dashboard_operations') AND NOT tgisinternal AND tgenabled='O') AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='dashboard_operation_truncate_guard' AND tgrelid=to_regclass('dashboard_operations') AND NOT tgisinternal AND tgenabled='O')").fetch_one(&mut *tx).await?;
@@ -508,8 +543,8 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
     } else if supported >= 40 {
         never_granted40::validate(&mut tx).await?;
     }
-    if supported >= 50 {
-        replacement50::validate(&mut tx).await?;
+    if supported >= 52 {
+        replacement52::validate(&mut tx).await?;
     }
     tx.commit().await?;
     Ok(())
@@ -973,6 +1008,16 @@ impl Store {
         Ok(Some(row.into()))
     }
 
+    pub async fn find_node_by_id(&self, node_id: Uuid) -> Result<Option<Node>> {
+        Ok(
+            sqlx::query_as::<_, NodeRow>(&format!("SELECT {NODE_COLS} FROM nodes WHERE id=$1"))
+                .bind(node_id)
+                .fetch_optional(&self.pool)
+                .await?
+                .map(Node::from),
+        )
+    }
+
     /// Returns revoked nodes too so callers can tell revoked from unknown.
     pub async fn find_node_by_credential(&self, credential_hash: &str) -> Result<Option<Node>> {
         Ok(sqlx::query_as::<_, NodeRow>(&format!(
@@ -1103,5 +1148,5 @@ mod never_granted40;
 
 #[path = "store/cancellation43.rs"]
 mod cancellation43;
-#[path = "store/replacement50.rs"]
-mod replacement50;
+#[path = "store/replacement52.rs"]
+mod replacement52;

@@ -50,7 +50,7 @@ async fn validate_composed(
         );
     }
     // Format 50 widens both claim guards for replacement releases only.
-    for (name, body) in super::replacement50::guard_overrides(supported)? {
+    for (name, body) in super::replacement52::guard_overrides(supported)? {
         let row = expected
             .as_array_mut()
             .ok_or_else(corrupt)?

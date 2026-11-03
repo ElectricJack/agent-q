@@ -64,4 +64,4 @@ CREATE TABLE profiled_project_schedule (
  last_served_at_ms BIGINT NOT NULL CHECK(last_served_at_ms>0),
  served_count BIGINT NOT NULL DEFAULT 0 CHECK(served_count>=0)
 );
-UPDATE meta SET value='50' WHERE key='state_format_version';
+UPDATE meta SET value='52' WHERE key='state_format_version';

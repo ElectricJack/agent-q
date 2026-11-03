@@ -27,7 +27,7 @@ B3 cancellation, D3 automatic settlement.
    - Conservative sandbox charge Σ(deadline − offer) `>= max_sandbox_ms` → `task_sandbox_minutes_budget_exhausted`.
 3. DB loader `load(pool, task)` reads `execution_attempts`, `profiled_authority_hot`, `profiled_launches`, settlements, evaluations and completions for the task's non-never-granted attempts.
 4. `release_locked`: under the node lock then `FOR UPDATE` of the attempt and hot rows, re-load and re-assess. Insert an immutable `profiled_replacement_releases` row, then set `holds_task=false`.
-5. Migration 0050:
+5. Migration 0050 (delivered as 0052 after main took 50/51):
    - Adds the release table with an insert trigger that re-checks hot stop/retention/effects and the absence of an accepted evaluation.
    - Extends `profiled_historical_snapshot_guard` and `settlement_claim_guard` to accept a replacement release.
    - Adds `profiled_project_schedule`.
