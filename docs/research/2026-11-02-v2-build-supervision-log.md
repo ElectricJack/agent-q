@@ -116,3 +116,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Released G5:** its "deployed preview" exists as E0's local compose stack. It was told to run live acceptance there or defer a specific item to G11, instead of holding.
   - Queued F1a's release for when `crisp-nexus-12` publishes the HostPlan.
   - Merged aq-server #22.
+- **20:49 check.**
+  - `crisp-nexus-12` (the subject-neutral HostPlan) completed; F1a resumed.
+  - G5 is closing as a pass, with live/full-page acceptance deferred to G11.
+  - Filed G5's follow-up as `fleet-stone-84`: rebuild the retained E0 stack from current main (it predates G4). G11 depends on it.
+  - **B1's review (`rev-keen-ember`) is changes-requested again after round 4; round 5 (`steady-nexus-22`) is running.** Review cycling on B1 is now the critical-path bottleneck: B1b, B2, B6a2.
+  - Merged aq-worker #19 and #20.
