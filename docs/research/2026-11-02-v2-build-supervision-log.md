@@ -373,3 +373,17 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **F4** had not picked up the 06:07 webhook message, and its close was refused by a claimed child. Reparented `steady-harbor-87.5.1` to the root and re-sent the webhook path plus the owner's one-message confirmation (`AQ_NOTIFICATION_REAL_SEND_CONFIRMED=1`).
   - G3 and `prime-dune-72` completed; the I0 re-run is in progress.
 - **07:00 owner concern: disk limits on the VPS and boat.** Filed `azure-flare-22` (storage budget design amendment to 0005 plus implementation tasks) and `amber-rapids-59` (sandbox templates: CARGO_INCREMENTAL=0, line-tables-only). Both pinned to Claude. Retrospective W46.
+- **07:10 owner boat sizing:** default sandbox is the smallest boat size, 2 vCPU / 4 GB / 51 GB; escalation size is 4 vCPU / 8 GB / 51 GB on request. Recorded on `azure-flare-22`, C7 and `amber-rapids-59`: 51 GB per-sandbox disk budget, CARGO_BUILD_JOBS=1 plus a low-memory linker in the Rust template, resource requests mapped to the two sizes.
+- **07:35 check.**
+  - E5 asked the owner for: VPS purchase and SSH key, domain, Cloudflare token or manual steps, backup bucket, and release tagging. Surfaced and added to the owner list. The storage design `azure-flare-22` and the template quick win `amber-rapids-59` are running.
+  - **D5 merge conflict:** main is now at state format 60. The conflicts (lib.rs, store.rs, playbooks review_domain.rs and service.rs) are substantive. Reopened D5 with resolution guidance (keep both CatalogProfile variants, renumber to 61+), pinned to Claude.
+  - F2 is READY, waiting for a route. The I0 re-run is still running.
+- **07:50 check.**
+  - **Storage design `azure-flare-22` completed.** Approved its 0005 amendment `rev-steady-rapids`: measured 20.2 GB clean aq-server test build, boat facts (snapshots fail at 95% disk), 70% budget on the 200 GB VPS, SBX20–26 and DEP6–8. That releases its 13 implementation tasks.
+  - F4 (Discord) completed. D3's implementation review `rev-keen-glacier` had no reviewer; dispatched `quick-journey-12` (Claude).
+  - F2 was paused/held on a degraded-Codex route; overrode it to Claude standard-high and it is READY.
+  - D5 was reopened for its substantive main-merge conflicts. The I0 re-run and `amber-rapids-59` are running.
+- **08:05 check.**
+  - **Storage tasks were misfiled:** the storage design filed all 13 implementation tasks in aq-platform, but 4 are aq-worker code and 1 is dashboard UI. Recreated them in the right projects: aq-worker `clear-lantern-42` (docker-local disk limit), `vivid-delta-76` (boat disk mapping and df watchdog), `smart-torrent-92` (node disk reporting) and `brisk-delta-45` (bounded preserved sandboxes); aq-dashboard `clear-crest-22` (Capacity panel). Closed the originals as obsolete. Pinned all of these, plus `smart-beacon-11`, `keen-impact-33` and `sharp-current-24`, to Claude (Codex 95%).
+  - **F2** was held on a pre-start merge conflict (its migration was 0058; main is at 0060). Merged main into `aq/steady-harbor-87.3` and renumbered to 0061 (`67ca73b`). Released the hold and reopened it with "merge immediately".
+  - Merged aq-worker #31 (`swift-vault-73`, preserve template toolchain env; `50f02159`). `keen-quest-39` (structural fix for migration registration conflicts) is running.

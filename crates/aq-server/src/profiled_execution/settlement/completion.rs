@@ -47,7 +47,7 @@ fn status(row: &sqlx::postgres::PgRow) -> Result<CompletionStatus> {
             .map_err(|_| crate::error::AppError::Internal)?,
     })
 }
-fn confirmed(raw: &Value, row: &sqlx::postgres::PgRow) -> Result<CompletionReceipt> {
+pub(super) fn confirmed(raw: &Value, row: &sqlx::postgres::PgRow) -> Result<CompletionReceipt> {
     if !crate::agent_access::settlement_response_valid(raw) {
         return Err(unavailable());
     }
