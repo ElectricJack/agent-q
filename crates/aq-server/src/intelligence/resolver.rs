@@ -335,7 +335,7 @@ pub async fn fence_for_offer(
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     decision: &Decision,
 ) -> Result<()> {
-    fence_retained_decision(state, tx, decision, false).await
+    fence_retained_decision(state, tx, decision, None).await
 }
 /// Only the current locked, never-granted native reservation may be discounted
 /// when comparing its original pre-offer decision. No durable count is changed.
@@ -436,13 +436,13 @@ async fn fence_owned_attempt(
         }
         _ => {}
     }
-    fence_retained_decision(state, tx, decision, true).await
+    fence_retained_decision(state, tx, decision, Some(binding.attempt_id)).await
 }
 async fn fence_retained_decision(
     state: &AppState,
     tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
     decision: &Decision,
-    owned_attempt: bool,
+    owned_attempt: Option<Uuid>,
 ) -> Result<()> {
     let stored: Value = sqlx::query_scalar(
         "SELECT decision FROM intelligence_decisions WHERE decision_id=$1 FOR SHARE",
@@ -471,7 +471,17 @@ async fn fence_retained_decision(
     if decision.outcome.resolved.is_none() {
         return Err(conflict("decision has no eligible selection"));
     }
-    fence_snapshot(state, tx, decision, owned_attempt).await?;
+    fence_snapshot(state, tx, decision, owned_attempt.is_some()).await?;
+    // C4 placement is re-derived here, not only at selection: a node that
+    // reached a ceiling or lost its template since selection is refused.
+    crate::profiled_execution::placement::fence_locked(
+        state,
+        tx,
+        decision,
+        owned_attempt,
+        now(state)?,
+    )
+    .await?;
     principal::fence(state, tx, decision).await?;
     check_time(state, decision)
 }

@@ -154,10 +154,13 @@ pub async fn store(
     Ok(())
 }
 
-pub async fn load(pool: &sqlx::PgPool, catalog_digest: &str) -> Result<Vec<Resolution>, AppError> {
+pub async fn load(
+    conn: &mut sqlx::PgConnection,
+    catalog_digest: &str,
+) -> Result<Vec<Resolution>, AppError> {
     let rows: Vec<(String, String)> = sqlx::query_as("SELECT environment,template_digest FROM profile_catalog_environment_templates WHERE catalog_digest=$1 ORDER BY environment LIMIT 64")
         .bind(catalog_digest)
-        .fetch_all(pool)
+        .fetch_all(conn)
         .await
         .map_err(|_| AppError::Internal)?;
     rows.into_iter()
