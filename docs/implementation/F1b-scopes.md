@@ -9,6 +9,8 @@ follow-up uses migration 0051 and state format 51. It depends on
 `1e3b87c81d6f3d7268062f26a025666f9343aff4` to preserve contiguous migrations.
 The subsequent clean merge at `1b570310` preserves host credential activation;
 the named owner-message/reply acceptance check is rerun against that wiring.
+The final build-hygiene merge preserves the current vendor exclusions, pinned
+image bases and image-label checks; both label checks pass at format 51.
 
 ## Credential and reply transactions
 
@@ -81,6 +83,7 @@ compilation and writes each check's exact Cargo output to
 | Central sessions, supervisor conversation and turn consumption | 20 passed | [area.txt](F1b-scope-evidence/area.txt) |
 | Host owner-message/reply acceptance | 1 passed | [acceptance_host.txt](F1b-scope-evidence/acceptance_host.txt) |
 | State-format/migration consistency | 1 passed | [format_version.txt](F1b-scope-evidence/format_version.txt) |
+| Docker state-format and protocol labels | 2 passed | [image_labels.txt](F1b-scope-evidence/image_labels.txt) |
 | Rust formatting | Passed | [format.txt](F1b-scope-evidence/format.txt) |
 
 The five credential tests use real PostgreSQL transactions with synthetic lifecycle

@@ -10,6 +10,7 @@ COMMANDS = {
     "area": ["cargo", "test", "--locked", "-p", "aq-server", "--features", "test-support", "--test", "central_sessions", "--test", "supervisor_conversation", "--test", "supervisor_turns"],
     "acceptance_host": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", ACCEPT],
     "format_version": ["cargo", "test", "--locked", "-p", "aq-server", "--features", "test-support", "--lib", "state_format_is_the_latest_migration"],
+    "image_labels": ["cargo", "test", "--locked", "-p", "aq-server", "--features", "test-support", "--test", "image_labels"],
     "format": ["cargo", "fmt", "--check"],
 }
 
