@@ -33,6 +33,7 @@ async fn quota_unknown_is_not_zero() {
     let mut f = common::profiled::fixture().await;
     let mut config = (*f.state.config).clone();
     let credential = AuthorizedCredential {
+        allowed_backends: aq_selection::default_allowed_backends(),
         profile: ArtifactRef {
             id: Text::new("profile").unwrap(),
             version: Text::new("1").unwrap(),
@@ -51,6 +52,8 @@ async fn quota_unknown_is_not_zero() {
     let credentials = [credential, second]
         .into_iter()
         .map(|credential| CredentialConfig {
+            kind: Default::default(),
+            allowed_backends: aq_selection::default_allowed_backends(),
             credential,
             allowed_node_ids: vec![],
             secret_file: None,

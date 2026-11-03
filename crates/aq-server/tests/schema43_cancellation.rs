@@ -24,9 +24,9 @@ async fn cancellation43_upgrade_preserves_prior_records_and_old41_refuses() {
     assert!(matches!(
         test_support::migrate_profile(&pool, 41).await,
         Err(StoreError::IncompatibleState {
-            found: 43,
+            found,
             supported: 41
-        })
+        }) if found == aq_server::STATE_FORMAT_VERSION
     ));
     Store::connect_with(db.options()).await.unwrap();
 }
@@ -63,9 +63,9 @@ async fn cancellation43_upgrade_preserves_dashboard42_operation_and_old42_refuse
     assert!(matches!(
         test_support::migrate_profile(&pool, 42).await,
         Err(StoreError::IncompatibleState {
-            found: 43,
+            found,
             supported: 42
-        })
+        }) if found == aq_server::STATE_FORMAT_VERSION
     ));
     Store::connect_with(db.options()).await.unwrap();
 }
