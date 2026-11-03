@@ -1,4 +1,7 @@
 # Production stack. See vault.production.example and docs/operations.md.
+# Per-service CPU/memory/PID caps (E1c) keep sandbox and supervisor load from
+# starving this stack; values and reasons are in docs/implementation/E1c.md.
+# compose.workers.yaml adds the supervisor host and cloud worker.
 name: agent-q
 x-runtime: &runtime
   read_only: true
@@ -28,6 +31,10 @@ services:
       timeout: 3s
       retries: 20
     restart: unless-stopped
+    cpus: 1.0
+    mem_limit: 1g
+    memswap_limit: 1g
+    pids_limit: 256
   graph-db-init:
     <<: *runtime
     image: *postgres-image
@@ -39,6 +46,10 @@ services:
     entrypoint: [/bin/sh, /prod-db-init.sh]
     command: [aq_graph, graph_database_password]
     restart: on-failure
+    cpus: 0.25
+    mem_limit: 128m
+    memswap_limit: 128m
+    pids_limit: 64
   server-db-init:
     <<: *runtime
     image: *postgres-image
@@ -50,6 +61,10 @@ services:
     entrypoint: [/bin/sh, /prod-db-init.sh]
     command: [aq_server, server_database_password]
     restart: on-failure
+    cpus: 0.25
+    mem_limit: 128m
+    memswap_limit: 128m
+    pids_limit: 64
   prod-state-init:
     <<: *runtime
     image: &server-image ${AQ_SERVER_IMAGE:?set AQ_SERVER_IMAGE to a digest-pinned server reference}
@@ -67,6 +82,10 @@ services:
     restart: 'no'
     # Only this one-shot initializer owns private project volumes.
     cap_add: [CHOWN, DAC_OVERRIDE, FOWNER]
+    cpus: 0.25
+    mem_limit: 128m
+    memswap_limit: 128m
+    pids_limit: 64
   aq-graph:
     <<: *runtime
     # E2 v0.1.1, source 2d5b02c610b53baec03658171e1d6e6ebece4bd2.
@@ -93,6 +112,10 @@ services:
       interval: 2s
       timeout: 5s
       retries: 30
+    cpus: 0.5
+    mem_limit: 512m
+    memswap_limit: 512m
+    pids_limit: 256
   aq-git:
     <<: *runtime
     # Same image as server: A3b's verified v0.2.0 binary and pinned Git runtime.
@@ -113,6 +136,10 @@ services:
       interval: 2s
       timeout: 3s
       retries: 30
+    cpus: 0.5
+    mem_limit: 512m
+    memswap_limit: 512m
+    pids_limit: 512
   server:
     <<: *runtime
     # The format-1 host updater requires this service name and image variable.
@@ -155,6 +182,10 @@ services:
       interval: 2s
       timeout: 5s
       retries: 30
+    cpus: 1.0
+    mem_limit: 1g
+    memswap_limit: 1g
+    pids_limit: 512
   cloudflared:
     <<: *runtime
     image: cloudflare/cloudflared:2025.10.0@sha256:396cd2e6f021275ad09969a1b4f1a7e62ca5349fde62781ce082bb2c18105c70
@@ -166,6 +197,10 @@ services:
     depends_on:
       server: {condition: service_healthy}
     restart: unless-stopped
+    cpus: 0.25
+    mem_limit: 128m
+    memswap_limit: 128m
+    pids_limit: 128
 networks:
   edge: {}
   database:
