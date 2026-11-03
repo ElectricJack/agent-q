@@ -34,12 +34,12 @@
 
 **Interfaces:** `DeliveryService::new(PgPool, &SourceRetentionConfig)`; `create_candidate(CandidateRequest) -> Result<Receipt<CandidateResult>>`; `publish(PublishRequest) -> Result<Receipt<PublishResult>>`; `candidate_show(ObservationRequest) -> Result<Receipt<CandidateResult>>`; `operation_show(ObservationRequest) -> Result<Receipt<OperationResult>>`. Requests carry operation/repository UUID and binding generation; candidate inputs carry ordered source receipt UUIDs, base OID and commit metadata. Each Receipt contains exact response bytes and a typed success/error result. Transport failure returns an explicit error; publish uncertainty remains durable.
 
-- [ ] Write tests `candidate_from_retained_source_publishes_once`, `delivery_replay_conflict_and_unknown_publish_are_fenced`, `delivery_protocol_bounds_and_conflict_results`, `delivery_rejects_unretained_sources`. Use disposable PostgreSQL and socket peers to assert committed intents before calls and immutable receipts after calls. Prove restart and concurrent replay do not issue another publish.
-- [ ] Run focused tests through resource-controlled `aq test` wrapper around locked Cargo; verify missing service fails compilation.
-- [ ] Implement migration 0045 (intent, receipt, destination hold; immutability triggers), register state version 45.
-- [ ] Implement typed whitelist and bounded correlated transport in protocol.rs. Validate typed OIDs, full branch refs and response invariants, preserving all raw response bytes.
-- [ ] Implement source resolution and canonical immutable inputs; serialize per-operation dispatch using a database row lock after committing intent. Commit destination reservation with intent; never redispatch a publish whose reservation already exists without a receipt. Store response and release only conclusively resolved destinations atomically.
-- [ ] Run focused tests and migration tests; verify all named tests actually execute. Commit implementation.
+- [x] Write tests `candidate_from_retained_source_publishes_once`, `delivery_replay_conflict_and_unknown_publish_are_fenced`, `delivery_protocol_bounds_and_conflict_results`, `delivery_rejects_unretained_sources`. Use disposable PostgreSQL and socket peers to assert committed intents before calls and immutable receipts after calls. Prove restart and concurrent replay do not issue another publish.
+- [x] Run focused tests through resource-controlled `aq test` wrapper around locked Cargo; verify missing service fails compilation.
+- [x] Implement migration 0045 (intent, receipt, destination hold; immutability triggers), register state version 45.
+- [x] Implement typed whitelist and bounded correlated transport in protocol.rs. Validate typed OIDs, full branch refs and response invariants, preserving all raw response bytes.
+- [x] Implement source resolution and canonical immutable inputs; serialize per-operation dispatch using a database row lock after committing intent. Commit destination reservation with intent; never redispatch a publish whose reservation already exists without a receipt. Store response and release only conclusively resolved destinations atomically.
+- [x] Run focused tests and migration tests; verify all named tests actually execute. Commit implementation.
 
 ### Task 2: Actual aq-git qualification and submission
 
@@ -47,8 +47,9 @@
 
 **Interfaces:** Same public central service as Task 1; actual aq-git owns binding allowlist, candidate retention and conditional remote publication.
 
-- [ ] Extend acceptance test to real candidate creation/publication using retained source acknowledgement, local bare remote and `allow_file_transport:true`; assert remote revision, exact replay, changed-payload refusal and already-present noncausation.
-- [ ] Run `cargo test --locked --workspace candidate_from_retained_source_publishes_once` and related delivery tests via foreground resource control; `cargo fmt --all --check`, locked workspace/all-target Clippy as configured. Do not run unrelated full-suite checks contrary to worker validation scope.
-- [ ] Record commands, environment, results, SHA and limitations. Reconcile every acceptance item.
-- [ ] Squash unpublished task commits preserving tree/attribution, merge configured integration source `origin/main` (supervisor waiver `msg-c81e8d8d99de4a4b9d30f8a27565e549` confirms no `origin/dev`), run affected tests, guarded push and PR.
+- [x] Extend acceptance test to real candidate creation/publication using retained source acknowledgement, local bare remote and `allow_file_transport:true`; assert remote revision, exact replay, changed-payload refusal and already-present noncausation.
+- [x] Run `cargo test --locked --workspace candidate_from_retained_source_publishes_once` and related delivery tests via foreground resource control; `cargo fmt --check`, locked workspace/all-target Clippy as configured (the all-workspace formatting discovery limitation is recorded in evidence). Do not run unrelated full-suite checks contrary to worker validation scope.
+- [x] Record commands, environment, results, SHA and limitations. Reconcile every acceptance item.
+- [x] Squash unpublished task commits preserving tree/attribution, merge configured integration source `origin/main` (supervisor waiver `msg-c81e8d8d99de4a4b9d30f8a27565e549` confirms no `origin/dev`), and run affected tests.
+- [ ] Publish the final evidence commit with guarded push and open the required PR; record the exact SHA outside its own commit.
 - [ ] Obtain supervisor-dispatched cross-family adversarial review tied to pushed SHA; address findings and record dispositions. Close explicitly only when requirements are met.
