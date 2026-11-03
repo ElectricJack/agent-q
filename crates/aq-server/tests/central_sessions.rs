@@ -536,3 +536,34 @@ async fn central_owner_reused_conversation_for_new_actor_is_typed_conflict() {
     );
     assert!(owner.inspect(p.subject.actor_id()).await.unwrap().is_some());
 }
+
+/// Read-only inspection takes no row lock, so a writer holding the head row
+/// (e.g. a concurrent `start`/`report`) never blocks `dispatch::live`.
+#[tokio::test]
+async fn inspect_reads_without_locking_the_session_head() {
+    let (db, owner) = setup().await;
+    let p = plan();
+    let receipt = started(&owner, &p).await;
+    let actor = p.subject.actor_id();
+    let pool = db.pool().await;
+    let mut writer = pool.begin().await.unwrap();
+    sqlx::query("SELECT 1 FROM central_session_heads WHERE actor_id=$1 FOR UPDATE")
+        .bind(actor)
+        .execute(&mut *writer)
+        .await
+        .unwrap();
+    let wait = std::time::Duration::from_millis(1000);
+    let inspected = tokio::time::timeout(wait, owner.inspect(actor))
+        .await
+        .expect("inspect must not wait on the head row lock")
+        .unwrap()
+        .unwrap();
+    assert_eq!(inspected, receipt.snapshot);
+    let generation = tokio::time::timeout(wait, owner.generation(actor, 1))
+        .await
+        .expect("generation reads must not wait on the head row lock")
+        .unwrap()
+        .unwrap();
+    assert_eq!(generation, receipt.snapshot);
+    writer.rollback().await.unwrap();
+}
