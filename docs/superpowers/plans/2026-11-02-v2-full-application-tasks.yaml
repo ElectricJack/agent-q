@@ -1336,7 +1336,7 @@ tasks:
       - **Evidence** goes in `docs/implementation/C3c.md`: image names, tags, digests, provenance records, scan output, GHCR visibility and the exact commands.
       - **Environment.** This task needs Docker and a GHCR token on the v1 worker that runs it (plan §4.2).
         - The token is an operator secret. It never goes in recipes, images, logs or evidence.
-        - If the token is missing, ask with `aq message send --to user:dashboard --project aq-platform` and wait for the reply.
+        - If the token is missing, ask with `aq message send --to user:dashboard --project "$AQ_PROJECT_ID"` and wait for the reply.
 
       ### Current state
       - C3a and C3b deliver the images, CLI, scanner and allowlist. None exists today (verified in aq-worker).
@@ -1589,7 +1589,7 @@ tasks:
       - **Enrollment:** an owner-only operation runs `codex login --device-auth` in a one-off enrollment sandbox.
         - The sandbox has a private `CODEX_HOME` with `cli_auth_credentials_store = "file"`.
         - The operation shows the device code to the owner and captures `$CODEX_HOME/auth.json` straight in as a new revision, never copied off a desktop by hand.
-        - Device-code login must be enabled in ChatGPT security settings first; ask the owner with `aq message send --to user:dashboard --project aq-platform`.
+        - Device-code login must be enabled in ChatGPT security settings first; ask the owner with `aq message send --to user:dashboard --project "$AQ_PROJECT_ID"`.
         - This task has no worker dependency, so build the server side: the enrollment session and a one-shot capture endpoint. A recorded, operator-run container from an image with the pinned Codex CLI is acceptable as the sandbox. File any aq-worker work.
       - **Storage:** the store is read-only startup config today, and these revisions need a store that can be written at runtime. Follow the existing pattern (owner-only files, fingerprints server-side, no secret bytes in logs, prompts or inspection output) and record the design.
 
@@ -4916,7 +4916,7 @@ tasks:
       - **Subscription login:**
         - lease, install, write back and wipe through C6b's mechanism;
         - an enrollment flow that captures the login straight into the vault, equivalent to C5b's `codex login --device-auth`;
-        - owner actions go through `aq message send --to user:dashboard --project aq-platform`.
+        - owner actions go through `aq message send --to user:dashboard --project "$AQ_PROJECT_ID"`.
       - **Template:** add the pinned CLI to the `aq-sandbox-runtime` harness list and rebuild through C3b's tooling. The template advertises the version (SBX18).
       - **Transcript reader:** qualify `crates/aq-observation-engine/src/formats/claude.rs` and `crates/aq-observation/src/formats/claude.rs` (a legacy v1 shape) against real transcripts from the pinned CLI.
       - **Live tests:** `crates/aq-worker/tests/claude_live.rs`, `#[ignore]`, with API-key and subscription cases.
@@ -5268,7 +5268,7 @@ tasks:
         - the deployment configuration and secrets inventory.
 
         Record the encryption, destination, schedule and retention. Use consistent dumps, either in maintenance mode or with documented isolation.
-      - **Credential-recovery decision** (infrastructure spec: "Credentials or encryption keys needed for recovery require a separately documented recovery procedure"). Decide where the backup encryption key, tunnel token, Access tokens and provider vault secrets come from on restore. Ask the owner through `aq message send --to user:dashboard --project aq-platform`. Restore must account for credentials revoked since the backup: revoke and re-enroll workers when that history can't be trusted.
+      - **Credential-recovery decision** (infrastructure spec: "Credentials or encryption keys needed for recovery require a separately documented recovery procedure"). Decide where the backup encryption key, tunnel token, Access tokens and provider vault secrets come from on restore. Ask the owner through `aq message send --to user:dashboard --project "$AQ_PROJECT_ID"`. Restore must account for credentials revoked since the backup: revoke and re-enroll workers when that history can't be trusted.
       - **Drill:**
         1. Provision a fresh VPS following `docs/operations/vps-install.md` (E5).
         2. Restore.
@@ -5413,7 +5413,7 @@ tasks:
         4. settle through the human-review route.
 
         Say what the owner should see at each step.
-      - **Write `docs/implementation/MS0.md`** (aq-server) with an evidence summary, a problem table, the decision questions and the demo script. Then request owner verification. Ask the decision questions through `aq message send --to user:dashboard --project aq-platform`, or present them for owner sign-off.
+      - **Write `docs/implementation/MS0.md`** (aq-server) with an evidence summary, a problem table, the decision questions and the demo script. Then request owner verification. Ask the decision questions through `aq message send --to user:dashboard --project "$AQ_PROJECT_ID"`, or present them for owner sign-off.
       - **Record the owner's decision verbatim** in MS0.md.
 
       ### Current state
@@ -5642,7 +5642,7 @@ tasks:
         - boat warm-start hibernation;
         - the 500-agent and 10,000-continuation profiles, replaced by J3.
 
-        Any other gap becomes a filed task, or an owner-approved deferral obtained through `aq message send --to user:dashboard --project aq-platform`.
+        Any other gap becomes a filed task, or an owner-approved deferral obtained through `aq message send --to user:dashboard --project "$AQ_PROJECT_ID"`.
       - **Full-product demo,** with evidence collected for each item:
         1. Four harnesses (Codex, Claude Code, Gemini CLI, OpenCode) each complete a task.
         2. Each of the deployed backends runs an attempt: desktop docker-local, VPS docker-local and boat (the three named in 0005 §11; cloudflare-containers is deferred).
