@@ -391,3 +391,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **aq-server main's "fmt and clippy" job was failing** on `notifications/runtime.rs:45` (clippy collapsible-if, from the F4 merge), so every open PR inherited the failure. Collapsed it into a let-chain; `cargo clippy -p aq-server --lib -D warnings` is clean. Pushed `68db049`.
   - **Owner rule:** pause all six v2 projects when Claude weekly usage reaches 80%. The monitor now does this automatically, once, and alerts. Current usage: Claude 65%, Codex 96%.
   - Storage implementation tasks are running in aq-worker (`clear-lantern-42`, `smart-torrent-92`, `brisk-delta-45`) and aq-platform (`smart-beacon-11`, `sharp-current-24`). F2 is running again after the renumber. PRs #42–#47 are open.
+- **08:30 owner decision: boat.dev budget $20/month** (the $20 plan). Recorded on C7, `sound-vault-88` (E1d) and `vivid-delta-76`:
+  - boat side: auto top-up off, extra starts off, an org-member usage cap, concurrency 4, saved snapshots within the 10 included;
+  - AQ side: `aq-worker-boat` spend_ceiling $18/month from H2 accounting, max_concurrent_sandboxes 4;
+  - small sandboxes by default.
