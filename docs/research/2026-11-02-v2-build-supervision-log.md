@@ -322,3 +322,13 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **`steady-harbor-87.2.4`** pre-start merge conflict: only F1b.md conflicted. Merged main (`7c2a32f`), released the hold and reopened it.
   - **I0 re-run `calm-stone-85`:** `22.1.1` (Codex package in the image) and `22.1.3` (worker recovery) are COMPLETED. Only `bright-nexus-44` (server held-task release) remains.
   - Usage: Codex 93%, Claude 56%. aq-worker has nothing claimable apart from a spec-ingest task.
+- **03:05 check.**
+  - **B2 completed and its review was approved** (`rev-sound-stone`; reviewer `sound-apex-52` found no blocking defects). The four nits are filed as `swift-willow-91` (standard-medium).
+  - **D10 completed.** D3 started.
+  - **Four aq-server PRs are waiting for CI,** to be merged next check if failures match main: #37 (`bright-nexus-44`, the I0 server findings, which unblocks the I0 re-run), #35 (B2), #36 (smoke against the 0.5.1 worker) and #33 (cloud worker image).
+  - Usage: Codex 93%, Claude 57%.
+- **03:20 check.**
+  - Merged aq-server #33 (`smart-falcon-16.10`, docker-local cloud worker image; `c4dce2a6`). Its only failure, `observations.rs:501`, also fails on main.
+  - **#37 (`bright-nexus-44`, I0 server findings) cannot merge.** Its tests job aborts with a stack overflow in `phase_results` `correction_race_and_changed_operation_bytes_keep_one_immutable_head`, which passes on main. Reopened the task to fix it properly (no `RUST_MIN_STACK` workaround) and pinned it to Claude. The I0 re-run `calm-stone-85` waits on it again.
+  - **B2 PR #35 conflicted again.** Main gained B2's follow-up `swift-willow-91`, which reused test mode 7. Merged main and moved B2's server-restart case to mode 9 (`1f3a13a`); PR #35 is mergeable, with CI pending.
+  - Moved `noble-summit-37.4.5` and `noble-summit-37.10` (B7) from Codex to Claude (Codex 93%). B4 has two follow-ups running.

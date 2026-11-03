@@ -273,7 +273,7 @@ async fn report(
         None,
     )
     .await?;
-    crate::delegated_permits::runtime::require_document(&auth, &request)?;
+    crate::delegated_permits::runtime::require_binding(&auth, &request.binding)?;
     let delivery = fetch(&state, &auth, &request).await?;
     // The HTTP stack owns this one response copy; zeroization of the private
     // reader cannot promise erasure of kernel/network/client buffers.

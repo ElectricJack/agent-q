@@ -327,42 +327,45 @@ pub(crate) async fn lock_authenticated(
     Ok(current.record.binding.node.node_id)
 }
 
-/// Check every attempt reference in an already decoded runner document. Terminal
-/// polls have no attempt in their body and instead filter their SQL by the permit.
-pub fn require_document(auth: &AuthenticatedNode, value: &impl Serialize) -> Result<(), AppError> {
+/// Routes extract attempt IDs from their decoded types, never JSON field names.
+/// Empty collections cannot establish delegated attempt scope. Terminal polls use
+/// the permit's attempt in SQL; empty terminal uploads still authenticate.
+pub fn require_attempts(
+    auth: &AuthenticatedNode,
+    attempts: impl IntoIterator<Item = Uuid>,
+) -> Result<(), AppError> {
     let Some(delegate) = auth.delegated() else {
         return Ok(());
     };
-    fn visit(value: &serde_json::Value, expected: Uuid, found: &mut bool) -> Result<(), AppError> {
-        match value {
-            serde_json::Value::Object(fields) => {
-                for (key, value) in fields {
-                    if key == "attempt_id" {
-                        *found = true;
-                        if value.as_str() != Some(expected.to_string().as_str()) {
-                            return Err(refused());
-                        }
-                    } else {
-                        visit(value, expected, found)?;
-                    }
-                }
-            }
-            serde_json::Value::Array(items) => {
-                for value in items {
-                    visit(value, expected, found)?;
-                }
-            }
-            _ => {}
-        }
-        Ok(())
-    }
+    let expected = delegate.current.record.binding.attempt_id;
     let mut found = false;
-    visit(
-        &json(value)?,
-        delegate.current.record.binding.attempt_id,
-        &mut found,
-    )?;
+    for attempt in attempts {
+        found = true;
+        if attempt != expected {
+            return Err(refused());
+        }
+    }
     if found { Ok(()) } else { Err(refused()) }
+}
+
+/// A launch binding and its remote session each carry an attempt reference.
+pub fn require_binding(
+    auth: &AuthenticatedNode,
+    binding: &aq_session_protocol::LaunchBinding,
+) -> Result<(), AppError> {
+    require_attempts(auth, [binding.attempt_id])?;
+    require_session(auth, &binding.session)
+}
+
+pub fn require_session(
+    auth: &AuthenticatedNode,
+    session: &aq_session_protocol::SessionIdentity,
+) -> Result<(), AppError> {
+    let attempts = match session {
+        aq_session_protocol::SessionIdentity::Remote { attempt_id, .. } => Some(*attempt_id),
+        aq_session_protocol::SessionIdentity::Central { .. } => None,
+    };
+    require_attempts(auth, attempts)
 }
 
 /// Historical proof for terminal cleanup, never live runner authorization.

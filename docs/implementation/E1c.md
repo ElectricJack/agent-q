@@ -2,6 +2,11 @@
 
 Task: `smart-falcon-16.4`. Completed 2026-11-03 (America/Los_Angeles).
 
+Worker-image follow-up: [E1c worker image](E1c-worker-image.md) replaces the
+0.3.1 candidate and extends `prod-workers` to start the real cloud worker.
+The limitations below describe this original task's evidence; the follow-up
+records the additional runtime verification and the remaining boundaries.
+
 This task makes four changes:
 - Production Compose gets `aq-supervisor-host` and `aq-worker-cloud` in the overlay `compose.workers.yaml`.
 - Every production service gets CPU, memory (no swap beyond memory) and PID limits.

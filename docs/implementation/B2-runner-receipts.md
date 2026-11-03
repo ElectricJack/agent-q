@@ -1,4 +1,4 @@
-# B2 runner receipt transport, revision 2
+# B2 runner receipt transport, revision 3
 
 This is the server-owned mapping for B6a2's injected `RunnerExchange`. It is
 requested by `msg-f8f7d6189f034835a5b9973ab1c0379c` / task comment
@@ -18,8 +18,8 @@ aq-worker-protocol 0.2.0. New headers supplement these original bodies.
 
 ## Authentication and correlation
 
-Every runner request uses the permit Bearer credential and `aq-runner-channel`
-containing bare JSON `RunnerChannelIdentity`. Node registration and re-adoption
+Ordinary sandbox runner requests use the permit Bearer credential and
+`aq-runner-channel` containing bare JSON `RunnerChannelIdentity`. Node registration and re-adoption
 remain node-only. The server checks attempt, generation, channel, active boot,
 current permit, cancellation and deadlines under effect-owner locks. Source
 transfer IDs are looked up to recover their owned attempt before authorization;
@@ -115,8 +115,12 @@ history; raw host-proof bytes alone are not the stopped wire request.
 
 All delegated retention/report operations use execution-scoped `ReportResult`
 and remain bounded by the current grant and permit expiry. The node's separate
-preserve/stop recovery path remains available when runner authority has expired;
-the runner must not substitute a node credential or invent a new TTL.
+preserve/stop recovery path remains available when runner authority has expired.
+After B3 cancellation revokes the delegated permit, B6a2/B5b must use that native
+node credential path for the stopped report and source/result upload. The
+node/controller sends these recovery requests itself, preserving the original
+native bindings and exact retry intent. It must never pass the node credential
+into the sandbox, revive the revoked permit or invent a new TTL.
 
 ## Differences and current limits
 
@@ -138,7 +142,11 @@ the runner must not substitute a node credential or invent a new TTL.
   original report cannot establish this authority. Rewritten report boots or
   operation IDs conflict; stale credentials, forged channel boots and expired
   authority remain refused. Ended renewal and other execution operations remain
-  forbidden. This replaces the 0.3.1 refusal documented in checkpoint 296c2d91.
+  forbidden. A node rebooting after native stop but before receiving the stopped
+  receipt or submitting its result can re-adopt the unexpired, uncancelled ended
+  permit for these reporting operations only. Readoption replay preserves its
+  deadlines and revision. This replaces the 0.3.1 refusal documented in checkpoint
+  296c2d91.
 - Full process restart qualification and a production B6a2 codec remain separate
   acceptance work. Store reconstruction and retained-receipt replay establish
   only the tested server persistence boundary.

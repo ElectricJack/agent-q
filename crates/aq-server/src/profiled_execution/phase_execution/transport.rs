@@ -107,7 +107,7 @@ async fn prepare_inner(state: &AppState, request: Request) -> Result<Response, A
     }
     match q {
         super::super::phase_profile::PrepareRequest::Frozen(q) => {
-            crate::delegated_permits::runtime::require_document(&auth, &q)?;
+            crate::delegated_permits::runtime::require_binding(&auth, &q.original.binding)?;
             // A shared URI becoming available for refresh must not activate the
             // frozen issuer without its own paired terminal qualification.
             if !super::policy::transport_enabled(state) {
@@ -121,7 +121,7 @@ async fn prepare_inner(state: &AppState, request: Request) -> Result<Response, A
             )
         }
         super::super::phase_profile::PrepareRequest::Refresh(q) => {
-            crate::delegated_permits::runtime::require_document(&auth, &q)?;
+            crate::delegated_permits::runtime::require_binding(&auth, &q.original.binding)?;
             if !super::super::phase_refresh_execution::policy::transport_enabled(state) {
                 return Err(AppError::Maintenance(
                     "refresh phase terminal owner is not installed".into(),
