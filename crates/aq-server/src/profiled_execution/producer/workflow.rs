@@ -435,35 +435,44 @@ async fn offers(
     let policy_record = config
         .project_policy_record(policy.project_id)
         .map_err(|_| refused())?;
-    // A named ref resolves exactly once here; its commit is frozen into the
-    // export key and the second observation below must still match it.
-    let observed = source::observe(state, &compiled.frozen, &policy_record).await?;
-    let source_operation = source_operation(
-        policy.project_id,
-        &task,
-        record.revision,
-        generation,
-        config
-            .project_policy_ref(policy.project_id)
-            .map_err(|_| refused())?,
-        frozen_commit(&policy.source, &observed),
-    )?;
-    let reserved = reservation(state, &compiled, source_operation, observed).await?;
-    let (token, fact) = match reserved {
-        source_exports::Reservation::Pending(token) => {
-            let fact = profiled_base::verify_export(state, &token).await?;
-            source_exports::finalize(state, &token, &fact).await?;
-            (token, fact)
-        }
-        source_exports::Reservation::Verified {
-            reservation,
-            canonical_verified,
-        } => {
-            let fact =
-                profiled_base::VerifiedExport::decode_stored(&reservation, &canonical_verified)?;
-            (reservation, fact)
+    let (token, fact) = if let Some(replacement) = &replacement {
+        // Reuse the original verified export, including its bundle bytes and
+        // operation identity. Never resolve a moving ref or re-export on retry.
+        replacement::retained_source(state, task.task_id, replacement)
+            .await?
+            .into_parts()
+    } else {
+        // A first attempt freezes the configured source at offer time.
+        let observed = source::observe(state, &compiled.frozen, &policy_record).await?;
+        let operation = source_operation(
+            policy.project_id,
+            &task,
+            record.revision,
+            generation,
+            config
+                .project_policy_ref(policy.project_id)
+                .map_err(|_| refused())?,
+            frozen_commit(&policy.source, &observed),
+        )?;
+        match reservation(state, &compiled, operation, observed).await? {
+            source_exports::Reservation::Pending(token) => {
+                let fact = profiled_base::verify_export(state, &token).await?;
+                source_exports::finalize(state, &token, &fact).await?;
+                (token, fact)
+            }
+            source_exports::Reservation::Verified {
+                reservation,
+                canonical_verified,
+            } => {
+                let fact = profiled_base::VerifiedExport::decode_stored(
+                    &reservation,
+                    &canonical_verified,
+                )?;
+                (reservation, fact)
+            }
         }
     };
+    let source_operation = token.request().operation_id;
     // External export can consume the original graph/selection freshness. Read
     // actual owners again; a task CAS/content change refuses this original task.
     let ready = graph
@@ -492,7 +501,11 @@ async fn offers(
         .map_err(|_| refused())?;
     let compiled = compose::compile(state, &record, auth.id(), &snapshot, &context).await?;
     let decision = selection(state, &task, &compiled, replacement.as_ref()).await?;
-    let source = source::observe(state, &compiled.frozen, &policy_record).await?;
+    let source = if replacement.is_some() {
+        source::observe_retained(state, &compiled.frozen, &policy_record, token.request()).await?
+    } else {
+        source::observe(state, &compiled.frozen, &policy_record).await?
+    };
     if source.admission.resolved_object.hex != token.request().base.hex
         || source.admission.repository_binding_generation != token.request().binding_generation
     {

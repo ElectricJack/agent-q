@@ -350,6 +350,52 @@ pub async fn release(
     Ok(())
 }
 
+/// Read the immutable release receipt before selecting the predecessor's owned
+/// export. A missing or mismatched release must never fall back to fresh source.
+pub(crate) async fn retained_source_locked(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    task: Uuid,
+    predecessor: Uuid,
+    receipt: &ArtifactRef,
+) -> Result<super::source_exports::LinkedExport, AppError> {
+    let digest: Option<String> = sqlx::query_scalar(
+        "SELECT retained_source_receipt_digest FROM profiled_replacement_releases WHERE attempt_id=$1 AND task_id=$2 FOR SHARE",
+    )
+    .bind(predecessor)
+    .bind(task)
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(|_| AppError::Internal)?;
+    if digest.as_deref() != Some(receipt.digest.as_str()) {
+        return Err(AppError::Conflict(
+            "replacement retained source receipt changed or missing".into(),
+        ));
+    }
+    super::source_exports::load_linked_locked(tx, predecessor).await
+}
+
+pub async fn retained_source(
+    state: &AppState,
+    task: Uuid,
+    replacement: &Replacement,
+) -> Result<super::source_exports::LinkedExport, AppError> {
+    let mut tx = state
+        .store
+        .pool
+        .begin()
+        .await
+        .map_err(|_| AppError::Internal)?;
+    let linked = retained_source_locked(
+        &mut tx,
+        task,
+        replacement.predecessor,
+        &replacement.retained_source_receipt,
+    )
+    .await?;
+    tx.commit().await.map_err(|_| AppError::Internal)?;
+    Ok(linked)
+}
+
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
