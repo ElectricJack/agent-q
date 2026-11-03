@@ -61,11 +61,12 @@ pub struct RuntimeOwner {
 #[derive(Clone)]
 pub struct Service {
     pub namespace: Namespace,
-    pool: PgPool,
-    keys: Arc<Keyring>,
+    pub(super) pool: PgPool,
+    pub(super) keys: Arc<Keyring>,
     clock: Clock,
     pub(crate) profile: CatalogProfile,
     pub(super) reviews: Option<Arc<crate::reviews::Service>>,
+    pub(super) host: Option<Arc<super::host_adapters::HostPorts>>,
 }
 #[derive(Clone, Debug)]
 pub enum MessageResult {
@@ -88,6 +89,21 @@ impl Service {
         keys: Arc<Keyring>,
     ) -> Result<Self> {
         Self::with_profile(state, namespace, keys, CatalogProfile::HumanReview2).await
+    }
+    /// Explicit D4 host catalog (profile 3) for a new namespace/generation.
+    /// The graph port is the gateway in production and a fake in tests.
+    pub async fn new_host3(
+        state: &crate::AppState,
+        namespace: Namespace,
+        keys: Arc<Keyring>,
+        graph: Arc<dyn super::host_adapters::WorkGraph>,
+    ) -> Result<Self> {
+        let mut service = Self::with_profile(state, namespace, keys, CatalogProfile::Host3).await?;
+        service.host = Some(Arc::new(super::host_adapters::HostPorts {
+            state: state.clone(),
+            graph,
+        }));
+        Ok(service)
     }
     async fn with_profile(
         state: &crate::AppState,
@@ -124,16 +140,17 @@ impl Service {
             clock: state.clock.clone(),
             profile,
             reviews,
+            host: None,
         })
     }
-    fn now(&self) -> Result<i64> {
+    pub(super) fn now(&self) -> Result<i64> {
         let at = (self.clock)().timestamp_millis();
         if at < 0 {
             return Err(Error::Invalid);
         }
         Ok(at)
     }
-    async fn tx(&self) -> Result<Transaction<'_, Postgres>> {
+    pub(super) async fn tx(&self) -> Result<Transaction<'_, Postgres>> {
         let mut tx = self.pool.begin().await?;
         sqlx::query("SELECT set_config('statement_timeout','2000ms',true),set_config('lock_timeout','500ms',true)")
             .execute(&mut *tx)
@@ -151,7 +168,7 @@ impl Service {
         }
         Ok(())
     }
-    async fn namespace_locked(
+    pub(super) async fn namespace_locked(
         &self,
         tx: &mut Transaction<'_, Postgres>,
     ) -> Result<sqlx::postgres::PgRow> {
@@ -175,7 +192,7 @@ impl Service {
         }
         Ok(row)
     }
-    async fn budget(
+    pub(super) async fn budget(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         admissions: i64,
@@ -216,7 +233,7 @@ impl Service {
         if self.profile == CatalogProfile::Mail1 {
             sqlx::query("INSERT INTO playbook_namespaces(namespace_id,generation,name,workspace_id,project_id,owner_user_id,catalog_digest,source_digest) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(namespace_id) DO NOTHING").bind(self.namespace.namespace_id).bind(self.namespace.generation).bind(&self.namespace.name).bind(self.namespace.workspace_id).bind(self.namespace.project_id).bind(actor).bind(digest(&self.profile.registry())?).bind(SOURCE).execute(&mut *tx).await?;
         } else {
-            sqlx::query("INSERT INTO playbook_namespaces(namespace_id,generation,name,workspace_id,project_id,owner_user_id,catalog_digest,source_digest,catalog_profile) VALUES($1,$2,$3,$4,$5,$6,$7,$8,2) ON CONFLICT(namespace_id) DO NOTHING").bind(self.namespace.namespace_id).bind(self.namespace.generation).bind(&self.namespace.name).bind(self.namespace.workspace_id).bind(self.namespace.project_id).bind(actor).bind(digest(&self.profile.registry())?).bind(SOURCE).execute(&mut *tx).await?;
+            sqlx::query("INSERT INTO playbook_namespaces(namespace_id,generation,name,workspace_id,project_id,owner_user_id,catalog_digest,source_digest,catalog_profile) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(namespace_id) DO NOTHING").bind(self.namespace.namespace_id).bind(self.namespace.generation).bind(&self.namespace.name).bind(self.namespace.workspace_id).bind(self.namespace.project_id).bind(actor).bind(digest(&self.profile.registry())?).bind(SOURCE).bind(self.profile.number()).execute(&mut *tx).await?;
         }
         self.namespace_locked(&mut tx).await?;
         tx.commit().await?;
@@ -254,7 +271,7 @@ impl Service {
             revision: expected + 1,
         })
     }
-    fn runtime(&self, row: &sqlx::postgres::PgRow, owner: &RuntimeOwner) -> Result<()> {
+    pub(super) fn runtime(&self, row: &sqlx::postgres::PgRow, owner: &RuntimeOwner) -> Result<()> {
         if owner.namespace_id != self.namespace.namespace_id
             || owner.generation != self.namespace.generation
             || row.get::<Option<Uuid>, _>("runtime_incarnation") != Some(owner.incarnation)
@@ -336,7 +353,7 @@ impl Service {
         tx.commit().await?;
         Ok(())
     }
-    async fn grant_locked(
+    pub(super) async fn grant_locked(
         &self,
         tx: &mut Transaction<'_, Postgres>,
         id: Uuid,
@@ -372,7 +389,7 @@ impl Service {
         self.profile.validate_scope(&scope)?;
         Ok(scope)
     }
-    fn intent_authority(
+    pub(super) fn intent_authority(
         &self,
         intent: &Intent,
         id: Uuid,
@@ -429,7 +446,7 @@ impl Service {
         tx.commit().await?;
         Ok(authority)
     }
-    fn identity(&self, intent: &Intent) -> Result<String> {
+    pub(super) fn identity(&self, intent: &Intent) -> Result<String> {
         digest(&(
             self.namespace.namespace_id,
             self.namespace.generation,
@@ -443,7 +460,11 @@ impl Service {
             &intent.authority,
         ))
     }
-    async fn check_expiry(&self, tx: &mut Transaction<'_, Postgres>, id: Uuid) -> Result<()> {
+    pub(super) async fn check_expiry(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        id: Uuid,
+    ) -> Result<()> {
         let expiry: i64 =
             sqlx::query_scalar("SELECT expires_at_ms FROM playbook_grants WHERE grant_id=$1")
                 .bind(id)
@@ -680,7 +701,7 @@ pub struct RetainedAdmission {
     pub(super) grant_revision: i64,
 }
 impl Service {
-    fn aad(&self, domain: &str, id: Uuid, digest: &str) -> Result<Vec<u8>> {
+    pub(super) fn aad(&self, domain: &str, id: Uuid, digest: &str) -> Result<Vec<u8>> {
         canonical_bytes(&(
             domain,
             1,

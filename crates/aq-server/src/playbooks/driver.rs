@@ -45,6 +45,30 @@ impl Host for MailHost {
             .is_ok()
     }
     fn dispatch(&mut self, intent: &Intent) -> DispatchResult {
+        if super::host_adapters::HOST3_COMMANDS.contains(&intent.command.name.as_str()) {
+            let Ok((id, revision)) = grant_actor(&intent.authority) else {
+                return DispatchResult::Rejected {
+                    reason: "grant binding refused".into(),
+                };
+            };
+            return match self.handle.block_on(self.service.host_dispatch(
+                &self.runtime,
+                id,
+                revision,
+                intent,
+            )) {
+                Ok(result) => DispatchResult::Completed {
+                    outcome: result.outcome,
+                    output: result.output,
+                },
+                Err(Error::Unknown) => DispatchResult::Unknown {
+                    reason: "host effect outcome unknown; retained lookup required".into(),
+                },
+                Err(error) => DispatchResult::Rejected {
+                    reason: error.to_string(),
+                },
+            };
+        }
         if intent.command.name == "decision.request" {
             let Ok((id, revision)) = grant_actor(&intent.authority) else {
                 return DispatchResult::Rejected {
@@ -131,6 +155,25 @@ impl Host for MailHost {
         if intent.command.name == "operation.get" {
             return self.dispatch(intent);
         }
+        if super::host_adapters::HOST3_COMMANDS.contains(&intent.command.name.as_str()) {
+            let Ok((id, revision)) = grant_actor(&intent.authority) else {
+                return DispatchResult::Unknown {
+                    reason: "grant binding refused".into(),
+                };
+            };
+            return match self
+                .handle
+                .block_on(self.service.host_retained(id, revision, intent))
+            {
+                Ok(Some(result)) => DispatchResult::Completed {
+                    outcome: result.outcome,
+                    output: result.output,
+                },
+                _ => DispatchResult::Unknown {
+                    reason: "no retained host result; no new effect admitted".into(),
+                },
+            };
+        }
         let Ok((id, revision)) = grant_actor(&intent.authority) else {
             return DispatchResult::Unknown {
                 reason: "grant binding refused".into(),
@@ -159,6 +202,11 @@ impl Host for MailHost {
         let Ok((id, revision)) = grant_actor(&intent.authority) else {
             return CancellationResult::Refused;
         };
+        if super::host_adapters::HOST3_COMMANDS.contains(&intent.command.name.as_str()) {
+            // Host effects are cancelled through operation.cancel, never by
+            // the runner withdrawing an admitted effect.
+            return CancellationResult::Refused;
+        }
         if intent.command.name == "decision.request" {
             return self
                 .handle

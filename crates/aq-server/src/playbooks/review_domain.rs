@@ -9,15 +9,49 @@ use uuid::Uuid;
 pub enum CatalogProfile {
     Mail1,
     HumanReview2,
+    /// D4 host catalog 1.0.0, vendored and fingerprint-pinned (D5).
+    Host3,
+}
+pub const HOST3_VERSION: &str = "1.0.0";
+pub const HOST3_FINGERPRINT: &str =
+    "sha256:627125cc393d8274bfaa9ffc785c338e566cc69af362ac027a3daa355c3509e1";
+pub const HOST3_CAPABILITIES: [&str; 4] = [
+    "context.read",
+    "work.ensure",
+    "work.change",
+    "operation.cancel",
+];
+fn host3_registry() -> Registry {
+    static REGISTRY: std::sync::OnceLock<Registry> = std::sync::OnceLock::new();
+    REGISTRY
+        .get_or_init(|| {
+            let registry: Registry = serde_json::from_str(include_str!(
+                "../../../../vendor/aq-host-catalog-1.0.0/registry.json"
+            ))
+            .expect("vendored D4 host catalog parses");
+            assert_eq!(
+                aq_playbook_host::model::digest(&(HOST3_VERSION, &registry))
+                    .ok()
+                    .as_deref(),
+                Some(HOST3_FINGERPRINT),
+                "vendored D4 host catalog fingerprint"
+            );
+            registry
+        })
+        .clone()
 }
 impl CatalogProfile {
     pub fn number(self) -> i16 {
         match self {
             Self::Mail1 => 1,
             Self::HumanReview2 => 2,
+            Self::Host3 => 3,
         }
     }
     pub fn registry(self) -> Registry {
+        if self == Self::Host3 {
+            return host3_registry();
+        }
         let mut registry = super::domain::registry();
         if self == Self::HumanReview2 {
             let decision = decision_contract();
@@ -32,6 +66,23 @@ impl CatalogProfile {
     pub fn validate_scope(self, scope: &super::domain::GrantScope) -> Result<()> {
         if self == Self::Mail1 {
             return scope.validate();
+        }
+        if self == Self::Host3 {
+            let allowed: BTreeSet<String> =
+                HOST3_CAPABILITIES.iter().map(|c| c.to_string()).collect();
+            if scope.workspace_id.is_nil()
+                || scope.project_id.is_nil()
+                || !scope.recipients.is_empty()
+                || scope.capabilities.is_empty()
+                || !scope.capabilities.is_subset(&allowed)
+                || aq_playbook_host::model::canonical_bytes(scope)
+                    .map_err(|_| Error::Invalid)?
+                    .len()
+                    > 32768
+            {
+                return Err(Error::Invalid);
+            }
+            return Ok(());
         }
         let mut base = scope.clone();
         base.capabilities = BTreeSet::from(["message.send".into()]);

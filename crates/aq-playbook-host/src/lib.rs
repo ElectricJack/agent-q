@@ -752,7 +752,12 @@ fn validate_registry(registry: &Registry) -> Result<(), Error> {
         || registry.commands.iter().any(|(name, c)| {
             !COMMANDS.contains(&name.as_str())
                 || name != &c.name
-                || c.recovery != model::Recovery::Reconcilable
+                || !matches!(
+                    c.recovery,
+                    model::Recovery::Observation
+                        | model::Recovery::KeyedIdempotent
+                        | model::Recovery::Reconcilable
+                )
         })
         || registry.events.iter().any(|(name, c)| name != &c.name)
     {

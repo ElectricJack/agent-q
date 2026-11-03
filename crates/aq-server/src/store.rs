@@ -328,6 +328,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         57,
         include_str!("../migrations/0057_observation_source_generations.sql"),
     ),
+    (
+        58,
+        include_str!("../migrations/0058_playbook_host_adapters.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.

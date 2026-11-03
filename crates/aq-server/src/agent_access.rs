@@ -52,6 +52,27 @@ pub(crate) async fn settlement_post(
 pub(crate) fn settlement_response_valid(raw: &Value) -> bool {
     contract::upstream_valid("MutationResult", raw)
 }
+pub(crate) fn settlement_request_valid(body: &Value) -> bool {
+    contract::upstream_valid("MutationRequest", body)
+}
+/// Typed node read for the playbook host adapters (D5). The id is a UUID, so
+/// no caller-chosen route or query is ever forwarded.
+pub(crate) async fn settlement_node(
+    rt: &Runtime,
+    workspace: Uuid,
+    id: Uuid,
+) -> std::result::Result<Option<Value>, crate::error::AppError> {
+    match rt
+        .get(&format!("/v1/workspaces/{workspace}/nodes/{id}"), &[])
+        .await
+    {
+        Ok(raw) if raw["id"] == json!(id) => Ok(Some(raw)),
+        Err(Error("not_found")) => Ok(None),
+        _ => Err(crate::error::AppError::UpdatesUnavailable(
+            "Graph node read unavailable".into(),
+        )),
+    }
+}
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
