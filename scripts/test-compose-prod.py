@@ -100,3 +100,23 @@ def test_worker_overlay_limits_and_socket_boundaries():
     assert report["budget"]["cpus"] <= 8.0
     # The base stack stays the E1a service set; workers come only from the overlay.
     assert not {"aq-supervisor-host", "aq-worker-cloud"} & set(config()["services"])
+
+
+@pytest.mark.parametrize("uid,gid", [("0", "1000"), ("1000", "0"), ("bad", "1000"), ("1000", "")])
+def test_worker_initializer_refuses_invalid_identity_before_changing_volumes(uid, gid):
+    result = subprocess.run(["sh", str(ROOT / "scripts/worker-init-volumes.sh")],
+                            env=dict(os.environ, AQ_SANDBOX_UID=uid, AQ_SANDBOX_GID=gid),
+                            capture_output=True, text=True)
+    assert result.returncode != 0
+    assert "sandbox UID/GID must be" in result.stderr
+
+
+@pytest.mark.parametrize("image", ["worker:latest", "worker@sha256:abc", ""])
+def test_worker_smoke_refuses_unpinned_worker_before_starting_stack(monkeypatch, tmp_path, image):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("workers_smoke", ROOT / "scripts/compose-workers-smoke.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setenv("AQ_WORKER_IMAGE", image)
+    with pytest.raises(AssertionError, match="published Dockerfile.worker digest"):
+        module.worker_setup(str(tmp_path / "unavailable.sock"), {})
