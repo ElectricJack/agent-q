@@ -1054,6 +1054,14 @@
                   "pattern": "^[1-9][0-9]{0,18}$",
                   "type": "string"
                 },
+                "intelligence_hint": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "labels": {
                   "items": {
                     "type": "string"
@@ -1072,8 +1080,33 @@
                     "null"
                   ]
                 },
+                "priority": {
+                  "format": "uint16",
+                  "maximum": 300,
+                  "minimum": 1,
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "profile_hint": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "task_state": {
                   "$ref": "#/$defs/TaskState"
+                },
+                "task_type": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "title": {
                   "maxLength": 512,
@@ -1250,6 +1283,173 @@
                 "expected_version"
               ],
               "title": "TaskEdit",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "task.graph.create"
+            },
+            "payload": {
+              "$defs": {
+                "Dependency": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "source": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "target": {
+                      "format": "uuid",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "source",
+                    "target"
+                  ],
+                  "type": "object"
+                },
+                "InitialState": {
+                  "enum": [
+                    "draft",
+                    "active"
+                  ],
+                  "type": "string"
+                },
+                "Task": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "acceptance_criteria": {
+                      "default": "",
+                      "maxLength": 8192,
+                      "type": "string"
+                    },
+                    "body": {
+                      "default": "",
+                      "maxLength": 32768,
+                      "type": "string"
+                    },
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "intelligence_hint": {
+                      "maxLength": 128,
+                      "minLength": 1,
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "labels": {
+                      "default": [],
+                      "items": {
+                        "type": "string"
+                      },
+                      "maxItems": 16,
+                      "type": "array"
+                    },
+                    "parent_id": {
+                      "format": "uuid",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "priority": {
+                      "format": "uint16",
+                      "maximum": 300,
+                      "minimum": 1,
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "profile_hint": {
+                      "maxLength": 128,
+                      "minLength": 1,
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "task_state": {
+                      "$ref": "#/$defs/InitialState",
+                      "default": "active"
+                    },
+                    "task_type": {
+                      "maxLength": 128,
+                      "minLength": 1,
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "title": {
+                      "maxLength": 512,
+                      "minLength": 1,
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "title"
+                  ],
+                  "type": "object"
+                }
+              },
+              "$id": "urn:aq:dashboard-actions:1:task.graph.create:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "edges": {
+                  "default": [],
+                  "items": {
+                    "$ref": "#/$defs/Dependency"
+                  },
+                  "maxItems": 99,
+                  "type": "array"
+                },
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "tasks": {
+                  "items": {
+                    "$ref": "#/$defs/Task"
+                  },
+                  "maxItems": 100,
+                  "minItems": 1,
+                  "type": "array"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version",
+                "tasks"
+              ],
+              "title": "GraphCreate",
               "type": "object"
             }
           },

@@ -63,6 +63,44 @@ for the original principal means retired, and the ID can never execute again.
 Retention is published on the action capability. Cleanup is explicit;
 keeping receipts longer than the minimum is safe.
 
+## Enqueue work
+
+`task.create` also accepts optional `priority` (integer 1–300), `profile_hint`,
+`intelligence_hint` and `task_type`. Hints are nonblank, without control characters,
+and at most 128 UTF-8 bytes. They become `aq:priority`, `aq:profile_hint`,
+`aq:intelligence_hint` and `aq:task_type` metadata on the new Graph task. Omitted
+fields preserve native task-create serialization and defaults. These hints confer
+no execution or credential authority.
+
+`task.graph.create` has a `project` subject, matching `project_id` and
+`expected_version`. Its `tasks` array contains explicit nonnil task `id`s and
+`title`s, plus optional body, acceptance criteria, labels, task_state (default
+`active`), parent_id and the same enqueue metadata. Its optional `edges` array
+contains `{id,source,target}` blocks edges; at least one endpoint must be a new
+task. Existing endpoints and parents must be live tasks in the selected project
+and workspace. IDs must be unique across nodes and edges; self and duplicate
+blocks edges are invalid. Parent links produce deterministic `parent-child` edges.
+Graph owns cycle and other domain validation.
+
+All nodes, blocks edges and parent links are submitted as **one atomic Graph
+mutation batch of at most 100 total operations**, without chunking. The exact
+Graph body and `aq-dashboard-action:{operation_id}` key are retained before the
+POST. Reconciliation on lookup or repeated submit replays those bytes only,
+checking the original binding and Graph service identity. A first Graph conflict
+is terminal; an ambiguous response remains unknown until the original receipt
+settles it. Owner bootstrap advertises `tasks.graph.create@1`.
+
+The separate worker listener exposes the same `/api/v1/actions` and
+`/api/v1/operations/{operation_id}` paths for supervisors, using F1b's active,
+generation-bound `Authorization: Bearer ...` credential with `enqueue` scope.
+Only `task.create` and `task.graph.create` are registered there. Credential and
+lifecycle locks remain held through admission, dispatch and response; lookup
+rechecks scope, expiry and revocation. No human Owner identity is manufactured.
+Receipts are private to the supervisor session UUID, preserved across credential
+rotation within that session. Owner and session principal references are disjoint
+in the operation journal (state format 57). Owners continue to use the human
+listener and its authentication and CSRF policy.
+
 ## Errors and cursors
 
 All `/api/v1/*` errors use `request_id`, `code`, `message`, `retryable` and
@@ -169,3 +207,5 @@ Named acceptance tests:
 - `cargo test --locked --workspace bootstrap_lists_pending_operations`
 - `cargo test --locked -p aq-server --test dashboard_task_knowledge knowledge_correct_with_stale_version_conflicts`
 - `cargo test --locked -p aq-server --test dashboard_task_knowledge task_retry_creates_replacement_attempt`
+
+- `cargo test --locked --workspace supervisor_creates_graph_with_dependencies_idempotently`
