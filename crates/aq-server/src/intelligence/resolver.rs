@@ -158,6 +158,15 @@ async fn resolve_with_principal(
         Some(_) => return Err(bad("replacement budget does not match lineage history")),
         None => None,
     };
+    let placement = crate::profiled_execution::placement::facts(
+        state,
+        node_id,
+        &request.project.project.binding.catalog_digest,
+        request.lineage.project_id,
+        &request.project.environment,
+        time,
+    )
+    .await?;
     let ceiling = &request.project.project.binding.ceilings;
     // H2: lineage spend from the observation ledger. Retries and wakes share
     // the lineage, so spend accumulates. A cost limit without hard enforcement
@@ -266,6 +275,7 @@ async fn resolve_with_principal(
         estimates: vec![],
         compositions: request.compositions,
         now_ms: time,
+        placement,
     };
     let outcome = select(&catalog, &input).map_err(|_| bad("selection snapshot refused"))?;
     let decision = Decision {

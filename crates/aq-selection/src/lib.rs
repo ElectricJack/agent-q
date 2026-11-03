@@ -9,6 +9,8 @@ mod explanation;
 pub use explanation::human_selection;
 mod feedback;
 pub use feedback::*;
+mod placement;
+pub use placement::*;
 mod select;
 mod validate;
 pub use aq_session_protocol::{ArtifactRef, Digest, Scope, Text, Validate};

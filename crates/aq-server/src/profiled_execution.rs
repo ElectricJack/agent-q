@@ -13,6 +13,7 @@ pub mod journal;
 pub mod material;
 pub mod material_api;
 pub mod no_grant;
+pub mod placement;
 pub mod policies;
 pub mod replacement;
 

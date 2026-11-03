@@ -352,3 +352,6 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Filed C4's cross-repo follow-up as `bold-ridge-78` (aq-worker): sandbox nodes report the template digest as InstalledHarness.environment.digest, plus exact harness versions.
   - Moved `calm-delta-18.6.2`/`.3` (C4 follow-ups) and `clear-crest-61.2.1`/`.2` (H2 follow-ups) from Codex to Claude.
   - `bright-nexus-44` found the #37 stack overflow root cause (large unoptimized future frames, not recursion) and is fixing it. `clear-rapids-48` (observations 403/401) is running. Disk is at 79%.
+- **05:20 check.**
+  - Merged aq-server #36 (`bright-torrent-63`: CI runs product and release smokes against the 0.5.1 worker). Every check passed (smoke and update-lifecycle included) except the known flaky `original_inputs_remain_scoped_after_proposal_expiry_then_expire_held`.
+  - #37 (I0 server findings) has the stack fix and a main merge; mergeable, CI pending. `prime-dune-72` (update-lifecycle) and the G2 and C4 follow-ups are running. `clear-rapids-48` and H2 completed earlier; aq-worker main CI is green again.

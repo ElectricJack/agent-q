@@ -12,6 +12,8 @@ const MAX_HEADS: i64 = 65536;
 pub(crate) enum Scope {
     Attempt(Uuid),
     Lineage(Uuid),
+    /// Every attempt-owned call the node reported, across all lineages.
+    Node(Uuid),
 }
 
 /// Canonical call heads in scope, each with the billing basis of the trusted
@@ -23,6 +25,7 @@ pub(crate) async fn priced_facts(
     let (filter, id) = match scope {
         Scope::Attempt(id) => ("h.owner_attempt_id=$1", id),
         Scope::Lineage(id) => ("h.owner_attempt_id IS NOT NULL AND e.lineage_id=$1", id),
+        Scope::Node(id) => ("h.owner_attempt_id IS NOT NULL AND e.node_id=$1", id),
     };
     let rows = sqlx::query(&format!(
         "SELECT h.fact, s.authority->'billing' AS billing FROM observation_call_heads h \
@@ -55,8 +58,27 @@ pub(crate) fn summarize(
     state: &AppState,
     facts: &[(Option<EstimateBasis>, Fact)],
 ) -> Result<Summary> {
+    summarize_with(&catalog::rate_book(state), facts)
+}
+fn summarize_with(
+    book: &pricing::RateCardBook,
+    facts: &[(Option<EstimateBasis>, Fact)],
+) -> Result<Summary> {
     let refs: Vec<_> = facts.iter().map(|(b, f)| (b.clone(), f)).collect();
-    pricing::summarize(&refs, &catalog::rate_book(state)).map_err(|_| Error::Invalid)
+    pricing::summarize(&refs, book).map_err(|_| Error::Invalid)
+}
+
+/// Spend accounted for every attempt a node ran (C4 node spend ceilings).
+/// An empty summary (no cost components) means the node reported no calls.
+pub async fn node(
+    pool: &sqlx::PgPool,
+    book: &pricing::RateCardBook,
+    node: Uuid,
+) -> Result<Summary> {
+    let mut tx = pool.begin().await?;
+    let facts = priced_facts(&mut tx, Scope::Node(node)).await?;
+    tx.commit().await?;
+    summarize_with(book, &facts)
 }
 
 /// A project cost limit without hard enforcement: crossing it is recorded.
