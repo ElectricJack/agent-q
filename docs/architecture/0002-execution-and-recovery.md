@@ -77,6 +77,36 @@ NeverGranted closure proves that no grant was issued; it does not assert physica
 stop and cannot override uncertain external effects. Releasing a granted claim
 requires independently verified stop, retention and effect disposition.
 
+A profiled attempt's shared task claim (`holds_task`) is released in exactly
+three lawful ways; the claim guards refuse any other true→false transition:
+
+1. **Verified Graph completion release.** An accepted settlement evaluation, its
+   owner-verified release record and the confirmed Graph completion receipt and
+   outbox entry.
+2. **Never-granted closure.** Central proof that no grant was ever issued for the
+   attempt (it asserts no physical stop).
+3. **Replacement release.** An immutable, insert-only
+   `profiled_replacement_releases` row for a failed predecessor. Its trigger
+   rechecks current hot authority and refuses the row unless all of these hold:
+   - stop is `stopped` or `not_started`;
+   - source retention is `retained`;
+   - effects are `quiescent`;
+   - the stop, retained-source and effect-reconciliation receipt digests in the
+     row equal those in hot authority;
+   - status is terminal (`finished`, `declined`, `cancelling`) or `unknown`;
+   - the attempt has no accepted, stale or needs-reconciliation settlement
+     evaluation and no task completion.
+
+   The daemon takes the node lock and locks the attempt and hot-authority rows,
+   re-assesses the locked history and checks the predecessor is unchanged before
+   inserting. A replacement release is never a Graph completion and cannot
+   release an accepted attempt. Its successor is a new attempt, session and
+   generation that reuses the predecessor's verified export through the exact
+   retained-source receipt (§7); missing release or export evidence refuses the
+   offer rather than creating a new export. Retry, lineage-time and
+   sandbox-minute budgets are counted across the lineage, so exhaustion blocks
+   replacement.
+
 ## 4. Lifecycle and observed outcome
 
 For native execution, the logical order is offered/reserved, preparing, granted,
