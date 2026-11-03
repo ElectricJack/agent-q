@@ -45,7 +45,8 @@ in the current upstream B3/E0 changes; those retain their existing ancestry.
 
 ## Validation
 
-All final checks passed against correction commit `032e481`, after the authorized
+All 15 final focused checks and the exact workspace acceptance command passed
+against correction commit `032e481`, after the authorized
 integration merge `47f6181`. No source changes followed that run. The final evidence
 commit contains this document and the completed plan; AQ's close record captures
 the delivered HEAD.
@@ -86,6 +87,14 @@ commands. CI owns unrelated full-suite coverage.
 | `cargo run --locked -p aq-server --example dashboard_contract -- --check` | passed |
 | `python protocol/dashboard-actions/v1/check.py` | passed |
 | `python protocol/dashboard-read/v1/check.py` | passed |
+
+The exact declared acceptance command,
+`cargo test --locked --workspace bootstrap_lists_pending_operations`, also passed
+through the same AQ-admitted adapter after publication of `9a73b5d` (unchanged
+source). It ran `bootstrap_lists_pending_operations` successfully; other workspace
+tests were filtered out. Compile and execution took 681.34 seconds. The log is
+`.aq/tmp/g1b/exact-acceptance.log`. AQ required this exact spelling in the close
+record in addition to the previously passing explicit-target command.
 
 The regular human-task suite reports the pinned Graph test ignored; its separate
 explicit selection in the table passed. Action fixtures cover three valid requests,
