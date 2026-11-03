@@ -94,3 +94,9 @@ unexpired node credential bindings for the account's profiles: `unknown` with
 `no_fresh_node_report` when no live node reports one. Nothing here grants placement.
 `/api/workers` rows carry the latest storage report flattened (`disk_*_bytes`,
 `preserved_*`, `storage_used_bps`, `storage_observed_at`), absent when unreported.
+
+`knowledge.relationships.read@1` and `knowledge.history.read@1` advertise the
+owner-only `human-graph-1` routes `/api/human/projects/{p}/knowledge/{n}/relationships`
+and `/api/human/projects/{p}/knowledge/{n}/revisions`, gated like `knowledge.read`
+on a configured Graph runtime. The first `knowledge` list page also carries a
+filtered `total` (`exact`, `estimated` or `unknown`); see `protocol/human-graph/v1`.
