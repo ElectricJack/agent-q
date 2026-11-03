@@ -5,6 +5,12 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 COMMANDS = {
+    "server_restart_mid_attempt_resumes_or_preserves": ["cargo", "test", "--locked", "--workspace", "server_restart_mid_attempt_resumes_or_preserves"],
+    "node_reboot_requires_readoption_before_renewal_extends": ["cargo", "test", "--locked", "--workspace", "node_reboot_requires_readoption_before_renewal_extends"],
+    "permit_scope_refuses_foreign_attempt_and_expired_use": ["cargo", "test", "--locked", "--workspace", "permit_scope_refuses_foreign_attempt_and_expired_use"],
+    "routes": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "delegated_permit_runtime", "expired_permit_is_refused_by_every_runner_route", "--", "--nocapture"],
+    "terminal-quota": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "terminal_store", "sibling_attempts_share_node_terminal_subscription_limit", "--", "--nocapture"],
+    "restart": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "delegated_permit_runtime", "server_restart_mid_attempt_resumes_or_preserves", "--", "--nocapture"],
     "receipts-runtime": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "delegated_permit_runtime"],
     "format-includes": ["rustfmt", "--edition", "2024", "crates/aq-server/tests/phase_source_retention/case.rs"],
     "receipts-git": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "phase_source_retention", "delegated_central_receipts", "--", "--ignored", "--nocapture", "--test-threads=1"],

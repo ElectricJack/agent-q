@@ -2015,3 +2015,68 @@ async fn in_flight_terminal_keeps_its_fifo_but_does_not_block_other_terminal_que
     assert!(sqlx::query_scalar::<_,bool>("SELECT dispatched FROM terminal_input_receipts WHERE terminal_id=$1 AND operation_id=$2").bind(first.terminal.terminal_id).bind(in_flight.operation_id).fetch_one(&pool).await.unwrap());
     assert!(!sqlx::query_scalar::<_,bool>("SELECT dispatched FROM terminal_input_receipts WHERE terminal_id=$1 AND operation_id=$2").bind(first.terminal.terminal_id).bind(behind.operation_id).fetch_one(&pool).await.unwrap());
 }
+
+#[tokio::test]
+async fn sibling_attempts_share_node_terminal_subscription_limit() {
+    let (mut f, _dir, first) = running().await;
+    register(&f, &first).await;
+    let mut terminals = vec![first.clone()];
+    for _ in 0..8 {
+        terminals.push(sibling_terminal(&mut f, &first).await);
+    }
+    let watch = |terminal: &Register| {
+        service::Mutation::Watch(aq_session_api::WatchRequest {
+            terminal: terminal.terminal.clone(),
+            operation_id: Uuid::new_v4(),
+            expected_session_revision: 1,
+            expires_at_ms: NOW
+                + if terminal.terminal == first.terminal {
+                    1_000
+                } else {
+                    4_000
+                },
+            after_sequence: None,
+        })
+    };
+    // Eight attempts fill the shared budget with four viewers each. A ninth
+    // has no local viewers, so only the node aggregate can refuse #33.
+    for terminal in &terminals[..8] {
+        for _ in 0..4 {
+            service::mutate(&f.state, f.actor, &watch(terminal))
+                .await
+                .unwrap();
+        }
+    }
+    let pool = f.db.pool().await;
+    let before: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM terminal_subscriptions WHERE node_id=$1")
+            .bind(f.node.node_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(before, 32);
+    let error = service::mutate(&f.state, f.actor, &watch(&terminals[8]))
+        .await
+        .unwrap_err();
+    // The relay journal deliberately maps persistence refusal to Internal.
+    assert!(
+        matches!(error, aq_server::error::AppError::Internal),
+        "{error:?}"
+    );
+    let after: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM terminal_subscriptions WHERE node_id=$1")
+            .bind(f.node.node_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        after, before,
+        "refusal must roll back the extra subscription"
+    );
+    // Free capacity by the injected clock, then the same empty sibling can watch.
+    f.time
+        .store((NOW + 1_001) as i64, std::sync::atomic::Ordering::SeqCst);
+    service::mutate(&f.state, f.actor, &watch(&terminals[8]))
+        .await
+        .unwrap();
+}
