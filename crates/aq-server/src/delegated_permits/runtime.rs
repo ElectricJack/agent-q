@@ -226,14 +226,16 @@ pub async fn authenticate_runner(
     operation: RunnerOperation,
     attempt: Option<Uuid>,
 ) -> Result<AuthenticatedNode, AppError> {
-    let token = headers
+    // Absent or non-permit credentials are unauthenticated (401) via the node
+    // authenticator; only a presented permit can be refused for scope (403).
+    let Some(token) = headers
         .get("authorization")
         .and_then(|v| v.to_str().ok())
         .and_then(|v| v.strip_prefix("Bearer "))
-        .ok_or_else(refused)?;
-    if !token.starts_with("aqp_") {
+        .filter(|t| t.starts_with("aqp_"))
+    else {
         return crate::worker_api::authenticate_context(state, headers).await;
-    }
+    };
     let verifier: [u8; 32] = Sha256::digest(token.as_bytes()).into();
     let raw:serde_json::Value=sqlx::query_scalar("SELECT c.state FROM delegated_permit_current c JOIN delegated_permits p USING(permit_id) WHERE c.state#>'{record,verifier}'=$1 AND NOT p.revoked")
         .bind(json(&verifier)?).fetch_optional(&state.store.pool).await.map_err(db)?.ok_or_else(refused)?;
