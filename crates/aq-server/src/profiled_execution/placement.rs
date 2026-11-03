@@ -48,6 +48,58 @@ impl PlacementPolicy {
     }
 }
 
+/// The node's H2-accounted spend, comparable to its advertised `limit`, or
+/// None when it is not comparable. A node that reported no calls has spent
+/// zero. Otherwise the ledger total is a lower bound: it counts only when the
+/// accounting is complete or already reaches the limit, so unknown costs never
+/// put a node under its ceiling. Mixed or other currencies are not comparable.
+pub fn accounted(summary: &aq_accounting::pricing::Summary, limit: &Money) -> Option<Money> {
+    if summary.costs.is_empty() {
+        return Some(Money {
+            currency: limit.currency.clone(),
+            micros: 0,
+        });
+    }
+    let spent = summary.spent_microunits?;
+    let currency = summary.currency.as_ref()?.as_str();
+    (currency == limit.currency && (summary.complete || spent >= limit.micros)).then(|| Money {
+        currency: currency.to_owned(),
+        micros: spent,
+    })
+}
+
+/// Accounted spend for each node whose advertisement has a spend ceiling. A
+/// ledger read failure leaves that node unaccounted, so it refuses.
+async fn spends(
+    ledger: &Ledger<'_>,
+    nodes: &[(Uuid, &BackendAdvertisement)],
+) -> Vec<(Uuid, Option<Money>)> {
+    let mut out = Vec::new();
+    for (node, adv) in nodes {
+        let Some(limit) = adv.spend_ceiling.as_ref() else {
+            continue;
+        };
+        let spent = crate::observations::budget::node(ledger.pool, ledger.book, *node)
+            .await
+            .ok()
+            .and_then(|summary| accounted(&summary, limit));
+        out.push((*node, spent));
+    }
+    out
+}
+fn spent(spends: &[(Uuid, Option<Money>)], node: Uuid) -> Option<&Money> {
+    spends
+        .iter()
+        .find(|(n, _)| *n == node)
+        .and_then(|(_, m)| m.as_ref())
+}
+
+/// The H2 observation ledger and rate cards that price node spend.
+pub struct Ledger<'a> {
+    pub pool: &'a PgPool,
+    pub book: &'a aq_accounting::pricing::RateCardBook,
+}
+
 /// The concurrency ceiling, then the spend ceiling. A configured spend ceiling
 /// with no comparable accounted spend refuses rather than assuming zero.
 pub fn ceiling(
@@ -146,8 +198,13 @@ pub async fn facts(
     environment: &str,
     now_ms: u64,
 ) -> Result<Option<aq_selection::Placement>, AppError> {
+    let book = crate::observations::catalog::rate_book(state);
     facts_in(
         &state.store.pool,
+        &Ledger {
+            pool: &state.store.observation_pool,
+            book: &book,
+        },
         policy(state, project_id).as_ref(),
         node_id,
         catalog_digest,
@@ -159,6 +216,7 @@ pub async fn facts(
 
 pub async fn facts_in(
     pool: &PgPool,
+    ledger: &Ledger<'_>,
     policy: Option<&PlacementPolicy>,
     node_id: Uuid,
     catalog_digest: &str,
@@ -202,13 +260,20 @@ pub async fn facts_in(
     .fetch_all(pool)
     .await
     .map_err(db)?;
+    // A malformed peer registration is never a reason to hold.
+    let peers: Vec<(Uuid, Registered)> = peers
+        .into_iter()
+        .filter_map(|(node, reg)| Some((node, serde_json::from_value(reg).ok()?)))
+        .collect();
     let mut nodes: Vec<Uuid> = peers.iter().map(|(n, _)| *n).collect();
     nodes.push(node_id);
     let active = active(pool, &nodes).await?;
-    // Spend accounting is H2; until then a configured spend ceiling refuses.
-    let spend: Option<&Money> = None;
+    let mut advertised: Vec<(Uuid, &BackendAdvertisement)> =
+        peers.iter().map(|(n, r)| (*n, &r.backend)).collect();
+    advertised.push((node_id, &own.backend));
+    let spends = spends(ledger, &advertised).await;
     let eligible = |adv: &BackendAdvertisement, node: Uuid| {
-        ceiling(adv, count(&active, node), spend).is_none()
+        ceiling(adv, count(&active, node), spent(&spends, node)).is_none()
             && policy
                 .required_capabilities
                 .iter()
@@ -218,14 +283,10 @@ pub async fn facts_in(
                 .is_some_and(|d| adv.templates.iter().any(|t| t.digest.as_str() == d))
     };
     let peers: Vec<Peer> = peers
-        .into_iter()
-        .filter_map(|(node, reg)| {
-            // A malformed peer registration is never a reason to hold.
-            let reg: Registered = serde_json::from_value(reg).ok()?;
-            Some(Peer {
-                kind: reg.backend.kind,
-                eligible: eligible(&reg.backend, node),
-            })
+        .iter()
+        .map(|(node, reg)| Peer {
+            kind: reg.backend.kind,
+            eligible: eligible(&reg.backend, *node),
         })
         .collect();
     let backend = &own.backend;
@@ -266,7 +327,7 @@ pub async fn facts_in(
                 })
             })
             .collect::<Result<_, AppError>>()?,
-        ceiling: ceiling(backend, count(&active, node_id), spend),
+        ceiling: ceiling(backend, count(&active, node_id), spent(&spends, node_id)),
         preferred_peer: preferred_peer(backend.kind, &preference, &peers)
             .map(convert)
             .transpose()?,
@@ -392,6 +453,81 @@ mod tests {
         );
     }
 
+    #[test]
+    fn accounted_node_spend_never_assumes_unknown_costs_are_zero() {
+        use aq_accounting::pricing::Summary;
+        use aq_accounting::wire::{ArtifactRef, Cost, Digest, Text, UnknownReason};
+        let text = |s: &str| Text::new(s).unwrap();
+        let reported = |micros| Cost::ProviderReported {
+            amount_microunits: micros,
+            currency: text("USD"),
+            receipt: ArtifactRef {
+                id: text("receipt"),
+                version: text("1"),
+                digest: Digest::of(b"receipt"),
+            },
+        };
+        let unknown = Cost::Unknown {
+            reason: UnknownReason::NotReported,
+        };
+        let summary =
+            |costs: Vec<Cost>, spent: Option<u64>, currency: Option<&str>, complete| Summary {
+                costs,
+                spent_microunits: spent,
+                currency: currency.map(text),
+                complete,
+                reason: None,
+            };
+        let limit = money("USD", 1_000);
+        // Money has no PartialEq; compare its parts.
+        let acc = |s: &Summary| accounted(s, &limit).map(|m| (m.currency, m.micros));
+        let usd = |m| Some(("USD".to_owned(), m));
+        // No reported calls: the node has spent nothing, in the limit currency.
+        assert_eq!(acc(&summary(vec![], Some(0), None, false)), usd(0));
+        // Complete accounting counts as is, under or at the limit.
+        let complete = |m| summary(vec![reported(m)], Some(m), Some("USD"), true);
+        assert_eq!(acc(&complete(999)), usd(999));
+        assert_eq!(acc(&complete(1_000)), usd(1_000));
+        // An incomplete lower bound counts only once it reaches the limit.
+        let partial = |m| {
+            summary(
+                vec![reported(m), unknown.clone()],
+                Some(m),
+                Some("USD"),
+                false,
+            )
+        };
+        assert_eq!(acc(&partial(999)), None);
+        assert_eq!(acc(&partial(1_000)), usd(1_000));
+        // Only unknown costs, mixed currencies or another currency: unaccounted.
+        assert_eq!(
+            acc(&summary(vec![unknown.clone()], Some(0), None, false)),
+            None
+        );
+        assert_eq!(
+            acc(&summary(vec![reported(1), reported(2)], None, None, false)),
+            None
+        );
+        assert_eq!(
+            acc(&summary(vec![reported(5)], Some(5), Some("EUR"), true)),
+            None
+        );
+        // Fed into the ceiling: under receives offers, at refuses with a reason.
+        let limited = adv(2, Some(("USD", 1_000)));
+        let spent = accounted(&complete(999), &limit);
+        assert_eq!(ceiling(&limited, 0, spent.as_ref()), None);
+        let spent = accounted(&complete(1_000), &limit);
+        assert_eq!(
+            ceiling(&limited, 0, spent.as_ref()),
+            Some(NodeCeiling::Spend)
+        );
+        let spent = accounted(&partial(999), &limit);
+        assert_eq!(
+            ceiling(&limited, 0, spent.as_ref()),
+            Some(NodeCeiling::SpendUnaccounted)
+        );
+    }
+
     #[tokio::test]
     async fn sandbox_facts_pin_template_and_hold_for_preferred_peer() {
         let db = crate::test_support::TestDb::create().await;
@@ -438,7 +574,12 @@ mod tests {
         };
         let cloud = node("cloudflare-containers", 2_000).await;
         let catalog = hex('f');
-        let facts = |id, now| facts_in(&pool, None, id, &catalog, "ci@1", now);
+        let book = aq_accounting::pricing::RateCardBook::default();
+        let ledger = Ledger {
+            pool: &pool,
+            book: &book,
+        };
+        let facts = |id, now| facts_in(&pool, &ledger, None, id, &catalog, "ci@1", now);
         let only = facts(cloud, 1_000).await.unwrap().unwrap();
         assert_eq!(only.preferred_peer, None);
         assert_eq!(only.ceiling, None);
@@ -458,10 +599,18 @@ mod tests {
             preference: vec![],
             required_capabilities: vec![BackendCapability::NestedDocker],
         };
-        let refused = facts_in(&pool, Some(&nested), cloud, &hex('f'), "ci@1", 1_000)
-            .await
-            .unwrap()
-            .unwrap();
+        let refused = facts_in(
+            &pool,
+            &ledger,
+            Some(&nested),
+            cloud,
+            &hex('f'),
+            "ci@1",
+            1_000,
+        )
+        .await
+        .unwrap()
+        .unwrap();
         assert_eq!(refused.preferred_peer, None);
         assert_eq!(refused.required_capabilities, ["nested-docker"]);
         assert!(
