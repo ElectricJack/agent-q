@@ -79,6 +79,20 @@ impl TestDb {
             .expect("connect store")
     }
 
+    /// A Store using an actual registered historical migration prefix, without
+    /// the implicit upgrade performed by `store()`.
+    #[cfg(test)]
+    pub async fn store_at_version(&self, supported: u32) -> Store {
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect_with(self.options())
+            .await
+            .expect("connect historical fixture pool");
+        Store::from_fixture_pool(pool, supported)
+            .await
+            .expect("connect historical fixture store")
+    }
+
     /// A raw pool for tests that poke at tables directly.
     pub async fn pool(&self) -> PgPool {
         PgPoolOptions::new()

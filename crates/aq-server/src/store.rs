@@ -624,6 +624,14 @@ impl Store {
         Self::initialize_pools(pool).await
     }
 
+    /// Unit-test Store over a registered historical prefix, with normal guards
+    /// and connection pools. Never upgrade it through the current Store startup.
+    #[cfg(test)]
+    pub(crate) async fn from_fixture_pool(pool: PgPool, supported: u32) -> Result<Store> {
+        migrate_fixture_profile(&pool, supported).await?;
+        Self::initialize_pools(pool).await
+    }
+
     /// Test-only actual frozen migration prefix; never a production fallback.
     #[cfg(feature = "test-support")]
     pub(crate) async fn connect_state32_for_testing(options: PgConnectOptions) -> Result<Store> {
