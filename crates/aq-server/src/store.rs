@@ -291,6 +291,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         47,
         include_str!("../migrations/0047_central_host_journal.sql"),
     ),
+    (
+        48,
+        include_str!("../migrations/0048_supervisor_dispatch.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.

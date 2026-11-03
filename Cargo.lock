@@ -556,6 +556,7 @@ name = "aq-supervisor-host"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "aq-agent-api",
  "aq-central-authority",
  "aq-codex-mapper",
  "aq-responses-transport",
@@ -563,13 +564,19 @@ dependencies = [
  "aq-session-host",
  "aq-session-protocol",
  "async-trait",
+ "axum",
+ "chrono",
+ "http-body-util",
  "libc",
+ "reqwest",
  "serde",
  "serde_json",
  "sqlx",
  "sqlx-postgres",
  "tempfile",
  "tokio",
+ "toml",
+ "tower",
  "uuid",
  "zeroize",
 ]

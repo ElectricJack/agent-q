@@ -226,3 +226,14 @@ async fn bound_actor(
     }
     Ok(a)
 }
+/// F1b: read one reservation for the dispatch path (no Owner context; actor-scoped).
+pub(crate) async fn load(
+    tx: &mut Transaction<'_, Postgres>,
+    actor_id: Uuid,
+    id: Uuid,
+) -> Result<ReservationView> {
+    let a = actor(tx, actor_id, false).await?.ok_or_else(missing)?;
+    reads::reservation(tx, &a, id, false)
+        .await?
+        .ok_or_else(missing)
+}
