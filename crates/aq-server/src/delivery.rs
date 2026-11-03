@@ -15,6 +15,7 @@ use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
 use sqlx::{PgPool, Postgres, Row, Transaction};
 use std::path::PathBuf;
+use unicode_normalization::UnicodeNormalization;
 use uuid::Uuid;
 
 type Result<T> = std::result::Result<T, DeliveryError>;
@@ -131,6 +132,16 @@ fn branch(target: &str) -> Result<()> {
     }
     Ok(())
 }
+// Fence case and canonically equivalent Unicode spellings conservatively;
+// aq-git still receives and authorizes the caller's exact branch spelling.
+fn destination_key(target: &str) -> String {
+    target
+        .nfc()
+        .collect::<String>()
+        .to_lowercase()
+        .nfc()
+        .collect()
+}
 impl DeliveryService {
     pub fn new(pool: PgPool, config: &crate::source_retention::SourceRetentionConfig) -> Self {
         Self {
@@ -194,8 +205,8 @@ impl DeliveryService {
             params,
         })
     }
-    /// Create from historical server-owned retained source records. Acceptance
-    /// and delivery policy are the caller's responsibility, not this primitive's.
+    /// Create from active, non-historical server-owned retained source records.
+    /// Acceptance and delivery policy are the caller's responsibility.
     pub async fn create_candidate(&self, r: CandidateRequest) -> Result<Receipt<CandidateResult>> {
         let inputs = serde_json::to_value(&r)?;
         let (mut tx, old) = self
@@ -206,8 +217,14 @@ impl DeliveryService {
         } else {
             oid(&r.base, false)?;
             r.commit.validate()?;
-            if r.source_receipts.len() > 64 {
-                return Err(DeliveryError::InvalidInput("at most 64 sources"));
+            if r.source_receipts.is_empty() || r.source_receipts.len() > 64 {
+                return Err(DeliveryError::InvalidInput(
+                    "between 1 and 64 sources required",
+                ));
+            }
+            let unique: std::collections::HashSet<_> = r.source_receipts.iter().collect();
+            if unique.len() != r.source_receipts.len() {
+                return Err(DeliveryError::InvalidInput("duplicate source receipts"));
             }
             let mut sources = Vec::with_capacity(r.source_receipts.len());
             for id in &r.source_receipts {
@@ -275,41 +292,60 @@ impl DeliveryService {
     pub async fn publish(&self, r: PublishRequest) -> Result<Receipt<PublishResult>> {
         let inputs = serde_json::to_value(&r)?;
         let (mut tx, old) = self.prepare(&r.context, "publish", &inputs).await?;
-        let intent = if let Some(old) = old {
+        let row = sqlx::query("SELECT i.request,r.response FROM delivery_intents i JOIN delivery_receipts r USING(operation_id) WHERE i.operation_id=$1 AND i.repository_id=$2 AND i.binding_generation=$3 AND i.operation='candidate.create'")
+            .bind(r.candidate_id).bind(r.context.repository_id).bind(r.context.binding_generation as i64).fetch_optional(&mut *tx).await?
+            .ok_or(DeliveryError::InvalidInput("candidate has no confirmed creation receipt"))?;
+        let request: Value = serde_json::from_slice(&row.get::<Vec<u8>, _>("request"))?;
+        let context = OperationContext {
+            operation_id: r.candidate_id,
+            ..r.context.clone()
+        };
+        let candidate: Receipt<CandidateResult> = decode(
+            row.get("response"),
+            &context,
+            "candidate.create",
+            &request["params"],
+        )?;
+        let candidate = candidate
+            .outcome
+            .ok()
+            .filter(|v| v.state == CandidateState::Ready)
+            .and_then(|v| v.candidate)
+            .ok_or(DeliveryError::InvalidInput("candidate is not ready"))?;
+        let mut intent = if let Some(old) = old {
             old
         } else {
             oid(&r.expected_old, true)?;
             branch(&r.target)?;
-            let row = sqlx::query("SELECT i.request,r.response FROM delivery_intents i JOIN delivery_receipts r USING(operation_id) WHERE i.operation_id=$1 AND i.repository_id=$2 AND i.binding_generation=$3 AND i.operation='candidate.create'")
-                .bind(r.candidate_id).bind(r.context.repository_id).bind(r.context.binding_generation as i64).fetch_optional(&mut *tx).await?
-                .ok_or(DeliveryError::InvalidInput("candidate has no confirmed creation receipt"))?;
-            let request: Value = serde_json::from_slice(&row.get::<Vec<u8>, _>("request"))?;
-            let context = OperationContext {
-                operation_id: r.candidate_id,
-                ..r.context.clone()
-            };
-            let candidate: Receipt<CandidateResult> = decode(
-                row.get("response"),
-                &context,
-                "candidate.create",
-                &request["params"],
-            )?;
-            if !candidate
-                .outcome
-                .is_ok_and(|v| v.state == CandidateState::Ready)
-            {
-                return Err(DeliveryError::InvalidInput("candidate is not ready"));
+            sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1, 46))")
+                .bind(r.context.repository_id.to_string())
+                .execute(&mut *tx)
+                .await?;
+            let key = destination_key(&r.target);
+            // Compare legacy holds as well: pre-canonicalization rows may have
+            // stored mixed case or decomposed Unicode spellings.
+            let held: Vec<String> = sqlx::query_scalar(
+                "SELECT target FROM delivery_destinations WHERE repository_id=$1",
+            )
+            .bind(r.context.repository_id)
+            .fetch_all(&mut *tx)
+            .await?;
+            if held.iter().any(|target| destination_key(target) == key) {
+                return Err(DeliveryError::DestinationBlocked);
             }
             let intent = Self::freeze(&mut tx, &r.context, "publish", &inputs,
                 json!({"candidate_id":r.candidate_id,"target":r.target,"expected_old":r.expected_old})).await?;
             let added = sqlx::query("INSERT INTO delivery_destinations(repository_id,target,operation_id) VALUES($1,$2,$3) ON CONFLICT DO NOTHING")
-                .bind(r.context.repository_id).bind(&r.target).bind(r.context.operation_id).execute(&mut *tx).await?.rows_affected();
+                .bind(r.context.repository_id).bind(key).bind(r.context.operation_id).execute(&mut *tx).await?.rows_affected();
             if added != 1 {
                 return Err(DeliveryError::DestinationBlocked);
             }
             intent
         };
         tx.commit().await?;
+        // Local validation context only; never add fields to aq-git's finite
+        // publish wire parameters. Reloaded on replay from immutable evidence.
+        intent.params["candidate"] = serde_json::to_value(candidate)?;
         self.execute(&r.context, "publish", intent).await
     }
     pub async fn candidate_show(&self, r: ObservationRequest) -> Result<Receipt<CandidateResult>> {
@@ -352,10 +388,15 @@ impl DeliveryService {
         intent: Intent,
     ) -> Result<Receipt<T>> {
         let mut tx = self.pool.begin().await?;
-        sqlx::query("SELECT operation_id FROM delivery_intents WHERE operation_id=$1 FOR UPDATE")
+        let publish = operation == "publish";
+        if publish {
+            sqlx::query(
+                "SELECT operation_id FROM delivery_intents WHERE operation_id=$1 FOR UPDATE",
+            )
             .bind(c.operation_id)
             .fetch_one(&mut *tx)
             .await?;
+        }
         if let Some(raw) = sqlx::query_scalar::<_, Vec<u8>>(
             "SELECT response FROM delivery_receipts WHERE operation_id=$1",
         )
@@ -366,7 +407,6 @@ impl DeliveryService {
             tx.commit().await?;
             return decode(raw, c, operation, &intent.params);
         }
-        let publish = operation == "publish";
         if publish {
             let added = sqlx::query("INSERT INTO delivery_publish_dispatches(operation_id) VALUES($1) ON CONFLICT DO NOTHING").bind(c.operation_id).execute(&mut *tx).await?.rows_affected();
             tx.commit().await?;
@@ -381,10 +421,13 @@ impl DeliveryService {
             let parsed = decode::<T>(raw.clone(), c, operation, &intent.params);
             let mut tx = self.pool.begin().await?;
             Self::save_receipt(&mut tx, c.operation_id, &raw).await?;
-            // An unrecognized envelope is never proof of a conclusive outcome.
+            // After dispatch, missing uncertainty flags are not proof of refusal:
+            // aq-git may have pushed before failing to write/read its journal.
+            // Only validated success or an explicitly failed, non-uncertain
+            // operation releases the hold. All other replies need reconciliation.
             let conclusive = parsed.as_ref().is_ok_and(|r| match &r.outcome {
                 Ok(_) => true,
-                Err(e) => !e.uncertain() && r.operation_state != Some(OperationStatus::Pending),
+                Err(e) => !e.uncertain() && r.operation_state == Some(OperationStatus::Failed),
             });
             if conclusive {
                 sqlx::query("DELETE FROM delivery_destinations WHERE operation_id=$1")
@@ -395,10 +438,29 @@ impl DeliveryService {
             tx.commit().await?;
             parsed
         } else {
-            // Only this operation's row is held across bounded I/O. No node,
-            // attempt, task or source-owner lock is held while aq-git computes.
+            // Concurrent calls use aq-git's same-operation idempotency. Release
+            // every row lock and pooled connection before bounded socket I/O;
+            // the first persisted terminal reply becomes the immutable receipt.
+            tx.commit().await?;
             let raw = protocol::exchange(&self.socket, &intent.request).await?;
+            let parsed = decode::<T>(raw.clone(), c, operation, &intent.params);
+            if operation == "candidate.create"
+                && parsed
+                    .as_ref()
+                    .is_ok_and(|r| r.outcome.as_ref().is_err_and(GitError::retryable_candidate))
+            {
+                // A safe transient reply is an attempt outcome, not a terminal
+                // receipt. The frozen intent survives for exact same-ID replay.
+                return parsed;
+            }
+            let mut tx = self.pool.begin().await?;
             Self::save_receipt(&mut tx, c.operation_id, &raw).await?;
+            let raw = sqlx::query_scalar::<_, Vec<u8>>(
+                "SELECT response FROM delivery_receipts WHERE operation_id=$1",
+            )
+            .bind(c.operation_id)
+            .fetch_one(&mut *tx)
+            .await?;
             tx.commit().await?;
             decode(raw, c, operation, &intent.params)
         }
@@ -408,7 +470,7 @@ impl DeliveryService {
         operation: Uuid,
         raw: &[u8],
     ) -> Result<()> {
-        sqlx::query("INSERT INTO delivery_receipts(operation_id,response) VALUES($1,$2)")
+        sqlx::query("INSERT INTO delivery_receipts(operation_id,response) VALUES($1,$2) ON CONFLICT DO NOTHING")
             .bind(operation)
             .bind(raw)
             .execute(&mut **tx)
