@@ -1,10 +1,10 @@
--- D6: catalog profile 6 (AQ host catalog 2.0.0) asynchronous provider
+-- D6: catalog profile 7 (AQ host catalog 2.0.0) asynchronous provider
 -- judgments and sandbox checks. Existing profiles, grants, catalogs and rows
 -- are unchanged; this only admits new rows.
 ALTER TABLE playbook_effects DROP CONSTRAINT playbook_effects_command_name_check;
-ALTER TABLE playbook_effects ADD CHECK(command_name IN ('message.send','decision.request','context.read','work.ensure','work.change','operation.cancel','judgment.request','check.request'));
+ALTER TABLE playbook_effects ADD CHECK(command_name IN ('message.send','decision.request','context.read','work.ensure','work.change','operation.cancel','findings.reconcile','judgment.request','check.request'));
 ALTER TABLE playbook_namespaces DROP CONSTRAINT playbook_namespaces_catalog_profile_check;
-ALTER TABLE playbook_namespaces ADD CHECK(catalog_profile IN (1,2,3,4,5,6));
+ALTER TABLE playbook_namespaces ADD CHECK(catalog_profile IN (1,2,3,4,5,6,7));
 -- One durable intent per admitted judgment/check operation, recorded before
 -- any provider request or sandbox start. `request` holds digests and bounded
 -- inputs only, never credential material. `output` is the single retained
@@ -29,4 +29,4 @@ CREATE TABLE playbook_host_operations (
  FOREIGN KEY(namespace_id,generation) REFERENCES playbook_namespaces(namespace_id,generation)
 );
 CREATE INDEX playbook_host_operations_subject ON playbook_host_operations(namespace_id,generation,subject_id,check_id);
-UPDATE meta SET value='70' WHERE key='state_format_version';
+UPDATE meta SET value='71' WHERE key='state_format_version';

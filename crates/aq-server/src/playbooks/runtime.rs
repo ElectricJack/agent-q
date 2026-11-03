@@ -91,13 +91,24 @@ impl Runtime {
             return Err(refused());
         }
         config.check_socket().map_err(|_| refused())?;
-        let service = Service::with_profile(
-            state,
-            config.namespace.clone(),
-            config.keys.clone(),
-            config.profile,
-        )
-        .await
+        let service = if config.profile == super::review_domain::CatalogProfile::Monitoring6 {
+            let graph = state.agent_access.clone().ok_or_else(refused)?;
+            Service::new_monitoring6(
+                state,
+                config.namespace.clone(),
+                config.keys.clone(),
+                Arc::new(super::host_adapters::GatewayGraph(graph)),
+            )
+            .await
+        } else {
+            Service::with_profile(
+                state,
+                config.namespace.clone(),
+                config.keys.clone(),
+                config.profile,
+            )
+            .await
+        }
         .map_err(|_| refused())?;
         service
             .initialize(config.namespace.owner_user_id)

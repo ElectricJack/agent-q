@@ -80,14 +80,18 @@ pub struct HostResult {
     pub output: Value,
 }
 
-pub const HOST5_COMMANDS: [&str; 4] = [
+#[path = "findings.rs"]
+mod findings;
+
+pub const HOST5_COMMANDS: [&str; 5] = [
     "context.read",
     "work.ensure",
     "work.change",
     "operation.cancel",
+    "findings.reconcile",
 ];
 /// Catalog 2.0.0 adds asynchronous judgments/checks and operation.get.
-pub const HOST6_COMMANDS: [&str; 7] = [
+pub const HOST7_COMMANDS: [&str; 7] = [
     "context.read",
     "work.ensure",
     "work.change",
@@ -124,7 +128,10 @@ fn node_version(node: &Value) -> Result<i64> {
 
 impl Service {
     fn ports(&self) -> Result<&HostPorts> {
-        if !matches!(self.profile, CatalogProfile::Host5 | CatalogProfile::Host6) {
+        if !matches!(
+            self.profile,
+            CatalogProfile::Host5 | CatalogProfile::Monitoring6 | CatalogProfile::Host7
+        ) {
             return Err(Error::Forbidden);
         }
         self.host.as_deref().ok_or(Error::Forbidden)
@@ -140,6 +147,7 @@ impl Service {
         intent: &Intent,
     ) -> Result<HostResult> {
         match intent.command.name.as_str() {
+            "findings.reconcile" => self.findings_reconcile(owner, id, revision, intent).await,
             "context.read" => self.context_read(owner, id, revision, intent).await,
             "work.ensure" => self.work_ensure(owner, id, revision, intent).await,
             "work.change" => self.work_change(owner, id, revision, intent).await,
@@ -178,8 +186,8 @@ impl Service {
         intent: &Intent,
     ) -> Result<(Transaction<'_, Postgres>, Option<Stage>, String)> {
         self.ports()?;
-        let commands: &[&str] = if self.profile == CatalogProfile::Host6 {
-            &HOST6_COMMANDS
+        let commands: &[&str] = if self.profile == CatalogProfile::Host7 {
+            &HOST7_COMMANDS
         } else {
             &HOST5_COMMANDS
         };
@@ -1018,7 +1026,23 @@ impl Service {
                     None => ("incomplete", subject_id.clone(), 0, String::new(), false),
                 }
             }
-            // No typed health owner is bound to profile 5 yet.
+            "health_observations" if self.profile == CatalogProfile::Monitoring6 => {
+                if input["page"].as_u64() != Some(0) {
+                    ("incomplete", subject_id.clone(), 0, String::new(), false)
+                } else {
+                    let reference = format!("aq.health/{}", self.operation(intent)?);
+                    let baseline = self
+                        .capture_health_scan(&mut tx, &reference, &subject_id, 60_000)
+                        .await?;
+                    let snapshot = serde_json::to_string(&baseline)?;
+                    if snapshot.len() > 4096 {
+                        ("incomplete", reference, 0, String::new(), false)
+                    } else {
+                        ("observed", reference, 0, snapshot, true)
+                    }
+                }
+            }
+            // Historical profile 5 keeps its original incomplete health view.
             _ => ("incomplete", subject_id.clone(), 0, String::new(), false),
         };
         let outcome = if view.0 == "observed" && !asked.is_empty() && asked != view.3 {

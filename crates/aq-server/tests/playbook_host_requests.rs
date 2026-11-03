@@ -13,7 +13,7 @@ use aq_server::{
             CheckRun, CheckStop, HostResult, JudgmentProvider, JudgmentReply, JudgmentRequest,
             PinnedCheck, PinnedOutcome, ProviderFailure, WorkGraph,
         },
-        review_domain::{CatalogProfile, HOST6_CAPABILITIES},
+        review_domain::{CatalogProfile, HOST7_CAPABILITIES},
         service::*,
     },
     protected_storage::{KeyFile, Keyring, ProtectionConfig},
@@ -135,7 +135,7 @@ async fn host(
     })
     .unwrap();
     let graph = Arc::new(FakeGraph::default());
-    let service = Service::new_host6(
+    let service = Service::new_host7(
         &f.state,
         Namespace {
             namespace_id: Uuid::new_v4(),
@@ -158,7 +158,7 @@ async fn host(
         workspace_id: l.workspace_id,
         project_id: l.project_id,
         recipients: vec![],
-        capabilities: BTreeSet::from(HOST6_CAPABILITIES.map(String::from)),
+        capabilities: BTreeSet::from(HOST7_CAPABILITIES.map(String::from)),
     };
     let grant = Uuid::new_v4();
     service
@@ -183,10 +183,10 @@ impl Host {
             step: name.replace('.', "-"),
             invocation: 1,
             deadline_at_ms: self.now + 5000,
-            command: CatalogProfile::Host6.registry().commands[name].clone(),
+            command: CatalogProfile::Host7.registry().commands[name].clone(),
             input_digest: digest(&input).unwrap(),
             input,
-            authority: CatalogProfile::Host6
+            authority: CatalogProfile::Host7
                 .authority(self.grant, 1, &self.scope)
                 .unwrap(),
             status: IntentStatus::Dispatched,

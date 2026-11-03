@@ -1600,6 +1600,12 @@ async fn protected_engine_question_waits_for_real_owner_and_exact_completion_eve
     service.revoke(f.actor, grant).await.unwrap();
     // Cancellation was copied by its earlier quantum; only the newly answered
     // question remains for this exact copy/engine-ACK loss boundary.
+    // An inert retained row from another producer deliberately shares the
+    // decision UUID. Its bytes are never delivered; this isolates the copy
+    // lookup's producer identity before the normal protected delivery proof.
+    let collision = sqlx::query("INSERT INTO playbook_outbox(namespace_id,generation,producer,epoch,event_id,event_digest,sealed_version,key_id,nonce,ciphertext,created_at_ms,status,fanout_complete) SELECT namespace_id,generation,'aq.graph.operations@1',epoch,$1,event_digest,sealed_version,key_id,nonce,ciphertext,created_at_ms,'engine_accepted',true FROM playbook_outbox WHERE producer='aq.human.decisions@1' LIMIT 1")
+        .bind(decision).execute(&pool).await.unwrap();
+    assert_eq!(collision.rows_affected(), 1);
     assert_eq!(driver.test_collect_decision_events().await.unwrap(), 1);
     let event_first = driver.test_commit_event_without_aq_ack().await.unwrap();
     assert!(!event_first.duplicate);
@@ -1624,7 +1630,7 @@ async fn protected_engine_question_waits_for_real_owner_and_exact_completion_eve
             .unwrap();
     assert!(copied);
     let event: serde_json::Value =
-        sqlx::query_scalar("SELECT engine_receipt FROM playbook_outbox WHERE event_id=$1")
+        sqlx::query_scalar("SELECT engine_receipt FROM playbook_outbox WHERE producer='aq.human.decisions@1' AND event_id=$1")
             .bind(decision)
             .fetch_one(&pool)
             .await

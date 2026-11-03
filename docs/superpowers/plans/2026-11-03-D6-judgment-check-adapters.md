@@ -99,7 +99,7 @@ The frozen D4 1.0.0 catalog currently has synchronous `judgment.request(choices,
 Task 1 is resolved: the operator pinned AQ host catalog 2.0.0 (aq-playbooks `8343a1cd`, fingerprint `sha256:e2ce7dc8…b143db`). It adds asynchronous `judgment.request.v2`/`check.request.v2`, `operation.get` reconciliation, and the `aq.judgment.completed`/`aq.check.receipted` events.
 
 Tasks 2–4 were executed with these changes from the proposed local API:
-- Both adapters live in one module (`host_adapters/requests.rs`) on catalog profile Host6, over a single `playbook_host_operations` table (migration 0070).
+- Both adapters live in one module (`host_adapters/requests.rs`) on catalog profile Host7, over a single `playbook_host_operations` table (migration 0071; renumbered after D8 took 0070 and profile 6).
 - Tests live in `tests/playbook_host_requests.rs`, rather than separate `playbooks/{checks,judgments}.rs` owners and test files.
 - The qualified executor and provider are injected ports (`CheckExecutor`, `JudgmentProvider`). Binding them in production is a follow-up, not part of D6.
 - `Stale` maps to `refused` with disposition `stale`. `Cancelled`, `TimedOut` and `Unknown` map to `infrastructure_failure`, keeping the distinct disposition.

@@ -69,6 +69,7 @@ impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let code = self.to_string();
         let unknown = self == Error::Unknown;
+        let retryable = self == Error::Overloaded;
         let status = match self {
             Error::Invalid => StatusCode::BAD_REQUEST,
             Error::Forbidden => StatusCode::NOT_FOUND,
@@ -76,7 +77,7 @@ impl IntoResponse for Error {
             Error::Overloaded => StatusCode::TOO_MANY_REQUESTS,
             Error::Unknown => StatusCode::SERVICE_UNAVAILABLE,
         };
-        (status,Json(json!({"code":code,"disposition":if unknown{"unknown"}else{"refused"},"retryable":false}))).into_response()
+        (status,Json(json!({"code":code,"disposition":if unknown{"unknown"}else{"refused"},"retryable":retryable}))).into_response()
     }
 }
 fn owner(driver: &Driver, id: Uuid) -> Result<()> {

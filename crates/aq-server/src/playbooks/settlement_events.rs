@@ -7,7 +7,10 @@ impl Service {
         owner: &RuntimeOwner,
         limit: u32,
     ) -> Result<usize> {
-        if self.profile != CatalogProfile::SettlementEvents4 {
+        if !matches!(
+            self.profile,
+            CatalogProfile::SettlementEvents4 | CatalogProfile::Monitoring6
+        ) {
             return Ok(0);
         }
         if !(1..=2).contains(&limit) {
@@ -16,7 +19,7 @@ impl Service {
         let mut tx = self.tx().await?;
         let ns = self.namespace_locked(&mut tx).await?;
         self.runtime(&ns, owner)?;
-        let rows = sqlx::query("SELECT c.operation_id,c.outbox FROM profiled_task_completions c JOIN profiled_launches l USING(attempt_id) WHERE c.state='confirmed' AND NOT c.outbox_acknowledged AND c.workspace_id=$1 AND l.execution_spec#>>'{lifecycle,project_id}'=$2 AND NOT EXISTS(SELECT 1 FROM playbook_outbox p WHERE p.namespace_id=$3 AND p.generation=$4 AND p.event_id=c.operation_id) ORDER BY c.created_at_ms,c.operation_id LIMIT $5")
+        let rows = sqlx::query("SELECT c.operation_id,c.outbox FROM profiled_task_completions c JOIN profiled_launches l USING(attempt_id) WHERE c.state='confirmed' AND NOT c.outbox_acknowledged AND c.workspace_id=$1 AND l.execution_spec#>>'{lifecycle,project_id}'=$2 AND NOT EXISTS(SELECT 1 FROM playbook_outbox p WHERE p.namespace_id=$3 AND p.generation=$4 AND p.producer='aq.task.settlement@1' AND p.event_id=c.operation_id) ORDER BY c.created_at_ms,c.operation_id LIMIT $5")
             .bind(self.namespace.workspace_id)
             .bind(self.namespace.project_id.to_string())
             .bind(self.namespace.namespace_id)

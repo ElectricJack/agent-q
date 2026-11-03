@@ -15,6 +15,24 @@ use std::{
 };
 use uuid::Uuid;
 const CALL: Duration = Duration::from_secs(5);
+fn host_error(error: aq_playbook_host::Error) -> Error {
+    match error {
+        aq_playbook_host::Error::Overloaded => Error::Overloaded,
+        _ => Error::Unknown,
+    }
+}
+// Capacity refuses new work without preventing already retained work from
+// reaching its bounded drain and tick. Other failures keep their semantics.
+fn defer_capacity<T>(result: Result<T>, overloaded: &mut bool) -> Result<()> {
+    match result {
+        Ok(_) => Ok(()),
+        Err(Error::Overloaded) => {
+            *overloaded = true;
+            Ok(())
+        }
+        Err(error) => Err(error),
+    }
+}
 struct MailHost {
     service: Service,
     runtime: RuntimeOwner,
@@ -217,12 +235,12 @@ impl Host for MailHost {
 }
 impl MailHost {
     /// Host-adapter commands of the pinned profile (5: D4 catalog 1.0.0;
-    /// 6: AQ host catalog 2.0.0, which also owns operation.get).
+    /// 7: AQ host catalog 2.0.0, which also owns operation.get).
     fn host_command(&self, intent: &Intent) -> bool {
         let name = intent.command.name.as_str();
         super::host_adapters::HOST5_COMMANDS.contains(&name)
-            || (self.service.profile == super::review_domain::CatalogProfile::Host6
-                && super::host_adapters::HOST6_COMMANDS.contains(&name))
+            || (self.service.profile == super::review_domain::CatalogProfile::Host7
+                && super::host_adapters::HOST7_COMMANDS.contains(&name))
     }
 }
 /// An asynchronous host command's `accepted` outcome is its durable handle.
@@ -270,6 +288,7 @@ pub struct Driver {
     /// before a consumer exists would wedge the outbox page.
     graph_consumer: std::sync::atomic::AtomicBool,
     settlement_consumer: std::sync::atomic::AtomicBool,
+    schedule_consumer: std::sync::atomic::AtomicBool,
     #[cfg(feature = "test-support")]
     lose_decision_reply: Arc<std::sync::atomic::AtomicBool>,
 }
@@ -327,7 +346,7 @@ impl Driver {
             },
         )
         .await
-        .map_err(|_| Error::Unknown)?;
+        .map_err(host_error)?;
         let runtime = proof
             .lock()
             .map_err(|_| Error::Unknown)?
@@ -343,6 +362,7 @@ impl Driver {
             stopped_ack: std::sync::atomic::AtomicBool::new(false),
             graph_consumer: std::sync::atomic::AtomicBool::new(false),
             settlement_consumer: std::sync::atomic::AtomicBool::new(false),
+            schedule_consumer: std::sync::atomic::AtomicBool::new(false),
             #[cfg(feature = "test-support")]
             lose_decision_reply,
         })
@@ -366,6 +386,15 @@ impl Driver {
         let completed = super::review_domain::task_completed_event();
         let settlement_consumer =
             artifact.content.registry.events.get(&completed.name) == Some(&completed);
+        let schedule_consumer = self.service.profile
+            == super::review_domain::CatalogProfile::Monitoring6
+            && artifact.content.registry.events.get("aq.signal.reported")
+                == self
+                    .service
+                    .profile
+                    .registry()
+                    .events
+                    .get("aq.signal.reported");
         self.owner
             .call(
                 Request::Install {
@@ -374,7 +403,11 @@ impl Driver {
                 CALL,
             )
             .await
-            .map_err(|_| Error::Unknown)?;
+            .map_err(host_error)?;
+        if schedule_consumer {
+            self.schedule_consumer
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+        }
         if consumer {
             self.graph_consumer
                 .store(true, std::sync::atomic::Ordering::SeqCst);
@@ -406,7 +439,7 @@ impl Driver {
                 CALL,
             )
             .await
-            .map_err(|_| Error::Unknown)?;
+            .map_err(host_error)?;
         self.owner
             .call(Request::Binding { binding }, CALL)
             .await
@@ -433,7 +466,7 @@ impl Driver {
                 CALL,
             )
             .await
-            .map_err(|_| Error::Unknown)?;
+            .map_err(host_error)?;
         let known: Option<KeyedAdmissionReceipt> = serde_json::from_value(value)?;
         let receipt = if let Some(receipt) = known {
             receipt
@@ -456,6 +489,7 @@ impl Driver {
                 .await
             {
                 Ok(value) => value,
+                Err(aq_playbook_host::Error::Overloaded) => return Err(Error::Overloaded),
                 Err(_) => {
                     let _ = self.service.hold_admission(&self.runtime, id).await;
                     return Err(Error::Unknown);
@@ -482,84 +516,148 @@ impl Driver {
             .await
             .map_err(|_| Error::Unknown)
     }
-    /// At most2 manual admissions,2 outbox events,64 fanout destinations/event and
-    /// one8-transition engine tick. try_lock refuses overlap without waiter growth.
+    /// Trusted host registration; runtime ownership never crosses worker APIs.
+    pub async fn put_schedule(
+        &self,
+        schedule: super::triggers::DailySchedule,
+        expected_revision: i64,
+    ) -> Result<i64> {
+        let _guard = self.gate.try_lock().map_err(|_| Error::Overloaded)?;
+        self.service
+            .put_schedule(&self.runtime, schedule, expected_revision)
+            .await
+    }
+    pub async fn start_health_scan(
+        &self,
+        observation: &str,
+        partition: &str,
+        ttl_ms: i64,
+    ) -> Result<std::collections::BTreeMap<String, i64>> {
+        self.service
+            .start_health_scan(&self.runtime, observation, partition, ttl_ms)
+            .await
+    }
+    pub async fn complete_health_scan(
+        &self,
+        observation: &str,
+        evaluation: &str,
+        complete: bool,
+    ) -> Result<()> {
+        self.service
+            .complete_health_scan(&self.runtime, observation, evaluation, complete)
+            .await
+    }
+    /// At most two admissions and events, 64 destinations/event, and one
+    /// eight-transition tick. Overlap refuses without growing a waiter queue.
     pub async fn quantum(&self) -> Result<serde_json::Value> {
         let mut cursor = self.gate.try_lock().map_err(|_| Error::Overloaded)?;
+        let mut overloaded = false;
         let pending = self.service.pending_admissions(&self.runtime, 2).await?;
         for id in &pending {
-            if self
+            let result = self
                 .admission(self.service.namespace.owner_user_id, *id, false)
-                .await
-                .is_err()
-            {
+                .await;
+            if matches!(result, Err(Error::Overloaded)) {
+                overloaded = true;
+                continue;
+            }
+            if result.is_err() {
                 // Retain failed/uncertain immutable work visibly. A poison or
                 // expired first page must not starve every later admission.
                 self.service.hold_admission(&self.runtime, *id).await?;
             }
         }
-        self.service.expire_decisions(&self.runtime, 2).await?;
-        self.service
-            .collect_decision_events(&self.runtime, 2)
-            .await?;
+        defer_capacity(
+            self.service.expire_decisions(&self.runtime, 2).await,
+            &mut overloaded,
+        )?;
+        defer_capacity(
+            self.service.collect_decision_events(&self.runtime, 2).await,
+            &mut overloaded,
+        )?;
         if self
             .graph_consumer
             .load(std::sync::atomic::Ordering::SeqCst)
         {
-            self.service.collect_graph_events(&self.runtime, 2).await?;
+            defer_capacity(
+                self.service.collect_graph_events(&self.runtime, 2).await,
+                &mut overloaded,
+            )?;
         }
         if self
             .settlement_consumer
             .load(std::sync::atomic::Ordering::SeqCst)
         {
-            self.service
-                .collect_settlement_events(&self.runtime, 2)
-                .await?;
+            defer_capacity(
+                self.service
+                    .collect_settlement_events(&self.runtime, 2)
+                    .await,
+                &mut overloaded,
+            )?;
+        }
+        if self.service.profile == super::review_domain::CatalogProfile::Monitoring6
+            && self
+                .schedule_consumer
+                .load(std::sync::atomic::Ordering::SeqCst)
+        {
+            defer_capacity(
+                self.service.collect_schedule_events(&self.runtime, 2).await,
+                &mut overloaded,
+            )?;
         }
         let page = self.service.outbox(&self.runtime, *cursor, 2).await?;
         if page.is_empty() {
             *cursor = 0;
         }
         for (sequence, id, event) in &page {
-            let result = self
-                .owner
-                .call(
-                    Request::Event {
-                        authenticated_producer: event.producer.clone(),
-                        epoch: 0,
-                        event: Box::new(event.clone()),
-                        now_ms: self.service_clock(),
-                    },
-                    CALL,
-                )
-                .await
-                .map_err(|_| Error::Unknown)?;
-            let receipt: EventDisposition = serde_json::from_value(result)?;
-            self.owner
-                .call(
-                    Request::Fanout {
-                        event_key: receipt.key.clone(),
-                        limit: 64,
-                        now_ms: self.service_clock(),
-                    },
-                    CALL,
-                )
-                .await
-                .map_err(|_| Error::Unknown)?;
-            let status = self
-                .owner
-                .call(
-                    Request::EventStatus {
-                        event_key: receipt.key.clone(),
-                    },
-                    CALL,
-                )
-                .await
-                .map_err(|_| Error::Unknown)?;
-            let complete = status["pending"].as_u64().ok_or(Error::Unknown)? == 0;
-            self.service
-                .acknowledge_event(&self.runtime, *id, receipt, complete)
-                .await?;
+            let delivery: Result<()> = async {
+                let result = self
+                    .owner
+                    .call(
+                        Request::Event {
+                            authenticated_producer: event.producer.clone(),
+                            epoch: 0,
+                            event: Box::new(event.clone()),
+                            now_ms: self.service_clock(),
+                        },
+                        CALL,
+                    )
+                    .await
+                    .map_err(host_error)?;
+                let receipt: EventDisposition = serde_json::from_value(result)?;
+                self.owner
+                    .call(
+                        Request::Fanout {
+                            event_key: receipt.key.clone(),
+                            limit: 64,
+                            now_ms: self.service_clock(),
+                        },
+                        CALL,
+                    )
+                    .await
+                    .map_err(host_error)?;
+                let status = self
+                    .owner
+                    .call(
+                        Request::EventStatus {
+                            event_key: receipt.key.clone(),
+                        },
+                        CALL,
+                    )
+                    .await
+                    .map_err(host_error)?;
+                let complete = status["pending"].as_u64().ok_or(Error::Unknown)? == 0;
+                self.service
+                    .acknowledge_event(&self.runtime, *id, receipt, complete)
+                    .await?;
+                Ok(())
+            }
+            .await;
+            if matches!(delivery, Err(Error::Overloaded)) {
+                overloaded = true;
+                break;
+            }
+            delivery?;
             *cursor = *sequence;
         }
         self.owner
@@ -570,7 +668,7 @@ impl Driver {
                 CALL,
             )
             .await
-            .map_err(|_| Error::Unknown)?;
+            .map_err(host_error)?;
         let tick = self
             .owner
             .call(
@@ -580,7 +678,18 @@ impl Driver {
                 CALL,
             )
             .await
-            .map_err(|_| Error::Unknown)?;
+            .map_err(host_error)?;
+        if self.service.profile == super::review_domain::CatalogProfile::Monitoring6 {
+            defer_capacity(
+                self.service
+                    .flush_finding_notifications(&self.runtime, 2)
+                    .await,
+                &mut overloaded,
+            )?;
+        }
+        if overloaded {
+            return Err(Error::Overloaded);
+        }
         Ok(
             serde_json::json!({"admissions_checked":pending.len(),"events_checked":page.len(),"tick":tick}),
         )
@@ -626,7 +735,7 @@ impl Driver {
                 CALL,
             )
             .await
-            .map_err(|_| Error::Unknown)?;
+            .map_err(host_error)?;
         Ok(())
     }
     /// Startup replay never changes an existing activation or renews authority.
@@ -720,7 +829,7 @@ impl Driver {
                 CALL,
             )
             .await
-            .map_err(|_| Error::Unknown)?;
+            .map_err(host_error)?;
         serde_json::from_value(value).map_err(|_| Error::Unknown)
     }
 }
