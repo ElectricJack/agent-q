@@ -252,3 +252,20 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - `aq task resume` on both; both are READY.
   - Filed E1c's cross-repo follow-up as `calm-forge-32` in aq-worker: docker-local must refuse daemons with CgroupDriver none or non-v2 cgroups. Pinned to Claude standard-medium.
   - Usage: Codex 87%, Claude 53%. New tasks still fall back to degraded Codex (`smart-falcon-16.10`); already running, left as is.
+- **01:05 check.**
+  - **D10 plan approved** (`rev-wise-rapids` r4, after 4 rounds; the doc-only r4 cleared the changes_requested deadlock). Released D10's hold and reopened it to implement the approved TDD plan. Pinned it to Claude standard-high (Codex 88%, Claude deep pool disabled).
+  - **`sharp-harbor-18` completed.**
+    - Separate qualification stack `aq-e0-qual`, freshly enrolled node `f761410b`.
+    - 3 real Codex calls measured; capacity fact 475000; expires 2026-11-04 07:22 UTC.
+    - Merged aq-worker PR #28 (`02056060`).
+  - **I0** (MS0 first real agent run): released its hold and reopened it against `aq-e0-qual`, telling it to run before the fact expires. The orchestrator is pinned to Claude.
+  - **Completed and landed on aq-worker main:** `clear-grove-63` (aq-admission 0.3.1, terminal ReportResult; B2 told its pin), `calm-forge-32` (docker-local cgroup refusal) and H1.
+  - **aq-worker main CI regressed** on `generated_source_reparse_capability_and_normalized_goldens_do_not_drift`, likely from H1. Filed `fresh-willow-34` (standard-medium Claude).
+  - **`bright-nexus-60` closed** as done (`--done`): its probes were already on main via B6b, and it only conflicted with them. Closed PR #23.
+- **01:20 check.**
+  - I0 (MS0 first real run) and D10 implementation are running. Usage: Codex 89%, Claude 53%.
+  - **Did not merge aq-server PR #33** (`smart-falcon-16.10`, docker-local cloud worker image). It breaks three CI jobs that pass on main: smoke, distributed recovery, and real daemon.
+    - Cause: `Dockerfile.worker` now copies `scripts/worker-init-volumes.sh`, but `scripts/product-smoke.py` and `scripts/recovery-smoke.py` build from snapshots that copy only crates/, vendor/ and protocol/.
+    - Reopened the task with the exact fix (standard-medium Claude).
+  - A4 stays on Codex: it is running and cannot be re-routed.
+  - aq-worker PR #29 (`fleet-flare-68`, original-boot stopped replay) has CI pending.
