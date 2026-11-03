@@ -229,3 +229,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - Root cause: v1 scheduler cycles stall in PR admission (`observe_pr_admission`) and `list_sessions`. Postgres is at about 113% CPU, and `pool.scaler_stalled` repeats.
     - Not restarted unattended. Recorded as W44; owner option in the morning.
   - Merged aq-server #31 (F1a closure evidence). H1 and H7 started. C7 and E6a are blocked on owner-only items (morning list).
+- **00:15 check.**
+  - F1a completed. E1c, F1b and `quick-flare-47` started.
+  - Merged aq-dashboard #10 (`0634356a`).
+  - The dashboard unit job still fails on a different test each run, always at about 1000–1040 ms, which matches Testing Library's default asyncUtilTimeout. Filed `azure-harbor-91` (standard-medium) to fix the class in the global test setup, instead of more per-test flake tasks.
+  - My previous check's notes command hung on a stray `cat >>` reading stdin, and `pkill -f` on that pattern also killed my shell. The notes were redone and pushed in `8c204b7`.
