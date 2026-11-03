@@ -123,6 +123,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-admission"
+version = "0.2.0"
+dependencies = [
+ "aq-lifecycle-protocol",
+ "aq-session-protocol",
+ "schemars",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "uuid",
+]
+
+[[package]]
 name = "aq-agent-api"
 version = "0.1.0"
 dependencies = [
@@ -237,7 +250,7 @@ dependencies = [
 name = "aq-phase-terminal-protocol"
 version = "0.1.2"
 dependencies = [
- "aq-admission",
+ "aq-admission 0.1.11",
  "aq-session-protocol",
  "schemars",
  "serde",
@@ -395,7 +408,8 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "aq-accounting",
- "aq-admission",
+ "aq-admission 0.1.11",
+ "aq-admission 0.2.0",
  "aq-agent-api",
  "aq-central-authority",
  "aq-lifecycle-api",
