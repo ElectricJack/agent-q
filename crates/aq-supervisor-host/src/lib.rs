@@ -4,6 +4,7 @@
 pub mod adapter;
 mod bridge;
 pub mod config;
+mod conversation;
 pub mod credentials;
 mod journal;
 mod verifier;
@@ -43,6 +44,21 @@ pub struct Supervisor<A, H> {
 struct Record {
     id: Uuid,
     host: HostPlan,
+}
+/// Reads a regular, non-symlink file of at most 1 MiB.
+fn private_file(path: &std::path::Path) -> Result<Vec<u8>> {
+    use std::io::Read;
+    use std::os::unix::fs::OpenOptionsExt;
+    let file = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(path)?;
+    let m = file.metadata()?;
+    ensure!(m.is_file() && m.len() <= 1_048_576, "staged input bounds");
+    let mut bytes = Vec::new();
+    file.take(1_048_577).read_to_end(&mut bytes)?;
+    ensure!(bytes.len() as u64 == m.len(), "staged input changed");
+    Ok(bytes)
 }
 fn accepted(receipt: Receipt) -> Result<Snapshot> {
     ensure!(
@@ -444,6 +460,96 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
             bail!("physical renewal failed; stopped and preserved");
         }
         Ok(next)
+    }
+    /// F1b: prove the turn input reached the live session by re-reading the
+    /// exact staged `context-0.bin`. Host Running alone is not delivery; any
+    /// mismatch or unreadable file is reported delivery_unknown, never re-sent.
+    pub async fn handoff(&self, actor: Uuid) -> Result<Snapshot> {
+        let _fence = self.fence(actor).await?;
+        let s = self.current(actor).await?;
+        if matches!(s.run.dispatch(), DispatchState::Resolved { .. }) {
+            return Ok(s);
+        }
+        ensure!(
+            s.run.phase() == Phase::RunningReported,
+            "handoff requires a running generation"
+        );
+        let association = s
+            .run
+            .association()
+            .cloned()
+            .context("no dispatch association")?;
+        let reconcile = matches!(s.run.dispatch(), DispatchState::Unknown { .. });
+        let r = self.record(&s).await?;
+        let staged = private_file(&self.root.join(r.id.to_string()).join("context-0.bin"));
+        let event = match staged {
+            Ok(bytes) if r.host.verify_startup(&bytes).is_ok() => {
+                let receipt = journal::append(
+                    &self.pool,
+                    r.id,
+                    "handoff",
+                    &verifier::HandoffFact {
+                        launch_id: r.id,
+                        association: association.clone(),
+                        disposition: HandoffDisposition::HandedOff,
+                        input: Digest::of(&bytes),
+                    },
+                )
+                .await?;
+                let evidence = HandoffEvidence {
+                    association,
+                    disposition: HandoffDisposition::HandedOff,
+                    receipt,
+                };
+                if reconcile {
+                    Event::ReconcileHandoff { evidence }
+                } else {
+                    Event::Handoff { evidence }
+                }
+            }
+            _ => Event::ReportUnknown { association },
+        };
+        accepted(
+            Box::pin(
+                self.owner(None)
+                    .report(&s.run.plan().binding()?, event, clock()?),
+            )
+            .await?,
+        )
+    }
+    /// F1b: stage the generation-bound supervisor credential beside the live
+    /// session only (0600, create-new). It is never written to a worker scope.
+    pub async fn install_credential(&self, actor: Uuid, token: &str) -> Result<PathBuf> {
+        ensure!(
+            token.len() == 70
+                && token.starts_with("aqsv1_")
+                && token[6..]
+                    .bytes()
+                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)),
+            "malformed supervisor credential"
+        );
+        let _fence = self.fence(actor).await?;
+        let s = self.current(actor).await?;
+        ensure!(active(&s), "central generation inactive");
+        self.install_credential_locked(&s, token).await
+    }
+    async fn install_credential_locked(&self, s: &Snapshot, token: &str) -> Result<PathBuf> {
+        use std::io::Write;
+        use std::os::unix::fs::OpenOptionsExt;
+        let r = self.record(s).await?;
+        let path = self
+            .root
+            .join(r.id.to_string())
+            .join("supervisor.credential");
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .custom_flags(libc::O_NOFOLLOW)
+            .open(&path)?;
+        file.write_all(token.as_bytes())?;
+        file.sync_all()?;
+        Ok(path)
     }
     pub async fn stop(&self, actor: Uuid) -> Result<Snapshot> {
         let _fence = self.fence(actor).await?;

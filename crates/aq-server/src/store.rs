@@ -291,6 +291,14 @@ const MIGRATIONS: &[(i32, &str)] = &[
         47,
         include_str!("../migrations/0047_central_host_journal.sql"),
     ),
+    (
+        48,
+        include_str!("../migrations/0048_supervisor_dispatch.sql"),
+    ),
+    (
+        49,
+        include_str!("../migrations/0049_supervisor_reservation_consumption.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -474,7 +482,7 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         media36_storage_guard(&mut tx).await?;
     }
     if supported >= 37 {
-        central37::central37_storage_guard(&mut tx).await?;
+        central37::central37_storage_guard(&mut tx, supported).await?;
     }
     if supported == 38 {
         result38::validate(&mut tx).await?;

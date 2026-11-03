@@ -9,6 +9,48 @@ use std::{
 };
 use zeroize::Zeroizing;
 
+/// Wait for the controller's post-Running installation, then stage a private
+/// copy for the supervisor native UID. This directory is never a worker mount.
+pub async fn stage_supervisor_credential(
+    source: &std::path::Path,
+    home: &std::path::Path,
+    deadline_boot_ms: u64,
+) -> Result<PathBuf> {
+    loop {
+        ensure!(
+            crate::clock()?.boot_ms < deadline_boot_ms,
+            "supervisor credential deadline"
+        );
+        match std::fs::symlink_metadata(source) {
+            // Installation uses create-new followed by write; do not consume the
+            // brief empty-file interval between those two operations.
+            Ok(m) if m.file_type().is_file() && m.len() == 0 => {}
+            Ok(_) => break,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e.into()),
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(25)).await;
+    }
+    let secret = SecretFile::open(source.into())?.read_current()?;
+    ensure!(
+        secret.len() == 70
+            && secret.starts_with(b"aqsv1_")
+            && secret[6..].iter().all(u8::is_ascii_hexdigit),
+        "invalid supervisor credential"
+    );
+    let path = home.join("supervisor.credential");
+    use std::io::Write;
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .custom_flags(libc::O_NOFOLLOW)
+        .open(&path)?;
+    file.write_all(&secret)?;
+    file.sync_all()?;
+    Ok(path)
+}
+
 pub struct SecretFile {
     path: PathBuf,
     digest: Digest,
