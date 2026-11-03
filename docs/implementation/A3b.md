@@ -1,7 +1,8 @@
 # A3b: aq-git v0.2.0 consumer pin
 
-Status: release pin implemented. The server and worker images contain the exact
-released aq-git executable. Final post-repair qualification results are recorded below.
+Status: release pin and named consumer qualifications pass. The server and worker
+images contain the exact released aq-git executable. Locked workspace acceptance
+remains blocked by a pre-existing historical reservation fixture failure.
 
 ## Inputs and implementation
 
@@ -65,8 +66,8 @@ disposable PostgreSQL 17. Rust commands use `CARGO_BUILD_JOBS=2` and
 | `docker build --progress=plain -f Dockerfile.worker --build-arg AQ_SOURCE_REVISION=3fb2bcb2f63f73838ddd97e44580fe721a539bdd --build-arg AQ_WORKER_ARCHIVE_SHA256=ed33076d62d37884cab04f1206d1fda3dd5e06181ddb1ccdebec58fda789b535 --build-arg AQ_VERSION=0.3.1 -t aq-worker-a3b:0.2.0 .` | Passed; [worker build log](A3b-checks/build-worker.log) |
 | `docker build --target aq-git-build` with a deliberately corrupted retained executable in a disposable context | Correctly refused by `sha256sum -c`; [negative build log](A3b-checks/corrupt-binary-build.log) |
 | `cargo fmt --check` | Passed; [format log](A3b-checks/fmt-after-repair.log) |
-| `cargo clippy --locked --all-targets -- -D warnings` | Admission repair compiles; strict lint now fails on a pre-existing duplicated attribute in phase_never_granted.rs:4/6, tracked by eager-grove-45.3.2; [post-repair Clippy log](A3b-checks/clippy-after-repair.log) |
-| `cargo test --locked --workspace` | Post-repair run active; [workspace log](A3b-checks/workspace-tests-after-repair.log) |
+| `cargo clippy --locked --all-targets -- -D warnings` | Initial post-repair run exposed a duplicate attribute in phase_never_granted.rs:4/6; eager-grove-45.3.2 removed it. Final rerun active; [initial lint failure](A3b-checks/clippy-after-repair.log) and [rerun](A3b-checks/clippy-after-lint-repair.log) |
+| `cargo test --locked --workspace` | Failed: 349 tests passed in earlier completed suites; aq-server lib 172 passed, 9 failed, 1 ignored. All failures stop in the same historical reservation fixture seed; [workspace log](A3b-checks/workspace-tests-after-repair.log) |
 | `cargo test --locked -p aq-server --test source_retention --test project_bindings` | Passed: project_bindings 12 passed/1 ignored; source_retention 10 passed/1 ignored. Ignored cases run separately; [focused log](A3b-checks/focused-rust-after-repair.log) |
 | `AQ_TEST_GIT_CANDIDATE=/tmp/aq-a3b-qualification/aq-git AQ_TEST_GIT_EXECUTABLE=/tmp/aq-a3b-qualification/aq-git-runtime/bin/git cargo test --locked -p aq-server --test source_retention selected_real_aq_git_import_survives_worker_volume_loss_and_base_download_is_scoped -- --ignored --nocapture` | Passed: the named ignored test ran, 1 passed; [qualification log](A3b-checks/source-retention-after-repair.log) |
 | `python3 scripts/test-project-bindings.py` | Passed: selected_real_public_repository_and_graph_workspace_bind ran, 1 passed; pinned graph guards also passed and synthetic resources cleaned up; [wrapper log](A3b-checks/project-bindings-after-repair.log) |
@@ -97,8 +98,19 @@ logs remain in `A3b-checks/`; the `*-after-repair` logs record current results.
 
 Strict Clippy then exposed a pre-existing duplicate `allow(dead_code)` attribute
 on the same terminal fixture module in `phase_never_granted.rs:4/6`. Follow-up
-`eager-grove-45.3.2` owns the narrow cleanup; no assertions or fixture behavior
-need to change. The workspace test runs independently of that lint failure.
+`eager-grove-45.3.2` removed the redundant line without changing assertions or
+fixture behavior. Fetched main `c13cf4bf` was merged without conflicts as
+`1cf77fc1`; that integration also retains other concurrently landed main changes.
+The pinned aq-git build blocks and retained release inputs remain unchanged.
+
+Workspace tests then failed in nine global mail-reservation unit tests, all at
+`src/agent_access/messaging/global/reservations/tests.rs:99`. Their fixture
+explicitly uses registered schema37, but its seed calls `writes::enqueue`,
+which now delegates to the dashboard action journal. The journal queries
+`dashboard_operations`, introduced by migration0042. The returned error is
+`IdentityUnavailable("dashboard operation unavailable or conflicting")`.
+Required child `eager-grove-45.3.3` owns reconciliation of that historical
+fixture with action routing. No passing workspace result is claimed.
 
 Supervisor message `msg-c6f2114e7cd64deeb8ab1aed23c51a9c` explicitly waives
 the completion profile's missing `origin/dev` ref: fetch and merge `origin/main`,

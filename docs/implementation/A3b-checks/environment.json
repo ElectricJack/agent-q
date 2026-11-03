@@ -14,5 +14,7 @@
   },
   "database": "disposable PostgreSQL 17 bookworm, scripts/test-db, loopback port 55432",
   "qualification_source_commit": "912155a13392ab4a3176d2202acf9355b5170d1c",
-  "prerequisite_repair_commit": "d6ed24319745d8030e71c526b498b83f5bdde5e0"
+  "prerequisite_repair_commit": "d6ed24319745d8030e71c526b498b83f5bdde5e0",
+  "clippy_source_commit": "1cf77fc1e6a2d1d4ee72fb75f8dabde63d6bb368",
+  "lint_repair_main_commit": "c13cf4bf"
 }
