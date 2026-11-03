@@ -2,8 +2,10 @@
 
 Task `steady-harbor-87.2.3`, based on the supervisor-authorized F1b checkpoint
 `b807f893fa50089c1b7108168a3a4a4faa5973aa` from `aq/steady-harbor-87.2`.
-The final merge of `origin/main` at `d616375f` retains reservation consumption as
+The merge of `origin/main` at `d616375f` retains reservation consumption as
 migration 0049 and advances this follow-up's revocation migration to 0050.
+The subsequent clean merge at `1b570310` preserves host credential activation;
+the named owner-message/reply acceptance check is rerun against that wiring.
 
 ## Credential and reply transactions
 
