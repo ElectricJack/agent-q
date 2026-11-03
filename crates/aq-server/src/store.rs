@@ -304,6 +304,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         51,
         include_str!("../migrations/0051_supervisor_credential_revocation.sql"),
     ),
+    (
+        52,
+        include_str!("../migrations/0052_profiled_replacement_fairness.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -523,14 +527,14 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         result38::validate(&mut tx).await?;
     }
     if supported >= 41 {
-        settlement39::validate_compute_reuse(&mut tx).await?;
+        settlement39::validate_compute_reuse(&mut tx, supported).await?;
     } else if supported >= 40 {
         settlement39::validate_phase_absence(&mut tx).await?;
     } else if supported >= 39 {
         settlement39::validate(&mut tx).await?;
     }
     if supported >= 43 {
-        never_granted40::validate_native_cancellation(&mut tx).await?;
+        never_granted40::validate_native_cancellation(&mut tx, supported).await?;
         compute41::validate(&mut tx).await?;
         cancellation43::validate(&mut tx).await?;
     } else if supported >= 41 {
@@ -538,6 +542,9 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         compute41::validate(&mut tx).await?;
     } else if supported >= 40 {
         never_granted40::validate(&mut tx).await?;
+    }
+    if supported >= 52 {
+        replacement52::validate(&mut tx).await?;
     }
     tx.commit().await?;
     Ok(())
@@ -1141,3 +1148,5 @@ mod never_granted40;
 
 #[path = "store/cancellation43.rs"]
 mod cancellation43;
+#[path = "store/replacement52.rs"]
+mod replacement52;

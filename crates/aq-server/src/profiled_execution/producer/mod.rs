@@ -4,6 +4,7 @@ pub mod api;
 mod artifacts;
 mod build;
 mod compose;
+mod fairness;
 use super::native_offer::observation;
 
 mod publication;
