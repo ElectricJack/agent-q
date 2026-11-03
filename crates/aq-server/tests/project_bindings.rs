@@ -6,6 +6,45 @@ use std::sync::{Arc, atomic::Ordering};
 use uuid::Uuid;
 mod common;
 use common::selection::*;
+
+#[tokio::test]
+async fn missing_intelligence_registry_refuses_new_selection_and_offer_fence_explicitly() {
+    use aq_server::intelligence::resolver::{self, ResolveRequest};
+    let f = selection_fixture().await;
+    let request = || ResolveRequest {
+        operation_id: Uuid::new_v4(),
+        lineage: f.lineage.clone(),
+        project: f.frozen.clone(),
+        compositions: f.input.compositions.clone(),
+        replacement: None,
+    };
+    let decision = resolver::resolve_trusted(&f.env.state, f.actor, request())
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM intelligence_registry")
+        .execute(&f.env.pool)
+        .await
+        .unwrap();
+    let error = resolver::resolve_trusted(&f.env.state, f.actor, request())
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(error, aq_server::error::AppError::Conflict(ref reason) if reason.contains("registry has not been installed")),
+        "{error:?}"
+    );
+    let mut tx = f.env.pool.begin().await.unwrap();
+    sqlx::query("SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    let error = resolver::fence_for_offer(&f.env.state, &mut tx, &decision)
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(error, aq_server::error::AppError::Conflict(ref reason) if reason.contains("registry has not been installed")),
+        "{error:?}"
+    );
+}
 #[tokio::test]
 async fn revisioned_binding_replay_history_and_retained_snapshot_survive_updates() {
     let env = setup(false).await;

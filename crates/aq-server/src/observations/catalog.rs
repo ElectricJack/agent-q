@@ -42,14 +42,14 @@ fn source_id(attempt: Uuid, generation: u64, entry: &ArtifactRef) -> Result<Uuid
     Ok(Uuid::from_bytes(id))
 }
 
-/// Pure derivation. `None` when the catalog does not cover the selected
-/// (provider, harness) or the credential is unknown.
+/// Pure derivation at `generation`. `None` when the catalog does not cover the
+/// selected (provider, harness) or the credential is unknown.
 pub fn owner_source(
     registry: &LoadedRegistry,
     binding: Binding,
     selection: &aq_selection::ResolvedSelection,
+    generation: u64,
 ) -> Result<Option<OwnerSource>> {
-    const GENERATION: u64 = 1;
     let choice = &selection.choice;
     let Some(entry) = registry
         .config
@@ -73,9 +73,9 @@ pub fn owner_source(
     let text = |s: &str| Text::new(s).map_err(|_| Error::Invalid);
     let attempt = binding.attempt_id;
     let source = OwnerSource {
-        source_id: source_id(attempt, GENERATION, &entry.reference)?,
-        generation: GENERATION,
-        native_session_key: text(&format!("aq.attempt/{attempt}/{GENERATION}"))?,
+        source_id: source_id(attempt, generation, &entry.reference)?,
+        generation,
+        native_session_key: text(&format!("aq.attempt/{attempt}/{generation}"))?,
         account_claim: text(&choice.account_reference)?,
         policy: Policy {
             reference: entry.reference.clone(),
@@ -102,7 +102,26 @@ pub fn owner_source(
     Ok(Some(source))
 }
 
-/// Loads the attempt's offer and resolved selection and derives its source.
+/// The attempt's newest unrevoked source, across nodes: (generation, digest).
+async fn current_source(state: &AppState, attempt: Uuid) -> Result<Option<(u64, String)>> {
+    let row: Option<(i64, String)> = sqlx::query_as(
+        "SELECT s.generation,s.authority_digest FROM observation_sources s \
+         WHERE s.attempt_id=$1 AND NOT EXISTS(SELECT 1 FROM observation_source_revocations r \
+          WHERE r.node_id=s.node_id AND r.source_id=s.source_id AND r.generation=s.generation) \
+         ORDER BY s.generation DESC LIMIT 1",
+    )
+    .bind(attempt)
+    .fetch_optional(&state.store.observation_pool)
+    .await?;
+    row.map(|(g, d)| Ok((u64::try_from(g).map_err(|_| Error::Invalid)?, d)))
+        .transpose()
+}
+
+/// Loads the attempt's offer and resolved selection and derives the source the
+/// catalog currently owns for it. That is the enrolled generation while the
+/// derivation is unchanged; after a catalog or credential change, or a node
+/// move, it is the next generation, which `register_source` enrolls while
+/// revoking its predecessor.
 pub async fn source_for_attempt(state: &AppState, attempt: Uuid) -> Result<Option<OwnerSource>> {
     let Some(registry) = state.config.intelligence.as_ref() else {
         return Ok(None);
@@ -120,7 +139,17 @@ pub async fn source_for_attempt(state: &AppState, attempt: Uuid) -> Result<Optio
     let selection: aq_selection::ResolvedSelection = parse(row.get("selection"))?;
     let binding =
         aq_admission::transport::lifecycle_binding(&profiled.offer).map_err(|_| Error::Invalid)?;
-    owner_source(registry, binding, &selection)
+    let Some((generation, digest)) = current_source(state, attempt).await? else {
+        return owner_source(registry, binding, &selection, 1);
+    };
+    let Some(same) = owner_source(registry, binding.clone(), &selection, generation)? else {
+        return Ok(None);
+    };
+    if same.digest()?.as_str() == digest {
+        return Ok(Some(same));
+    }
+    let next = generation.checked_add(1).ok_or(Error::Capacity)?;
+    owner_source(registry, binding, &selection, next)
 }
 
 /// Production attempt path: registers the catalog-derived source. Idempotent;

@@ -324,6 +324,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         56,
         include_str!("../migrations/0056_dashboard_graph_intents.sql"),
     ),
+    (
+        57,
+        include_str!("../migrations/0057_observation_source_generations.sql"),
+    ),
     (58, include_str!("../migrations/0058_notification_policy.sql")),
 ];
 

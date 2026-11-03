@@ -1,6 +1,6 @@
 //! The only native initial-offer publisher. External reads/exports finish before
 //! this transaction. It neither accepts preparation nor issues a grant.
-use super::{build::Built, now, observation::StoredOffer, refused};
+use super::{build::Built, now, observation::StoredOffer, on_heap, refused};
 use crate::{
     AppState,
     error::AppError,
@@ -169,14 +169,19 @@ pub async fn publish(
     if linked_bytes != offered_bytes {
         return Err(refused());
     }
-    source_exports::link_locked(state, &mut tx, &binding.session, export, fact, inspection).await?;
-    crate::agent_access::native_binding::seal_locked(
-        state,
-        &mut tx,
-        &binding.session,
-        &built.graph_profile,
-        &built.context,
-    )
+    on_heap(|| {
+        source_exports::link_locked(state, &mut tx, &binding.session, export, fact, inspection)
+    })
+    .await?;
+    on_heap(|| {
+        crate::agent_access::native_binding::seal_locked(
+            state,
+            &mut tx,
+            &binding.session,
+            &built.graph_profile,
+            &built.context,
+        )
+    })
     .await?;
     // Repeat time-only fences after artifact/source rows and their quota locks.
     let end = now(state)?;

@@ -3,7 +3,8 @@
 //! authenticated B1 advertisement and the catalog's activation-time template
 //! resolution; selection only turns them into typed refusals.
 use crate::candidate_core::{CandidateResult, profile_key};
-use crate::{BackendKind, CandidateState, Digest, InstalledHarness};
+use crate::{BackendKind, CandidateState, ConcreteChoice, Digest, InstalledHarness};
+use aq_session_protocol::ArtifactRef;
 use serde::{Deserialize, Serialize};
 
 /// Present only for nodes that registered a sandbox backend advertisement.
@@ -58,6 +59,33 @@ impl NodeCeiling {
 }
 
 pub(crate) fn check(placement: &Placement, harness: &InstalledHarness) -> CandidateResult {
+    check_parts(
+        placement,
+        &harness.harness,
+        &harness.cli_version,
+        &harness.environment,
+    )
+}
+
+/// Fence-time re-check of a frozen selection against freshly derived placement
+/// facts. It applies the same checks, in the same order and with the same typed
+/// reason codes, as selection.
+pub fn recheck(placement: &Placement, choice: &ConcreteChoice) -> Result<(), &'static str> {
+    check_parts(
+        placement,
+        &choice.harness,
+        &choice.cli_version,
+        &choice.environment,
+    )
+    .map_err(|(_, reason)| reason)
+}
+
+fn check_parts(
+    placement: &Placement,
+    harness: &str,
+    cli_version: &str,
+    environment: &ArtifactRef,
+) -> CandidateResult {
     if let Some(ceiling) = placement.ceiling {
         return Err((CandidateState::Unavailable, ceiling.reason()));
     }
@@ -75,7 +103,7 @@ pub(crate) fn check(placement: &Placement, harness: &InstalledHarness) -> Candid
     {
         return unsupported("required_backend_capability_unsupported");
     }
-    let key = profile_key(&harness.environment);
+    let key = profile_key(environment);
     let Some(resolved) = placement
         .environment_templates
         .iter()
@@ -84,12 +112,12 @@ pub(crate) fn check(placement: &Placement, harness: &InstalledHarness) -> Candid
             placement
                 .environment_templates
                 .iter()
-                .find(|t| t.environment == harness.environment.id.as_str())
+                .find(|t| t.environment == environment.id.as_str())
         })
     else {
         return unsupported("environment_template_unresolved");
     };
-    if resolved.template != harness.environment.digest {
+    if resolved.template != environment.digest {
         return unsupported("environment_template_digest_mismatch");
     }
     let Some(template) = placement
@@ -102,7 +130,7 @@ pub(crate) fn check(placement: &Placement, harness: &InstalledHarness) -> Candid
     if !template
         .harnesses
         .iter()
-        .any(|h| h.harness == harness.harness && h.version == harness.cli_version)
+        .any(|h| h.harness == harness && h.version == cli_version)
     {
         return unsupported("template_missing_selected_harness_version");
     }
