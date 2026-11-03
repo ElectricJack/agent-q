@@ -414,3 +414,11 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **aq-server main clippy failed again,** on a second lint: `type_complexity` in `tests/dashboard_task_knowledge.rs:31`. My earlier fix only checked `--lib`. Added a `Receipts` alias; a full `cargo clippy --workspace --all-targets -D warnings` is clean locally. Pushed `61aeef1` and re-triggered update-branch on PRs #42–#47 and #49.
   - Merged aq-worker #33 (`calm-lantern-25`, measured node disk, SBX25; `262bc1bb`). Its only failure was the flaky `runner_needs_no_node_credential`.
   - **#32 (`agile-rapids-34`, sccache opt-in) conflicted after #33.** Merged main and kept both new tests; the sccache test now sets `docker_local.shared_root_fs` for main's SBX20 admission. `controller::tests` has 15 passed; pushed `23547dd`.
+- **10:30 check.**
+  - Main's latest completed run fails only the known flaky `original_inputs_remain_scoped...`. Wrote a PR-versus-main failure diff script (`prfail.py`) and merged the PRs with no new failures, one at a time:
+    - #42 (`eager-current-12`, NVMe 8 §9.1 budget; `04bf40f5`);
+    - #45 (`keen-impact-33`, backup rotation and image prune; `43334084`);
+    - #49 (`solid-impact-24`, aq-admission pin; `0d320f9f`);
+    - #47 (`sharp-current-24`, storage amendment folded into 0005, after an operator doc-conflict merge `4619d1b`).
+  - #46 (`smart-lantern-97`, Postgres retention) had its own clippy `items_after_test_module`. Moved the impl above the test module and merged main; full workspace clippy is clean; pushed `95ddee1`.
+  - Re-ran update-branch on #50 and #51; their failures were stale `dashboard_task_knowledge` clippy runs from before `61aeef1`.
