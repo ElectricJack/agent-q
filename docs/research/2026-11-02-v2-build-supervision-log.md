@@ -224,3 +224,22 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - E6a's Windows restart drill (it would kill all agents);
     - C7's boat.dev live credentials. C7 was told to close blocked and free its slot.
   - Merged aq-dashboard #9. **aq-worker main CI is green** (`sharp-forge-44`).
+- **00:00 check (11-03).**
+  - **Only 5–6 agents running**, with 35 READY in aq-platform. 29 are dependency-blocked; 6 are claimable but waiting on pools with free capacity.
+    - Root cause: v1 scheduler cycles stall in PR admission (`observe_pr_admission`) and `list_sessions`. Postgres is at about 113% CPU, and `pool.scaler_stalled` repeats.
+    - Not restarted unattended. Recorded as W44; owner option in the morning.
+  - Merged aq-server #31 (F1a closure evidence). H1 and H7 started. C7 and E6a are blocked on owner-only items (morning list).
+- **00:15 check.**
+  - F1a completed. E1c, F1b and `quick-flare-47` started.
+  - Merged aq-dashboard #10 (`0634356a`).
+  - The dashboard unit job still fails on a different test each run, always at about 1000–1040 ms, which matches Testing Library's default asyncUtilTimeout. Filed `azure-harbor-91` (standard-medium) to fix the class in the global test setup, instead of more per-test flake tasks.
+  - My previous check's notes command hung on a stray `cat >>` reading stdin, and `pkill -f` on that pattern also killed my shell. The notes were redone and pushed in `8c204b7`.
+- **00:30 check.**
+  - **Codex usage at 87% weekly with 5.7 days to reset; the provider is degraded.** At about 9 points per 3 hours it would run out overnight.
+    - `aq provider reroute` does nothing for a degraded provider.
+    - Pinned all 9 queued Codex-routed tasks to the equivalent Claude profiles (Claude is at 52% weekly): C5a1, C6a, H5, D3, B4, `bright-nexus-60`, D1b, I2, F4.
+    - The monitor now prints usage and any Codex-routed queued work.
+  - **D10 review deadlock** (`rev-wise-rapids`). Round-3 reviewer `prime-summit-42` found no blocking defects, but the review sat in changes_requested at r3. v1 refuses a decision ("Return a revision or create an amendment review"), and the revision task `stark-dune-58` was IN_PROGRESS with no agent.
+    - Stopped and reopened it, scoped to a doc-only r4 that refreshes the stale dispositions/status sections (the reviewer's one nit); pinned to standard-medium Claude.
+    - I will approve r4. This is the same deadlock class as `rev-amber-quest`.
+  - H1 and `quick-flare-47` completed. `clear-grove-63` (terminal ReportResult authorization) claimed.

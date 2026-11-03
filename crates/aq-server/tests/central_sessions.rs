@@ -511,3 +511,28 @@ async fn central_owner_historical_rows_and_identity_cannot_be_rewritten() {
         old
     );
 }
+
+#[tokio::test]
+async fn central_owner_reused_conversation_for_new_actor_is_typed_conflict() {
+    let (_db, owner) = setup().await;
+    let p = plan();
+    owner.prepare(p.clone(), clock(1000)).await.unwrap();
+    let mut other = p.clone();
+    let CentralSubject::CentralConversation { actor_id, .. } = &mut other.subject;
+    *actor_id = Uuid::from_u128(0xa11ce);
+    assert_ne!(other.subject.actor_id(), p.subject.actor_id());
+    assert_eq!(other.subject.conversation_id(), p.subject.conversation_id());
+    assert!(matches!(
+        owner.prepare(other.clone(), clock(1000)).await,
+        Err(OwnerError::Conflict)
+    ));
+    // The refusal leaves no partial head for the new actor and keeps the owner.
+    assert!(
+        owner
+            .inspect(other.subject.actor_id())
+            .await
+            .unwrap()
+            .is_none()
+    );
+    assert!(owner.inspect(p.subject.actor_id()).await.unwrap().is_some());
+}
