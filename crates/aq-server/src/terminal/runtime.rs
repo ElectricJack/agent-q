@@ -183,11 +183,17 @@ impl Runtime {
         now: u64,
     ) -> Result<Option<OutputGap>, AppError> {
         let mut b = self.buffers.lock().map_err(|_| fail())?;
-        let node = b
-            .items
-            .get(&frame.terminal.terminal_id)
-            .ok_or_else(|| AppError::Conflict("watch snapshot resynchronization required".into()))?
-            .node;
+        // Output is disposable. A worker may finish an upload after its watch
+        // expired (or before anyone watches). Authority is checked by upload_in;
+        // absence of a replay consumer must not cause an endless upload retry.
+        let Some(buffer) = b.items.get(&frame.terminal.terminal_id) else {
+            return Ok(None);
+        };
+        if now >= buffer.until {
+            b.items.remove(&frame.terminal.terminal_id);
+            return Ok(None);
+        }
+        let node = buffer.node;
         let mut nr = b.node_rate.get(&node).cloned().ok_or_else(fail)?;
         let entry = b
             .items
@@ -236,11 +242,14 @@ impl Runtime {
         now: u64,
     ) -> Result<(), AppError> {
         let mut b = self.buffers.lock().map_err(|_| fail())?;
-        let node = b
-            .items
-            .get(&snapshot.terminal.terminal_id)
-            .ok_or_else(|| AppError::Conflict("watch snapshot resynchronization required".into()))?
-            .node;
+        let Some(buffer) = b.items.get(&snapshot.terminal.terminal_id) else {
+            return Ok(());
+        };
+        if now >= buffer.until {
+            b.items.remove(&snapshot.terminal.terminal_id);
+            return Ok(());
+        }
+        let node = buffer.node;
         let mut nr = b.node_rate.get(&node).cloned().ok_or_else(fail)?;
         let entry = b
             .items
@@ -277,6 +286,13 @@ impl Runtime {
         now: u64,
     ) -> Result<(), AppError> {
         let mut b = self.buffers.lock().map_err(|_| fail())?;
+        if b.items
+            .get(&gap.terminal.terminal_id)
+            .is_some_and(|entry| now >= entry.until)
+        {
+            b.items.remove(&gap.terminal.terminal_id);
+            return Ok(());
+        }
         if let Some(entry) = b.items.get_mut(&gap.terminal.terminal_id) {
             entry
                 .ring

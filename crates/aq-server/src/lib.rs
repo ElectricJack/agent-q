@@ -227,6 +227,13 @@ pub fn build_admin_router_with_optional_owners(
     dashboard: Option<Arc<dashboard_assets::DashboardAssets>>,
     media: Option<Arc<result_media::runtime::Runtime>>,
 ) -> Router {
+    let reviews = reviews.or_else(|| {
+        state
+            .config
+            .reviews
+            .as_ref()
+            .map(|keys| Arc::new(reviews::Service::new(state.clone(), keys.clone())))
+    });
     let mounted = dashboard_api::MountedOwners {
         graph: true,
         session_usage: true,
