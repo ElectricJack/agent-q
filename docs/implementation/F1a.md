@@ -5,8 +5,8 @@ Task `steady-harbor-87.1`. The earlier prerequisite block is resolved by
 image on top of the previously committed SQL session owner. Independent
 validation is recorded below. The upstream request-publication race is fixed
 by the 0.1.7 pin requested in the latest reopening. Review revision 2 addresses
-the operator-scoped graceful-stop and crash-documentation nits below; publication
-does not approve the review.
+the operator-scoped graceful-stop and crash-documentation nits below. The operator
+has approved review revision 2; the final disposition is recorded below.
 
 ## Revision 2: graceful stop and crash recovery notes
 
@@ -255,5 +255,23 @@ The full unfiltered workspace suite is not claimed: prime restricts this worker
 to focused and related-area checks. The two required filtered workspace commands
 are explicit acceptance obligations. Cross-family adversarial review and the
 required PR/review disposition are recorded in the task comments and review
-request. A passing close awaits cross-family review; no review approval is
-claimed in this evidence checkpoint.
+request.
+
+## Final closure verification
+
+`aq review show --review-id rev-nimble-horizon --json` now reports revision 2
+`approved`, decided by `human:local-operator` at `1793691245.3243306`, and gate
+`gate-5978d3673254` resolved with resolution `approved`. The original review
+decision is `ask-decision-30a79a85ec1841a28a97f0df28691e79`; reviewer
+`wise-summit-84` found no blocking defects in implementation `5f945efc` (PR #26).
+The revision-2 decision approves graceful-stop and crash-window fixes and assigns
+remaining nits to `quick-flare-47`.
+
+Final `git merge origin/main` integrated main
+`696d1e9dd480fa2d1eca1421a306f367641fae30` as
+`26a7fdaaa7fe86f873bec6a16fbf4ddbc529587a`. The central-authority and supervisor-host
+trees and retained evidence match approved revision-2 source
+`6f34e72f5e8c2772963837febacbd585f5895736` exactly. No new implementation changes
+or repeated tests were needed. Existing startup, restart and signal-test logs
+each record their intended test passing. This closure update changes only this
+evidence document. The worker did not merge PR #26.
