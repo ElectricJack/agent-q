@@ -108,3 +108,17 @@ Supervisor message `msg-e7d1e5163564498d859cdde2b0cf5169` explicitly authorizes
 merging fetched `origin/main` for final sync, without creating dev or pushing main.
 The supervisor also reports owner PR #12 merged at `ff97d55`; the recorded
 `c413cfe2` source revision and archive checksum remain the exact pin.
+
+The fetched main revision was `18af3900f5fae76bdc9797017cd4cbd9f4987b8a`.
+Merge commit `2b0f1a7315e5b4afc9905de3eb474fc5980f9629` merged it cleanly after
+the single implementation commit `45154f35`; incoming changes were confined
+to three retrospective/build-supervision documents.
+Post-merge `B1_SERVER_CHECK=postmerge aq test docs/implementation/B1-server-evidence/test_cargo.py -q --timeout=1800`
+passed, executing `cargo test --locked -p aq-server --test permit_fixture_conformance`:
+**3/3 passed** ([log](B1-server-evidence/postmerge.txt)).
+
+Supervisor disposition `msg-4cf73eff1401404f91b9ec8a9808ef36` accepts the
+shared-PostgreSQL legacy timing failures as pre-existing and outside this task,
+directs honest evidence with no area-green claim or legacy source changes, and
+authorizes publication and close after registration verification. The supervisor
+will track the flakiness separately. Registration passed 4/4 as recorded above.

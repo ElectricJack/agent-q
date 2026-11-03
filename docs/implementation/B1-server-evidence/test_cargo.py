@@ -1,6 +1,6 @@
 """Run Cargo checks through AQ's pytest-only resource gate.
 
-Select B1_SERVER_CHECK=conformance (default), legacy, endpoints, registration, endpoint_retry, or format.
+Select B1_SERVER_CHECK=conformance (default), legacy, endpoints, registration, endpoint_retry, postmerge, or format.
 """
 import os
 from pathlib import Path
@@ -13,6 +13,7 @@ COMMANDS = {
     "endpoints": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "native_registration", "--test", "native_initial_grant"],
     "registration": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "native_registration"],
     "endpoint_retry": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "native_initial_grant", "published::exact_full_artifact_and_material_receipt_coverage_is_mandatory", "--", "--exact"],
+    "postmerge": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "permit_fixture_conformance"],
     "format": ["cargo", "fmt", "-p", "aq-server", "--check"],
 }
 
