@@ -61,6 +61,7 @@ async fn fixed_public_source_reads_preserve_original_age_and_refuse_released_ret
                 reference: Label::new("refs/heads/main").unwrap(),
             },
             retention_handle: handle,
+            placement: None,
         }],
     };
     let policy = config

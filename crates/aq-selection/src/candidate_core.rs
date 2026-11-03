@@ -38,6 +38,7 @@ pub(crate) struct CoreInputs<'a> {
     pub compositions: &'a [CoreComposition<'a>],
     pub ceilings: &'a ResourceCeilings,
     pub allowed_environments: &'a [String],
+    pub placement: Option<&'a Placement>,
     pub now_ms: u64,
     pub global: Option<&'static str>,
     pub environment_denied: &'static str,
@@ -304,6 +305,9 @@ pub(crate) fn evaluate(
                                     CandidateState::StaleUnknown,
                                     input.installation_stale,
                                 ));
+                            }
+                            if let Some(placement) = input.placement {
+                                crate::placement::check(placement, harness)?;
                             }
                             let credential = credential.ok_or((
                                 CandidateState::MissingCredentials,
