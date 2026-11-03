@@ -439,7 +439,15 @@ async fn report(
     axum::extract::State(state): axum::extract::State<AppState>,
     headers: axum::http::HeaderMap,
     crate::admin_api::ApiJson(request): crate::admin_api::ApiJson<ResultReport>,
-) -> Result<axum::Json<Receipt>, AppError> {
-    let node = crate::worker_api::authenticate_context(&state, &headers).await?;
-    Ok(axum::Json(record(&state, &node, &request).await?))
+) -> Result<axum::response::Response, AppError> {
+    let node = crate::delegated_permits::runtime::authenticate_runner(
+        &state,
+        &headers,
+        aq_admission_sandbox::sandbox::RunnerOperation::ReportResult,
+        None,
+    )
+    .await?;
+    crate::delegated_permits::runtime::require_document(&node, &request)?;
+    let receipt = record(&state, &node, &request).await?;
+    crate::delegated_permits::receipts::result(&node, &request, receipt)
 }

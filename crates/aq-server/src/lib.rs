@@ -5,6 +5,7 @@ pub mod authz;
 pub mod config;
 pub mod dashboard_api;
 pub mod dashboard_assets;
+pub mod delegated_permits;
 pub mod delivery;
 pub mod error;
 pub mod execution;
@@ -55,7 +56,8 @@ pub const STATE_FORMAT_VERSION: u32 = 51;
 /// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
 pub const READABLE_STATE_FORMATS: &[u32] = &[
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-    27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51,
+    27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
+    51,
 ];
 /// Versions that may be upgraded to this release.
 pub const UPGRADE_FROM: &str = ">=0.1.0";
@@ -331,6 +333,7 @@ fn build_worker_router_inner(
     Router::new()
         .merge(closure)
         .merge(worker_api::worker_routes(state.clone()))
+        .merge(delegated_permits::incarnation::routes(state.clone()))
         .merge(profiled_execution::api::routes(state.clone()))
         .merge(profiled_execution::control_api::routes(state.clone()))
         .merge(profiled_execution::accepted_preparation::routes(
