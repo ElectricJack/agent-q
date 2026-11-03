@@ -29,6 +29,10 @@ jobs:
           toolchain=$(sed -n 's/^channel = "\(.*\)"$/\1/p' rust-toolchain.toml)
           rustup toolchain install "$toolchain" --profile minimal --component rustfmt,clippy
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Verify migration numbering and parallel additions
+        run: |
+          python3 scripts/migration_catalog.py
+          python3 scripts/test-migration-catalog.py
       - name: cargo fmt
         run: cargo fmt --all --check
       - name: Verify the pinned standalone worker and public contracts
