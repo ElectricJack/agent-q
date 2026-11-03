@@ -433,8 +433,8 @@ async fn protected_admission_conflicts_and_engine_receipt_ack_are_separate() {
 
 fn source_url(e: &Env) -> String {
     let mut url = reqwest::Url::parse(&std::env::var("DATABASE_URL").unwrap()).unwrap();
-    assert_eq!(url.host_str(), Some("127.0.0.1"));
-    assert_eq!(url.port(), Some(55432));
+    // Disposable loopback test PostgreSQL only (scripts/test-db or CI's localhost).
+    assert!(matches!(url.host_str(), Some("127.0.0.1" | "localhost")));
     url.set_path(e.f.db.options().get_database().unwrap());
     url.to_string()
 }

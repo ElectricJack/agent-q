@@ -214,3 +214,13 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - no new native authority seam.
   - F1a is running again, with its revision (`steady-harbor-87.8`, PR #30). B6c started.
   - The paused duplicates `sharp-pinnacle-28` and `agile-torrent-31` cannot be closed ("could not stop the writer"); left paused.
+- **23:55 check.**
+  - **F1a review approved** (`rev-nimble-horizon` r2; SIGTERM fix and crash docs). Merged aq-server #26 (F1a, `2d4dfa10`; migrations 0046/0047), #30 (graceful stop, `715d0175`) and #29 (D1a fail-closed fencing, `1150502d`).
+    - #29 and #30 had become conflicting. I merged main into both branches myself; #29's only conflict was D1a.md, where I kept both the revision-2 and follow-up sections.
+    - D1a's follow-up `clear-meadow-17` was already done and merged.
+  - **B2:** told it to renumber its migration to 0048 (F1a took 46/47). Routed its other cross-repo follow-up to aq-worker as `clear-grove-63`, with the operator-decided semantics: terminal ReportResult is authorized under GrantPhase::Ended within expiry, and nothing else.
+  - Routed E6a's follow-up (Dockerfile.worker pins the stale aq-worker 0.3.1) to E1c as a comment.
+  - **Two owner-only blockers** go on the morning list (scratchpad `owner_morning.md`):
+    - E6a's Windows restart drill (it would kill all agents);
+    - C7's boat.dev live credentials. C7 was told to close blocked and free its slot.
+  - Merged aq-dashboard #9. **aq-worker main CI is green** (`sharp-forge-44`).

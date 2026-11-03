@@ -855,6 +855,102 @@ async fn delivery_indeterminate_receipts_and_lost_replies_keep_destination_held(
 }
 
 #[tokio::test]
+async fn delivery_publish_errors_require_conclusive_refusal_to_release_destination() {
+    for (code, state, details, held) in [
+        ("io_error", None, Value::Null, true),
+        ("future_error", None, Value::Null, true),
+        ("io_error", Some("pending"), Value::Null, true),
+        ("io_error", Some("complete"), Value::Null, true),
+        (
+            "remote_auth_failed",
+            Some("failed"),
+            json!({"dispatched":true}),
+            true,
+        ),
+        ("target_not_allowed", Some("failed"), Value::Null, false),
+    ] {
+        let h = Harness::new().await;
+        let source = retain(&h).await;
+        let svc = service(&h);
+        let request = candidate(&h, source);
+        let task = peer(&h, ready(&h, request.context.operation_id)).await;
+        svc.create_candidate(request.clone()).await.unwrap();
+        task.await.unwrap();
+        std::fs::remove_file(h.dir.path().join("git.sock")).unwrap();
+        let p = PublishRequest {
+            context: context(&h),
+            candidate_id: request.context.operation_id,
+            target: "refs/heads/main".into(),
+            expected_old: h.manifest.source.base.clone(),
+        };
+        let listener = tokio::net::UnixListener::bind(h.dir.path().join("git.sock")).unwrap();
+        let pool = h.pool.clone();
+        let id = p.context.operation_id;
+        let task = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            let mut reader = BufReader::new(stream);
+            let mut line = String::new();
+            reader.read_line(&mut line).await.unwrap();
+            let request: Value = serde_json::from_str(&line).unwrap();
+            let dispatch: i64 = sqlx::query_scalar(
+                "SELECT count(*) FROM delivery_publish_dispatches WHERE operation_id=$1",
+            )
+            .bind(id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+            assert_eq!(dispatch, 1, "dispatch must already be committed");
+            let mut reply = json!({"protocol_version":1,"request_id":request["request_id"],"operation_id":id,"ok":false,"error":{"code":code,"message":"No space left on device","details":details,"retry":"safe_same_operation"}});
+            if let Some(state) = state {
+                reply["operation_state"] = json!(state);
+            }
+            let raw = format!("{reply}\n").into_bytes();
+            reader.get_mut().write_all(&raw).await.unwrap();
+            raw
+        });
+        let receipt = svc.publish(p.clone()).await.unwrap();
+        assert_eq!(receipt.raw, task.await.unwrap());
+        assert_eq!(receipt.outcome.as_ref().unwrap_err().code, code);
+        if state.is_none() {
+            assert_eq!(receipt.operation_state, None, "outcome remains unknown");
+        }
+        std::fs::remove_file(h.dir.path().join("git.sock")).unwrap();
+        // With no peer, a reconstructed service must replay the exact error
+        // receipt without dispatching again, even with safe_same_operation.
+        let restarted = service(&h);
+        assert_eq!(restarted.publish(p.clone()).await.unwrap().raw, receipt.raw);
+        let holds: i64 = sqlx::query_scalar(
+            "SELECT count(*) FROM delivery_destinations WHERE repository_id=$1 AND target=$2",
+        )
+        .bind(p.context.repository_id)
+        .bind(&p.target)
+        .fetch_one(&h.pool)
+        .await
+        .unwrap();
+        assert_eq!(holds, i64::from(held), "code={code}, state={state:?}");
+        let mut next = p;
+        next.context.operation_id = Uuid::new_v4();
+        if held {
+            assert!(matches!(
+                restarted.publish(next).await,
+                Err(DeliveryError::DestinationBlocked)
+            ));
+        } else {
+            let task = peer(
+                &h,
+                json!({"outcome":"rejected","reason":"stale expected old"}),
+            )
+            .await;
+            assert!(matches!(
+                restarted.publish(next).await.unwrap().outcome,
+                Ok(PublishResult::Rejected { .. })
+            ));
+            task.await.unwrap();
+        }
+    }
+}
+
+#[tokio::test]
 async fn delivery_candidate_retries_frozen_request_after_lost_reply() {
     let h = Harness::new().await;
     let source = retain(&h).await;
