@@ -13,4 +13,4 @@ CREATE TABLE node_storage_reports (
 CREATE INDEX node_storage_reports_node ON node_storage_reports(node_id) WHERE node_id IS NOT NULL;
 ALTER TABLE notification_episodes DROP CONSTRAINT notification_episodes_kind_check;
 ALTER TABLE notification_episodes ADD CONSTRAINT notification_episodes_kind_check CHECK(kind IN ('task.failed_or_blocked','decision.needed','question.asked','credential.invalid','milestone.gate_ready','worker.offline','storage.pressure','sandbox.preserved'));
-UPDATE meta SET value='64' WHERE key='state_format_version';
+UPDATE meta SET value='65' WHERE key='state_format_version';
