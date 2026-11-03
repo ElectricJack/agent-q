@@ -342,3 +342,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **`steady-harbor-87.2.4`:** the work is done (PR #38); it is held only on a close-pipeline stop. I will merge #38 once its pending checks match main, then close the task.
   - **B4 migration collision:** B4 used 0050, the same as main. The supervisor reopened B4 to renumber; its follow-up `.4.2` is held. B4 should take 0052 or higher.
   - #37 still overflows its stack; its task is working on it. Codex is at 94%.
+- **04:05 check.**
+  - **Merged B2** (aq-server PR #35, `620533f6`) after three migration renumbers and two operator merges. Its failures (the observations 403/401 test and update-lifecycle case 1) also fail on other branches. This ends the B2 migration race; B4 renumbers against main.
+  - Merged #38 (`steady-harbor-87.2.4`, `53912143`) and closed the task with `--done`.
+  - **Filed** `prime-dune-72` (update-lifecycle CI: the server container fails `docker compose up` in "case 1: first install of 0.1.0", on #35 and #37) and H2's cross-repo follow-up `swift-journey-80` (aq-worker H1 readers emit server-derived source_id). Both are standard-medium Claude.
+  - G2, H2 and C4 started. #37 (I0 server findings) still overflows its stack and is in progress; MS0 waits on it.
