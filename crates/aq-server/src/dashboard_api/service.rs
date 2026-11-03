@@ -167,6 +167,9 @@ pub(super) async fn bootstrap(
     let graph = mounted.graph && a.owner && state.agent_access.is_some();
     let reviews = a.owner && mounted.reviews;
     let playbooks = a.owner && mounted.playbook_owner == Some(a.actor);
+    let conversation = mounted.supervisor_conversation
+        && a.owner
+        && crate::agent_access::supervisor_conversation::dispatch::live(&state.store.pool).await;
     let caps = vec![
         capability("dashboard.overview", true, ""),
         capability(
@@ -258,7 +261,7 @@ pub(super) async fn bootstrap(
         ),
         capability(
             "supervisor.conversation",
-            false,
+            conversation,
             "The global supervisor is not connected yet",
         ),
         capability(

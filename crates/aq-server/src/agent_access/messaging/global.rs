@@ -1,5 +1,7 @@
 //! Human global-conversation admission over AQ-11 mail, never runtime delivery.
+pub mod dispatch;
 mod reads;
+pub mod reply;
 pub mod reservations;
 mod writes;
 use super::{Envelope as Mail, append, digest, receipt, replay, sender_key};
@@ -10,7 +12,7 @@ use axum::{
     extract::{DefaultBodyLimit, Path, Query, Request, State},
     middleware::{self, Next},
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -119,6 +121,16 @@ pub fn routes(state: &AppState) -> Router<AppState> {
             "/api/human/conversations/{conversation}/operations/{operation}",
             get(writes::lookup),
         )
+        .layer(DefaultBodyLimit::max(131072))
+        .layer(Extension(service.clone()))
+        .layer(middleware::from_fn_with_state(service, gate))
+}
+/// F1b: supervisor machine routes, authenticated by the generation-bound
+/// supervisor credential only (never a worker or owner session).
+pub fn supervisor_routes(state: &AppState) -> Router<AppState> {
+    let service = Arc::new(Service::new(state));
+    Router::new()
+        .route("/v1/supervisor/conversation/replies", post(reply::reply))
         .layer(DefaultBodyLimit::max(131072))
         .layer(Extension(service.clone()))
         .layer(middleware::from_fn_with_state(service, gate))

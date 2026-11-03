@@ -24,6 +24,13 @@ zeroize = "1"
 [dev-dependencies]
 tempfile.workspace = true
 aq-server = { path = "../aq-server", features = ["test-support"] }
+aq-agent-api = { path = "../aq-agent-api", version = "=0.1.0" }
+axum.workspace = true
+chrono.workspace = true
+http-body-util.workspace = true
+reqwest.workspace = true
+toml.workspace = true
+tower.workspace = true
 
 [[bin]]
 name = "aq-session-host"

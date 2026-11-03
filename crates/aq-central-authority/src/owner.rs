@@ -99,7 +99,12 @@ async fn bounded<T>(future: impl Future<Output = OwnerResult<T>>) -> OwnerResult
 }
 async fn begin(pool: &PgPool) -> OwnerResult<Transaction<'_, Postgres>> {
     let mut tx = pool.begin().await?;
-    sqlx::raw_sql("SET LOCAL lock_timeout='2s'; SET LOCAL statement_timeout='3s'")
+    // Two prepared statements, not raw_sql: raw_sql's Executor bound defeats
+    // Send inference for owner futures awaited from HTTP handlers.
+    sqlx::query("SET LOCAL lock_timeout='2s'")
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("SET LOCAL statement_timeout='3s'")
         .execute(&mut *tx)
         .await?;
     Ok(tx)
@@ -362,14 +367,15 @@ impl<V: EvidenceVerifier> SessionOwner<V> {
 
     /// Historical data only: neither inspection nor reconstruction renews a
     /// permit, observes a live process, or authorizes physical re-adoption.
-    pub async fn inspect(&self, actor: Uuid) -> OwnerResult<Option<Snapshot>> {
-        self.read(actor, None).await
+    // Reads return boxed Send futures so HTTP handlers can await them.
+    pub fn inspect(&self, actor: Uuid) -> Read<'_> {
+        Box::pin(self.read(actor, None))
     }
-    pub async fn generation(&self, actor: Uuid, generation: u64) -> OwnerResult<Option<Snapshot>> {
+    pub fn generation(&self, actor: Uuid, generation: u64) -> Read<'_> {
         if generation == 0 || generation > MAX_GENERATIONS {
-            return Err(OwnerError::Conflict);
+            return Box::pin(async { Err(OwnerError::Conflict) });
         }
-        self.read(actor, Some(generation)).await
+        Box::pin(self.read(actor, Some(generation)))
     }
     async fn read(&self, actor: Uuid, generation: Option<u64>) -> OwnerResult<Option<Snapshot>> {
         bounded(async {
@@ -388,6 +394,9 @@ impl<V: EvidenceVerifier> SessionOwner<V> {
         .await
     }
 }
+/// A boxed, Send snapshot read.
+pub type Read<'a> =
+    std::pin::Pin<Box<dyn Future<Output = OwnerResult<Option<Snapshot>>> + Send + 'a>>;
 
 fn issue(run: &Run, sequence: u64, ttl_ms: u64, clock: &Clock) -> OwnerResult<PermitData> {
     clock.validate()?;
