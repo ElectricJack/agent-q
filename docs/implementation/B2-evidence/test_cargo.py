@@ -5,11 +5,15 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 COMMANDS = {
+    "polls": ["cargo", "test", "--locked", "-p", "aq-server", "--lib", "delegated"],
+    "runtime": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "delegated_permit_runtime", "--test", "permit_fixture_conformance"],
+    "check": ["cargo", "check", "--locked", "-p", "aq-server"],
+    "conformance": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "permit_fixture_conformance"],
     "model": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "delegated_permits"],
     "area": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "native_cancellation"],
     "final": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "delegated_permits", "--test", "native_cancellation", "--", "--test-threads=1"],
     "format": ["cargo", "fmt", "-p", "aq-server", "--check"],
-    "clippy": ["cargo", "clippy", "--locked", "-p", "aq-server", "--lib", "--test", "delegated_permits", "--", "-D", "warnings"],
+    "clippy": ["cargo", "clippy", "--locked", "-p", "aq-server", "--lib", "--test", "delegated_permits", "--test", "delegated_permit_runtime", "--test", "permit_fixture_conformance", "--", "-D", "warnings"],
 }
 
 

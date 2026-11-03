@@ -139,7 +139,14 @@ async fn batch(
     headers: HeaderMap,
     ApiJson(packet): ApiJson<Packet>,
 ) -> std::result::Result<([(header::HeaderName, &'static str); 1], Json<Receipt>), AppError> {
-    let node = crate::worker_api::authenticate_context(&state, &headers).await?;
+    let node = crate::delegated_permits::runtime::authenticate_runner(
+        &state,
+        &headers,
+        aq_admission_sandbox::sandbox::RunnerOperation::Observe,
+        None,
+    )
+    .await?;
+    crate::delegated_permits::runtime::require_document(&node, &packet)?;
     let receipt = ingest_authenticated(&state, &node, &packet).await?;
     Ok(([(header::CACHE_CONTROL, "no-store")], Json(receipt)))
 }

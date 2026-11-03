@@ -82,6 +82,10 @@ impl PermitRecord {
         }
     }
 
+    pub(crate) fn verifier(&self) -> [u8; 32] {
+        self.verifier
+    }
+
     pub fn verify_credential(&self, token: &str) -> Result<()> {
         if self.revoked || !(32..=256).contains(&token.len()) {
             return Err(ContractError::ScopeDenied);

@@ -361,6 +361,14 @@ async fn prepare_inner(
     {
         return Err(refused());
     }
+    crate::delegated_permits::handoff::upgrade_locked(
+        state,
+        &mut tx,
+        auth,
+        request,
+        &reply.receipt,
+    )
+    .await?;
     tx.commit().await.map_err(|_| {
         AppError::UpdatesUnavailable(
             "phase execution commit outcome unknown; preserve the exact operation intent".into(),
@@ -532,6 +540,8 @@ async fn replay_locked(
             nonce,
         )
         .map_err(|_| refused())?;
+    crate::delegated_permits::handoff::upgrade_locked(state, tx, auth, q, &original.receipt)
+        .await?;
     let preflight = replay_preflight(state, tx, auth, q, &original, &replay_registry).await?;
     Ok(Some(ReplayCandidate {
         reply,

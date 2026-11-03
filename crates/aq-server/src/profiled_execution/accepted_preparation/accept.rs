@@ -47,6 +47,7 @@ pub async fn accept(
 
     if let Some(old) = super::authority::accepted_locked(&mut tx, &p, q).await? {
         super::authority::live_locked(state, &mut tx, auth, &p, q, &old).await?;
+        crate::delegated_permits::handoff::issue_locked(state, &mut tx, auth, q, &old).await?;
         let reply = delivery(state, q, &p, old, nonce)?;
         tx.commit().await.map_err(db)?;
         return Ok(reply);
@@ -125,6 +126,7 @@ pub async fn accept(
     let registry_at_accept = registry_at_accept(state, &mut tx, &p).await?;
     if let Some(old) = super::authority::accepted_locked(&mut tx, &p, q).await? {
         super::authority::live_locked(state, &mut tx, auth, &p, q, &old).await?;
+        crate::delegated_permits::handoff::issue_locked(state, &mut tx, auth, q, &old).await?;
         let reply = delivery(state, q, &p, old, nonce)?;
         tx.commit().await.map_err(db)?;
         return Ok(reply);
@@ -188,6 +190,7 @@ pub async fn accept(
         &q.original.journal_digest,
     )
     .await?;
+    crate::delegated_permits::handoff::issue_locked(state, &mut tx, auth, q, &receipt).await?;
     let reply = delivery(state, q, &p, receipt, nonce)?;
     tx.commit().await.map_err(db)?;
     Ok(reply)
