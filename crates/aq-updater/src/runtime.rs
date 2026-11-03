@@ -1079,7 +1079,14 @@ mod tests {
         assert_eq!(
             strs(&c.backup_argv()),
             with_prefix(&[
-                "exec", "-T", "postgres", "pg_dump", "-U", "agent_q", "-Fc", "aq_server"
+                "exec",
+                "-T",
+                "postgres",
+                "pg_dump",
+                "-U",
+                "agent_q",
+                "-Fc",
+                "aq_server"
             ])
         );
         let [drop, create, restore] = c.restore_argvs();
