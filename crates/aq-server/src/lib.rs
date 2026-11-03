@@ -24,6 +24,7 @@ pub mod readiness;
 pub mod result_media;
 pub mod results_feedback;
 pub mod reviews;
+pub mod row_retention;
 pub mod session_access;
 pub mod source_retention;
 pub mod store;
@@ -448,6 +449,7 @@ async fn run_with_listeners_and_dashboard(
         rx.clone(),
     ));
     let terminal_task = tokio::spawn(terminal::runtime::run(state.clone(), rx.clone()));
+    let retention_task = tokio::spawn(row_retention::run(state.clone(), rx.clone()));
     let expiry_task = tokio::spawn(profiled_execution::expiry::run(state.clone(), rx.clone()));
     let source_gc_task = tokio::spawn(source_retention::gc::run(state.clone(), rx.clone()));
     tokio::spawn(async move {
@@ -483,6 +485,8 @@ async fn run_with_listeners_and_dashboard(
             .await
         },
     );
+    retention_task.abort();
+    let _ = retention_task.await;
     terminal_task.abort();
     let _ = terminal_task.await;
     notification_task.abort();
