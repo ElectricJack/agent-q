@@ -889,6 +889,7 @@ fn node_at_spend_ceiling_refuses_with_reason_in_trace() {
         (NodeCeiling::Spend, "node_spend_ceiling_reached"),
         (NodeCeiling::Concurrency, "node_concurrency_ceiling_reached"),
         (NodeCeiling::SpendUnaccounted, "node_spend_unaccounted"),
+        (NodeCeiling::DiskPressure, "node_disk_pressure"),
     ] {
         let mut placement = sandbox_placement(&input, "fixture-1");
         placement.ceiling = Some(ceiling);
@@ -927,6 +928,10 @@ fn fence_recheck_refuses_frozen_choice_with_selection_reasons() {
         (
             |p| p.ceiling = Some(NodeCeiling::SpendUnaccounted),
             "node_spend_unaccounted",
+        ),
+        (
+            |p| p.ceiling = Some(NodeCeiling::DiskPressure),
+            "node_disk_pressure",
         ),
         (
             |p| p.required_capabilities = vec!["nested-docker".into()],

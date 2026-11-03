@@ -255,7 +255,9 @@ fn every_kind_has_a_stable_wire_name_and_label() {
             "question.asked",
             "credential.invalid",
             "milestone.gate_ready",
-            "worker.offline"
+            "worker.offline",
+            "storage.pressure",
+            "sandbox.preserved"
         ]
     );
     assert_eq!(
@@ -409,6 +411,114 @@ async fn worker_presence_loss_regain_reopens_once_and_respects_project_membershi
         .await
         .unwrap();
     assert_eq!(e.policy.reconcile_workers(60, groups).await.unwrap(), 1);
+}
+
+#[tokio::test]
+async fn storage_pressure_opens_at_80_once_and_resolves_below_75() {
+    use aq_server::node_storage::{CENTRAL, StorageReport, record};
+    let e = Env::new(false).await;
+    let node = Uuid::new_v4();
+    let pool = &e.policy.service().pool;
+    sqlx::query("INSERT INTO nodes(id,name,credential_hash,worker_version,protocol_version,enrolled_at) VALUES($1,'fixture-worker',$2,'1',1,to_timestamp(500))")
+        .bind(node).bind(node.to_string()).execute(pool).await.unwrap();
+    sqlx::query("UPDATE project_execution_bindings SET binding=binding || $2 WHERE project_id=$1")
+        .bind(e.scope.project_id)
+        .bind(json!({"allowed_node_ids":[node]}))
+        .execute(pool)
+        .await
+        .unwrap();
+    let report = |subject: String, id: Option<Uuid>, used: u64| async move {
+        let disk = StorageReport {
+            disk_total_bytes: 10_000,
+            disk_used_bytes: used,
+            disk_free_bytes: 10_000 - used,
+            ..Default::default()
+        };
+        let mut conn = pool.acquire().await.unwrap();
+        record(&mut conn, &subject, id, &disk, 1).await.unwrap();
+    };
+    let at = |used: u64| report(node.to_string(), Some(node), used);
+    let reconcile = || e.policy.reconcile_storage(json!({}));
+    at(7_999).await;
+    assert_eq!(reconcile().await.unwrap(), 0);
+    at(8_000).await;
+    assert_eq!(reconcile().await.unwrap(), 1, "crossing 80% opens");
+    at(9_000).await;
+    assert_eq!(reconcile().await.unwrap(), 0, "one episode while open");
+    at(7_500).await;
+    assert_eq!(reconcile().await.unwrap(), 0, "hysteresis keeps it open");
+    at(7_499).await;
+    assert_eq!(reconcile().await.unwrap(), 1, "below 75% resolves");
+    assert_eq!(reconcile().await.unwrap(), 0);
+    let messages = e.messages().await;
+    assert_eq!(messages.len(), 1);
+    assert!(messages[0].contains("Storage pressure"));
+    assert!(messages[0].contains(&node.to_string()));
+    let open: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM notification_episodes WHERE kind='storage.pressure' AND open",
+    )
+    .fetch_one(pool)
+    .await
+    .unwrap();
+    assert_eq!(open, 0);
+    // The central host reports in the same shape with subject `central`.
+    report(CENTRAL.into(), None, 8_100).await;
+    assert_eq!(reconcile().await.unwrap(), 1);
+    let messages = e.messages().await;
+    assert_eq!(messages.len(), 2);
+    assert!(messages[1].contains("(central)"), "{}", messages[1]);
+}
+
+#[tokio::test]
+async fn preserve_event_produces_one_sandbox_preserved_notification() {
+    use aq_server::notifications::Error;
+    let e = Env::new(false).await;
+    let node = Uuid::new_v4();
+    let attempt = Uuid::new_v4();
+    let source = Uuid::new_v4();
+    let held = 5 * (1u64 << 30);
+    let expiry = 1_700_000_000_000;
+    let preserve = |source| {
+        e.policy
+            .observe_preservation(source, e.scope.clone(), node, attempt, held, expiry)
+    };
+    preserve(source).await.unwrap();
+    preserve(source).await.unwrap();
+    preserve(Uuid::new_v4()).await.unwrap();
+    let messages = e.messages().await;
+    assert_eq!(messages.len(), 1, "{messages:?}");
+    assert!(messages[0].contains("Sandbox preserved"));
+    assert!(messages[0].contains(&node.to_string()));
+    assert!(messages[0].contains("5.0 GiB"));
+    assert!(messages[0].contains("2023-11-14 22:13 UTC"));
+    assert!(messages[0].contains(&format!("({attempt})")));
+    // The node-facing port only accepts attempts that ran on that node.
+    let pool = &e.policy.service().pool;
+    assert_eq!(
+        e.policy
+            .observe_preserved(source, node, Uuid::new_v4(), held, expiry)
+            .await,
+        Err(Error::NotFound)
+    );
+    sqlx::query("INSERT INTO nodes(id,name,credential_hash,worker_version,protocol_version,enrolled_at) VALUES($1,'fixture-worker',$2,'1',1,to_timestamp(500))")
+        .bind(node).bind(node.to_string()).execute(pool).await.unwrap();
+    let legacy = Uuid::new_v4();
+    sqlx::query("INSERT INTO execution_attempts(attempt_id,task_id,node_id,offer_id,session_id,state) VALUES($1,$2,$3,$4,$5,'{}')")
+        .bind(legacy).bind(Uuid::new_v4()).bind(node).bind(Uuid::new_v4()).bind(Uuid::new_v4())
+        .execute(pool).await.unwrap();
+    assert_eq!(
+        e.policy
+            .observe_preserved(source, Uuid::new_v4(), legacy, held, expiry)
+            .await,
+        Err(Error::NotFound)
+    );
+    assert_eq!(
+        e.policy
+            .observe_preserved(Uuid::new_v4(), node, legacy, held, expiry)
+            .await,
+        Ok(None),
+        "an attempt outside an enabled project is not reported"
+    );
 }
 
 #[test]

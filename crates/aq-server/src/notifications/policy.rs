@@ -45,15 +45,22 @@ pub enum Kind {
     MilestoneGateReady,
     /// Subject = worker/node ID from worker presence.
     WorkerOffline,
+    /// SBX25: subject = node ID or `central`; opens at 80% used, resolves
+    /// below 75%.
+    StoragePressure,
+    /// SBX22(a): subject = attempt ID of a sandbox preserved on its node.
+    SandboxPreserved,
 }
 impl Kind {
-    pub const ALL: [Kind; 6] = [
+    pub const ALL: [Kind; 8] = [
         Kind::TaskFailedOrBlocked,
         Kind::DecisionNeeded,
         Kind::QuestionAsked,
         Kind::CredentialInvalid,
         Kind::MilestoneGateReady,
         Kind::WorkerOffline,
+        Kind::StoragePressure,
+        Kind::SandboxPreserved,
     ];
     pub fn as_str(self) -> &'static str {
         match self {
@@ -63,6 +70,8 @@ impl Kind {
             Kind::CredentialInvalid => "credential.invalid",
             Kind::MilestoneGateReady => "milestone.gate_ready",
             Kind::WorkerOffline => "worker.offline",
+            Kind::StoragePressure => "storage.pressure",
+            Kind::SandboxPreserved => "sandbox.preserved",
         }
     }
     fn label(self) -> &'static str {
@@ -73,6 +82,8 @@ impl Kind {
             Kind::CredentialInvalid => "Credential invalid",
             Kind::MilestoneGateReady => "Milestone gate ready",
             Kind::WorkerOffline => "Worker offline",
+            Kind::StoragePressure => "Storage pressure",
+            Kind::SandboxPreserved => "Sandbox preserved",
         }
     }
     /// Maps an attempt failure reason to the episode kind it opens, if any.
