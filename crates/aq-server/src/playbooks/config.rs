@@ -44,6 +44,8 @@ enum Profile {
     HumanReview2,
     #[serde(rename = "graph_events_v3")]
     GraphEvents3,
+    #[serde(rename = "settlement_events_v4")]
+    SettlementEvents4,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -133,6 +135,7 @@ impl Configuration {
         let profile = match self.profile {
             Profile::HumanReview2 => CatalogProfile::HumanReview2,
             Profile::GraphEvents3 => CatalogProfile::GraphEvents3,
+            Profile::SettlementEvents4 => CatalogProfile::SettlementEvents4,
         };
         let n = &self.namespace;
         if [

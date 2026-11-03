@@ -371,6 +371,7 @@ widened in place, so new contracts need a new profile number.
 | 1 | — (not selectable in config) | Mail1: the `message.send` command and the `aq.operation.updated` v1 event (producer `aq.host.bridge@1`) |
 | 2 | `human_review_v2` | Mail1 plus the `decision.request` and `operation.get` commands and the `aq.decision.completed` v1 event (producer `aq.human.decisions@1`) |
 | 3 | `graph_events_v3` | HumanReview2 plus the `aq.graph.operation.confirmed` v1 event contract (D3) |
+| 4 | `settlement_events_v4` | GraphEvents3 plus the `task.completed` v1 event contract for confirmed reviewed-task settlement |
 
 The `aq.graph.operation.confirmed` v1 contract
 (`playbooks/review_domain.rs::graph_operation_event`) has:
@@ -380,7 +381,7 @@ The `aq.graph.operation.confirmed` v1 contract
 - correlation field `operation`;
 - payload `{operation_id, task_id, attempt_id}`, each a UUID string.
 
-Profiles 2 and 3 accept the same grant capabilities: `message.send`,
+Profiles 2, 3 and 4 accept the same grant capabilities: `message.send`,
 `decision.request` and `operation.get`.
 
 **Graph-event collection (profile 3).** Each driver quantum seals at most two
@@ -410,6 +411,22 @@ Two limits apply:
   behaviour.
 
 See the [D3 implementation notes](../implementation/D3.md).
+
+**Settlement-event collection (profile 4).** A namespace configured with
+`profile: "settlement_events_v4"` collects at most two confirmed reviewed-task
+completion events per quantum after an artifact declaring the exact
+`task.completed` contract is installed. Existing namespaces keep their catalog
+identity; use a new namespace for profile 4. The producer is
+`aq.task.settlement@1`, with project scope and `operation` correlation. The
+completion operation ID is the stable event ID. Its payload retains the attempt,
+evaluation, report artifact, verified release and confirmed Graph receipt.
+
+Collection requires the launch's project and workspace to match the namespace.
+Prepared or uncertain completions remain pending. The source completion's
+`outbox_acknowledged` flag changes only in the transaction recording engine
+acceptance. The sealed event survives a restart, and replay after an omitted AQ
+ACK returns the engine's existing acceptance. Delivery is per event, as for graph
+events above; it is not broadcast to every namespace.
 
 ## 6. Bounds and verification
 

@@ -97,6 +97,13 @@ impl Service {
     ) -> Result<Self> {
         Self::with_profile(state, namespace, keys, CatalogProfile::GraphEvents3).await
     }
+    pub async fn new_profile4(
+        state: &crate::AppState,
+        namespace: Namespace,
+        keys: Arc<Keyring>,
+    ) -> Result<Self> {
+        Self::with_profile(state, namespace, keys, CatalogProfile::SettlementEvents4).await
+    }
     pub(crate) async fn with_profile(
         state: &crate::AppState,
         namespace: Namespace,
@@ -941,6 +948,13 @@ impl Service {
                 .execute(&mut *tx)
                 .await?;
         }
+        if producer == super::review_domain::SETTLEMENT_PRODUCER {
+            sqlx::query("SELECT set_config('aq.settlement_owner','aq.settlement-owner.1',true)")
+                .execute(&mut *tx)
+                .await?;
+            sqlx::query("UPDATE profiled_task_completions SET outbox_acknowledged=true WHERE operation_id=$1 AND state='confirmed' AND NOT outbox_acknowledged")
+                .bind(id).execute(&mut *tx).await?;
+        }
         tx.commit().await?;
         Ok(())
     }
@@ -1496,7 +1510,10 @@ impl Service {
         owner: &RuntimeOwner,
         limit: u32,
     ) -> Result<usize> {
-        if self.profile != CatalogProfile::GraphEvents3 {
+        if !matches!(
+            self.profile,
+            CatalogProfile::GraphEvents3 | CatalogProfile::SettlementEvents4
+        ) {
             return Ok(0);
         }
         if !(1..=2).contains(&limit) {
@@ -1564,3 +1581,6 @@ mod inspection_admissions;
 
 #[path = "inspection/catalog_auth.rs"]
 mod catalog_auth;
+
+#[path = "settlement_events.rs"]
+mod settlement_events;
