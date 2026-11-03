@@ -56,7 +56,7 @@ replacement = '''            import socket
                           'repository_id': repository, 'operation_id': uid(208), 'expected_binding_generation': 0,
                           'params': {'binding': {'identity': 'project-qualification', 'mode': 'central',
                                                 'allowed_refs': [], 'allowed_targets': []}}, 'deadline_ms': 5000})
-                env = dict(os.environ, AQ_AGENT_GRAPH_TEST_URL=base,
+                env = dict(os.environ, CARGO_INCREMENTAL='0', AQ_AGENT_GRAPH_TEST_URL=base,
                            AQ_AGENT_GRAPH_TEST_TOKEN_FILE=str(writer_file),
                            AQ_PROJECT_GIT_SOCKET=str(git_socket), AQ_PROJECT_REPOSITORY_ID=repository,
                            AQ_PROJECT_WORKSPACE_ID=workspace)

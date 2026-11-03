@@ -1,12 +1,14 @@
 # D1a: central candidate creation and publication
 
-Status: implementation and required validation complete; adversarial review pending. No passing-close or default-branch delivery claim.
+Status: revision 1 received adversarial request-changes; revision 2 addresses the publication fencing defect and source documentation correction. Revision 2 validation and publication evidence are recorded below. No review approval or default-branch delivery is claimed for this revision.
 
 Task: `crisp-meadow-36.1`. Plan: [implementation plan](../superpowers/plans/2026-11-02-D1a-central-delivery.md).
 
 The central service resolves ordered receipt IDs from server-owned source retention records. It never accepts worker-supplied candidate source OIDs, retention handles, remote URLs, credentials or arbitrary operation JSON. The configured central aq-git binding owns the target allowlist. D1b owns policy and reconciliation; D7 owns command adapters.
 
 Publication records a destination hold and a durable dispatch marker before socket I/O. No receipt after that marker means unknown outcome, including a crash before the call. This conservative case needs D1b reconciliation; the service never automatically re-pushes. Exact replies are immutable byte receipts including their newline and all protocol fields. New read operation IDs obtain fresh observations; replay returns the old observation.
+
+An error receipt is not proof that publication had no remote effect. After dispatch, only a validated success or an error with `operation_state: failed` and no uncertainty indication releases the destination hold. Missing, pending or contradictory complete states on error replies remain fenced. In particular, an unflagged `io_error` with `retry: safe_same_operation` and no operation state stays unknown: its exact receipt is retained and replayed without another socket call. This primitive intentionally has no code-only refusal allowlist; reconciliation remains D1b's responsibility.
 
 Migration `0045_central_delivery.sql` adds immutable intents, responses and publish dispatch markers, plus destination holds keyed by repository and full branch across binding generations. The migration is registered in the store, state format 45 and Docker metadata. The public API is `DeliveryService::{create_candidate,publish,candidate_show,operation_show}`. Typed request construction admits only these operations; transport bounds are 1 MiB/8 MiB with a 35-second timeout. Successful mutation receipts require a matching operation identity. Candidate conflicts retain bounded hex path evidence. `already_present` explicitly requires `caused_by_this_operation:false`.
 
@@ -54,6 +56,34 @@ Resolved implementation findings (self-review, not the required adversarial verd
 - **Low, fixed:** abruptly killing the real fixture guard left its engine holding the test capture pipe. The qualification now sends SIGTERM, awaits successful guard exit with a timeout, and has process-group cleanup on failure; the final qualification exits cleanly.
 - **High build blocker, repaired independently:** current credential fields were missing from the existing dashboard aggregation fixture. The exact two failing workspace logs are preserved, and the repaired fixture was merged from main without changing its assertions.
 
-Review: supervisor will dispatch a non-OpenAI reviewer against the final pushed SHA. No review pass is claimed. Policy, onboarding, reconciliation and playbook adapters remain outside this task.
+Revision-1 review: the adversarial reviewer reported one blocking fencing defect and five nits. The owner-delegated decision requested the blocking fix and the source doc correction only; see the revision-2 evidence below. Policy, onboarding, reconciliation and playbook adapters remain outside this task.
 
 Reproduce the AQ-controlled Cargo invocations with [the pytest subprocess wrapper](D1a-checks/run_cargo.py): set `DATABASE_URL`, `D1A_CHECK` to the exact Cargo command, and `D1A_CARGO_LOG` to a fresh log path, then run `aq test docs/implementation/D1a-checks/run_cargo.py -q`. The wrapper fixes Cargo jobs and Rust test threads at two, preserving AQ's test semaphore and marker/worker defaults. Real qualification also sets `AQ_TEST_GIT_CANDIDATE` and `AQ_TEST_GIT_EXECUTABLE` as described above.
+
+## Revision 2 — fail closed on publication errors
+
+Review `rev-steady-dune` revision 1 received `request_changes` in decision `ask-decision-7aa9a2a9ae3e4c70a54460891a177965`. This revision fixes **High/blocking** `cmt-8cb2ef76b0c4` in `DeliveryService::execute` and **Low/nit** `cmt-9a6a59171afb` in the `create_candidate` doc comment. The other four nits remain deferred to follow-up under the explicit reopen instructions; no additional behavior is changed for them.
+
+Regression `delivery_publish_errors_require_conclusive_refusal_to_release_destination` uses the existing local socket peer and disposable database. The exact reviewer case sends `io_error`, null details, `safe_same_operation`, and no `operation_state` after verifying a committed dispatch marker. It checks exact receipt preservation, replay with a reconstructed service and no socket peer, retained destination hold, and `DestinationBlocked` for a fresh operation ID. Controls cover an unknown error code, pending/complete error states, a failed state with a dispatched flag, and a confirmed failed refusal allowing a subsequent publication.
+
+Validation environment: Rust 1.96.1, Linux x86_64, disposable PostgreSQL 17 at loopback port 55432. The existing foreground AQ wrapper sets `CARGO_BUILD_JOBS=2` and `RUST_TEST_THREADS=2`. Fresh `origin/main` at `71e08197` was incorporated before final validation; `git merge origin/main` reported already up to date. Only the requested test filter was run. Earlier workspace acceptance and real-Git qualification results above remain historical revision-1 evidence, not rerun claims.
+
+| Command | Revision-2 result | Evidence |
+| --- | --- | --- |
+| `cargo test --locked -p aq-server --test source_retention delivery_` before fix | 5 passed, new regression failed: hold count 0 vs required 1 for `io_error` with no state | [Red](D1a-checks/revision-2-red.log) |
+| `cargo test --locked -p aq-server --test source_retention delivery_` after fix | 6 passed, 0 failed, 0 ignored; all six regression scenarios executed | [Green](D1a-checks/revision-2-green.log) |
+| `cargo fmt --check` and `git diff --check` | Passed | Formatting verified after the correction |
+
+The exact pushed revision SHA is recorded in the review submission and task comment to avoid a self-referential commit hash. Revision 2 submission resolves the two requested comments; it is not a new review approval or permission to merge.
+
+## Follow-up: clear-meadow-17
+
+Applied publication replies must match the ready OID in the immutable candidate creation receipt, including on replay. This validation context stays local; publication wire parameters are unchanged. Operation observations must match `payload.expected_binding_generation`; the top-level `generation` is aq-git's independent journal revision.
+
+For `candidate.create`, `overloaded`, `io_error` and `state_busy` with `retry:safe_same_operation` and no uncertainty flags return an attempt error without creating a terminal delivery receipt. The caller can retry the same operation UUID and frozen bytes, even after source-owner state changes; changed inputs still conflict. Other responses remain immutable. Publication keeps its committed dispatch marker, immutable replies and no-redispatch rule; D1b owns publication reconciliation and retry policy (coordination message `msg-c56dcd0b65d1447b938f9e6652e6525b`).
+
+Non-publication calls commit before socket I/O and hold no database connection or row lock during the exchange. Concurrent calls rely on aq-git's same-operation idempotency and return the first persisted terminal response. Destination holds use NFC, Unicode lowercase, then NFC, preserving the exact wire target. A short repository advisory lock also protects comparisons against legacy hold spellings. Empty and duplicate source receipt lists are rejected before creating an intent; distinct sources keep their order.
+
+The four focused regressions in `tests/source_retention/delivery.rs` are `delivery_cross_checks_candidate_oid_and_binding_generation`, `delivery_candidate_transients_replay_same_frozen_operation`, `delivery_socket_exchange_releases_rows_and_pool_connection`, and `delivery_canonical_hold_targets_and_nonempty_unique_sources`. The socket test uses one pooled connection and gates overlapping calls on actual socket requests, without sleeps. Run them with the required `cargo test --locked -p aq-server --test source_retention delivery_` filter through the AQ wrapper above.
+
+Validation: the required locked Cargo filter passed all 9 matching tests (0 failed, 0 ignored), including all four regressions, under `aq test docs/implementation/D1a-checks/run_cargo.py -q` with Cargo jobs and Rust test threads fixed at two. `cargo fmt --check` and `git diff --check` passed. [Targeted Cargo output](D1a-checks/followup.log).
