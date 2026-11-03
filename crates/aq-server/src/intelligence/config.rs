@@ -110,7 +110,17 @@ impl IntelligenceConfig {
         let mut fingerprints = Vec::new();
         for item in &self.credentials {
             let mut credential = item.credential.clone();
-            credential.allowed_backends = item.allowed_backends.clone();
+            // Canonical order keeps policy-identical spellings digest-identical.
+            credential.allowed_backends =
+                aq_selection::canonical_allowed_backends(&item.allowed_backends);
+            if credential.allowed_backends.is_empty() {
+                // Explicit `allowed_backends = []` is a deliberate deny-all;
+                // omitting the key is unrestricted. Surface the difference.
+                tracing::warn!(
+                    profile = %credential.profile.id.as_str(),
+                    "credential allowed_backends is empty; it is never eligible"
+                );
+            }
             let fingerprint = match &item.secret_file {
                 None => None,
                 Some(path) => match OpenOptions::new()
