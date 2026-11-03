@@ -24,6 +24,7 @@ pub(crate) fn registry(
     registry
         .register(crate::reviews::action::ResolveDecision(reviews))
         .expect("static decision adapter");
+    crate::results_feedback::actions::register(&mut registry);
     registry
 }
 pub(crate) fn schemas() -> Registry {
@@ -38,6 +39,7 @@ pub(crate) fn schemas() -> Registry {
     registry
         .register_schema::<crate::reviews::action::ResolveDecision>()
         .expect("decision schema");
+    crate::results_feedback::actions::schemas(&mut registry);
     registry
 }
 pub(crate) async fn owner(state: &AppState, user: &User) -> Result<(), ApiError> {

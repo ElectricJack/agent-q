@@ -6,6 +6,44 @@
         {
           "properties": {
             "kind": {
+              "const": "comment.revise"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:comment.revise:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "body": {
+                  "maxLength": 16384,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "expected_version",
+                "body"
+              ],
+              "title": "Correction",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
               "const": "decision.resolve"
             },
             "payload": {
@@ -92,6 +130,471 @@
                 "expected_subject"
               ],
               "title": "Resolve",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "feedback.link"
+            },
+            "payload": {
+              "$defs": {
+                "ArtifactPin": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "artifact_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "digest": {
+                      "pattern": "^sha256:[0-9a-f]{64}$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "artifact_id",
+                    "digest"
+                  ],
+                  "type": "object"
+                }
+              },
+              "$id": "urn:aq:dashboard-actions:1:feedback.link:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "artifacts": {
+                  "items": {
+                    "$ref": "#/$defs/ArtifactPin"
+                  },
+                  "maxItems": 20,
+                  "type": "array"
+                },
+                "comment_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "comment_revision": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "result_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "revision": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "task_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "thread_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "expected_version",
+                "result_id",
+                "revision",
+                "thread_id",
+                "comment_id",
+                "comment_revision",
+                "project_id",
+                "task_id",
+                "artifacts"
+              ],
+              "title": "FeedbackLink",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "feedback.task_create"
+            },
+            "payload": {
+              "$defs": {
+                "ArtifactPin": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "artifact_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "digest": {
+                      "pattern": "^sha256:[0-9a-f]{64}$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "artifact_id",
+                    "digest"
+                  ],
+                  "type": "object"
+                }
+              },
+              "$id": "urn:aq:dashboard-actions:1:feedback.task_create:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "acceptance_criteria": {
+                  "type": "string"
+                },
+                "artifacts": {
+                  "items": {
+                    "$ref": "#/$defs/ArtifactPin"
+                  },
+                  "maxItems": 20,
+                  "type": "array"
+                },
+                "comment_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "comment_revision": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "expected_project_revision": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "parent_id": {
+                  "format": "uuid",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "result_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "revision": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "thread_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "title": {
+                  "maxLength": 200,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "expected_version",
+                "result_id",
+                "revision",
+                "thread_id",
+                "comment_id",
+                "comment_revision",
+                "title",
+                "description",
+                "acceptance_criteria",
+                "project_id",
+                "expected_project_revision",
+                "artifacts"
+              ],
+              "title": "FeedbackDraft",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "result.comment"
+            },
+            "payload": {
+              "$defs": {
+                "Anchor": {
+                  "oneOf": [
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "kind": {
+                          "const": "result",
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "artifact_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "digest": {
+                          "pattern": "^sha256:[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "height": {
+                          "format": "double",
+                          "maximum": 1,
+                          "minimum": 0,
+                          "type": "number"
+                        },
+                        "kind": {
+                          "const": "image_region",
+                          "type": "string"
+                        },
+                        "width": {
+                          "format": "double",
+                          "maximum": 1,
+                          "minimum": 0,
+                          "type": "number"
+                        },
+                        "x": {
+                          "format": "double",
+                          "maximum": 1,
+                          "minimum": 0,
+                          "type": "number"
+                        },
+                        "y": {
+                          "format": "double",
+                          "maximum": 1,
+                          "minimum": 0,
+                          "type": "number"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "artifact_id",
+                        "digest",
+                        "x",
+                        "y",
+                        "width",
+                        "height"
+                      ],
+                      "type": "object"
+                    },
+                    {
+                      "additionalProperties": false,
+                      "properties": {
+                        "artifact_id": {
+                          "format": "uuid",
+                          "type": "string"
+                        },
+                        "digest": {
+                          "pattern": "^sha256:[0-9a-f]{64}$",
+                          "type": "string"
+                        },
+                        "end_ms": {
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        },
+                        "kind": {
+                          "const": "video_range",
+                          "type": "string"
+                        },
+                        "start_ms": {
+                          "format": "uint64",
+                          "minimum": 0,
+                          "type": "integer"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "artifact_id",
+                        "digest",
+                        "start_ms",
+                        "end_ms"
+                      ],
+                      "type": "object"
+                    }
+                  ]
+                }
+              },
+              "$id": "urn:aq:dashboard-actions:1:result.comment:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "anchor": {
+                  "$ref": "#/$defs/Anchor"
+                },
+                "body": {
+                  "maxLength": 16384,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "follow": {
+                  "default": false,
+                  "type": "boolean"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "result_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "revision": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "thread_id": {
+                  "default": null,
+                  "format": "uuid",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "operation_id",
+                "expected_version",
+                "body",
+                "anchor",
+                "result_id",
+                "revision"
+              ],
+              "title": "Comment",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "result.evidence_waive"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:result.evidence_waive:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "policy_revision": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "requirement_id": {
+                  "type": "string"
+                },
+                "revision": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "expected_version",
+                "revision",
+                "requirement_id",
+                "policy_revision",
+                "reason"
+              ],
+              "title": "Waiver",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "result.follow"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:result.follow:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "following": {
+                  "type": "boolean"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "expected_version",
+                "following"
+              ],
+              "title": "Follow",
               "type": "object"
             }
           },
@@ -197,6 +700,13 @@
                   "format": "uuid",
                   "type": "string"
                 },
+                "parent_id": {
+                  "format": "uuid",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "task_state": {
                   "$ref": "#/$defs/TaskState"
                 },
@@ -216,6 +726,66 @@
                 "task_state"
               ],
               "title": "Create",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "thread.resolve"
+            },
+            "payload": {
+              "$defs": {
+                "RevisionRef": {
+                  "additionalProperties": false,
+                  "properties": {
+                    "result_id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "revision": {
+                      "pattern": "^[0-9a-f]{64}$",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "result_id",
+                    "revision"
+                  ],
+                  "type": "object"
+                }
+              },
+              "$id": "urn:aq:dashboard-actions:1:thread.resolve:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "follow_up": {
+                  "$ref": "#/$defs/RevisionRef"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "expected_version",
+                "follow_up",
+                "reason"
+              ],
+              "title": "Resolve",
               "type": "object"
             }
           },

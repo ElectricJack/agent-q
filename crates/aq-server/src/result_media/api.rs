@@ -130,8 +130,41 @@ pub fn routes(runtime: Arc<Runtime>) -> Router<AppState> {
                 "/api/human/result-media-uploads/{operation}/finalize",
                 post(finalize),
             );
+    } else {
+        routes = routes.merge(unavailable_routes(true));
     }
     routes.layer(Extension(runtime))
+}
+/// Keep capability absence observable through the actual protected write paths.
+pub fn unavailable_routes(configured: bool) -> Router<AppState> {
+    let refused = move |RequireOwner(_): RequireOwner| async move {
+        crate::dashboard_api::errors::ApiError::new(
+            StatusCode::SERVICE_UNAVAILABLE,
+            if configured {
+                "media_upload_disabled"
+            } else {
+                "media_store_unconfigured"
+            },
+            if configured {
+                "Result media uploads are disabled"
+            } else {
+                "Result media storage is not configured"
+            },
+        )
+    };
+    Router::new()
+        .route(
+            "/api/human/results/{report}/revisions/{revision}/media-uploads",
+            post(refused),
+        )
+        .route(
+            "/api/human/result-media-uploads/{operation}/content",
+            put(refused),
+        )
+        .route(
+            "/api/human/result-media-uploads/{operation}/finalize",
+            post(refused),
+        )
 }
 async fn list(
     Extension(runtime): Extension<Arc<Runtime>>,

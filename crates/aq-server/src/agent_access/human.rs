@@ -162,6 +162,18 @@ pub(crate) async fn authorize_project(state: &AppState, actor: &User, project: U
         .await
         .map(|_| ())
 }
+/// Reuse the bounded current-project and Graph task read for feedback references.
+pub(crate) async fn authorize_task(
+    state: &AppState,
+    actor: &User,
+    project: Uuid,
+    task: Uuid,
+) -> Result<()> {
+    let runtime = ReadRuntime::new(state);
+    detail(state, &runtime, actor.clone(), project, task, "task", None)
+        .await
+        .map(|_| ())
+}
 async fn access(state: &AppState, r: &ReadRuntime, actor: User, project: Uuid) -> Result<Access> {
     if project.is_nil() {
         return Err(invalid());

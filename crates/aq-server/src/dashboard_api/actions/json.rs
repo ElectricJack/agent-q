@@ -6,7 +6,7 @@ use serde::{
 };
 use serde_json::{Map, Number, Value};
 use std::fmt;
-pub(super) struct UniqueJson(pub Value);
+pub(crate) struct UniqueJson(pub Value);
 impl<'de> Deserialize<'de> for UniqueJson {
     fn deserialize<D: Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         struct JsonVisitor;

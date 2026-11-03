@@ -1,0 +1,167 @@
+{
+  "read": {
+    "api_version": "dashboard-read-1",
+    "coverage": {
+      "state": "complete"
+    },
+    "data": {
+      "capabilities": [
+        {
+          "enabled": true,
+          "name": "dashboard.overview",
+          "version": "1"
+        },
+        {
+          "enabled": true,
+          "name": "sessions.read",
+          "version": "1"
+        },
+        {
+          "enabled": true,
+          "name": "projects.read",
+          "version": "1"
+        },
+        {
+          "enabled": true,
+          "name": "status.read",
+          "version": "1"
+        },
+        {
+          "enabled": true,
+          "name": "workers.read",
+          "version": "1"
+        },
+        {
+          "enabled": false,
+          "name": "tasks.read",
+          "reason": "Task inspection is not connected yet",
+          "version": "1"
+        },
+        {
+          "enabled": false,
+          "name": "search.read",
+          "reason": "Search is not connected yet",
+          "version": "1"
+        },
+        {
+          "enabled": false,
+          "name": "decisions.read",
+          "reason": "Decision inspection is not connected yet",
+          "version": "1"
+        },
+        {
+          "enabled": false,
+          "name": "provider.quota",
+          "reason": "Provider account usage is unavailable",
+          "version": "1"
+        },
+        {
+          "enabled": false,
+          "name": "supervisor.conversation",
+          "reason": "The global supervisor is not connected yet",
+          "version": "1"
+        },
+        {
+          "enabled": false,
+          "name": "terminal.watch",
+          "reason": "Terminal viewing is not connected to this dashboard yet",
+          "version": "1"
+        },
+        {
+          "enabled": false,
+          "name": "terminal.control",
+          "reason": "Terminal control is not connected to this dashboard yet",
+          "version": "1"
+        },
+        {
+          "enabled": true,
+          "name": "dashboard.actions",
+          "version": "1"
+        },
+        {
+          "enabled": false,
+          "name": "results.read",
+          "reason": "Results are not connected yet",
+          "version": "1"
+        },
+        {
+          "enabled": false,
+          "name": "playbooks.inspect",
+          "reason": "Playbook inspection is not connected yet",
+          "version": "1"
+        }
+      ],
+      "contracts": [
+        {
+          "name": "dashboard-read",
+          "version": "dashboard-read-1",
+          "digest": "sha256:a913e589689043d743ca8ccbe756f34fb7a2beb0f44d14a3cb089de777ca00fb"
+        },
+        {
+          "name": "dashboard-actions",
+          "version": "dashboard-actions-1",
+          "digest": "sha256:97fdea9aa4aeae795415d53bb3a4081684416bafd6f1b44e598a8e70a51df9ce"
+        }
+      ],
+      "default_scope": {
+        "kind": "all_authorized"
+      },
+      "global_supervisor": {
+        "conversation_id": null,
+        "reason": "The global supervisor is not connected yet",
+        "status": "unconfigured"
+      },
+      "limits": {
+        "max_page_size": 100,
+        "page_size": 25,
+        "snapshot_members": 256,
+        "snapshot_ttl_ms": 30000
+      },
+      "principal": {
+        "authorization_revision": "282462697803667508442044028870264284114",
+        "display_name": "owner@localhost",
+        "id": "0d36007a-b179-452b-aa33-bc911e102c5a"
+      },
+      "product": {
+        "dashboard_digest": null,
+        "version": "0.1.0"
+      }
+    },
+    "observation": {
+      "coverage": "complete",
+      "fresh_until": "1970-01-01T00:16:45.000Z",
+      "observed_at": "1970-01-01T00:16:40.000Z",
+      "quality": "reported",
+      "source": "aq_dashboard_read"
+    },
+    "pending_operations": [],
+    "request_id": "969c3714-f0fc-4f47-8ed8-ffd06439b0b2",
+    "scope": {
+      "kind": "all_authorized"
+    },
+    "server_time": "1970-01-01T00:16:40.000Z"
+  },
+  "action": {
+    "operation_id": "00000000-0000-4000-8000-000000000001",
+    "kind": "result.comment",
+    "subject": {
+      "type": "result",
+      "id": "00000000-0000-4000-8000-000000000002",
+      "revision": "1"
+    },
+    "expected_versions": {
+      "result": "1"
+    },
+    "payload": {
+      "operation_id": "00000000-0000-4000-8000-000000000001",
+      "expected_version": "1",
+      "body": "Fix the caption",
+      "anchor": {
+        "kind": "result"
+      },
+      "follow": true,
+      "result_id": "00000000-0000-4000-8000-000000000002",
+      "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    }
+  }
+}

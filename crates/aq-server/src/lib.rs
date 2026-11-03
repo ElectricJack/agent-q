@@ -19,6 +19,7 @@ pub mod protected_storage;
 pub mod provider_accounts;
 pub mod readiness;
 pub mod result_media;
+pub mod results_feedback;
 pub mod reviews;
 pub mod session_access;
 pub mod source_retention;
@@ -49,11 +50,11 @@ use std::sync::Arc;
 /// every migration is a state-format change (`store` tests enforce it). The
 /// updater restores the pre-update backup on rollback only when the format
 /// changes, so a migration without a bump would strand the old release.
-pub const STATE_FORMAT_VERSION: u32 = 43;
+pub const STATE_FORMAT_VERSION: u32 = 44;
 /// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
 pub const READABLE_STATE_FORMATS: &[u32] = &[
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-    27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43,
+    27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44,
 ];
 /// Versions that may be upgraded to this release.
 pub const UPGRADE_FROM: &str = ">=0.1.0";
@@ -205,7 +206,7 @@ fn build_admin_router_with_optional_dashboard(
     build_admin_router_with_optional_owners(state, playbooks, reviews, dashboard, None)
 }
 /// Explicit configured media injection alongside the existing human owners.
-/// Default constructors continue to mount no media endpoints.
+/// Default constructors expose typed upload refusals without a media store.
 pub fn build_admin_router_with_optional_owners(
     state: AppState,
     playbooks: Option<Arc<playbooks::driver::Driver>>,
@@ -236,7 +237,9 @@ pub fn build_admin_router_with_optional_owners(
         .clone()
         .map(reviews::admin_routes)
         .unwrap_or_default();
-    let media_routes = media.map(result_media::api::routes).unwrap_or_default();
+    let media_routes = media
+        .map(result_media::api::routes)
+        .unwrap_or_else(|| result_media::api::unavailable_routes(false));
     let app = Router::new()
         .merge(
             dashboard
@@ -252,6 +255,7 @@ pub fn build_admin_router_with_optional_owners(
         .merge(agent_access::human::routes(&state))
         .merge(agent_access::supervisor_conversation::routes(&state))
         .merge(profiled_execution::human_results::routes())
+        .merge(results_feedback::routes())
         .merge(provider_accounts::routes())
         .merge(notifications::api::routes(state.clone()))
         .merge(observations::api::admin_routes(state.clone()))

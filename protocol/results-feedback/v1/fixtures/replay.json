@@ -1,0 +1,38 @@
+{
+  "original": {
+    "operation_id": "00000000-0000-4000-8000-000000000001",
+    "expected_version": "1",
+    "body": "Fix the caption",
+    "anchor": {
+      "kind": "result"
+    },
+    "follow": true,
+    "result_id": "00000000-0000-4000-8000-000000000002",
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "identical": {
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "result_id": "00000000-0000-4000-8000-000000000002",
+    "follow": true,
+    "anchor": {
+      "kind": "result"
+    },
+    "body": "Fix the caption",
+    "expected_version": "1",
+    "operation_id": "00000000-0000-4000-8000-000000000001"
+  },
+  "changed": {
+    "operation_id": "00000000-0000-4000-8000-000000000001",
+    "expected_version": "1",
+    "body": "Different intent",
+    "anchor": {
+      "kind": "result"
+    },
+    "follow": true,
+    "result_id": "00000000-0000-4000-8000-000000000002",
+    "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  },
+  "identical_disposition": "confirmed",
+  "changed_status": 409,
+  "canonical_sha256": "c6d6e4b7a587483b67260e96483b2b6edc2ef94b03df2b4ffb92ee3a21e51948"
+}

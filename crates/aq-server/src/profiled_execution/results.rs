@@ -227,6 +227,11 @@ pub async fn record(
             .bind(&origin_pin.stopped_ack_bytes);
     }
     insert.execute(&mut *tx).await.map_err(db)?;
+    sqlx::query("SELECT pin_result_feedback_revision($1)")
+        .bind(report.report_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(db)?;
     sqlx::query(if head.is_some() {
         "UPDATE profiled_result_heads SET report_id=$2 WHERE attempt_id=$1"
     } else {
