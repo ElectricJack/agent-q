@@ -26,6 +26,29 @@ checker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(checker)
 
 
+# This older product fixture exercises the server/worker foundation. Production
+# graph/Git readiness is covered by compose-smoke.sh prod; keep its independent
+# dev-auth fixture from inheriting production provisioning or credentials.
+FOUNDATION_OVERRIDE = """services:
+  server:
+    depends_on: !override
+      postgres: {condition: service_healthy}
+    secrets: !override [postgres_password]
+    command:
+      - 'export PGPASSWORD="$$(cat /run/secrets/postgres_password)" DATABASE_URL="postgres://agent_q@postgres:5432/agent_q"; exec aq-server serve --vault /vault'
+  aq-graph:
+    profiles: [production]
+  aq-git:
+    profiles: [production]
+  graph-db-init:
+    profiles: [production]
+  server-db-init:
+    profiles: [production]
+  prod-state-init:
+    profiles: [production]
+"""
+
+
 def utc():
     return datetime.now(timezone.utc).isoformat()
 
@@ -218,7 +241,10 @@ class Fixture:
             "volumes": {"worker_config": {}, "worker_state": {}}}
         file = self.temp / "compose.smoke.json"
         file.write_text(json.dumps(overlay))
-        self.dc = ["docker", "compose", "-p", self.project, "-f", str(snapshot / "compose.yaml"), "-f", str(file)]
+        foundation = self.temp / "compose.foundation.yaml"
+        foundation.write_text(FOUNDATION_OVERRIDE)
+        self.dc = ["docker", "compose", "-p", self.project, "-f", str(snapshot / "compose.yaml"),
+                   "-f", str(foundation), "-f", str(file)]
         self.compose("up", "-d", "--no-build", "--wait", "--wait-timeout", "120", "server", name="start-server")
         self.address()
         self.poll("admin health", lambda: self.http("/healthz"))
