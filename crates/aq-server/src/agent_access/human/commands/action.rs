@@ -151,7 +151,7 @@ impl ActionKind for TaskCreate {
             .await
             .map_err(ApiError::from)?;
         if let Some(parent) = payload.parent_id {
-            super::super::authorize_task(state, user, project, parent)
+            super::authorize_parent(state, &self.runtime, user, project, parent)
                 .await
                 .map_err(ApiError::from)?;
         }
