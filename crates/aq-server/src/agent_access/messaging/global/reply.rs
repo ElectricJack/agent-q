@@ -49,9 +49,13 @@ fn millis(n: u64) -> Result<i64> {
 }
 
 /// The actor's head generation and session while that generation is active.
-async fn current(pool: &PgPool, actor: Uuid) -> Result<Option<(u64, Uuid)>> {
+async fn current(
+    pool: &PgPool,
+    tx: &mut Transaction<'_, Postgres>,
+    actor: Uuid,
+) -> Result<Option<(u64, Uuid)>> {
     let snapshot = dispatch::sessions(pool)
-        .inspect(actor)
+        .inspect_in_transaction(tx, actor)
         .await
         .map_err(|_| unavailable())?;
     Ok(snapshot.filter(dispatch::active).and_then(|s| {
@@ -73,7 +77,8 @@ pub async fn issue_credential(
     }
     let at = millis(at_ms)?;
     let expires = millis(at_ms.checked_add(ttl_ms).ok_or_else(invalid)?)?;
-    let (generation, session_id) = current(pool, actor).await?.ok_or_else(inactive)?;
+    let mut tx = pool.begin().await.map_err(db)?;
+    let (generation, session_id) = current(pool, &mut tx, actor).await?.ok_or_else(inactive)?;
     let g = i64::try_from(generation).map_err(|_| inactive())?;
     let token = {
         use rand::RngCore;
@@ -81,17 +86,6 @@ pub async fn issue_credential(
         rand::rngs::OsRng.fill_bytes(&mut b);
         format!("{TOKEN_PREFIX}{}", hex::encode(b))
     };
-    let mut tx = pool.begin().await.map_err(db)?;
-    let head: Option<i64> = sqlx::query_scalar(
-        "SELECT current_generation FROM central_session_heads WHERE actor_id=$1 FOR UPDATE",
-    )
-    .bind(actor)
-    .fetch_optional(&mut *tx)
-    .await
-    .map_err(db)?;
-    if head != Some(g) {
-        return Err(inactive());
-    }
     sqlx::query("UPDATE central_supervisor_credentials SET revoked_at_ms=$2 WHERE actor_id=$1 AND revoked_at_ms IS NULL")
         .bind(actor)
         .bind(at)
@@ -121,13 +115,40 @@ pub async fn authenticate(
     scope: &str,
     at_ms: u64,
 ) -> Result<SupervisorPrincipal> {
+    let mut tx = pool.begin().await.map_err(db)?;
+    let principal = authenticate_in_transaction(pool, &mut tx, bearer, scope, at_ms).await?;
+    tx.commit().await.map_err(db)?;
+    Ok(principal)
+}
+
+/// Authenticate inside the transaction that performs the protected operation.
+/// Required scopes: graph.read for graph reads, graph.write for graph mutations,
+/// enqueue for work creation, messaging for replies/mail, decisions for decisions.
+/// Locks the actor before the credential, matching issuance and lifecycle writes.
+/// Keep this transaction open through the protected read or write.
+pub async fn authenticate_in_transaction(
+    pool: &PgPool,
+    tx: &mut Transaction<'_, Postgres>,
+    bearer: &str,
+    scope: &str,
+    at_ms: u64,
+) -> Result<SupervisorPrincipal> {
     if !well_formed(bearer) {
         return Err(rejected());
     }
+    let actor: Uuid = sqlx::query_scalar(
+        "SELECT actor_id FROM central_supervisor_credentials WHERE token_digest=$1",
+    )
+    .bind(token_digest(bearer))
+    .fetch_optional(&mut **tx)
+    .await
+    .map_err(db)?
+    .ok_or_else(rejected)?;
+    let active = current(pool, tx, actor).await?.ok_or_else(rejected)?;
     let at = millis(at_ms)?;
-    let row = sqlx::query("SELECT actor_id,generation,session_id,scopes,expires_at_ms,revoked_at_ms FROM central_supervisor_credentials WHERE token_digest=$1")
+    let row = sqlx::query("SELECT actor_id,generation,session_id,scopes,expires_at_ms,revoked_at_ms FROM central_supervisor_credentials WHERE token_digest=$1 FOR SHARE")
         .bind(token_digest(bearer))
-        .fetch_optional(pool)
+        .fetch_optional(&mut **tx)
         .await
         .map_err(db)?
         .ok_or_else(rejected)?;
@@ -142,9 +163,7 @@ pub async fn authenticate(
         session_id: row.get("session_id"),
         scopes: row.get("scopes"),
     };
-    if current(pool, principal.actor_id).await?
-        != Some((principal.generation, principal.session_id))
-    {
+    if active != (principal.generation, principal.session_id) {
         return Err(rejected());
     }
     if !principal.scopes.iter().any(|s| s == scope) {
@@ -242,7 +261,7 @@ pub(super) async fn reply(
     let principal = authenticate(&service.pool, bearer, "messaging", at).await?;
     let request = ReplyRequest::parse(&bytes)?;
     let dispatch = association(&service.pool, &principal, request.dispatch_id).await?;
-    write(&service, &principal, request, dispatch, at)
+    write(&service, &principal, bearer, request, dispatch, at)
         .await
         .map(Json)
 }
@@ -250,11 +269,17 @@ pub(super) async fn reply(
 async fn write(
     service: &Service,
     p: &SupervisorPrincipal,
+    bearer: &str,
     request: ReplyRequest,
     dispatch: DispatchAssociation,
     at: u64,
 ) -> Result<ReplyReceipt> {
     let mut tx = service.tx().await?;
+    let current =
+        authenticate_in_transaction(&service.pool, &mut tx, bearer, "messaging", at).await?;
+    if &current != p {
+        return Err(rejected());
+    }
     let conversation = definition(&mut tx, None, true).await?;
     let sender = author(p);
     let sender_key = sender_key(&sender).map_err(|_| unavailable())?;
@@ -369,3 +394,7 @@ async fn write(
     tx.commit().await.map_err(db)?;
     Ok(result)
 }
+
+#[cfg(test)]
+#[path = "reply_tests.rs"]
+mod tests;

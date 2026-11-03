@@ -304,3 +304,21 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Filed the I0 re-run** `calm-stone-85`. It depends on `22.1.1`, `22.1.3` and `bold-ember-98`; MS0 now waits on it. Deadline: the measured fact expires 2026-11-04 07:22 UTC. Both pinned to Claude standard-high.
   - The MS0 gate (`stark-zenith-16.1`) is running and recording "unmet" with evidence, as instructed.
   - Routed `steady-harbor-87.2.4`'s History cursor change to G8. B2, B4 and D10 are running. aq-server #33 is still failing smoke ("expected one heartbeat connector container"); its task is still working on it.
+- **02:35 check.**
+  - **B2 opened aq-server PR #35** (migration 0050 still free on main). CI is pending. Its review `rev-sound-stone` had no reviewer, so I dispatched `sound-apex-52` (Claude standard-high, blocking only for real defects).
+  - **Swept the open reviews I own and approved four,** each gated on the preview's effective option being `approve`:
+    - `rev-quick-torrent` (C5a1 r2; zero blocking in round 2);
+    - `rev-fleet-zenith` (C2 design replacements r3; the r2 blocker was fixed);
+    - `rev-keen-vault` (B1b, already merged; post-hoc round waived);
+    - `rev-azure-crest` (disk exhaustion report; its remediation has already landed).
+    The imported-policy-playbook reviews are owner-only and non-blocking.
+  - The supervisor's `bright-nexus-44` duplicates my `bold-ember-98` (I0 server findings) and is already running. Closed mine as obsolete, moved the I0 re-run `calm-stone-85` dependency onto it, and asked it to land the held-task release first.
+  - Moved `bright-torrent-63` from deep-high Codex to Claude standard-high (Codex 92%).
+  - MS0 is BLOCKED as expected; it waits on the re-run. `22.1.1` (Codex package in the image) is running.
+- **02:50 check.**
+  - **B2 PR #35 conflicted.** F1b follow-up `.2.3` merged an earlier B2 snapshot into its branch to stack migration 0051 on B2's 0050 (it misread my reservation note), and its PR #34 merged to main.
+    - Merged main into `aq/noble-summit-37.2` (`92c33fc`). Shared lib.rs, store.rs and Dockerfile take main (0050 + 0051, state format 51); B2-owned files keep the branch's newer versions.
+    - Refreshed the base-clone ref and reopened B2 to verify and close. Review `sound-apex-52` is running (W41 note).
+  - **`steady-harbor-87.2.4`** pre-start merge conflict: only F1b.md conflicted. Merged main (`7c2a32f`), released the hold and reopened it.
+  - **I0 re-run `calm-stone-85`:** `22.1.1` (Codex package in the image) and `22.1.3` (worker recovery) are COMPLETED. Only `bright-nexus-44` (server held-task release) remains.
+  - Usage: Codex 93%, Claude 56%. aq-worker has nothing claimable apart from a spec-ingest task.
