@@ -453,3 +453,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - The I0 re-run `calm-stone-85` COMPLETED. Run 13c settled end to end on aq-server `2d337f36`: a real Codex README edit retained as `17fe8a72`, owner MS0 settlement approve, evaluation `d58ab4f8` accepted, completion `b196d43a` reconciled, `holds_task` false, login unchanged. The evidence is on aq-worker main.
   - Released the MS0 gate (`stark-zenith-16.1`) hold and reopened it to re-evaluate with this evidence (Claude).
   - Run-13 findings to file as follow-ups: the Codex session is held to the wall limit after the in-session submit; the 2 s selection TTL leaves a ~1.4 s offer window (race under load); attempt state and outbox are stale after completion.
+- **13:10 check.**
+  - **MS0 run-count decision** (operator; owner pre-approved the MS0 gate on 11-02 and may override):
+    - accept the one fully settled real run (13c) as passing MS0, since two more runs would spend Codex at 97%;
+    - ChatGPT-login wording supersedes "API-key";
+    - the MS1-affecting rows become follow-up tasks.
+  - Filed MS0's aq-worker cross-repo follow-ups: `wise-crest-54` (end the Codex session after the in-session result) and `prime-glacier-36` (anchor the offer deadline at receipt, not poll send). aq-server already has `quick-impact-98` (2 s selection TTL) and `bold-delta-91` (stale attempt state).
+  - Merged aq-server #46 (`smart-lantern-97`, Postgres row retention, migration 0064; `3c789221`); update-branch on #51 (0065 next). Merged aq-worker #34 (`fair-journey-58`, boat VM-time facts for H2).
