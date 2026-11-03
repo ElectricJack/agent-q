@@ -1,6 +1,7 @@
 //! PostgreSQL foundation store. All timestamps are supplied by the caller.
 
 use crate::STATE_FORMAT_VERSION;
+use crate::migration_catalog::MIGRATIONS;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgRow;
@@ -164,188 +165,6 @@ fn map_user_insert_err(e: sqlx::Error) -> StoreError {
     }
     StoreError::Database(e)
 }
-
-const MIGRATIONS: &[(i32, &str)] = &[
-    (1, include_str!("../migrations/0001_foundation.sql")),
-    (2, include_str!("../migrations/0002_execution.sql")),
-    (3, include_str!("../migrations/0003_agent_access.sql")),
-    (4, include_str!("../migrations/0004_source_retention.sql")),
-    (5, include_str!("../migrations/0005_messaging.sql")),
-    (6, include_str!("../migrations/0006_profile_catalog.sql")),
-    (7, include_str!("../migrations/0007_graph_mutations.sql")),
-    (8, include_str!("../migrations/0008_project_bindings.sql")),
-    (
-        9,
-        include_str!("../migrations/0009_intelligence_selection.sql"),
-    ),
-    (
-        10,
-        include_str!("../migrations/0010_profiled_authority.sql"),
-    ),
-    (11, include_str!("../migrations/0011_notifications.sql")),
-    (12, include_str!("../migrations/0012_terminal_relay.sql")),
-    (
-        13,
-        include_str!("../migrations/0013_profiled_hot_authority.sql"),
-    ),
-    (
-        14,
-        include_str!("../migrations/0014_observation_ledger.sql"),
-    ),
-    (
-        15,
-        include_str!("../migrations/0015_never_granted_closure.sql"),
-    ),
-    (
-        16,
-        include_str!("../migrations/0016_observation_transport.sql"),
-    ),
-    (
-        17,
-        include_str!("../migrations/0017_policy_decision_principals.sql"),
-    ),
-    (18, include_str!("../migrations/0018_profiled_started.sql")),
-    (
-        19,
-        include_str!("../migrations/0019_native_registration.sql"),
-    ),
-    (
-        20,
-        include_str!("../migrations/0020_inline_artifact_owner.sql"),
-    ),
-    (21, include_str!("../migrations/0021_profiled_stopped.sql")),
-    (
-        22,
-        include_str!("../migrations/0022_profiled_source_exports.sql"),
-    ),
-    (23, include_str!("../migrations/0023_playbook_bridge.sql")),
-    (24, include_str!("../migrations/0024_profiled_results.sql")),
-    (
-        25,
-        include_str!("../migrations/0025_native_source_observations.sql"),
-    ),
-    (26, include_str!("../migrations/0026_review_owners.sql")),
-    (
-        27,
-        include_str!("../migrations/0027_native_definition_identities.sql"),
-    ),
-    (
-        28,
-        include_str!("../migrations/0028_profiled_launch_closure.sql"),
-    ),
-    (
-        29,
-        include_str!("../migrations/0029_scoped_material_presence.sql"),
-    ),
-    (
-        30,
-        include_str!("../migrations/0030_accepted_preparation_v2.sql"),
-    ),
-    (
-        31,
-        include_str!("../migrations/0031_presence_binding_barrier.sql"),
-    ),
-    (32, include_str!("../migrations/0032_phase_execution.sql")),
-    (33, include_str!("../migrations/0033_phase_terminal.sql")),
-    (
-        34,
-        include_str!("../migrations/0034_human_graph_operations.sql"),
-    ),
-    (
-        35,
-        include_str!("../migrations/0035_supervisor_conversation.sql"),
-    ),
-    (
-        36,
-        include_str!("../migrations/0036_result_media_owner.sql"),
-    ),
-    (
-        37,
-        include_str!("../migrations/0037_central_reservations.sql"),
-    ),
-    (
-        38,
-        include_str!("../migrations/0038_profiled_result_origins.sql"),
-    ),
-    (39, include_str!("../migrations/0039_pilot_settlement.sql")),
-    (
-        40,
-        include_str!("../migrations/0040_phase_never_granted.sql"),
-    ),
-    (
-        41,
-        include_str!("../migrations/0041_native_compute_occupancy.sql"),
-    ),
-    (
-        42,
-        include_str!("../migrations/0042_dashboard_operations.sql"),
-    ),
-    (
-        43,
-        include_str!("../migrations/0043_native_cancellation.sql"),
-    ),
-    (44, include_str!("../migrations/0044_results_feedback.sql")),
-    (45, include_str!("../migrations/0045_central_delivery.sql")),
-    (46, include_str!("../migrations/0046_central_sessions.sql")),
-    (
-        47,
-        include_str!("../migrations/0047_central_host_journal.sql"),
-    ),
-    (
-        48,
-        include_str!("../migrations/0048_supervisor_dispatch.sql"),
-    ),
-    (
-        49,
-        include_str!("../migrations/0049_supervisor_reservation_consumption.sql"),
-    ),
-    (50, include_str!("../migrations/0050_delegated_permits.sql")),
-    (
-        51,
-        include_str!("../migrations/0051_supervisor_credential_revocation.sql"),
-    ),
-    (
-        52,
-        include_str!("../migrations/0052_profiled_replacement_fairness.sql"),
-    ),
-    (
-        53,
-        include_str!("../migrations/0053_replacement_retained_source.sql"),
-    ),
-    (
-        54,
-        include_str!("../migrations/0054_accounting_policy_events.sql"),
-    ),
-    (
-        55,
-        include_str!("../migrations/0055_environment_templates.sql"),
-    ),
-    (
-        56,
-        include_str!("../migrations/0056_dashboard_graph_intents.sql"),
-    ),
-    (
-        57,
-        include_str!("../migrations/0057_observation_source_generations.sql"),
-    ),
-    (
-        58,
-        include_str!("../migrations/0058_notification_policy.sql"),
-    ),
-    (59, include_str!("../migrations/0059_auto_settlement.sql")),
-    (
-        60,
-        include_str!("../migrations/0060_notification_sources_gc.sql"),
-    ),
-    (
-        61,
-        include_str!("../migrations/0061_supervisor_action_principals.sql"),
-    ),
-    (
-        62,
-        include_str!("../migrations/0062_vm_time_accounting.sql"),
-    ),
-];
 
 /// Applies missing migrations in one transaction under an advisory lock.
 /// Refuses, changing nothing, when the database is from a newer server.
@@ -1127,9 +946,8 @@ mod tests {
     /// Every migration is a state-format change. The updater decides whether
     /// a rollback must restore the pre-update backup by comparing manifest
     /// state formats, while the server refuses a database holding any
-    /// migration newer than it knows. A migration added without bumping
-    /// `STATE_FORMAT_VERSION` would make the updater roll back without a
-    /// restore onto data the old server refuses to open.
+    /// migration newer than it knows. Generate both from the same catalog so
+    /// rollback always restores data when the schema changes.
     #[test]
     fn state_format_is_the_latest_migration() {
         let numbers: Vec<i32> = MIGRATIONS.iter().map(|m| m.0).collect();
@@ -1142,8 +960,7 @@ mod tests {
         assert_eq!(
             STATE_FORMAT_VERSION, latest,
             "STATE_FORMAT_VERSION must equal the newest migration number: every migration is a \
-             state-format change. Bump STATE_FORMAT_VERSION (and READABLE_STATE_FORMATS, and the \
-             Dockerfile's AQ_STATE_FORMAT default) together with the migration"
+             state-format change. Both must be generated from the migration catalog"
         );
         assert!(READABLE_STATE_FORMATS.contains(&STATE_FORMAT_VERSION));
         for (n, sql) in MIGRATIONS {
