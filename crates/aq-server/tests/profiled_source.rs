@@ -75,6 +75,8 @@ async fn fixed_public_source_reads_preserve_original_age_and_refuse_released_ret
     let listener = tokio::net::UnixListener::bind(&socket).unwrap();
     f.state.source_retention = Some(Arc::new(
         Runtime::new(SourceRetentionConfig {
+            keep_per_task: 2,
+            max_age: 30 * 86400,
             git_socket: socket,
             git_root: dir.path().join("git"),
             staging_root: dir.path().join("stage"),
