@@ -262,3 +262,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Completed and landed on aq-worker main:** `clear-grove-63` (aq-admission 0.3.1, terminal ReportResult; B2 told its pin), `calm-forge-32` (docker-local cgroup refusal) and H1.
   - **aq-worker main CI regressed** on `generated_source_reparse_capability_and_normalized_goldens_do_not_drift`, likely from H1. Filed `fresh-willow-34` (standard-medium Claude).
   - **`bright-nexus-60` closed** as done (`--done`): its probes were already on main via B6b, and it only conflicted with them. Closed PR #23.
+- **01:20 check.**
+  - I0 (MS0 first real run) and D10 implementation are running. Usage: Codex 89%, Claude 53%.
+  - **Did not merge aq-server PR #33** (`smart-falcon-16.10`, docker-local cloud worker image). It breaks three CI jobs that pass on main: smoke, distributed recovery, and real daemon.
+    - Cause: `Dockerfile.worker` now copies `scripts/worker-init-volumes.sh`, but `scripts/product-smoke.py` and `scripts/recovery-smoke.py` build from snapshots that copy only crates/, vendor/ and protocol/.
+    - Reopened the task with the exact fix (standard-medium Claude).
+  - A4 stays on Codex: it is running and cannot be re-routed.
+  - aq-worker PR #29 (`fleet-flare-68`, original-boot stopped replay) has CI pending.
