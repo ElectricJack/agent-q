@@ -88,3 +88,12 @@ the post-merge reruns:
 
 The `central37` and `format` logs are from before the merge (7 passed;
 clean).
+
+## Reopen verification (claim epoch 2)
+
+The operator merged `origin/main` (`7c2a32f5`, then `7d71eaf6` at
+`0376a910`). Reruns on that head: `inspect` 10 passed, `api` 2 passed,
+`conversation` 6 passed, `host` 11 passed and 1 failed. The failure is still the
+pre-existing `main_delivery_database_upgrades_without_losing_history` literal
+(left `"51"`, right `"48"`; `origin/main` now ships migrations 0049-0051).
+`owner_message_reaches_supervisor_and_reply_is_recorded` passed inside `host`.
