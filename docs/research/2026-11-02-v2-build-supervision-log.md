@@ -373,3 +373,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **F4** had not picked up the 06:07 webhook message, and its close was refused by a claimed child. Reparented `steady-harbor-87.5.1` to the root and re-sent the webhook path plus the owner's one-message confirmation (`AQ_NOTIFICATION_REAL_SEND_CONFIRMED=1`).
   - G3 and `prime-dune-72` completed; the I0 re-run is in progress.
 - **07:00 owner concern: disk limits on the VPS and boat.** Filed `azure-flare-22` (storage budget design amendment to 0005 plus implementation tasks) and `amber-rapids-59` (sandbox templates: CARGO_INCREMENTAL=0, line-tables-only). Both pinned to Claude. Retrospective W46.
+- **07:10 owner boat sizing:** default sandbox is the smallest boat size, 2 vCPU / 4 GB / 51 GB; escalation size is 4 vCPU / 8 GB / 51 GB on request. Recorded on `azure-flare-22`, C7 and `amber-rapids-59`: 51 GB per-sandbox disk budget, CARGO_BUILD_JOBS=1 plus a low-memory linker in the Rust template, resource requests mapped to the two sizes.
+- **07:35 check.**
+  - E5 asked the owner for: VPS purchase and SSH key, domain, Cloudflare token or manual steps, backup bucket, and release tagging. Surfaced and added to the owner list. The storage design `azure-flare-22` and the template quick win `amber-rapids-59` are running.
+  - **D5 merge conflict:** main is now at state format 60. The conflicts (lib.rs, store.rs, playbooks review_domain.rs and service.rs) are substantive. Reopened D5 with resolution guidance (keep both CatalogProfile variants, renumber to 61+), pinned to Claude.
+  - F2 is READY, waiting for a route. The I0 re-run is still running.
