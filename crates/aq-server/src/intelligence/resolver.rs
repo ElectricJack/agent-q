@@ -239,9 +239,11 @@ async fn resolve_with_principal(
         registry_revision: sqlx::query_scalar::<_, i64>(
             "SELECT revision FROM intelligence_registry WHERE singleton=TRUE",
         )
-        .fetch_one(&state.store.pool)
+        .fetch_optional(&state.store.pool)
         .await
-        .map_err(db)? as u64,
+        .map_err(db)?
+        .ok_or_else(|| conflict("intelligence registry has not been installed"))?
+            as u64,
         // Legacy attempts are counted conservatively. No latest stop/retention/
         // reconciliation or provider ledger authority is invented for them.
         budget: BudgetSnapshot {

@@ -280,7 +280,7 @@ pub async fn output_poll(
     let config = configured(&state)?;
     let _slot = config
         .runtime
-        .poll_channel(node.id(), node.permitted_attempt())?;
+        .output_poll_channel(node.id(), node.permitted_attempt())?;
     poll_once(&state, node, r, PollMode::Output).await
 }
 #[derive(Clone, Copy, PartialEq, Eq)]
