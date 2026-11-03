@@ -30,4 +30,4 @@ BEGIN
 END $$;
 CREATE TRIGGER dashboard_principal_binding BEFORE INSERT OR UPDATE ON dashboard_operations
  FOR EACH ROW EXECUTE FUNCTION bind_dashboard_principal();
-UPDATE meta SET value='58' WHERE key='state_format_version';
+UPDATE meta SET value='61' WHERE key='state_format_version';

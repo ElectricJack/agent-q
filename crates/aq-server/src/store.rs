@@ -330,7 +330,16 @@ const MIGRATIONS: &[(i32, &str)] = &[
     ),
     (
         58,
-        include_str!("../migrations/0058_supervisor_action_principals.sql"),
+        include_str!("../migrations/0058_notification_policy.sql"),
+    ),
+    (59, include_str!("../migrations/0059_auto_settlement.sql")),
+    (
+        60,
+        include_str!("../migrations/0060_notification_sources_gc.sql"),
+    ),
+    (
+        61,
+        include_str!("../migrations/0061_supervisor_action_principals.sql"),
     ),
 ];
 
@@ -572,6 +581,9 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
     }
     if supported >= 53 {
         retained_source53::validate(&mut tx).await?;
+    }
+    if supported >= 59 {
+        auto56::validate(&mut tx).await?;
     }
     tx.commit().await?;
     Ok(())
@@ -1168,6 +1180,8 @@ mod settlement39;
 #[path = "store/settlement39_tests.rs"]
 mod settlement39_tests;
 
+#[path = "store/auto56.rs"]
+mod auto56;
 #[path = "store/compute41.rs"]
 mod compute41;
 #[path = "store/never_granted40.rs"]

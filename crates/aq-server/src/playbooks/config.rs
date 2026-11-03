@@ -42,6 +42,8 @@ struct Configuration {
 enum Profile {
     #[serde(rename = "human_review_v2")]
     HumanReview2,
+    #[serde(rename = "graph_events_v3")]
+    GraphEvents3,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -70,6 +72,7 @@ pub struct Loaded {
     port: u16,
     pub(crate) interval: Duration,
     pub(crate) deployments: Vec<Deployment>,
+    pub(crate) profile: CatalogProfile,
 }
 impl std::fmt::Debug for Loaded {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -127,7 +130,10 @@ impl Configuration {
         if !self.enabled {
             return Err("omit playbooks section to disable owner");
         }
-        let Profile::HumanReview2 = self.profile;
+        let profile = match self.profile {
+            Profile::HumanReview2 => CatalogProfile::HumanReview2,
+            Profile::GraphEvents3 => CatalogProfile::GraphEvents3,
+        };
         let n = &self.namespace;
         if [
             n.namespace_id,
@@ -239,7 +245,7 @@ impl Configuration {
             {
                 return Err("invalid playbook deployment binding");
             }
-            CatalogProfile::HumanReview2
+            profile
                 .validate_scope(&d.scope)
                 .map_err(|_| "invalid playbook deployment scope")?;
             let raw = private(&d.artifact_file, 245760)?;
@@ -271,6 +277,7 @@ impl Configuration {
             port,
             interval: Duration::from_millis(self.drive_interval_ms),
             deployments,
+            profile,
         };
         loaded.check_socket()?;
         Ok(loaded)

@@ -3,6 +3,8 @@
 #[path = "profiled_results/cancellation.rs"]
 mod cancellation;
 mod common;
+#[path = "profiled_results/notification_sources.rs"]
+mod notification_sources;
 use aq_admission::{
     execution_spec::ProfiledExecutionSpec,
     transport::{self, ResultReport},
@@ -34,6 +36,24 @@ async fn prepare_with_inputs(
     stop_now: bool,
     graph_profile: Option<serde_json::Value>,
     pilot: bool,
+) -> (Fixture, aq_admission::started::Request, ResultReport) {
+    Box::pin(prepare_with_policy(
+        pin,
+        stop_now,
+        graph_profile,
+        pilot,
+        None,
+    ))
+    .await
+}
+/// `policy_actor` makes the outcome policy-actor reviewed under that retained
+/// default-completion definition; the fixture's required check is preserved.
+async fn prepare_with_policy(
+    pin: bool,
+    stop_now: bool,
+    graph_profile: Option<serde_json::Value>,
+    pilot: bool,
+    policy_actor: Option<aq_server::profiled_execution::definitions::Definition>,
 ) -> (Fixture, aq_admission::started::Request, ResultReport) {
     let mut f = fixture().await;
     // Optional synthetic ledger-fixture profile is pinned BEFORE the launch is
@@ -151,6 +171,10 @@ async fn prepare_with_inputs(
         outcome.required_checks.clear();
         outcome.inputs = vec![spec.task_context.clone()];
     }
+    if let Some(definition) = &policy_actor {
+        outcome.review = outcome::ReviewRequirement::PolicyActor;
+        outcome.validation_policy = definition.artifact().clone();
+    }
     spec.outcome_artifact = outcome.artifact().unwrap();
     f.profiled.offer.manifest.bindings.outcome = spec.outcome_artifact.clone();
     f.profiled.offer.binding.launch_manifest_digest =
@@ -158,11 +182,16 @@ async fn prepare_with_inputs(
     f.profiled.offer.binding.execution_spec_digest = spec.artifact().unwrap().digest;
     outcome.validate_against(&spec).unwrap();
     let (mut f, start) = native_started::setup_fixture(f, true, true, Some(&spec)).await;
-    if pilot {
+    if pilot || policy_actor.is_some() {
         let mut config = (*f.state.config).clone();
         let mut p = (**config.profiled_execution.as_ref().unwrap()).clone();
         p.revision += 1;
-        p.definition_bodies.push(settlement_owner39::policy());
+        p.definition_bodies.extend(
+            pilot
+                .then(settlement_owner39::policy)
+                .into_iter()
+                .chain(policy_actor.clone()),
+        );
         config.profiled_execution = Some(Arc::new(p));
         f.state.config = Arc::new(config);
         aq_server::profiled_execution::policies::install(&f.state)
@@ -1799,5 +1828,7 @@ mod review_inbox;
 #[path = "profiled_results/media_http.rs"]
 mod media_http;
 
+#[path = "profiled_results/auto_settlement56.rs"]
+mod auto_settlement56;
 #[path = "profiled_results/settlement_owner39.rs"]
 mod settlement_owner39;

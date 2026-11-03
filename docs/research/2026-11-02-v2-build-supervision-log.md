@@ -367,3 +367,19 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - F2, D5 and G3 started. `prime-dune-72` opened #40 (update-lifecycle fix), with CI pending.
 - **06:07 owner input.** The owner supplied the Discord webhook for F4. Stored it at `~/.config/aq-secrets/discord-webhook-url` (0600, directory 0700); it is never written to repos, logs or messages. Told F4 (still running) to send exactly one qualification message, reading the URL only from that file, and to record redacted evidence.
 - **06:30 owner demo.** Built a separate demo stack (Compose project `aq-demo`, ports 18080/18081/18741, fresh state and secrets). It uses the newest local server image plus a dashboard bundle built from aq-dashboard main (`90622fd`), mounted via `compose.dashboard.yaml`, and is seeded with the aq-scratch project. All nine dashboard sections render. The supervisor shows "not connected" (no supervisor host in the dev stack) and no worker node is attached. Cancelled the 06:17 demo-prep job, since this replaced it.
+- **06:50 check.**
+  - **Owner VPS decision:** Bluehost NVMe 8 (4 vCPU / 8 GB / 200 GB NVMe). Recorded on E5 as the baseline: one concurrent cloud sandbox, about 2 vCPU / 4 GB per sandbox, bounded caches, 8/16 as the upgrade path.
+  - **E5 `slot_reset_failed`** ("branch holder reservation is not clean and taskless"): `origin/aq/smart-falcon-16.7` did not exist, so the slot could never match origin; same cause as `stark-dune-58`. Pushed the clean slot branch (`fad8115e`) and ran `aq task resume`; E5 is READY.
+  - **F4** had not picked up the 06:07 webhook message, and its close was refused by a claimed child. Reparented `steady-harbor-87.5.1` to the root and re-sent the webhook path plus the owner's one-message confirmation (`AQ_NOTIFICATION_REAL_SEND_CONFIRMED=1`).
+  - G3 and `prime-dune-72` completed; the I0 re-run is in progress.
+- **07:00 owner concern: disk limits on the VPS and boat.** Filed `azure-flare-22` (storage budget design amendment to 0005 plus implementation tasks) and `amber-rapids-59` (sandbox templates: CARGO_INCREMENTAL=0, line-tables-only). Both pinned to Claude. Retrospective W46.
+- **07:10 owner boat sizing:** default sandbox is the smallest boat size, 2 vCPU / 4 GB / 51 GB; escalation size is 4 vCPU / 8 GB / 51 GB on request. Recorded on `azure-flare-22`, C7 and `amber-rapids-59`: 51 GB per-sandbox disk budget, CARGO_BUILD_JOBS=1 plus a low-memory linker in the Rust template, resource requests mapped to the two sizes.
+- **07:35 check.**
+  - E5 asked the owner for: VPS purchase and SSH key, domain, Cloudflare token or manual steps, backup bucket, and release tagging. Surfaced and added to the owner list. The storage design `azure-flare-22` and the template quick win `amber-rapids-59` are running.
+  - **D5 merge conflict:** main is now at state format 60. The conflicts (lib.rs, store.rs, playbooks review_domain.rs and service.rs) are substantive. Reopened D5 with resolution guidance (keep both CatalogProfile variants, renumber to 61+), pinned to Claude.
+  - F2 is READY, waiting for a route. The I0 re-run is still running.
+- **07:50 check.**
+  - **Storage design `azure-flare-22` completed.** Approved its 0005 amendment `rev-steady-rapids`: measured 20.2 GB clean aq-server test build, boat facts (snapshots fail at 95% disk), 70% budget on the 200 GB VPS, SBX20–26 and DEP6–8. That releases its 13 implementation tasks.
+  - F4 (Discord) completed. D3's implementation review `rev-keen-glacier` had no reviewer; dispatched `quick-journey-12` (Claude).
+  - F2 was paused/held on a degraded-Codex route; overrode it to Claude standard-high and it is READY.
+  - D5 was reopened for its substantive main-merge conflicts. The I0 re-run and `amber-rapids-59` are running.

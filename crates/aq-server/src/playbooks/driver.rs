@@ -199,6 +199,10 @@ pub struct Driver {
     gate: tokio::sync::Mutex<i64>,
     automatic: std::sync::atomic::AtomicU8,
     stopped_ack: std::sync::atomic::AtomicBool,
+    /// Set once an installed artifact consumes the exact graph event contract.
+    /// The engine refuses events no installed artifact declares, so collection
+    /// before a consumer exists would wedge the outbox page.
+    graph_consumer: std::sync::atomic::AtomicBool,
     #[cfg(feature = "test-support")]
     lose_decision_reply: Arc<std::sync::atomic::AtomicBool>,
 }
@@ -270,6 +274,7 @@ impl Driver {
             gate: tokio::sync::Mutex::new(0),
             automatic: std::sync::atomic::AtomicU8::new(0),
             stopped_ack: std::sync::atomic::AtomicBool::new(false),
+            graph_consumer: std::sync::atomic::AtomicBool::new(false),
             #[cfg(feature = "test-support")]
             lose_decision_reply,
         })
@@ -288,6 +293,8 @@ impl Driver {
         }
     }
     pub async fn install(&self, artifact: aq_playbook_host::model::Artifact) -> Result<()> {
+        let event = super::review_domain::graph_operation_event();
+        let consumer = artifact.content.registry.events.get(&event.name) == Some(&event);
         self.owner
             .call(
                 Request::Install {
@@ -297,6 +304,10 @@ impl Driver {
             )
             .await
             .map_err(|_| Error::Unknown)?;
+        if consumer {
+            self.graph_consumer
+                .store(true, std::sync::atomic::Ordering::SeqCst);
+        }
         Ok(())
     }
     pub async fn activate(
@@ -416,6 +427,12 @@ impl Driver {
         self.service
             .collect_decision_events(&self.runtime, 2)
             .await?;
+        if self
+            .graph_consumer
+            .load(std::sync::atomic::Ordering::SeqCst)
+        {
+            self.service.collect_graph_events(&self.runtime, 2).await?;
+        }
         let page = self.service.outbox(&self.runtime, *cursor, 2).await?;
         if page.is_empty() {
             *cursor = 0;
@@ -594,6 +611,9 @@ impl Driver {
     }
     pub async fn test_collect_decision_events(&self) -> Result<usize> {
         self.service.collect_decision_events(&self.runtime, 2).await
+    }
+    pub async fn test_collect_graph_events(&self) -> Result<usize> {
+        self.service.collect_graph_events(&self.runtime, 2).await
     }
     /// Exact retained-event cut fixture: engine commits, AQ ACK is omitted.
     /// Not mounted as an HTTP route or present in ordinary release builds.
