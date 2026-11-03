@@ -210,6 +210,45 @@ async fn output_poll_returns_watch_only_without_claiming_input_or_control_and_fu
     )
     .await
     .unwrap();
+    // The human boundary must preserve the specific deadline rule rather than
+    // replacing it with the dashboard's generic invalid-request envelope.
+    let before = queue_snapshot(&f).await;
+    for expires_at_ms in [NOW, NOW + 2001] {
+        let invalid = service::Mutation::Input(aq_session_api::InputRequest {
+            terminal: r.terminal.clone(),
+            operation_id: Uuid::new_v4(),
+            lease_id: lease.lease_id,
+            expected_controller_generation: lease.generation,
+            expected_session_revision: 1,
+            expires_at_ms,
+            bytes: b"PRIVATE_INPUT_SENTINEL".to_vec(),
+        });
+        let response = aq_server::build_admin_router(f.state.clone())
+            .oneshot(
+                Request::post(format!(
+                    "/api/v1/terminals/{}/mutations",
+                    r.terminal.terminal_id
+                ))
+                .header("X-AQ-Request", "1")
+                .header("content-type", "application/json")
+                .body(Body::from(serde_json::to_vec(&invalid).unwrap()))
+                .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+        assert_eq!(
+            response.headers()["aq-terminal-server-time-ms"],
+            NOW.to_string()
+        );
+        let body: Value =
+            serde_json::from_slice(&response.into_body().collect().await.unwrap().to_bytes())
+                .unwrap();
+        assert_eq!(body["code"], "input_deadline", "{body}");
+        assert!(body["message"].as_str().unwrap().contains("2000"));
+        assert!(!body.to_string().contains("PRIVATE_INPUT_SENTINEL"));
+        assert_eq!(before, queue_snapshot(&f).await);
+    }
     service::mutate(
         &f.state,
         f.actor,
@@ -274,6 +313,32 @@ async fn output_poll_returns_watch_only_without_claiming_input_or_control_and_fu
         "full poll still dispatches with unchanged zero-controller activity hint"
     );
     assert!(full.effects.iter().any(|e| matches!(e, Effect::Resize(_))));
+}
+
+#[tokio::test]
+async fn output_poll_progresses_during_control_poll_and_limits_each_lane() {
+    let (f, _dir, r) = Box::pin(setup()).await;
+    let subscription = watch(&f, &r, 15000).await;
+    let runtime = &f.state.config.terminals.as_ref().unwrap().runtime;
+    // Own the exact permit held by a sleeping control poll, without a real sleep.
+    let control = runtime.poll(f.node.node_id).unwrap();
+    let (status, body) = http(&f, &request(&r)).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let envelope: Envelope = serde_json::from_value(body).unwrap();
+    assert!(
+        matches!(&envelope.effects[..], [Effect::Watch(w)] if w.subscription_id == subscription)
+    );
+    assert!(matches!(
+        runtime.poll(f.node.node_id),
+        Err(aq_server::error::AppError::Conflict(_))
+    ));
+    let output = runtime.output_poll(f.node.node_id).unwrap();
+    assert_eq!(http(&f, &request(&r)).await.0, StatusCode::CONFLICT);
+    drop(control);
+    let control = runtime.poll(f.node.node_id).unwrap();
+    drop(output);
+    assert_eq!(http(&f, &request(&r)).await.0, StatusCode::OK);
+    drop(control);
 }
 
 #[tokio::test]
