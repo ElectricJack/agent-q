@@ -322,14 +322,17 @@ aq-updater --version
   cap within the included $20 of VM time, and concurrent-sandbox cap **4**.
   Keep `node.max_concurrent_sandboxes=4` and
   `node.spend_ceiling={"currency":"USD","micros":18000000}` ($18).
-  The required H2 accounting input is monthly VM usage priced at the owner's
-  reference rates: small $0.018/hour, default $0.036/hour. Placement must
-  refuse at the ceiling (`node_spend_ceiling_reached`) or when spend is
-  unknown (`node_spend_unaccounted`). **Deployment gate:** the current H2
-  node ledger accounts lifetime token calls, not monthly VM time. It is
-  not the required Boat budget feed; do not enable attempts until that
-  integration is delivered and verified. Do not reset state or assume
-  unreported VM use is zero. C7 live provider/template qualification and
+  H2 now prices Boat VM running time in the current UTC calendar month at
+  the owner's reference rates: small $0.018/hour, default $0.036/hour,
+  large $0.072/hour and xlarge $0.200/hour. Placement refuses at the ceiling
+  (`node_spend_ceiling_reached`) or when spend is unknown
+  (`node_spend_unaccounted`). **Deployment gate:** use an aq-worker release
+  that journals and reports actual VM creation and confirmed stop times to
+  `/v1/worker/observations/vm-time`; backfill this node's historical attempts.
+  Verify that reporting and the monthly refusal before enabling attempts.
+  See [monthly Boat accounting](implementation/H2-monthly-boat-budget.md)
+  for the report contract, pinned rates and migration. Do not reset state or
+  assume unreported VM use is zero. C7 live provider/template qualification and
   the authenticated admission/runner transport must also be ready.
 
   Run `scripts/compose-smoke.sh prod-boat` without Boat credentials. It
