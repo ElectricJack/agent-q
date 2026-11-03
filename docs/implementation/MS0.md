@@ -3,7 +3,7 @@
 Task `stark-zenith-16.1`. Evidence was re-evaluated on 2026-11-03 at 18:53 UTC,
 after the operator reopened the gate.
 
-**Verdict proposed for owner sign-off.** On 2026-11-03, one real Codex run
+**Gate passes on the owner's decision.** On 2026-11-03, one real Codex run
 completed a graph task end to end: I0 run 13c.
 
 - Codex 0.166.0 ran on the owner's ChatGPT login, with no API key.
@@ -14,10 +14,8 @@ completed a graph task end to end: I0 run 13c.
 - The login was not modified.
 
 MS0's checklist asks for **three** such completions (plan §1, and the owner's
-pre-approval). The evidence has **one**. Run 12 is the only other real run that
-retained source, and it could not be settled. Whether one settled run is enough
-is therefore the owner's decision; this gate does not approve itself. The
-decision questions and the owner's answer are [below](#owner-decision).
+pre-approval). The evidence has **one**. The owner accepted one settled run as
+passing MS0. The decision is recorded [verbatim below](#owner-decision).
 
 No MS1 contract or dependency was changed.
 
@@ -38,9 +36,23 @@ Operator `human:local-operator`, 2026-11-03 reopen feedback:
 
 ### Decision on the run count, verbatim
 
-_Pending._ Asked through `aq message send --to user:dashboard --project aq-platform`
-(questions in [Decision questions](#decision-questions)). The owner's reply is
-recorded here verbatim before the gate closes.
+Owner `user:local`, 2026-11-03, task comment
+`comment-d0f878b620544288a6875d029b9ade96`, in reply to message
+`msg-89e92e67ec8a4d84919a8969ee4defc3`:
+
+> Operator decision recorded in msg to task: accept 1 settled run for MS0 (owner pre-approval, Codex budget); ChatGPT-login wording supersedes API-key; MS1 rows become follow-up tasks.
+
+This answers the [decision questions](#decision-questions):
+
+1. **Run count:** one settled run passes MS0.
+2. **Authentication:** the ChatGPT-login wording supersedes "API key".
+3. **MS1 scope:** the MS1-impact rows become follow-up tasks. No MS1 contract is
+   edited by this gate. Every "Yes" row now has a task:
+   - Run-13 findings: `quick-impact-98` and the two aq-worker cross-repo
+     follow-ups.
+   - Earlier findings: the existing v1 tasks (`sharp-harbor-18`, `fresh-delta-13`,
+     `amber-horizon-91`, `sharp-dune-88`).
+   - The server release of stopped attempts, newly filed as `calm-beacon-15`.
 
 ## Checklist against the evidence
 
@@ -49,10 +61,10 @@ recorded here verbatim before the gate closes.
 | Codex CLI on the owner's ChatGPT login, no API key (plan §1) | Profile `owner-chatgpt-codex`, Codex 0.166.0, `gpt-6.1-sol` high. Login delivered by material lease. Owner `auth.json`, leased material and vault copy all byte-identical to baseline (I0 report) | Yes |
 | Plain container on the desktop, today's native runner, local full stack | `aq-worker run-native` in container `aq-i0-run13` against `aq-e0-qual` on WSL2 | Yes |
 | Completes a real graph task | Run 13c: graph task `e0a10000-0000-4000-8000-000000000007` completed (version 2), cross-checked below | Yes, once |
-| … three times | One settled completion (13c). Run 12 retained source but no change and no settlement. Runs 9–11 retained nothing | **No: 1/3** |
+| … three times | One settled completion (13c). Run 12 retained source but no change and no settlement. Runs 9–11 retained nothing | 1/3; **owner accepted 1** |
 | Retained source and recorded outcomes | 13c: transfer `df5a8007…` retained, checkpoint `17fe8a72`; report `095807a2…`; evaluation accepted, completion confirmed | Yes, for 13c |
 | Problems found are filed as tasks | Run-13 server findings filed as `quick-impact-98` and `bold-delta-91`; worker findings recorded as cross-repo follow-ups on this task. Earlier server findings are only partly traceable to IDs (see the problem table) | Mostly |
-| Owner API-key wording in the 2026-11-02 comment | Superseded by plan §1's ChatGPT-login wording, which I0 followed | Owner to confirm |
+| Owner API-key wording in the 2026-11-02 comment | Superseded by plan §1's ChatGPT-login wording, which I0 followed | Yes: owner confirmed |
 
 ## Evidence and provenance
 
@@ -183,7 +195,7 @@ run-13 evidence.
 | `sharp-dune-88` | Default Docker seccomp blocks the real Codex sandbox probe | Open; I0 used a bounded `seccomp=unconfined` exception | C2, C3a, C6a, I4a | Yes |
 | `azure-horizon-22.1.1` | Image omits Codex companion executables; tools fail | Fixed in worker `f4703fe` (tools ran in runs 12–13) | C1, C3a | No longer |
 | `azure-horizon-22.1.2` | Executor stalls at the workspace trust prompt | Fixed in worker `f4703fe` (no terminal input in runs 12–13) | C6a | No longer |
-| `azure-horizon-22.1.3` | Stopped unsettled attempts consume graph tasks | Worker reconcile fixed. Three attempts still hold tasks `…0004`–`…0006` on the server | B4, B7, D3 | Yes: a server release path for stopped attempts is still missing |
+| `azure-horizon-22.1.3` | Stopped unsettled attempts consume graph tasks | Worker reconcile fixed. Three attempts still hold tasks `…0004`–`…0006` on the server; server release filed as `calm-beacon-15` | B4, B7, D3 | Yes: a server release path for stopped attempts is still missing |
 | `azure-horizon-22.1.4` | run-native/check-native hide the failure cause | Fixed in worker `f4703fe` | C6a, I4a | No |
 | Server, routed by the supervisor to the consolidated I0 findings task (ID not recorded here) | Relay upload 409 storm without a watcher | Fixed by PR #50: 423 × 200 in 13c | D1b, I4a | No longer |
 | Same | Input deadlines over 2 s give a generic 422; opaque relay poll 500s (run 12); opaque 409 from `admission_definition_identity_guard` (run 12) | Not seen in 13c; root causes not confirmed fixed | D1b, B2, I4a | Unclear |
@@ -191,7 +203,7 @@ run-13 evidence.
 
 ## Decision questions
 
-Sent to the owner. The first is blocking for this gate.
+Sent to the owner; [answered](#owner-decision).
 
 1. **Run count (blocking).** MS0 asks for three completed graph tasks. The evidence
    has one settled end-to-end run (13c). Run 12 also ran real Codex and retained
@@ -391,13 +403,12 @@ suites do not apply.
   - A secret-pattern grep over the frozen evidence.
 - **Live observations:** read-only SQL on `aq-e0-qual` Postgres (`agent_q` and
   `aq_graph`), and container status.
-- **Follow-ups filed:** `quick-impact-98` and `bold-delta-91` (aq-platform, project
-  root, so they do not block this gate). There are two aq-worker
-  `CROSS-REPO FOLLOW-UP` comments on this task.
+- **Follow-ups filed:** `quick-impact-98`, `bold-delta-91` and `calm-beacon-15`
+  (aq-platform, project root, so they do not block this gate). There are two
+  aq-worker `CROSS-REPO FOLLOW-UP` comments on this task.
 - **Limits:**
-  - 1 of the 3 required settled runs.
+  - 1 of the 3 required settled runs, accepted by the owner.
   - The run-12 grant ID is recorded only as a prefix.
   - The checkpoint bytes were not re-read by MS0.
   - The IDs of the consolidated server I0 findings task were not recorded.
   - The demo is documented, not executed.
-  - The gate's outcome waits on the owner's answer to question 1.
