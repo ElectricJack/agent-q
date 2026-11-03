@@ -157,7 +157,42 @@ aq-updater --version
   spool_dir = "/updater"
   ```
 
-- `/etc/agent-q/secrets/postgres_password` and `tunnel_token`, mode 0644.
+- Start from `vault.production.example/config.toml`. Set the HTTPS public origin,
+  Access `team_domain` and application `audience`, and the bootstrap owner email.
+  Keep `environment = "production"` and `auth.mode = "cloudflare_access"`.
+  Graph uses `AQ_GRAPH_WORKSPACE` (default `e0000000-0000-4000-8000-000000000001`)
+  and `AQ_GRAPH_ACTOR` (default `aq-server`); the vault's mutation actor must agree.
+- `/etc/agent-q/secrets/` contains independent generated `postgres_password`,
+  `server_database_password`, `graph_database_password`, `graph_token`, and the
+  Cloudflare `tunnel_token`. Bind-mounted secret files need mode 0644 for the
+  container UIDs; keep their host parent directory restricted as above. Never
+  put their contents in Compose or the operator env file. The server receives
+  only its database password, with the graph token copied into private runtime
+  state (UID 10001, mode 0600). The bootstrap PostgreSQL administrator is used
+  only by provisioning; `aq_server` and `aq_graph` own separate databases and
+  have no superuser/create-role/create-database privileges.
+- Retained databases and credentials are checked, not silently reassigned.
+  Existing installations that used `agent_q` for server data need an explicit
+  backup/migration into the `aq_server` database before adopting this stack;
+  Compose does not migrate or delete existing data. Retain the graph token
+  across restarts; rotation requires an explicit coordinated change.
+- Every service image resolves by digest. Supply `AQ_SERVER_IMAGE` as
+  `registry/repository@sha256:<64 lowercase hex digits>` through the updater's
+  release env file. Production initialization refuses a mutable reference.
+  Server and supervised Git share that image, containing A3b's v0.2.0 binary;
+  PostgreSQL, cloudflared and E2's graph v0.1.1 have explicit digests in Compose.
+- Copy `scripts/prod-db-init.sh`, `scripts/prod-init-volumes.sh` and
+  `scripts/dev-git-supervisor.sh` alongside Compose under its `scripts/`
+  directory. The one-shot state initializer has ownership capabilities only
+  for project-owned named volumes. Long-running services drop all capabilities,
+  use read-only roots and rotated logs. Git state/source staging are shared with
+  the server; its healthcheck requires both graph and Git readiness. The server
+  has no host port, and PostgreSQL is on the internal database network.
+- Run `scripts/compose-smoke.sh prod` for a disposable production-authenticated
+  readiness and Git recovery drill. It disables only cloudflared in its overlay.
+  Without `AQ_SERVER_IMAGE`, it builds this checkout and obtains a digest using
+  a disposable loopback registry; a supplied image must already be digest-pinned.
+  The smoke removes its own Compose containers/volumes and registry afterward.
 - `/etc/agent-q/agent-q.env`, the operator's env file. It holds only the
   operator's paths:
 
