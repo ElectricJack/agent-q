@@ -185,6 +185,80 @@ pub(crate) async fn authorize_task(
         .await
         .map(|_| ())
 }
+/// Bounded task title and direct downstream reach for decision views.
+#[derive(Clone, Debug)]
+pub(crate) struct TaskBrief {
+    pub title: Option<String>,
+    pub blocked_tasks: u32,
+    pub truncated: bool,
+}
+/// One authorized depth-1 outgoing context read of a task node. `blocks`
+/// edges run from the blocker (source) to the blocked task (target).
+pub(crate) async fn task_brief(
+    state: &AppState,
+    r: &ReadRuntime,
+    actor: &User,
+    project: Uuid,
+    task: Uuid,
+) -> Result<TaskBrief> {
+    if task.is_nil() {
+        return Err(invalid());
+    }
+    let a = access(state, r, actor.clone(), project).await?;
+    let w = a.record.binding.graph_workspace_id;
+    let raw = runtime(state)?
+        .human_get(
+            &format!("/v1/workspaces/{w}/nodes/{task}/context"),
+            &[
+                ("depth".into(), "1".into()),
+                ("limit".into(), "63".into()),
+                ("max_bytes".into(), "262144".into()),
+                ("direction".into(), "outgoing".into()),
+            ],
+            262144,
+        )
+        .await?;
+    if !contract::upstream_valid("Context", &raw) || raw["node"]["id"] != json!(task) {
+        return Err(unavailable());
+    }
+    let root = node(&raw["node"], w, "task")?;
+    let blocked_tasks = blocked_by(&raw, w, task)?;
+    fence_records(r, &a.actor, std::slice::from_ref(&a.record)).await?;
+    Ok(TaskBrief {
+        title: root["title"].as_str().map(str::to_owned),
+        blocked_tasks,
+        truncated: raw["truncated"].as_bool().ok_or_else(unavailable)?,
+    })
+}
+/// Distinct live task targets of live `blocks` edges leaving `task`.
+fn blocked_by(raw: &Value, w: Uuid, task: Uuid) -> Result<u32> {
+    let mut live = std::collections::BTreeSet::new();
+    for n in raw["nodes"].as_array().ok_or_else(unavailable)? {
+        if n["workspace_id"] != json!(w) {
+            return Err(unavailable());
+        }
+        if n["kind"] == "task" && n["deleted"] == false {
+            live.insert(n["id"].as_str().ok_or_else(unavailable)?.to_owned());
+        }
+    }
+    let source = task.to_string();
+    let mut targets = std::collections::BTreeSet::new();
+    for e in raw["edges"].as_array().ok_or_else(unavailable)? {
+        if e["workspace_id"] != json!(w) {
+            return Err(unavailable());
+        }
+        let target = e["target"].as_str().ok_or_else(unavailable)?;
+        if e["edge_type"] == "blocks"
+            && e["deleted"] == false
+            && e["source"] == source.as_str()
+            && target != source
+            && live.contains(target)
+        {
+            targets.insert(target.to_owned());
+        }
+    }
+    u32::try_from(targets.len()).map_err(|_| unavailable())
+}
 async fn access(state: &AppState, r: &ReadRuntime, actor: User, project: Uuid) -> Result<Access> {
     if project.is_nil() {
         return Err(invalid());
@@ -636,4 +710,29 @@ async fn graph(
         json!({"root_id":id,"nodes":nodes,"edges":edges,"truncated":truncated}),
     )
     .await
+}
+#[cfg(test)]
+mod brief_tests {
+    use super::*;
+    #[test]
+    fn downstream_counts_distinct_live_blocked_tasks_only() {
+        let w = Uuid::new_v4();
+        let t = Uuid::new_v4();
+        let (a, b, gone, doc) = (
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+            Uuid::new_v4(),
+        );
+        let n = |id: Uuid, kind: &str, deleted: bool| json!({"id":id,"workspace_id":w,"kind":kind,"deleted":deleted});
+        let e = |s: Uuid, t: Uuid, ty: &str| json!({"workspace_id":w,"source":s,"target":t,"edge_type":ty,"deleted":false});
+        let raw = json!({
+            "nodes":[n(a,"task",false),n(b,"task",false),n(gone,"task",true),n(doc,"knowledge",false)],
+            "edges":[e(t,a,"blocks"),e(t,a,"blocks"),e(b,t,"blocks"),e(t,gone,"blocks"),e(t,doc,"blocks"),e(t,b,"relates_to")]
+        });
+        assert_eq!(blocked_by(&raw, w, t).unwrap(), 1);
+        let mut foreign = raw.clone();
+        foreign["edges"][0]["workspace_id"] = json!(Uuid::new_v4());
+        assert!(blocked_by(&foreign, w, t).is_err());
+    }
 }

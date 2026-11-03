@@ -719,6 +719,15 @@ impl Store {
         })
     }
 
+    pub async fn find_user(&self, id: Uuid) -> Result<Option<User>> {
+        sqlx::query_as::<_, UserRow>(&format!("SELECT {USER_COLS} FROM users WHERE id = $1"))
+            .bind(id)
+            .fetch_optional(&self.pool)
+            .await?
+            .map(User::try_from)
+            .transpose()
+    }
+
     pub async fn find_user_by_binding(&self, issuer: &str, subject: &str) -> Result<Option<User>> {
         sqlx::query_as::<_, UserRow>(&format!(
             "SELECT {USER_COLS} FROM users WHERE issuer = $1 AND subject = $2"
