@@ -21,6 +21,154 @@ use uuid::Uuid;
 fn text(s: &str) -> Text {
     Text::new(s).unwrap()
 }
+
+#[tokio::test]
+async fn monthly_vm_budget_prices_authenticated_facts_and_refuses_placement() {
+    use aq_accounting::vm_time::{Fact, Size};
+    use aq_selection::NodeCeiling;
+    use aq_server::profiled_execution::placement::{self, Ledger};
+    let (f, _) = seeded(Some(true)).await;
+    let pool = f.db.pool().await;
+    let node = f.node.node_id;
+    sqlx::query("INSERT INTO delegated_node_boots(node_id,boot_id,registration) VALUES($1,$2,$3)")
+        .bind(node)
+        .bind(f.node.boot_id)
+        .bind(json!({"backend": {
+            "kind":"boat", "capabilities":["vm-isolation"], "max_concurrent_sandboxes":4,
+            "spend_ceiling":{"currency":"USD","micros":4_500},"templates":[]
+        }}))
+        .execute(&pool)
+        .await
+        .unwrap();
+    let fact = Fact {
+        attempt_id: f.profiled.offer.binding.attempt_id,
+        sandbox_id: "boat-vm-1".into(),
+        size: Size::Small,
+        started_at_ms: NOW - 900_000,
+        stopped_at_ms: None,
+    };
+    let post = |fact: Fact, credential: Option<String>| {
+        let state = f.state.clone();
+        async move {
+            let mut request = Request::builder()
+                .method("POST")
+                .uri("/v1/worker/observations/vm-time")
+                .header("content-type", "application/json");
+            if let Some(credential) = credential {
+                request = request.header("authorization", format!("Bearer {credential}"));
+            }
+            aq_server::build_worker_router(state)
+                .oneshot(
+                    request
+                        .body(Body::from(serde_json::to_vec(&fact).unwrap()))
+                        .unwrap(),
+                )
+                .await
+                .unwrap()
+                .status()
+        }
+    };
+    let book = aq_accounting::pricing::RateCardBook::default();
+    let ceiling = |now| {
+        let pool = &pool;
+        let book = &book;
+        async move {
+            placement::facts_in(
+                pool,
+                &Ledger { pool, book },
+                None,
+                node,
+                &"f".repeat(64),
+                "ci@1",
+                now,
+            )
+            .await
+            .unwrap()
+            .unwrap()
+            .ceiling
+        }
+    };
+    // Existing attempts without VM evidence cannot silently look free.
+    assert_eq!(ceiling(NOW).await, Some(NodeCeiling::SpendUnaccounted));
+    // Admission may fence its own new reservation before a VM exists.
+    let mut conn = pool.acquire().await.unwrap();
+    let own = observations::vm_time::node(
+        &mut conn,
+        node,
+        &aq_admission_sandbox::sandbox::Money {
+            currency: "USD".into(),
+            micros: 4_500,
+        },
+        NOW,
+        Some(fact.attempt_id),
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(own.micros, 0);
+    drop(conn);
+    assert_eq!(post(fact.clone(), None).await, StatusCode::UNAUTHORIZED);
+    let mut other = fact.clone();
+    other.attempt_id = Uuid::new_v4();
+    assert_eq!(
+        post(other, Some(f.credential.clone())).await,
+        StatusCode::FORBIDDEN
+    );
+    assert_eq!(
+        post(fact.clone(), Some(f.credential.clone())).await,
+        StatusCode::OK
+    );
+    assert_eq!(
+        post(fact.clone(), Some(f.credential.clone())).await,
+        StatusCode::OK
+    );
+    // $0.018/h x 15 minutes = $0.0045. Replays do not double the cost.
+    assert_eq!(ceiling(NOW - 200).await, None);
+    assert_eq!(ceiling(NOW).await, Some(NodeCeiling::Spend));
+    let mut changed = fact.clone();
+    changed.size = Size::Xlarge;
+    assert_eq!(
+        post(changed, Some(f.credential.clone())).await,
+        StatusCode::CONFLICT
+    );
+    let mut stopped = fact.clone();
+    stopped.stopped_at_ms = Some(NOW);
+    assert_eq!(
+        post(stopped.clone(), Some(f.credential.clone())).await,
+        StatusCode::OK
+    );
+    assert_eq!(
+        post(stopped, Some(f.credential.clone())).await,
+        StatusCode::OK
+    );
+    assert_eq!(
+        post(fact, Some(f.credential.clone())).await,
+        StatusCode::CONFLICT
+    );
+    let mut conn = pool.acquire().await.unwrap();
+    let spend = observations::vm_time::node(
+        &mut conn,
+        node,
+        &aq_admission_sandbox::sandbox::Money {
+            currency: "USD".into(),
+            micros: 4_500,
+        },
+        NOW + 3_600_000,
+        None,
+    )
+    .await
+    .unwrap()
+    .unwrap();
+    assert_eq!(spend.micros, 4_500); // stopped time costs nothing
+    let month = observations::vm_time::month(NOW, 4_500).unwrap();
+    assert_eq!(ceiling(month.next_month_start_ms).await, None);
+    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM accounting_vm_time WHERE node_id=$1")
+        .bind(node)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(count, 1);
+}
 async fn seeded(transport_active: Option<bool>) -> (Fixture, OwnerSource) {
     let mut f = fixture().await;
     if let Some(active) = transport_active {
@@ -1185,7 +1333,7 @@ mod accounting {
         let book = catalog::rate_book(&f.state);
         let node = f.node.node_id;
         let advertise = |currency: &str, micros: u64| {
-            json!({"backend": {"kind": "boat", "capabilities": ["vm-isolation"],
+            json!({"backend": {"kind": "cloudflare-containers", "capabilities": ["vm-isolation"],
                 "max_concurrent_sandboxes": 4,
                 "spend_ceiling": {"currency": currency, "micros": micros}, "templates": []}})
         };

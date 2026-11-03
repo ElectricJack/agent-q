@@ -68,21 +68,32 @@ pub fn accounted(summary: &aq_accounting::pricing::Summary, limit: &Money) -> Op
     })
 }
 
-/// Accounted spend for each node whose advertisement has a spend ceiling. A
-/// ledger read failure leaves that node unaccounted, so it refuses.
+/// Accounted spend for nodes with ceilings: current-month VM time for Boat,
+/// lifetime provider calls otherwise. A read failure leaves the node
+/// unaccounted, so it refuses.
 async fn spends(
+    conn: &mut PgConnection,
     ledger: &Ledger<'_>,
     nodes: &[(Uuid, &BackendAdvertisement)],
+    now_ms: u64,
+    exclude_attempt: Option<Uuid>,
 ) -> Vec<(Uuid, Option<Money>)> {
     let mut out = Vec::new();
     for (node, adv) in nodes {
         let Some(limit) = adv.spend_ceiling.as_ref() else {
             continue;
         };
-        let spent = crate::observations::budget::node(ledger.pool, ledger.book, *node)
-            .await
-            .ok()
-            .and_then(|summary| accounted(&summary, limit));
+        let spent = if crate::observations::vm_time::is_monthly_backend(adv.kind) {
+            crate::observations::vm_time::node(conn, *node, limit, now_ms, exclude_attempt)
+                .await
+                .ok()
+                .flatten()
+        } else {
+            crate::observations::budget::node(ledger.pool, ledger.book, *node)
+                .await
+                .ok()
+                .and_then(|summary| accounted(&summary, limit))
+        };
         out.push((*node, spent));
     }
     out
@@ -335,7 +346,14 @@ pub async fn derive(
     let mut advertised: Vec<(Uuid, &BackendAdvertisement)> =
         peers.iter().map(|(n, r)| (*n, &r.backend)).collect();
     advertised.push((node_id, &own.backend));
-    let spends = spends(ledger, &advertised).await;
+    let spends = spends(
+        conn,
+        ledger,
+        &advertised,
+        now_ms,
+        derivation.exclude_attempt,
+    )
+    .await;
     let eligible = |adv: &BackendAdvertisement, node: Uuid| {
         ceiling(adv, count(&active, node), spent(&spends, node)).is_none()
             && policy

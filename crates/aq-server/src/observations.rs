@@ -20,6 +20,7 @@ pub mod budget;
 pub mod catalog;
 pub mod inspection;
 pub mod transport;
+pub mod vm_time;
 
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
