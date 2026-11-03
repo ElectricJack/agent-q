@@ -1,4 +1,4 @@
-# B2 runner receipt transport, revision 1
+# B2 runner receipt transport, revision 2
 
 This is the server-owned mapping for B6a2's injected `RunnerExchange`. It is
 requested by `msg-f8f7d6189f034835a5b9973ab1c0379c` / task comment
@@ -8,10 +8,11 @@ Pin the server commit containing this document and the fixture manifest beside
 the evidence. This publication does not install a worker codec or qualify its
 production CLI end to end.
 
-The sandbox owner dependency is the unmodified aq-admission 0.3.1 archive at
-aq-worker `651332d0c485b233d12e0bf26aa313f839c27581`; its SHA-256 is
-`ef9ae73d57b2faa6ededff7240095f69d6ef4c043312031c02720dea755814a8`.
-The 120 member hashes are pinned in `vendor/admission-contract.json`. The frozen
+The sandbox owner dependency is the unmodified aq-admission 0.3.2 archive at
+aq-worker `6c06d98f74520871c99f5fb9a0cf893c0e122fed`; its SHA-256 is
+`89cc29b239d849ac968d3a57d86420961062009dc966928d47fd91411132e1d8`.
+This release is pinned from the published branch archive while integration delivery
+is pending. The 120 member hashes are pinned in `vendor/admission-contract.json`. The frozen
 phase/result bodies remain admission 0.1.11; the source transport bodies remain
 aq-worker-protocol 0.2.0. New headers supplement these original bodies.
 
@@ -128,14 +129,16 @@ the runner must not substitute a node credential or invent a new TTL.
 - Use the server envelope's original Started launch identity. Do not substitute
   a fresh local launch UUID. Preserve original native boot bindings in report
   bodies after re-adoption.
-- The 0.3.1 owner validator allows ended-grant `ReportResult` and exact stopped
-  retry while unexpired; all execution/renewal operations remain refused after
-  stop. Its exact stopped-retry helper additionally requires the native report's
-  boot to equal the current permit boot. That prevents an exact retry after
-  Option A rebinding. B2 preserves both immutable history and the owner validator,
-  and refuses that retry pending an owner contract correction. A committed result
-  retry remains a distinct path. This limitation must not be hidden by relabelling
-  historical authority or rewriting report bodies.
+- The 0.3.2 owner validator accepts exact stopped retries after Option A
+  re-adoption. The server independently authenticates the current credential,
+  channel and incarnation, derives trusted PermitContext under owner locks and
+  loads the original report from retained server state. The historical report
+  keeps its original boot. The retry returns the retained receipt without a
+  second stop effect or lease extension. Caller-supplied context or an alleged
+  original report cannot establish this authority. Rewritten report boots or
+  operation IDs conflict; stale credentials, forged channel boots and expired
+  authority remain refused. Ended renewal and other execution operations remain
+  forbidden. This replaces the 0.3.1 refusal documented in checkpoint 296c2d91.
 - Full process restart qualification and a production B6a2 codec remain separate
   acceptance work. Store reconstruction and retained-receipt replay establish
   only the tested server persistence boundary.
@@ -148,9 +151,10 @@ test identities and credentials, never deployment credentials. The fixtures cont
 
 - `renewal`: exact request/response, returned context and server clock.
 - `readoption`: committed adoption and its preceding awaiting reply.
-- `readoption-stopped-replay-refused`: original committed stop, adopted permit,
-  ended context and the exact retry's HTTP 409. The owner validator reproduces
-  `binding_mismatch` even though request bytes are identical.
+- `readoption-stopped-replay-accepted`: original committed stop, adopted permit,
+  trusted ended context and the exact retry's HTTP 200 with an identical retained
+  receipt after Store reconstruction. The owner validator accepts original-boot
+  history while binding the permit to the current incarnation.
 - `source-PhaseV2` / `source-PhaseRefreshV1`: retained source response and envelope.
 - `result-PhaseV2` / `result-PhaseRefreshV1`: native report/receipt and envelope,
   correlated with that profile's source fixture. Both use actual Git export,
