@@ -23,7 +23,7 @@ absolute, canonical, owner-only regular JSON file, at most 64 KiB, matching
 not an unauthenticated plan submission interface. Install the exact approved
 CentralPlan, HostPlan, resolved model, startup file and runtime paths. Changing
 or removing the file revokes that process's admission. The host uses a database
-already migrated by aq-server through state format 46. It never migrates the
+already migrated by aq-server through state format 47. It never migrates the
 database itself. A new plan does not bypass a retained generation's stop or mail
 fence. F1b supplies application dispatch and original-mail authorization.
 

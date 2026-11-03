@@ -285,10 +285,11 @@ const MIGRATIONS: &[(i32, &str)] = &[
         include_str!("../migrations/0043_native_cancellation.sql"),
     ),
     (44, include_str!("../migrations/0044_results_feedback.sql")),
-    (45, include_str!("../migrations/0045_central_sessions.sql")),
+    (45, include_str!("../migrations/0045_central_delivery.sql")),
+    (46, include_str!("../migrations/0046_central_sessions.sql")),
     (
-        46,
-        include_str!("../migrations/0046_central_host_journal.sql"),
+        47,
+        include_str!("../migrations/0047_central_host_journal.sql"),
     ),
 ];
 

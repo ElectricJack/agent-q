@@ -31,4 +31,4 @@ CREATE TRIGGER central_host_fact_immutable BEFORE UPDATE OR DELETE ON central_ho
  FOR EACH ROW EXECUTE FUNCTION retain_central_host_fact();
 CREATE TRIGGER central_host_fact_no_truncate BEFORE TRUNCATE ON central_host_facts
  FOR EACH STATEMENT EXECUTE FUNCTION retain_central_host_fact();
-INSERT INTO meta(key,value) VALUES('state_format_version','46') ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value;
+INSERT INTO meta(key,value) VALUES('state_format_version','47') ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value;

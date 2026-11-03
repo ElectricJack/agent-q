@@ -62,4 +62,4 @@ CREATE TRIGGER central_session_generation_guard BEFORE INSERT OR UPDATE OR DELET
  FOR EACH ROW EXECUTE FUNCTION guard_central_session_generation();
 CREATE TRIGGER central_session_generation_truncate_guard BEFORE TRUNCATE ON central_session_generations
  FOR EACH STATEMENT EXECUTE FUNCTION guard_central_session_generation();
-INSERT INTO meta(key,value) VALUES('state_format_version','45') ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value;
+INSERT INTO meta(key,value) VALUES('state_format_version','46') ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value;
