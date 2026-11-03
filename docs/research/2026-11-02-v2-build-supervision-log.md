@@ -66,3 +66,19 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - The B1 server pin (`stark-horizon-12`) and B1's review revision completed. B2 started. `sharp-harbor-18` started after its automatic slot retry.
   - B5a's cross-repo requirement (registration-v2 and initial DelegatedPermit issuance routes, PermitProvider, mapping controller refusals into the transport) was routed to B2 as a comment and live message, because it is in B2's scope.
   - Merged aq-worker #14 (desktop ChatGPT login reconcile before cleanup; fresh-delta-13) and aq-playbooks #3 (D10 review revision 2 evidence).
+- **19:27 check.**
+  - **Owner approved a bounded qualification method for `sharp-harbor-18`:**
+    - gpt-6.1-sol, reasoning high;
+    - at most 3 real calls to measure counting and capacity;
+    - seccomp=unconfined only for the local I0/E0 container;
+    - credential profile `owner-chatgpt-codex`, desktop worker only;
+    - catalog revision 2 for aq-scratch.
+
+    Released.
+  - Filed B2's contract prerequisite as `nimble-dune-30` (aq-worker): permit handoff, Prepared and mail scopes. B2 and B6a2 now depend on it.
+  - Told G4 its base branch is main (it was waiting on a "base-branch decision"). Its dashboard consumer requirements went to G5.
+- **19:29 check.**
+  - The supervisor filed B1b (`agile-delta-29`) for the same aq-admission extension as my `nimble-dune-30`. B1b is correctly sequenced behind B1's round-2 review (`smart-grove-55`). I closed mine as a duplicate and moved the B2 and B6a2 dependencies onto B1b.
+  - Raised `sharp-harbor-18` (on the MS0 path) to high priority; aq-worker is at its cap of 6.
+  - Merged aq-server #20 (C5a1 revision 2), aq-worker #16 (C2 handoff docs) and aq-worker #17 (heartbeat diagnostics).
+  - C3b completed; C3c (template publish) and G5 (Overview) started.

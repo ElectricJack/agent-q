@@ -285,6 +285,10 @@ pub(crate) fn validate_installation(
 ) -> Result<()> {
     let mut credentials = BTreeSet::new();
     for credential in credential_rows {
+        ensure(
+            valid_allowed_backends(&credential.allowed_backends),
+            "credential backend allowlist",
+        )?;
         text(&credential.provider)?;
         text(&credential.account_reference)?;
         text(&credential.endpoint_reference)?;

@@ -1,6 +1,8 @@
 //! Pure deterministic selection over bounded snapshots. No inputs confer authority.
 //! Server-owned adapters authenticate facts and recheck them at actual admission.
 mod candidate_core;
+mod credential_policy;
+pub use credential_policy::*;
 pub mod central;
 mod domain;
 mod explanation;

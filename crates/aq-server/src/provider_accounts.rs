@@ -93,6 +93,7 @@ mod tests {
             enabled,
             provisionable,
             material_owner: None,
+            allowed_backends: aq_selection::default_allowed_backends(),
         }
     }
     #[test]

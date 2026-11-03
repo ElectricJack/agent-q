@@ -278,7 +278,9 @@ pub async fn accept(
         std::time::Duration::from_secs(2),
         tokio::task::spawn_blocking(move || {
             let _permit = permit;
-            material::issue_for_selection(&registry, &selection, &binding, lease_id, issued, expiry)
+            material::issue_for_selection(
+                &registry, &selection, &binding, lease_id, issued, expiry, None,
+            )
         }),
     )
     .await
