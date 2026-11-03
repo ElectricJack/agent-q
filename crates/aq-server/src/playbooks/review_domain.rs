@@ -9,17 +9,27 @@ use uuid::Uuid;
 pub enum CatalogProfile {
     Mail1,
     HumanReview2,
+    /// HumanReview2 plus the confirmed graph-operation event.
+    GraphEvents3,
 }
 impl CatalogProfile {
     pub fn number(self) -> i16 {
         match self {
             Self::Mail1 => 1,
             Self::HumanReview2 => 2,
+            Self::GraphEvents3 => 3,
         }
+    }
+    pub fn has_reviews(self) -> bool {
+        self != Self::Mail1
     }
     pub fn registry(self) -> Registry {
         let mut registry = super::domain::registry();
-        if self == Self::HumanReview2 {
+        if self == Self::GraphEvents3 {
+            let event = graph_operation_event();
+            registry.events.insert(event.name.clone(), event);
+        }
+        if self.has_reviews() {
             let decision = decision_contract();
             let operation = operation_contract();
             let event = decision_event();
@@ -221,6 +231,27 @@ pub fn operation_contract() -> CommandContract {
         sensitive_output_fields: BTreeSet::new(),
         max_payload_bytes: 65536,
         deadline_ms: 5000,
+    }
+}
+pub const GRAPH_PRODUCER: &str = "aq.graph.operations@1";
+/// One event per confirmed graph operation; `event_id` is the graph outbox id.
+pub fn graph_operation_event() -> EventContract {
+    EventContract {
+        name: "aq.graph.operation.confirmed".into(),
+        version: "1".into(),
+        payload: object([
+            ("operation_id", Schema::string(36)),
+            ("task_id", Schema::string(36)),
+            ("attempt_id", Schema::string(36)),
+        ]),
+        trusted_producers: BTreeSet::from([GRAPH_PRODUCER.into()]),
+        scopes: BTreeSet::from(["project".into()]),
+        correlation_fields: BTreeSet::from(["operation".into()]),
+        subject_field: None,
+        revision_field: None,
+        max_payload_bytes: 16384,
+        retention_ms: 86400000,
+        sensitive_payload_fields: BTreeSet::new(),
     }
 }
 pub fn decision_event() -> EventContract {

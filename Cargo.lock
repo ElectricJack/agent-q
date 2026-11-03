@@ -124,7 +124,7 @@ dependencies = [
 
 [[package]]
 name = "aq-admission"
-version = "0.2.0"
+version = "0.3.3"
 dependencies = [
  "aq-lifecycle-protocol",
  "aq-session-protocol",
@@ -437,7 +437,7 @@ dependencies = [
  "anyhow",
  "aq-accounting",
  "aq-admission 0.1.11",
- "aq-admission 0.2.0",
+ "aq-admission 0.3.3",
  "aq-agent-api",
  "aq-central-authority",
  "aq-lifecycle-api",
@@ -466,6 +466,7 @@ dependencies = [
  "chrono",
  "clap",
  "hex",
+ "hmac 0.12.1",
  "http-body",
  "http-body-util",
  "jsonwebtoken",
@@ -480,6 +481,7 @@ dependencies = [
  "sha2 0.10.9",
  "sqlx",
  "sqlx-postgres",
+ "subtle",
  "tempfile",
  "thiserror",
  "tokio",

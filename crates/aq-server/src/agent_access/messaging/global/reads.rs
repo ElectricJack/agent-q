@@ -72,7 +72,7 @@ struct DispatchRef {
     host_operation_id: Uuid,
     batch_digest: String,
 }
-/// A supervisor reply, anchored at the max cursor of the batch it answers.
+/// A supervisor reply. Its cursor is `"anchor.r"` (see [`Position`]).
 #[derive(Serialize)]
 struct Reply {
     message_id: Uuid,
@@ -84,6 +84,8 @@ struct Reply {
     body_digest: String,
     created_at_ms: u64,
     dispatch: DispatchRef,
+    /// Typed proposed-draft and action-receipt items this reply produced.
+    attachments: Vec<Value>,
     logical_admission: &'static str,
     host_delivery: &'static str,
     agent_receipt: Option<Value>,
@@ -153,6 +155,26 @@ fn message(row: sqlx::postgres::PgRow, id: Uuid) -> Result<Message> {
         agent_receipt: None,
     })
 }
+/// A position in the merged conversation order. An owner message at mailbox
+/// cursor `c` is `(c, 0)`, rendered `"c"`. A supervisor reply is
+/// `(anchor, r)`, rendered `"anchor.r"`: `anchor` is the max cursor of the
+/// batch it answers and `r` (>= 1) its own reply-mailbox cursor. Replies sort
+/// after the owner message they answer and before the next one.
+type Position = (i64, i64);
+fn position(s: &str, zero: bool) -> Result<Position> {
+    match s.split_once('.') {
+        Some((anchor, reply)) => Ok((positive(anchor)?, positive(reply)?)),
+        None if zero => Ok((cursor(s)?, 0)),
+        None => Ok((positive(s)?, 0)),
+    }
+}
+fn render((at, reply): Position) -> String {
+    if reply == 0 {
+        at.to_string()
+    } else {
+        format!("{at}.{reply}")
+    }
+}
 pub(super) async fn history(
     Extension(service): Extension<Arc<Service>>,
     RequireOwner(user): RequireOwner,
@@ -166,13 +188,22 @@ pub(super) async fn history(
     if !(1..=16).contains(&limit) {
         return Err(invalid());
     }
-    let before = page.before.as_deref().map(positive).transpose()?;
-    let after = page.after.as_deref().map(cursor).transpose()?;
+    let before = page
+        .before
+        .as_deref()
+        .map(|s| position(s, false))
+        .transpose()?;
+    let after = page
+        .after
+        .as_deref()
+        .map(|s| position(s, true))
+        .transpose()?;
     let forward = after.is_some();
     let mut tx = service.tx().await?;
     owner(&mut tx, &user).await?;
     let conversation = definition(&mut tx, Some(id), false).await?;
     let mailbox = key(id)?;
+    let replies_key = digest(&reply::reply_recipient(id)).map_err(|_| unavailable())?;
     let next: Option<i64> =
         sqlx::query_scalar("SELECT next_cursor FROM mailbox_heads WHERE mailbox_key=$1")
             .bind(&mailbox)
@@ -184,24 +215,73 @@ pub(super) async fn history(
         .checked_sub(1)
         .filter(|v| *v >= 0)
         .ok_or_else(unavailable)?;
-    let sql = if forward {
-        "SELECT * FROM mailbox_messages WHERE mailbox_key=$1 AND cursor>$2 AND cursor<=$3 ORDER BY cursor LIMIT $4"
-    } else {
-        "SELECT * FROM mailbox_messages WHERE mailbox_key=$1 AND cursor<$2 AND cursor<=$3 ORDER BY cursor DESC LIMIT $4"
+    // Exclusive bound in the merged order; both streams are filtered by the
+    // same row comparison so a page boundary may fall between any two items.
+    let (anchor, at) = match (after, before) {
+        (Some(a), _) => a,
+        (None, Some(b)) => b,
+        (None, None) => (i64::MAX, i64::MAX),
     };
-    let anchor = if forward {
-        after.unwrap_or(0)
+    let (human_sql, reply_sql) = if forward {
+        (
+            "SELECT * FROM mailbox_messages WHERE mailbox_key=$1 AND (cursor,0::bigint)>($2,$3) AND cursor<=$4 ORDER BY cursor LIMIT $5",
+            "SELECT * FROM (SELECT r.dispatch_id,r.attachments,d.host_operation_id,d.batch_digest,d.actor_id,d.generation,d.session_id,m.*,(SELECT max(mm.cursor) FROM central_supervisor_mail_members mm WHERE mm.actor_id=d.actor_id AND mm.reservation_id=d.reservation_id) AS anchor FROM central_supervisor_replies r JOIN central_supervisor_dispatches d ON d.dispatch_id=r.dispatch_id JOIN mailbox_messages m ON m.message_id=r.reply_message_id WHERE m.mailbox_key=$1) x WHERE (x.anchor,x.cursor)>($2,$3) AND x.anchor<=$4 ORDER BY x.anchor,x.cursor LIMIT $5",
+        )
     } else {
-        before.unwrap_or(through.checked_add(1).ok_or_else(unavailable)?)
+        (
+            "SELECT * FROM mailbox_messages WHERE mailbox_key=$1 AND (cursor,0::bigint)<($2,$3) AND cursor<=$4 ORDER BY cursor DESC LIMIT $5",
+            "SELECT * FROM (SELECT r.dispatch_id,r.attachments,d.host_operation_id,d.batch_digest,d.actor_id,d.generation,d.session_id,m.*,(SELECT max(mm.cursor) FROM central_supervisor_mail_members mm WHERE mm.actor_id=d.actor_id AND mm.reservation_id=d.reservation_id) AS anchor FROM central_supervisor_replies r JOIN central_supervisor_dispatches d ON d.dispatch_id=r.dispatch_id JOIN mailbox_messages m ON m.message_id=r.reply_message_id WHERE m.mailbox_key=$1) x WHERE (x.anchor,x.cursor)<($2,$3) AND x.anchor<=$4 ORDER BY x.anchor DESC,x.cursor DESC LIMIT $5",
+        )
     };
-    let rows = sqlx::query(sql)
-        .bind(mailbox)
+    let fetch = i64::from(limit) + 1;
+    let humans = sqlx::query(human_sql)
+        .bind(&mailbox)
         .bind(anchor)
+        .bind(at)
         .bind(through)
-        .bind(i64::from(limit) + 1)
+        .bind(fetch)
         .fetch_all(&mut *tx)
         .await
-        .map_err(db)?;
+        .map_err(db)?
+        .into_iter()
+        .map(|row| message(row, id).map(|m| m.cursor.parse().map(|c| ((c, 0), m))))
+        .collect::<Result<std::result::Result<Vec<(Position, Message)>, _>>>()?
+        .map_err(|_| unavailable())?;
+    let replies = sqlx::query(reply_sql)
+        .bind(&replies_key)
+        .bind(anchor)
+        .bind(at)
+        .bind(through)
+        .bind(fetch)
+        .fetch_all(&mut *tx)
+        .await
+        .map_err(db)?
+        .into_iter()
+        .map(|row| reply(row, id))
+        .collect::<Result<Vec<_>>>()?;
+    // Merge both streams (each already in page order) into page order.
+    let mut humans = humans.into_iter().peekable();
+    let mut replies = replies.into_iter().peekable();
+    let mut merged: Vec<(Position, Item)> = Vec::new();
+    loop {
+        let human_first = match (humans.peek(), replies.peek()) {
+            (None, None) => break,
+            (Some(_), None) => true,
+            (None, Some(_)) => false,
+            (Some(h), Some(r)) => (h.0 < r.0) == forward,
+        };
+        merged.push(
+            if human_first {
+                humans.next().map(|(p, m)| (p, Item::Human(m)))
+            } else {
+                replies.next().map(|(p, r)| (p, Item::Supervisor(r)))
+            }
+            .ok_or_else(unavailable)?,
+        );
+        if merged.len() > usize::from(limit) {
+            break;
+        }
+    }
     let mut result = History {
         contract: CONTRACT,
         conversation,
@@ -216,32 +296,33 @@ pub(super) async fn history(
         .map_err(|_| unavailable())?
         .len()
         + 256;
-    let mut owners = Vec::new();
-    for row in rows {
-        if owners.len() >= usize::from(limit) {
+    let mut page: Vec<(Position, Item)> = Vec::new();
+    for (at, item) in merged {
+        if page.len() >= usize::from(limit) {
             result.has_more = true;
             break;
         }
-        let item = message(row, id)?;
         let size = serde_json::to_vec(&item).map_err(|_| unavailable())?.len() + 1;
         if bytes.checked_add(size).is_none_or(|n| n > PAGE_BYTES) {
             result.has_more = true;
             break;
         }
         bytes += size;
-        owners.push(item);
+        page.push((at, item));
     }
     if result.has_more {
-        result.next_cursor = Some(owners.last().ok_or_else(unavailable)?.cursor.clone());
+        result.next_cursor = Some(render(page.last().ok_or_else(unavailable)?.0));
     }
     if !forward {
-        owners.reverse();
+        page.reverse();
     }
-    let ids: Vec<Uuid> = owners.iter().map(|m| m.message_id).collect();
-    let cursors: Vec<i64> = owners
+    let ids: Vec<Uuid> = page
         .iter()
-        .map(|m| m.cursor.parse::<i64>().map_err(|_| unavailable()))
-        .collect::<Result<_>>()?;
+        .filter_map(|(_, item)| match item {
+            Item::Human(m) => Some(m.message_id),
+            Item::Supervisor(_) => None,
+        })
+        .collect();
     let carriers: Vec<(Uuid, Uuid, i64)> = sqlx::query("SELECT b.message_id,d.actor_id,d.generation FROM central_supervisor_mail_members b JOIN central_supervisor_dispatches d ON d.actor_id=b.actor_id AND d.reservation_id=b.reservation_id WHERE b.message_id=ANY($1) LIMIT 64")
         .bind(&ids)
         .fetch_all(&mut *tx)
@@ -250,17 +331,12 @@ pub(super) async fn history(
         .into_iter()
         .map(|r| (r.get("message_id"), r.get("actor_id"), r.get("generation")))
         .collect();
-    let replies = sqlx::query("SELECT r.dispatch_id,d.host_operation_id,d.batch_digest,d.actor_id,d.generation,d.session_id,m.*,(SELECT max(mm.cursor) FROM central_supervisor_mail_members mm WHERE mm.actor_id=d.actor_id AND mm.reservation_id=d.reservation_id) AS anchor FROM central_supervisor_replies r JOIN central_supervisor_dispatches d ON d.dispatch_id=r.dispatch_id JOIN mailbox_messages m ON m.message_id=r.reply_message_id WHERE (SELECT max(mm.cursor) FROM central_supervisor_mail_members mm WHERE mm.actor_id=d.actor_id AND mm.reservation_id=d.reservation_id)=ANY($1) ORDER BY m.cursor LIMIT 64")
-        .bind(&cursors)
-        .fetch_all(&mut *tx)
-        .await
-        .map_err(db)?
-        .into_iter()
-        .map(|row| reply(row, id))
-        .collect::<Result<Vec<_>>>()?;
     tx.commit().await.map_err(db)?;
     let sessions = dispatch::sessions(&service.pool);
-    for owner_item in owners.iter_mut() {
+    for (_, item) in page.iter_mut() {
+        let Item::Human(owner_item) = item else {
+            continue;
+        };
         if let Some((_, actor, generation)) = carriers.iter().find(|c| c.0 == owner_item.message_id)
         {
             let generation = u64::try_from(*generation).map_err(|_| unavailable())?;
@@ -272,19 +348,7 @@ pub(super) async fn history(
                 dispatch::delivery(snapshot.as_ref().map(|s| s.run.dispatch()));
         }
     }
-    let mut replies: Vec<(i64, Reply)> = replies;
-    for owner_item in owners {
-        let at = owner_item.cursor.clone();
-        result.items.push(Item::Human(owner_item));
-        let mut i = 0;
-        while i < replies.len() {
-            if replies[i].0.to_string() == at {
-                result.items.push(Item::Supervisor(replies.remove(i).1));
-            } else {
-                i += 1;
-            }
-        }
-    }
+    result.items = page.into_iter().map(|(_, item)| item).collect();
     if serde_json::to_vec(&result)
         .map_err(|_| unavailable())?
         .len()
@@ -294,7 +358,7 @@ pub(super) async fn history(
     }
     Ok(Json(result))
 }
-fn reply(row: sqlx::postgres::PgRow, id: Uuid) -> Result<(i64, Reply)> {
+fn reply(row: sqlx::postgres::PgRow, id: Uuid) -> Result<(Position, Reply)> {
     let sender: Value = row.get("sender");
     let actor_id: Uuid = row.get("actor_id");
     let generation = u64::try_from(row.get::<i64, _>("generation")).map_err(|_| unavailable())?;
@@ -303,25 +367,35 @@ fn reply(row: sqlx::postgres::PgRow, id: Uuid) -> Result<(i64, Reply)> {
     let cursor: i64 = row.get("cursor");
     let at: i64 = row.get("created_at_ms");
     let anchor: Option<i64> = row.get("anchor");
+    let message_id: Uuid = row.get("message_id");
+    let attachments = match row.get::<Value, _>("attachments") {
+        Value::Array(items)
+            if items.len() <= reply::MAX_ATTACHMENTS
+                && items.iter().all(|a| a["message_id"] == json!(message_id)) =>
+        {
+            items
+        }
+        _ => return Err(unavailable()),
+    };
     let expected = json!({"kind":"central_supervisor","actor_id":actor_id,"generation":generation,"session_id":session_id});
     if sender != expected
         || row.get::<Value, _>("recipient") != reply::reply_recipient(id)
         || row.get::<Uuid, _>("thread_id") != id
         || body.trim().is_empty()
         || body.len() > 16384
-        || cursor < 0
+        || cursor <= 0
         || at <= 0
     {
         return Err(unavailable());
     }
     let anchor = anchor.filter(|a| *a > 0).ok_or_else(unavailable)?;
     Ok((
-        anchor,
+        (anchor, cursor),
         Reply {
-            message_id: row.get("message_id"),
+            message_id,
             thread_id: id,
             conversation_id: id,
-            cursor: anchor.to_string(),
+            cursor: render((anchor, cursor)),
             author: SupervisorAuthor {
                 kind: "supervisor",
                 actor_id,
@@ -336,6 +410,7 @@ fn reply(row: sqlx::postgres::PgRow, id: Uuid) -> Result<(i64, Reply)> {
                 host_operation_id: row.get("host_operation_id"),
                 batch_digest: row.get("batch_digest"),
             },
+            attachments,
             logical_admission: "queued",
             host_delivery: "not_attempted",
             agent_receipt: None,

@@ -27,6 +27,7 @@ COPY manifest.json manifest.sigstore.json /
 
 FROM rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663 AS build
 WORKDIR /build
+ARG AQ_STATE_FORMAT
 ARG AQ_SOURCE_REVISION=unknown
 ENV AQ_SOURCE_REVISION=${AQ_SOURCE_REVISION}
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
@@ -39,7 +40,7 @@ COPY protocol ./protocol
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,sharing=locked,target=/build/target \
     cargo clean --release -p aq-server -p aq-release -p aq-protocol -p aq-worker-protocol \
-    && cargo build --locked --release --bin aq-server \
+    && AQ_IMAGE_STATE_FORMAT="${AQ_STATE_FORMAT}" cargo build --locked --release --bin aq-server \
     && mkdir -p /out \
     && cp target/release/aq-server /out/
 
@@ -52,10 +53,11 @@ FROM runtime AS server
 ARG AQ_SOURCE_REVISION=unknown
 ARG AQ_VERSION=unknown
 # The release's state format and newest worker protocol. release.yml passes
-# them from the source (STATE_FORMAT_VERSION, SUPPORTED_WORKER_PROTOCOLS) and
+# them from the migration catalog and SUPPORTED_WORKER_PROTOCOLS and
 # checks the pushed labels against the manifest; the updater refuses a
 # server image whose state-format label disagrees with its manifest.
-ARG AQ_STATE_FORMAT=49
+# Required: python3 scripts/migration_catalog.py (build.rs validates the value).
+ARG AQ_STATE_FORMAT
 ARG AQ_PROTOCOL_MAX=1
 LABEL org.opencontainers.image.title="agent-q-server" \
       org.opencontainers.image.revision="${AQ_SOURCE_REVISION}" \

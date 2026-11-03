@@ -191,6 +191,8 @@ pub async fn setup(real: bool) -> Env {
     .await
     .unwrap();
     let git = GitRuntime::new(SourceRetentionConfig {
+        keep_per_task: 2,
+        max_age: 30 * 86400,
         staging_root: dir.path().join("staging"),
         git_root: dir.path().join("git"),
         git_socket: socket,
@@ -404,6 +406,7 @@ pub async fn selection_fixture() -> SelectionFixture {
         delivery_mode: None,
     });
     let config = IntelligenceConfig {
+        accounting: Default::default(),
         revision: 1,
         credentials: configured,
         qualified_harnesses: input.node.harnesses.clone(),

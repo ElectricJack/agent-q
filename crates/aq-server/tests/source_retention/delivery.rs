@@ -6,6 +6,8 @@ use aq_server::delivery::{
 
 fn service(h: &Harness) -> DeliveryService {
     let config = SourceRetentionConfig {
+        keep_per_task: 2,
+        max_age: 30 * 86400,
         staging_root: h.dir.path().join("staging"),
         git_root: h.dir.path().join("git"),
         git_socket: h.dir.path().join("git.sock"),

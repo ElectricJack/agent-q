@@ -95,6 +95,8 @@ max_staging_bytes = 4294967296
 max_bundle_bytes = 1073741824
 bulk_concurrency = 2
 incomplete_ttl_secs = 86400
+keep_per_task = 2
+max_age = 2592000 # seconds (30 days)
 ```
 
 Put both state and staging on the same filesystem for atomic publication.
@@ -143,3 +145,29 @@ qualification evidence is in `docs/evidence/m4-git-*.{json,log}`. The process/so
 imports source centrally, stops and removes the complete worker volume, then
 constructs a candidate from central retention. These are local qualification
 results, with no hosted-production, performance or power-loss claim.
+
+# Settled task cleanup (SBX24)
+
+When source retention is configured, the server sweeps settled tasks on startup
+and every minute, eight tasks per tick. Confirmed human or automatic task
+completion, or server-owned `published` delivery evidence, makes a task eligible.
+An execution result acknowledgement alone is not task acceptance. A task with
+any held attempt is protected, including preserved attempts that still own
+source or effects. Unknown execution authority and uncertain stops are protected
+as well. Native attempts use current hot authority, not historical projections.
+
+The newest `keep_per_task` checkpoint handles across a task's attempts remain
+(default 2, ordered by transfer creation time with transfer UUID as the tie
+breaker). After `max_age` seconds from the latest settlement fact (default
+2592000, 30 days), every eligible checkpoint handle may be released. Zero
+`keep_per_task` releases all eligible handles immediately; `max_age` must be
+positive. Open tasks never expire through this policy.
+
+Each release first inspects the handle, then durably records its exact generation,
+refs, reason and operation UUID in `source_retention_releases`. Retries preserve
+that request after socket uncertainty. Only a matching confirmed release records
+`released_at` and the response; import receipts remain historical audit evidence.
+The server never deletes aq-git store paths. Reconstructible cache eviction stays
+with aq-git: `repo.cache-evict` is worker-only and explicitly refuses central
+retained pools. This sweep therefore invokes `retention.release`, leaving object
+reclamation to aq-git's lifecycle rather than attempting central cache eviction.

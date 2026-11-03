@@ -100,7 +100,7 @@
         {
           "name": "dashboard-actions",
           "version": "dashboard-actions-1",
-          "digest": "sha256:97fdea9aa4aeae795415d53bb3a4081684416bafd6f1b44e598a8e70a51df9ce"
+          "digest": "sha256:1b7e0dcc759919ace2984926deb8dcba02b715022dc1cd30f2b198fcbf998331"
         }
       ],
       "default_scope": {
@@ -283,7 +283,7 @@
         {
           "name": "dashboard-actions",
           "version": "dashboard-actions-1",
-          "digest": "sha256:97fdea9aa4aeae795415d53bb3a4081684416bafd6f1b44e598a8e70a51df9ce"
+          "digest": "sha256:1b7e0dcc759919ace2984926deb8dcba02b715022dc1cd30f2b198fcbf998331"
         }
       ],
       "default_scope": {

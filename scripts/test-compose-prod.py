@@ -97,6 +97,61 @@ def test_worker_overlay_limits_and_socket_boundaries():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     report = module.validate_production(module.merged_config(), module.slice_properties())
-    assert report["budget"]["cpus"] <= 8.0
+    assert report["budget"]["cpus"] <= 4.0
+    assert report["budget"]["memory_bytes"] <= 8_000_000_000 - 1_000_000_000
     # The base stack stays the E1a service set; workers come only from the overlay.
     assert not {"aq-supervisor-host", "aq-worker-cloud"} & set(config()["services"])
+
+
+def test_boat_profile_has_distinct_state_and_requires_additional_host_capacity():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("workers_smoke", ROOT / "scripts/compose-workers-smoke.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert "aq-worker-boat" not in module.merged_config()["services"]
+    document = module.merged_config("boat")
+    with pytest.raises(AssertionError, match="CPU budget exceeds VPS"):
+        module.validate_production(document, module.slice_properties())
+    report = module.validate_production(document, module.slice_properties(),
+                                        {"cpus": 8.0, "memory": 16_000_000_000})
+    assert report["budget"]["cpus"] == 4.125
+    example = json.loads((ROOT / "deploy/boat.example/controller.json.example").read_text())
+    assert "docker_local" not in example
+    assert example["boat"]["attempt_org"] != example["boat"]["template_org"]
+    assert example["node"]["max_concurrent_sandboxes"] == 4
+    assert example["node"]["spend_ceiling"] == {"currency": "USD", "micros": 18000000}
+
+
+@pytest.mark.parametrize("key,value,message", [
+    ("CPUQuota", "400%", "CPU budget exceeds VPS"),
+    ("MemoryMax", "8G", "memory budget leaves under 1 GB for the host"),
+])
+def test_worker_budget_rejects_previous_large_vps_slice(key, value, message):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("workers_smoke", ROOT / "scripts/compose-workers-smoke.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    properties = module.slice_properties()
+    properties[key] = value
+    with pytest.raises(AssertionError, match=message):
+        module.validate_production(module.merged_config(), properties)
+
+
+@pytest.mark.parametrize("uid,gid", [("0", "1000"), ("1000", "0"), ("bad", "1000"), ("1000", "")])
+def test_worker_initializer_refuses_invalid_identity_before_changing_volumes(uid, gid):
+    result = subprocess.run(["sh", str(ROOT / "scripts/worker-init-volumes.sh")],
+                            env=dict(os.environ, AQ_SANDBOX_UID=uid, AQ_SANDBOX_GID=gid),
+                            capture_output=True, text=True)
+    assert result.returncode != 0
+    assert "sandbox UID/GID must be" in result.stderr
+
+
+@pytest.mark.parametrize("image", ["worker:latest", "worker@sha256:abc", ""])
+def test_worker_smoke_refuses_unpinned_worker_before_starting_stack(monkeypatch, tmp_path, image):
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("workers_smoke", ROOT / "scripts/compose-workers-smoke.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    monkeypatch.setenv("AQ_WORKER_IMAGE", image)
+    with pytest.raises(AssertionError, match="published Dockerfile.worker digest"):
+        module.worker_setup(str(tmp_path / "unavailable.sock"), {})

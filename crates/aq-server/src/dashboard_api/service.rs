@@ -165,6 +165,7 @@ pub(super) async fn bootstrap(
 ) -> Result<Envelope<Bootstrap>> {
     let a = auth(state, runtime, user).await?;
     let graph = mounted.graph && a.owner && state.agent_access.is_some();
+    let graph_mutation = graph && crate::agent_access::human::task_create_available(state);
     let reviews = a.owner && mounted.reviews;
     let playbooks = a.owner && mounted.playbook_owner == Some(a.actor);
     let conversation = mounted.supervisor_conversation
@@ -216,8 +217,68 @@ pub(super) async fn bootstrap(
         ),
         capability(
             "tasks.create",
-            graph && crate::agent_access::human::task_create_available(state),
+            graph_mutation,
             "Task creation requires an owner account and configured Graph mutation identity",
+        ),
+        capability(
+            "tasks.graph.create",
+            graph_mutation,
+            "Task graph creation requires an owner account and configured Graph mutation identity",
+        ),
+        capability(
+            "tasks.edit",
+            graph_mutation,
+            "Task edits require an owner account and configured Graph mutation identity",
+        ),
+        capability(
+            "tasks.reprioritize",
+            graph_mutation,
+            "Task reprioritization requires an owner account and configured Graph mutation identity",
+        ),
+        capability(
+            "tasks.dependencies.add",
+            graph_mutation,
+            "Dependency changes require an owner account and configured Graph mutation identity",
+        ),
+        capability(
+            "tasks.dependencies.remove",
+            graph_mutation,
+            "Dependency changes require an owner account and configured Graph mutation identity",
+        ),
+        capability(
+            "tasks.cancel",
+            graph_mutation,
+            "Task cancellation requires an owner account and configured Graph mutation identity",
+        ),
+        capability(
+            "tasks.retry",
+            graph_mutation,
+            "Task retry requires an owner account and configured Graph mutation identity",
+        ),
+        capability(
+            "knowledge.author",
+            graph_mutation,
+            "Knowledge authoring requires an owner account and configured Graph mutation identity",
+        ),
+        capability(
+            "knowledge.correct",
+            graph_mutation,
+            "Knowledge correction requires an owner account and configured Graph mutation identity",
+        ),
+        capability(
+            "knowledge.verify",
+            graph_mutation,
+            "Knowledge verification requires an owner account and configured Graph mutation identity",
+        ),
+        capability(
+            "knowledge.retire",
+            graph_mutation,
+            "Knowledge retirement requires an owner account and configured Graph mutation identity",
+        ),
+        capability(
+            "knowledge.restore",
+            graph_mutation,
+            "Knowledge restore requires an owner account and configured Graph mutation identity",
         ),
         capability(
             "knowledge.read",

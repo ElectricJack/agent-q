@@ -202,6 +202,36 @@ pub(crate) fn response(state: &AppState, operation: Operation) -> OperationRespo
         },
     }
 }
+/// Creation-only machine registries pass an authenticated opaque session identity.
+pub(crate) async fn submit_scoped(
+    state: &AppState,
+    registry: &Registry,
+    user: &User,
+    request: ActionRequest,
+) -> Result<Operation, ApiError> {
+    submit_observed(state, registry, user, request, None, RequestOrigin::Union).await
+}
+pub(crate) async fn lookup_scoped(
+    state: &AppState,
+    registry: &Registry,
+    user: &User,
+    id: Uuid,
+) -> Result<Operation, ApiError> {
+    let lookup = journal::lookup_for_authorization(&state.store.pool, user.id, id)
+        .await?
+        .ok_or_else(|| ApiError::for_status(StatusCode::NOT_FOUND))?;
+    let adapter = registry
+        .get(&lookup.kind)
+        .map_err(|_| ApiError::for_status(StatusCode::NOT_FOUND))?;
+    adapter
+        .authorize_lookup(state, user, &lookup.scope, lookup.operation.as_ref())
+        .await
+        .map_err(neutral_lookup)?;
+    let op = lookup.operation.ok_or_else(|| journal::retired(id))?;
+    reconcile(state, user, adapter.as_ref(), op)
+        .await
+        .map_err(neutral_lookup)
+}
 pub(crate) async fn submit_legacy(
     state: &AppState,
     registry: &Registry,
@@ -280,16 +310,25 @@ async fn finish(
             .all(EntityRef::valid)
         && (outcome.disposition == Disposition::Confirmed
             || (outcome.receipt_refs.is_empty() && outcome.affected_entities.is_empty()))
+        && (outcome.current_versions.is_empty()
+            || (outcome.disposition == Disposition::Conflict
+                && outcome.current_versions.len() <= 32
+                && outcome
+                    .current_versions
+                    .iter()
+                    .all(|(k, v)| contract::safe(k, 128) && contract::revision(v))))
     {
         completed.disposition = outcome.disposition;
         completed.receipt_refs = outcome.receipt_refs;
         completed.affected_entities = outcome.affected_entities;
+        completed.current_versions = outcome.current_versions;
     } else {
         completed.disposition = Disposition::Unknown;
     }
     if completed.disposition == original.disposition
         && completed.receipt_refs == original.receipt_refs
         && completed.affected_entities == original.affected_entities
+        && completed.current_versions == original.current_versions
     {
         return Ok(original);
     }

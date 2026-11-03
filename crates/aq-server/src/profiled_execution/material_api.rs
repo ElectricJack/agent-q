@@ -266,7 +266,14 @@ async fn report(
     headers: HeaderMap,
     crate::admin_api::ApiJson(request): crate::admin_api::ApiJson<MaterialFetch>,
 ) -> Result<Response, AppError> {
-    let auth = crate::worker_api::authenticate_context(&state, &headers).await?;
+    let auth = crate::delegated_permits::runtime::authenticate_runner(
+        &state,
+        &headers,
+        aq_admission_sandbox::sandbox::RunnerOperation::FetchPreparationMaterial,
+        None,
+    )
+    .await?;
+    crate::delegated_permits::runtime::require_binding(&auth, &request.binding)?;
     let delivery = fetch(&state, &auth, &request).await?;
     // The HTTP stack owns this one response copy; zeroization of the private
     // reader cannot promise erasure of kernel/network/client buffers.

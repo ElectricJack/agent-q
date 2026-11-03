@@ -122,6 +122,8 @@ services:
     build:
       context: .
       target: server
+      args:
+        AQ_STATE_FORMAT: ${AQ_STATE_FORMAT:-}
     user: '10001:10001'
     entrypoint: [/bin/sh, /dev-git-supervisor.sh]
     volumes: !override
@@ -147,6 +149,8 @@ services:
     build:
       context: .
       target: server
+      args:
+        AQ_STATE_FORMAT: ${AQ_STATE_FORMAT:-}
     image: ${AQ_SERVER_IMAGE:-agent-q-server:dev}
     user: '10001:10001'
     environment:
@@ -188,7 +192,7 @@ services:
       args:
         AQ_SOURCE_REVISION: ${AQ_WORKER_SOURCE_REVISION:-}
         AQ_WORKER_ARCHIVE_SHA256: ${AQ_WORKER_ARCHIVE_SHA256:-}
-        AQ_VERSION: ${AQ_WORKER_VERSION:-0.3.1}
+        AQ_VERSION: ${AQ_WORKER_VERSION:-}
     image: ${AQ_WORKER_IMAGE:-agent-q-worker:dev}
     profiles: [smoke]
     networks: [edge]

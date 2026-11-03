@@ -67,6 +67,8 @@ fn input() -> ActualSetup {
             content_revision: 1,
         },
         source: SourceRetentionConfig {
+            keep_per_task: 2,
+            max_age: 30 * 86400,
             staging_root: "not-created-staging".into(),
             git_root: "not-opened-git".into(),
             git_socket: "not-opened-socket".into(),

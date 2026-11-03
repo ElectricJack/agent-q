@@ -219,6 +219,7 @@ fn select_internal(
             compositions: &compositions,
             ceilings: &input.project.ceilings,
             allowed_environments: &input.project.allowed_environments,
+            placement: input.placement.as_ref(),
             now_ms: input.now_ms,
             global: global_budget(input, policy),
             environment_denied: "project_environment_denied",

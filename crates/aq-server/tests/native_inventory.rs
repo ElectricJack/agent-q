@@ -59,6 +59,7 @@ async fn cold_native_inventory_requires_exact_qualified_delivery_and_fresh_owner
     let mut config = (*f.state.config).clone();
     config.intelligence = Some(Arc::new(
         IntelligenceConfig {
+            accounting: Default::default(),
             revision: 1,
             credentials: vec![CredentialConfig {
                 kind: Default::default(),

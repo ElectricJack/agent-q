@@ -9,8 +9,16 @@ const SUPPORTED_FORMAT_VERSION: u32 = 1;
 #[derive(Debug, Clone, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
+    #[serde(
+        default,
+        deserialize_with = "crate::delegated_permits::config::deserialize"
+    )]
+    pub delegated_permits: Option<std::sync::Arc<crate::delegated_permits::CredentialKey>>,
     #[serde(default, deserialize_with = "crate::playbooks::config::deserialize")]
     pub playbooks: Option<std::sync::Arc<crate::playbooks::config::Loaded>>,
+    /// Standalone human review/settlement owner, independent of the policy engine.
+    #[serde(default, deserialize_with = "crate::reviews::deserialize_config")]
+    pub reviews: Option<std::sync::Arc<crate::protected_storage::Keyring>>,
     #[serde(default, deserialize_with = "crate::terminal::config::deserialize")]
     pub terminals: Option<std::sync::Arc<crate::terminal::config::Loaded>>,
     #[serde(
@@ -29,6 +37,9 @@ pub struct Config {
     )]
     pub profiled_execution:
         Option<std::sync::Arc<crate::profiled_execution::config::ProfiledConfig>>,
+    /// C3b environment template allowlist (C4); absent means no sandbox pins.
+    #[serde(default, deserialize_with = "crate::templates::deserialize")]
+    pub templates: Option<std::sync::Arc<crate::templates::Allowlist>>,
     pub format_version: u32,
     pub environment: Environment,
     pub server: ServerConfig,
@@ -219,6 +230,13 @@ fn validate(c: &Config) -> Result<(), (String, String)> {
     if c.provider_quota.len() > 32 {
         return invalid("provider_quota", "at most 32 quota sources".into());
     }
+    if c.terminals.is_none()
+        && c.profiled_execution
+            .as_ref()
+            .is_some_and(|policy| policy.projects.iter().any(|project| project.enabled))
+    {
+        return invalid("terminals", "required when profiled_execution has enabled projects; configure terminal protection keys before starting the server".into());
+    }
     let mut quota_accounts = std::collections::BTreeSet::new();
     for source in &c.provider_quota {
         if !source.validate()
@@ -314,9 +332,12 @@ mod tests {
 
     fn cfg(env: Environment, dev: bool) -> Config {
         Config {
+            delegated_permits: None,
             playbooks: None,
+            reviews: None,
             notifications: None,
             profiled_execution: None,
+            templates: None,
             format_version: 1,
             environment: env,
             server: ServerConfig {

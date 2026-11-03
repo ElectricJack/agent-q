@@ -259,6 +259,7 @@ pub async fn setup() -> Case {
                 },
             },
             retention_handle: handle,
+            placement: None,
         }],
         context_qualifications: vec![fact],
         definition_bodies: definitions,
@@ -326,6 +327,8 @@ pub async fn setup() -> Case {
     env.env.state.source_retention = Some(Arc::new(
         aq_server::source_retention::Runtime::new(
             aq_server::source_retention::SourceRetentionConfig {
+                keep_per_task: 2,
+                max_age: 30 * 86400,
                 git_root: git,
                 git_socket: socket,
                 staging_root: env.env._dir.path().join("native-staging"),

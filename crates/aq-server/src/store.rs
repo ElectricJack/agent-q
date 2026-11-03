@@ -1,6 +1,7 @@
 //! PostgreSQL foundation store. All timestamps are supplied by the caller.
 
 use crate::STATE_FORMAT_VERSION;
+use crate::migration_catalog::MIGRATIONS;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgRow;
@@ -165,142 +166,6 @@ fn map_user_insert_err(e: sqlx::Error) -> StoreError {
     StoreError::Database(e)
 }
 
-const MIGRATIONS: &[(i32, &str)] = &[
-    (1, include_str!("../migrations/0001_foundation.sql")),
-    (2, include_str!("../migrations/0002_execution.sql")),
-    (3, include_str!("../migrations/0003_agent_access.sql")),
-    (4, include_str!("../migrations/0004_source_retention.sql")),
-    (5, include_str!("../migrations/0005_messaging.sql")),
-    (6, include_str!("../migrations/0006_profile_catalog.sql")),
-    (7, include_str!("../migrations/0007_graph_mutations.sql")),
-    (8, include_str!("../migrations/0008_project_bindings.sql")),
-    (
-        9,
-        include_str!("../migrations/0009_intelligence_selection.sql"),
-    ),
-    (
-        10,
-        include_str!("../migrations/0010_profiled_authority.sql"),
-    ),
-    (11, include_str!("../migrations/0011_notifications.sql")),
-    (12, include_str!("../migrations/0012_terminal_relay.sql")),
-    (
-        13,
-        include_str!("../migrations/0013_profiled_hot_authority.sql"),
-    ),
-    (
-        14,
-        include_str!("../migrations/0014_observation_ledger.sql"),
-    ),
-    (
-        15,
-        include_str!("../migrations/0015_never_granted_closure.sql"),
-    ),
-    (
-        16,
-        include_str!("../migrations/0016_observation_transport.sql"),
-    ),
-    (
-        17,
-        include_str!("../migrations/0017_policy_decision_principals.sql"),
-    ),
-    (18, include_str!("../migrations/0018_profiled_started.sql")),
-    (
-        19,
-        include_str!("../migrations/0019_native_registration.sql"),
-    ),
-    (
-        20,
-        include_str!("../migrations/0020_inline_artifact_owner.sql"),
-    ),
-    (21, include_str!("../migrations/0021_profiled_stopped.sql")),
-    (
-        22,
-        include_str!("../migrations/0022_profiled_source_exports.sql"),
-    ),
-    (23, include_str!("../migrations/0023_playbook_bridge.sql")),
-    (24, include_str!("../migrations/0024_profiled_results.sql")),
-    (
-        25,
-        include_str!("../migrations/0025_native_source_observations.sql"),
-    ),
-    (26, include_str!("../migrations/0026_review_owners.sql")),
-    (
-        27,
-        include_str!("../migrations/0027_native_definition_identities.sql"),
-    ),
-    (
-        28,
-        include_str!("../migrations/0028_profiled_launch_closure.sql"),
-    ),
-    (
-        29,
-        include_str!("../migrations/0029_scoped_material_presence.sql"),
-    ),
-    (
-        30,
-        include_str!("../migrations/0030_accepted_preparation_v2.sql"),
-    ),
-    (
-        31,
-        include_str!("../migrations/0031_presence_binding_barrier.sql"),
-    ),
-    (32, include_str!("../migrations/0032_phase_execution.sql")),
-    (33, include_str!("../migrations/0033_phase_terminal.sql")),
-    (
-        34,
-        include_str!("../migrations/0034_human_graph_operations.sql"),
-    ),
-    (
-        35,
-        include_str!("../migrations/0035_supervisor_conversation.sql"),
-    ),
-    (
-        36,
-        include_str!("../migrations/0036_result_media_owner.sql"),
-    ),
-    (
-        37,
-        include_str!("../migrations/0037_central_reservations.sql"),
-    ),
-    (
-        38,
-        include_str!("../migrations/0038_profiled_result_origins.sql"),
-    ),
-    (39, include_str!("../migrations/0039_pilot_settlement.sql")),
-    (
-        40,
-        include_str!("../migrations/0040_phase_never_granted.sql"),
-    ),
-    (
-        41,
-        include_str!("../migrations/0041_native_compute_occupancy.sql"),
-    ),
-    (
-        42,
-        include_str!("../migrations/0042_dashboard_operations.sql"),
-    ),
-    (
-        43,
-        include_str!("../migrations/0043_native_cancellation.sql"),
-    ),
-    (44, include_str!("../migrations/0044_results_feedback.sql")),
-    (45, include_str!("../migrations/0045_central_delivery.sql")),
-    (46, include_str!("../migrations/0046_central_sessions.sql")),
-    (
-        47,
-        include_str!("../migrations/0047_central_host_journal.sql"),
-    ),
-    (
-        48,
-        include_str!("../migrations/0048_supervisor_dispatch.sql"),
-    ),
-    (
-        49,
-        include_str!("../migrations/0049_supervisor_reservation_consumption.sql"),
-    ),
-];
-
 /// Applies missing migrations in one transaction under an advisory lock.
 /// Refuses, changing nothing, when the database is from a newer server.
 async fn migrate(pool: &PgPool) -> Result<()> {
@@ -377,6 +242,36 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         return Err(StoreError::Corrupt(
             "state format metadata does not match applied migrations".into(),
         ));
+    }
+    if supported >= 50 {
+        let intact: bool = sqlx::query_scalar(
+            r#"SELECT
+          to_regclass('delegated_permits') IS NOT NULL
+          AND to_regclass('delegated_permit_current') IS NOT NULL
+          AND to_regclass('delegated_node_boots') IS NOT NULL
+          AND to_regclass('delegated_operations') IS NOT NULL
+          AND to_regclass('delegated_permits_verifier') IS NOT NULL
+          AND to_regclass('delegated_current_verifier') IS NOT NULL
+          AND to_regclass('delegated_current_attempt') IS NOT NULL
+          AND to_regclass('delegated_current_channel') IS NOT NULL AND NOT EXISTS(
+            SELECT 1 FROM (VALUES
+              ('delegated_permits','delegated_permit_guard','delegated_permit_guard()',31),
+              ('delegated_permits','delegated_permit_truncate_guard','delegated_permit_guard()',34),
+              ('nodes','delegated_node_revoke','delegated_node_revoke()',17),
+              ('profiled_cancellations','delegated_attempt_revoke','delegated_attempt_revoke()',5)
+            ) expected(rel,name,func,kind) WHERE NOT EXISTS(
+              SELECT 1 FROM pg_trigger t WHERE t.tgrelid=to_regclass(expected.rel)
+                AND t.tgname=expected.name AND t.tgtype=expected.kind
+                AND NOT t.tgisinternal AND t.tgenabled IN ('O','A')
+                AND t.tgfoid=to_regprocedure(expected.func)))"#,
+        )
+        .fetch_one(&mut *tx)
+        .await?;
+        if !intact {
+            return Err(StoreError::Corrupt(
+                "delegated permit persistence safeguards missing or disabled".into(),
+            ));
+        }
     }
     if supported >= 42 {
         let intact: bool = sqlx::query_scalar("SELECT to_regclass('dashboard_operations') IS NOT NULL AND to_regprocedure('guard_dashboard_operation()') IS NOT NULL AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='dashboard_operation_guard' AND tgrelid=to_regclass('dashboard_operations') AND NOT tgisinternal AND tgenabled='O') AND EXISTS (SELECT 1 FROM pg_trigger WHERE tgname='dashboard_operation_truncate_guard' AND tgrelid=to_regclass('dashboard_operations') AND NOT tgisinternal AND tgenabled='O')").fetch_one(&mut *tx).await?;
@@ -488,14 +383,14 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         result38::validate(&mut tx).await?;
     }
     if supported >= 41 {
-        settlement39::validate_compute_reuse(&mut tx).await?;
+        settlement39::validate_compute_reuse(&mut tx, supported).await?;
     } else if supported >= 40 {
         settlement39::validate_phase_absence(&mut tx).await?;
     } else if supported >= 39 {
         settlement39::validate(&mut tx).await?;
     }
     if supported >= 43 {
-        never_granted40::validate_native_cancellation(&mut tx).await?;
+        never_granted40::validate_native_cancellation(&mut tx, supported).await?;
         compute41::validate(&mut tx).await?;
         cancellation43::validate(&mut tx).await?;
     } else if supported >= 41 {
@@ -503,6 +398,15 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         compute41::validate(&mut tx).await?;
     } else if supported >= 40 {
         never_granted40::validate(&mut tx).await?;
+    }
+    if supported >= 52 {
+        replacement52::validate(&mut tx).await?;
+    }
+    if supported >= 53 {
+        retained_source53::validate(&mut tx).await?;
+    }
+    if supported >= 59 {
+        auto56::validate(&mut tx).await?;
     }
     tx.commit().await?;
     Ok(())
@@ -966,6 +870,16 @@ impl Store {
         Ok(Some(row.into()))
     }
 
+    pub async fn find_node_by_id(&self, node_id: Uuid) -> Result<Option<Node>> {
+        Ok(
+            sqlx::query_as::<_, NodeRow>(&format!("SELECT {NODE_COLS} FROM nodes WHERE id=$1"))
+                .bind(node_id)
+                .fetch_optional(&self.pool)
+                .await?
+                .map(Node::from),
+        )
+    }
+
     /// Returns revoked nodes too so callers can tell revoked from unknown.
     pub async fn find_node_by_credential(&self, credential_hash: &str) -> Result<Option<Node>> {
         Ok(sqlx::query_as::<_, NodeRow>(&format!(
@@ -1032,9 +946,8 @@ mod tests {
     /// Every migration is a state-format change. The updater decides whether
     /// a rollback must restore the pre-update backup by comparing manifest
     /// state formats, while the server refuses a database holding any
-    /// migration newer than it knows. A migration added without bumping
-    /// `STATE_FORMAT_VERSION` would make the updater roll back without a
-    /// restore onto data the old server refuses to open.
+    /// migration newer than it knows. Generate both from the same catalog so
+    /// rollback always restores data when the schema changes.
     #[test]
     fn state_format_is_the_latest_migration() {
         let numbers: Vec<i32> = MIGRATIONS.iter().map(|m| m.0).collect();
@@ -1047,8 +960,7 @@ mod tests {
         assert_eq!(
             STATE_FORMAT_VERSION, latest,
             "STATE_FORMAT_VERSION must equal the newest migration number: every migration is a \
-             state-format change. Bump STATE_FORMAT_VERSION (and READABLE_STATE_FORMATS, and the \
-             Dockerfile's AQ_STATE_FORMAT default) together with the migration"
+             state-format change. Both must be generated from the migration catalog"
         );
         assert!(READABLE_STATE_FORMATS.contains(&STATE_FORMAT_VERSION));
         for (n, sql) in MIGRATIONS {
@@ -1089,6 +1001,8 @@ mod settlement39;
 #[path = "store/settlement39_tests.rs"]
 mod settlement39_tests;
 
+#[path = "store/auto56.rs"]
+mod auto56;
 #[path = "store/compute41.rs"]
 mod compute41;
 #[path = "store/never_granted40.rs"]
@@ -1096,3 +1010,7 @@ mod never_granted40;
 
 #[path = "store/cancellation43.rs"]
 mod cancellation43;
+#[path = "store/replacement52.rs"]
+mod replacement52;
+#[path = "store/retained_source53.rs"]
+mod retained_source53;

@@ -64,8 +64,8 @@ acceptance test fail at `supervisor_session.rs:886` (left `"pending"`, right
 - **`aq-central-authority/src/owner.rs` changed outside the plan:** its
   `SET LOCAL` statements use `sqlx::query`, and `inspect`/`generation` return
   boxed `Send` futures, so owner reads can run inside Axum handlers.
-- **History schema `maxItems` was raised to 80** (from 16 history items),
-  because up to 64 supervisor replies interleave with the owner items. This
+- **History schema `maxItems` was raised to 80** (from 16 history items;
+  since reverted to 16 by `steady-harbor-87.2.4`), because up to 64 supervisor replies interleave with the owner items. This
   is a protocol addition and needs a matching dashboard consumer change
   (cross-repo follow-up comment).
 - **No adversarial review:** the task is not marked for one (subtask 6 is N/A).
@@ -82,6 +82,21 @@ acceptance test fail at `supervisor_session.rs:886` (left `"pending"`, right
 - Only the `messaging` scope is exercised. The `graph.read`, `graph.write`,
   `enqueue` and `decisions` scopes are issued but not yet enforced by any
   route (F2/F5 own those commands).
+- ~~History anchors replies at the batch's max cursor.~~ ~~`inspect` takes a
+  `FOR UPDATE` row lock.~~ Both are fixed by `steady-harbor-87.2.4`
+  (`F1b-reply-cursoring.md`): replies have their own `A.R` cursor, pagination
+  counts them, `maxItems` is back to 16, and `inspect` reads a lock-free
+  snapshot.
+
+  message needs a successor generation. A completed turn releases its
+  reservation; see [F1b-reservation-consumption.md](F1b-reservation-consumption.md).
+- Credential lifecycle and authenticate/write races are addressed by
+  `steady-harbor-87.2.3`; see [F1b-scopes.md](F1b-scopes.md) for explicit
+  transactional revocation and the reply write check.
+- Only the `messaging` route exists at this checkpoint. All five issued
+  scopes are checked by the shared authenticator and tested in the scope
+  follow-up; [F1b-scopes.md](F1b-scopes.md) defines the required integration
+  for F2/F5 routes when those features land.
 - History anchors replies at the batch's max cursor. Reply-level cursoring
   and pagination are not separate.
 - `inspect` takes a `FOR UPDATE` row lock, including from the `live` read
@@ -117,3 +132,29 @@ the merge, the `acceptance` check was rerun and
 `F1b-evidence/acceptance.txt` now holds that post-merge run:
 `owner_message_reaches_supervisor_and_reply_is_recorded ... ok`, 1 passed and 0
 failed, with every other test binary matching 0 tests.
+
+## Typed History attachments (wise-apex-23, for G8)
+
+Supervisor replies may attach up to four typed items, which History serves on
+the supervisor item: `proposed_task_draft` (project and revision pins and a
+canonical payload digest) and `action_receipt` (a confirmed F2 `task.create` or
+`task.graph.create` operation of the same supervisor session, with created
+task/edge IDs and receipt refs). Each item carries its reply's `message_id`. The
+server resolves and snapshots items in the reply transaction, in
+`central_supervisor_replies.attachments` (state format 62, migration 0062), so
+receipt access survives retirement and credential rotation. Unknown, pending,
+retired or other-principal operations are 409 before any write. Cursoring is
+unchanged. The protocol change is additive. The README publishes the schema
+digest, and `schema.sha256` pins it.
+
+Evidence: `supervisor_turns`
+`reply_attachments_serve_typed_drafts_and_session_receipts_through_history` and
+`attachment_fixtures_match_schema_and_published_digest`.
+Commands (logs in `F1b-attachments-evidence/`, run through
+`CHECKS=<list> aq test docs/implementation/F1b-attachments-evidence/test_cargo.py -n 0`
+with the disposable PostgreSQL on 127.0.0.1:55432): `turns` (supervisor_turns:
+7 passed, including the pre-upgrade format-48 reply tests, which still pass
+because replies without attachments write the pre-0062 row), `conversation`
+(6 passed), `reply_lib` (`--lib messaging::global`: 17 passed),
+`format_version` (1 passed, state format 62), and `clippy -D warnings` and
+`fmt --check` (both clean).

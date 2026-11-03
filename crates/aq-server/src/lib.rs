@@ -5,6 +5,7 @@ pub mod authz;
 pub mod config;
 pub mod dashboard_api;
 pub mod dashboard_assets;
+pub mod delegated_permits;
 pub mod delivery;
 pub mod error;
 pub mod execution;
@@ -25,6 +26,7 @@ pub mod reviews;
 pub mod session_access;
 pub mod source_retention;
 pub mod store;
+pub mod templates;
 pub mod terminal;
 #[cfg(any(test, feature = "test-support"))]
 pub mod test_support;
@@ -47,16 +49,13 @@ use serde_json::{Value, json};
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-/// The database state format: always the newest migration's number, because
-/// every migration is a state-format change (`store` tests enforce it). The
-/// updater restores the pre-update backup on rollback only when the format
-/// changes, so a migration without a bump would strand the old release.
-pub const STATE_FORMAT_VERSION: u32 = 49;
-/// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
-pub const READABLE_STATE_FORMATS: &[u32] = &[
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-    27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49,
-];
+// Generated from the sorted SQL directory; adding a migration needs no registry edit.
+mod migration_catalog {
+    include!(concat!(env!("OUT_DIR"), "/migration_catalog.rs"));
+}
+/// Database format and readable prefixes, derived from the migration catalog.
+/// Every migration changes the format so updater rollback restores its backup.
+pub use migration_catalog::{READABLE_STATE_FORMATS, STATE_FORMAT_VERSION};
 /// Versions that may be upgraded to this release.
 pub const UPGRADE_FROM: &str = ">=0.1.0";
 
@@ -224,6 +223,13 @@ pub fn build_admin_router_with_optional_owners(
     dashboard: Option<Arc<dashboard_assets::DashboardAssets>>,
     media: Option<Arc<result_media::runtime::Runtime>>,
 ) -> Router {
+    let reviews = reviews.or_else(|| {
+        state
+            .config
+            .reviews
+            .as_ref()
+            .map(|keys| Arc::new(reviews::Service::new(state.clone(), keys.clone())))
+    });
     let mounted = dashboard_api::MountedOwners {
         graph: true,
         session_usage: true,
@@ -331,6 +337,7 @@ fn build_worker_router_inner(
     Router::new()
         .merge(closure)
         .merge(worker_api::worker_routes(state.clone()))
+        .merge(delegated_permits::incarnation::routes(state.clone()))
         .merge(profiled_execution::api::routes(state.clone()))
         .merge(profiled_execution::control_api::routes(state.clone()))
         .merge(profiled_execution::accepted_preparation::routes(
@@ -359,6 +366,7 @@ fn build_worker_router_inner(
         .merge(agent_access::supervisor_conversation::supervisor_routes(
             &state,
         ))
+        .merge(agent_access::human::enqueue::supervisor::routes())
         .merge(source_retention::machine_routes(state.clone()))
         .merge(execution::api::worker_routes(state.clone()))
         .merge(terminal::api::worker_routes(state.clone()))
@@ -439,6 +447,7 @@ async fn run_with_listeners_and_dashboard(
     ));
     let terminal_task = tokio::spawn(terminal::runtime::run(state.clone(), rx.clone()));
     let expiry_task = tokio::spawn(profiled_execution::expiry::run(state.clone(), rx.clone()));
+    let source_gc_task = tokio::spawn(source_retention::gc::run(state.clone(), rx.clone()));
     tokio::spawn(async move {
         shutdown.await;
         let _ = tx.send(true);
@@ -476,6 +485,8 @@ async fn run_with_listeners_and_dashboard(
     let _ = terminal_task.await;
     notification_task.abort();
     let _ = notification_task.await;
+    source_gc_task.abort();
+    let _ = source_gc_task.await;
     expiry_task.abort();
     let _ = expiry_task.await;
     let policy_shutdown = match policy_runtime {
