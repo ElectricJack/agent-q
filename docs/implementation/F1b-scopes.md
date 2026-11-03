@@ -3,7 +3,10 @@
 Task `steady-harbor-87.2.3`, based on the supervisor-authorized F1b checkpoint
 `b807f893fa50089c1b7108168a3a4a4faa5973aa` from `aq/steady-harbor-87.2`.
 The merge of `origin/main` at `d616375f` retains reservation consumption as
-migration 0049 and advances this follow-up's revocation migration to 0050.
+migration 0049. Operator coordination reserves migration 0050 for B2; this
+follow-up uses migration 0051 and state format 51. It depends on
+`noble-summit-37.2`, stacked at published commit
+`1e3b87c81d6f3d7268062f26a025666f9343aff4` to preserve contiguous migrations.
 The subsequent clean merge at `1b570310` preserves host credential activation;
 the named owner-message/reply acceptance check is rerun against that wiring.
 
@@ -24,13 +27,13 @@ mailbox writes. A stop, loss, replacement credential or successor between the
 first check and the write cannot admit a reply. After the second check, lifecycle
 and credential changes serialize after the protected transaction commits.
 
-Migration 0050 explicitly sets `revoked_at_ms` in the same transaction that changes
+Migration 0051 explicitly sets `revoked_at_ms` in the same transaction that changes
 a generation to an inactive phase. This includes stop requested, stop uncertain,
 stopped, cancelled before start, permit expiry and HostLost, regardless of whether
 the transition came through the host controller or the central owner. The first
 revocation timestamp is retained. The migration also revokes previously retained
 credentials whose generation is inactive or no longer current. The format version,
-readable formats and Docker default advance together to 50.
+readable formats and Docker default advance together to 51.
 
 ## Route integration contract
 

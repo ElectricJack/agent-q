@@ -21,4 +21,4 @@ UPDATE central_supervisor_credentials c
   AND c.actor_id=g.actor_id AND c.generation=g.generation
   AND (c.generation<>h.current_generation
    OR (g.state_bytes::jsonb#>>'{data,phase}') NOT IN ('start_committed','running_reported'));
-UPDATE meta SET value='50' WHERE key='state_format_version';
+UPDATE meta SET value='51' WHERE key='state_format_version';
