@@ -29,7 +29,7 @@ manifest bundle for this identity and issuer, bound to the tag and commit the
 manifest itself names:
 
 ```
---certificate-identity-regexp '^https://github\.com/ElectricJack/agent-q/\.github/workflows/release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'
+--certificate-identity-regexp '^https://github\.com/ElectricJack/aq-server/\.github/workflows/release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'
 --certificate-oidc-issuer https://token.actions.githubusercontent.com
 --certificate-github-workflow-ref refs/tags/v<manifest version>
 --certificate-github-workflow-sha <manifest source_revision>
@@ -135,7 +135,7 @@ The binary is attached to each GitHub Release as `aq-updater-x86_64-linux`
 file. The repository is public, so download both directly:
 
 ```sh
-base=https://github.com/ElectricJack/agent-q/releases/download/v0.1.0
+base=https://github.com/ElectricJack/aq-server/releases/download/v0.1.0
 curl -fsSLO "$base/aq-updater-x86_64-linux" -fsSLO "$base/SHA256SUMS"
 sha256sum -c --ignore-missing SHA256SUMS
 install -m 0755 aq-updater-x86_64-linux /usr/local/bin/aq-updater
@@ -285,7 +285,7 @@ project_name = "agent-q"
 [verifier]
 kind = "cosign_keyless"
 cosign_path = "/usr/local/bin/cosign"
-identity_regexp = '^https://github\.com/ElectricJack/agent-q/\.github/workflows/release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'
+identity_regexp = '^https://github\.com/ElectricJack/aq-server/\.github/workflows/release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$'
 oidc_issuer = "https://token.actions.githubusercontent.com"
 ```
 
@@ -325,7 +325,7 @@ token by logging in again; nothing else stores it.
 ```ini
 [Unit]
 Description=Agent Q host updater
-Documentation=https://github.com/ElectricJack/agent-q/blob/main/docs/operations.md
+Documentation=https://github.com/ElectricJack/aq-server/blob/main/docs/operations.md
 Wants=network-online.target docker.service
 After=network-online.target docker.service
 # At most 5 starts in 10 minutes. Restart= below restarts the updater after a
@@ -585,7 +585,7 @@ Do this once, before the first tag. `release.yml` signs whatever a `v*` tag
 points at, so only the owner may create those tags. This is the owner's
 action in the GitHub UI; nothing in the repository sets it up.
 
-On github.com/ElectricJack/agent-q: **Settings → Rules → Rulesets → New
+On github.com/ElectricJack/aq-server: **Settings → Rules → Rulesets → New
 ruleset → New tag ruleset**, then:
 
 - **Ruleset name:** `release tags`
@@ -660,8 +660,8 @@ git merge-base --is-ancestor <merge-commit> origin/main && echo "on main"
 6. Promote it to the stable channel:
 
    ```sh
-   gh workflow run promote.yml -R ElectricJack/agent-q -f version=0.2.0
-   gh run watch -R ElectricJack/agent-q
+   gh workflow run promote.yml -R ElectricJack/aq-server -f version=0.2.0
+   gh run watch -R ElectricJack/aq-server
    ```
 
    `promote.yml` requires the GitHub Release to exist (that is, the release
@@ -680,7 +680,7 @@ Releases do not replace `aq-updater` itself; the spec defers that. To upgrade
 it:
 
 ```sh
-gh release download v0.2.0 -R ElectricJack/agent-q -p aq-updater-x86_64-linux -p SHA256SUMS
+gh release download v0.2.0 -R ElectricJack/aq-server -p aq-updater-x86_64-linux -p SHA256SUMS
 sha256sum -c --ignore-missing SHA256SUMS
 sudo -u aq-updater aq-updater status        # expect state: idle
 systemctl stop aq-updater                   # waits for an in-flight update
@@ -703,10 +703,10 @@ them from the worker image digest in a verified manifest:
 1. Get the manifest and bundle from the GitHub Release and verify them:
 
    ```sh
-   gh release download v0.2.0 -R ElectricJack/agent-q -p manifest.json -p manifest.sigstore.json
+   gh release download v0.2.0 -R ElectricJack/aq-server -p manifest.json -p manifest.sigstore.json
    SHA=$(python3 -c 'import json; print(json.load(open("manifest.json"))["source_revision"])')
    cosign verify-blob --bundle manifest.sigstore.json \
-     --certificate-identity-regexp '^https://github\.com/ElectricJack/agent-q/\.github/workflows/release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$' \
+     --certificate-identity-regexp '^https://github\.com/ElectricJack/aq-server/\.github/workflows/release\.yml@refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$' \
      --certificate-oidc-issuer https://token.actions.githubusercontent.com \
      --certificate-github-workflow-ref refs/tags/v0.2.0 \
      --certificate-github-workflow-sha "$SHA" \
