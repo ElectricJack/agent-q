@@ -69,3 +69,22 @@ No migration was added (operator note: 0050 is reserved for B2).
 - **`REPEATABLE READ, READ ONLY`, not autocommit reads.** The head and
   generation rows are still read from one snapshot, so `inspect` never pairs
   a head with a generation from a different commit.
+
+## Final merge
+
+`git merge origin/main` (merge `5ec52007`) brought in 87.2.1's reservation
+consumption (migration 0049) and supervisor-host credential and adapter work.
+It merged without conflicts. The logs in `F1b-cursoring-evidence/` are from
+the post-merge reruns:
+
+- passing: `acceptance` (1 passed; workspace `--exact`), `inspect` (10),
+  `conversation` (6), `api` (2) and `clippy` (clean);
+- `host`: 11 passed, 1 failed. The failure is
+  `main_delivery_database_upgrades_without_losing_history`
+  (`supervisor_session.rs:618`): left `"49"`, right `"48"`. It already fails
+  on `origin/main`, which added migration 0049 without updating that literal.
+  It is not caused by this change; before the merge `host` was 12/12. It is
+  recorded as a task finding.
+
+The `central37` and `format` logs are from before the merge (7 passed;
+clean).
