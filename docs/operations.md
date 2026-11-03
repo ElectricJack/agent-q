@@ -193,6 +193,27 @@ aq-updater --version
   Without `AQ_SERVER_IMAGE`, it builds this checkout and obtains a digest using
   a disposable loopback registry; a supplied image must already be digest-pinned.
   The smoke removes its own Compose containers/volumes and registry afterward.
+- Add `compose.workers.yaml` to the Compose file list for the cloud worker.
+  Build `Dockerfile.worker` using the immutable source and checksum in
+  `vendor/worker-candidate.json`, then set `AQ_WORKER_IMAGE` to its published
+  manifest digest. [Worker image evidence](implementation/E1c-worker-image.md)
+  records the qualified reference and build commands. It includes aq-worker
+  0.5.1 with the docker-local controller; the old 0.3.1 image is unsupported.
+  Set `AQ_SANDBOX_UID` and `AQ_SANDBOX_GID` to the dedicated rootless sandbox
+  daemon's non-root socket owner, and `AQ_SANDBOX_SOCKET_DIR` to its socket
+  directory. `aq-worker-state-init` prepares only the journal and credential
+  lease named volumes for this identity before the worker starts.
+  `AQ_WORKER_CONFIG_DIR` is mounted read-only: place the saved enrollment at
+  `agent-q/worker.toml` (0600, readable by the sandbox UID) and the operator
+  controller configuration at `controller.json`. Its `state_dir` must be under
+  `/state`, and `docker_local.socket` must be `/run/aq-sandbox/podman.sock`.
+  The enrollment's `server_url` must be the public HTTPS Access hostname;
+  `AQ_SERVER_URL` does not override saved enrollment. The worker joins only
+  its own egress network. The root initializer has no network or bind mounts.
+  Run `AQ_WORKER_IMAGE=<published-digest> scripts/compose-smoke.sh prod-workers`
+  for a disposable worker startup, heartbeat, controller journal and sandbox
+  load drill. This test uses a local server route and seeded foundation
+  credential; it does not qualify Access enrollment or B2 admission.
 - `/etc/agent-q/agent-q.env`, the operator's env file. It holds only the
   operator's paths:
 

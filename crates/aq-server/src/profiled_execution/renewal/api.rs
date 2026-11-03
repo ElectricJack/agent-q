@@ -39,7 +39,14 @@ async fn renew(
         else {
             return Err(AppError::BadRequest("expected runner renewal request".into()).into());
         };
-        crate::delegated_permits::runtime::require_document(&auth, &request)?;
+        crate::delegated_permits::runtime::require_attempts(
+            &auth,
+            [request.permit.binding.attempt_id],
+        )?;
+        crate::delegated_permits::runtime::require_binding(
+            &auth,
+            &request.authority.grant.binding,
+        )?;
         let reply = if let Some(reply) = crate::delegated_permits::incarnation::renew_after_reboot(
             &state, &auth, &request, nonce,
         )

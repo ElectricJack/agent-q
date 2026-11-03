@@ -146,7 +146,19 @@ async fn batch(
         None,
     )
     .await?;
-    crate::delegated_permits::runtime::require_document(&node, &packet)?;
+    let Message::Batch(batch) = &packet.body.message else {
+        return Err(crate::delegated_permits::runtime::refused());
+    };
+    crate::delegated_permits::runtime::require_attempts(
+        &node,
+        batch
+            .events
+            .iter()
+            .map(|event| event.body.binding.attempt_id),
+    )?;
+    for event in &batch.events {
+        crate::delegated_permits::runtime::require_session(&node, &event.body.binding.session)?;
+    }
     let receipt = ingest_authenticated(&state, &node, &packet).await?;
     Ok(([(header::CACHE_CONTROL, "no-store")], Json(receipt)))
 }

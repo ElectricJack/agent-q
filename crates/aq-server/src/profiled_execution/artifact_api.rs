@@ -51,7 +51,7 @@ async fn fetch(
         None,
     )
     .await?;
-    crate::delegated_permits::runtime::require_document(&auth, &request)?;
+    crate::delegated_permits::runtime::require_binding(&auth, &request.binding)?;
     if auth.id() != request.identity.node_id {
         return Err(AppError::Forbidden("artifact node mismatch".into()));
     }
