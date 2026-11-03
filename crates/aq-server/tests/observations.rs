@@ -1173,6 +1173,87 @@ mod accounting {
         drop(f);
     }
 
+    // C4 follow-up: the node's accounted spend feeds its B1 spend ceiling.
+    #[tokio::test]
+    async fn node_spend_ceiling_uses_accounted_node_spend() {
+        use aq_selection::NodeCeiling;
+        use aq_server::profiled_execution::placement::{self, Ledger};
+        let (mut f, _) = seeded(Some(true)).await;
+        let cards = vec![card(&f, 1, 3_000_000)];
+        install(&mut f, aq_selection::CredentialKind::ApiKey, cards);
+        let pool = f.db.pool().await;
+        let book = catalog::rate_book(&f.state);
+        let node = f.node.node_id;
+        let advertise = |currency: &str, micros: u64| {
+            json!({"backend": {"kind": "boat", "capabilities": ["vm-isolation"],
+                "max_concurrent_sandboxes": 4,
+                "spend_ceiling": {"currency": currency, "micros": micros}, "templates": []}})
+        };
+        sqlx::query(
+            "INSERT INTO delegated_node_boots(node_id,boot_id,registration) VALUES($1,$2,$3)",
+        )
+        .bind(node)
+        .bind(Uuid::new_v4())
+        .bind(advertise("USD", 3_060))
+        .execute(&pool)
+        .await
+        .unwrap();
+        let ceiling = || async {
+            let ledger = Ledger {
+                pool: &pool,
+                book: &book,
+            };
+            placement::facts_in(&pool, &ledger, None, node, &"f".repeat(64), "ci@1", NOW)
+                .await
+                .unwrap()
+                .expect("a B1-registered node has placement facts")
+                .ceiling
+        };
+        let readvertise = |currency: &'static str, micros: u64| {
+            let pool = pool.clone();
+            async move {
+                sqlx::query("UPDATE delegated_node_boots SET registration=$2 WHERE node_id=$1")
+                    .bind(node)
+                    .bind(advertise(currency, micros))
+                    .execute(&pool)
+                    .await
+                    .unwrap();
+            }
+        };
+        // No reported calls yet: zero spent, so the node is under its ceiling.
+        assert_eq!(ceiling().await, None);
+        let attempt = f.profiled.offer.binding.attempt_id;
+        let s = catalog::source_for_attempt(&f.state, attempt)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            send(&f, &packet(&f, vec![call(&s, 1, "call-1", 1000)])).await,
+            StatusCode::OK
+        );
+        let summary = budget::node(&pool, &book, node).await.unwrap();
+        assert_eq!(summary.spent_microunits, Some(3060));
+        assert!(summary.complete);
+        // 3060 spent: at the 3060 ceiling the node refuses with a typed reason.
+        assert_eq!(ceiling().await, Some(NodeCeiling::Spend));
+        assert_eq!(NodeCeiling::Spend.reason(), "node_spend_ceiling_reached");
+        // Under a higher ceiling it receives offers.
+        readvertise("USD", 3_061).await;
+        assert_eq!(ceiling().await, None);
+        // A ceiling in another currency is not comparable: refused, not zero.
+        readvertise("EUR", 1_000_000).await;
+        assert_eq!(ceiling().await, Some(NodeCeiling::SpendUnaccounted));
+        // Another node's spend is not this node's.
+        assert_eq!(
+            budget::node(&pool, &book, Uuid::new_v4())
+                .await
+                .unwrap()
+                .costs,
+            vec![]
+        );
+        drop(f);
+    }
+
     #[tokio::test]
     async fn flat_subscription_usage_is_labelled_not_costed() {
         let (mut f, _) = seeded(Some(true)).await;

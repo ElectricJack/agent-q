@@ -590,6 +590,13 @@ dc up -d --wait --wait-timeout 120 postgres </dev/null >>"$COMPOSE_LOG" 2>&1 || 
   tail -20 "$COMPOSE_LOG" >&2
   fail "postgres did not become healthy"
 }
+# Create the server's aq_server role and database before the first install,
+# as `compose up` would on a real host (the updater also re-runs this
+# idempotent provisioning before each pre-update backup).
+dc run --rm --no-deps server-db-init </dev/null >>"$COMPOSE_LOG" 2>&1 || {
+  tail -20 "$COMPOSE_LOG" >&2
+  fail "server-db-init failed"
+}
 
 # ------------------------------------------------------------------ cases
 
