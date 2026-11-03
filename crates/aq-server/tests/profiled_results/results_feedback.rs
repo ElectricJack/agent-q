@@ -107,6 +107,11 @@ async fn feedback_comments_replay_history_resolution_and_feeds() {
     );
     let (_, following) = send(&app, "GET", "/api/v1/results?mode=following", Value::Null).await;
     assert_eq!(following["data"]["items"].as_array().unwrap().len(), 1);
+    // Thread opt-in includes the result in Following without changing its toggle.
+    assert_eq!(
+        following["data"]["items"][0]["result"]["directly_following"],
+        false
+    );
     let (_, needs) = send(
         &app,
         "GET",
@@ -137,6 +142,39 @@ async fn feedback_comments_replay_history_resolution_and_feeds() {
     assert!(needs["data"]["items"].as_array().unwrap().is_empty());
     let (_, detail) = send(&app, "GET", &root, Value::Null).await;
     assert_eq!(detail["data"]["assessment"]["acceptance"], "unreviewed");
+    assert_eq!(
+        detail["data"]["revision"]["addressed_feedback"],
+        json!([id])
+    );
+    assert_eq!(
+        detail["data"]["feedback_read_version"],
+        "results-feedback-1.1"
+    );
+    assert_eq!(
+        detail["data"]["follow_up_submission"],
+        json!({"state":"unsupported"})
+    );
+    let (_, comments) = send(&app, "GET", &path, Value::Null).await;
+    assert_eq!(
+        comments["data"]["feedback_read_version"],
+        "results-feedback-1.1"
+    );
+    assert_eq!(
+        comments["data"]["follow_up_submission"],
+        json!({"state":"unsupported"})
+    );
+    assert_eq!(
+        comments["data"]["items"][0]["resolution"]["follow_up"]["revision"],
+        receipt.report_digest.as_str()
+    );
+    assert_eq!(
+        comments["data"]["items"][0]["resolution"]["follow_up_report_id"],
+        report.report_id.to_string()
+    );
+    assert_eq!(
+        comments["data"]["items"][0]["resolution"]["reason"],
+        "Caption checked"
+    );
 }
 
 #[tokio::test]
@@ -296,6 +334,19 @@ async fn feedback_task_links_result_revision() {
     assert_eq!(count, 1);
     let (_, comments) = send(&app, "GET", &format!("{root}/comments"), Value::Null).await;
     assert_eq!(comments["data"]["items"][0]["thread_state"], "open");
+    let links = comments["data"]["items"][0]["feedback_links"]
+        .as_array()
+        .unwrap();
+    assert_eq!(links.len(), 1);
+    assert_eq!(links[0]["operation_id"], id.to_string());
+    assert_eq!(links[0]["task_id"], id.to_string());
+    assert_eq!(links[0]["origin"]["comment_id"], comment.to_string());
+    assert_eq!(links[0]["origin"]["comment_revision"], "1");
+    assert_eq!(
+        links[0]["origin"]["revision"],
+        receipt.report_digest.as_str()
+    );
+    assert!(comments["data"]["items"][0]["resolution"].is_null());
     let child_id = Uuid::new_v4();
     let mut child_draft = draft.clone();
     child_draft["operation_id"] = json!(child_id);
@@ -388,6 +439,76 @@ async fn feedback_task_links_result_revision() {
     );
     let (_, comments) = send(&app, "GET", &format!("{root}/comments"), Value::Null).await;
     assert_eq!(comments["data"]["items"][0]["thread_state"], "open");
+    let links = comments["data"]["items"][0]["feedback_links"]
+        .as_array()
+        .unwrap();
+    // Creation, recovered creation and existing-task linking retain separate IDs.
+    assert_eq!(links.len(), 4);
+    let existing = links
+        .iter()
+        .find(|link| link["operation_id"] == link_id.to_string())
+        .unwrap();
+    assert_eq!(existing["task_id"], id.to_string());
+    assert_eq!(existing["origin"]["comment_revision"], "1");
+    assert_eq!(existing["origin"]["artifacts"], json!([]));
+    assert!(comments["data"]["items"][0]["resolution"].is_null());
+    assert_eq!(
+        comments["data"]["follow_up_submission"],
+        json!({"state":"unsupported"})
+    );
+    let (_, detail) = send(&app, "GET", &root, Value::Null).await;
+    assert_eq!(detail["data"]["revision"]["addressed_feedback"], json!([]));
+    let (_, corrected) = send(
+        &app, "POST", &format!("/api/v1/comments/{comment}/revisions"),
+        json!({"operation_id":Uuid::new_v4(),"expected_version":"1","body":"Updated wording after task creation"}),
+    ).await;
+    assert_eq!(corrected["data"]["disposition"], "confirmed");
+    let (_, detail) = send(&app, "GET", &root, Value::Null).await;
+    let reply = Uuid::new_v4();
+    let (_, replied) = send(
+        &app,
+        "POST",
+        &format!("{root}/comments"),
+        json!({
+            "operation_id":reply,"expected_version":detail["data"]["result"]["version"],"thread_id":comment,
+            "body":"Another comment in this thread","anchor":{"kind":"result"}
+        }),
+    )
+    .await;
+    assert_eq!(replied["data"]["disposition"], "confirmed");
+    let reloaded = aq_server::build_admin_router(f.state.clone());
+    let (_, comments) = send(&reloaded, "GET", &format!("{root}/comments"), Value::Null).await;
+    assert_eq!(comments["data"]["items"][0]["revision"], "2");
+    for link in comments["data"]["items"][0]["feedback_links"]
+        .as_array()
+        .unwrap()
+    {
+        assert_eq!(link["origin"]["comment_revision"], "1");
+    }
+    assert_eq!(comments["data"]["items"][1]["feedback_links"], json!([]));
+    serde_json::from_value::<aq_server::results_feedback::contract::CommentsPage>(
+        comments["data"].clone(),
+    )
+    .unwrap();
+    let mut correction = report.clone();
+    correction.report_id = Uuid::new_v4();
+    correction.operation_id = Uuid::new_v4();
+    correction.supersedes = Some(report.report_id);
+    let next = results::record(&f.state, &context(&f).await, &correction)
+        .await
+        .unwrap();
+    let (_, fresh) = send(
+        &reloaded,
+        "GET",
+        &format!(
+            "/api/v1/results/{}/revisions/{}/comments",
+            report.report_id,
+            next.report_digest.as_str()
+        ),
+        Value::Null,
+    )
+    .await;
+    assert_eq!(fresh["data"]["items"], json!([]));
     child.kill().await.unwrap();
 }
 
@@ -721,5 +842,159 @@ async fn feedback_desired_follow_version_and_task_filters() {
             .await
             .0,
         StatusCode::UNPROCESSABLE_ENTITY
+    );
+}
+
+#[tokio::test]
+async fn feedback_reload_keeps_exact_resolution_and_direct_principal_preference() {
+    let (f, _, report) = prepare(true, true).await;
+    let receipt = results::record(&f.state, &context(&f).await, &report)
+        .await
+        .unwrap();
+    let pool = f.db.pool().await;
+    let app = aq_server::build_admin_router(f.state.clone());
+    let old = format!(
+        "/api/v1/results/{}/revisions/{}",
+        report.report_id,
+        receipt.report_digest.as_str()
+    );
+    let comment = Uuid::new_v4();
+    let (_, created) = send(
+        &app,
+        "POST",
+        &format!("{old}/comments"),
+        json!({
+            "operation_id":comment,"expected_version":"1","body":"Check this revision",
+            "anchor":{"kind":"result"},"follow":true
+        }),
+    )
+    .await;
+    assert_eq!(created["data"]["disposition"], "confirmed");
+    let other = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO users(id,email,role,created_at) VALUES($1,'other@example.test','owner',now())",
+    )
+    .bind(other)
+    .execute(&pool)
+    .await
+    .unwrap();
+    sqlx::query("INSERT INTO result_follows VALUES($1,$2,true)")
+        .bind(report.report_id)
+        .bind(other)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (_, detail) = send(&app, "GET", &old, Value::Null).await;
+    assert_eq!(detail["data"]["result"]["directly_following"], false);
+    let follow = format!("/api/v1/results/{}/follow", report.report_id);
+    for following in [true, false] {
+        let (_, detail) = send(&app, "GET", &old, Value::Null).await;
+        let (_, out) = send(&app, "PUT", &follow, json!({
+            "operation_id":Uuid::new_v4(),"expected_version":detail["data"]["result"]["version"],"following":following
+        })).await;
+        assert_eq!(out["data"]["disposition"], "confirmed");
+        let (_, feed) = send(&app, "GET", "/api/v1/results?mode=following", Value::Null).await;
+        assert_eq!(feed["data"]["items"].as_array().unwrap().len(), 1);
+        assert_eq!(
+            feed["data"]["items"][0]["result"]["directly_following"],
+            following
+        );
+    }
+    let mut corrected = report.clone();
+    corrected.report_id = Uuid::new_v4();
+    corrected.operation_id = Uuid::new_v4();
+    corrected.supersedes = Some(report.report_id);
+    let next = results::record(&f.state, &context(&f).await, &corrected)
+        .await
+        .unwrap();
+    let new = format!(
+        "/api/v1/results/{}/revisions/{}",
+        report.report_id,
+        next.report_digest.as_str()
+    );
+    let (_, before) = send(&app, "GET", &new, Value::Null).await;
+    assert_eq!(before["data"]["revision"]["addressed_feedback"], json!([]));
+    let resolve_path = format!("/api/v1/threads/{comment}/resolve");
+    let operation = json!({"operation_id":Uuid::new_v4(),"expected_version":"1",
+        "follow_up":{"result_id":corrected.report_id,"revision":next.report_digest.as_str()},"reason":"Verified exact correction"});
+    let mut bad = operation.clone();
+    bad["follow_up"]["revision"] = json!("0".repeat(64));
+    assert_eq!(
+        send(&app, "POST", &resolve_path, bad).await.0,
+        StatusCode::NOT_FOUND
+    );
+    let (_, resolved) = send(&app, "POST", &resolve_path, operation.clone()).await;
+    assert_eq!(resolved["data"]["disposition"], "confirmed");
+    assert_eq!(
+        send(&app, "POST", &resolve_path, operation.clone()).await.1["data"],
+        resolved["data"]
+    );
+    let mut changed = operation;
+    changed["follow_up"]["result_id"] = json!(report.report_id);
+    changed["follow_up"]["revision"] = json!(receipt.report_digest.as_str());
+    assert_eq!(
+        send(&app, "POST", &resolve_path, changed).await.0,
+        StatusCode::CONFLICT
+    );
+
+    // Rebuild the router to exercise reload without an in-memory UI/route cache.
+    let reloaded = aq_server::build_admin_router(f.state.clone());
+    let (_, old_detail) = send(&reloaded, "GET", &old, Value::Null).await;
+    assert_eq!(
+        old_detail["data"]["revision"]["addressed_feedback"],
+        json!([])
+    );
+    let (_, new_detail) = send(&reloaded, "GET", &new, Value::Null).await;
+    assert_eq!(
+        new_detail["data"]["revision"]["addressed_feedback"],
+        json!([comment])
+    );
+    assert_eq!(
+        new_detail["data"]["follow_up_submission"],
+        json!({"state":"unsupported"})
+    );
+    assert_eq!(new_detail["data"]["assessment"]["acceptance"], "unreviewed");
+    assert!(
+        new_detail["data"]["assessment"]["version"]
+            .as_str()
+            .unwrap()
+            .parse::<u64>()
+            .unwrap()
+            > before["data"]["assessment"]["version"]
+                .as_str()
+                .unwrap()
+                .parse::<u64>()
+                .unwrap()
+    );
+    let (_, comments) = send(&reloaded, "GET", &format!("{old}/comments"), Value::Null).await;
+    let resolution = &comments["data"]["items"][0]["resolution"];
+    assert_eq!(
+        resolution["follow_up"],
+        json!({"result_id":report.report_id,"revision":next.report_digest.as_str()})
+    );
+    assert_eq!(
+        resolution["follow_up_report_id"],
+        corrected.report_id.to_string()
+    );
+    assert!(
+        comments["data"]["items"][0]["feedback_links"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    serde_json::from_value::<aq_server::results_feedback::contract::Detail>(
+        new_detail["data"].clone(),
+    )
+    .unwrap();
+    serde_json::from_value::<aq_server::results_feedback::contract::CommentsPage>(
+        comments["data"].clone(),
+    )
+    .unwrap();
+    let (_, fresh_comments) = send(&reloaded, "GET", &format!("{new}/comments"), Value::Null).await;
+    assert!(
+        fresh_comments["data"]["items"]
+            .as_array()
+            .unwrap()
+            .is_empty()
     );
 }

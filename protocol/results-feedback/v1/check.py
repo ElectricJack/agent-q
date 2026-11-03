@@ -59,3 +59,43 @@ jsonschema.validate(compat['action'], actions)
 assert compat['read']['api_version'] == 'dashboard-read-1'
 assert compat['action']['kind'] == 'result.comment'
 print('Results feedback: valid, invalid, replay and compatibility fixtures passed')
+
+# Pin the original strict schema. Legacy clients must ignore the documented
+# additive fields; clients that reject unknown fields need a decoder update.
+legacy_bytes = (ROOT / 'schema-1.0.json').read_bytes()
+legacy_schema = json.loads(legacy_bytes)
+additions = compat['additive_reads']
+assert hashlib.sha256(legacy_bytes).hexdigest() == additions['legacy_schema_sha256']
+
+def validate_legacy(kind, value):
+    document = dict(legacy_schema, **{'$ref': '#/$defs/' + kind})
+    document.pop('anyOf', None)
+    jsonschema.Draft202012Validator(document, format_checker=format_checker).validate(value)
+
+for kind, old_key, new_key in (
+    ('Detail', 'legacy_detail', 'detail_1_1'),
+    ('CommentsPage', 'legacy_comments', 'comments_1_1'),
+):
+    validate(kind, additions[old_key])  # additive decoder accepts old wire data
+    validate_legacy(kind, additions[old_key])
+    validate(kind, additions[new_key])
+    projected = json.loads(json.dumps(additions[new_key]))
+    projected.pop('feedback_read_version')
+    assert projected.pop('follow_up_submission') == {'state': 'unsupported'}
+    if kind == 'Detail':
+        assert projected['result'].pop('directly_following') is False
+        # This existing array now contains retained exact resolution thread IDs.
+        assert projected['revision']['addressed_feedback']
+        projected['revision']['addressed_feedback'] = []
+    else:
+        for comment in projected['items']:
+            assert comment.pop('feedback_links')[0]['origin']['comment_revision'] == '1'
+            assert comment.pop('resolution')['follow_up']['revision'] == 'a' * 64
+    assert projected == additions[old_key]
+    validate_legacy(kind, projected)
+
+reload = replay['read_reload']
+for response in reload.values():
+    validate('CommentsPage', response)
+assert reload['before'] == reload['after_identical_replay'] == reload['after_reload']
+print('Results feedback 1.1: additive reads, exact origins and reload fixtures passed')

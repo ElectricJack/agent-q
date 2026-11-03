@@ -502,6 +502,20 @@ pub(super) async fn detail(state: &AppState, user: &User, p: &Pin) -> Result<Det
             .fetch_one(&state.store.pool)
             .await?;
     let current: String=sqlx::query_scalar("SELECT p.report_revision FROM result_revision_pins p WHERE p.result_id=$1 AND NOT EXISTS(SELECT 1 FROM profiled_result_reports next WHERE next.supersedes=p.report_id)").bind(p.result).fetch_one(&state.store.pool).await?;
+    let directly_following: bool = sqlx::query_scalar(
+        "SELECT COALESCE((SELECT following FROM result_follows WHERE result_id=$1 AND actor_id=$2),false)",
+    )
+    .bind(p.result)
+    .bind(user.id)
+    .fetch_one(&state.store.pool)
+    .await?;
+    let addressed_feedback: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM result_threads WHERE state='resolved' AND follow_up_report=$1 AND follow_up_revision=$2 ORDER BY id",
+    )
+    .bind(p.report)
+    .bind(&p.revision)
+    .fetch_all(&state.store.pool)
+    .await?;
     let now = (state.clock)().timestamp_millis();
     let artifacts=sqlx::query("SELECT operation_id,input_digest,capture FROM result_media_intents WHERE report_id=$1 AND report_revision=$2 AND state='retained' AND cleanup_state='none' AND withheld_at_ms IS NULL AND retain_until_ms>$3 ORDER BY operation_id").bind(p.report).bind(&p.revision).bind(now).fetch_all(&state.store.pool).await?;
     let mut requirements = Vec::new();
@@ -544,7 +558,7 @@ pub(super) async fn detail(state: &AppState, user: &User, p: &Pin) -> Result<Det
         requirements,
     };
     let unresolved:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM result_threads t JOIN result_revision_pins p USING(report_id) WHERE p.result_id=(SELECT result_id FROM result_revision_pins WHERE report_id=$1) AND t.state='open') OR EXISTS(SELECT 1 FROM review_subjects s JOIN human_decision_requests d USING(subject_digest) WHERE s.report_id=$1 AND d.state='pending' AND d.expires_at_ms>$2)").bind(p.report).bind(now).fetch_one(&state.store.pool).await?;
-    let observed = json!({"evidence":evidence,"unresolved_review":unresolved,"artifacts":artifacts.iter().map(|a|a.get::<Uuid,_>("operation_id")).collect::<Vec<_>>()});
+    let observed = json!({"evidence":evidence,"unresolved_review":unresolved,"addressed_feedback":addressed_feedback,"artifacts":artifacts.iter().map(|a|a.get::<Uuid,_>("operation_id")).collect::<Vec<_>>()});
     let av:i64=sqlx::query_scalar("UPDATE result_assessments SET version=version+CASE WHEN observed_state IS NOT NULL AND observed_state IS DISTINCT FROM $2 THEN 1 ELSE 0 END,observed_state=$2 WHERE report_id=$1 RETURNING version").bind(p.report).bind(observed).fetch_one(&state.store.pool).await?;
     let parent_results = if let Some(parent) = m.supersedes {
         let old = pin(state, parent, None).await?;
@@ -556,7 +570,10 @@ pub(super) async fn detail(state: &AppState, user: &User, p: &Pin) -> Result<Det
         vec![]
     };
     Ok(Detail {
+        feedback_read_version: FeedbackReadVersion::V1_1,
+        follow_up_submission: FollowUpSubmission::Unsupported,
         result: ResultProjection {
+            directly_following,
             id: p.result,
             version: version.to_string(),
             project_id: p.project,
@@ -578,7 +595,7 @@ pub(super) async fn detail(state: &AppState, user: &User, p: &Pin) -> Result<Det
             artifacts: vec![],
             check_refs: vec![],
             evidence_refs: m.source_receipt_ids,
-            addressed_feedback: vec![],
+            addressed_feedback,
         },
         assessment: ResultAssessment {
             version: av.to_string(),
@@ -607,12 +624,53 @@ pub(super) async fn comments(
     limit: i64,
 ) -> Result<Vec<Value>> {
     principal(state, user).await?;
-    let rows=sqlx::query("SELECT c.id,c.revision,c.created_at_ms,c.position,t.id AS thread_id,t.version AS thread_version,t.state,t.anchor,r.body,r.author_id FROM result_comments c JOIN result_threads t ON t.id=c.thread_id JOIN result_comment_revisions r ON r.comment_id=c.id AND r.revision=c.revision WHERE t.report_id=$1 AND t.report_revision=$2 AND c.position<=$3 AND c.position>$4 ORDER BY c.position LIMIT $5").bind(p.report).bind(&p.revision).bind(snapshot).bind(after).bind(limit).fetch_all(&state.store.pool).await?;
+    let rows=sqlx::query("SELECT c.id,c.revision,c.created_at_ms,c.position,t.id AS thread_id,t.version AS thread_version,t.state,t.anchor,t.resolved_by,t.reason,t.follow_up_report,t.follow_up_revision,fp.result_id AS follow_up_result_id,r.body,r.author_id FROM result_comments c JOIN result_threads t ON t.id=c.thread_id JOIN result_comment_revisions r ON r.comment_id=c.id AND r.revision=c.revision LEFT JOIN result_revision_pins fp ON fp.report_id=t.follow_up_report AND fp.report_revision=t.follow_up_revision WHERE t.report_id=$1 AND t.report_revision=$2 AND c.position<=$3 AND c.position>$4 ORDER BY c.position LIMIT $5").bind(p.report).bind(&p.revision).bind(snapshot).bind(after).bind(limit).fetch_all(&state.store.pool).await?;
     let mut output = Vec::new();
     for r in rows {
         let id: Uuid = r.get("id");
         let history:Vec<Value>=sqlx::query_scalar("SELECT jsonb_build_object('revision',revision::text,'body',body,'author_id',author_id,'recorded_at_ms',recorded_at_ms) FROM result_comment_revisions WHERE comment_id=$1 ORDER BY revision").bind(id).fetch_all(&state.store.pool).await?;
-        output.push(json!({"position":r.get::<i64,_>("position").to_string(),"id":id,"revision":r.get::<i64,_>("revision").to_string(),"thread_id":r.get::<Uuid,_>("thread_id"),"thread_version":r.get::<i64,_>("thread_version").to_string(),"thread_state":r.get::<String,_>("state"),"body":r.get::<String,_>("body"),"author_id":r.get::<Uuid,_>("author_id"),"created_at_ms":r.get::<i64,_>("created_at_ms"),"anchor":r.get::<Value,_>("anchor"),"history":history}));
+        let links = sqlx::query("SELECT operation_id,project_id,task_id,origin FROM result_feedback_links WHERE report_id=$1 AND report_revision=$2 AND origin->>'comment_id'=$3 AND origin->>'thread_id'=$4 ORDER BY operation_id")
+            .bind(p.report).bind(&p.revision).bind(id.to_string())
+            .bind(r.get::<Uuid, _>("thread_id").to_string())
+            .fetch_all(&state.store.pool).await?;
+        let mut feedback_links = Vec::new();
+        for link in links {
+            let origin: Value = link.get("origin");
+            let origin: FeedbackOrigin = serde_json::from_value(json!({
+                "result_id":origin["result_id"], "revision":origin["revision"],
+                "thread_id":origin["thread_id"], "comment_id":origin["comment_id"],
+                "comment_revision":origin["comment_revision"], "artifacts":origin["artifacts"],
+            }))
+            .map_err(|_| ApiError::unavailable())?;
+            feedback_links.push(FeedbackLinkProjection {
+                operation_id: link.get("operation_id"),
+                project_id: link.get("project_id"),
+                task_id: link.get("task_id"),
+                origin,
+            });
+        }
+        let resolution = if r.get::<String, _>("state") == "resolved" {
+            Some(ThreadResolution {
+                resolved_by: r
+                    .try_get("resolved_by")
+                    .map_err(|_| ApiError::unavailable())?,
+                reason: r.try_get("reason").map_err(|_| ApiError::unavailable())?,
+                follow_up: RevisionRef {
+                    result_id: r
+                        .try_get("follow_up_result_id")
+                        .map_err(|_| ApiError::unavailable())?,
+                    revision: r
+                        .try_get("follow_up_revision")
+                        .map_err(|_| ApiError::unavailable())?,
+                },
+                follow_up_report_id: r
+                    .try_get("follow_up_report")
+                    .map_err(|_| ApiError::unavailable())?,
+            })
+        } else {
+            None
+        };
+        output.push(json!({"feedback_links":feedback_links,"resolution":resolution,"position":r.get::<i64,_>("position").to_string(),"id":id,"revision":r.get::<i64,_>("revision").to_string(),"thread_id":r.get::<Uuid,_>("thread_id"),"thread_version":r.get::<i64,_>("thread_version").to_string(),"thread_state":r.get::<String,_>("state"),"body":r.get::<String,_>("body"),"author_id":r.get::<Uuid,_>("author_id"),"created_at_ms":r.get::<i64,_>("created_at_ms"),"anchor":r.get::<Value,_>("anchor"),"history":history}));
     }
     principal(state, user).await?;
     Ok(output)
