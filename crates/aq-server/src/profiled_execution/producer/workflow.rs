@@ -384,9 +384,10 @@ async fn offers(
         })
         .await
         .map_err(|_| refused())?;
+        let limits = policy.replacement_limits();
         if let Some((task, assessment)) = on_heap(|| {
             first_eligible_task(&ready, |task| {
-                replacement::assess_task(state, task, polled_at)
+                replacement::assess_task(state, task, &limits, polled_at)
             })
         })
         .await?
@@ -402,7 +403,8 @@ async fn offers(
     if let Some(replacement) = &replacement {
         // The failed predecessor's claim is released under its locks before
         // the successor's generation; a later refusal retries idempotently.
-        on_heap(|| replacement::release(state, task.task_id, replacement)).await?;
+        let limits = policy.replacement_limits();
+        on_heap(|| replacement::release(state, task.task_id, &limits, replacement)).await?;
     }
     let generation =
         on_heap(|| super::super::no_grant::next_generation(&state.store.pool, task.task_id))

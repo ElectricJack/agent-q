@@ -23,9 +23,18 @@ pub struct ProjectPolicy {
     pub priority: i32,
     pub source: SourceSelection,
     pub retention_handle: Uuid,
+    /// Failed-attempt replacement budget; absent preserves the historical
+    /// encoding and configuration digest and uses the server defaults.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub replacement_budget: Option<super::replacement::Limits>,
     /// C4 placement preference/capability override; absent uses the default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub placement: Option<super::placement::PlacementPolicy>,
+}
+impl ProjectPolicy {
+    pub fn replacement_limits(&self) -> super::replacement::Limits {
+        self.replacement_budget.unwrap_or_default()
+    }
 }
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -141,6 +150,9 @@ impl ProfiledConfig {
                 .source
                 .validate()
                 .map_err(|_| "explicit immutable object or safe source ref required")?;
+            if let Some(budget) = &project.replacement_budget {
+                budget.validate()?;
+            }
             if let Some(placement) = &project.placement {
                 placement.validate()?;
             }

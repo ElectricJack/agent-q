@@ -13,15 +13,22 @@ use serde_json::Value;
 use sqlx::Row;
 use uuid::Uuid;
 
-/// Server-owned lineage budgets until per-project budget configuration exists.
-/// The selected intelligence policy's own attempt/time limits still fence.
+/// Default lineage budgets, used for a project whose source policy configures
+/// no `replacement_budget` (or omits a field of it). The selected intelligence
+/// policy's own attempt/time limits still fence.
 pub const MAX_ATTEMPTS: u32 = 3;
 pub const MAX_LINEAGE_ELAPSED_MS: u64 = 24 * 3_600_000;
 pub const MAX_SANDBOX_MS: u64 = 240 * 60_000;
+/// Configuration bounds for a per-project budget.
+pub const MAX_CONFIGURED_ATTEMPTS: u32 = 32;
+pub const MAX_CONFIGURED_WINDOW_MS: u64 = 30 * 24 * 3_600_000;
 /// Replacement evidence is a fresh observation, matching the budget snapshot.
 pub const EVIDENCE_TTL_MS: u64 = 2_000;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Per-project replacement budget. Omitted fields take the server default.
+/// `max_attempts = 1` admits no replacement at all.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[serde(default, deny_unknown_fields)]
 pub struct Limits {
     pub max_attempts: u32,
     pub max_lineage_elapsed_ms: u64,
@@ -34,6 +41,18 @@ impl Default for Limits {
             max_lineage_elapsed_ms: MAX_LINEAGE_ELAPSED_MS,
             max_sandbox_ms: MAX_SANDBOX_MS,
         }
+    }
+}
+impl Limits {
+    pub fn validate(&self) -> Result<(), String> {
+        let window = 1..=MAX_CONFIGURED_WINDOW_MS;
+        if !(1..=MAX_CONFIGURED_ATTEMPTS).contains(&self.max_attempts)
+            || !window.contains(&self.max_lineage_elapsed_ms)
+            || !window.contains(&self.max_sandbox_ms)
+        {
+            return Err("replacement budget bounds".into());
+        }
+        Ok(())
     }
 }
 
@@ -265,22 +284,29 @@ pub fn precheck(counts: &super::no_grant::AttemptCounts) -> Option<Assessment> {
     }
     (counts.started == 0).then_some(Assessment::Fresh)
 }
-pub async fn assess_task(state: &AppState, task: Uuid, now: u64) -> Result<Assessment, AppError> {
+pub async fn assess_task(
+    state: &AppState,
+    task: Uuid,
+    limits: &Limits,
+    now: u64,
+) -> Result<Assessment, AppError> {
     let counts = super::no_grant::attempt_counts(&state.store.pool, task).await?;
     if let Some(decided) = precheck(&counts) {
         return Ok(decided);
     }
     Ok(match load(&state.store.pool, task, counts.started).await? {
-        Some(priors) => assess(&priors, &Limits::default(), now),
+        Some(priors) => assess(&priors, limits, now),
         None => Assessment::Blocked("replacement_lineage_history_unknown"),
     })
 }
 
 /// Releases the failed predecessor's task claim under the common node →
-/// attempt/hot locks, after re-assessing the locked history. Idempotent.
+/// attempt/hot locks, after re-assessing the locked history against the same
+/// project budget that admitted it. Idempotent.
 pub async fn release(
     state: &AppState,
     task: Uuid,
+    limits: &Limits,
     replacement: &Replacement,
 ) -> Result<(), AppError> {
     if !replacement.needs_release {
@@ -318,7 +344,7 @@ pub async fn release(
         .ok()
         .filter(|n| *n > 0)
         .ok_or(AppError::Internal)?;
-    let Assessment::Replace(locked) = assess(&priors, &Limits::default(), now) else {
+    let Assessment::Replace(locked) = assess(&priors, limits, now) else {
         return Err(AppError::Conflict(
             "replacement no longer admissible".into(),
         ));
@@ -437,6 +463,73 @@ pub(crate) mod tests {
         prior.holds_task = false;
         prior.released = true;
         prior
+    }
+
+    #[test]
+    fn project_replacement_budget_replaces_server_default() {
+        let now = 1_000_000;
+        let first = failed_prior(900_000);
+        let policy = |budget: serde_json::Value| crate::profiled_execution::config::ProjectPolicy {
+            project_id: Uuid::from_u128(1),
+            enabled: true,
+            priority: 0,
+            source: aq_admission::SourceSelection::Immutable {
+                object: aq_admission::ObjectId {
+                    format: aq_admission::ObjectFormat::Sha1,
+                    hex: "a".repeat(40),
+                },
+            },
+            retention_handle: Uuid::from_u128(2),
+            placement: None,
+            replacement_budget: (!budget.is_null())
+                .then(|| serde_json::from_value(budget).unwrap()),
+        };
+        // No configured budget: the server default admits a replacement.
+        assert!(matches!(
+            assess(
+                std::slice::from_ref(&first),
+                &policy(Value::Null).replacement_limits(),
+                now
+            ),
+            Assessment::Replace(_)
+        ));
+        // A project allowing one attempt blocks the same history.
+        assert_eq!(
+            assess(
+                std::slice::from_ref(&first),
+                &policy(serde_json::json!({"max_attempts": 1})).replacement_limits(),
+                now
+            ),
+            Assessment::Blocked("lineage_retry_budget_exhausted")
+        );
+        // A project with a shorter lineage window blocks on elapsed time.
+        assert_eq!(
+            assess(
+                std::slice::from_ref(&first),
+                &policy(serde_json::json!({"max_lineage_elapsed_ms": 100_000}))
+                    .replacement_limits(),
+                now
+            ),
+            Assessment::Blocked("lineage_time_budget_exhausted")
+        );
+        // A larger attempt budget admits a fourth attempt the default refuses.
+        let history = [
+            failed_prior(970_000),
+            released(failed_prior(960_000)),
+            released(failed_prior(950_000)),
+        ];
+        assert_eq!(
+            assess(&history, &Limits::default(), now),
+            Assessment::Blocked("lineage_retry_budget_exhausted")
+        );
+        assert!(matches!(
+            assess(
+                &history,
+                &policy(serde_json::json!({"max_attempts": 5})).replacement_limits(),
+                now
+            ),
+            Assessment::Replace(_)
+        ));
     }
 
     #[test]

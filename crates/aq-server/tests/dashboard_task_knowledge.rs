@@ -547,7 +547,7 @@ async fn task_retry_creates_replacement_attempt() {
         },
         profiled_execution::replacement::{self, Assessment},
     };
-    let x = setup().await;
+    let mut x = setup().await;
     let pool = x.f.db.pool().await;
     let task = x.f.selection.lineage.task_id;
     let predecessor = x.f.profiled.offer.binding.attempt_id;
@@ -574,13 +574,14 @@ async fn task_retry_creates_replacement_attempt() {
         .await
         .unwrap()
     };
+    let project = x.project();
     let retry = |op: Uuid| {
         action(
             "task.retry",
             "task",
             task,
             "1",
-            json!({"operation_id":op,"project_id":x.project(),"expected_version":"1"}),
+            json!({"operation_id":op,"project_id":project,"expected_version":"1"}),
         )
     };
 
@@ -612,6 +613,27 @@ async fn task_retry_creates_replacement_attempt() {
         .await
         .unwrap();
 
+    // Human retry uses the same per-project budget as automatic scheduling.
+    let original_config = x.f.state.config.clone();
+    let mut config = (*original_config).clone();
+    config.profiled_execution = Some(Arc::new(serde_json::from_value(json!({
+        "revision": 1, "qualified_runtimes": [],
+        "projects": [{"project_id": project, "enabled": true, "priority": 0,
+            "source": {"kind": "immutable", "object": {"format": "sha1", "hex": "a".repeat(40)}},
+            "retention_handle": Uuid::new_v4(), "replacement_budget": {"max_attempts": 1}}],
+    })).unwrap()));
+    config
+        .profiled_execution
+        .as_ref()
+        .unwrap()
+        .validate()
+        .unwrap();
+    x.f.state.config = Arc::new(config);
+    let (status, body) = x.act(&retry(Uuid::new_v4())).await;
+    assert_eq!(body["data"]["disposition"], "rejected", "{status} {body}");
+    assert!(holds().await, "project budget keeps the predecessor held");
+    x.f.state.config = original_config;
+
     let (status, body) = x.act(&retry(Uuid::new_v4())).await;
     assert_eq!(status, StatusCode::OK, "{body}");
     assert_eq!(body["data"]["disposition"], "confirmed", "{body}");
@@ -629,11 +651,14 @@ async fn task_retry_creates_replacement_attempt() {
     .await
     .unwrap();
     assert_eq!(released, 1);
-    let Assessment::Replace(next) =
-        replacement::assess_task(&x.f.state, task, common::profiled::NOW)
-            .await
-            .unwrap()
-    else {
+    let Assessment::Replace(next) = replacement::assess_task(
+        &x.f.state,
+        task,
+        &replacement::Limits::default(),
+        common::profiled::NOW,
+    )
+    .await
+    .unwrap() else {
         panic!("scheduler may start the replacement attempt");
     };
     assert_eq!(next.predecessor, predecessor);

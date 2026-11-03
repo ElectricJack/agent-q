@@ -33,6 +33,7 @@ fn config() -> ProfiledConfig {
                 },
             },
             retention_handle: Uuid::from_u128(2),
+            replacement_budget: None,
             placement: None,
         }],
     }
@@ -91,4 +92,97 @@ fn configuration_and_runtime_claims_refuse_duplicates_unsafe_refs_and_unqualifie
     request.runtime = cfg.qualified_runtimes[0].runtime.clone();
     request.features.push(Feature::ServerMaterialV1);
     assert!(cfg.qualified(&request).is_err());
+}
+
+#[test]
+fn project_replacement_budget_is_optional_bounded_and_bound_into_the_configuration_digest() {
+    use aq_server::profiled_execution::replacement::{
+        Limits, MAX_ATTEMPTS, MAX_CONFIGURED_WINDOW_MS, MAX_LINEAGE_ELAPSED_MS, MAX_SANDBOX_MS,
+    };
+    let cfg = config();
+    // Omitted: server defaults, and the historical encoding and digest.
+    assert_eq!(cfg.projects[0].replacement_limits(), Limits::default());
+    let encoded = serde_json::to_value(&cfg).unwrap();
+    assert!(encoded["projects"][0].get("replacement_budget").is_none());
+    let digest = cfg.configuration_digest().unwrap();
+    let historical = json!({
+        "revision": cfg.revision,
+        "qualified_runtimes": cfg.qualified_runtimes,
+        "projects": [{
+            "project_id": cfg.projects[0].project_id,
+            "enabled": true,
+            "priority": 0,
+            "source": cfg.projects[0].source,
+            "retention_handle": cfg.projects[0].retention_handle,
+        }],
+    });
+    assert_eq!(encoded, historical);
+    assert_eq!(digest, aq_selection::digest(&historical).unwrap());
+    let restored: ProfiledConfig = serde_json::from_value(historical).unwrap();
+    assert_eq!(restored.configuration_digest().unwrap(), digest);
+    assert_eq!(restored.projects[0].replacement_limits(), Limits::default());
+    assert_eq!(
+        serde_json::from_value::<Limits>(json!({})).unwrap(),
+        Limits::default()
+    );
+
+    // A partial budget overrides only the named field.
+    let mut raw = encoded.clone();
+    raw["projects"][0]["replacement_budget"] = json!({"max_attempts": 1});
+    let tight: ProfiledConfig = serde_json::from_value(raw.clone()).unwrap();
+    tight.validate().unwrap();
+    assert_eq!(
+        tight.projects[0].replacement_limits(),
+        Limits {
+            max_attempts: 1,
+            max_lineage_elapsed_ms: MAX_LINEAGE_ELAPSED_MS,
+            max_sandbox_ms: MAX_SANDBOX_MS,
+        }
+    );
+    assert_ne!(digest, tight.configuration_digest().unwrap());
+    let roundtrip: ProfiledConfig =
+        serde_json::from_value(serde_json::to_value(&tight).unwrap()).unwrap();
+    assert_eq!(roundtrip.projects[0].replacement_limits().max_attempts, 1);
+
+    raw["projects"][0]["replacement_budget"] =
+        json!({"max_attempts": 5, "max_lineage_elapsed_ms": 3_600_000, "max_sandbox_ms": 600_000});
+    let full: ProfiledConfig = serde_json::from_value(raw.clone()).unwrap();
+    full.validate().unwrap();
+    assert_eq!(
+        full.projects[0].replacement_limits(),
+        Limits {
+            max_attempts: 5,
+            max_lineage_elapsed_ms: 3_600_000,
+            max_sandbox_ms: 600_000,
+        }
+    );
+    assert_ne!(MAX_ATTEMPTS, 5);
+
+    for valid in [
+        json!({"max_attempts": 1, "max_lineage_elapsed_ms": 1, "max_sandbox_ms": 1}),
+        json!({"max_attempts": 32, "max_lineage_elapsed_ms": MAX_CONFIGURED_WINDOW_MS,
+               "max_sandbox_ms": MAX_CONFIGURED_WINDOW_MS}),
+    ] {
+        raw["projects"][0]["replacement_budget"] = valid;
+        serde_json::from_value::<ProfiledConfig>(raw.clone())
+            .unwrap()
+            .validate()
+            .unwrap();
+    }
+
+    // Zero or unbounded budgets and unknown fields are refused.
+    for bad in [
+        json!({"max_attempts": 0}),
+        json!({"max_attempts": 33}),
+        json!({"max_lineage_elapsed_ms": 0}),
+        json!({"max_sandbox_ms": 0}),
+        json!({"max_sandbox_ms": MAX_CONFIGURED_WINDOW_MS + 1}),
+        json!({"max_lineage_elapsed_ms": MAX_CONFIGURED_WINDOW_MS + 1}),
+    ] {
+        raw["projects"][0]["replacement_budget"] = bad.clone();
+        let cfg: ProfiledConfig = serde_json::from_value(raw.clone()).unwrap();
+        assert!(cfg.validate().is_err(), "{bad}");
+    }
+    raw["projects"][0]["replacement_budget"] = json!({"max_retries": 2});
+    assert!(serde_json::from_value::<ProfiledConfig>(raw).is_err());
 }
