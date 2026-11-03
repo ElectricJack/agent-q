@@ -1,74 +1,11 @@
-   Compiling digest v0.10.7
-   Compiling tokio v1.54.1
-   Compiling sha2 v0.10.9
-   Compiling aq-session-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/vendor/aq-session-protocol-0.1.0)
-   Compiling num-traits v0.2.19
-   Compiling chrono v0.4.45
-   Compiling aq-lifecycle-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/vendor/aq-lifecycle-protocol-0.1.0)
-   Compiling hyper v1.12.0
-   Compiling nix v0.29.0
-   Compiling hyper-util v0.1.21
-   Compiling tower v0.5.3
-   Compiling tokio-rustls v0.26.6
-   Compiling tokio-stream v0.1.19
-   Compiling tokio-util v0.7.20
-   Compiling hmac v0.12.1
-   Compiling tokio-postgres v0.7.18
-   Compiling sqlx-core v0.8.6
-   Compiling hkdf v0.12.4
-   Compiling hyper-rustls v0.27.10
-   Compiling tower-http v0.6.11
-   Compiling atoi v2.0.0
-   Compiling num-integer v0.1.47
-   Compiling aq-session-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-session-api)
-   Compiling aq-playbooks-model v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/vendor/aq-playbooks-0173673/crates/aq-playbooks-model)
-   Compiling md-5 v0.10.6
-   Compiling sqlx-postgres v0.8.6
-   Compiling aq-playbooks-runner v0.1.3 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/vendor/aq-playbooks-0173673/crates/aq-playbooks-runner)
-   Compiling num-bigint v0.4.8
-   Compiling reqwest v0.12.28
-   Compiling postgres v0.19.14
-   Compiling aq-lifecycle-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-lifecycle-api)
-   Compiling aq-agent-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-agent-api)
-   Compiling aq-terminal-relay-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-terminal-relay-protocol)
-   Compiling lazy_static v1.5.1
-   Compiling sharded-slab v0.1.7
-   Compiling aq-profiles v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-profiles)
-   Compiling aq-playbooks-postgres v0.1.3 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/vendor/aq-playbooks-0173673/crates/aq-playbooks-postgres)
-   Compiling simple_asn1 v0.6.4
-   Compiling sqlx v0.8.6
-   Compiling aq-admission v0.1.11 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-admission)
-   Compiling tracing-subscriber v0.3.23
-   Compiling axum v0.8.9
-   Compiling aq-release v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-release)
-   Compiling jsonwebtoken v9.3.1
-   Compiling aq-central-authority v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-central-authority)
-   Compiling aq-phase-terminal-protocol v0.1.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-phase-terminal-protocol)
-   Compiling aq-playbook-host v0.1.3 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-playbook-host)
-   Compiling aq-selection v0.1.4 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-selection)
-   Compiling aq-result-media v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-result-media)
-   Compiling aq-observation-api v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-observation-api)
-   Compiling aq-notifications v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-notifications)
-   Compiling aq-terminal-relay v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-terminal-relay)
-   Compiling aq-admission v0.3.2 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/vendor/aq-admission-0.3.2)
-   Compiling aq-observation-admission v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-observation-admission)
-   Compiling aq-accounting v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-accounting)
-   Compiling aq-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/vendor/aq-protocol-0.1.0)
-   Compiling aq-review-protocol v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-review-protocol)
-   Compiling aq-worker-protocol v0.2.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/vendor/aq-worker-protocol-0.2.0)
-   Compiling aq-session-host v0.1.7 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/vendor/aq-session-host-0.1.7)
-   Compiling aq-server v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-server)
-   Compiling aq-responses-transport v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/vendor/aq-responses-transport-0.1.0)
-   Compiling aq-codex-mapper v0.1.1 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/vendor/aq-codex-mapper-0.1.1)
-   Compiling aq-supervisor-host v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-1/crates/aq-supervisor-host)
-    Finished `test` profile [unoptimized] target(s) in 2m 42s
+    Finished `test` profile [unoptimized] target(s) in 0.56s
      Running tests/supervisor_session.rs (target/debug/deps/supervisor_session-9787479e7a4a9a6c)
 
 running 12 tests
 test concurrent_start_has_one_guardian_and_cancel_prevents_revival ... ok
 test expired_supervisor_is_stopped_and_scratch_is_retained ... ok
 test lost_guardian_blocks_successor_and_retains_scratch ... ok
-test main_delivery_database_upgrades_without_losing_history ... FAILED
+test main_delivery_database_upgrades_without_losing_history ... ok
 test mismatched_host_plan_never_creates_a_writer ... ok
 test owner_message_reaches_supervisor_and_reply_is_recorded ... ok
 test physical_renewal_requires_next_sequence_and_later_deadline ... ok
@@ -78,20 +15,5 @@ test successor_requires_stop_and_retains_prior_generation ... ok
 test supervisor_restart_resumes_without_duplicate_session ... ok
 test supervisor_session_starts_under_central_permit ... ok
 
-failures:
+test result: ok. 12 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 28.81s
 
----- main_delivery_database_upgrades_without_losing_history stdout ----
-
-thread 'main_delivery_database_upgrades_without_losing_history' (3649622) panicked at crates/aq-supervisor-host/tests/supervisor_session.rs:618:5:
-assertion `left == right` failed
-  left: "51"
- right: "48"
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
-
-failures:
-    main_delivery_database_upgrades_without_losing_history
-
-test result: FAILED. 11 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 19.02s
-
-error: test failed, to rerun pass `-p aq-supervisor-host --test supervisor_session`

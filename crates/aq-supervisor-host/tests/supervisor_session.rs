@@ -620,7 +620,7 @@ async fn main_delivery_database_upgrades_without_losing_history() {
             .fetch_one(&pool)
             .await
             .unwrap(),
-        "48"
+        aq_server::STATE_FORMAT_VERSION.to_string()
     );
     assert_eq!(
         sqlx::query_scalar::<_, i64>("SELECT count(*) FROM delivery_intents")
