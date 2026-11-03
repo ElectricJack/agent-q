@@ -46,6 +46,12 @@
         },
         {
           "$ref": "#/components/schemas/HumanGraph"
+        },
+        {
+          "$ref": "#/components/schemas/HumanRelationships"
+        },
+        {
+          "$ref": "#/components/schemas/HumanHistoryPage"
         }
       ]
     }
@@ -749,6 +755,249 @@
             "maxItems": 64,
             "items": {
               "$ref": "#/components/schemas/HumanNode"
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 4096
+          },
+          "total": {
+            "$ref": "#/components/schemas/Total"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "additionalProperties": false
+      },
+      "Total": {
+        "type": "object",
+        "description": "value is null whenever accuracy is unknown; never a fabricated zero.",
+        "properties": {
+          "value": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "accuracy": {
+            "enum": [
+              "exact",
+              "estimated",
+              "unknown"
+            ]
+          }
+        },
+        "required": [
+          "value",
+          "accuracy"
+        ],
+        "additionalProperties": false
+      },
+      "HumanRelationships": {
+        "type": "object",
+        "properties": {
+          "root_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "nodes": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/HumanNode"
+            }
+          },
+          "edges": {
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+              "$ref": "#/components/schemas/HumanEdge"
+            }
+          },
+          "linked_work": {
+            "type": "array",
+            "maxItems": 63,
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "counts": {
+            "type": "object",
+            "properties": {
+              "relationships": {
+                "$ref": "#/components/schemas/Total"
+              },
+              "linked_work": {
+                "$ref": "#/components/schemas/Total"
+              }
+            },
+            "required": [
+              "relationships",
+              "linked_work"
+            ],
+            "additionalProperties": false
+          },
+          "truncated": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "root_id",
+          "nodes",
+          "edges",
+          "linked_work",
+          "counts",
+          "truncated"
+        ],
+        "additionalProperties": false
+      },
+      "HumanHistoryEntry": {
+        "type": "object",
+        "properties": {
+          "sequence": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "entry_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "category": {
+            "enum": [
+              "revision",
+              "lifecycle",
+              "edge"
+            ]
+          },
+          "operation": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64
+          },
+          "actor_id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 4096
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "change_set_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "revision": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[1-9][0-9]{0,18}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "version": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[1-9][0-9]{0,18}$"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 512
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "edge": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "edge_type": {
+                    "$ref": "#/components/schemas/EdgeType"
+                  },
+                  "source": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "target": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "id",
+                  "edge_type",
+                  "source",
+                  "target"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "sequence",
+          "entry_id",
+          "category",
+          "operation",
+          "actor_id",
+          "reason",
+          "change_set_id",
+          "created_at",
+          "revision",
+          "version",
+          "title",
+          "edge"
+        ],
+        "additionalProperties": false
+      },
+      "HumanHistoryPage": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "maxItems": 64,
+            "items": {
+              "$ref": "#/components/schemas/HumanHistoryEntry"
             }
           },
           "next_cursor": {

@@ -56,6 +56,8 @@ const CAPABILITIES: &[&str] = &[
     "tasks.cancel",
     "tasks.retry",
     "knowledge.read",
+    "knowledge.relationships.read",
+    "knowledge.history.read",
     "knowledge.author",
     "knowledge.correct",
     "knowledge.verify",

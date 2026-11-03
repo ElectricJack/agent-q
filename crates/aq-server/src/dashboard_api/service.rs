@@ -286,6 +286,16 @@ pub(super) async fn bootstrap(
             "Knowledge inspection requires an owner account and configured Graph runtime",
         ),
         capability(
+            "knowledge.relationships.read",
+            graph,
+            "Knowledge relationships require an owner account and configured Graph runtime",
+        ),
+        capability(
+            "knowledge.history.read",
+            graph,
+            "Knowledge history requires an owner account and configured Graph runtime",
+        ),
+        capability(
             "search.read",
             a.visibility_complete,
             "Session visibility exceeds the bounded authorization partition",
