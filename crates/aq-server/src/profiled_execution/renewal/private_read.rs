@@ -184,6 +184,7 @@ mod tests {
         let attempt = Uuid::new_v4();
         let profile = artifact("test-account");
         let registry = IntelligenceConfig {
+            accounting: Default::default(),
             revision: 1,
             credentials: vec![CredentialConfig {
                 kind: Default::default(),

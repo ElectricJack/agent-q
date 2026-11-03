@@ -347,3 +347,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Merged #38 (`steady-harbor-87.2.4`, `53912143`) and closed the task with `--done`.
   - **Filed** `prime-dune-72` (update-lifecycle CI: the server container fails `docker compose up` in "case 1: first install of 0.1.0", on #35 and #37) and H2's cross-repo follow-up `swift-journey-80` (aq-worker H1 readers emit server-derived source_id). Both are standard-medium Claude.
   - G2, H2 and C4 started. #37 (I0 server findings) still overflows its stack and is in progress; MS0 waits on it.
+- **04:50 check.**
+  - aq-worker main CI broken by a clippy lint from `swift-journey-80` (observations_tests.rs:589, `slice::from_ref`); reopened that task with the exact fix.
+  - Filed C4's cross-repo follow-up as `bold-ridge-78` (aq-worker): sandbox nodes report the template digest as InstalledHarness.environment.digest, plus exact harness versions.
+  - Moved `calm-delta-18.6.2`/`.3` (C4 follow-ups) and `clear-crest-61.2.1`/`.2` (H2 follow-ups) from Codex to Claude.
+  - `bright-nexus-44` found the #37 stack overflow root cause (large unoptimized future frames, not recursion) and is fixing it. `clear-rapids-48` (observations 403/401) is running. Disk is at 79%.
