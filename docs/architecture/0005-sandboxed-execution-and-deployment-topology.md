@@ -2,7 +2,7 @@
 
 **Status:** Required design. Nothing in this document is implemented yet.
 
-**Date:** 2026-11-02
+**Date:** 2026-11-02. **Amended:** 2026-11-03 with the storage budget and continuous cleanup (review `rev-steady-rapids`; §§4, 5.1, 5.2, 9.2, 10, 11, 14 and 15).
 
 This is the canonical cross-component design for:
 
@@ -165,7 +165,7 @@ Each accepted attempt goes through these steps:
      - If handoff has not completed, the worker node first tries to extract the workspace and evidence through the runner or the backend file API.
      - If extraction fails, the node *stops* the sandbox and keeps its disk: container stopped with its volume kept, or boat sandbox archived (billing stops; snapshot storage is charged).
      - It keeps retrying handoff under the existing stop-and-preserve rules (X4, X5).
-     - A preserved sandbox is deleted only after retention succeeds or an operator explicitly releases it.
+     - A preserved sandbox is deleted only after retention succeeds or an operator explicitly releases it (including a standing release configured under SBX22).
 8. **Hibernation and warm wake.** The waits design (architecture 0004 C2/C3) stays authoritative:
    - Hibernation checkpoints to central retention and ends the attempt.
    - Wake is a **new attempt** with fresh authority, which never *requires* the original sandbox.
@@ -225,6 +225,7 @@ As implemented (C4), a project lists the capabilities it needs in `placement.req
   - drop all capabilities, set no-new-privileges, and retain the seccomp policy;
   - have no host bind mounts except the worker-managed per-attempt volume and declared mount aliases (worker spec §5);
   - have CPU, memory and PID limits taken from the reservation;
+  - are disk limited per SBX20;
   - get a default bridge network with outbound access only.
 - **Resource-limit prerequisite:** the host must use cgroup v2 and delegate the `cpu`, `memory` and `pids` controllers to the daemon's user. A host without that delegation is not admissible: Podman can otherwise silently drop the reservation limits. Qualification must read back effective limits (`cpu.max`, `memory.max`, `pids.max`) inside a sandbox; setting create-request fields alone is not proof of enforcement.
 - **Private material:** upload an archive through the control API before the container starts (`PUT /containers/{id}/archive?path=/`). Its directory has mode `0700`, its file has mode `0600`, and both are owned by the intended runner identity. The material path is outside the work volume and every mount alias; aliases must not overlap or expose it. Material never goes in environment variables, command-line arguments or labels. These permissions provide runner/agent separation only with the distinct UID mappings required by SBX7.
@@ -238,7 +239,24 @@ boat.dev provides persistent Ubuntu VMs that include Docker, through an HTTP API
 
 - **Template:** a boat saved snapshot built from a base VM by pulling and verifying the template's OCI image digest. The snapshot ID is recorded against the template digest as provenance.
 - **Execution layout:** the runner and agent run **inside the template's OCI container** under the VM's Docker, so behaviour is identical to `docker-local`. VM root and the VM's Docker daemon belong to the sandbox host side. The agent user has no access to them, so the runner/agent separation (SBX7) still holds.
-- **Create:** fork the template's saved snapshot. Size (small, default or large) is derived from the attempt's resource request.
+- **Create:** fork the template's saved snapshot. Size is the smallest that satisfies the CPU, memory and disk request (SBX21).
+- **Machine sizes** (docs.boat.dev, accessed 2026-11-03; `boat.dev/pricing` returned 404, so pricing comes from the docs pages):
+
+  | Size | vCPU / RAM | Disk (user files only; the OS and preinstalled tools are not counted) | Price while running |
+  | --- | --- | --- | --- |
+  | small | 2 / 4 GB | 51 GB | $0.018/h |
+  | default | 4 / 8 GB | 51 GB | $0.036/h |
+  | large | 8 / 16 GB | 111 GB | $0.072/h |
+  | xlarge ($100 plan or higher) | 16 / 32 GB | 251 GB | $0.200/h |
+
+- **Disk and snapshot facts** (same source):
+  - **Custom disk:** not available. Resizing needs a stop and then a resume. Shrinking below the used size fails with `type_too_small`.
+  - **Disk alerts:** sent by email only, at 85% and 95%. **At 95%, snapshots fail, so the newest work is not saved, and stop also fails.** Preserve-before-destroy (SBX5) relies on stop-and-archive, so a boat sandbox must never be allowed to reach 95% (SBX21).
+  - **No live disk API:** `/sandboxes/{id}/usage` reports time only. Disk use has to be measured with `df` inside the VM. Snapshot sizes are reported: `GET /snapshots` and `/sandboxes/{id}/snapshots` return `sizeBytes` (the delta) and `contentSizeBytes`, `/saved-snapshots` returns `sizeBytes`, and `/snapshots/{id}/tree` returns `totalSizeBytes`.
+  - **Stopped sandboxes:** cost nothing and keep their disk for at least 14 days. After cleanup (report-only in production today), resume or fork fails with `409 snapshot_data_expired`.
+  - **Automatic snapshots:** free, with no count limit.
+  - **Saved snapshots** (used for templates): 10 are included per $20 of plan per seat, never fewer than 10. Each extra costs $0.056 per day (about $1.68 per 30 days). There is no maximum and no expiry, and unpaid extras may be deleted after 7 days. No per-GB storage price is published.
+  - **Size limits:** no maximum snapshot or template size is published, and there is no OCI import.
 - **Isolation:** each attempt is its own VM, which is stronger than containers. The backend advertises `vm-isolation`. `nested-docker` for agents is **not** offered initially. Exposing the VM's Docker daemon to the agent would undo the separation between the runner and agent users. It needs a separate design, for example a rootless daemon owned by the agent user.
 - **Hibernation warm start:** stop-and-archive snapshots the VM. Resume uses the newest snapshot of that sandbox. Advertise `suspend-snapshot` (section 4, step 8).
 - **Dedicated scope:** each `boat` worker node uses a boat organization (or account) dedicated to AQ attempt sandboxes. Template builds use a separate organization or key scope. Sandboxes are named with the node's prefix and attempt identifier. Reconciliation and sweeps act only on sandboxes in that dedicated scope that carry the node's prefix.
@@ -247,7 +265,7 @@ boat.dev provides persistent Ubuntu VMs that include Docker, through an HTTP API
 - **Inbound exposure:** none. No public URLs, no SSH keys for agents, desktop streaming off.
 - **Constraints to accept or qualify:**
   - EU-only regions, so there is transatlantic latency to a US VPS. Renewal, stop and preserve margins must assume an RTT of 250 ms or more. The terminal latency target (architecture 0003 §5.3, defined at ≤50 ms RTT) is not claimed on boat.
-  - Account limits on active sandboxes.
+  - Running sandboxes allowed at once (verified 2026-11-03): trial 2, $20 plan 100, $100 plan 300, $500 plan 1000, $2000 plan 2000. Stopped sandboxes don't count. No per-account storage quota is published.
   - The vendor is young, so it sits behind the backend interface and has no product-specific coupling outside the backend module.
 
 ### 5.3 `cloudflare-containers` (cloud, second remote backend, later phase)
@@ -436,6 +454,59 @@ Install [deploy/systemd/aq-sandbox-user.slice.conf](../../deploy/systemd/aq-sand
 
 The long-running Compose services total 4.0 vCPU and 5.375 GiB; together with the sandbox slice, the ceilings total 8.0 vCPU and 13.375 GiB, leaving about 2.6 GiB for the kernel, daemons and page cache. The lower sandbox `CPUWeight` yields under contention. One-shot init jobs run before the long-running services start and are excluded from these totals. [E1c](../implementation/E1c.md) records the load evidence; installation of the production user slice and qualification on the 8 vCPU VPS belong to E5.
 
+### 9.2 Storage budget for the 200 GB VPS
+
+In v1, per-slot Cargo caches filled a 1 TB disk to 99% overnight (W36, `rev-azure-crest`). The owner's production VPS is the Bluehost **NVMe 8** plan: 4 vCPU, 8 GB RAM, 200 GB NVMe. This section budgets its storage; SBX20–SBX26 and DEP6–DEP8 enforce the budget, clean up continuously and report usage.
+
+**Evidence (measured 2026-11-03):**
+
+| Fact | Value | Source |
+| --- | --- | --- |
+| Clean `cargo test --workspace --locked --no-run` of aq-server (26 crates), `CARGO_INCREMENTAL=0`, profile from `Cargo.toml` (`debug = "line-tables-only"`, `incremental = false`, deps `debug = false`) | **20.2 GB** (20,203,679,989 bytes) of target directory: `deps/` 18 GB across 1,376 files, `examples/` 0.8 GB, binaries about 0.4 GB. **10 min 38 s** at `-j 6` on a 24-thread desktop; expect it to be slower on 4 vCPU (not measured). | Scratch target directory on the desktop, deleted afterwards |
+| Long-lived slot target directories on the desktop (no cleanup) | 12, 21, 25, 49, 51, 56 and 72 GB (seven slots, about 286 GB in total). slot-2 alone had 5.8 GB of `incremental/` despite `incremental = false`, left over from earlier builds or environment overrides. | `du -sh .aq/worktrees/slot-*/target` |
+| aq-server source checkout | About 0.3 GB working tree and 0.17 GB `.git`. The other five repositories have 2–50 MB `.git` each. | `du` |
+| Cargo registry cache for the workspace | About 0.65 GB | `du -sh ~/.cargo/registry` |
+| Existing AQ images | Worker 106 MB, server about 0.29 GB, supervisor host 97 MB, a native worker/runtime image 1.14 GB | `docker images` |
+| Compose log rotation | Already `json-file`, `max-size: 10m`, `max-file: 3` on every service (`x-runtime` in `compose.yaml` and `compose.workers.yaml`) | `compose.yaml` |
+| Updater backups | `pg_dump --format=custom` into `/var/lib/agent-q/backups/`. `backups_keep = 5` is commented out, so it is not configured. | `docs/operations.md` |
+| Central source staging | `[source_retention] max_staging_bytes = 4 GiB`, `max_bundle_bytes = 1 GiB`, `incomplete_ttl_secs = 86400`. Staging and the aq-git store share `/var/lib/aq` (`aq_source` volume). | `docs/source-retention.md` |
+| aq-git retention lifecycle | `retention.release` and `repo.cache-evict` exist in the API (`aq-git/docs/api.md`). Nothing in aq-server calls release after accept or merge. | aq-git `e05d4e6` |
+| Worker disk accounting | `inventory()` reserves `request.disk_bytes` for every attempt not `Destroyed`/`Abandoned`, so preserved attempts keep their reservation. An unknown orphan reserves the whole configured `capacity.disk_bytes`. Capacity is configured, never measured, except the 16 MiB journal floor (`minimum_free_disk_bytes`, `fstatvfs`). | aq-worker `f4703fe`, `controller/mod.rs`, `controller/storage.rs` |
+| docker-local launch policy | One named volume per attempt plus mount aliases; `HostConfig` sets `NanoCpus`, `Memory`, `MemorySwap` and `PidsLimit` only | aq-worker `backend/docker_local/policy.rs` |
+| Postgres pruning today | Only notification policy tables (batched `LIMIT 512` deletes, `notifications/policy.rs`) and acknowledged or expired terminal outbox and receipts per terminal (`terminal/persistence.rs`). Observation, mailbox, intelligence and other outbox tables grow without a bound. | aq-server `main` |
+
+The budget uses decimal GB, as the vendor does: 200 GB is about 186 GiB, and ext4 reserves about 5% for root. **The planned steady state stays at or below 70% (140 GB).** The remaining 30% absorbs bursts: an update pulling new images while the old ones are kept, a backup being written, and a sandbox overshooting its limit by up to one watchdog interval.
+
+The VPS has two filesystems:
+
+- **Root filesystem** (about 90 GB): the OS, Docker (Compose) and server state.
+- **Sandbox filesystem** (110 GB, fixed size, created once by the installer as root): a dedicated filesystem holding the sandbox user's Podman storage and volumes (SBX20). If sandboxes fill it, only sandbox attempts fail. Postgres, aq-git and the server never see `ENOSPC` from agent work.
+
+| # | Item | Filesystem | Planned (GB) | Bounded by |
+| --- | --- | --- | --- | --- |
+| 1 | OS, packages, kernel, `/tmp` | root | 10 | Distribution; journald capped (DEP7) |
+| 2 | Compose images: current and previous release of server, Postgres, aq-graph, aq-git, cloudflared, supervisor host and worker | root | 6 | DEP7 prune keeps the current and previous release |
+| 3 | Container and system logs | root | 2 | 10 MB × 3 per Compose service (already set); journald `SystemMaxUse=1G`; Podman `log_size_max` (DEP7) |
+| 4 | Server state `/var/lib/aq`: aq-git store, staging, `aq_git_run`, `aq_runtime` | root | 14 | 4 GiB staging cap (existing); aq-git retention GC (SBX24) |
+| 5 | Postgres data (`aq_postgres`) | root | 8 | Row retention (DEP6); `storage.pressure` alert |
+| 6 | Backups `/var/lib/agent-q/backups` and off-host staging | root | 10 | `backups_keep = 5` made explicit; staging deleted after upload (DEP8) |
+| 7 | Supervisor host (sessions, harness homes) | root | 3 | Session homes pruned on session end |
+| | **Root filesystem: 53 GB planned of 90 GB (59%)** | | **53** | |
+| 8 | Allowlisted template images (current and previous digest of about 2 templates of about 3 GB each) | sandbox | 12 | DEP7 prune of non-allowlisted images |
+| 9 | One active sandbox: limit `sandbox.disk_limit_bytes`, default **32 GB** | sandbox | 32 | Enforced (SBX20) |
+| 10 | Preserved sandboxes: cap 1 on the VPS × the same limit (worst case; usually far less after SBX23) | sandbox | 32 | SBX22 cap and age |
+| 11 | Optional node-shared sccache | sandbox | 0 (10 when enabled) | `SCCACHE_CACHE_SIZE=10G` (SBX26) |
+| | **Sandbox filesystem: 76 GB planned (86 GB with sccache) of 110 GB** | | **76–86** | Dedicated filesystem (SBX20) |
+| | **Planned total** | | **129–139 of 200 (64.5–69.5%)** | ≤ 70% |
+| | Unallocated, for bursts and updates | | 61–71 | |
+
+Notes:
+
+- **One sandbox is the VPS concurrency.** The NVMe 8 plan has 4 vCPU and 8 GB, which is half of §9's assumed "8 vCPU / 16 GB for two concurrent Rust-building sandboxes". The node's `max_concurrent_sandboxes` is therefore 1 on this VPS, and the sandbox limit above is sized for one Rust build. The §9/§9.1 CPU and memory table (13.375 GiB of ceilings) does not fit 8 GB and must be re-budgeted. That is a separate follow-up (§14, "VPS memory"), not part of this storage budget.
+- **Sizing the sandbox limit:** the measured workspace test build (20.2 GB), plus about 1 GB of source and git, about 1 GB of Cargo registry, about 2 GB of harness home, tmux and evidence, and roughly 30% margin for a second toolchain or a dirty `target/` from a resumed attempt: 24.2 GB × 1.3 ≈ 32 GB. Test binaries dominate, because each integration-test binary links its dependencies statically; consolidating test binaries is a possible later saving, not part of this budget.
+- **The desktop node** is not budgeted here. It applies the same mechanisms (SBX20–SBX23, DEP7) with its own configured `capacity.disk_bytes` and a larger preserve cap.
+- **Out of scope:** off-host encrypted backups remain deferred (infrastructure spec), as do Cloudflare Containers storage limits. Whether rootless Podman 5 applies XFS project quotas without privilege is not verified; SBX20 therefore makes the watchdog the baseline and the hard quota an advertised upgrade.
+
 ## 10. Requirements
 
 | ID | Requirement |
@@ -459,11 +530,21 @@ The long-running Compose services total 4.0 vCPU and 5.375 GiB; together with th
 | SBX17 | Sandboxes never hold Git remote, node, backend or supervisor credentials. Cold fetch and publication are central. The agent reaches AQ and providers only through the runner's loopback proxies. |
 | SBX18 | Templates vary by toolchain, not harness. Each template is a toolchain image (normally `FROM aq-sandbox-os`) plus the `aq-sandbox-runtime` bundle as its final layer, carrying all qualified harness CLIs at pinned versions. Templates advertise those versions, and selection requires a match. |
 | SBX19 | Each attempt uses a private, file-based harness credential directory and a declared confinement mode (`native` or `container`); `container` mode requires explicit profile permission and backend isolation, and is never a silent fallback. |
+| SBX20 | **Per-sandbox disk limit.** Every attempt has a disk limit equal to its reservation's `disk_bytes`, defaulting to the node's `sandbox.disk_limit_bytes`. Exceeding it fails the **attempt** with the typed reason `sandbox_disk_limit_exceeded`. It never takes down the node, the sandbox daemon or the central services. `docker-local` enforces it in two layers. (1) **Node isolation (required):** the sandbox user's Podman graphroot and volume path live on a dedicated filesystem, separate from root and of fixed size. Examples are an LVM volume, a separate partition, or an ext4/XFS image file attached by root at install time. A host whose sandbox storage shares the root filesystem is admissible only with an explicit `sandbox.shared_root_fs = true` override, which is reported in the node inventory. (2) **Per-sandbox enforcement:** if the dedicated filesystem is XFS mounted with `prjquota` and qualification shows rootless Podman applies `--storage-opt size=` and volume `size`, the backend advertises `disk-limit: hard` and sets both. Otherwise it advertises `disk-limit: watchdog`. The controller then samples the container's writable layer (`GET /containers/json?size=true`, `SizeRw`) and the attempt volume's usage (`podman system df -v`) every `disk_watch_interval` (default 10 s), stops the attempt at the limit, and preserves it under SBX5. `boat` enforces it through SBX21. |
+| SBX21 | **boat disk.** Placement maps the attempt's `disk_bytes` to the smallest size whose disk × 0.8 covers it: 51 GB (small/default) covers 40 GB, 111 GB (large) covers 88 GB, and 251 GB (xlarge) covers 200 GB. A request above the largest size is refused with `backend_disk_request_unsatisfiable`. The runner samples `df` on the VM's user-files mount every `disk_watch_interval`. At **80%** of the size's disk it fails the attempt with `sandbox_disk_limit_exceeded`, completes handoff or stop-and-archive, and reports the bytes used. This leaves margin below boat's 85% alert and well below the 95% point at which snapshots and stop fail. |
+| SBX22 | **Bounded preserved sandboxes.** Each node has `preserve.max_count` (VPS default 1, desktop 4, boat 10) and `preserve.max_age` (default 72 h; boat at most 7 days, below the 14-day retention of stopped-sandbox data). (a) Every preserve emits an F4 notification of the new kind `sandbox.preserved` (subject: attempt ID). It carries the node, the bytes held and the age at which it is released. (b) When handoff later succeeds, the sandbox is destroyed within one sweep interval, as SBX5 already allows. Handoff retries use bounded backoff. (c) At `max_count`, the node refuses new offers with `node_preserved_capacity_reached` until a preserved sandbox is released, so preservation never pushes the disk past its budget. (d) At `max_age`, the configured `preserve.expiry_action` applies. `notify` (the default) re-notifies through the same F4 episode at most once a day and keeps the sandbox. `destroy` is a **standing operator release**, recorded in the journal as the operator release SBX5 requires, and runs after a final F4 notice 24 h before expiry. Preserved sandboxes keep their disk reservation (current behaviour). |
+| SBX23 | **Reconstructible paths are dropped before preserving.** If the runner is reachable when a sandbox is preserved, it first deletes the template's declared reconstructible paths, by default `CARGO_TARGET_DIR`, `~/.cache` and `node_modules`. Only source, evidence and harness state are kept. This deletion never runs on paths the template does not declare. |
+| SBX24 | **Central source retention GC.** After a task's outcome is accepted, or its change merged, aq-server releases that task's aq-git retention handles (`retention.release`) except the newest `source_retention.keep_per_task` (default 2), and releases every handle of a settled task after `source_retention.max_age` (default 30 days). Handles for open, uncertain or preserved attempts are never released. aq-git's existing reconstructible-cache eviction runs after release. Each release records its reason and the handle generation. |
+| SBX25 | **Node storage reporting and placement refusal.** Each node's inventory reports filesystem `disk_total_bytes`, `disk_used_bytes`, `disk_free_bytes`, `disk_reserved_bytes` (active and preserved reservations), `preserved_count` and `preserved_bytes`. For boat it also reports the summed `contentSizeBytes` of retained snapshots and the count of saved snapshots beyond the plan's included allowance. These are measured with `statvfs` on the sandbox filesystem and backend size APIs, never only from configuration. The server rejects a placement on a node above **85%** used with `node_disk_pressure`, using the existing `NodeCeiling` reason family. It emits the F4 kind `storage.pressure` (subject: node ID, or `central` for the VPS root filesystem and Postgres) when usage crosses **80%**, and resolves the episode below 75%. The server reports the central root filesystem and the Postgres database size in the same shape. |
+| SBX26 | **Build hygiene in templates.** Toolchain templates set `CARGO_INCREMENTAL=0`; the line-tables-only debug profile already lives in each repository's `Cargo.toml`. Node-shared sccache is **opt-in per node** (`sandbox.shared_sccache = true`): a node-owned volume mounted at `/var/cache/sccache` with `SCCACHE_CACHE_SIZE=10G`. It is advertised as the capability `shared-build-cache`. All attempts on the node can write to it, which is a cross-attempt integrity trade-off, so it is off by default and never enabled on nodes running untrusted projects. |
 | DEP1 | The VPS runs the full server stack (server with built-in dashboard, PostgreSQL, aq-graph, supervised aq-git, cloudflared) from pinned images through Compose. |
 | DEP2 | The cloud worker runs on the VPS as a separate enrolled worker using the public machine hostname through Access, with `docker-local` sandboxes on the VPS. `boat` is added later as a second enrolled VPS worker node (`aq-worker-boat`) under the same rules; each node keeps exactly one backend. |
 | DEP3 | A local desktop worker runs as a container on WSL2 with a dedicated rootless sandbox daemon, survives reboot and reconciles on restart. |
 | DEP5 | Central supervisor sessions run in a supervisor host container on the VPS under central session identity, separate from worker nodes. |
 | DEP4 | Releases include the worker image, sandbox base template and runner versions as manifest-pinned artifacts (product release manifest, ecosystem §5). |
+| DEP6 | **Postgres retention.** A server retention job runs every 10 minutes and deletes in batches (bounded `LIMIT` per transaction, as `notifications/policy.rs` does). It covers the tables in this table: observation events, facts, packets and projections (keep 14 days after the task settles); delivered or acknowledged `*_outbox` rows (7 days); terminal tables beyond the existing per-terminal pruning (7 days after the session ends); `mailbox_messages` that were read or have expired (30 days); `intelligence_observations` and `intelligence_node_snapshots` (30 days, keeping the latest snapshot per node). Rows that are still the authoritative record for an open task, an unsettled attempt or an unsatisfied idempotency window are never deleted. Each table's age and state predicate is defined next to the table, and a retention run reports rows deleted per table. Autovacuum stays enabled. A periodic `VACUUM (ANALYZE)` is enough; `VACUUM FULL` is not used routinely. |
+| DEP7 | **Daily node hygiene.** A daily timer on each docker-local host, and in the boat template build scope, does the following. (a) It removes sandbox-daemon images whose digest is not allowlisted, keeping the current and previous allowlisted digest of each template. (b) It prunes builder cache (`podman builder prune` / `buildah prune`), stopped containers that are not journaled sandboxes, and dangling volumes that are not journaled attempt volumes; journaled and preserved resources are never pruned by this timer. (c) On the VPS it prunes Docker (Compose) images other than the current and previous release. (d) It applies log caps: journald `SystemMaxUse=1G`, Podman `log_size_max=10m` for sandbox containers, and the existing Compose `json-file` 10 MB × 3. Each run reports bytes freed per category. |
+| DEP8 | **Backup rotation.** `backups_keep = 5` becomes an explicit default. The updater refuses to start a backup when free space on the root filesystem is below the size of the newest backup plus 10%. Off-host staging files are deleted after a verified upload (when off-host backup lands). |
 
 ## 11. Acceptance scenarios
 
@@ -480,6 +561,12 @@ The long-running Compose services total 4.0 vCPU and 5.375 GiB; together with th
 | Node re-adoption | Restart a worker node during an attempt: renewals report "awaiting re-adoption" until the new boot re-adopts the sandbox. Without re-adoption, the runner stops and preserves at the renewal deadline. |
 | Cost control | A sandbox exceeding its hard deadline is destroyed; a node at its spend or concurrency ceiling refuses with a typed reason. |
 | Deployment | Fresh VPS install brings up the full stack; local and cloud workers enroll; an owner can enqueue a task from the dashboard, talk to the supervisor, and watch the attempt in the terminal view. |
+| Disk limit, docker-local | A fixture agent writes past a 1 GiB limit. The attempt fails with `sandbox_disk_limit_exceeded` and is preserved. Another sandbox on the node keeps running, and the server keeps serving. The test uses a fake backend or a small loop filesystem, with no real multi-GB writes. |
+| Disk limit, boat | Using the fake boat transport: the `df` sample reaches 80%, and the attempt fails and is archived before 85%. A size mapping test covers the 40, 88 and 200 GB thresholds and the refusal above them. |
+| Preserve bounds | A preserve emits one `sandbox.preserved` notification. A successful handoff destroys the sandbox. At `max_count`, a new offer is refused with `node_preserved_capacity_reached`. `expiry_action = destroy` journals a standing release and destroys the sandbox at `max_age`. |
+| Placement under pressure | A node reporting 86% used is refused with `node_disk_pressure`. Crossing 80% opens one `storage.pressure` episode, and dropping below 75% resolves it. |
+| Central GC | After acceptance, only `keep_per_task` handles remain for the task, and an open task's handles are untouched. The retention job deletes expired observation and outbox rows in batches and leaves rows that are still authoritative. |
+| Hygiene | Against a fake daemon, prune removes non-allowlisted images, dangling unjournaled volumes and stopped unjournaled containers. It keeps preserved and journaled resources. |
 
 ## 12. Changes to existing documents
 
@@ -517,7 +604,6 @@ These platform facts remain to be verified:
   - Scoped-key permissions.
   - Snapshot and resume time.
   - Outbound firewall controls.
-  - Account sandbox limits.
 - **Cloudflare Containers:**
   - Instance and image limits.
   - Outbound network configuration.
@@ -526,7 +612,7 @@ These platform facts remain to be verified:
 - **Provider terms** for running each subscription login in remote sandboxes.
 - **Confinement follow-up:** qualify runner/agent separation on WSL2 after installing `uidmap` and disabling the single-UID fallback. Codex `native` remains unavailable for the C2 docker-local configuration; any proposed change needs both user-namespace creation and UID-mapping evidence under the fixed policy. Qualify bubblewrap independently in Cloudflare Containers.
 - **`codex-universal`:** image size, license and suitability as a universal toolchain base.
-- **VPS memory** for the full stack.
+- **VPS memory** for the full stack. **Now urgent:** the production VPS is the NVMe 8 plan (4 vCPU / 8 GB), but §9.1's ceilings total 8.0 vCPU and 13.375 GiB, and the sandbox slice alone is 8 GiB. This needs its own measured re-budget, for example a 3 GiB sandbox slice with one sandbox, a 1.5 GiB supervisor host and Postgres at 768 MiB. It is a separate follow-up to the storage budget in §9.2.
 
 Record the findings in the backend qualification evidence. A finding that contradicts a requirement here requires a design revision, not a silent workaround.
 
@@ -552,3 +638,9 @@ Decisions after the independent review and owner answers (2026-11-02):
 13. **Subscription logins are allowed on every backend** (owner, personal deployment). The design states plainly that the agent can read them.
 14. **`docker-local` stays at `container` confinement.** C2 showed that the fixed policy permits user-namespace creation but refuses the UID-map write Codex's bubblewrap sandbox needs (sections 8.3 and 14). Codex `native` is unavailable in that configuration; shared-kernel containers are not hostile-code isolation.
 15. **boat warm-start hibernation is deferred.** Hibernation uses checkpoint-to-retention only (owner deferral).
+
+Decisions in the approved storage amendment (review `rev-steady-rapids`, 2026-11-03):
+
+16. **Preserve expiry default** is `notify`: keep the sandbox and re-notify. `destroy` (a standing release after `preserve.max_age`) is opt-in per node, because SBX5 forbids silently losing unretained work (SBX22).
+17. **Shared sccache** is opt-in per node and off by default, because of the cross-attempt integrity trade-off (SBX26).
+18. **Sandbox filesystem on the VPS** is a fixed-size dedicated filesystem of 110 GB, leaving about 90 GB for root, which the installer creates once as root (§9.2, SBX20).
