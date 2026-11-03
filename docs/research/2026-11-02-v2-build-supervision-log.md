@@ -515,3 +515,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **aq-dashboard:** merged PR #13 (Search and 426 fixtures aligned with the G3/G8 contracts). Its one failure, a SupervisorConversation 5 s timeout, was a CI flake that passed on rerun. Updated the gap-fix PRs #12 and #14–#17 onto the new main. #12 also breaks `Shell.test.tsx` on its own.
   - **aq-server:** PR #56 (calm-current-41 main-CI fix) is waiting on CI.
   - **Disk:** aq-server slot build caches reached 286 GB. Removed idle slot-1's 60 GB `target` (nothing was compiling there), leaving 179 GB free (82%). Logged as retro W53.
+- **16:40 check.**
+  - **aq-dashboard main is still red after #13.** Failures rotate between runs: ResultMediaUpload fails every run; Results, SessionUsage and SupervisorConversation fail intermittently. Filed a deterministic-suite task at priority 12.
+  - **Merged #14 (OV-B) and #17 (SV-E).** Their only failures were in files they don't touch, from the flaky set above.
+  - **Sent back:** #15 (OV-C) and #16 (OV-D) to merge main, since they now conflict with #14. #12 (OV-A) to fix its own Shell.test regressions.
+  - **aq-server #56:** one `phase_execution::atomicity` proposal-expiry timing failure. I'll rerun it when the run completes.
+  - Disk: 173 GB free. Claude usage: 75%.
