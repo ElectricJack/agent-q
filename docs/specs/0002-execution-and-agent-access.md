@@ -109,6 +109,36 @@ service time per project. It never moves backwards. Ordering itself is pure
 server code. Fairness applies only between projects; task-level priority within a
 project and per-project budget configuration are separate follow-ups.
 
+### 3.2 Sandbox placement policy
+
+C4 adds an optional `placement` table to each `[[profiled_execution.projects]]`
+entry (`ProjectPolicy`). It orders backends and states the capabilities the
+project requires on B1-registered sandbox nodes:
+
+```toml
+[profiled_execution.projects.placement]
+preference = ["docker-local", "boat", "cloudflare-containers"]
+required_capabilities = ["vm-isolation"]
+```
+
+- **`preference`.** Distinct backend kinds from the closed set `docker-local`,
+  `boat` and `cloudflare-containers`, at most 3 of them.
+  - An empty or omitted list uses the default shown above.
+  - Kinds the list leaves out rank last.
+- **`required_capabilities`.** At most 4 B1 capability names (`vm-isolation`,
+  `nested-docker`, `suspend-snapshot`, `persistent-disk-during-attempt`).
+- **Validation.** Unknown fields, duplicate kinds and lists over these bounds
+  refuse the configuration.
+- **Digest stability.** An absent `placement` is not serialized, so existing
+  project configuration digests do not change.
+
+The policy feeds selection-time placement facts. The rules for the bounded
+preference hold, node ceilings and typed refusal reasons are in
+[intelligence selection](0004-intelligence-selection.md#sandbox-placement-facts-c4).
+They are also summarized in
+[architecture 0005 §3.2](../architecture/0005-sandboxed-execution-and-deployment-topology.md#32-scheduling-across-workers).
+Host-native nodes, which have no B1 registration, ignore this policy.
+
 ## 4. Agent-facing API and credential provisioning
 
 Publish a separately versioned agent API with schemas and CLI/tool bindings. Agents make direct outbound HTTPS requests to AQ. No inbound node listener or tunnel is required. Reuse typed domain service handlers for CLI, dashboard and playbook commands, with explicit caller-context differences; do not implement authorization independently in each frontend.
