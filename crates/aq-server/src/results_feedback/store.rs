@@ -305,6 +305,7 @@ impl From<StoredOutcome> for Outcome {
             disposition: v.disposition,
             receipt_refs: v.receipt_refs,
             affected_entities: v.affected_entities,
+            current_versions: Default::default(),
         }
     }
 }
