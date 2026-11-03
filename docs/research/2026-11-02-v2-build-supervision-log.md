@@ -201,3 +201,16 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - The supervisor also filed `sharp-pinnacle-28` for B2's merge conflict, duplicating my `787ef68`. `--obsolete` failed with "could not stop the writer", so I messaged the worker to close without changes.
   - Routed B6a2's cross-repo requirement (runner HTTP envelopes and receipt fixtures) to B2 by message and comment; B2 is running.
   - Merged aq-server #27 (`99fa8d86`), aq-playbooks #4 (`56236d40`) and aq-dashboard #8 (`e6a2a285`). aq-dashboard main CI is green.
+- **23:40 check.**
+  - **D1a done.** Review `rev-steady-dune` r3 approved (preview gated on `approve`; deferred nits marked `no_change`). The fix fails closed: a dispatched publish hold is released only on validated success or an explicit `Failed` state without uncertainty flags, with a regression test.
+    - Filed the nits as `clear-meadow-17` (standard-medium).
+    - Closed PR #28 as superseded; the revision task and D1a itself both fixed it (W43). PR #29 merges when its tests job finishes.
+    - The D1a task is COMPLETED.
+  - **B2 owner decision** (renewal after a new boot), decided as operator; the owner may override. Option A:
+    - grant history stays bound to the original boot;
+    - a new delegated-node incarnation fences the old boot;
+    - renewal uses only the grant, cancellation and the unchanged hard deadline (120 s lease);
+    - fail closed if the re-registered backend, template or capabilities differ;
+    - no new native authority seam.
+  - F1a is running again, with its revision (`steady-harbor-87.8`, PR #30). B6c started.
+  - The paused duplicates `sharp-pinnacle-28` and `agile-torrent-31` cannot be closed ("could not stop the writer"); left paused.
