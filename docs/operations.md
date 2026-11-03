@@ -266,13 +266,14 @@ aqc() {
 ```toml
 state_dir = "/var/lib/agent-q/updater"
 backup_dir = "/var/lib/agent-q/backups"
+# Pre-update backups kept in backup_dir (the default; at least 1).
+backups_keep = 5
 # Defaults, shown for reference:
 # release_repo = "ghcr.io/electricjack/agent-q-release"
 # channel = "stable"
 # readiness_deadline_secs = 120
 # poll_interval_secs = 3600
 # min_free_bytes = 2147483648
-# backups_keep = 5
 # expected_auth_mode = "cloudflare_access"
 # maintenance_drain_secs = 5
 
@@ -297,6 +298,30 @@ install -o root -g aq-updater -m 0640 updater.toml /etc/agent-q/updater.toml
 maintenance on and before it starts the backup, so that an admin write that
 passed the maintenance check just before the marker appeared can commit and
 land in the backup. `0` turns the wait off.
+
+### Disk space: backups and images
+
+The updater bounds what it keeps on the root filesystem:
+
+- **Backup rotation.** After each pre-update backup it keeps the newest
+  `backups_keep` dumps (default 5) in `backup_dir` and deletes older ones. The
+  backup of the active release's data (`active_backup`) and the backup of the
+  update in flight are never deleted, even when they are older.
+- **Free-space checks.** Before pulling, the updater refuses an update when
+  `backup_dir`'s filesystem has less free space than the larger of
+  `min_free_bytes` and three times the newest backup. After the pull, and
+  before maintenance or anything else stops, it checks again and refuses to
+  start the backup when free space is below the newest backup's size plus
+  10%. Both refusals are recorded as `refused` in the history with the bytes
+  free and needed; the active release keeps running. Free some space and
+  request the update again.
+- **Image prune.** After a successful update (or `restore-previous`), the
+  updater removes the local images of the release repositories (the server
+  and worker images named in release manifests) other than the current and
+  previous release's. Other Compose images (postgres, aq-graph, cloudflared)
+  are pinned in `compose.yaml` and not touched. Docker refuses to remove an
+  image a container still uses. A failed prune is logged as a warning and
+  never changes the update's outcome.
 
 ### Registry login (`docker login ghcr.io`)
 
