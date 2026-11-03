@@ -193,3 +193,11 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Filed C7's cross-repo follow-up** as `sound-vault-88` (E1d, the aq-worker-boat Compose service). It waits on E1c and C7; MS3 waits on it.
   - **Merged:** aq-worker #26 (`e833abea`), aq-dashboard #7 (`079b9ee1`), aq-graph #3 (`11d779d6`), aq-git #5 (`07d72677`). aq-server #27 waits for its tests job.
   - Started: C7, E6a and B6a2.
+- **23:25 check.**
+  - **F1a review** (`rev-nimble-horizon`): no blocking findings. I approved with `follow_up` dispositions for the nits, but v1 forced them to `fold_in` because the comment text matched its prerequisite regex. This is a second form of W37, and I did not gate on the preview's effective option.
+    - Narrowed the resulting revision `steady-harbor-87.8` to the SIGTERM/STOPSIGNAL fix (as shipped, every `docker stop` SIGKILLs the guardian) plus the one-sentence crash-window documentation.
+    - Filed the remaining nits as `quick-flare-47` (standard-medium, after F1a).
+  - **D1a:** revision `crisp-meadow-36.15` produced aq-server PR #28 (keep unknown publish outcomes fenced); I will decide r2 when it is resubmitted.
+  - The supervisor also filed `sharp-pinnacle-28` for B2's merge conflict, duplicating my `787ef68`. `--obsolete` failed with "could not stop the writer", so I messaged the worker to close without changes.
+  - Routed B6a2's cross-repo requirement (runner HTTP envelopes and receipt fixtures) to B2 by message and comment; B2 is running.
+  - Merged aq-server #27 (`99fa8d86`), aq-playbooks #4 (`56236d40`) and aq-dashboard #8 (`e6a2a285`). aq-dashboard main CI is green.
