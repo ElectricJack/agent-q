@@ -88,13 +88,8 @@ async fn permit_scope_refuses_foreign_attempt_and_expired_use_after_authenticati
             .await
             .is_err()
     );
-    let own = serde_json::json!({"events":[{"binding":{"attempt_id":p.binding.attempt_id}}]});
-    runtime::require_document(&auth, &own).unwrap();
-    let mixed = serde_json::json!({"events":[{"binding":{"attempt_id":p.binding.attempt_id}}, {"nested":[{"attempt_id":Uuid::new_v4()}]}]});
-    assert!(
-        runtime::require_document(&auth, &mixed).is_err(),
-        "all batch members must be scoped"
-    );
+    // Batch attempt scoping is covered by the typed checks in
+    // delegated_typed_attempt_checks_reject_foreign_and_mixed_bindings.
     let mut stale = p.clone();
     stale.binding.node.boot_id = Uuid::new_v4();
     assert!(
