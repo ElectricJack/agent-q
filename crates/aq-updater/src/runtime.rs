@@ -79,10 +79,16 @@ const STDERR_KEEP: usize = 4096;
 pub const RELEASE_ENV: &str = "release.env";
 const SERVICE_SERVER: &str = "server";
 const SERVICE_POSTGRES: &str = "postgres";
+/// compose.yaml's one-shot provisioner of the server's role and database.
+const SERVICE_SERVER_DB_INIT: &str = "server-db-init";
+/// The bootstrap PostgreSQL administrator (compose.yaml `POSTGRES_USER`).
+const DB_ADMIN: &str = "agent_q";
+/// The database the server keeps its state in; owned by the `aq_server` role.
+const SERVER_DB: &str = "aq_server";
 const STATE_FORMAT_SQL: &str = "SELECT value FROM meta WHERE key = 'state_format_version'";
 // `IF EXISTS`: a restore cut short after the drop can be retried.
-const DROP_SQL: &str = "DROP DATABASE IF EXISTS agent_q WITH (FORCE)";
-const CREATE_SQL: &str = "CREATE DATABASE agent_q OWNER agent_q";
+const DROP_SQL: &str = "DROP DATABASE IF EXISTS aq_server WITH (FORCE)";
+const CREATE_SQL: &str = "CREATE DATABASE aq_server OWNER aq_server";
 
 fn tag_re() -> &'static regex::Regex {
     static RE: std::sync::OnceLock<regex::Regex> = std::sync::OnceLock::new();
@@ -293,7 +299,7 @@ pub fn parse_state_format(
 ) -> RuntimeResult<Option<u32>> {
     if !status.success() {
         let err = String::from_utf8_lossy(stderr);
-        let missing = err.contains("database \"agent_q\" does not exist")
+        let missing = err.contains("database \"aq_server\" does not exist")
             || err.contains("relation \"meta\" does not exist");
         return if missing {
             Ok(None)
@@ -427,8 +433,16 @@ impl DockerCli {
         v
     }
 
+    /// Starts the server's dependencies too (database provisioning, state
+    /// initialization, graph, Git); only the server itself is force-recreated,
+    /// a dependency is recreated only when its configuration changed.
     pub fn start_server_argv(&self) -> Vec<OsString> {
-        self.compose_argv(&["up", "-d", "--no-deps", "--force-recreate", SERVICE_SERVER])
+        self.compose_argv(&["up", "-d", "--force-recreate", SERVICE_SERVER])
+    }
+    /// Idempotently create the server's role and database (a fresh host has
+    /// neither before the first install), refusing retained owner drift.
+    pub fn provision_database_argv(&self) -> Vec<OsString> {
+        self.compose_argv(&["run", "--rm", "-T", SERVICE_SERVER_DB_INIT])
     }
     pub fn stop_server_argv(&self) -> Vec<OsString> {
         self.compose_argv(&["stop", SERVICE_SERVER])
@@ -446,7 +460,7 @@ impl DockerCli {
             SERVICE_POSTGRES,
             "psql",
             "-U",
-            "agent_q",
+            DB_ADMIN,
             "-d",
             db,
             flag,
@@ -460,9 +474,9 @@ impl DockerCli {
             SERVICE_POSTGRES,
             "pg_dump",
             "-U",
-            "agent_q",
+            DB_ADMIN,
             "-Fc",
-            "agent_q",
+            SERVER_DB,
         ])
     }
     /// Drop, create, then `pg_restore` (fed the dump on stdin).
@@ -476,14 +490,14 @@ impl DockerCli {
                 SERVICE_POSTGRES,
                 "pg_restore",
                 "-U",
-                "agent_q",
+                DB_ADMIN,
                 "-d",
-                "agent_q",
+                SERVER_DB,
             ]),
         ]
     }
     pub fn state_format_argv(&self) -> Vec<OsString> {
-        self.psql_argv("agent_q", "-tAc", STATE_FORMAT_SQL)
+        self.psql_argv(SERVER_DB, "-tAc", STATE_FORMAT_SQL)
     }
 
     pub fn pull_argv(&self, image: &str) -> RuntimeResult<Vec<OsString>> {
@@ -789,7 +803,14 @@ impl Runtime for DockerCli {
     async fn backup(&self, dest: &Path) -> RuntimeResult<u64> {
         use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
         use tokio::io::AsyncWriteExt;
-        self.compose_ready()?;
+        // Before the dump: on a fresh host the server's database does not
+        // exist until it is provisioned.
+        self.compose(
+            "docker compose run server-db-init",
+            self.provision_database_argv(),
+            CMD_TIMEOUT,
+        )
+        .await?;
         let file = std::fs::OpenOptions::new()
             .write(true)
             .create_new(true)
@@ -1037,7 +1058,11 @@ mod tests {
         );
         assert_eq!(
             strs(&c.start_server_argv()),
-            with_prefix(&["up", "-d", "--no-deps", "--force-recreate", "server"])
+            with_prefix(&["up", "-d", "--force-recreate", "server"])
+        );
+        assert_eq!(
+            strs(&c.provision_database_argv()),
+            with_prefix(&["run", "--rm", "-T", "server-db-init"])
         );
         assert_eq!(
             strs(&c.stop_server_argv()),
@@ -1054,7 +1079,7 @@ mod tests {
         assert_eq!(
             strs(&c.backup_argv()),
             with_prefix(&[
-                "exec", "-T", "postgres", "pg_dump", "-U", "agent_q", "-Fc", "agent_q"
+                "exec", "-T", "postgres", "pg_dump", "-U", "agent_q", "-Fc", "aq_server"
             ])
         );
         let [drop, create, restore] = c.restore_argvs();
@@ -1070,7 +1095,7 @@ mod tests {
                 "-d",
                 "postgres",
                 "-c",
-                "DROP DATABASE IF EXISTS agent_q WITH (FORCE)",
+                "DROP DATABASE IF EXISTS aq_server WITH (FORCE)",
             ])
         );
         assert_eq!(
@@ -1085,7 +1110,7 @@ mod tests {
                 "-d",
                 "postgres",
                 "-c",
-                "CREATE DATABASE agent_q OWNER agent_q",
+                "CREATE DATABASE aq_server OWNER aq_server",
             ])
         );
         assert_eq!(
@@ -1098,7 +1123,7 @@ mod tests {
                 "-U",
                 "agent_q",
                 "-d",
-                "agent_q"
+                "aq_server"
             ])
         );
         assert_eq!(
@@ -1111,7 +1136,7 @@ mod tests {
                 "-U",
                 "agent_q",
                 "-d",
-                "agent_q",
+                "aq_server",
                 "-tAc",
                 "SELECT value FROM meta WHERE key = 'state_format_version'",
             ])
@@ -1119,6 +1144,7 @@ mod tests {
         // The server image never appears as an argument of a Compose call.
         for argv in [
             c.start_server_argv(),
+            c.provision_database_argv(),
             c.stop_server_argv(),
             c.readiness_argv(),
             c.backup_argv(),
@@ -1403,7 +1429,7 @@ mod tests {
         assert_eq!(parse_state_format(&ok, b"3\n", b"").unwrap(), Some(3));
         assert_eq!(parse_state_format(&ok, b"", b"").unwrap(), None);
         assert_eq!(
-            parse_state_format(&bad, b"", b"psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: FATAL:  database \"agent_q\" does not exist").unwrap(),
+            parse_state_format(&bad, b"", b"psql: error: connection to server on socket \"/var/run/postgresql/.s.PGSQL.5432\" failed: FATAL:  database \"aq_server\" does not exist").unwrap(),
             None
         );
         assert_eq!(
