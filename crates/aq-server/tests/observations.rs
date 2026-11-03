@@ -1314,4 +1314,125 @@ mod accounting {
         );
         drop(f);
     }
+
+    // H2 follow-up: re-enrolling after a credential change bumps the source
+    // generation and revokes its predecessor. Late usage from the revoked
+    // generation is kept as evidence but never charged, and the lineage budget
+    // reads heads by their lineage column.
+    #[tokio::test]
+    async fn credential_change_bumps_source_generation_and_revokes_previous() {
+        use aq_selection::CredentialKind;
+        let (mut f, _) = seeded(Some(true)).await;
+        let cards = vec![card(&f, 1, 3_000_000)];
+        install(&mut f, CredentialKind::SubscriptionLogin, cards.clone());
+        let attempt = f.profiled.offer.binding.attempt_id;
+        let pool = f.db.pool().await;
+        let derive = |f: &Fixture| {
+            let state = f.state.clone();
+            async move {
+                catalog::source_for_attempt(&state, attempt)
+                    .await
+                    .unwrap()
+                    .unwrap()
+            }
+        };
+        let s1 = derive(&f).await;
+        assert_eq!(s1.generation, 1);
+        assert_eq!(
+            send(&f, &packet(&f, vec![call(&s1, 1, "call-1", 1000)])).await,
+            StatusCode::OK
+        );
+        // An unchanged derivation re-enrolls idempotently at the same generation.
+        assert!(
+            catalog::register_attempt(&f.state, attempt, None)
+                .await
+                .unwrap()
+        );
+        assert_eq!(derive(&f).await.source_id, s1.source_id);
+
+        install(&mut f, CredentialKind::ApiKey, cards);
+        let s2 = derive(&f).await;
+        assert_eq!(s2.generation, 2);
+        assert_ne!(s2.source_id, s1.source_id);
+        assert_eq!(
+            s2.native_session_key.as_str(),
+            format!("aq.attempt/{attempt}/2")
+        );
+        assert_eq!(s2.billing, Some(EstimateBasis::TokenRates));
+        assert!(
+            catalog::register_attempt(&f.state, attempt, None)
+                .await
+                .unwrap()
+        );
+        let revocation: (Uuid, i64) = sqlx::query_as(
+            "SELECT superseded_by_source_id,superseded_by_generation \
+             FROM observation_source_revocations WHERE source_id=$1 AND generation=1",
+        )
+        .bind(s1.source_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(revocation, (s2.source_id, 2));
+        // The enrolled generation is now current; repeated enrollment is stable.
+        assert!(
+            catalog::register_attempt(&f.state, attempt, None)
+                .await
+                .unwrap()
+        );
+        assert_eq!(derive(&f).await.generation, 2);
+        let sources: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM observation_sources WHERE attempt_id=$1")
+                .bind(attempt)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(sources, 2);
+        // A revoked source is never re-admitted, and the history is immutable.
+        assert!(matches!(
+            observations::register_source(&f.state, &s1).await,
+            Err(observations::Error::Refused)
+        ));
+        assert!(
+            sqlx::query("DELETE FROM observation_source_revocations")
+                .execute(&pool)
+                .await
+                .is_err()
+        );
+
+        // Late usage from generation 1 keeps the sequence moving but is unresolved.
+        assert_eq!(
+            send(&f, &packet(&f, vec![call(&s1, 2, "call-2", 500)])).await,
+            StatusCode::OK
+        );
+        assert_eq!(
+            send(&f, &packet(&f, vec![call(&s2, 3, "call-3", 100)])).await,
+            StatusCode::OK
+        );
+        assert_eq!(counts(&f).await, (3, 3));
+        let decisions: Vec<String> = sqlx::query_scalar(
+            "SELECT decision->>'kind' FROM observation_events WHERE attempt_id=$1 ORDER BY sequence",
+        )
+        .bind(attempt)
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        assert_eq!(decisions, ["append", "unresolved", "append"]);
+        // Only charged calls have heads in the lineage; the token-rate call is
+        // priced, the subscription call is labelled, the revoked one is absent.
+        let lineage = s2.binding.lineage_id;
+        let heads: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM observation_call_heads WHERE lineage_id=$1")
+                .bind(lineage)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+        assert_eq!(heads, 2);
+        let budget = budget::lineage(&f.state, lineage, None)
+            .await
+            .unwrap()
+            .unwrap();
+        // 100 input x 3 + 4 output x 15 microunits per token.
+        assert_eq!(budget.spent_microunits, Some(360));
+        drop(f);
+    }
 }
