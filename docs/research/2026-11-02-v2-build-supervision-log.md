@@ -395,3 +395,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - boat side: auto top-up off, extra starts off, an org-member usage cap, concurrency 4, saved snapshots within the 10 included;
   - AQ side: `aq-worker-boat` spend_ceiling $18/month from H2 accounting, max_concurrent_sandboxes 4;
   - small sandboxes by default.
+- **08:40 owner re-scope: test boat first from the desktop; the VPS comes later.**
+  - E5 became E5a: the desktop-hosted production stack behind Cloudflare Tunnel and Access (description updated and the agent messaged).
+  - Filed E5b `crisp-beacon-74`: the VPS move (purchase, SSH, firewall, repoint the tunnel, backups, reboot drill). E6b and MS2 now depend on E5b.
+  - Told `sound-vault-88` (aq-worker-boat) to run in the desktop stack.
+  - Owner inputs still needed: Cloudflare domain and option, team name and email, release tag, boat keys.
