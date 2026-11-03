@@ -15,7 +15,9 @@ completed a graph task end to end: I0 run 13c.
 
 MS0's checklist asks for **three** such completions (plan §1, and the owner's
 pre-approval). The evidence has **one**. The owner accepted one settled run as
-passing MS0. The decision is recorded [verbatim below](#owner-decision).
+passing MS0: its purpose is met, and two more runs would spend Codex usage that
+stood at 97% of the weekly allowance. The decision is recorded
+[verbatim below](#owner-decision).
 
 No MS1 contract or dependency was changed.
 
@@ -42,17 +44,36 @@ Owner `user:local`, 2026-11-03, task comment
 
 > Operator decision recorded in msg to task: accept 1 settled run for MS0 (owner pre-approval, Codex budget); ChatGPT-login wording supersedes API-key; MS1 rows become follow-up tasks.
 
+The message it refers to, `msg-c67225924eda4d0c9f2a9b1ec81d27ee` (from
+`user:cli`, to this task), verbatim:
+
+> Operator decision (owner-delegated; the owner pre-approved the MS0 gate on 2026-11-02 and can override):
+> (1) ACCEPT the one fully settled run (I0 run 13c) as passing MS0. MS0's purpose is met, and two more settled runs would spend Codex usage that is at 97% weekly. Record the 1-of-3 deviation and this rationale in MS0.md.
+> (2) Confirmed: plan §1's ChatGPT-login wording supersedes the 'API-key' wording in the pre-approval comment. The owner uses subscription logins only, never API keys.
+> (3) For each MS1 'Yes' row in your problem table, make sure a follow-up task exists in the owning project: session held to wall limit (C6a, aq-worker), offer window (quick-impact-98 plus the aq-worker deadline anchoring), stopped attempts holding tasks (B4/B7/D3), login rotation (C5b/C6b). Do not change contracts in this task.
+> Then close MS0 pass.
+
 This answers the [decision questions](#decision-questions):
 
-1. **Run count:** one settled run passes MS0.
-2. **Authentication:** the ChatGPT-login wording supersedes "API key".
+1. **Run count: one settled run passes MS0.** This is a deviation: the checklist
+   asks for three runs and the evidence has one. The recorded rationale is that
+   MS0's purpose (surface the real problems before MS1) is met, and two more
+   settled runs would spend Codex usage that stood at 97% of the weekly
+   allowance. The owner can override.
+2. **Authentication:** the ChatGPT-login wording supersedes "API key". The owner
+   uses subscription logins only.
 3. **MS1 scope:** the MS1-impact rows become follow-up tasks. No MS1 contract is
-   edited by this gate. Every "Yes" row now has a task:
-   - Run-13 findings: `quick-impact-98` and the two aq-worker cross-repo
-     follow-ups.
-   - Earlier findings: the existing v1 tasks (`sharp-harbor-18`, `fresh-delta-13`,
-     `amber-horizon-91`, `sharp-dune-88`).
-   - The server release of stopped attempts, newly filed as `calm-beacon-15`.
+   edited by this gate. Follow-ups for the four named rows:
+
+   | Row | Owning project | Follow-up |
+   | --- | --- | --- |
+   | Session held to the wall limit (C6a) | aq-worker | `CROSS-REPO FOLLOW-UP (aq-worker)` comment on this task. This session is scoped to aq-platform and cannot create aq-worker tasks, so the supervisor routes the comment into an aq-worker task |
+   | Offer window (B2/C6a) | aq-platform + aq-worker | `quick-impact-98` (server; completed). The worker's deadline anchoring (poll latency counted twice) is a second `CROSS-REPO FOLLOW-UP (aq-worker)` comment, routed the same way |
+   | Stopped attempts holding tasks (B4/B7/D3) | aq-platform | `calm-beacon-15` |
+   | Login rotation (C5b/C6b) | aq-worker | Existing `fresh-delta-13` |
+
+   The other "Yes" rows already map to existing v1 tasks: `sharp-harbor-18`,
+   `amber-horizon-91` and `sharp-dune-88`. Stale attempt state is `bold-delta-91`.
 
 ## Checklist against the evidence
 
