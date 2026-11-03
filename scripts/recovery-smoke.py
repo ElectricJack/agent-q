@@ -62,6 +62,9 @@ class RecoveryFixture(product.Fixture):
             shutil.copy2(ROOT / name, source / name)
         for name in ["crates", "vendor", "protocol"]:
             shutil.copytree(ROOT / name, source / name)
+        # Dockerfile.worker installs the worker volume initializer from scripts/.
+        (source / "scripts").mkdir()
+        shutil.copy2(ROOT / "scripts/worker-init-volumes.sh", source / "scripts/worker-init-volumes.sh")
         if self.prototype_revision:
             raw = subprocess.check_output(["git", "archive", "--format=tar", self.prototype_revision], cwd=self.prototype_repository)
             compressed = gzip.compress(raw, mtime=0)

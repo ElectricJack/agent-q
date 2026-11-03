@@ -164,6 +164,9 @@ class Fixture:
             shutil.copy2(ROOT / name, snapshot / name)
         for name in ["crates", "vendor", "protocol"]:
             shutil.copytree(ROOT / name, snapshot / name)
+        # Dockerfile.worker installs the worker volume initializer from scripts/.
+        (snapshot / "scripts").mkdir()
+        shutil.copy2(ROOT / "scripts/worker-init-volumes.sh", snapshot / "scripts/worker-init-volumes.sh")
         inventory = {str(p.relative_to(snapshot)): sha(p.read_bytes()) for p in sorted(snapshot.rglob("*")) if p.is_file()}
         self.record["source_inventory"] = inventory
         self.record["source_tree_sha256"] = sha(canonical(inventory))
