@@ -280,3 +280,12 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **B2 blocked again** on a store.rs child merge conflict: F1b took migration 0048 (supervisor_dispatch). I merged main into `aq/noble-summit-37.2` and renumbered delegated permits to 0049 (state format 49, Dockerfile ARG; `be8a33e`). Reopened B2 and told it to finish and open the PR promptly (W41 recurrence).
   - A4 is READY again; pinned it to standard-medium Claude (Codex 90%).
   - All 11 aq-worker READY tasks are dependency-blocked; I0 is running. aq-server #33 is re-running CI.
+- **02:05 check.**
+  - **B2 blocked a third time:** main took 0049 (`0049_supervisor_reservation_consumption`, from F1b follow-up `.2.1`), and slot_reset's automatic merge of main (`d616375f`) conflicted in store.rs.
+    - Merged main again and renumbered to 0050 (`1e3b87c`). Updated the base clone's stale local branch ref.
+    - Released the hold and reopened B2. Reserved migration 50 for B2 with the running F1b follow-ups `.2.3` and `.2.4`.
+  - **A4 blocked on the same slot_reset conflict class:** its single commit `a427134` sat on a very old base and conflicted in ci.yml, Cargo.toml and Dockerfile.
+    - Backed it up to `aq/eager-grove-45.4-old` and reset `aq/eager-grove-45.4` to main (force-with-lease).
+    - Released and reopened A4 to re-apply the commit's intent, without blindly re-deleting the vendor dirs.
+  - Shared the diagnosis with the supervisor's investigation `steady-quest-28`.
+  - `steady-harbor-87.2.2` completed.
