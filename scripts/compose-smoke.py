@@ -9,6 +9,8 @@ import sys
 import tempfile
 import time
 import uuid
+import urllib.error
+import urllib.request
 
 spec = importlib.util.spec_from_file_location("dev_stack", Path(__file__).with_name("dev-stack.py"))
 dev = importlib.util.module_from_spec(spec)
@@ -73,7 +75,10 @@ def compose_dev_reaches_ready_with_graph_and_git():
             assert ownership == ["10001:10001:700"] * 3, ownership
             evidence["private_directory_ownership"] = ownership
             evidence["images"] = {r["Service"]: dev.compose(env, "images", "-q", r["Service"]).strip() for r in rows}
-            graph_role = dev.compose(env, "exec", "-T", "postgres", "psql", "-U", "agent_q", "-d", "agent_q", "-tAc",
+            def sql(query):
+                return dev.compose(env, "exec", "-T", "postgres", "sh", "-ec",
+                    'export PGPASSWORD="$(cat /run/secrets/postgres_password)"; exec psql -U agent_q -d agent_q -tAc "$1"', "sh", query).strip()
+            graph_role = sql(
                 "SELECT r.rolname || ':' || r.rolsuper::text FROM pg_database d JOIN pg_roles r ON r.oid=d.datdba WHERE d.datname='aq_graph'").strip()
             assert graph_role == "aq_graph:false", "Graph database must have its own non-superuser role: " + graph_role
             evidence["graph_database_owner"] = graph_role
@@ -95,6 +100,9 @@ def compose_dev_reaches_ready_with_graph_and_git():
             os.environ["AQ_DEV_GRAPH_URL"] = "http://127.0.0.1:" + port("aq-graph", 8741)
             os.environ["AQ_DEV_SERVER_URL"] = "http://127.0.0.1:" + port("server", 8080)
             os.environ["AQ_DEV_WORKER_URL"] = "http://127.0.0.1:" + port("server", 8081)
+            # Keep the assigned ephemeral ports stable across activation restarts.
+            os.environ["AQ_DEV_ADMIN_PORT"] = port("server", 8080)
+            os.environ["AQ_DEV_WORKER_PORT"] = port("server", 8081)
             # Only our disposable local repository is made available to Git.
             fixture = directory / "state/fixture"
             fixture.mkdir(exist_ok=True)
@@ -145,6 +153,40 @@ def compose_dev_reaches_ready_with_graph_and_git():
                             token=(directory / "secrets/graph_token").read_text())
             assert node["id"] == dev.TASK and node["kind"] == "task", node
             evidence["seed"] = seed
+            settlement = dev.enable_settlement()
+            assert dev.enable_settlement() == settlement, "settlement restart changed retained pins"
+            evidence["settlement"] = settlement
+            socket = dev.compose(env, "exec", "-T", "server", "stat", "-c", "%u:%a:%F",
+                "/run/aq-postgresql", "/run/aq-postgresql/.s.PGSQL.5432").splitlines()
+            assert socket[0].endswith(":755:directory") and socket[1].endswith(":socket"), socket
+            evidence["postgres_socket"] = socket
+            engine_role = sql("SELECT r.rolname || ':' || r.rolsuper::text FROM pg_namespace n JOIN pg_roles r ON r.oid=n.nspowner WHERE n.nspname='aq_playbooks'")
+            assert engine_role == "aq_playbook:false", engine_role
+            evidence["engine_schema_owner"] = engine_role
+            private_paths = ["/run/aq-dev/" + name for name in ("playbook_dsn", "playbook_engine_keys",
+                "playbook_bridge_key", "playbook-artifact.json")]
+            ownership = dev.compose(env, "exec", "-T", "server", "stat", "-c", "%u:%g:%a:%h", *private_paths).splitlines()
+            assert ownership == ["10001:10001:600:1"] * 4, ownership
+            evidence["settlement_private_files"] = ownership
+            inbox = dev.http(os.environ["AQ_DEV_SERVER_URL"] + "/api/reviews/decisions")
+            assert inbox["api_version"] == "review-inbox-1" and inbox["items"] == [], inbox
+            evidence["decision_inbox"] = inbox
+            # A fresh stack has no report/completion to settle. Require the typed
+            # owner's refusal, distinguishing it from an unmounted route's 404.
+            reconcile = os.environ["AQ_DEV_SERVER_URL"] + "/api/settlement/completions/" + str(uuid.uuid4()) + "/reconcile"
+            for payload, expected, message in (({}, 404, "completion not found"),
+                    ([], 400, "reconcile requires an empty JSON object")):
+                request = urllib.request.Request(reconcile, data=json.dumps(payload).encode(),
+                    headers={"Content-Type": "application/json", "X-AQ-Request": "1"})
+                try:
+                    urllib.request.urlopen(request, timeout=15)
+                except urllib.error.HTTPError as error:
+                    body = json.load(error)
+                    assert error.code == expected and body["message"] == message, body
+                else:
+                    raise AssertionError("fresh stack accepted an absent completion")
+            evidence["reconcile"] = "mounted owner: absent completion refused; non-object body refused"
+            assert sql("SELECT (SELECT count(*) FROM human_decision_requests) + (SELECT count(*) FROM profiled_task_completions) + (SELECT count(*) FROM playbook_admissions)") == "0"
             def git_pid():
                 return dev.compose(env, "exec", "-T", "aq-git", "cat", "/run/aq-git/child.pid").strip()
             before = git_pid()
@@ -175,6 +217,11 @@ def compose_dev_reaches_ready_with_graph_and_git():
             dev.compose(env, "start", "aq-graph")
             wait_for(lambda: readiness()[0] == 0 and healthy(), "graph recovery")
             evidence["graph_outage_degraded"] = graph_down
+        except Exception:
+            # Retain diagnostics before removing this smoke's disposable peers.
+            print(dev.compose(env, "logs", "--no-color", "--tail", "60", "postgres",
+                "playbook-db-init", "dev-state-init", "server"), file=sys.stderr)
+            raise
         finally:
             if started:
                 dev.compose(env, "down", "--volumes", "--remove-orphans")

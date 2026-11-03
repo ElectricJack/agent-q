@@ -7,9 +7,11 @@ import json
 import os
 from pathlib import Path
 import secrets
+import stat
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -20,6 +22,28 @@ WORKSPACE = "e0000000-0000-4000-8000-000000000001"
 PROJECT = "e0000000-0000-4000-8000-000000000002"
 REPOSITORY = "e0000000-0000-4000-8000-000000000003"
 TASK = "e0000000-0000-4000-8000-000000000004"
+
+
+def private_file(path, content):
+    """Create once, refusing unsafe retained files without printing their bytes."""
+    try:
+        metadata = path.lstat()
+        if (not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1
+                or metadata.st_uid != os.getuid() or metadata.st_mode & 0o077
+                or metadata.st_size == 0):
+            raise ValueError("unsafe retained development settlement file") from None
+    except FileNotFoundError:
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(dir=path.parent, prefix=".dev-settlement-", delete=False) as out:
+                temporary = Path(out.name)
+                out.write(content)
+                out.flush()
+                os.fsync(out.fileno())
+            os.link(temporary, path)
+        finally:
+            if temporary is not None:
+                temporary.unlink()
 
 
 def paths():
@@ -48,6 +72,10 @@ def prepare():
             if path.is_symlink() or not path.is_file() or path.stat().st_size < 32:
                 raise ValueError("invalid existing development credential file")
         path.chmod(mode)
+    private_file(secret / "playbook_database_password", secrets.token_hex(32).encode())
+    private_file(secret / "playbook_engine_keys", json.dumps(dict(active_key_id="dev-engine-1",
+        keys={"dev-engine-1": secrets.token_hex(32)})).encode())
+    private_file(secret / "playbook_bridge_key", secrets.token_bytes(32))
     config = (ROOT / "vault.example/config.toml").read_text()
     config += '''
 [agent_access]
@@ -78,6 +106,92 @@ def compose(env, *args, capture=True, input=None, timeout=None):
         # Output is retained by callers; commands never contain credential values.
         raise RuntimeError(f"development Compose command exited {result.returncode}: {result.stderr}" if capture else "development Compose command failed")
     return result.stdout if capture else None
+
+
+def enable_settlement():
+    """Activate only after public-API seed has created the real owner/project."""
+    env = prepare()
+    state, _, _ = paths()
+    with (state / ".settlement.lock").open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        return enable_settlement_locked(env)
+
+
+def enable_settlement_locked(env):
+    state, _, vault = paths()
+    receipt = state / "seed.json"
+    if not receipt.exists() or json.loads(receipt.read_text()).get("project_id") != PROJECT:
+        raise ValueError("settlement requires a completed development seed")
+    server = os.environ.get("AQ_DEV_SERVER_URL", "http://127.0.0.1:8080")
+    users = http(server + "/api/users")
+    owners = [user for user in users if user["email"] == "owner@localhost" and user["role"] == "owner"]
+    if len(owners) != 1:
+        raise ValueError("settlement requires the current development owner")
+    owner_id = http(server + "/api/v1/bootstrap")["data"]["principal"]["id"]
+    project = http(server + "/api/projects/" + PROJECT)
+    if not project or project["binding"]["graph_workspace_id"] != WORKSPACE or not project["binding"]["enabled"]:
+        raise ValueError("settlement project differs from the development seed")
+    # Discover the actual socket UID; do not assume the image's postgres UID.
+    socket_uid = int(compose(env, "exec", "-T", "postgres", "stat", "-c", "%u",
+        "/run/aq-postgresql/.s.PGSQL.5432").strip())
+    pins_path = state / "settlement.json"
+    private_file(pins_path, json.dumps(dict(namespace_id=str(uuid.uuid4()), grant_id=str(uuid.uuid4()),
+        owner_user_id=owner_id, socket_owner_uid=socket_uid,
+        expires_at_ms=int(time.time() * 1000) + 23 * 60 * 60 * 1000), sort_keys=True).encode())
+    pins = json.loads(pins_path.read_text())
+    if pins["owner_user_id"] != owner_id or pins["socket_owner_uid"] != socket_uid:
+        raise ValueError("retained settlement owner/socket differs; use a fresh development stack")
+    artifact = (ROOT / "scripts/dev-playbook-artifact.json").read_bytes()
+    private_file(vault / "playbook-artifact.json", artifact)
+    if (vault / "playbook-artifact.json").read_bytes() != artifact:
+        raise ValueError("retained settlement artifact differs; use a fresh development stack")
+    config = (vault / "config.toml").read_text() + f'''
+[playbooks]
+enabled = true
+profile = "human_review_v2"
+engine_connection_file = "/run/aq-dev/playbook_dsn"
+socket_owner_uid = {socket_uid}
+engine_keyring_file = "/run/aq-dev/playbook_engine_keys"
+drive_interval_ms = 1000
+[playbooks.namespace]
+namespace_id = "{pins['namespace_id']}"
+generation = 1
+name = "E0 local human settlement"
+workspace_id = "{WORKSPACE}"
+project_id = "{PROJECT}"
+owner_user_id = "{pins['owner_user_id']}"
+[playbooks.protection]
+active_key_id = "dev-bridge-1"
+[[playbooks.protection.keys]]
+id = "dev-bridge-1"
+file = "/run/aq-dev/playbook_bridge_key"
+[[playbooks.deployments]]
+artifact_file = "/run/aq-dev/playbook-artifact.json"
+binding = "development-inspection-only"
+grant_id = "{pins['grant_id']}"
+expires_at_ms = {pins['expires_at_ms']}
+[playbooks.deployments.scope]
+workspace_id = "{WORKSPACE}"
+project_id = "{PROJECT}"
+capabilities = ["operation.get"]
+[[playbooks.deployments.scope.recipients]]
+kind = "task"
+workspace_id = "{WORKSPACE}"
+project_id = "{PROJECT}"
+task_id = "{TASK}"
+'''
+    private_file(vault / "playbooks.toml", config.encode())
+    if (vault / "playbooks.toml").read_text() != config:
+        raise ValueError("retained settlement configuration differs; use a fresh development stack")
+    # Stop gracefully before acquiring the retained engine owner on a new process.
+    compose(env, "stop", "server")
+    compose(env, "run", "--rm", "--no-deps", "dev-state-init")
+    compose(env, "up", "-d", "--no-build", "--wait", "--wait-timeout", "120", "server")
+    status = http(server + "/api/playbooks/status")
+    if status["namespace"]["namespace_id"] != pins["namespace_id"]:
+        raise ValueError("settlement owner did not activate the retained namespace")
+    return dict(namespace_id=pins["namespace_id"], grant_id=pins["grant_id"],
+                expires_at_ms=pins["expires_at_ms"])
 
 
 def designation(local_fixture=False):
@@ -254,12 +368,15 @@ def seed_locked(choice, local_fixture):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=["prepare", "seed", "up", "down", "readiness"])
+    parser.add_argument("command", choices=["prepare", "seed", "settlement", "up", "down", "readiness"])
     parser.add_argument("--local-fixture", action="store_true", help="accept only a /fixture/ path owned by the disposable smoke test")
     args, remaining = parser.parse_known_args()
     try:
         if args.command == "seed":
             result = seed(args.local_fixture)
+            result["settlement"] = enable_settlement()
+        elif args.command == "settlement":
+            result = enable_settlement()
         else:
             result = prepare()
             if args.command == "up":
