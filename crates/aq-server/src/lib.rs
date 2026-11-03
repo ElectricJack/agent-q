@@ -11,6 +11,7 @@ pub mod error;
 pub mod execution;
 pub mod identity;
 pub mod intelligence;
+pub mod node_storage;
 pub mod notifications;
 pub mod observations;
 pub mod playbooks;
@@ -361,6 +362,7 @@ fn build_worker_router_inner(
         .merge(profiled_execution::material_api::routes(state.clone()))
         .merge(profiled_execution::artifact_api::routes(state.clone()))
         .merge(profiled_execution::source_api::routes(state.clone()))
+        .merge(node_storage::routes(state.clone()))
         .merge(observations::api::routes(state.clone()))
         .merge(observations::api::transport_routes(state.clone()))
         .merge(intelligence::worker_routes())
