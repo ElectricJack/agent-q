@@ -91,9 +91,14 @@ impl Runtime {
             return Err(refused());
         }
         config.check_socket().map_err(|_| refused())?;
-        let service = Service::new_profile2(state, config.namespace.clone(), config.keys.clone())
-            .await
-            .map_err(|_| refused())?;
+        let service = Service::with_profile(
+            state,
+            config.namespace.clone(),
+            config.keys.clone(),
+            config.profile,
+        )
+        .await
+        .map_err(|_| refused())?;
         service
             .initialize(config.namespace.owner_user_id)
             .await

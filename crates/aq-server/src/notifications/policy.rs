@@ -12,7 +12,7 @@
 use super::{Error, Result, persistence::Service};
 use aq_lifecycle_api::Scope;
 use aq_notifications::SendRequest;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::{Postgres, Row, Transaction};
 use uuid::Uuid;
@@ -27,10 +27,13 @@ const TTL_MS: u64 = 86_400_000;
 const MAX_EPISODES: i64 = 4096;
 const MAX_EVENTS: i64 = 8192;
 const MAX_WINDOWS: i64 = 1024;
+/// Receipts and resolved episodes retain a seven-day replay horizon. Open
+/// episodes and unsubmitted intents are never collected.
+pub const RETENTION_MS: u64 = 7 * 86_400_000;
 const TITLE_CHARS: usize = 240;
 const SUBJECT_BYTES: usize = 256;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Kind {
     TaskFailedOrBlocked,
     DecisionNeeded,
@@ -78,7 +81,7 @@ impl Kind {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Transition {
     Opened,
     Resolved,
@@ -86,7 +89,7 @@ pub enum Transition {
 
 /// One confirmed source observation. `title` is a short label chosen by the
 /// producer (never a transcript); it is sanitised and truncated here.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Event {
     pub source_event_id: Uuid,
     pub kind: Kind,
@@ -101,7 +104,7 @@ pub struct Policy {
     service: Service,
 }
 
-fn derived_id(parts: &[&str]) -> Uuid {
+pub(super) fn derived_id(parts: &[&str]) -> Uuid {
     let hex = crate::tokens::verifier(&parts.join("\u{1f}"));
     let mut bytes = [0u8; 16];
     for (i, b) in bytes.iter_mut().enumerate() {
@@ -142,6 +145,43 @@ async fn count(tx: &mut Transaction<'_, Postgres>, table: &str) -> Result<i64> {
 }
 
 impl Policy {
+    /// Recover committed intents even when a polling producer already observes
+    /// the episode as open. No network is performed by enqueue.
+    pub async fn retry_pending(&self) -> Result<usize> {
+        let rows = sqlx::query("SELECT source_event_id,request,response FROM notification_policy_events WHERE NOT submitted ORDER BY created_at_ms,source_event_id LIMIT 32")
+            .fetch_all(&self.service.pool).await?;
+        let mut submitted = 0;
+        for row in rows {
+            self.submit(row.get("request"), row.get("response")).await?;
+            sqlx::query(
+                "UPDATE notification_policy_events SET submitted=TRUE WHERE source_event_id=$1",
+            )
+            .bind(row.get::<Uuid, _>("source_event_id"))
+            .execute(&self.service.pool)
+            .await?;
+            submitted += 1;
+        }
+        Ok(submitted)
+    }
+
+    /// Bounded retention under the same lock as observe/flush. Never remove an
+    /// open episode, a pending intent, or an unsubmitted counted summary.
+    pub async fn garbage_collect(&self) -> Result<u64> {
+        let cutoff = self.service.now()?.saturating_sub(RETENTION_MS) as i64;
+        let mut tx = self.service.pool.begin().await?;
+        sqlx::query("SELECT pg_advisory_xact_lock(x'61716e6f74696679'::bigint)")
+            .execute(&mut *tx)
+            .await?;
+        let mut removed = sqlx::query("DELETE FROM notification_policy_events WHERE source_event_id IN (SELECT source_event_id FROM notification_policy_events WHERE submitted AND created_at_ms<$1 ORDER BY created_at_ms LIMIT 512)")
+            .bind(cutoff).execute(&mut *tx).await?.rows_affected();
+        removed += sqlx::query("DELETE FROM notification_episodes WHERE episode_key IN (SELECT e.episode_key FROM notification_episodes e WHERE NOT e.open AND e.resolved_at_ms<$1 AND NOT EXISTS(SELECT 1 FROM notification_policy_events p WHERE NOT p.submitted AND p.response->>'episode_key'=e.episode_key) ORDER BY e.resolved_at_ms LIMIT 512)")
+            .bind(cutoff).execute(&mut *tx).await?.rows_affected();
+        removed += sqlx::query("DELETE FROM notification_flood_windows WHERE (project_id,workspace_id,window_start_ms) IN (SELECT project_id,workspace_id,window_start_ms FROM notification_flood_windows WHERE window_start_ms+$2<$1 AND (collapsed=0 OR submitted) ORDER BY window_start_ms LIMIT 512)")
+            .bind(cutoff).bind(FLOOD_WINDOW_MS as i64).execute(&mut *tx).await?.rows_affected();
+        tx.commit().await?;
+        Ok(removed)
+    }
+
     pub fn new(service: Service) -> Self {
         Self { service }
     }
@@ -193,7 +233,14 @@ impl Policy {
             if row.get::<String, _>("request_digest") != hash {
                 return Err(Error::Conflict);
             }
-            return self.submit(row.get("request"), row.get("response")).await;
+            let response = self.submit(row.get("request"), row.get("response")).await?;
+            sqlx::query(
+                "UPDATE notification_policy_events SET submitted=TRUE WHERE source_event_id=$1",
+            )
+            .bind(event.source_event_id)
+            .execute(&self.service.pool)
+            .await?;
+            return Ok(response);
         }
         if count(&mut tx, "notification_policy_events").await? >= MAX_EVENTS {
             return Err(Error::Overloaded);
@@ -206,7 +253,7 @@ impl Policy {
             subject
         );
         let current = sqlx::query(
-            "SELECT generation,open,workspace_id FROM notification_episodes WHERE episode_key=$1 FOR UPDATE",
+            "SELECT generation,open,workspace_id,identity FROM notification_episodes WHERE episode_key=$1 FOR UPDATE",
         )
         .bind(&key)
         .fetch_optional(&mut *tx)
@@ -240,6 +287,9 @@ impl Policy {
                     return Err(Error::Overloaded);
                 }
                 let generation = generation + 1;
+                let identity = current
+                    .as_ref()
+                    .map_or(event.source_event_id, |r| r.get::<Uuid, _>("identity"));
                 let window = (now / FLOOD_WINDOW_MS * FLOOD_WINDOW_MS) as i64;
                 let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM notification_flood_windows WHERE project_id=$1 AND workspace_id=$2 AND window_start_ms=$3)")
                     .bind(event.scope.project_id).bind(event.scope.workspace_id).bind(window).fetch_one(&mut *tx).await?;
@@ -257,8 +307,18 @@ impl Policy {
                         subject
                     );
                     let send = SendRequest {
-                        operation_id: derived_id(&["aq-notify-op/1", &key, &generation_text]),
-                        message_id: derived_id(&["aq-notify-msg/1", &key, &generation_text]),
+                        operation_id: derived_id(&[
+                            "aq-notify-op/2",
+                            &key,
+                            &identity.to_string(),
+                            &generation_text,
+                        ]),
+                        message_id: derived_id(&[
+                            "aq-notify-msg/2",
+                            &key,
+                            &identity.to_string(),
+                            &generation_text,
+                        ]),
                         revision: 1,
                         scope: event.scope.clone(),
                         recipient_user_id: owner(&mut tx).await?,
@@ -274,8 +334,8 @@ impl Policy {
                         .bind(event.scope.project_id).bind(event.scope.workspace_id).bind(window).bind(event.kind.as_str()).execute(&mut *tx).await?;
                     "collapsed"
                 };
-                sqlx::query("INSERT INTO notification_episodes(episode_key,kind,subject,project_id,workspace_id,generation,open,opened_at_ms,outcome,request) VALUES($1,$2,$3,$4,$5,$6,TRUE,$7,$8,$9) ON CONFLICT(episode_key) DO UPDATE SET generation=EXCLUDED.generation,open=TRUE,opened_at_ms=EXCLUDED.opened_at_ms,resolved_at_ms=NULL,outcome=EXCLUDED.outcome,request=EXCLUDED.request")
-                    .bind(&key).bind(event.kind.as_str()).bind(&subject).bind(event.scope.project_id).bind(event.scope.workspace_id).bind(generation).bind(now as i64).bind(outcome).bind(&request).execute(&mut *tx).await?;
+                sqlx::query("INSERT INTO notification_episodes(episode_key,kind,subject,project_id,workspace_id,generation,open,opened_at_ms,outcome,request,identity) VALUES($1,$2,$3,$4,$5,$6,TRUE,$7,$8,$9,$10) ON CONFLICT(episode_key) DO UPDATE SET generation=EXCLUDED.generation,open=TRUE,opened_at_ms=EXCLUDED.opened_at_ms,resolved_at_ms=NULL,outcome=EXCLUDED.outcome,request=EXCLUDED.request")
+                    .bind(&key).bind(event.kind.as_str()).bind(&subject).bind(event.scope.project_id).bind(event.scope.workspace_id).bind(generation).bind(now as i64).bind(outcome).bind(&request).bind(identity).execute(&mut *tx).await?;
                 let mut response =
                     json!({"episode_key":key,"generation":generation,"outcome":outcome});
                 if let Some(r) = &request {
@@ -284,10 +344,17 @@ impl Policy {
                 response
             }
         };
-        sqlx::query("INSERT INTO notification_policy_events(source_event_id,request_digest,response,request) VALUES($1,$2,$3,$4)")
-            .bind(event.source_event_id).bind(&hash).bind(&response).bind(&request).execute(&mut *tx).await?;
+        sqlx::query("INSERT INTO notification_policy_events(source_event_id,request_digest,response,request,created_at_ms,submitted) VALUES($1,$2,$3,$4,$5,$6)")
+            .bind(event.source_event_id).bind(&hash).bind(&response).bind(&request).bind(now as i64).bind(request.is_none()).execute(&mut *tx).await?;
         tx.commit().await?;
-        self.submit(request, response).await
+        let response = self.submit(request, response).await?;
+        sqlx::query(
+            "UPDATE notification_policy_events SET submitted=TRUE WHERE source_event_id=$1",
+        )
+        .bind(event.source_event_id)
+        .execute(&self.service.pool)
+        .await?;
+        Ok(response)
     }
 
     /// Submits one counted summary per closed flood window that collapsed
