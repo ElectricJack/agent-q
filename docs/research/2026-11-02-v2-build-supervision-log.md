@@ -146,3 +146,20 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **B5a (`rev-grand-meadow`, r3).** Approved with an explicit disposition for every comment; no task was created.
     - B5a's code was already on main (PR #15 squash plus revision `5dc1ccd6`). Its recovery hold was only waiting for the review.
     - Closed with `aq task close --done`. B5b and I4a are now runnable.
+- **22:10 check.**
+  - **B1 approved:** `rev-keen-ember` r6 passed on the first decision with explicit dispositions, after 6 rounds (W37 confirmed). B1b (`agile-delta-29`) is READY.
+  - E1b and B6b completed.
+  - **`bold-stone-39`:** merged aq-worker PR #22 (`4992a16d`). It had no conflicts; its one CI failure is the flaky supervisor-session class that also fails on main. Closed with `--done`.
+  - **D1a (`crisp-meadow-36.1`)** finished its implementation, but its review `rev-steady-dune` had no reviewer dispatched. I dispatched one standard-high reviewer with a blocking-only-for-real-defects focus. I will decide the review and close D1a when it returns.
+  - **Main CI is red** on aq-worker (12+ runs, a different flaky test each time), aq-dashboard (Playwright/axe) and aq-server (owned by `fair-zenith-27`). Filed `sharp-forge-44` (aq-worker) and `wise-journey-87` (aq-dashboard) at priority 40, standard-high (W39).
+  - **Owner:** "prioritize standard workers, we are running low on usage."
+    - Codex weekly usage is at 78% with about 5.8 days until reset; Claude weekly is at 48%.
+    - Pinned 11 queued deep-high tasks to standard-high, alternating Claude and Codex: B1b, C5a1, C5b, C6a, H4, H5, D9, D3, J3, B4, C5a2.
+    - Kept deep-high for B2, D1a and D10 (in-flight checkpoints), J4 and MS4.
+    - Owner: "easier well-defined tasks can be standard medium." Moved I2, I3 and F4 to standard-medium. A4 was running and stays where it is (W40).
+  - The owner asked for a demo of the latest build in the morning. A one-shot prep job is scheduled for 06:17.
+- **22:25 check.**
+  - **F1a (`steady-harbor-87.1`) reopened.** It had closed blocked on the upstream start.request race. That fix (`bold-stone-39`, aq-session-host 0.1.7) merged last check as `4992a16d`. Told F1a to pin it and re-run only the affected tests.
+  - **`agile-torrent-31`** (spec-ingest for B1's r6 approval) found nothing to create. Its empty proposal was refused because "no_op settlement requires an approved design", and then it was paused. `aq task close --no-change` failed with "could not stop the writer". It is harmless and nothing depends on it; left paused.
+  - aq-server PR #24 (owner clock) has checks still running; its update-lifecycle job failed. I will decide next check. aq-worker PR #23 (`bright-nexus-60`) has conflicts; its worker is in backoff.
+  - `wise-journey-87` (dashboard CI) is running; `sharp-forge-44` is waiting on aq-worker's cap. Disk is at 54%.
