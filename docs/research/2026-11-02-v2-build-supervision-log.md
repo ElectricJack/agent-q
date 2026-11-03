@@ -62,3 +62,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Filed G7's cross-repo follow-up as `keen-current-13` in aq-platform: additive results-feedback read fields.
   - Merged aq-worker #13 (runner renewal validation).
   - `sharp-harbor-18` (blocks I0) is in v1's automatic retry after `slot_reset_failed: branch holder reservation is not clean`; the standard-high-codex pool is at 5 of 6 busy. Re-check next pass.
+- **18:34 check.**
+  - The B1 server pin (`stark-horizon-12`) and B1's review revision completed. B2 started. `sharp-harbor-18` started after its automatic slot retry.
+  - B5a's cross-repo requirement (registration-v2 and initial DelegatedPermit issuance routes, PermitProvider, mapping controller refusals into the transport) was routed to B2 as a comment and live message, because it is in B2's scope.
+  - Merged aq-worker #14 (desktop ChatGPT login reconcile before cleanup; fresh-delta-13) and aq-playbooks #3 (D10 review revision 2 evidence).
