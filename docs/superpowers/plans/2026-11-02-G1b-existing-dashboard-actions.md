@@ -37,10 +37,10 @@
 
 **Interfaces:** Consume `ActionKind::{authorize,authorize_lookup,execute}`, `Registry::register`, native create/enqueue/resolve services and retained receipts. Produce a production registry with exactly `task.create`, `decision.resolve`, `supervisor.message.send`; add default read-only `ActionKind::reconcile(state,user,operation) -> Result<Option<Outcome>,ApiError>`; legacy builders create the same `ActionRequest` as union callers.
 
-- [ ] Add failing mounted-route tests for supervisor enqueue/replay/changed payload/legacy interoperability, validation and principal isolation; run through AQ and observe missing-kind failures.
-- [ ] Extract bounded native service entrypoints without changing effects. Implement strict adapters, common legacy admission and read-only reconciliation. Task requests preserve `human-task-create-1`; decision payload binds the exact subject artifact as well as decision revision; message payload preserves message ID and empty unsupported context/attachments.
-- [ ] Add focused task/review adapter tests using existing domain fixtures, including pending recovery and exact version checks. Verify existing action-journal and native owner suites.
-- [ ] Commit adapters and tests.
+- [x] Add failing mounted-route tests for supervisor enqueue/replay/changed payload/legacy interoperability, validation and principal isolation; run through AQ and observe missing-kind failures.
+- [x] Extract bounded native service entrypoints without changing effects. Implement strict adapters, common legacy admission and read-only reconciliation. Task requests preserve `human-task-create-1`; decision payload binds the exact subject artifact as well as decision revision; message payload preserves message ID and empty unsupported context/attachments.
+- [x] Add focused task/review adapter tests using existing domain fixtures, including pending recovery and exact version checks. Verify existing action-journal and native owner suites.
+- [x] Commit adapters and tests.
 
 ### Task 2: Bootstrap and published contracts
 
@@ -48,16 +48,16 @@
 
 **Interfaces:** Consume the mounted production registry and native/union pending journals; produce `Envelope<Bootstrap>` with at most 100 principal-private pending IDs and explicit partial coverage on truncation; `ContractRef` gets a distinct version enum admitting `dashboard-actions-1`, leaving `ApiVersion` read-only.
 
-- [ ] Write `bootstrap_lists_pending_operations` proving pending/unknown inclusion, terminal/foreign exclusion, bounded ordering, truthful owner capability and both contract digests. Observe red.
-- [ ] Implement bounded query and contract metadata; recheck current owner authorization before delivery.
-- [ ] Publish one valid request per kind, all five dispositions, ten status errors, identical/changed replay, expired cursor, invalid requests and read-version compatibility. Validator checks schemas and semantic fixture relationships.
-- [ ] Generate schemas, run drift checks and fixture validators; run named workspace test with explicit target selectors and affected dashboard/native-owner suites. Commit.
+- [x] Write `bootstrap_lists_pending_operations` proving pending/unknown inclusion, terminal/foreign exclusion, bounded ordering, truthful owner capability and both contract digests. Observe red.
+- [x] Implement bounded query and contract metadata; recheck current owner authorization before delivery.
+- [x] Publish one valid request per kind, all five dispositions, ten status errors, identical/changed replay, expired cursor, invalid requests and read-version compatibility. Validator checks schemas and semantic fixture relationships.
+- [x] Generate schemas, run drift checks and fixture validators; run named workspace test with explicit target selectors and affected dashboard/native-owner suites. Commit.
 
 ### Task 3: Evidence and publication
 
 **Files:** `docs/implementation/G1b.md`, this plan and per-plan scratch ledger.
 
-- [ ] Run `cargo fmt --check`, `cargo clippy --locked --all-targets -- -D warnings` and locked affected-area tests through resource controls; record exact commands/environment/results and limits.
-- [ ] Review the complete branch using a fresh reviewer as required by executing-plans, resolve material findings with regression tests, and record rulings.
-- [ ] Reconcile every G1b requirement, write evidence, settle AQ subtasks, squash own implementation history to one feature commit preserving source ancestry.
-- [ ] Merge the integration source, run targeted tests for touched files, guarded push and close with changes, verification and exact test evidence. If `origin/dev` is absent, obtain supervisor direction before choosing a replacement.
+- [x] Run `cargo fmt --check`, `cargo clippy --locked --all-targets -- -D warnings` and locked affected-area tests through resource controls; record exact commands/environment/results and limits.
+- [x] Review the complete branch using a fresh reviewer as required by executing-plans, resolve material findings with regression tests, and record rulings.
+- [x] Reconcile every G1b requirement, write evidence, settle AQ subtasks, squash unpublished implementation WIP to one feature commit, retaining the integration merge and post-merge correction as separate commits.
+- [x] Merge the authorized integration source, run targeted tests for touched files, and prepare guarded publication and closure with changes, verification and exact test evidence. Supervisor message `msg-db1c96b0687d4faab64f16fce1499c6d` authorized `origin/main` because `origin/dev` is absent. AQ records the delivered HEAD and final publication/closure outcome.
