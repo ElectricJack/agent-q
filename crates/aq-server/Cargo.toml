@@ -55,6 +55,7 @@ toml.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 uuid.workspace = true
+unicode-normalization = "=0.1.26"
 
 [features]
 test-support = ["aq-notifications/test-support"]
