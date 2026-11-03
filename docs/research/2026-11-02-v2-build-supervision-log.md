@@ -110,3 +110,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - B1's review came back changes-requested again (round 3). Its fourth revision (`sharp-lantern-29`) is running. B1b and then B2 stay queued behind it; I updated the follow-up list.
   - `crisp-nexus-12` (HostPlan) is running after the owner decision.
   - Merged aq-server #21.
+- **20:35 check.**
+  - B1's fourth revision finished; `rev-keen-ember` round 4 is waiting for the supervisor's decision.
+  - E1b started.
+  - **Released G5:** its "deployed preview" exists as E0's local compose stack. It was told to run live acceptance there or defer a specific item to G11, instead of holding.
+  - Queued F1a's release for when `crisp-nexus-12` publishes the HostPlan.
+  - Merged aq-server #22.
