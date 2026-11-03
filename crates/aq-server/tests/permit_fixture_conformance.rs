@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, fs, path::Path};
 
 const FIXTURES: &str =
-    include_str!("../../../vendor/aq-admission-0.2.0/artifacts/sandbox-v1.fixtures.json");
+    include_str!("../../../vendor/aq-admission-0.3.0/artifacts/sandbox-v1.fixtures.json");
 
 #[test]
 fn permit_fixture_conformance() {
@@ -27,6 +27,13 @@ fn permit_fixture_conformance() {
             FixtureCase::Registration { .. } => "registration",
             FixtureCase::PhaseHandoff { .. } => "handoff",
             FixtureCase::RunnerRenewal { .. } => "renewal",
+            FixtureCase::PreparationPermit { .. } => "preparation",
+            FixtureCase::PermitIssuance { .. } => "issuance",
+            FixtureCase::PermitIssuanceReplay { .. } => "issuance_replay",
+            FixtureCase::PermitUpgrade { .. } => "upgrade",
+            FixtureCase::PermitUpgradeReplay { .. } => "upgrade_replay",
+            FixtureCase::RegistrationEnrollment { .. } => "enrollment",
+            FixtureCase::RegistrationReplay { .. } => "registration_replay",
         };
         *cases.entry(kind).or_insert(0) += 1;
         *outcomes.entry(fixture.expected.as_str()).or_insert(0) += 1;
@@ -35,30 +42,37 @@ fn permit_fixture_conformance() {
     assert_eq!(
         cases,
         BTreeMap::from([
-            ("permit", 15),
+            ("permit", 20),
             ("readoption", 5),
             ("replay", 4),
             ("compatibility", 3),
             ("registration", 3),
             ("handoff", 4),
-            ("renewal", 10),
+            ("renewal", 18),
+            ("preparation", 9),
+            ("issuance", 11),
+            ("issuance_replay", 3),
+            ("upgrade", 12),
+            ("upgrade_replay", 2),
+            ("enrollment", 5),
+            ("registration_replay", 2),
         ])
     );
     assert_eq!(
         outcomes,
         BTreeMap::from([
-            ("accepted", 12),
-            ("binding_mismatch", 9),
-            ("deadline_mismatch", 6),
-            ("expired", 4),
-            ("invalid_shape", 3),
-            ("replay_conflict", 3),
-            ("scope_denied", 5),
-            ("unsupported_required_capability", 2),
+            ("accepted", 25),
+            ("binding_mismatch", 26),
+            ("deadline_mismatch", 12),
+            ("expired", 7),
+            ("invalid_shape", 5),
+            ("replay_conflict", 7),
+            ("scope_denied", 16),
+            ("unsupported_required_capability", 3),
         ])
     );
     let published_schema: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../vendor/aq-admission-0.2.0/artifacts/sandbox-v1.schema.json"
+        "../../../vendor/aq-admission-0.3.0/artifacts/sandbox-v1.schema.json"
     ))
     .unwrap();
     assert_eq!(sandbox::schema(), published_schema);
@@ -80,7 +94,7 @@ fn permit_fixture_conformance_source_pin() {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let archive = fs::read(root.join(pin.archive)).unwrap();
     assert_eq!(format!("{:x}", Sha256::digest(archive)), pin.archive_sha256);
-    assert_eq!(pin.files.len(), 119);
+    assert_eq!(pin.files.len(), 120);
     for (path, expected) in pin.files {
         let actual = fs::read(root.join(&pin.directory).join(&path)).unwrap();
         assert_eq!(format!("{:x}", Sha256::digest(actual)), expected, "{path}");

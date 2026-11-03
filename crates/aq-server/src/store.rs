@@ -369,7 +369,13 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
     if supported >= 46 {
         let intact: bool = sqlx::query_scalar(
             r#"SELECT
-          to_regclass('delegated_permits') IS NOT NULL AND NOT EXISTS(
+          to_regclass('delegated_permits') IS NOT NULL
+          AND to_regclass('delegated_permit_current') IS NOT NULL
+          AND to_regclass('delegated_node_boots') IS NOT NULL
+          AND to_regclass('delegated_operations') IS NOT NULL
+          AND to_regclass('delegated_permits_verifier') IS NOT NULL
+          AND to_regclass('delegated_current_attempt') IS NOT NULL
+          AND to_regclass('delegated_current_channel') IS NOT NULL AND NOT EXISTS(
             SELECT 1 FROM (VALUES
               ('delegated_permits','delegated_permit_guard','delegated_permit_guard()',31),
               ('delegated_permits','delegated_permit_truncate_guard','delegated_permit_guard()',34),
@@ -975,6 +981,16 @@ impl Store {
         .await?;
         tx.commit().await?;
         Ok(Some(row.into()))
+    }
+
+    pub async fn find_node_by_id(&self, node_id: Uuid) -> Result<Option<Node>> {
+        Ok(
+            sqlx::query_as::<_, NodeRow>(&format!("SELECT {NODE_COLS} FROM nodes WHERE id=$1"))
+                .bind(node_id)
+                .fetch_optional(&self.pool)
+                .await?
+                .map(Node::from),
+        )
     }
 
     /// Returns revoked nodes too so callers can tell revoked from unknown.

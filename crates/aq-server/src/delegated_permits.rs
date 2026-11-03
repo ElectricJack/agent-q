@@ -2,4 +2,7 @@
 //! effect owners must load current authority under their transaction locks.
 mod model;
 pub use model::{CredentialKey, PermitRecord};
+pub mod config;
+pub mod handoff;
+pub mod runtime;
 pub mod storage;

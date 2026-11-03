@@ -440,6 +440,13 @@ async fn report(
     headers: axum::http::HeaderMap,
     crate::admin_api::ApiJson(request): crate::admin_api::ApiJson<ResultReport>,
 ) -> Result<axum::Json<Receipt>, AppError> {
-    let node = crate::worker_api::authenticate_context(&state, &headers).await?;
+    let node = crate::delegated_permits::runtime::authenticate_runner(
+        &state,
+        &headers,
+        aq_admission_sandbox::sandbox::RunnerOperation::ReportResult,
+        None,
+    )
+    .await?;
+    crate::delegated_permits::runtime::require_document(&node, &request)?;
     Ok(axum::Json(record(&state, &node, &request).await?))
 }

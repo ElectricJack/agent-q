@@ -53,3 +53,30 @@ END $$;
 CREATE TRIGGER delegated_attempt_revoke AFTER INSERT ON profiled_cancellations
  FOR EACH ROW EXECUTE FUNCTION delegated_attempt_revoke();
 UPDATE meta SET value='46' WHERE key='state_format_version';
+
+-- The issuance record is immutable. Scope upgrades, renewal revisions and boot
+-- adoption are separate, durable current authority, with no bearer bytes.
+CREATE UNIQUE INDEX delegated_permits_verifier ON delegated_permits((record->'verifier'));
+CREATE TABLE delegated_permit_current (
+ permit_id UUID PRIMARY KEY REFERENCES delegated_permits(permit_id),
+ state JSONB NOT NULL CHECK(octet_length(state::TEXT)<=32768),
+ CHECK(state#>>'{record,permit_id}'=permit_id::TEXT),
+ CHECK(NOT (state->'record') ? 'credential')
+);
+CREATE UNIQUE INDEX delegated_current_attempt ON delegated_permit_current((state#>>'{record,binding,attempt_id}'),(state#>>'{record,binding,grant_generation}'));
+CREATE UNIQUE INDEX delegated_current_channel ON delegated_permit_current((state#>>'{record,binding,channel_id}'));
+CREATE TABLE delegated_node_boots (
+ node_id UUID PRIMARY KEY REFERENCES nodes(id),
+ boot_id UUID NOT NULL,
+ registration JSONB NOT NULL
+);
+CREATE TABLE delegated_operations (
+ node_id UUID NOT NULL REFERENCES nodes(id),
+ operation_id UUID NOT NULL,
+ kind TEXT NOT NULL,
+ request_digest BYTEA NOT NULL CHECK(octet_length(request_digest)=32),
+ -- Response evidence consists of verifier-only Current records; credentials
+ -- are reproduced with the configured private key when delivering a reply.
+ evidence JSONB NOT NULL CHECK(octet_length(evidence::TEXT)<=1048576),
+ PRIMARY KEY(node_id,operation_id)
+);

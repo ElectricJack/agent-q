@@ -530,19 +530,24 @@ pub(super) fn node_routes() -> Router<AppState> {
 }
 async fn node_authority(
     state: &AppState,
-    headers: &HeaderMap,
+    node: &crate::worker_api::AuthenticatedNode,
     tx: &mut Transaction<'_, Postgres>,
     identity: &NodeIdentity,
     attempt: &AttemptRef,
 ) -> Result<Value> {
-    version(headers)?;
-    let node = crate::worker_api::authenticate(state, headers)
+    crate::worker_api::lock_current_node(tx, node)
         .await
         .map_err(|_| Error("unauthorized"))?;
-    if node.id != identity.node_id {
+    if node
+        .permitted_attempt()
+        .is_some_and(|id| id != attempt.attempt_id)
+    {
         return Err(Error("unauthorized"));
     }
-    let a = lock_attempt(state, tx, attempt.attempt_id, node.id).await?;
+    if node.id() != identity.node_id {
+        return Err(Error("unauthorized"));
+    }
+    let a = lock_attempt(state, tx, attempt.attempt_id, node.id()).await?;
     if a.identity != *identity || a.attempt != *attempt {
         return Err(Error("stale_generation"));
     }
@@ -581,8 +586,17 @@ async fn node_poll(
     if !(1..=16).contains(&r.limit) {
         return Err(Error("invalid_request"));
     }
+    version(&headers)?;
+    let auth = crate::delegated_permits::runtime::authenticate_runner(
+        &state,
+        &headers,
+        aq_admission_sandbox::sandbox::RunnerOperation::MailboxPoll,
+        Some(r.attempt.attempt_id),
+    )
+    .await
+    .map_err(|_| Error("unauthorized"))?;
     let mut tx = state.store.pool.begin().await?;
-    let b = node_authority(&state, &headers, &mut tx, &r.identity, &r.attempt).await?;
+    let b = node_authority(&state, &auth, &mut tx, &r.identity, &r.attempt).await?;
     let profile: Value =
         sqlx::query_scalar("SELECT profile FROM agent_launch_bindings WHERE attempt_id=$1")
             .bind(r.attempt.attempt_id)
@@ -607,7 +621,7 @@ async fn node_poll(
         sqlx::query("INSERT INTO mailbox_deliveries(delivery_id,message_id,attempt_id,disposition,updated_at_ms) VALUES($1,$2,$3,'pending',$4) ON CONFLICT(message_id,attempt_id) DO NOTHING").bind(delivery).bind(message).bind(r.attempt.attempt_id).bind(now(&state) as i64).execute(&mut *tx).await?;
         deliveries.push(json!({"delivery_id":delivery,"message_id":message,"recipient":row.get::<Value,_>("recipient"),"thread_id":row.get::<Uuid,_>("thread_id"),"cursor":row.get::<i64,_>("cursor").to_string(),"body":row.get::<String,_>("body"),"payload_digest":row.get::<String,_>("payload_digest"),"sender":row.get::<Value,_>("sender"),"disposition":row.get::<Option<String>,_>("disposition").unwrap_or_else(||"pending".into())}));
     }
-    node_authority(&state, &headers, &mut tx, &r.identity, &r.attempt).await?;
+    node_authority(&state, &auth, &mut tx, &r.identity, &r.attempt).await?;
     tx.commit().await?;
     Ok(ok(
         json!({"api_version":1,"attempt":r.attempt,"deliveries":deliveries}),
@@ -618,15 +632,24 @@ async fn node_ack(
     headers: HeaderMap,
     StrictJson(r): StrictJson<NodeAck>,
 ) -> Result<Response> {
+    version(&headers)?;
+    let auth = crate::delegated_permits::runtime::authenticate_runner(
+        &state,
+        &headers,
+        aq_admission_sandbox::sandbox::RunnerOperation::MailboxAck,
+        Some(r.attempt.attempt_id),
+    )
+    .await
+    .map_err(|_| Error("unauthorized"))?;
     let mut tx = state.store.pool.begin().await?;
-    node_authority(&state, &headers, &mut tx, &r.identity, &r.attempt).await?;
+    node_authority(&state, &auth, &mut tx, &r.identity, &r.attempt).await?;
     let actor = format!(
         "node-delivery:{}:{}",
         r.identity.node_id, r.attempt.attempt_id
     );
     let payload = digest(&serde_json::to_value(&r)?)?;
     if let Some(response) = replay(&mut tx, &actor, r.operation_id, &payload).await? {
-        node_authority(&state, &headers, &mut tx, &r.identity, &r.attempt).await?;
+        node_authority(&state, &auth, &mut tx, &r.identity, &r.attempt).await?;
         tx.commit().await?;
         return Ok(ok(response));
     }
@@ -648,7 +671,7 @@ async fn node_ack(
     .await?;
     let response = json!({"api_version":1,"operation_id":r.operation_id,"delivery_id":r.delivery_id,"attempt":r.attempt,"disposition":next});
     receipt(&mut tx, &actor, r.operation_id, &payload, &response).await?;
-    node_authority(&state, &headers, &mut tx, &r.identity, &r.attempt).await?;
+    node_authority(&state, &auth, &mut tx, &r.identity, &r.attempt).await?;
     tx.commit().await?;
     Ok(ok(response))
 }
