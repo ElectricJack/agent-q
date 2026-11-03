@@ -135,3 +135,14 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Status: 26 of 91 plan tasks completed (29%, about 26% weighted by effort), plus 80 follow-ups. E1a (production Compose) completed. Disk is at 81–87% after the cleanup.
   - B1 (`rev-keen-ember`, round 5) and B5a (`rev-grand-meadow`, round 3) are still waiting for supervisor decisions. B1b, B2 and B6a2 remain queued behind B1.
   - **Owner decision surfaced: B6b (`noble-summit-37.8`).** Clearing the agent's capability bounding set requires CAP_SETPCAP, which the three-capability fixture does not grant. The agent asks whether bootstrap may require CAP_SETPCAP. It is continuing with the signal-denial probe in the meantime (`bright-nexus-60`).
+- **21:55 owner decisions.**
+  - **Reviews:** "I don't want to do any reviews, that's all on you." I now decide every delegated review.
+  - **B6b:** the owner chose my recommendation. No CAP_SETPCAP; the bounding set may hold the three runner capabilities, with a fast no-regain probe. Sent to `noble-summit-37.8` and `bright-nexus-60`, with targeted-tests-only guidance.
+  - The owner is concerned that narrow security work and slow tests are cutting velocity. Velocity rules were added to `.aq/PRIME.md` in all six repos: aq-server `ced0063`, aq-worker `8d62e3b`, aq-dashboard `62fd237`, aq-graph `391dd4c`, aq-git `b907806`, aq-playbooks `4fa57ff`.
+- **22:00 review decisions.**
+  - **B1 (`rev-keen-ember`, r5).** I approved it without per-comment dispositions. v1 rewrote the decision to `fold_in` and created revision task `sharp-orbit-26`, because the round-1 `[blocking]` comment (resolved in r2, verified by `smart-grove-55`) defaults to fold-in. This is most likely why B1 cycled through 5 rounds (W37).
+    - I narrowed `sharp-orbit-26` to a disposition-only r6 resubmission.
+    - I will approve r6 with explicit dispositions.
+  - **B5a (`rev-grand-meadow`, r3).** Approved with an explicit disposition for every comment; no task was created.
+    - B5a's code was already on main (PR #15 squash plus revision `5dc1ccd6`). Its recovery hold was only waiting for the review.
+    - Closed with `aq task close --done`. B5b and I4a are now runnable.
