@@ -49,6 +49,15 @@ http-body-util = "0.1"
 rsa = "0.9"
 tempfile = "3"
 
+# Bound worker test artifacts while retaining workspace backtrace file:line.
+# The test profile inherits these settings from dev.
+[profile.dev]
+debug = "line-tables-only"
+incremental = false
+
+[profile.dev.package."*"]
+debug = false
+
 [profile.release]
 lto = "thin"
 strip = true

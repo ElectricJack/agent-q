@@ -21,9 +21,8 @@ Use the synthetic disposable PostgreSQL service from `scripts/test-db`:
 
 ```sh
 export DATABASE_URL=postgres://postgres:test@127.0.0.1:55432/postgres
-export CARGO_TARGET_DIR=/tmp/aq-b3-slot2-target
+export CARGO_TARGET_DIR="$PWD/target"
 export CARGO_BUILD_JOBS=2 CARGO_INCREMENTAL=0
-export CARGO_PROFILE_DEV_DEBUG=0 CARGO_PROFILE_TEST_DEBUG=0
 cargo test --locked -p aq-server --lib agent_access::messaging::global::reservations::tests -- --test-threads=2
 cargo test --locked -p aq-server --test supervisor_conversation --test dashboard_actions -- --test-threads=2
 cargo clippy --locked -p aq-server --lib --tests -- -D warnings
@@ -33,7 +32,10 @@ git diff --check
 
 `aq test --aq-help` confirms that the available runner supports pytest and
 Bazel, not Cargo. These task-required Rust checks use foreground Cargo with two
-build jobs, two test threads, no incremental compilation and no debug info.
+build jobs, two test threads and no incremental compilation. Run from the leased
+slot root and reuse its own target. The workspace dev/test profile retains
+file:line backtraces with line tables; do not override it with debug=0 for reruns.
+See [Cargo worker build guidance](../../guides/cargo-worker-builds.md).
 
 ## Validation evidence
 

@@ -502,6 +502,9 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
 
 #[derive(Clone)]
 pub struct Store {
+    // Explicit constructor provenance, never inferred from missing SQL objects.
+    #[cfg(feature = "test-support")]
+    pub(crate) fixture_profile: Option<u32>,
     pub(crate) pool: PgPool,
     control_pool: PgPool,
     renewal_pool: PgPool,
@@ -641,14 +644,19 @@ impl Store {
 
     /// Test-only actual frozen migration prefix; never a production fallback.
     #[cfg(feature = "test-support")]
-    pub(crate) async fn connect_state32_for_testing(options: PgConnectOptions) -> Result<Store> {
+    pub(crate) async fn connect_profile_for_testing(
+        options: PgConnectOptions,
+        supported: u32,
+    ) -> Result<Store> {
         let pool = PgPoolOptions::new()
             .max_connections(5)
             .acquire_timeout(Duration::from_secs(5))
             .connect_with(options)
             .await?;
-        migrate_known(&pool, &MIGRATIONS[..32], 32).await?;
-        Self::initialize_pools(pool).await
+        migrate_fixture_profile(&pool, supported).await?;
+        let mut store = Self::initialize_pools(pool).await?;
+        store.fixture_profile = Some(supported);
+        Ok(store)
     }
 
     async fn initialize_pools(pool: PgPool) -> Result<Store> {
@@ -779,6 +787,8 @@ impl Store {
                     .application_name("aq-terminal-data"),
             );
         Ok(Store {
+            #[cfg(feature = "test-support")]
+            fixture_profile: None,
             terminal_pool,
             terminal_data_pool,
             observation_pool,
