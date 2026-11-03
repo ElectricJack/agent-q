@@ -24,7 +24,8 @@ pub(crate) async fn priced_facts(
 ) -> Result<Vec<(Option<EstimateBasis>, Fact)>> {
     let (filter, id) = match scope {
         Scope::Attempt(id) => ("h.owner_attempt_id=$1", id),
-        Scope::Lineage(id) => ("h.owner_attempt_id IS NOT NULL AND e.lineage_id=$1", id),
+        // Indexed lineage column, set with the head's owner and immutable.
+        Scope::Lineage(id) => ("h.lineage_id=$1", id),
         Scope::Node(id) => ("h.owner_attempt_id IS NOT NULL AND e.node_id=$1", id),
     };
     let rows = sqlx::query(&format!(

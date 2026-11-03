@@ -2,7 +2,7 @@
 use super::{
     artifacts::{RetainedSet, canonical, reference},
     compose::Compiled,
-    now, refused, startup,
+    now, on_heap, refused, startup,
 };
 use crate::{
     AppState,
@@ -287,45 +287,55 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         })
         .collect::<Result<Vec<_>, _>>()?;
     for definition in definitions {
+        on_heap(|| {
+            set.retain(
+                state,
+                OwnerKind::Composition,
+                ArtifactKind::Definition,
+                definition.artifact().clone(),
+                definition.body().as_bytes(),
+            )
+        })
+        .await?;
+    }
+    let (catalog, mut modules) =
+        on_heap(|| catalog_definitions(state, &mut set, &compiled)).await?;
+    let startup = on_heap(|| {
+        startup::retain(
+            state,
+            &mut set,
+            &composition,
+            &counted,
+            &compiled.projection,
+            fact,
+        )
+    })
+    .await?;
+    modules.extend(startup.modules);
+    let policy_ref = policy.artifact().map_err(|_| refused())?;
+    let policy_bytes = canonical(&policy)?;
+    on_heap(|| {
         set.retain(
             state,
             OwnerKind::Composition,
             ArtifactKind::Definition,
-            definition.artifact().clone(),
-            definition.body().as_bytes(),
+            policy_ref.clone(),
+            &policy_bytes,
         )
-        .await?;
-    }
-    let (catalog, mut modules) = catalog_definitions(state, &mut set, &compiled).await?;
-    let startup = startup::retain(
-        state,
-        &mut set,
-        &composition,
-        &counted,
-        &compiled.projection,
-        fact,
-    )
-    .await?;
-    modules.extend(startup.modules);
-    let policy_ref = policy.artifact().map_err(|_| refused())?;
-    set.retain(
-        state,
-        OwnerKind::Composition,
-        ArtifactKind::Definition,
-        policy_ref.clone(),
-        &canonical(&policy)?,
-    )
+    })
     .await?;
     modules.push(policy_ref);
     let composition_bytes = canonical(&composition)?;
     let composition_ref = reference("aq.frozen-composition", &composition_bytes)?;
-    set.retain(
-        state,
-        OwnerKind::Composition,
-        ArtifactKind::Composition,
-        composition_ref,
-        &composition_bytes,
-    )
+    on_heap(|| {
+        set.retain(
+            state,
+            OwnerKind::Composition,
+            ArtifactKind::Composition,
+            composition_ref,
+            &composition_bytes,
+        )
+    })
     .await?;
     let model = aq_profiles::ResolvedGraphModel {
         provider: selected.choice.provider.clone(),
@@ -357,32 +367,38 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
             .map_err(|_| refused())?,
         digest: Digest::of(&profile_bytes),
     };
-    set.retain(
-        state,
-        OwnerKind::Composition,
-        ArtifactKind::Definition,
-        profile_ref.clone(),
-        &profile_bytes,
-    )
+    on_heap(|| {
+        set.retain(
+            state,
+            OwnerKind::Composition,
+            ArtifactKind::Definition,
+            profile_ref.clone(),
+            &profile_bytes,
+        )
+    })
     .await?;
     let selection_bytes = canonical(selected)?;
     let selection_ref = reference("aq.sealed-selection", &selection_bytes)?;
-    set.retain(
-        state,
-        OwnerKind::Selection,
-        ArtifactKind::Selection,
-        selection_ref.clone(),
-        &selection_bytes,
-    )
+    on_heap(|| {
+        set.retain(
+            state,
+            OwnerKind::Selection,
+            ArtifactKind::Selection,
+            selection_ref.clone(),
+            &selection_bytes,
+        )
+    })
     .await?;
     let source_retention_id =
         Uuid::new_v5(&source_operation, &canonical(&(&source.artifact, until))?);
-    let source_retained = crate::profiled_execution::source::retain_admission(
-        state,
-        source_retention_id,
-        &source,
-        until,
-    )
+    let source_retained = on_heap(|| {
+        crate::profiled_execution::source::retain_admission(
+            state,
+            source_retention_id,
+            &source,
+            until,
+        )
+    })
     .await?;
     if set.entries.len() >= 126
         || set
@@ -450,13 +466,16 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
     };
     outcome.validate().map_err(|_| refused())?;
     let outcome_ref = outcome.artifact().map_err(|_| refused())?;
-    set.retain(
-        state,
-        OwnerKind::Outcome,
-        ArtifactKind::Outcome,
-        outcome_ref.clone(),
-        &outcome.canonical_bytes().map_err(|_| refused())?,
-    )
+    let outcome_bytes = outcome.canonical_bytes().map_err(|_| refused())?;
+    on_heap(|| {
+        set.retain(
+            state,
+            OwnerKind::Outcome,
+            ArtifactKind::Outcome,
+            outcome_ref.clone(),
+            &outcome_bytes,
+        )
+    })
     .await?;
     let spec = ProfiledExecutionSpec {
         schema_version: 1,
@@ -473,13 +492,16 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
     };
     outcome.validate_against(&spec).map_err(|_| refused())?;
     let spec_ref = spec.artifact().map_err(|_| refused())?;
-    set.retain(
-        state,
-        OwnerKind::Composition,
-        ArtifactKind::Composition,
-        spec_ref.clone(),
-        &spec.canonical_bytes().map_err(|_| refused())?,
-    )
+    let spec_bytes = spec.canonical_bytes().map_err(|_| refused())?;
+    on_heap(|| {
+        set.retain(
+            state,
+            OwnerKind::Composition,
+            ArtifactKind::Composition,
+            spec_ref.clone(),
+            &spec_bytes,
+        )
+    })
     .await?;
     let requested = composition
         .requested_permissions

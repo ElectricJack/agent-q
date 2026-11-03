@@ -911,3 +911,59 @@ fn node_at_spend_ceiling_refuses_with_reason_in_trace() {
     let old: SelectionInputs = serde_json::from_value(json).unwrap();
     assert!(old.placement.is_none());
 }
+type PlacementMutation = (fn(&mut Placement), &'static str);
+
+#[test]
+fn fence_recheck_refuses_frozen_choice_with_selection_reasons() {
+    let (catalog, mut input) = fixture();
+    input.placement = Some(sandbox_placement(&input, "fixture-1"));
+    let choice = select(&catalog, &input).unwrap().resolved.unwrap().choice;
+    assert_eq!(recheck(input.placement.as_ref().unwrap(), &choice), Ok(()));
+    let mutations: Vec<PlacementMutation> = vec![
+        (
+            |p| p.ceiling = Some(NodeCeiling::Concurrency),
+            "node_concurrency_ceiling_reached",
+        ),
+        (
+            |p| p.ceiling = Some(NodeCeiling::SpendUnaccounted),
+            "node_spend_unaccounted",
+        ),
+        (
+            |p| p.required_capabilities = vec!["nested-docker".into()],
+            "required_backend_capability_unsupported",
+        ),
+        (
+            |p| p.environment_templates.clear(),
+            "environment_template_unresolved",
+        ),
+        (
+            |p| p.environment_templates[0].template = Digest::of(b"other-template"),
+            "environment_template_digest_mismatch",
+        ),
+        (|p| p.templates.clear(), "template_not_advertised"),
+        (
+            |p| p.templates[0].harnesses[0].version = "fixture-2".into(),
+            "template_missing_selected_harness_version",
+        ),
+        (
+            |p| p.preferred_peer = Some(BackendKind::DockerLocal),
+            "placement_preferred_backend_available",
+        ),
+    ];
+    for (mutate, reason) in mutations {
+        let mut placement = sandbox_placement(&input, "fixture-1");
+        mutate(&mut placement);
+        // The fence refuses the frozen choice with the reason selection would
+        // now record for it.
+        assert_eq!(recheck(&placement, &choice), Err(reason));
+        let mut now = input.clone();
+        now.placement = Some(placement);
+        let out = select(&catalog, &now).unwrap();
+        assert!(out.resolved.is_none());
+        assert!(
+            out.traces
+                .iter()
+                .all(|t| t.reason_codes.contains(&reason.into()))
+        );
+    }
+}

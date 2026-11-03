@@ -85,6 +85,23 @@ const ACTIVATE: &str = "/api/profiles/catalogs/activate";
 const STATE: &str = "/api/profiles/catalogs";
 
 #[tokio::test]
+async fn missing_registry_is_an_explicit_conflict() {
+    let (_db, app, pool) = setup().await;
+    sqlx::query("DELETE FROM profile_catalog_registry")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (status, body) = call(&app, STATE, None, false).await;
+    assert_eq!(status, StatusCode::CONFLICT, "{body}");
+    assert!(
+        body["message"]
+            .as_str()
+            .unwrap()
+            .contains("registry has not been installed")
+    );
+}
+
+#[tokio::test]
 async fn exact_retry_survives_reactivation_and_changed_payload_conflicts() {
     let (_db, app, pool) = setup().await;
     let catalog = seed();

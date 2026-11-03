@@ -98,7 +98,7 @@ lifecycle locks remain held through admission, dispatch and response; lookup
 rechecks scope, expiry and revocation. No human Owner identity is manufactured.
 Receipts are private to the supervisor session UUID, preserved across credential
 rotation within that session. Owner and session principal references are disjoint
-in the operation journal (state format 57). Owners continue to use the human
+in the operation journal (state format 58). Owners continue to use the human
 listener and its authentication and CSRF policy.
 
 ## Errors and cursors
