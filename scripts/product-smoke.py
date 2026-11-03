@@ -24,6 +24,13 @@ ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("worker_candidate", ROOT / "scripts/check-worker-candidate.py")
 checker = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(checker)
+# The foundation worker reaches only a dedicated rootless sandbox daemon, checked
+# exactly as the production compose.workers.yaml smoke checks it.
+workers_spec = importlib.util.spec_from_file_location("compose_workers_smoke", ROOT / "scripts/compose-workers-smoke.py")
+workers_smoke = importlib.util.module_from_spec(workers_spec)
+workers_spec.loader.exec_module(workers_smoke)
+CONTROLLER_CONFIG = "/etc/aq-worker/controller.json"
+SANDBOX_SOCKET = "/run/aq-sandbox/podman.sock"
 
 
 # This older product fixture exercises the server/worker foundation. Production
@@ -148,13 +155,18 @@ class Fixture:
 
     def setup(self):
         official = os.environ.get("AQ_SMOKE_OFFICIAL") == "1"
+        candidate = checker.candidate(official)
+        self.record["worker_candidate"] = candidate
         server = os.environ.get("AQ_SMOKE_SERVER_IMAGE")
         worker = os.environ.get("AQ_SMOKE_WORKER_IMAGE")
-        if worker and not server:
-            raise ValueError("AQ_SMOKE_WORKER_IMAGE requires AQ_SMOKE_SERVER_IMAGE")
+        # The synthetic-runtime harness is a separate CI-only image, never the
+        # production worker; it is built locally from the same candidate unless given.
+        fixture = os.environ.get("AQ_SMOKE_FIXTURE_IMAGE")
+        if bool(server) != bool(worker):
+            raise ValueError("set both AQ_SMOKE_SERVER_IMAGE and AQ_SMOKE_WORKER_IMAGE, or neither")
         if official and (not server or any(not re.fullmatch(r"[a-z0-9][a-z0-9./:_-]*@sha256:[0-9a-f]{64}", image)
-                                          for image in (server, worker) if image)):
-            raise ValueError("official acceptance requires a digest-pinned server image (and worker image, if given)")
+                                          for image in (server, worker))):
+            raise ValueError("official acceptance requires digest-pinned server and worker images")
         snapshot = self.temp / "source"
         snapshot.mkdir()
         for name in ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "Dockerfile", "Dockerfile.worker",
@@ -165,63 +177,64 @@ class Fixture:
         # Dockerfile.worker installs the worker volume initializer from scripts/.
         (snapshot / "scripts").mkdir()
         shutil.copy2(ROOT / "scripts/worker-init-volumes.sh", snapshot / "scripts/worker-init-volumes.sh")
-        if not worker:
-            # The production worker (aq-worker 0.5.1) needs a rootless sandbox
-            # daemon for `run` and omits `run-execution`. Until this fixture is
-            # reworked, build the smoke worker from the 0.3.1 smoke-only fixture.
-            for name in ["aq-worker-source.tar.gz", "worker-candidate.json", "worker-candidate.sha256"]:
-                shutil.copy2(ROOT / "vendor/smoke-worker" / name, snapshot / "vendor" / name)
-            self.record["worker_fixture"] = "vendor/smoke-worker (smoke-only; not the production worker)"
-            checker_root, checker.ROOT = checker.ROOT, snapshot
-            try:
-                candidate = checker.candidate(official)
-            finally:
-                checker.ROOT = checker_root
-        else:
-            candidate = checker.candidate(official)
-        self.record["worker_candidate"] = candidate
         inventory = {str(p.relative_to(snapshot)): sha(p.read_bytes()) for p in sorted(snapshot.rglob("*")) if p.is_file()}
         self.record["source_inventory"] = inventory
         self.record["source_tree_sha256"] = sha(canonical(inventory))
         self.record["source_revision"] = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
         self.record["working_tree_dirty"] = bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT))
         state = re.search(r"pub const STATE_FORMAT_VERSION: u32 = (\d+);", (snapshot / "crates/aq-server/src/lib.rs").read_text()).group(1)
+        worker_args = ["--build-arg", "AQ_SOURCE_REVISION=" + candidate["source_revision"],
+                       "--build-arg", "AQ_WORKER_ARCHIVE_SHA256=" + candidate["archive_sha256"],
+                       "--build-arg", "AQ_VERSION=" + candidate["version"], "--build-arg", "AQ_STATE_FORMAT=" + state]
+        if not fixture:
+            fixture = self.project + "-fixture:candidate"
+            self.images.append(fixture)
+            self.say("build the synthetic-runtime fixture worker (never pushed)")
+            self.run(["docker", "build", "-f", str(snapshot / "Dockerfile.worker"), "--target", "synthetic-runtime",
+                      *worker_args, "-t", fixture, str(snapshot)], name="build-fixture", timeout=1800)
         if not server:
-            server = self.project + "-server:candidate"
-            self.images.append(server)
+            server, worker = self.project + "-server:candidate", self.project + "-worker:candidate"
+            self.images += [server, worker]
             revision = "dev-" + self.record["source_tree_sha256"][:24]
-            self.say("build server from a frozen source snapshot")
+            self.say("build server and pinned standalone worker from a frozen source snapshot")
             self.run(["docker", "build", "--target", "server", "--build-arg", "AQ_SOURCE_REVISION=" + revision,
                       "--build-arg", "AQ_STATE_FORMAT=" + state, "-t", server, str(snapshot)], name="build-server", timeout=1800)
-        elif subprocess.run(["docker", "image", "inspect", server], stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL).returncode:
-            self.run(["docker", "pull", server], name="pull-server", timeout=600)
-        if not worker:
-            worker = self.project + "-worker:candidate"
-            self.images.append(worker)
-            self.say("build pinned standalone smoke worker fixture from a frozen source snapshot")
             self.run(["docker", "build", "-f", str(snapshot / "Dockerfile.worker"), "--target", "worker",
-                      "--build-arg", "AQ_SOURCE_REVISION=" + candidate["source_revision"],
-                      "--build-arg", "AQ_WORKER_ARCHIVE_SHA256=" + candidate["archive_sha256"],
-                      "--build-arg", "AQ_VERSION=" + candidate["version"], "--build-arg", "AQ_STATE_FORMAT=" + state,
-                      "-t", worker, str(snapshot)], name="build-worker", timeout=1800)
-        elif subprocess.run(["docker", "image", "inspect", worker], stdout=subprocess.DEVNULL,
-                            stderr=subprocess.DEVNULL).returncode:
-            self.run(["docker", "pull", worker], name="pull-worker", timeout=600)
-        self.record["images"] = json.loads(self.run(["docker", "image", "inspect", server, worker], name="image-identities"))
-        embedded = json.loads(self.run(["docker", "run", "--rm", "--entrypoint", "cat", worker,
-                                        "/usr/share/agent-q/worker-candidate.json"], name="worker-provenance"))
-        if embedded != candidate:
-            raise ValueError("worker image provenance differs from selected immutable candidate")
-        version = self.run(["docker", "run", "--rm", worker, "--version"], name="worker-version").strip()
-        if version != "aq-worker " + candidate["version"]:
-            raise ValueError("worker executable version differs from selected candidate")
-        help_text = self.run(["docker", "run", "--rm", worker, "run-execution", "--help"], name="worker-execution-cli")
+                      *worker_args, "-t", worker, str(snapshot)], name="build-worker", timeout=1800)
+        else:
+            for role, image in [("server", server), ("worker", worker)]:
+                if subprocess.run(["docker", "image", "inspect", image], stdout=subprocess.DEVNULL,
+                                  stderr=subprocess.DEVNULL).returncode:
+                    self.run(["docker", "pull", image], name="pull-" + role, timeout=600)
+        self.fixture_image = fixture
+        self.record["images"] = json.loads(self.run(["docker", "image", "inspect", server, worker, fixture],
+                                                    name="image-identities"))
+        for role, image in [("worker", worker), ("fixture", fixture)]:
+            embedded = json.loads(self.run(["docker", "run", "--rm", "--entrypoint", "cat", image,
+                                            "/usr/share/agent-q/worker-candidate.json"], name=role + "-provenance"))
+            if embedded != candidate:
+                raise ValueError(role + " image provenance differs from selected immutable candidate")
+            version = self.run(["docker", "run", "--rm", image, "--version"], name=role + "-version").strip()
+            if version != "aq-worker " + candidate["version"]:
+                raise ValueError(role + " executable version differs from selected candidate")
+        help_text = self.run(["docker", "run", "--rm", fixture, "run-execution", "--help"], name="fixture-execution-cli")
         if "--drop-acceptance-response-once" not in help_text or "--drop-report-response-once" not in help_text:
-            raise ValueError("worker executable lacks the selected execution candidate interface")
+            raise ValueError("fixture executable lacks the selected execution candidate interface")
+        self.record["fixture_binary_sha256"] = self.run([
+            "docker", "run", "--rm", "--entrypoint", "sha256sum", fixture,
+            "/usr/local/bin/aq-worker", "/usr/local/bin/aq-fixture-agent"], name="fixture-binary-identities")
         self.record["worker_binary_sha256"] = self.run([
             "docker", "run", "--rm", "--entrypoint", "sha256sum", worker,
-            "/usr/local/bin/aq-worker", "/usr/local/bin/aq-fixture-agent"], name="worker-binary-identities")
+            "/usr/local/bin/aq-worker"], name="worker-binary-identities")
+        # Recovery drives only its own fixture build; the product worker must
+        # not ship the synthetic harness at all.
+        if "recovery_build" not in self.record:
+            shipped = self.run(["docker", "run", "--rm", worker, "run-execution", "--help"],
+                               name="worker-has-no-execution-cli", check=False)
+            if "--fixture-agent" in shipped or self.run(
+                    ["docker", "run", "--rm", "--entrypoint", "sh", worker, "-c", "if test -e /usr/local/bin/aq-fixture-agent; then echo present; fi"],
+                    name="worker-has-no-fixture-agent", check=False).strip():
+                raise ValueError("production worker image ships the synthetic-runtime harness")
         git_candidate = json.loads((snapshot / "vendor/git-candidate.json").read_text())
         self.record["git_candidate"] = git_candidate
         self.record["git_runtime"] = {}
@@ -254,18 +267,54 @@ class Fixture:
             secret.chmod(0o644)
         self.env.update(AQ_SERVER_IMAGE=server, AQ_WORKER_IMAGE=worker, AQ_VAULT_DIR=str(self.temp / "vault"),
                         AQ_SECRETS_DIR=str(self.temp / "secrets"), AQ_UPDATER_SPOOL=str(self.temp / "spool"))
-        overlay = {"services": {
+        hardened = {"read_only": True, "cap_drop": ["ALL"], "security_opt": ["no-new-privileges:true"]}
+        volumes = ["worker_config:/config", "worker_state:/state"]
+        worker_service = {"image": worker, "networks": ["edge"], "volumes": volumes, **hardened}
+        services = {
             "server": {"environment": {"AQ_DEPLOYMENT": "development"}, "ports": ["127.0.0.1::8080", "127.0.0.1::8081"]},
             "cloudflared": {"profiles": ["tunnel"]},
-            "worker": {"image": worker, "networks": ["edge"], "volumes": ["worker_config:/config", "worker_state:/state"],
-                       "read_only": True, "cap_drop": ["ALL"], "security_opt": ["no-new-privileges:true"]}},
-            "volumes": {"worker_config": {}, "worker_state": {}}}
+            "worker": worker_service,
+            # The synthetic harness shares the enrolled identity and state volumes
+            # but runs from the CI-only fixture image.
+            "runtime": {**worker_service, "image": fixture, "profiles": ["runtime"]}}
+        if "recovery_build" not in self.record:
+            # 0.5.1 `run` binds the docker-local backend, which accepts only a
+            # dedicated rootless daemon socket owned by the worker's own UID.
+            socket, sandbox = workers_smoke.sandbox_socket()
+            owner = os.stat(socket)
+            user = f"{owner.st_uid}:{owner.st_gid}"
+            self.record["sandbox"] = dict(sandbox, uid=owner.st_uid, gid=owner.st_gid)
+            controller = self.temp / "controller.json"
+            controller.write_text(json.dumps({
+                "state_dir": "/state/controller",
+                "node": {"runtime": {"id": "aq.product-smoke", "version": "1", "digest": sha(b"product-smoke")},
+                         "capabilities": [], "features": [], "templates": [], "max_concurrent_sandboxes": 1,
+                         "spend_ceiling": None,
+                         "capacity": {"memory_bytes": 1 << 30, "cpu_millis": 1000, "disk_bytes": 1 << 30,
+                                      "max_preparing": 1}},
+                "docker_local": {"socket": SANDBOX_SOCKET}}, indent=2))
+            controller.chmod(0o644)
+            for name in ["worker", "runtime"]:
+                # nocopy: Docker copies an image VOLUME's content and owner into a volume
+                # that is still empty on every mount, which would undo the init chown.
+                services[name].update(user=user, volumes=[
+                    *[volume + ":nocopy" for volume in volumes], os.path.dirname(socket) + ":" + os.path.dirname(SANDBOX_SOCKET),
+                    str(controller) + ":" + CONTROLLER_CONFIG + ":ro"])
+            services["worker"]["command"] = ["run", "--controller-config", CONTROLLER_CONFIG]
+            # One-shot owner change of the image's 10001-owned volumes to the socket owner.
+            services["worker-volume-init"] = {
+                "image": worker, "user": "0:0", "entrypoint": ["chown", "-R", user, "/config", "/state"],
+                "volumes": volumes, "network_mode": "none", "profiles": ["init"], **hardened,
+                "cap_add": ["CHOWN", "DAC_OVERRIDE", "FOWNER"]}
+        overlay = {"services": services, "volumes": {"worker_config": {}, "worker_state": {}}}
         file = self.temp / "compose.smoke.json"
         file.write_text(json.dumps(overlay))
         foundation = self.temp / "compose.foundation.yaml"
         foundation.write_text(FOUNDATION_OVERRIDE)
         self.dc = ["docker", "compose", "-p", self.project, "-f", str(snapshot / "compose.yaml"),
                    "-f", str(foundation), "-f", str(file)]
+        if "worker-volume-init" in services:
+            self.compose("run", "--rm", "-T", "--no-deps", "worker-volume-init", name="worker-volume-init")
         self.compose("up", "-d", "--no-build", "--wait", "--wait-timeout", "120", "server", name="start-server")
         self.address()
         self.poll("admin health", lambda: self.http("/healthz"))
@@ -317,7 +366,7 @@ class Fixture:
     def execute(self):
         self.say("run synthetic assignment with lost acceptance and report acknowledgements")
         self.runtime = self.project + "-execution"
-        self.compose("run", "-d", "--no-deps", "--name", self.runtime, "-e", "AQ_FIXTURE_HOLD=1", "worker",
+        self.compose("run", "-d", "--no-deps", "--name", self.runtime, "-e", "AQ_FIXTURE_HOLD=1", "runtime",
                      "run-execution", "--state-dir", "/state/runtime", "--fixture-agent", "/usr/local/bin/aq-fixture-agent",
                      "--idle-timeout-secs", "90", "--exit-after-result", "--drop-acceptance-response-once",
                      "--drop-report-response-once", name="start-execution")
@@ -353,7 +402,7 @@ class Fixture:
         finally:
             self.run(["docker", "unpause", self.runtime], name="unpause-after-offers", check=False)
         def claim():
-            value = self.compose("run", "--rm", "-T", "--no-deps", "--entrypoint", "sh", "worker", "-ec",
+            value = self.compose("run", "--rm", "-T", "--no-deps", "--entrypoint", "sh", "runtime", "-ec",
                                  "find /state/runtime/launches -name started.claim -print", name="launch-claim", check=False)
             rows = [line for line in value.splitlines() if re.fullmatch(r"/state/runtime/launches/[0-9a-f-]{36}/started.claim", line)]
             if rows:
@@ -373,7 +422,7 @@ class Fixture:
         assert state["status"] == "finished" and state["stopped"]
         assert state["disposition"]["disposition"] == "accepted"
         assert state["report"]["output"] == spec["fixture_output"]
-        text = self.compose("run", "--rm", "-T", "--no-deps", "--entrypoint", "cat", "worker",
+        text = self.compose("run", "--rm", "-T", "--no-deps", "--entrypoint", "cat", "runtime",
                             "/state/runtime/journal.json", name="execution-journal")
         journal = json.loads(text[text.index("{"):])
         assert len(journal["attempts"]) == 1
