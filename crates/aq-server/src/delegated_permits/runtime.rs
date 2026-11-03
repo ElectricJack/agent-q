@@ -40,6 +40,8 @@ pub struct Current {
     pub preparation: Option<PreparationAuthority>,
     pub authority: Option<PhaseExecutionAuthority>,
     pub revision: u64,
+    #[serde(default)]
+    pub registration: Option<Registration>,
 }
 
 /// Opaque evidence carried into every effect-owning transaction. No raw bearer
@@ -102,6 +104,7 @@ pub async fn install_execution_locked(
     .await
     .map_err(db)?;
     if !exists {
+        let registration = super::incarnation::registered(tx, permit.binding.node.node_id).await?;
         save(
             tx,
             &Current {
@@ -109,6 +112,7 @@ pub async fn install_execution_locked(
                 preparation: None,
                 authority: Some(authority.clone()),
                 revision: 1,
+                registration,
             },
         )
         .await?;
@@ -225,7 +229,7 @@ pub async fn authenticate_runner(
         return crate::worker_api::authenticate_context(state, headers).await;
     }
     let verifier: [u8; 32] = Sha256::digest(token.as_bytes()).into();
-    let raw:serde_json::Value=sqlx::query_scalar("SELECT c.state FROM delegated_permit_current c JOIN delegated_permits p USING(permit_id) WHERE p.record->'verifier'=$1 AND NOT p.revoked")
+    let raw:serde_json::Value=sqlx::query_scalar("SELECT c.state FROM delegated_permit_current c JOIN delegated_permits p USING(permit_id) WHERE c.state#>'{record,verifier}'=$1 AND NOT p.revoked")
         .bind(json(&verifier)?).fetch_optional(&state.store.pool).await.map_err(db)?.ok_or_else(refused)?;
     let current: Current = parse(raw)?;
     current
@@ -306,6 +310,7 @@ pub(crate) async fn lock_authenticated(
         return Err(refused());
     }
     let context = context(tx, &current).await?;
+    super::incarnation::check_rebound(tx, &current).await?;
     let time = u64::try_from((auth.clock)().timestamp_millis()).map_err(|_| refused())?;
     current
         .record
@@ -368,7 +373,7 @@ pub(crate) async fn verify_extended_grant_locked(
     {
         return Err(refused());
     }
-    let rows: Vec<serde_json::Value> = sqlx::query_scalar("SELECT c.state FROM delegated_permit_current c WHERE c.state#>>'{record,binding,attempt_id}'=$1 AND EXISTS(SELECT 1 FROM delegated_operations o WHERE o.node_id=(c.state#>>'{record,binding,node,node_id}')::uuid AND o.kind='renewal' AND o.evidence->'current'=c.state) LIMIT 2")
+    let rows: Vec<serde_json::Value> = sqlx::query_scalar("SELECT c.state FROM delegated_permit_current c WHERE c.state#>>'{record,binding,attempt_id}'=$1 AND EXISTS(SELECT 1 FROM delegated_operations o WHERE o.node_id=(c.state#>>'{record,binding,node,node_id}')::uuid AND o.kind='renewal' AND o.evidence#>'{current,authority}'=c.state->'authority' AND o.evidence#>'{current,record,expires_at_ms}'=c.state#>'{record,expires_at_ms}' AND o.evidence#>'{current,record,permit_id}'=c.state#>'{record,permit_id}') LIMIT 2")
         .bind(live.binding.attempt_id.to_string()).fetch_all(&mut **tx).await.map_err(db)?;
     if rows.len() != 1 {
         return Err(refused());

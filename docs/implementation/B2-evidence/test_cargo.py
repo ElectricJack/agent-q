@@ -5,6 +5,9 @@ import subprocess
 
 ROOT = Path(__file__).resolve().parents[3]
 COMMANDS = {
+    "readoption-final": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "delegated_permit_runtime", "--test", "permit_fixture_conformance", "--test", "native_registration", "--test", "delegated_permits"],
+    "registration": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "native_registration", "--test", "delegated_permits"],
+    "legacy-registration": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "execution", "execution_http_authenticates_node_binding_and_keeps_routes_separate"],
     "migration-format": ["cargo", "test", "--locked", "-p", "aq-server", "--lib", "state_format_is_the_latest_migration"],
     "migration-merge": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "delegated_permits", "--test", "delegated_permit_runtime", "--test", "central_sessions"],
     "legacy-renewal": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "native_initial_grant", "original_cold_inventory_actual_installation_can_renew_without_retiming_originals"],
@@ -16,6 +19,7 @@ COMMANDS = {
     "model": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "delegated_permits"],
     "area": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "native_cancellation"],
     "final": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "delegated_permits", "--test", "native_cancellation", "--", "--test-threads=1"],
+    "format-apply": ["cargo", "fmt", "-p", "aq-server"],
     "format": ["cargo", "fmt", "-p", "aq-server", "--check"],
     "clippy": ["cargo", "clippy", "--locked", "-p", "aq-server", "--lib", "--test", "delegated_permits", "--test", "delegated_permit_runtime", "--test", "permit_fixture_conformance", "--", "-D", "warnings"],
 }

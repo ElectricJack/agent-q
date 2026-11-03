@@ -111,3 +111,15 @@ The owner prerequisite is published at a2ff7454a7851ad4662308bc55b23254c6524ca4,
 - [ ] Add a runner authentication context that retains attempt and operation constraints through effect transactions; node-only routes keep node-only authentication.
 - [ ] Test reboot and process reconstruction with an injected clock, then targeted route scope and result replay.
 - [ ] Publish final evidence and request the required cross-family review through the supervisor.
+
+### Operator decision: reboot Option A
+
+Message `msg-d841ede5bcd4480793d95692d0dd4da4` / comment
+`comment-b4f8ed9b7a714b80bc41f17801a37062` resolves the reboot authority question:
+keep immutable native history on its original boot; register a separate delegated
+incarnation; re-adopt only an unexpired, uncancelled current execution grant with
+matching backend kind, template and capabilities. Rotate the bearer and fence the
+old incarnation atomically. Post-adoption renewal uses current grant/cancellation
+and the original hard deadline with a 120-second cap, without collecting new
+native policy/inventory/health/source facts. See B2.md for implementation and
+consumer details. The terminal-report owner release remains independently pending.

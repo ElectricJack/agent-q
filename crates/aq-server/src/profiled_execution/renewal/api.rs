@@ -40,18 +40,26 @@ async fn renew(
             return Err(AppError::BadRequest("expected runner renewal request".into()).into());
         };
         crate::delegated_permits::runtime::require_document(&auth, &request)?;
-        let reply = match request.authority.profile {
-            PhaseProfile::PhaseV2 => {
-                crate::profiled_execution::phase_execution::renew_delegated(
-                    &state, &auth, &request, nonce,
-                )
-                .await?
-            }
-            PhaseProfile::PhaseRefreshV1 => {
-                crate::profiled_execution::phase_refresh_execution::renew_delegated(
-                    &state, &auth, &request, nonce,
-                )
-                .await?
+        let reply = if let Some(reply) = crate::delegated_permits::incarnation::renew_after_reboot(
+            &state, &auth, &request, nonce,
+        )
+        .await?
+        {
+            reply
+        } else {
+            match request.authority.profile {
+                PhaseProfile::PhaseV2 => {
+                    crate::profiled_execution::phase_execution::renew_delegated(
+                        &state, &auth, &request, nonce,
+                    )
+                    .await?
+                }
+                PhaseProfile::PhaseRefreshV1 => {
+                    crate::profiled_execution::phase_refresh_execution::renew_delegated(
+                        &state, &auth, &request, nonce,
+                    )
+                    .await?
+                }
             }
         };
         let mut response = Json(SandboxDocument::RunnerRenewalResponse(reply)).into_response();
