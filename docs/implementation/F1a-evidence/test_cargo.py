@@ -6,6 +6,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 COMMANDS = {
+    "shutdown_signals": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--bin", "aq-supervisor-host", "shutdown_receives_sigterm_and_sigint"],
     "merged_start": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", "supervisor_session_starts_under_central_permit"],
     "merged_restart": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", "supervisor_restart_resumes_without_duplicate_session"],
     "upgrade": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", "main_delivery_database_upgrades_without_losing_history"],

@@ -4,8 +4,49 @@ Task `steady-harbor-87.1`. The earlier prerequisite block is resolved by
 `crisp-nexus-12`. This increment implements the physical bridge, executable and
 image on top of the previously committed SQL session owner. Independent
 validation is recorded below. The upstream request-publication race is fixed
-by the 0.1.7 pin requested in the latest reopening. Cross-family review remains
-pending before a passing close.
+by the 0.1.7 pin requested in the latest reopening. Review revision 2 addresses
+the operator-scoped graceful-stop and crash-documentation nits below; publication
+does not approve the review.
+
+## Revision 2: graceful stop and crash recovery notes
+
+Task `steady-harbor-87.8` preserves the reviewed `5f945efc` history and merges
+it into the assigned revision branch. Per supervisor publication instructions,
+this follow-up depends on aq-server PR #26; it does not push the original F1a
+branch or merge either PR.
+
+`run` registers SIGTERM and SIGINT handlers before launch. Either signal enters
+the existing `Supervisor::stop` path, including the guardian's stopped-writer
+proof, so the default `docker stop` signal reaches graceful shutdown. Operators
+must configure a stop grace period greater than the 10-second `wait_stopped`
+budget plus database lock/statement timeouts and scheduling overhead; Docker's
+default 10 seconds is insufficient. Container/guardian loss can still require
+inspection and never supplies stopped proof by itself.
+
+A crash after `StartCommitted` but before the host start-intent fact requires
+operator inspection of `StopUncertain`; a crash after `Prepared` but before the
+start commit is reconciled to `CancelledBeforeStart` and requires a successor
+plan rather than retrying the same plan.
+
+Review dispositions: `cmt-1848a5684723` is addressed by the signal handlers and
+targeted OS-signal test; `cmt-116224e48c17` is addressed by the crash-window
+sentence here and in the host README. Per the explicit operator override,
+bounded retry (`cmt-b61d99d685f5`), typed conflict (`cmt-0173af107bb4`) and
+native `setsid` (`cmt-825cd2f83da1`) are deferred to a separate operator-filed
+follow-up and are not implemented here. `cmt-9c37fe387775` agrees with the
+existing 0.1.7 evidence; that historical evidence is retained unchanged.
+
+Targeted validation: `F1A_CHECK=shutdown_signals aq test
+docs/implementation/F1a-evidence/test_cargo.py -q --timeout=1800` passed its one
+AQ wrapper test and executed `cargo test --locked -p aq-supervisor-host --bin
+aq-supervisor-host shutdown_receives_sigterm_and_sigint`: 1 passed, 0 failed,
+0 filtered out. The real SIGTERM/SIGINT test took 0.00 seconds after 5m24s of
+fresh compilation; no sleeps or physical lifecycle rerun. Cargo output is
+retained in `F1a-evidence/shutdown_signals.txt`. `rustfmt --check --edition 2024
+crates/aq-supervisor-host/src/main.rs` and `git diff --check` also passed.
+`aq git pull --branch main` followed by final `git merge origin/main` confirmed
+main `71e08197` is already included. This revision does not rebuild the image
+or claim a full-suite or new provider/container qualification.
 
 ## Source and integration
 
