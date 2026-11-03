@@ -34,6 +34,17 @@ is a root-owned traversable directory (0711). Preserve `/host` across controller
 restarts, and retain it for inspection after container/guardian loss. A container
 restart that kills the guardian cannot re-adopt it or manufacture stopped proof.
 
+`run` handles SIGTERM (the default `docker stop` signal) and SIGINT by calling
+the verified stop path. Set the container stop grace period greater than the
+10-second `wait_stopped` budget plus database lock/statement timeouts and
+scheduling overhead; the default 10-second Docker grace period is insufficient.
+Force-killing the container can still leave stop uncertain.
+
+A crash after `StartCommitted` but before the host start-intent fact requires
+operator inspection of `StopUncertain`; a crash after `Prepared` but before the
+start commit is reconciled to `CancelledBeforeStart` and requires a successor
+plan rather than retrying the same plan.
+
 The root host reads `secret_file`, the protected-file placement primitive used
 by `CredentialConfig.secret_file`. Mount it root-owned 0600, without links,
 outside the workspace; it must contain at most 4096 bytes of one printable key

@@ -6,6 +6,29 @@ use aq_supervisor_host::{
     config::{Config, InstalledAuthority},
 };
 use std::{path::PathBuf, sync::Arc, time::Duration};
+use tokio::signal::unix::{Signal, SignalKind, signal};
+
+struct ShutdownSignals {
+    interrupt: Signal,
+    terminate: Signal,
+}
+
+impl ShutdownSignals {
+    fn new() -> std::io::Result<Self> {
+        Ok(Self {
+            interrupt: signal(SignalKind::interrupt())?,
+            terminate: signal(SignalKind::terminate())?,
+        })
+    }
+
+    async fn recv(&mut self) -> Result<()> {
+        tokio::select! {
+            received = self.interrupt.recv() => received,
+            received = self.terminate.recv() => received,
+        }
+        .context("shutdown signal stream closed")
+    }
+}
 
 #[tokio::main(worker_threads = 2)]
 async fn main() {
@@ -68,10 +91,12 @@ async fn run() -> Result<()> {
             host.stop(actor).await?;
         }
         "run" => {
+            // Register before launch so a stop during startup remains pending.
+            let mut signals = ShutdownSignals::new()?;
             let ttl = c.central.max_permit_ms.min(120_000);
             let startup = aq_supervisor_host::config::protected_read(&c.startup_file, 1048576)?;
             Box::pin(host.start(c.central, c.host, startup, ttl)).await?;
-            let shutdown = tokio::signal::ctrl_c();
+            let shutdown = signals.recv();
             tokio::pin!(shutdown);
             loop {
                 tokio::select! {result=&mut shutdown=>{result?;host.stop(actor).await?;break;},_ = tokio::time::sleep(Duration::from_millis(250))=>{}}
@@ -95,4 +120,22 @@ async fn run() -> Result<()> {
         _ => unreachable!(),
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn shutdown_receives_sigterm_and_sigint() {
+        let mut signals = ShutdownSignals::new().unwrap();
+        for signal in [libc::SIGTERM, libc::SIGINT] {
+            // Deliver a real OS signal before polling, as can happen at startup.
+            assert_eq!(unsafe { libc::kill(libc::getpid(), signal) }, 0);
+            tokio::time::timeout(Duration::from_secs(1), signals.recv())
+                .await
+                .expect("shutdown signal was not received")
+                .unwrap();
+        }
+    }
 }
