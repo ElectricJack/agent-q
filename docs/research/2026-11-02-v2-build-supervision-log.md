@@ -126,3 +126,40 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - G5 completed. B1's round-5 revision finished; `rev-keen-ember` r5 and `rev-grand-meadow` (B5a) r3 are waiting for the supervisor's decision.
   - `fleet-stone-84` (E0 refresh) started.
   - Merged aq-server #23 (D1a: durable central aq-git candidate creation and publication) and aq-worker #21 (B1 review reconciliation docs).
+- **21:23 — disk emergency.**
+  - `/` hit **99% (16 GB free of 1 TB)**. `aq-platform-agents` held 559 GB, almost all of it per-slot Cargo `target/` directories; aq-server slot-0 alone was 141 GB.
+  - Deleted `target/` in the 8 idle slots only, after re-checking each slot's lock and that no process used it. Usage went from 940 GB to 819 GB (137 GB free).
+  - The monitor now reports disk usage on every check and repeats the idle-slot cleanup automatically above 85%.
+  - Agents had already filed the investigation `bright-zenith-30`, which is working on a lasting policy; I left it a note about the cleanup.
+- **21:40 check.**
+  - Status: 26 of 91 plan tasks completed (29%, about 26% weighted by effort), plus 80 follow-ups. E1a (production Compose) completed. Disk is at 81–87% after the cleanup.
+  - B1 (`rev-keen-ember`, round 5) and B5a (`rev-grand-meadow`, round 3) are still waiting for supervisor decisions. B1b, B2 and B6a2 remain queued behind B1.
+  - **Owner decision surfaced: B6b (`noble-summit-37.8`).** Clearing the agent's capability bounding set requires CAP_SETPCAP, which the three-capability fixture does not grant. The agent asks whether bootstrap may require CAP_SETPCAP. It is continuing with the signal-denial probe in the meantime (`bright-nexus-60`).
+- **21:55 owner decisions.**
+  - **Reviews:** "I don't want to do any reviews, that's all on you." I now decide every delegated review.
+  - **B6b:** the owner chose my recommendation. No CAP_SETPCAP; the bounding set may hold the three runner capabilities, with a fast no-regain probe. Sent to `noble-summit-37.8` and `bright-nexus-60`, with targeted-tests-only guidance.
+  - The owner is concerned that narrow security work and slow tests are cutting velocity. Velocity rules were added to `.aq/PRIME.md` in all six repos: aq-server `ced0063`, aq-worker `8d62e3b`, aq-dashboard `62fd237`, aq-graph `391dd4c`, aq-git `b907806`, aq-playbooks `4fa57ff`.
+- **22:00 review decisions.**
+  - **B1 (`rev-keen-ember`, r5).** I approved it without per-comment dispositions. v1 rewrote the decision to `fold_in` and created revision task `sharp-orbit-26`, because the round-1 `[blocking]` comment (resolved in r2, verified by `smart-grove-55`) defaults to fold-in. This is most likely why B1 cycled through 5 rounds (W37).
+    - I narrowed `sharp-orbit-26` to a disposition-only r6 resubmission.
+    - I will approve r6 with explicit dispositions.
+  - **B5a (`rev-grand-meadow`, r3).** Approved with an explicit disposition for every comment; no task was created.
+    - B5a's code was already on main (PR #15 squash plus revision `5dc1ccd6`). Its recovery hold was only waiting for the review.
+    - Closed with `aq task close --done`. B5b and I4a are now runnable.
+- **22:10 check.**
+  - **B1 approved:** `rev-keen-ember` r6 passed on the first decision with explicit dispositions, after 6 rounds (W37 confirmed). B1b (`agile-delta-29`) is READY.
+  - E1b and B6b completed.
+  - **`bold-stone-39`:** merged aq-worker PR #22 (`4992a16d`). It had no conflicts; its one CI failure is the flaky supervisor-session class that also fails on main. Closed with `--done`.
+  - **D1a (`crisp-meadow-36.1`)** finished its implementation, but its review `rev-steady-dune` had no reviewer dispatched. I dispatched one standard-high reviewer with a blocking-only-for-real-defects focus. I will decide the review and close D1a when it returns.
+  - **Main CI is red** on aq-worker (12+ runs, a different flaky test each time), aq-dashboard (Playwright/axe) and aq-server (owned by `fair-zenith-27`). Filed `sharp-forge-44` (aq-worker) and `wise-journey-87` (aq-dashboard) at priority 40, standard-high (W39).
+  - **Owner:** "prioritize standard workers, we are running low on usage."
+    - Codex weekly usage is at 78% with about 5.8 days until reset; Claude weekly is at 48%.
+    - Pinned 11 queued deep-high tasks to standard-high, alternating Claude and Codex: B1b, C5a1, C5b, C6a, H4, H5, D9, D3, J3, B4, C5a2.
+    - Kept deep-high for B2, D1a and D10 (in-flight checkpoints), J4 and MS4.
+    - Owner: "easier well-defined tasks can be standard medium." Moved I2, I3 and F4 to standard-medium. A4 was running and stays where it is (W40).
+  - The owner asked for a demo of the latest build in the morning. A one-shot prep job is scheduled for 06:17.
+- **22:25 check.**
+  - **F1a (`steady-harbor-87.1`) reopened.** It had closed blocked on the upstream start.request race. That fix (`bold-stone-39`, aq-session-host 0.1.7) merged last check as `4992a16d`. Told F1a to pin it and re-run only the affected tests.
+  - **`agile-torrent-31`** (spec-ingest for B1's r6 approval) found nothing to create. Its empty proposal was refused because "no_op settlement requires an approved design", and then it was paused. `aq task close --no-change` failed with "could not stop the writer". It is harmless and nothing depends on it; left paused.
+  - aq-server PR #24 (owner clock) has checks still running; its update-lifecycle job failed. I will decide next check. aq-worker PR #23 (`bright-nexus-60`) has conflicts; its worker is in backoff.
+  - `wise-journey-87` (dashboard CI) is running; `sharp-forge-44` is waiting on aq-worker's cap. Disk is at 54%.

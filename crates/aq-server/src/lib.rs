@@ -128,13 +128,22 @@ impl AppState {
 }
 
 async fn harden(req: Request, next: Next) -> Response {
+    let api = req.uri().path() == "/api" || req.uri().path().starts_with("/api/");
     let mut resp = next.run(req).await;
+    let success = resp.status().is_success();
     let h = resp.headers_mut();
     h.insert(
         header::X_CONTENT_TYPE_OPTIONS,
         HeaderValue::from_static("nosniff"),
     );
-    if h.get(header::CACHE_CONTROL).and_then(|v| v.to_str().ok()) != Some("private, no-store") {
+    let cache = h.get(header::CACHE_CONTROL).and_then(|v| v.to_str().ok());
+    let cacheable_asset = !api
+        && success
+        && matches!(
+            cache,
+            Some("no-cache" | "private, max-age=31536000, immutable")
+        );
+    if cache != Some("private, no-store") && !cacheable_asset {
         h.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-store"));
     }
     resp
