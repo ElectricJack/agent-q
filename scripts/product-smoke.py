@@ -181,6 +181,7 @@ class Fixture:
             self.run(["docker", "build", "--target", "server", "--build-arg", "AQ_SOURCE_REVISION=" + revision,
                       "--build-arg", "AQ_STATE_FORMAT=" + state, "-t", server, str(snapshot)], name="build-server", timeout=1800)
             self.run(["docker", "build", "-f", str(snapshot / "Dockerfile.worker"), "--target", "worker",
+                      "--build-arg", "AQ_WORKER_FEATURES=synthetic-runtime",
                       "--build-arg", "AQ_SOURCE_REVISION=" + candidate["source_revision"],
                       "--build-arg", "AQ_WORKER_ARCHIVE_SHA256=" + candidate["archive_sha256"],
                       "--build-arg", "AQ_VERSION=" + candidate["version"], "--build-arg", "AQ_STATE_FORMAT=" + state,

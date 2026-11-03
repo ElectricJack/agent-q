@@ -95,6 +95,7 @@ class RecoveryFixture(product.Fixture):
                   "--build-arg", "AQ_SOURCE_REVISION=recovery-" + tree[:24], "-t", server, str(source)],
                  name="build-fixture-server", timeout=1800)
         self.run(["docker", "build", "--target", "worker", "-f", str(source / "Dockerfile.worker"),
+                  "--build-arg", "AQ_WORKER_FEATURES=synthetic-runtime",
                   "--build-arg", "AQ_SOURCE_REVISION=" + candidate["source_revision"],
                   "--build-arg", "AQ_WORKER_ARCHIVE_SHA256=" + candidate["archive_sha256"],
                   "--build-arg", "AQ_STATE_FORMAT=" + state_format,
