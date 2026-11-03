@@ -170,3 +170,13 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Dashboard:** `wise-journey-87` fixed the browser checks (22 failing to 35/35; PR #5 merged), and main's Browser checks now pass. The unit job still fails on one flaky SupervisorConversation test; filed `grand-lantern-86` at standard-medium.
   - D1a's reviewer `solid-cascade-10` was unrouted for more than 15 minutes; pinned it to Claude standard-high (cross-family).
   - aq-server PR #25 (`fair-zenith-27`) is waiting for pending checks.
+- **22:55 check.**
+  - **B2 hold released** (operator retry) now that B1b's contract is on main; B2 is READY.
+  - B6a2 started (unblocked by B1). `fair-zenith-27` completed.
+  - **Merged aq-server PR #25** (`14d49217`, 19 workspace test-fixture fixes). Its remaining CI failures come from main, not from the PR.
+  - **Filed `vivid-vault-98`** (standard-medium) for the remaining aq-server CI failures:
+    - `playbook_activation.rs:39` asserts the DATABASE_URL host is `127.0.0.1:55432`, while CI uses `localhost:5432`;
+    - the update-lifecycle registry step;
+    - `native_accepted_preparation`, if it still fails.
+  - `sharp-harbor-18` stalled and was returned to READY by the reconciler.
+  - The D1a reviewer is running. aq-server #26 (F1a) and aq-worker #26 have checks pending.
