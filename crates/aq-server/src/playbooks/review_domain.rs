@@ -15,6 +15,41 @@ pub enum CatalogProfile {
     SettlementEvents4,
     /// D4 host catalog 1.0.0, vendored and fingerprint-pinned (D5), numbered 5 after the main-line event profiles 3 and 4.
     Host5,
+    /// D6: AQ host catalog 2.0.0 (supersedes 1.0.0), vendored and
+    /// fingerprint-pinned for a new namespace/generation. Adds the
+    /// asynchronous judgment.request.v2/check.request.v2 and operation.get.
+    Host6,
+}
+pub const HOST6_VERSION: &str = "2.0.0";
+pub const HOST6_FINGERPRINT: &str =
+    "sha256:e2ce7dc8ff4b37538f8d27f175a4e365ff95cf14508ae7074beea04026b143db";
+pub const HOST6_CAPABILITIES: [&str; 7] = [
+    "context.read",
+    "work.ensure",
+    "work.change",
+    "operation.cancel",
+    "operation.get",
+    "judgment.request.v2",
+    "check.request.v2",
+];
+fn host6_registry() -> Registry {
+    static REGISTRY: std::sync::OnceLock<Registry> = std::sync::OnceLock::new();
+    REGISTRY
+        .get_or_init(|| {
+            let registry: Registry = serde_json::from_str(include_str!(
+                "../../../../vendor/aq-host-catalog-2.0.0/registry.json"
+            ))
+            .expect("vendored AQ host catalog 2.0.0 parses");
+            assert_eq!(
+                aq_playbook_host::model::digest(&(HOST6_VERSION, &registry))
+                    .ok()
+                    .as_deref(),
+                Some(HOST6_FINGERPRINT),
+                "vendored AQ host catalog 2.0.0 fingerprint"
+            );
+            registry
+        })
+        .clone()
 }
 pub const HOST5_VERSION: &str = "1.0.0";
 pub const HOST5_FINGERPRINT: &str =
@@ -52,14 +87,18 @@ impl CatalogProfile {
             Self::GraphEvents3 => 3,
             Self::SettlementEvents4 => 4,
             Self::Host5 => 5,
+            Self::Host6 => 6,
         }
     }
     pub fn has_reviews(self) -> bool {
-        !matches!(self, Self::Mail1 | Self::Host5)
+        !matches!(self, Self::Mail1 | Self::Host5 | Self::Host6)
     }
     pub fn registry(self) -> Registry {
         if self == Self::Host5 {
             return host5_registry();
+        }
+        if self == Self::Host6 {
+            return host6_registry();
         }
         let mut registry = super::domain::registry();
         if matches!(self, Self::GraphEvents3 | Self::SettlementEvents4) {
@@ -84,9 +123,12 @@ impl CatalogProfile {
         if self == Self::Mail1 {
             return scope.validate();
         }
-        if self == Self::Host5 {
-            let allowed: BTreeSet<String> =
-                HOST5_CAPABILITIES.iter().map(|c| c.to_string()).collect();
+        if matches!(self, Self::Host5 | Self::Host6) {
+            let allowed: BTreeSet<String> = if self == Self::Host5 {
+                HOST5_CAPABILITIES.iter().map(|c| c.to_string()).collect()
+            } else {
+                HOST6_CAPABILITIES.iter().map(|c| c.to_string()).collect()
+            };
             if scope.workspace_id.is_nil()
                 || scope.project_id.is_nil()
                 || !scope.recipients.is_empty()
