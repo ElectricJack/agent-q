@@ -151,10 +151,14 @@ name = "aq-central-authority"
 version = "0.1.0"
 dependencies = [
  "aq-session-protocol",
+ "async-trait",
  "schemars",
  "serde",
  "serde_json",
+ "sqlx",
+ "sqlx-postgres",
  "thiserror",
+ "tokio",
  "uuid",
 ]
 
