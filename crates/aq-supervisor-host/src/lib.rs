@@ -107,8 +107,7 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
         Ok(conn)
     }
     async fn current(&self, actor: Uuid) -> Result<Snapshot> {
-        self.owner(None)
-            .inspect(actor)
+        Box::pin(self.owner(None).inspect(actor))
             .await?
             .context("central actor absent")
     }
@@ -152,7 +151,7 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
         host.verify_startup(&startup)?;
         let actor = central.subject.actor_id();
         let _fence = self.fence(actor).await?;
-        if let Some(old) = self.owner(None).inspect(actor).await?
+        if let Some(old) = Box::pin(self.owner(None).inspect(actor)).await?
             && old.run.plan() == &central
         {
             let s = Box::pin(self.reconcile_locked(actor)).await?;
@@ -167,15 +166,14 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
             "host admission boot/deadline"
         );
         let owner = self.owner(Some(host.clone()));
-        let prepared = owner
-            .prepare(
-                central.clone(),
-                Clock {
-                    machine_boot_id: host.machine_boot_id,
-                    boot_ms: host.admitted_boot_ms,
-                },
-            )
-            .await?;
+        let prepared = Box::pin(owner.prepare(
+            central.clone(),
+            Clock {
+                machine_boot_id: host.machine_boot_id,
+                boot_ms: host.admitted_boot_ms,
+            },
+        ))
+        .await?;
         ensure!(
             prepared.run.original_deadline_boot_ms() == host.deadline_boot_ms,
             "original deadline join"
@@ -185,14 +183,13 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
         sqlx::query("INSERT INTO central_host_launches(actor_id,generation,launch_id,root,host_plan,reservation) VALUES($1,$2,$3,$4,$5,$6)")
             .bind(actor).bind(central.generation as i64).bind(id).bind(self.root.to_str().context("host root UTF8")?).bind(journal::bytes(&host)?).bind(&reservation).execute(&self.pool).await?;
         let started = accepted(
-            owner
-                .start(
-                    &central.binding()?,
-                    journal::launch_ref(&central, id, &reservation)?,
-                    ttl_ms,
-                    clock()?,
-                )
-                .await?,
+            Box::pin(owner.start(
+                &central.binding()?,
+                journal::launch_ref(&central, id, &reservation)?,
+                ttl_ms,
+                clock()?,
+            ))
+            .await?,
         )?;
         let permit = bridge::permit(
             &central,
@@ -227,7 +224,7 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
         .map_err(anyhow::Error::from)
         .and_then(|r| r);
         let result = match observation {
-            Ok(observation) => self.running(&started, &observation).await,
+            Ok(observation) => Box::pin(self.running(&started, &observation)).await,
             Err(error) => Err(error),
         };
         let result = match result {
@@ -254,20 +251,19 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
         .await?;
         let pin = journal::append(&self.pool, o.guardian.intent.launch_id, "running", o).await?;
         accepted(
-            self.owner(None)
-                .report(
-                    &s.run.plan().binding()?,
-                    Event::Running {
-                        observation: HostObservationRef {
-                            binding: s.run.plan().binding()?,
-                            launch_id: o.guardian.intent.launch_id,
-                            guardian: g,
-                            observation: pin,
-                        },
+            Box::pin(self.owner(None).report(
+                &s.run.plan().binding()?,
+                Event::Running {
+                    observation: HostObservationRef {
+                        binding: s.run.plan().binding()?,
+                        launch_id: o.guardian.intent.launch_id,
+                        guardian: g,
+                        observation: pin,
                     },
-                    clock()?,
-                )
-                .await?,
+                },
+                clock()?,
+            ))
+            .await?,
         )
     }
     pub async fn inspect(&self, actor: Uuid) -> Result<Snapshot> {
@@ -302,9 +298,11 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
             return Ok(old);
         }
         let tick = accepted(
-            self.owner(None)
-                .report(&old.run.plan().binding()?, Event::Tick, clock()?)
-                .await?,
+            Box::pin(
+                self.owner(None)
+                    .report(&old.run.plan().binding()?, Event::Tick, clock()?),
+            )
+            .await?,
         )?;
         if active(&tick) {
             let record = self.record(&tick).await?;
@@ -342,7 +340,7 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
                 .await?;
                 if let Ok(o) = observed {
                     if tick.run.phase() == Phase::StartCommitted {
-                        return self.running(&tick, &o).await;
+                        return Box::pin(self.running(&tick, &o)).await;
                     }
                     return Ok(tick);
                 }
@@ -355,14 +353,13 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
         let current = Box::pin(self.reconcile_locked(actor)).await?;
         ensure!(active(&current), "central generation inactive");
         let next = accepted(
-            self.owner(None)
-                .renew(
-                    &current.run.plan().binding()?,
-                    prior_sequence,
-                    ttl_ms,
-                    clock()?,
-                )
-                .await?,
+            Box::pin(self.owner(None).renew(
+                &current.run.plan().binding()?,
+                prior_sequence,
+                ttl_ms,
+                clock()?,
+            ))
+            .await?,
         )?;
         let record = self.record(&next).await?;
         let permit = bridge::permit(
@@ -397,15 +394,14 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
             return Ok(s);
         }
         let s = accepted(
-            self.owner(None)
-                .report(
-                    &s.run.plan().binding()?,
-                    Event::Cancel {
-                        reason: CancelReason::Operator,
-                    },
-                    clock()?,
-                )
-                .await?,
+            Box::pin(self.owner(None).report(
+                &s.run.plan().binding()?,
+                Event::Cancel {
+                    reason: CancelReason::Operator,
+                },
+                clock()?,
+            ))
+            .await?,
         )?;
         if s.run.phase() == Phase::CancelledBeforeStart {
             return Ok(s);
@@ -430,39 +426,37 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
                 let guardian = journal::append(&self.pool, r.id, "guardian", &o.guardian).await?;
                 let proof = journal::append(&self.pool, r.id, "stopped", &o).await?;
                 accepted(
-                    self.owner(None)
-                        .report(
-                            &s.run.plan().binding()?,
-                            Event::Stopped {
-                                evidence: StopEvidenceRef {
-                                    host: HostObservationRef {
-                                        binding: s.run.plan().binding()?,
-                                        launch_id: r.id,
-                                        guardian,
-                                        observation: proof.clone(),
-                                    },
-                                    stopped_writers: proof,
+                    Box::pin(self.owner(None).report(
+                        &s.run.plan().binding()?,
+                        Event::Stopped {
+                            evidence: StopEvidenceRef {
+                                host: HostObservationRef {
+                                    binding: s.run.plan().binding()?,
+                                    launch_id: r.id,
+                                    guardian,
+                                    observation: proof.clone(),
                                 },
+                                stopped_writers: proof,
                             },
-                            clock()?,
-                        )
-                        .await?,
+                        },
+                        clock()?,
+                    ))
+                    .await?,
                 )
             }
             Err(_) => {
                 let report=journal::append(&self.pool,r.id,"lost",&serde_json::json!({"launch_id":r.id,"reason":"stopped-writer proof unavailable"})).await?;
                 accepted(
-                    self.owner(None)
-                        .report(
-                            &s.run.plan().binding()?,
-                            Event::HostLost {
-                                binding: s.run.plan().binding()?,
-                                launch_id: r.id,
-                                report,
-                            },
-                            clock()?,
-                        )
-                        .await?,
+                    Box::pin(self.owner(None).report(
+                        &s.run.plan().binding()?,
+                        Event::HostLost {
+                            binding: s.run.plan().binding()?,
+                            launch_id: r.id,
+                            report,
+                        },
+                        clock()?,
+                    ))
+                    .await?,
                 )?;
                 bail!("stop uncertain; successor prohibited; scratch preserved")
             }
