@@ -19,6 +19,17 @@ pub struct ResolveRequest {
     pub lineage: TaskLineage,
     pub project: FrozenProjectBinding,
     pub compositions: Vec<PreparedComposition>,
+    /// Owner-assessed failed-predecessor replacement (B4). Absent for a first
+    /// attempt; legacy history without it stays conservatively unknown.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub replacement: Option<ReplacementBudget>,
+}
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ReplacementBudget {
+    pub attempts_started: u32,
+    pub elapsed_ms: u64,
+    pub evidence: ReplacementEvidence,
 }
 fn artifact(id: &str) -> ArtifactRef {
     ArtifactRef {
@@ -77,7 +88,7 @@ pub async fn resolve_for_project_policy(
 async fn resolve_with_principal(
     state: &AppState,
     subject: principal::Principal,
-    request: ResolveRequest,
+    mut request: ResolveRequest,
 ) -> Result<Decision> {
     if request.operation_id.is_nil()
         || request.lineage.task_id.is_nil()
@@ -136,6 +147,17 @@ async fn resolve_with_principal(
     let observations = relevant(observations, &credentials, node_id);
     let time = now(state)?;
     let count = attempts(state, &request.lineage).await?;
+    let replacement = match request.replacement.take() {
+        Some(r)
+            if r.attempts_started == count.started
+                && r.attempts_started > 0
+                && r.evidence.lineage == request.lineage =>
+        {
+            Some(r)
+        }
+        Some(_) => return Err(bad("replacement budget does not match lineage history")),
+        None => None,
+    };
     let ceiling = &request.project.project.binding.ceilings;
     let input = SelectionInputs {
         project: ProjectSnapshot {
@@ -190,8 +212,14 @@ async fn resolve_with_principal(
             lineage: request.lineage,
             revision: count.budget_revision(),
             attempts_started: count.started,
-            last_attempt_id: None,
-            elapsed_ms: if count.started == 0 { Some(0) } else { None },
+            last_attempt_id: replacement
+                .as_ref()
+                .map(|r| r.evidence.predecessor_attempt_id),
+            elapsed_ms: match &replacement {
+                Some(r) => Some(r.elapsed_ms),
+                None if count.started == 0 => Some(0),
+                None => None,
+            },
             spent_microunits: None,
             currency: None,
             accounting: AccountingCompleteness::Unavailable,
@@ -200,7 +228,7 @@ async fn resolve_with_principal(
             observed_at_ms: time,
             expires_at_ms: time.checked_add(2000).ok_or(AppError::Internal)?,
         },
-        replacement: None,
+        replacement: replacement.map(|r| r.evidence),
         estimates: vec![],
         compositions: request.compositions,
         now_ms: time,

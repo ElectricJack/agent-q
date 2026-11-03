@@ -14,6 +14,7 @@ pub mod material;
 pub mod material_api;
 pub mod no_grant;
 pub mod policies;
+pub mod replacement;
 
 pub mod phase_terminal;
 pub mod registration;
@@ -57,3 +58,16 @@ pub mod phase_refresh_terminal;
 pub(crate) mod initial_authority;
 
 pub mod cancellation;
+
+/// Builds a large owner future in this helper's own frame and moves it to the
+/// heap. Unoptimized builds give every temporary future its own slot in the
+/// caller's poll frame, so awaiting large owners inline made the native offer
+/// and preparation paths use nearly all of a default 2 MiB test-thread stack.
+/// The caller keeps only a pointer.
+pub(crate) fn on_heap<F, Fut>(build: F) -> std::pin::Pin<Box<Fut>>
+where
+    F: FnOnce() -> Fut,
+    Fut: std::future::Future,
+{
+    Box::pin(build())
+}

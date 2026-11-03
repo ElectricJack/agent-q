@@ -332,3 +332,13 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **#37 (`bright-nexus-44`, I0 server findings) cannot merge.** Its tests job aborts with a stack overflow in `phase_results` `correction_race_and_changed_operation_bytes_keep_one_immutable_head`, which passes on main. Reopened the task to fix it properly (no `RUST_MIN_STACK` workaround) and pinned it to Claude. The I0 re-run `calm-stone-85` waits on it again.
   - **B2 PR #35 conflicted again.** Main gained B2's follow-up `swift-willow-91`, which reused test mode 7. Merged main and moved B2's server-restart case to mode 9 (`1f3a13a`); PR #35 is mergeable, with CI pending.
   - Moved `noble-summit-37.4.5` and `noble-summit-37.10` (B7) from Codex to Claude (Codex 93%). B4 has two follow-ups running.
+- **03:35 check.**
+  - **B2 PR #35 failed to compile.** My last merge kept B2's older test, which calls `runtime::require_document`; main's `swift-willow-91` replaced that function with typed attempt extraction. Removed those calls (main's typed test covers batch scoping; `253f4e1`). CI is re-running.
+  - Moved `clear-crest-61.2` (H2) and `steady-cascade-45.3` (G2) from Codex to Claude.
+  - #37 (`bright-nexus-44`) is still being fixed. #36 and #38 have CI pending. B4 follow-ups are running.
+- **03:50 check.**
+  - **Main CI: `observations.rs:501`** `worker_route_requires_node_credentials_and_rejects_wrong_packet_scope` fails on main (403 vs 401) and on PRs #35, #36 and #38. Filed `clear-rapids-48` (standard-medium Claude).
+  - **My doc pushes were cancelling main CI** (W45). From now on, supervision-doc commits use `[skip ci]`.
+  - **`steady-harbor-87.2.4`:** the work is done (PR #38); it is held only on a close-pipeline stop. I will merge #38 once its pending checks match main, then close the task.
+  - **B4 migration collision:** B4 used 0050, the same as main. The supervisor reopened B4 to renumber; its follow-up `.4.2` is held. B4 should take 0052 or higher.
+  - #37 still overflows its stack; its task is working on it. Codex is at 94%.

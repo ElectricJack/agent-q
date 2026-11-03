@@ -107,12 +107,21 @@ pub fn setup_with_inventory(
 ) -> impl std::future::Future<Output = (Case, phase::Proposal, AcceptRequest)> {
     Box::pin(setup_with_inventory_and_config(v2, |_| {}))
 }
+/// Builds a large owner future in this helper's frame and moves it to the heap,
+/// so unoptimized test poll frames keep a pointer instead of the whole future.
+fn on_heap<F, Fut>(build: F) -> std::pin::Pin<Box<Fut>>
+where
+    F: FnOnce() -> Fut,
+    Fut: std::future::Future,
+{
+    Box::pin(build())
+}
 pub async fn setup_with_inventory_and_config(
     v2: bool,
     extra: fn(&mut aq_server::profiled_execution::config::ProfiledConfig),
 ) -> (Case, phase::Proposal, AcceptRequest) {
-    let ready = presence_fixture::setup().await;
-    setup_from_presence(ready, v2, extra).await
+    let ready = on_heap(|| presence_fixture::setup()).await;
+    on_heap(|| setup_from_presence(ready, v2, extra)).await
 }
 /// Actual-source fixtures supply their owner before admission; never rewrite a
 /// frozen offer or binding after the shared fixture has issued it.
@@ -122,13 +131,16 @@ pub async fn setup_from_presence(
     extra: fn(&mut aq_server::profiled_execution::config::ProfiledConfig),
 ) -> (Case, phase::Proposal, AcceptRequest) {
     let mut c = ready.c;
-    configure(&mut c, extra).await;
+    on_heap(|| configure(&mut c, extra)).await;
     if v2 {
-        let receipt = aq_server::profiled_execution::presence::inventory::record(
-            &c.env.env.state,
-            &auth(&c).await,
-            &ready.request,
-        )
+        let node = auth(&c).await;
+        let receipt = on_heap(|| {
+            aq_server::profiled_execution::presence::inventory::record(
+                &c.env.env.state,
+                &node,
+                &ready.request,
+            )
+        })
         .await
         .unwrap();
         receipt.validate_for(&ready.request).unwrap();
@@ -143,15 +155,18 @@ pub async fn setup_from_presence(
     observation["operation_id"] = serde_json::json!(Uuid::new_v4());
     observation["expected_revision"] = serde_json::json!(revision);
     observation["sequence"] = serde_json::json!(2);
-    let (status, body) = common::selection::call(
-        &aq_server::build_admin_router(c.env.env.state.clone()),
-        "/api/intelligence/observations",
-        Some(observation),
-        "owner@localhost",
-    )
+    let admin = aq_server::build_admin_router(c.env.env.state.clone());
+    let (status, body) = on_heap(|| {
+        common::selection::call(
+            &admin,
+            "/api/intelligence/observations",
+            Some(observation),
+            "owner@localhost",
+        )
+    })
     .await;
     assert_eq!(status, 200, "{body}");
-    let (status, body) = native_offer::poll(&c).await;
+    let (status, body) = on_heap(|| native_offer::poll(&c)).await;
     assert_eq!(status, 200, "{body}");
     let ControlReply::Poll(mut page) = decode_reply(&serde_json::to_vec(&body).unwrap()).unwrap()
     else {
@@ -191,7 +206,8 @@ pub async fn setup_from_presence(
         binding: offer.offered.offer.binding.clone(),
         negotiation: negotiation.clone(),
     };
-    let p = owner::propose(&c.env.env.state, &auth(&c).await, &q)
+    let node = auth(&c).await;
+    let p = on_heap(|| owner::propose(&c.env.env.state, &node, &q))
         .await
         .unwrap();
     let mut original = native_offer::acceptance(&c, &offer);
@@ -254,7 +270,8 @@ pub fn prepared_from_presence(
     })
 }
 async fn prepare_from_parts(c: Case, p: phase::Proposal, q: AcceptRequest) -> Prepared {
-    let a = owner::accept(&c.env.env.state, &auth(&c).await, &q, Uuid::new_v4())
+    let node = auth(&c).await;
+    let a = on_heap(|| owner::accept(&c.env.env.state, &node, &q, Uuid::new_v4()))
         .await
         .unwrap()
         .receipt;
@@ -307,12 +324,14 @@ async fn prepare_from_parts(c: Case, p: phase::Proposal, q: AcceptRequest) -> Pr
         binding: q.original.acceptance.binding.clone(),
         lease_id: a.lease.materials[0].lease_id,
     };
-    let response = native_offer::post(
-        &c.env.env.state,
-        &c.env.env.credential,
-        "/v1/worker/profiled/material",
-        serde_json::to_vec(&fetch).unwrap(),
-    )
+    let response = on_heap(|| {
+        native_offer::post(
+            &c.env.env.state,
+            &c.env.env.credential,
+            "/v1/worker/profiled/material",
+            serde_json::to_vec(&fetch).unwrap(),
+        )
+    })
     .await;
     assert_eq!(response.status(), 200);
     let delivery: aq_admission::transport::MaterialDelivery = serde_json::from_slice(
@@ -327,7 +346,9 @@ async fn prepare_from_parts(c: Case, p: phase::Proposal, q: AcceptRequest) -> Pr
             .unwrap(),
     )
     .unwrap();
-    let bytes = to_bytes(response.into_body(), 65536).await.unwrap();
+    let bytes = on_heap(|| to_bytes(response.into_body(), 65536))
+        .await
+        .unwrap();
     assert_eq!(Digest::of(&bytes), a.lease.materials[0].material_digest);
     let record = aq_admission::scoped_presence::PrivateInstallationRecord {
         schema_version: 1,

@@ -186,7 +186,7 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         generation,
     } = input;
     let selected: &ResolvedSelection = decision.outcome.resolved.as_ref().ok_or_else(refused)?;
-    if decision.inputs.budget.attempts_started != 0
+    if (decision.inputs.budget.attempts_started != 0 && decision.inputs.replacement.is_none())
         || decision
             .inputs
             .project

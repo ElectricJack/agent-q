@@ -83,6 +83,32 @@ Progress writes are idempotent by attempt, generation and sequence. Older observ
 
 Renewals use monotonic grant sequences and the shared timing rules. Refuse stale node boots or generations and return structured reasons. The independent admission budget for heartbeats/renewals cannot be consumed by graph queries or uploads. Node offline classification affects new placement and presentation; it does not mark an attempt stopped.
 
+### 3.1 Multi-project fair share
+
+The native offer producer implements the central ordering in the worker
+framework's [placement order](../../../aq-worker/docs/specs/0001-worker-framework.md#82-placement-order)
+(§8.2, steps 1 and 5) across enabled projects. Code:
+`profiled_execution/producer/fairness.rs` and `producer/workflow.rs`.
+
+- **Effective priority.** Configured project priority plus 1 point per second
+  waited since that project's last recorded service.
+- **New projects.** A never-served project counts as having waited exactly the
+  starvation bound. It is not starved, and it does not jump ahead of projects
+  that are already starving.
+- **Starvation bound.** A hard 10 minutes. Any project waiting longer goes ahead
+  of the priority order, oldest first.
+- **Ties.** Broken on the oldest last service, then project ID.
+- **Per-poll limit.** Each poll tries at most 4 projects in that order and stops
+  at the first eligible task.
+- **Charging.** A project's service is recorded before its Graph ready read. A
+  project with no ready work or a failing owner read therefore cannot hold the
+  head of the order and starve the others.
+
+The only durable input is `profiled_project_schedule`, which stores the last
+service time per project. It never moves backwards. Ordering itself is pure
+server code. Fairness applies only between projects; task-level priority within a
+project and per-project budget configuration are separate follow-ups.
+
 ## 4. Agent-facing API and credential provisioning
 
 Publish a separately versioned agent API with schemas and CLI/tool bindings. Agents make direct outbound HTTPS requests to AQ. No inbound node listener or tunnel is required. Reuse typed domain service handlers for CLI, dashboard and playbook commands, with explicit caller-context differences; do not implement authorization independently in each frontend.

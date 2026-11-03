@@ -16,6 +16,7 @@ async fn missing_intelligence_registry_refuses_new_selection_and_offer_fence_exp
         lineage: f.lineage.clone(),
         project: f.frozen.clone(),
         compositions: f.input.compositions.clone(),
+        replacement: None,
     };
     let decision = resolver::resolve_trusted(&f.env.state, f.actor, request())
         .await
@@ -449,6 +450,7 @@ async fn intelligence_decision_is_immutable_and_final_fence_rechecks_scoped_fact
         lineage: lineage.clone(),
         project: frozen.clone(),
         compositions: input.compositions.clone(),
+        replacement: None,
     };
     let decision = resolver::resolve_trusted(&env.state, actor, req)
         .await
@@ -482,6 +484,7 @@ async fn intelligence_decision_is_immutable_and_final_fence_rechecks_scoped_fact
             lineage: lineage.clone(),
             project: frozen.clone(),
             compositions: input.compositions.clone(),
+            replacement: None,
         },
     )
     .await
@@ -619,6 +622,7 @@ async fn project_policy_decisions_have_no_human_actor_and_recheck_installed_poli
         lineage: lineage.clone(),
         project: frozen.clone(),
         compositions: input.compositions.clone(),
+        replacement: None,
     };
     assert!(
         resolver::resolve_for_project_policy(&env.state, request())
