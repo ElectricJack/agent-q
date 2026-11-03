@@ -18,13 +18,14 @@ struct Fixture {
 }
 impl Fixture {
     async fn new(register: bool) -> Self {
-        assert_eq!(
-            crate::STATE_FORMAT_VERSION,
-            37,
-            "use the registered37migration; never hand-apply SQL in owner fixtures"
-        );
         let db = TestDb::create().await;
-        let store = db.store().await;
+        let store = db.store_at_version(37).await;
+        let version: String =
+            sqlx::query_scalar("SELECT value FROM meta WHERE key='state_format_version'")
+                .fetch_one(&store.pool)
+                .await
+                .unwrap();
+        assert_eq!(version, "37", "owner fixtures must remain on registered37");
         let now = Utc.timestamp_millis_opt(1_000_000).unwrap();
         let user = store
             .bootstrap_owner("owner@localhost", "dev", "owner@localhost", now)

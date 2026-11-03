@@ -24,11 +24,46 @@ narrow effective resources. Unknown availability never authorizes missing keys.
 ## Startup configuration
 
 Optional `[intelligence]` in the vault has a positive monotonic `revision`, at
-most 32 `credentials` and 16 `qualified_harnesses`. Each credential entry contains
-an `AuthorizedCredential`, `allowed_node_ids` and optional absolute `secret_file`.
+most 32 `credentials` and 16 `qualified_harnesses`. Each credential entry
+(`CredentialConfig`) contains an `AuthorizedCredential`, optional `kind`, optional
+`allowed_backends`, `allowed_node_ids` and optional absolute `secret_file`.
 Its profile is an exact artifact reference; provider/account/endpoint are logical
 references. `credential.provisionable` must be false in configuration: startup
 loads derive it from enabled state and protected key presence.
+
+`kind` is the closed `api-key` (default when omitted) / `subscription-login`
+enum. It is operator metadata only; neither kind changes runtime, key-presence or
+delivery behavior. `allowed_backends` lists distinct values from the closed
+`docker-local`, `boat` and `cloudflare-containers` set. Omitted, it defaults to
+all three: an unrestricted credential policy, with placement still deciding which
+backends are enabled. Operators can narrow it; an explicit empty list denies every
+backend. Unknown values, duplicates and more than three entries refuse config.
+`allowed_node_ids` remains an independent placement restriction: a credential must
+pass both. The nested `credential.allowed_backends` is not a second operator knob.
+It must keep its unrestricted default in configuration, and `load` copies the
+entry-level list into the loaded `AuthorizedCredential`.
+
+The registry configuration digest covers each entry's `kind` and
+`allowed_backends`, with the credential and its node list. Changing either needs a
+newer config `revision`; registration refuses a same-revision conflict. Existing
+installations adopting this digest format must also advance their revision once.
+
+`CapabilitySnapshot.backend_kind` is an optional trusted node fact, never a
+caller-supplied placement hint. A credential with all three backends allowed
+remains eligible when it is absent. For a narrowed credential, an absent backend
+gives `credential_backend_unknown`, and a known backend outside the list gives
+`credential_backend_not_allowed`. Both are candidate state `PolicyDenied`; only the
+policy's explicit fallback allowlist can advance to the next candidate. Default
+snapshots and credentials omit these values when serialized, preserving the
+historical selection vectors. Central selection has no backend identity, so
+narrowed credentials always fail closed there. Material provisioning and issuance
+independently apply the same check before reading private material. A selector
+result alone cannot bypass issuance policy.
+
+Existing server inventory and issuance adapters intentionally supply an unknown
+backend. Consuming the authenticated B1/C4 backend advertisement is not
+implemented here. Until C4 supplies trusted backend facts at each boundary,
+unrestricted credentials keep working and narrowed credentials fail closed.
 
 Key-presence facts are captured once during config deserialization, with no-follow,
 nonblocking opens, regular-file/owner/mode checks and a 64 KiB cap+1 read. Missing
@@ -147,7 +182,8 @@ composition and credential references.
 
 Pure selector tests and synthetic PostgreSQL/authenticated HTTP tests cover order,
 reasoning mappings, fallback/unknown behavior, scoped cooldown, key presence,
-replay, budget refusal and final admission fences. Synthetic credential bytes,
-native qualification artifacts and classified failures are test data. No paid
-model calls, actual provider quota/authentication behavior, real native reasoning
-mapping, cost-enforcement adapter or actual profiled launch is qualified here.
+credential backend policy, replay, budget refusal and final admission fences.
+Synthetic credential bytes, native qualification artifacts and classified failures
+are test data. No paid model calls, actual provider quota/authentication behavior,
+real native reasoning mapping, cost-enforcement adapter, container backend
+execution or actual profiled launch is qualified here.

@@ -43,6 +43,76 @@ def test_prepare_replay_preserves_private_credentials_and_config(tmp_path):
     assert command(tmp_path, "prepare").stdout == first.stdout
 
 
+@pytest.mark.parametrize("name", ["playbook_database_password", "playbook_engine_keys", "playbook_bridge_key"])
+def test_settlement_credentials_are_private_retained_and_refuse_symlinks(tmp_path, name):
+    first = command(tmp_path, "prepare")
+    assert first.returncode == 0, first.stderr
+    path = tmp_path / "secrets" / name
+    original = path.read_bytes()
+    assert path.stat().st_mode & 0o777 == 0o600
+    assert command(tmp_path, "prepare").returncode == 0
+    assert path.read_bytes() == original
+    path.unlink()
+    other = tmp_path / "retained-secret"
+    other.write_bytes(original)
+    path.symlink_to(other)
+    refused = command(tmp_path, "prepare")
+    assert refused.returncode != 0 and "unsafe retained" in refused.stderr
+    assert other.read_bytes() == original
+
+
+def test_settlement_requires_seed_before_contacting_services(tmp_path):
+    result = command(tmp_path, "settlement")
+    assert result.returncode != 0 and "completed development seed" in result.stderr
+
+
+def test_settlement_restart_preserves_grant_deadline_keys_and_namespace(tmp_path, monkeypatch):
+    import tomllib
+    dev = load_dev()
+    monkeypatch.setenv("AQ_DEV_STATE_DIR", str(tmp_path / "state"))
+    monkeypatch.setenv("AQ_SECRETS_DIR", str(tmp_path / "secrets"))
+    monkeypatch.delenv("AQ_VAULT_DIR", raising=False)
+    dev.prepare()
+    state, secret, vault = dev.paths()
+    (state / "seed.json").write_text(json.dumps(dict(project_id=dev.PROJECT)))
+    owner = "e0000000-0000-4000-8000-000000000099"
+    calls = []
+
+    def compose(env, *args):
+        calls.append(args)
+        return "999" if args[0] == "exec" else ""
+
+    def http(url):
+        if url.endswith("/api/users"):
+            return [dict(email="owner@localhost", role="owner", bound=True)]
+        if url.endswith("/api/v1/bootstrap"):
+            return dict(data=dict(principal=dict(id=owner)))
+        if "/api/projects/" in url:
+            return dict(binding=dict(enabled=True, graph_workspace_id=dev.WORKSPACE))
+        return dict(namespace=dict(namespace_id=json.loads((state / "settlement.json").read_text())["namespace_id"]))
+
+    monkeypatch.setattr(dev, "compose", compose)
+    monkeypatch.setattr(dev, "http", http)
+    first = dev.enable_settlement()
+    before = {p: p.read_bytes() for p in (vault / "playbooks.toml", secret / "playbook_bridge_key",
+        secret / "playbook_engine_keys", state / "settlement.json")}
+    monkeypatch.setattr(dev.time, "time", lambda: 1)
+    assert dev.enable_settlement() == first
+    assert all(p.read_bytes() == content for p, content in before.items())
+    config = tomllib.loads((vault / "playbooks.toml").read_text())["playbooks"]
+    assert config["profile"] == "human_review_v2" and config["socket_owner_uid"] == 999
+    assert config["namespace"]["owner_user_id"] == owner
+    assert config["deployments"][0]["scope"]["capabilities"] == ["operation.get"]
+    assert calls.index(("stop", "server")) < calls.index(("run", "--rm", "--no-deps", "dev-state-init"))
+    pins = json.loads((state / "settlement.json").read_text())
+    pins["owner_user_id"] = dev.TASK
+    (state / "settlement.json").write_text(json.dumps(pins))
+    calls.clear()
+    with pytest.raises(ValueError, match="owner/socket differs"):
+        dev.enable_settlement()
+    assert all(call[0] == "exec" for call in calls), "refusal restarted the server"
+
+
 def test_seed_unset_or_partial_designation_fails_before_contacting_services(tmp_path):
     for extra in ({}, {"DEV_SCRATCH_REPO_URL": "https://github.com/example/scratch.git"}):
         result = command(tmp_path, "seed", extra=extra)

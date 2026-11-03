@@ -31,7 +31,7 @@ These were decided by the product owner on 2026-11-02:
 3. **Worker nodes are long-lived controllers that run no agents themselves.** A worker node enrolls once and holds its node identity, capacity accounting, caches and credentials. It creates and destroys sandboxes for the attempts it accepts.
 4. **Target topology:**
    - One Bluehost VPS runs the server stack and a cloud worker container.
-   - The cloud worker first runs `docker-local` sandboxes on the VPS itself (decided 2026-11-02 after review), then adds boat.dev sandboxes.
+   - The cloud worker runs `docker-local` sandboxes on the VPS itself (decided 2026-11-02 after review). boat.dev sandboxes come later through a second enrolled VPS worker node with the `boat` backend, because each worker node has exactly one backend (section 2).
    - One local worker on the owner's desktop, itself running as a container on WSL2, runs the same templates locally for extra compute.
 5. **Cloud placement must support both boat.dev and Cloudflare.** boat.dev is the first remote backend. Cloudflare Containers is a second remote backend behind the same interface.
 6. **Provider authentication is a mix of API keys and subscription logins** (for example, a ChatGPT login for Codex CLI or a Claude subscription for Claude Code). **Subscription logins are the primary path, and no API key is required** (product owner, 2026-11-02). API-key profiles remain supported as an option. **Both are allowed on every backend.** AQ is a personal deployment: running the owner's own agent with the owner's login on cloud compute is ordinary use, because the cloud only supplements limited desktop compute (product owner, 2026-11-02). The per-credential backend list (section 7) remains available as an operator restriction.
@@ -68,7 +68,10 @@ flowchart LR
         Server --> PG[(PostgreSQL)]
         Server --> Graph[aq-graph]
         Server --> Git[aq-git, supervised]
-        CW[Cloud worker node, backend: boat]
+        CW[Cloud worker node, backend: docker-local]
+        VSD[VPS sandbox Docker daemon]
+        V1[Sandbox container: runner plus agent]
+        BW[boat worker node, backend: boat, later phase]
         Updater[Host updater]
     end
     subgraph Boat[boat.dev]
@@ -83,11 +86,14 @@ flowchart LR
     Browser[Owner browser and CLI] --> Access --> cloudflared
     CW -->|outbound HTTPS via Access| Access
     LW -->|outbound HTTPS via Access| Access
+    BW -->|outbound HTTPS via Access| Access
+    V1 -->|outbound HTTPS via Access| Access
     B1 -->|outbound HTTPS via Access| Access
     L1 -->|outbound HTTPS via Access| Access
-    CW -->|boat API| Boat
+    CW --> VSD --> V1
+    BW -->|boat API| Boat
     LW --> SD --> L1
-    CW -.->|later| CFC
+    CFW[Worker node, backend: cloudflare-containers, later phase] -.->|gateway API| CFC
 ```
 
 ### 3.1 What runs where
@@ -96,13 +102,14 @@ flowchart LR
 | --- | --- | --- |
 | VPS, server stack (Compose) | `aq-server` (including the dashboard bundle built into the image), PostgreSQL, `aq-graph`, a supervised `aq-git serve`, `cloudflared`, and the existing host updater as a host service | Agent processes; Docker socket access for the application container (infrastructure spec, "Application container does not receive the Docker socket") |
 | VPS, supervisor host container | Central supervisor CLI sessions (AQ-17): the shared tmux host and harness adapters, running under a central session identity and an expiring execution permit (architecture 0003 §4). Supervisor provider credentials come from the central vault. | Worker-placed attempts; Docker access. This is not a worker node, and supervisor credentials never reach worker nodes or sandboxes (W1). |
-| VPS, cloud worker container | aq-worker with the `docker-local` backend and its own dedicated rootless sandbox daemon (first deployment), then the `boat` backend. It holds its journal volume, the boat API key once boat is added, and a credential-lease cache. Agent sandboxes on the VPS have per-service CPU and memory limits, so they cannot starve the server stack. | Agent processes outside sandboxes; the host's main Docker socket |
+| VPS, cloud worker container (`aq-worker-cloud`) | aq-worker with the `docker-local` backend and its own dedicated rootless sandbox daemon. It holds its journal volume and a credential-lease cache. Agent sandboxes on the VPS have per-service CPU and memory limits, so they cannot starve the server stack. | Agent processes outside sandboxes; the host's main Docker socket; the boat API key |
+| VPS, boat worker container (`aq-worker-boat`, later phase) | A second enrolled aq-worker node with the `boat` backend. It holds its own node identity, service tokens, journal volume, the boat API key and a credential-lease cache. Its sandboxes run on boat.dev, not on the VPS. | Agent processes; any Docker socket |
 | VPS, agent sandboxes | One container per attempt, created by the cloud worker on its sandbox daemon | Node, backend, Git remote or supervisor credentials |
 | boat.dev | One sandbox VM per attempt, forked from the template's saved snapshot | Node credentials, any other attempt |
 | Desktop | aq-worker running as a container on WSL2 with the `docker-local` backend, plus a dedicated rootless sandbox daemon (section 5.1). The WSL VM is kept alive while the worker is enabled. | Agents directly on the desktop filesystem |
 | Cloudflare (later) | A small Cloudflare Worker and Durable Object that creates Containers on request from an enrolled worker node | AQ server functions |
 
-The cloud worker runs on the same VPS as the server for cost and simplicity. If the VPS goes down, the server and the cloud worker go down together, and that is accepted. The cloud worker still connects to the server through the public machine hostname and Cloudflare Access, exactly as a remote worker would, not over the internal Compose network. This keeps one authentication and transport path for all workers and lets the cloud worker move to another host without changing configuration semantics.
+The cloud worker (and later the boat worker) runs on the same VPS as the server for cost and simplicity. If the VPS goes down, the server and the VPS worker nodes go down together, and that is accepted. Each VPS worker node still connects to the server through the public machine hostname and Cloudflare Access, exactly as a remote worker would, not over the internal Compose network. This keeps one authentication and transport path for all workers and lets a VPS worker node move to another host without changing configuration semantics.
 
 ### 3.2 Scheduling across workers
 
@@ -188,20 +195,26 @@ All backends implement one Rust trait in aq-worker:
 
 Backend capabilities are advertised to placement and are part of eligibility. Examples are `vm-isolation`, `nested-docker`, `suspend-snapshot` and `persistent-disk-during-attempt`.
 
+**Proposed C1 contract extension:** add a template-presence operation, `ensure_template`, to `PlacementBackend` so admission can preflight an exact allowlisted digest through the common interface. It must confirm that the backend's materialization is present, or return a typed refusal or uncertainty; a failed check is not template availability. It does not create a sandbox or grant execution authority. C1 currently has no such trait operation, and C2's `pull_template` is backend-specific. The C1/admission owners should settle the signature and conformance coverage before adoption; this is a recommendation, not a claim that the method is implemented.
+
 **Terminal and observation transport per sandbox:** runners talk to the server directly, so the terminal and observation long polls are held per *sandbox*, not per node. This amends architecture 0003 §5.3 ("at most one per node") and worker spec 0003 §5. The existing per-node aggregate limits still apply: subscriptions, viewers and bytes are counted server-side across all of a node's sandboxes. No poll is held for a sandbox with no subscriptions or pending work.
 
 ### 5.1 `docker-local` (desktop and any self-managed host)
 
-- The worker node runs as a container with access to a **dedicated sandbox Docker daemon**, not the host's main Docker daemon. Rootless Docker or Podman is preferred.
-- That daemon is used only for sandboxes. It holds only template images and sandbox containers.
+- The worker node runs as a container with access to a **dedicated rootless sandbox daemon** through its Docker-compatible API on a dedicated per-user Unix socket. The selected implementation is rootless Podman ≥ 5; rootless `dockerd` is an equivalent alternative. The backend requires `/info` `SecurityOptions` to include `name=rootless`, and refuses a rootful daemon. The socket is never the host's main Docker socket.
+- That daemon is used only for sandboxes. It holds only template images and sandbox containers, with its own storage and configuration separate from the host's main daemon.
 - This deliberately revises the worker spec's "no host Docker socket" baseline for this node class. The worker spec already requires that projects needing extra capabilities be routed to an explicitly configured node class.
 - The worker node's launch policy is fixed. Sandbox containers:
   - run only allowlisted template digests;
   - are never privileged;
+  - drop all capabilities, set no-new-privileges, and retain the seccomp policy;
   - have no host bind mounts except the worker-managed per-attempt volume and declared mount aliases (worker spec §5);
   - have CPU, memory and PID limits taken from the reservation;
   - get a default bridge network with outbound access only.
-- Isolation claim: separate attempts cannot see each other's files, processes or credentials. **Local containers share the host kernel and are not claimed to be hostile-code isolation** (consistent with W6).
+- **Resource-limit prerequisite:** the host must use cgroup v2 and delegate the `cpu`, `memory` and `pids` controllers to the daemon's user. A host without that delegation is not admissible: Podman can otherwise silently drop the reservation limits. Qualification must read back effective limits (`cpu.max`, `memory.max`, `pids.max`) inside a sandbox; setting create-request fields alone is not proof of enforcement.
+- **Private material:** upload an archive through the control API before the container starts (`PUT /containers/{id}/archive?path=/`). Its directory has mode `0700`, its file has mode `0600`, and both are owned by the intended runner identity. The material path is outside the work volume and every mount alias; aliases must not overlap or expose it. Material never goes in environment variables, command-line arguments or labels. These permissions provide runner/agent separation only with the distinct UID mappings required by SBX7.
+- **WSL2 UID mapping:** install the `uidmap` package providing setuid `newuidmap` and `newgidmap`, and configure the daemon user's subordinate ranges in `/etc/subuid` and `/etc/subgid`. The C2 host lacked those helpers. `AQ_SANDBOX_SINGLE_UID=1` allowed diagnostic qualification with a single mapped host UID, but loses in-sandbox runner/agent UID separation. Mode `0600` does not restore that boundary. This fallback does not satisfy SBX7 or qualify agent execution requiring that separation; install the helpers and restart without the fallback before qualifying it. It is not a silent admission downgrade.
+- Isolation claim: separate attempts cannot see each other's files, processes or credentials. **Local containers share the host kernel and are not claimed to be hostile-code isolation** (consistent with W6). The single-UID diagnostic run does not prove the SBX7 in-sandbox boundary.
 - Nested Docker for agents is not provided by default. A template or node can advertise `nested-docker` only through an explicitly configured runtime, for example Sysbox. Projects that require it route only to such nodes.
 
 ### 5.2 `boat` (cloud, first remote backend)
@@ -334,7 +347,7 @@ Each harness adapter documents how it maps the vendor's headless/container guida
 
 | Mode | Meaning | Allowed when |
 | --- | --- | --- |
-| `native` (preferred) | The harness's own sandbox is active inside the sandbox. This gives defence in depth: the agent's commands are confined to the workspace even inside the container. | The template contains the harness's sandbox dependencies and the backend permits them. For Codex on Linux, that means bubblewrap plus unprivileged user-namespace creation (see below). |
+| `native` (preferred) | The harness's own sandbox is active inside the sandbox. This gives defence in depth: the agent's commands are confined to the workspace even inside the container. | The template contains the harness's sandbox dependencies and the backend permits them. For Codex on Linux, that means bubblewrap plus unprivileged user-namespace creation and UID mapping (see below). |
 | `container` | The harness's own sandbox is disabled and the sandbox itself is the boundary. Codex calls this `danger-full-access`, which OpenAI says to use "only in a controlled environment". | Only when the execution profile explicitly allows it, the backend provides the sandbox boundary (SBX10/SBX11), the runner/agent user separation is in place (SBX7), and the attempt holds only its own credentials. Never selected as a silent fallback when `native` fails (SBX13). |
 
 **Codex CLI,** from OpenAI's [authentication](https://developers.openai.com/codex/auth), [non-interactive mode](https://learn.chatgpt.com/docs/non-interactive-mode.md) and [sandboxing](https://learn.chatgpt.com/docs/sandboxing.md) documentation:
@@ -351,7 +364,8 @@ Each harness adapter documents how it maps the vendor's headless/container guida
 - **Native sandbox on Linux.** Codex uses `bwrap` (bubblewrap) from `PATH`. Without it, Codex falls back to a bundled helper that needs unprivileged user-namespace creation.
   - Templates install bubblewrap.
   - On `boat`, a full VM, the `native` mode is expected to work and must be qualified.
-  - On `docker-local` and `cloudflare-containers`, Docker's default seccomp/AppArmor profiles block the user namespaces bubblewrap needs. **`docker-local` therefore defaults to `container` mode** (decided 2026-11-02). Its execution profiles permit `container` mode, and the sandbox is the boundary. `native` mode on `docker-local` may be enabled later only if a qualification shows that the sandbox daemon can safely permit unprivileged user namespaces.
+  - On `docker-local`, C2's WSL2 probe under the fixed launch policy recorded `CapEff=0`, `NoNewPrivs=1` and `Seccomp=2`. `unshare -U true` succeeded, but `unshare -Ur id` failed when writing the UID map with `EPERM` ("Operation not permitted"). User-namespace creation alone is therefore insufficient for Codex's bubblewrap sandbox. **Codex `native` is unavailable in the qualified docker-local configuration; confinement stays `container`.** Profiles must explicitly permit `container`; a profile requiring `native` is refused. The probe does not establish which host or runtime control denied mapping. Reconsidering `native` requires a new qualification under the fixed policy, not an automatic fallback or relaxed launch policy. Shared-kernel containers are not hostile-code isolation. See section 14 for the evidence and the single-UID qualification limit.
+  - On `cloudflare-containers`, user-namespace creation and UID mapping remain to be qualified independently. The docker-local probe establishes no Cloudflare result.
 - **Scripted invocation.** The adapter may run `codex exec` inside the attempt's tmux session, with these options:
   - `--json` as the structured event source for observation (architecture 0004 S2);
   - `--output-schema` for the result contract;
@@ -373,7 +387,7 @@ A harness whose subscription credential cannot be stored as a file, or whose API
 
 The VPS follows the infrastructure spec, with these additions:
 
-- **Compose services:** `postgres`, `aq-server` (dashboard bundle built into the image), `aq-graph` (pinned image digest), `aq-git` (pinned, supervised, restarted on failure, readiness-checked by aq-server), `cloudflared`, and `aq-worker-cloud` (backend `boat`).
+- **Compose services:** `postgres`, `aq-server` (dashboard bundle built into the image), `aq-graph` (pinned image digest), `aq-git` (pinned, supervised, restarted on failure, readiness-checked by aq-server), `cloudflared`, and `aq-worker-cloud` (backend `docker-local`, with its own rootless sandbox daemon and per-service resource limits). When boat is added, a second worker service, `aq-worker-boat` (backend `boat`), is enrolled as its own node; `aq-worker-cloud` stays on `docker-local`.
 - **Hostnames:** the existing human hostname, behind Cloudflare Access with owner login, and machine hostname, behind Access service tokens. All workers and sandbox runners use the machine hostname. Each worker node has two service tokens, one for the node and one for its runners (section 7).
 - **Supervisor host:** a supervisor host container (section 3.1) runs supervisor CLI sessions. Its memory is part of the sizing below.
 - **VPS sizing:** the infrastructure spec's starting size (2 vCPU / 4 GB) was chosen for the foundation server alone. The VPS now also hosts the supervisor host and the cloud worker's agent sandboxes. Size it from measured memory for the stack plus the cloud worker's sandbox ceiling, roughly 8 vCPU / 16 GB for two concurrent Rust-building sandboxes, before purchase. Check Bluehost's sustained-CPU terms.
@@ -393,7 +407,7 @@ The VPS follows the infrastructure spec, with these additions:
 | SBX7 | Node and backend credentials never enter a sandbox; runner and agent are separate OS users; provider API keys are reached through a loopback proxy. |
 | SBX8 | Subscription login material is leased per attempt, written back if refreshed, wiped at teardown, and limited by `max_concurrent_leases`. It is allowed on every enabled backend unless the operator narrows that credential's backend list. |
 | SBX9 | Templates are pipeline-built, digest-pinned, credential-free and allowlisted; each backend materialization records provenance back to the image digest. |
-| SBX10 | `docker-local` uses a dedicated sandbox daemon with a fixed, non-privileged launch policy and resource limits; it does not claim hostile-code isolation. |
+| SBX10 | `docker-local` uses a dedicated per-user rootless Podman ≥ 5 or rootless `dockerd` daemon through its Docker-compatible API; `/info` must report `name=rootless`. Its fixed, non-privileged launch policy enforces reservation CPU, memory and PID limits through cgroup v2 user delegation; hosts lacking `cpu`, `memory` or `pids` delegation are not admissible. Private material is archived before start into a `0700` directory and `0600` file outside the work volume and mount aliases. On WSL2, `uidmap` and subordinate UID/GID ranges are prerequisites for SBX7 separation; `AQ_SANDBOX_SINGLE_UID=1` is a diagnostic fallback that loses that separation and does not meet SBX7. Shared-kernel containers do not claim hostile-code isolation. |
 | SBX11 | `boat` creates sandboxes by forking a template snapshot, sets auto-stop to the grant's hard deadline, supports snapshot suspend for the same attempt, and confirms deletion. |
 | SBX12 | `cloudflare-containers` operates through an AQ-owned gateway Worker, completes handoff before ephemeral teardown, and passes the same conformance suite. |
 | SBX13 | Backend capabilities (isolation level, nested Docker, suspend, limits) are advertised and used in eligibility; unsupported requirements refuse, never degrade silently. |
@@ -404,7 +418,7 @@ The VPS follows the infrastructure spec, with these additions:
 | SBX18 | Templates vary by toolchain, not harness. Each template is a toolchain image (normally `FROM aq-sandbox-os`) plus the `aq-sandbox-runtime` bundle as its final layer, carrying all qualified harness CLIs at pinned versions. Templates advertise those versions, and selection requires a match. |
 | SBX19 | Each attempt uses a private, file-based harness credential directory and a declared confinement mode (`native` or `container`); `container` mode requires explicit profile permission and backend isolation, and is never a silent fallback. |
 | DEP1 | The VPS runs the full server stack (server with built-in dashboard, PostgreSQL, aq-graph, supervised aq-git, cloudflared) from pinned images through Compose. |
-| DEP2 | The cloud worker runs on the VPS as a separate enrolled worker using the public machine hostname through Access, first with `docker-local` sandboxes on the VPS, then with `boat`. |
+| DEP2 | The cloud worker runs on the VPS as a separate enrolled worker using the public machine hostname through Access, with `docker-local` sandboxes on the VPS. `boat` is added later as a second enrolled VPS worker node (`aq-worker-boat`) under the same rules; each node keeps exactly one backend. |
 | DEP3 | A local desktop worker runs as a container on WSL2 with a dedicated rootless sandbox daemon, survives reboot and reconciles on restart. |
 | DEP5 | Central supervisor sessions run in a supervisor host container on the VPS under central session identity, separate from worker nodes. |
 | DEP4 | Releases include the worker image, sandbox base template and runner versions as manifest-pinned artifacts (product release manifest, ecosystem §5). |
@@ -443,13 +457,17 @@ The existing guarantees on grants, stop proof, retention, tmux, terminals and ou
 ## 13. Left to the implementer
 
 - The Rust shape of the backend trait, the permit wire format and the gateway API, within the requirements above.
-- The choice between rootless Docker and Podman for the sandbox daemon on WSL2.
+- The sandbox daemon choice is resolved by C2: rootless Podman ≥ 5 via its Docker-compatible API on a dedicated per-user socket; rootless `dockerd` is an equivalent alternative. The backend checks `/info` `SecurityOptions` for `name=rootless`. Socket layout and service installation must preserve the dedicated scope and the cgroup/UID-mapping prerequisites in section 5.1.
 - Template build tooling.
 - Exact grace periods, sweep intervals and deadline margins. They must be bounded and configurable.
 
 ## 14. To verify during implementation
 
-These are platform facts this design depends on but did not test:
+The C2 docker-local qualification on 2026-11-02 used rootless Podman 5.8.8 (Docker-compatible API 1.44) on WSL2 kernel `6.18.33.2-microsoft-standard-WSL2`. Its confinement probe is recorded in `aq-worker` task `calm-delta-18.2`, `docs/implementation/C2-evidence/confinement-probe.log`; the findings and setup are in `docs/implementation/C2.md`. Under `CapEff=0`, `NoNewPrivs=1`, `Seccomp=2`, `unshare -U true` returned 0, while `unshare -Ur id` failed writing the UID map with `EPERM`. This configuration does not support Codex `native`; `container` remains the explicit confinement mode. The run used `AQ_SANDBOX_SINGLE_UID=1` because setuid UID-mapping helpers were missing, so it did not qualify SBX7 runner/agent separation. Install `uidmap` and requalify with distinct mappings; any future native-mode claim requires a fresh probe under the fixed policy. Do not infer results for other hosts or backends from this run.
+
+Evidence is pinned to aq-worker commit `267e9bdf094a93fcf77752ca53e6a551fa00e6a9`: [C2 findings and setup](https://github.com/ElectricJack/aq-worker/blob/267e9bdf094a93fcf77752ca53e6a551fa00e6a9/docs/implementation/C2.md) and [confinement probe](https://github.com/ElectricJack/aq-worker/blob/267e9bdf094a93fcf77752ca53e6a551fa00e6a9/docs/implementation/C2-evidence/confinement-probe.log). The [design patch handoff](https://github.com/ElectricJack/aq-worker/blob/20791e356df9f5d5b45031ca14304672b071d500/docs/implementation/C2-0005-patch.md) records their SHA-256 hashes and the verification limits. This documentation update does not rerun or extend that qualification.
+
+These platform facts remain to be verified:
 
 - **boat:**
   - API details for create, fork, delete and auto-stop.
@@ -463,7 +481,7 @@ These are platform facts this design depends on but did not test:
   - Registry requirements.
   - Whether nested Docker is possible.
 - **Provider terms** for running each subscription login in remote sandboxes.
-- **Unprivileged user namespaces** (bubblewrap) under the sandbox Docker daemon on WSL2, and in Cloudflare Containers.
+- **Confinement follow-up:** qualify runner/agent separation on WSL2 after installing `uidmap` and disabling the single-UID fallback. Codex `native` remains unavailable for the C2 docker-local configuration; any proposed change needs both user-namespace creation and UID-mapping evidence under the fixed policy. Qualify bubblewrap independently in Cloudflare Containers.
 - **`codex-universal`:** image size, license and suitability as a universal toolchain base.
 - **VPS memory** for the full stack.
 
@@ -487,7 +505,7 @@ These calls were made by the designer while resolving a builder review on 2026-1
 
 Decisions after the independent review and owner answers (2026-11-02):
 
-12. **Cloud worker rollout:** the VPS cloud worker runs `docker-local` sandboxes first. boat follows, and Cloudflare Containers is built after the core product (owner). The desktop worker itself runs as a container on WSL2 (owner).
+12. **Cloud worker rollout:** the VPS cloud worker runs `docker-local` sandboxes first. boat follows as a second enrolled VPS worker node, `aq-worker-boat`, because each worker node has exactly one backend; `aq-worker-cloud` stays on `docker-local` (program plan revision log, 2026-11-02). Cloudflare Containers is built after the core product (owner). The desktop worker itself runs as a container on WSL2 (owner).
 13. **Subscription logins are allowed on every backend** (owner, personal deployment). The design states plainly that the agent can read them.
-14. **`docker-local` defaults to `container` confinement,** because Docker blocks the user namespaces Codex's bubblewrap sandbox needs.
+14. **`docker-local` stays at `container` confinement.** C2 showed that the fixed policy permits user-namespace creation but refuses the UID-map write Codex's bubblewrap sandbox needs (sections 8.3 and 14). Codex `native` is unavailable in that configuration; shared-kernel containers are not hostile-code isolation.
 15. **boat warm-start hibernation is deferred.** Hibernation uses checkpoint-to-retention only (owner deferral).
