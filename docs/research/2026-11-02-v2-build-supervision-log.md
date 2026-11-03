@@ -180,3 +180,16 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - `native_accepted_preparation`, if it still fails.
   - `sharp-harbor-18` stalled and was returned to READY by the reconciler.
   - The D1a reviewer is running. aq-server #26 (F1a) and aq-worker #26 have checks pending.
+- **23:10 check.**
+  - **D1a review** (`rev-steady-dune`): the reviewer found and reproduced a real blocker. A publish error that is not explicitly flagged uncertain releases the destination hold, so a new operation can re-publish to the same target, which breaks at-most-once.
+    - Requested changes: fold in that finding plus a one-line doc fix; four nits become a follow-up. Revision task `crisp-meadow-36.15` is at standard-high.
+  - **F1a:** its only gate is review `rev-nimble-horizon`, which had no reviewer. Dispatched `wise-summit-84`, pinned to Claude standard-high.
+  - **B2:** the child merge conflict with main (both added migration 45) made B2 unstartable. I merged main into `aq/noble-summit-37.2` and renumbered B2's migration to 0046 and the state format to 46 (`787ef68`). Released the hold and reopened B2 with verification instructions (W41).
+  - **`sharp-harbor-18`:** answered the three owner decisions the supervisor had forwarded (operator under overnight delegation, owner may override). Choices:
+    - (a) a separate stack generator in aq-worker on a fresh Compose project;
+    - (b) enroll a fresh node;
+    - (c) the 3 measurements in the I0 image with a clean CODEX_HOME.
+    Released the hold and reopened it. My monitor had missed this message (W42); its filter is widened.
+  - **Filed C7's cross-repo follow-up** as `sound-vault-88` (E1d, the aq-worker-boat Compose service). It waits on E1c and C7; MS3 waits on it.
+  - **Merged:** aq-worker #26 (`e833abea`), aq-dashboard #7 (`079b9ee1`), aq-graph #3 (`11d779d6`), aq-git #5 (`07d72677`). aq-server #27 waits for its tests job.
+  - Started: C7, E6a and B6a2.
