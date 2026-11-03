@@ -158,3 +158,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - Kept deep-high for B2, D1a and D10 (in-flight checkpoints), J4 and MS4.
     - Owner: "easier well-defined tasks can be standard medium." Moved I2, I3 and F4 to standard-medium. A4 was running and stays where it is (W40).
   - The owner asked for a demo of the latest build in the morning. A one-shot prep job is scheduled for 06:17.
+- **22:25 check.**
+  - **F1a (`steady-harbor-87.1`) reopened.** It had closed blocked on the upstream start.request race. That fix (`bold-stone-39`, aq-session-host 0.1.7) merged last check as `4992a16d`. Told F1a to pin it and re-run only the affected tests.
+  - **`agile-torrent-31`** (spec-ingest for B1's r6 approval) found nothing to create. Its empty proposal was refused because "no_op settlement requires an approved design", and then it was paused. `aq task close --no-change` failed with "could not stop the writer". It is harmless and nothing depends on it; left paused.
+  - aq-server PR #24 (owner clock) has checks still running; its update-lifecycle job failed. I will decide next check. aq-worker PR #23 (`bright-nexus-60`) has conflicts; its worker is in backoff.
+  - `wise-journey-87` (dashboard CI) is running; `sharp-forge-44` is waiting on aq-worker's cap. Disk is at 54%.
