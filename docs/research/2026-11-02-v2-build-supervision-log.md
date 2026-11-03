@@ -327,3 +327,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **D10 completed.** D3 started.
   - **Four aq-server PRs are waiting for CI,** to be merged next check if failures match main: #37 (`bright-nexus-44`, the I0 server findings, which unblocks the I0 re-run), #35 (B2), #36 (smoke against the 0.5.1 worker) and #33 (cloud worker image).
   - Usage: Codex 93%, Claude 57%.
+- **03:20 check.**
+  - Merged aq-server #33 (`smart-falcon-16.10`, docker-local cloud worker image; `c4dce2a6`). Its only failure, `observations.rs:501`, also fails on main.
+  - **#37 (`bright-nexus-44`, I0 server findings) cannot merge.** Its tests job aborts with a stack overflow in `phase_results` `correction_race_and_changed_operation_bytes_keep_one_immutable_head`, which passes on main. Reopened the task to fix it properly (no `RUST_MIN_STACK` workaround) and pinned it to Claude. The I0 re-run `calm-stone-85` waits on it again.
+  - **B2 PR #35 conflicted again.** Main gained B2's follow-up `swift-willow-91`, which reused test mode 7. Merged main and moved B2's server-restart case to mode 9 (`1f3a13a`); PR #35 is mergeable, with CI pending.
+  - Moved `noble-summit-37.4.5` and `noble-summit-37.10` (B7) from Codex to Claude (Codex 93%). B4 has two follow-ups running.
