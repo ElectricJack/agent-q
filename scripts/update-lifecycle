@@ -161,8 +161,7 @@ poll() {
 # ---------------------------------------------------------------- images
 
 # The release labels, from the same constants release.yml reads.
-STATE_FORMAT=$(sed -n 's/^pub const STATE_FORMAT_VERSION: u32 = \([0-9][0-9]*\);$/\1/p' \
-  "$REPO/crates/aq-server/src/lib.rs")
+STATE_FORMAT=$(python3 "$REPO/scripts/migration_catalog.py")
 PROTOCOL_SOURCE=$(python3 -c 'import sys,tomllib; print(tomllib.load(open(sys.argv[1], "rb"))["workspace"]["dependencies"]["aq-protocol"]["path"] + "/src/lib.rs")' "$REPO/Cargo.toml")
 PROTOCOL_MAX=$(sed -n 's/^pub const SUPPORTED_WORKER_PROTOCOLS: (u32, u32) = ([0-9][0-9]*, \([0-9][0-9]*\));$/\1/p' \
   "$REPO/$PROTOCOL_SOURCE")

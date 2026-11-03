@@ -11,6 +11,8 @@ import tempfile
 import time
 import uuid
 
+from migration_catalog import state_format
+
 ROOT = Path(__file__).resolve().parents[1]
 DIGEST = re.compile(r".+@sha256:[0-9a-f]{64}$")
 
@@ -111,7 +113,8 @@ def production_stack(prefix, evidence, *, compose_files=(), setup=None):
                 wait(registry_ready, "disposable registry", 15)
                 created_image = address + "/aq-server:" + project
                 print("Building production smoke image", flush=True)
-                run("docker", "build", "--target", "server", "-t", created_image, ".")
+                run("docker", "build", "--target", "server", "--build-arg", "AQ_STATE_FORMAT=" + str(state_format(ROOT)),
+                    "-t", created_image, ".")
                 # The local registry is anonymous. Isolate its client config so
                 # Desktop's host credential helper is never invoked for it.
                 client_config = directory / "docker-local"

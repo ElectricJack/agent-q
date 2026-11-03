@@ -49,17 +49,13 @@ use serde_json::{Value, json};
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-/// The database state format: always the newest migration's number, because
-/// every migration is a state-format change (`store` tests enforce it). The
-/// updater restores the pre-update backup on rollback only when the format
-/// changes, so a migration without a bump would strand the old release.
-pub const STATE_FORMAT_VERSION: u32 = 61;
-/// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
-pub const READABLE_STATE_FORMATS: &[u32] = &[
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
-    27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
-    51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
-];
+// Generated from the sorted SQL directory; adding a migration needs no registry edit.
+mod migration_catalog {
+    include!(concat!(env!("OUT_DIR"), "/migration_catalog.rs"));
+}
+/// Database format and readable prefixes, derived from the migration catalog.
+/// Every migration changes the format so updater rollback restores its backup.
+pub use migration_catalog::{READABLE_STATE_FORMATS, STATE_FORMAT_VERSION};
 /// Versions that may be upgraded to this release.
 pub const UPGRADE_FROM: &str = ">=0.1.0";
 
