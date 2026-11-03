@@ -18,10 +18,17 @@ use sqlx::{Postgres, Row, Transaction};
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 use uuid::Uuid;
 
+mod requests;
+pub use requests::*;
+
 /// External ports. Authority never comes from here: it comes from the grant.
 pub struct HostPorts {
     pub state: crate::AppState,
     pub graph: Arc<dyn WorkGraph>,
+    /// D6 sandbox check executor; `None` refuses check.request `unavailable`.
+    pub checks: Option<Arc<dyn CheckExecutor>>,
+    /// D6 judgment provider; `None` refuses `no_permitted_profile`.
+    pub judgments: Option<Arc<dyn JudgmentProvider>>,
 }
 
 /// Typed graph gateway port. Only node reads by UUID and validated
@@ -83,6 +90,16 @@ pub const HOST5_COMMANDS: [&str; 5] = [
     "operation.cancel",
     "findings.reconcile",
 ];
+/// Catalog 2.0.0 adds asynchronous judgments/checks and operation.get.
+pub const HOST7_COMMANDS: [&str; 7] = [
+    "context.read",
+    "work.ensure",
+    "work.change",
+    "operation.cancel",
+    "judgment.request",
+    "check.request",
+    "operation.get",
+];
 const WORK_REF: &str = "aq.playbook.work/";
 const ATTEMPT_REF: &str = "aq.execution.attempt/";
 const PENDING: &str = "pending";
@@ -113,7 +130,7 @@ impl Service {
     fn ports(&self) -> Result<&HostPorts> {
         if !matches!(
             self.profile,
-            CatalogProfile::Host5 | CatalogProfile::Monitoring6
+            CatalogProfile::Host5 | CatalogProfile::Monitoring6 | CatalogProfile::Host7
         ) {
             return Err(Error::Forbidden);
         }
@@ -135,6 +152,9 @@ impl Service {
             "work.ensure" => self.work_ensure(owner, id, revision, intent).await,
             "work.change" => self.work_change(owner, id, revision, intent).await,
             "operation.cancel" => self.operation_cancel(owner, id, revision, intent).await,
+            "judgment.request" => self.judgment_request(owner, id, revision, intent).await,
+            "check.request" => self.check_request(owner, id, revision, intent).await,
+            "operation.get" => self.host_operation_get(owner, id, revision, intent).await,
             _ => Err(Error::Invalid),
         }
     }
@@ -166,7 +186,12 @@ impl Service {
         intent: &Intent,
     ) -> Result<(Transaction<'_, Postgres>, Option<Stage>, String)> {
         self.ports()?;
-        if !HOST5_COMMANDS.contains(&intent.command.name.as_str())
+        let commands: &[&str] = if self.profile == CatalogProfile::Host7 {
+            &HOST7_COMMANDS
+        } else {
+            &HOST5_COMMANDS
+        };
+        if !commands.contains(&intent.command.name.as_str())
             || self.profile.registry().commands.get(&intent.command.name) != Some(&intent.command)
         {
             return Err(Error::Invalid);
@@ -311,17 +336,39 @@ impl Service {
         outcome: &str,
         output: &Value,
     ) -> Result<()> {
-        let registry = self.profile.registry();
-        let c = registry
-            .events
-            .get("aq.work.changed")
-            .ok_or(Error::Invalid)?;
         let event_id = stable_id(
             &format!("aq.playbook.{}.event", intent.command.name),
             self.namespace.namespace_id,
             self.namespace.generation,
             &intent.id,
         )?;
+        self.seal_event(
+            tx,
+            "aq.work.changed",
+            event_id,
+            self.operation(intent)?,
+            &intent.id,
+            &output["subject"],
+            json!({"outcome": outcome, "reference": output["reference"], "subject": output["subject"]}),
+        )
+        .await
+    }
+
+    /// Seals one trusted host-bridge event into the outbox in the caller's
+    /// tx, validated against the pinned catalog event contract.
+    #[allow(clippy::too_many_arguments)]
+    async fn seal_event(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        contract: &str,
+        event_id: Uuid,
+        operation: Uuid,
+        causation: &str,
+        subject: &Value,
+        payload: Value,
+    ) -> Result<()> {
+        let registry = self.profile.registry();
+        let c = registry.events.get(contract).ok_or(Error::Invalid)?;
         let at = self.now()?;
         let event = EventEnvelope {
             producer: "aq.host.bridge@1".into(),
@@ -331,20 +378,13 @@ impl Service {
                 fingerprint: c.fingerprint().map_err(|_| Error::Invalid)?,
             },
             scope: "project".into(),
-            correlation: BTreeMap::from([(
-                "operation".into(),
-                self.operation(intent)?.to_string(),
-            )]),
-            subject: Some(text(&output["subject"], "id")?.to_string()),
-            revision: Some(
-                output["subject"]["revision"]
-                    .as_u64()
-                    .ok_or(Error::Invalid)?,
-            ),
-            causation: Some(intent.id.clone()),
+            correlation: BTreeMap::from([("operation".into(), operation.to_string())]),
+            subject: Some(text(subject, "id")?.to_string()),
+            revision: Some(subject["revision"].as_u64().ok_or(Error::Invalid)?),
+            causation: Some(causation.to_string()),
             occurred_at_ms: Some(at),
             observed_at_ms: Some(at),
-            payload: json!({"outcome": outcome, "reference": output["reference"], "subject": output["subject"]}),
+            payload,
         };
         aq_playbook_host::model::validate_event(&event, &registry).map_err(|_| Error::Invalid)?;
         let event_digest = digest(&event)?;

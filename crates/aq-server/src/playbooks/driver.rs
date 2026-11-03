@@ -63,7 +63,7 @@ impl Host for MailHost {
             .is_ok()
     }
     fn dispatch(&mut self, intent: &Intent) -> DispatchResult {
-        if super::host_adapters::HOST5_COMMANDS.contains(&intent.command.name.as_str()) {
+        if self.host_command(intent) {
             let Ok((id, revision)) = grant_actor(&intent.authority) else {
                 return DispatchResult::Rejected {
                     reason: "grant binding refused".into(),
@@ -75,10 +75,7 @@ impl Host for MailHost {
                 revision,
                 intent,
             )) {
-                Ok(result) => DispatchResult::Completed {
-                    outcome: result.outcome,
-                    output: result.output,
-                },
+                Ok(result) => host_result(result),
                 Err(Error::Unknown) => DispatchResult::Unknown {
                     reason: "host effect outcome unknown; retained lookup required".into(),
                 },
@@ -173,7 +170,7 @@ impl Host for MailHost {
         if intent.command.name == "operation.get" {
             return self.dispatch(intent);
         }
-        if super::host_adapters::HOST5_COMMANDS.contains(&intent.command.name.as_str()) {
+        if self.host_command(intent) {
             let Ok((id, revision)) = grant_actor(&intent.authority) else {
                 return DispatchResult::Unknown {
                     reason: "grant binding refused".into(),
@@ -183,10 +180,7 @@ impl Host for MailHost {
                 .handle
                 .block_on(self.service.host_retained(id, revision, intent))
             {
-                Ok(Some(result)) => DispatchResult::Completed {
-                    outcome: result.outcome,
-                    output: result.output,
-                },
+                Ok(Some(result)) => host_result(result),
                 _ => DispatchResult::Unknown {
                     reason: "no retained host result; no new effect admitted".into(),
                 },
@@ -220,7 +214,7 @@ impl Host for MailHost {
         let Ok((id, revision)) = grant_actor(&intent.authority) else {
             return CancellationResult::Refused;
         };
-        if super::host_adapters::HOST5_COMMANDS.contains(&intent.command.name.as_str()) {
+        if self.host_command(intent) {
             // Host effects are cancelled through operation.cancel, never by
             // the runner withdrawing an admitted effect.
             return CancellationResult::Refused;
@@ -237,6 +231,30 @@ impl Host for MailHost {
         self.handle
             .block_on(self.service.cancel(&self.runtime, id, revision, intent))
             .unwrap_or(CancellationResult::Unknown)
+    }
+}
+impl MailHost {
+    /// Host-adapter commands of the pinned profile (5: D4 catalog 1.0.0;
+    /// 7: AQ host catalog 2.0.0, which also owns operation.get).
+    fn host_command(&self, intent: &Intent) -> bool {
+        let name = intent.command.name.as_str();
+        super::host_adapters::HOST5_COMMANDS.contains(&name)
+            || (self.service.profile == super::review_domain::CatalogProfile::Host7
+                && super::host_adapters::HOST7_COMMANDS.contains(&name))
+    }
+}
+/// An asynchronous host command's `accepted` outcome is its durable handle.
+fn host_result(result: super::host_adapters::HostResult) -> DispatchResult {
+    if result.outcome == "accepted"
+        && let Some(handle) = result.output["handle"].as_str()
+    {
+        return DispatchResult::Accepted {
+            handle: handle.to_string(),
+        };
+    }
+    DispatchResult::Completed {
+        outcome: result.outcome,
+        output: result.output,
     }
 }
 fn decision_dispatch(result: Result<DecisionResult>) -> DispatchResult {
