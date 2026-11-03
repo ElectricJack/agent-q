@@ -196,7 +196,19 @@ where
     F: FnMut(Uuid) -> Fut,
     Fut: std::future::Future<Output = Result<super::super::no_grant::AttemptCounts, AppError>>,
 {
-    for candidate in &ready.items {
+    // Priority is AQ policy carried in Graph metadata. Order only this bounded
+    // page; stable sorting retains Graph order for ties and neutral priorities.
+    // Missing or non-integer values use zero, so arbitrary Graph metadata cannot
+    // prevent otherwise eligible tasks from being considered.
+    let mut candidates = ready.items.iter().collect::<Vec<_>>();
+    candidates.sort_by_key(|candidate| {
+        std::cmp::Reverse(
+            candidate.node["metadata"]["aq:priority"]
+                .as_i64()
+                .unwrap_or(0),
+        )
+    });
+    for candidate in candidates {
         let counts = counts(candidate.revision.task_id).await?;
         // Graph readiness is independent of AQ's retained task claims. A held
         // or previously started task, or an exhausted never-granted retry
@@ -490,8 +502,69 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn ready_selection_uses_descending_priority_and_preserves_graph_order_for_ties() {
+        let available = AttemptCounts {
+            started: 0,
+            history: 0,
+            never_granted: 0,
+        };
+        for (priorities, expected) in [
+            (vec![0, 10, 30, 20], 2),
+            (vec![10, 30, 30, 20], 1),
+            (vec![0, 0, 0, 0], 0),
+            (vec![-30, -10, -20, -40], 1),
+            (vec![i64::MIN, 0, i64::MAX, -1], 2),
+        ] {
+            let mut ready = ready(priorities.len());
+            for (candidate, priority) in ready.items.iter_mut().zip(priorities) {
+                candidate.node = serde_json::json!({"metadata":{"aq:priority":priority}});
+            }
+            let original = serde_json::to_value(&ready).unwrap();
+            let selected = first_eligible_task(&ready, |_| std::future::ready(Ok(available)))
+                .await
+                .unwrap();
+            assert_eq!(selected, Some(ready.items[expected].revision.clone()));
+            assert_eq!(serde_json::to_value(&ready).unwrap(), original);
+        }
+    }
+
+    #[tokio::test]
+    async fn ready_selection_treats_missing_and_noninteger_priorities_as_zero() {
+        use serde_json::json;
+        for metadata in [
+            json!({}),
+            json!({"other:priority":100}),
+            json!({"aq:priority":null}),
+            json!({"aq:priority":"100"}),
+            json!({"aq:priority":1.5}),
+            json!({"aq:priority":true}),
+            json!({"aq:priority":[]}),
+            json!({"aq:priority":{}}),
+            json!({"aq:priority":u64::MAX}),
+        ] {
+            let mut ready = ready(3);
+            ready.items[0].node = json!({"metadata":{"aq:priority":-1}});
+            ready.items[1].node = json!({"metadata":metadata});
+            ready.items[2].node = json!({"metadata":{"aq:priority":0}});
+            let selected = first_eligible_task(&ready, |_| {
+                std::future::ready(Ok(AttemptCounts {
+                    started: 0,
+                    history: 0,
+                    never_granted: 0,
+                }))
+            })
+            .await
+            .unwrap();
+            assert_eq!(selected, Some(ready.items[1].revision.clone()));
+        }
+    }
+
+    #[tokio::test]
     async fn ready_selection_skips_held_and_exhausted_tasks_without_starving_later_retry() {
-        let ready = ready(4);
+        let mut ready = ready(4);
+        for (candidate, priority) in ready.items.iter_mut().zip([20, 30, 10, 0]) {
+            candidate.node = serde_json::json!({"metadata":{"aq:priority":priority}});
+        }
         let counts = [
             // `started` includes held offers, not only actual kernel starts.
             AttemptCounts {
@@ -513,7 +586,11 @@ mod tests {
         ];
         let mut observed = Vec::new();
         let selected = first_eligible_task(&ready, |task| {
-            let index = observed.len();
+            let index = ready
+                .items
+                .iter()
+                .position(|r| r.revision.task_id == task)
+                .unwrap();
             observed.push(task);
             std::future::ready(Ok(counts[index]))
         })
@@ -522,9 +599,9 @@ mod tests {
         assert_eq!(selected, Some(ready.items[2].revision.clone()));
         assert_eq!(
             observed,
-            ready.items[..3]
-                .iter()
-                .map(|r| r.revision.task_id)
+            [1, 0, 2]
+                .into_iter()
+                .map(|index| ready.items[index].revision.task_id)
                 .collect::<Vec<_>>()
         );
     }
