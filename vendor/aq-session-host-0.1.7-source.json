@@ -1,14 +1,14 @@
 {
-  "archive": "aq-session-host-0.1.6-source.tar.gz",
-  "bytes": 2637368,
+  "archive": "aq-session-host-0.1.7-source.tar.gz",
+  "bytes": 2638863,
   "files": {
     "Cargo.lock": {
       "bytes": 62559,
-      "sha256": "3c9f3ea7740e79f59cb9286db75ccd1c8aa5f65f8799a8d6f7caeb02726257eb"
+      "sha256": "c119ba0aef194b9351a2f3255149b8930f91003afd78970bee9985b2d37c8b0a"
     },
     "Cargo.toml": {
       "bytes": 2527,
-      "sha256": "0a27f54c1fe7f279ddf1897bfb89e8a9420b184551c246d7534007b7b6b5f7d1"
+      "sha256": "12228e7527acc34b7c0767788397fe10f3c0fd1552d8b4927ed1afbc0d0d65d3"
     },
     "crates/aq-agent-client/Cargo.toml": {
       "bytes": 768,
@@ -572,11 +572,11 @@
     },
     "crates/aq-session-host/Cargo.toml": {
       "bytes": 995,
-      "sha256": "0c7a79cd31387898c80e8eb52882d7d147836ff0aab4708c492f50d845bcbcec"
+      "sha256": "40ffb96498c24c5e75a64279ffaa21bd4ba354dca9fe7d937e29e6ef27ac52af"
     },
     "crates/aq-session-host/README.md": {
-      "bytes": 16393,
-      "sha256": "52130706ddd8b4e717cdc4aebcbda9034c10618cc6645a1c092240932f1f32f8"
+      "bytes": 17127,
+      "sha256": "551b65486181aadf899d9332c49402d74e99f1ca3737f2912bd50ec702cbb286"
     },
     "crates/aq-session-host/src/bin/aq-session-capsule-candidate.rs": {
       "bytes": 80,
@@ -615,8 +615,8 @@
       "sha256": "dc0a2b099cbd8ed88ac0e7d5fa1d62be52fc2778e0c42b8da9d8db66ab6da66a"
     },
     "crates/aq-session-host/src/lib.rs": {
-      "bytes": 56822,
-      "sha256": "7a488fdaba6aaa2f6378ca3ed9db980c6391d9c48f71cdd7109e515e7b823e85"
+      "bytes": 62901,
+      "sha256": "d062bd76f43b9cdea5cd9acae9c7b56a26d0e5e58aec8a71d84885e688f42770"
     },
     "crates/aq-session-host/src/local_ipc.rs": {
       "bytes": 7697,
@@ -727,8 +727,8 @@
       "sha256": "230855ac8a38dd46db2e4948fe6a3521792bf730d1fbcd3e424700259d42faa3"
     },
     "crates/aq-session-host/tests/supervisor_session.rs": {
-      "bytes": 14943,
-      "sha256": "426df10aa5441ba7b9c181afc938a23ee7c656cc08b66a1775c3544b47306221"
+      "bytes": 17005,
+      "sha256": "5490c2281ff8909da0c4fd39c8ee5824d65c0ade7044b5e068a55d0af1bc1338"
     },
     "crates/aq-session-protocol/Cargo.toml": {
       "bytes": 373,
@@ -760,7 +760,7 @@
     },
     "crates/aq-terminal-bridge/Cargo.toml": {
       "bytes": 1124,
-      "sha256": "753bb3e25d220a8b6f361afb4c6dc3bf86e8ffc774e4065559940a7f8de3ac55"
+      "sha256": "d77ee9e3d08297a9efce38508a79470f3d670baf51d60d6b00cbd863a5a71adf"
     },
     "crates/aq-terminal-bridge/README.md": {
       "bytes": 5891,
@@ -4810,6 +4810,6 @@
   "host_plan_version": 1,
   "owner": "aq-worker",
   "package": "aq-session-host",
-  "sha256": "e68ad4071935cec0bf7d67b5ab52e5e30364c12869e8e6b99b964b8fd69f3f1a",
-  "version": "0.1.6"
+  "sha256": "ab37cb192870f07290b4aff887b57b73783931ba5dfc248184da483c99036bdb",
+  "version": "0.1.7"
 }

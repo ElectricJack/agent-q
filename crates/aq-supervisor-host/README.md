@@ -57,8 +57,8 @@ does not rotate a still-live transport.
 
 The image builds the host/helper from the vendored dependency closure and checks
 its runtime sources against the hash-verified release archive. Source provenance:
-aq-worker `5794c3280611f6a95f2e60eab514393ad376cfd4`, source archive SHA-256
-`e68ad4071935cec0bf7d67b5ab52e5e30364c12869e8e6b99b964b8fd69f3f1a`.
+aq-worker `4992a16d6c2f794d692803fbe25e69ea400a97db`, source archive SHA-256
+`ab37cb192870f07290b4aff887b57b73783931ba5dfc248184da483c99036bdb`.
 Only Cargo manifest workspace/path normalization differs from the release; each
 original manifest is retained as `Cargo.toml.upstream`. No sibling checkout is
 needed. The existing terminal-relay and session protocol source matches the

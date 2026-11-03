@@ -6,9 +6,9 @@ COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY crates ./crates
 COPY vendor ./vendor
 COPY protocol ./protocol
-RUN echo 'e68ad4071935cec0bf7d67b5ab52e5e30364c12869e8e6b99b964b8fd69f3f1a  vendor/aq-session-host-0.1.6-source.tar.gz' | sha256sum -c -
-RUN mkdir /pinned && tar -xzf vendor/aq-session-host-0.1.6-source.tar.gz -C /pinned --strip-components=1 \
-    && diff -r /pinned/crates/aq-session-host/src vendor/aq-session-host-0.1.6/src \
+RUN echo 'ab37cb192870f07290b4aff887b57b73783931ba5dfc248184da483c99036bdb  vendor/aq-session-host-0.1.7-source.tar.gz' | sha256sum -c -
+RUN mkdir /pinned && tar -xzf vendor/aq-session-host-0.1.7-source.tar.gz -C /pinned --strip-components=1 \
+    && diff -r /pinned/crates/aq-session-host/src vendor/aq-session-host-0.1.7/src \
     && diff -r /pinned/crates/aq-codex-mapper/src vendor/aq-codex-mapper-0.1.1/src \
     && diff -r /pinned/crates/aq-responses-transport/src vendor/aq-responses-transport-0.1.0/src
 ENV CARGO_BUILD_JOBS=2

@@ -73,7 +73,7 @@ impl Case {
         central.wall_time_ms = 60_000;
         central.max_permit_ms = 30_000;
         let legacy: LaunchManifest = serde_json::from_str(include_str!(
-            "../../../vendor/aq-session-host-0.1.6/tests/fixtures/manifest.json"
+            "../../../vendor/aq-session-host-0.1.7/tests/fixtures/manifest.json"
         ))
         .unwrap();
         let CentralSubject::CentralConversation {

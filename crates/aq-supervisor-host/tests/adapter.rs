@@ -5,7 +5,7 @@ use std::path::Path;
 #[test]
 fn native_recipe_uses_scoped_route_stdin_and_no_provider_material() {
     let mut m: LaunchManifest = serde_json::from_str(include_str!(
-        "../../../vendor/aq-session-host-0.1.6/tests/fixtures/manifest.json"
+        "../../../vendor/aq-session-host-0.1.7/tests/fixtures/manifest.json"
     ))
     .unwrap();
     m.harness.cli_version = aq_session_protocol::Text::new("0.166.0").unwrap();
