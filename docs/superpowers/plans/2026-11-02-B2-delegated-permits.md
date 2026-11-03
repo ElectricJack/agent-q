@@ -6,7 +6,10 @@
 
 **Architecture:** PostgreSQL owns permit metadata and operation replay records. A server-private derivation key reproduces credentials for exact issuance replay; PostgreSQL stores only verifiers. Authentication must recheck current node, boot, attempt, grant and cancellation state in the transaction authorizing effects. A permit must never become an unrestricted node credential.
 
-**Tech Stack:** Rust, Axum, SQLx/PostgreSQL, pinned aq-admission-sandbox 0.3.0.
+**Tech Stack:** Rust, Axum, SQLx/PostgreSQL, pinned aq-admission-sandbox 0.3.2.
+
+The original checklists below are historical. The epoch 8 checklist at the end
+tracks the current completion work; B2.md records final evidence and limitations.
 
 **Spec:** AQ task noble-summit-37.2 and `2026-11-02-v2-full-application-tasks.yaml`, B2. Operator message `msg-b5ea45f061ad46a5be367c80de20b495` additionally assigns registration-v2 and initial permit transport publication to B2. The aq-worker Controller/PermitProvider consumer must be coordinated in its owning repository.
 
@@ -148,27 +151,36 @@ coverage, adversarial review and complete B2 acceptance remain open.
 Migration 50 is now reserved for B2 and integrated with current main. Preserve
 the existing implementation and immutable 0.3.2 owner pin. The remaining work is:
 
-- [ ] Confirm migration/storage with the existing AQ Cargo adapter, then check
-  aq-server with two build jobs.
-- [ ] Add `server_restart_mid_attempt_resumes_or_preserves` in
+- [x] Confirm migration/storage with the existing AQ Cargo adapter, then check
+  aq-server with two build jobs. Six storage/model tests and Cargo check passed.
+- [x] Add `server_restart_mid_attempt_resumes_or_preserves` in
   `tests/delegated_permit_runtime.rs`. Use a fresh child test process with a new
   Store, production worker router, private key-file reload and injected clock.
   Exercise an active re-adopted permit after process exit, exact renewal replay,
   expired renewal refusal without mutations, and result replay across processes
   with exactly one result row. Keep node reboot coverage independently named.
-- [ ] Add a route authorization matrix covering the listed runner routes and
-  node-only routes with preparation, foreign-attempt, stale and expired permits.
-  Verify terminal counters remain shared across delegated attempts. Any newly
-  exposed defect gets a failing test before its production fix.
-- [ ] Run the three named workspace-filter commands through AQ; each must report
-  a matching passing test. Run focused strict Clippy and formatting once after
-  changes. No full suite or provider qualification is required by the owner's
-  velocity rules.
-- [ ] Replace stale current-status prose in B2.md with final evidence, publish
-  the branch and PR, request the required cross-family review through the
-  supervisor, and preserve the claim until the review outcome is delivered.
+- [x] Qualify expiry at all 19 runner HTTP entrypoints with typed bodies; verify
+  foreign attempts, mixed nested members, stale boot and post-authentication
+  expiry through the persisted runtime validator. Existing model tests cover
+  preparation and node-only scope, and transport tests cover issuance/upgrade
+  and re-adoption fencing. Verify terminal counters remain shared across sibling
+  attempts with rollback at capacity and successful admission after expiry.
+- [x] Run the three named workspace-filter commands through AQ: scope 2, reboot
+  1 and fresh-process restart 1 matching tests passed.
+- [x] Finish focused regression (21 tests), poll/key checks (2), strict Clippy
+  and Cargo check. Formatting passed.
+  No full suite or provider qualification is required by the owner's velocity rules.
+- [x] Replace stale current-status prose in B2.md with final evidence; publish
+  the branch and PR and request cross-family review through the supervisor.
+- [ ] Handle the required cross-family review outcome and resolve findings.
+  Preserve the claim until that outcome is delivered; do not claim passing close.
 
 Ruling: the task's explicit targeted-validation and AQ review rules govern this
 continuation over generic skill full-suite and local review defaults. Historical
 implementation is preserved; only newly discovered defects require production
 changes. Existing parent merge ancestry must not be rewritten during publication.
+
+Publication: code SHA `1a5879628491192836d4b6216e0b274133a42666`, with main
+`f504b86d` merged; PR https://github.com/ElectricJack/aq-server/pull/35.
+Review `rev-sound-stone` revision 1 submitted and supervisor dispatch requested
+via `msg-352c758f3c9b42b992ebe5c21ebd6b38`. Review approval remains pending.

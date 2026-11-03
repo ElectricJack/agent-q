@@ -31,7 +31,7 @@ COMMANDS = {
     "final": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "delegated_permits", "--test", "native_cancellation", "--", "--test-threads=1"],
     "format-apply": ["cargo", "fmt", "-p", "aq-server"],
     "format": ["cargo", "fmt", "-p", "aq-server", "--check"],
-    "clippy": ["cargo", "clippy", "--locked", "-p", "aq-server", "--lib", "--test", "delegated_permits", "--test", "delegated_permit_runtime", "--test", "permit_fixture_conformance", "--test", "phase_source_retention", "--", "-D", "warnings"],
+    "clippy": ["cargo", "clippy", "--locked", "-p", "aq-server", "--lib", "--test", "delegated_permits", "--test", "delegated_permit_runtime", "--test", "permit_fixture_conformance", "--test", "phase_source_retention", "--test", "terminal_store", "--", "-D", "warnings"],
 }
 
 
