@@ -206,6 +206,62 @@ struct Registered {
     backend: BackendAdvertisement,
 }
 
+/// One node's slot load for the capacity read model: the advertised slot total
+/// (None for a host-native node), task-holding attempts, and the node ceiling
+/// placement would apply now.
+#[derive(Debug, Clone)]
+pub struct Load {
+    pub node_id: Uuid,
+    pub backend: Option<BackendKind>,
+    pub total: Option<u32>,
+    pub occupied: u32,
+    pub ceiling: Option<aq_selection::NodeCeiling>,
+}
+
+/// Loads for `nodes`, read on `conn` with the same ceiling as [`derive`]. A
+/// malformed registration is reported as host-native rather than failing.
+pub async fn loads(
+    conn: &mut PgConnection,
+    ledger: &Ledger<'_>,
+    nodes: &[Uuid],
+    now_ms: u64,
+) -> Result<Vec<Load>, AppError> {
+    let rows: Vec<(Uuid, serde_json::Value)> = sqlx::query_as(
+        "SELECT node_id, registration FROM delegated_node_boots WHERE node_id = ANY($1)",
+    )
+    .bind(nodes)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(db)?;
+    let registered: Vec<(Uuid, Registered)> = rows
+        .into_iter()
+        .filter_map(|(node, reg)| Some((node, serde_json::from_value(reg).ok()?)))
+        .collect();
+    let active = active(&mut *conn, nodes, None).await?;
+    let advertised: Vec<(Uuid, &BackendAdvertisement)> =
+        registered.iter().map(|(n, r)| (*n, &r.backend)).collect();
+    let spends = spends(conn, ledger, &advertised, now_ms, None).await;
+    let pressured = crate::node_storage::pressured(&mut *conn, nodes).await?;
+    Ok(nodes
+        .iter()
+        .map(|&node| {
+            let adv = advertised.iter().find(|(n, _)| *n == node).map(|(_, a)| *a);
+            let occupied = count(&active, node);
+            Load {
+                node_id: node,
+                backend: adv.map(|a| a.kind),
+                total: adv.map(|a| a.max_concurrent_sandboxes),
+                occupied,
+                ceiling: adv.and_then(|a| {
+                    ceiling(a, occupied, spent(&spends, node)).or(pressured
+                        .contains(&node)
+                        .then_some(aq_selection::NodeCeiling::DiskPressure))
+                }),
+            }
+        })
+        .collect())
+}
+
 /// Placement facts for selection on `node_id`, or None for a host-native node.
 pub async fn facts(
     state: &AppState,
