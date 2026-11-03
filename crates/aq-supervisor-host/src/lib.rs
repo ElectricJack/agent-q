@@ -4,6 +4,7 @@
 pub mod adapter;
 mod bridge;
 pub mod config;
+mod conversation;
 pub mod credentials;
 mod journal;
 mod verifier;
@@ -519,8 +520,6 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
     /// F1b: stage the generation-bound supervisor credential beside the live
     /// session only (0600, create-new). It is never written to a worker scope.
     pub async fn install_credential(&self, actor: Uuid, token: &str) -> Result<PathBuf> {
-        use std::io::Write;
-        use std::os::unix::fs::OpenOptionsExt;
         ensure!(
             token.len() == 70
                 && token.starts_with("aqsv1_")
@@ -532,7 +531,12 @@ impl<A: PlanAuthority, H: HostAdapter + Send + Sync + 'static> Supervisor<A, H> 
         let _fence = self.fence(actor).await?;
         let s = self.current(actor).await?;
         ensure!(active(&s), "central generation inactive");
-        let r = self.record(&s).await?;
+        self.install_credential_locked(&s, token).await
+    }
+    async fn install_credential_locked(&self, s: &Snapshot, token: &str) -> Result<PathBuf> {
+        use std::io::Write;
+        use std::os::unix::fs::OpenOptionsExt;
+        let r = self.record(s).await?;
         let path = self
             .root
             .join(r.id.to_string())
