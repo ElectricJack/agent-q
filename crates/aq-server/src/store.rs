@@ -312,6 +312,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         53,
         include_str!("../migrations/0053_replacement_retained_source.sql"),
     ),
+    (
+        54,
+        include_str!("../migrations/0054_environment_templates.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.

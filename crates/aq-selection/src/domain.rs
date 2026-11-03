@@ -237,6 +237,9 @@ pub struct SelectionInputs {
     pub estimates: Vec<CandidateEstimate>,
     pub compositions: Vec<PreparedComposition>,
     pub now_ms: u64,
+    /// Sandbox placement facts (C4); absent for host-native workers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub placement: Option<crate::Placement>,
 }
 #[derive(JsonSchema, Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
