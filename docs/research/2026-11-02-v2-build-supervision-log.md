@@ -449,3 +449,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Renumbered the queued PRs against main: #46 row_retention to 0064 (fixture gate `>= 64`; workspace clippy clean; `70349f3`), #51 node_storage to 0065 (`4a8946c`) and #52 vm_time_accounting to 0066 (`fe083d2`). Merge order is #46, #51, #52.
   - The monitor now checks main's migration numbers on every pass (W48).
   - #53 (`keen-forge-39`, per-project replacement budgets) has build failures to check next pass.
+- **12:50 MS0 evidence achieved.**
+  - The I0 re-run `calm-stone-85` COMPLETED. Run 13c settled end to end on aq-server `2d337f36`: a real Codex README edit retained as `17fe8a72`, owner MS0 settlement approve, evaluation `d58ab4f8` accepted, completion `b196d43a` reconciled, `holds_task` false, login unchanged. The evidence is on aq-worker main.
+  - Released the MS0 gate (`stark-zenith-16.1`) hold and reopened it to re-evaluate with this evidence (Claude).
+  - Run-13 findings to file as follow-ups: the Codex session is held to the wall limit after the in-session submit; the 2 s selection TTL leaves a ~1.4 s offer window (race under load); attempt state and outbox are stale after completion.
