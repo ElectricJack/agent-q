@@ -145,11 +145,35 @@ pub enum ProviderFailure {
     Unavailable,
 }
 
+/// Default pre-call input-token estimate: one token per four UTF-8 bytes of
+/// the text the host sends (question, context text and choices), rounded up.
+/// Artifact contents are resolved by the provider, so a provider that inlines
+/// them should override [`JudgmentProvider::estimate_input_tokens`]. The
+/// provider-reported usage check after the call remains authoritative.
+pub fn estimate_input_tokens(request: &JudgmentRequest) -> u64 {
+    let bytes = request.question.len()
+        + request.context_text.len()
+        + request.choices.iter().map(String::len).sum::<usize>();
+    (bytes as u64).div_ceil(4)
+}
+
+/// Grace after a judgment's provider deadline before `operation.get` treats a
+/// still-running operation as lost (indeterminate). The in-process provider
+/// task settles at its own deadline; the grace keeps reconciliation from
+/// racing it.
+pub const JUDGMENT_RECONCILE_GRACE_MS: i64 = 5_000;
+
 /// Judgment provider port: one completion per request, no tool loop.
 #[async_trait::async_trait]
 pub trait JudgmentProvider: Send + Sync {
     /// The credential profile reference the host permits for this scope.
     fn credential_profile(&self, workspace: Uuid, project: Uuid) -> Option<String>;
+    /// Input tokens `request` is expected to consume. A request whose
+    /// estimate exceeds `max_input_tokens` is refused `budget_exceeded`
+    /// before anything is sent.
+    fn estimate_input_tokens(&self, request: &JudgmentRequest) -> u64 {
+        estimate_input_tokens(request)
+    }
     async fn complete(
         &self,
         request: &JudgmentRequest,
@@ -178,6 +202,19 @@ fn revision_of(subject: &Value) -> Result<i64> {
         .as_i64()
         .filter(|r| *r >= 0)
         .ok_or(Error::Invalid)
+}
+
+/// One accepted judgment whose provider request runs off the dispatch path.
+struct JudgmentJob {
+    operation: Uuid,
+    command: String,
+    intent_id: String,
+    reference: String,
+    subject: Value,
+    credential_profile: String,
+    prompt_digest: String,
+    context_digest: String,
+    request: JudgmentRequest,
 }
 
 /// Completed outcome and output of one retained host operation.
@@ -589,10 +626,11 @@ impl Service {
                 .await;
         }
         let (provider, credential_profile) = profile.ok_or(Error::Unknown)?;
+        let provider = provider.clone();
         let budget = &input["budget"];
         let field = |name: &str| budget[name].as_u64().ok_or(Error::Invalid);
-        // The provider deadline never outlives the dispatch deadline.
-        let remaining = (intent.deadline_at_ms - self.now()?).max(0) as u64;
+        // The provider runs off the dispatch path, so its deadline is the
+        // declared budget, not what is left of the dispatch deadline.
         let request = JudgmentRequest {
             operation,
             credential_profile: credential_profile.clone(),
@@ -607,8 +645,17 @@ impl Service {
             max_input_tokens: field("max_input_tokens")?,
             max_output_tokens: field("max_output_tokens")?,
             max_cost_microunits: field("max_cost_microunits")?,
-            deadline_ms: field("deadline_ms")?.min(remaining),
+            deadline_ms: field("deadline_ms")?,
         };
+        // Pre-call estimate: a request expected to exceed the input budget is
+        // refused before any operation is recorded or anything is sent.
+        let estimated_input_tokens = provider.estimate_input_tokens(&request);
+        if estimated_input_tokens > request.max_input_tokens {
+            let result = refusal(Value::Null, "budget_exceeded");
+            return self
+                .settle_fresh(tx, id, revision, intent, &identity, result)
+                .await;
+        }
         let prompt_digest = digest(&(
             "aq.judgment.prompt",
             &request.question,
@@ -618,15 +665,60 @@ impl Service {
         let context_digest = digest(&("aq.judgment.context", &input["context"]))?;
         let record = json!({"subject": subject, "credential_profile": credential_profile,
             "prompt_digest": prompt_digest, "context_digest": context_digest,
+            "estimated_input_tokens": estimated_input_tokens,
             "deadline_at_ms": self.now()? + request.deadline_ms as i64});
         let accepted = self
             .record_operation(tx, id, revision, intent, &identity, None, &record)
             .await?;
+        // The intent is durable: the provider request runs in the background
+        // and completes the operation by its sealed aq.judgment.completed
+        // event. A completion that fails to commit leaves the operation
+        // running; it reconciles to indeterminate and is never re-sent.
+        let job = JudgmentJob {
+            operation,
+            command: intent.command.name.clone(),
+            intent_id: intent.id.clone(),
+            reference: reference.clone(),
+            subject: subject.clone(),
+            credential_profile,
+            prompt_digest,
+            context_digest,
+            request,
+        };
+        let service = self.clone();
+        tokio::spawn(async move {
+            let _ = service.run_judgment(provider, job).await;
+        });
+        Ok(accepted)
+    }
+
+    /// Sends one accepted judgment's provider request, bounded by its budget
+    /// deadline, and completes the operation exactly once.
+    async fn run_judgment(
+        &self,
+        provider: Arc<dyn JudgmentProvider>,
+        job: JudgmentJob,
+    ) -> Result<HostResult> {
+        let JudgmentJob {
+            operation,
+            command,
+            intent_id,
+            reference,
+            subject,
+            credential_profile,
+            prompt_digest,
+            context_digest,
+            request,
+        } = job;
         let reply = tokio::time::timeout(
             Duration::from_millis(request.deadline_ms),
             provider.complete(&request),
         )
         .await;
+        let refusal = |provenance: Value, reason: &str| HostResult {
+            outcome: "refused".into(),
+            output: json!({"provenance": provenance, "reason": reason, "reference": reference, "subject": subject}),
+        };
         let provenance = |reply: &JudgmentReply, output: Value| {
             json!({"provider": reply.provider, "model": reply.model,
                 "credential_profile": credential_profile, "prompt_digest": prompt_digest,
@@ -668,12 +760,8 @@ impl Service {
                 }
             }
         };
-        // A completion that fails to commit leaves the operation running; it
-        // reconciles to indeterminate at its deadline and is never re-sent.
-        let _ = self
-            .complete_operation(operation, &intent.command.name, &intent.id, result)
-            .await;
-        Ok(accepted)
+        self.complete_operation(operation, &command, &intent_id, result)
+            .await
     }
 
     // ------------------------------------------------------------ operation.get
@@ -714,9 +802,10 @@ impl Service {
             >= op.request["deadline_at_ms"]
                 .as_i64()
                 .ok_or(Error::Unknown)?
+                .saturating_add(JUDGMENT_RECONCILE_GRACE_MS)
         {
-            // The provider call outlived its deadline without a completion
-            // (process loss): indeterminate, never re-sent.
+            // The provider task outlived its deadline and grace without a
+            // completion (process loss): indeterminate, never re-sent.
             let output = json!({"provenance": null, "reason": "indeterminate",
                 "reference": format!("judgment:{operation}"), "subject": op.request["subject"]});
             Some(

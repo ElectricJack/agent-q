@@ -91,6 +91,10 @@ const SECRET: &str = "sk-live-never-leaves-the-vault";
 struct FakeJudge {
     replies: Mutex<BTreeMap<String, std::result::Result<JudgmentReply, ProviderFailure>>>,
     requests: Mutex<Vec<JudgmentRequest>>,
+    /// Questions whose reply waits for `release`, proving the provider runs
+    /// off the dispatch path.
+    held: Mutex<BTreeSet<String>>,
+    release: tokio::sync::Notify,
 }
 #[async_trait::async_trait]
 impl JudgmentProvider for FakeJudge {
@@ -104,6 +108,9 @@ impl JudgmentProvider for FakeJudge {
         assert!(!format!("{request:?}").contains(SECRET));
         let _credential = SECRET; // resolved inside the provider only
         self.requests.lock().unwrap().push(request.clone());
+        if self.held.lock().unwrap().contains(&request.question) {
+            self.release.notified().await;
+        }
         self.replies.lock().unwrap()[&request.question].clone()
     }
 }
@@ -218,6 +225,18 @@ impl Host {
             json!({"handle": handle}),
         )
         .await
+    }
+    /// Waits (bounded) for an asynchronous operation to complete by polling
+    /// operation.get, the reconciliation path; returns the completion.
+    async fn settled(&self, handle: &str) -> (String, Value) {
+        for _ in 0..400 {
+            let r = self.get(handle).await;
+            if r.outcome != "running" {
+                return self.completed(handle).await;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        }
+        panic!("operation {handle} did not complete");
     }
     /// operation.get that must report a completion; returns it.
     async fn completed(&self, handle: &str) -> (String, Value) {
@@ -548,7 +567,7 @@ async fn judgment_request_respects_budget_and_records_provenance() {
             judgment_input("fits?", work.clone()),
         )
         .await;
-    let (outcome, output) = h.completed(&handle).await;
+    let (outcome, output) = h.settled(&handle).await;
     assert_eq!(outcome, "assessed");
     assert_eq!(output["choice"], "permitted-default");
     assert_eq!(output["reference"], format!("judgment:{handle}"));
@@ -585,7 +604,10 @@ async fn judgment_request_respects_budget_and_records_provenance() {
             ),
             (8192, 512, 50000)
         );
-        assert!(r.deadline_ms <= 5000, "bounded by the dispatch deadline");
+        assert_eq!(
+            r.deadline_ms, 60000,
+            "the budget deadline, not the 5 s dispatch deadline: off the dispatch path"
+        );
     }
     assert_eq!(
         outbox(&pool, ns).await,
@@ -615,7 +637,7 @@ async fn judgment_request_respects_budget_and_records_provenance() {
                 judgment_input(q, work.clone()),
             )
             .await;
-        let (outcome, output) = h.completed(&handle).await;
+        let (outcome, output) = h.settled(&handle).await;
         assert_eq!(outcome, "refused", "{q}");
         assert_eq!(output["reason"], "budget_exceeded");
         assert_eq!(output["provenance"]["output_digest"], Value::Null);
@@ -633,7 +655,7 @@ async fn judgment_request_respects_budget_and_records_provenance() {
             judgment_input("off-menu?", work.clone()),
         )
         .await;
-    let (outcome, output) = h.completed(&off).await;
+    let (outcome, output) = h.settled(&off).await;
     assert_eq!(
         (outcome.as_str(), &output["reason"]),
         ("refused", &json!("invalid_output"))
@@ -646,7 +668,7 @@ async fn judgment_request_respects_budget_and_records_provenance() {
             judgment_input("down?", work.clone()),
         )
         .await;
-    let (outcome, output) = h.completed(&down).await;
+    let (outcome, output) = h.settled(&down).await;
     assert_eq!(
         (outcome.as_str(), &output["reason"]),
         ("failed", &json!("provider_unavailable"))
@@ -672,6 +694,48 @@ async fn judgment_request_respects_budget_and_records_provenance() {
         ("refused", &json!("stale_subject"))
     );
     assert_eq!(judge.requests.lock().unwrap().len(), 5);
+
+    // Pre-call estimate: a prompt expected to exceed max_input_tokens is
+    // refused budget_exceeded before any operation or provider request.
+    let mut big = judgment_input("fits?", work.clone());
+    big["context"]["text"] = json!("x".repeat(32_768));
+    let r = h.run("judge-e", "judgment.request", big).await;
+    assert_eq!(
+        (r.outcome.as_str(), &r.output["reason"]),
+        ("refused", &json!("budget_exceeded"))
+    );
+    assert_eq!(r.output["provenance"], Value::Null);
+    assert_eq!(judge.requests.lock().unwrap().len(), 5, "nothing sent");
+    assert_eq!(outbox(&pool, ns).await, 5, "no operation completed");
+
+    // The provider runs off the dispatch path: dispatch returns the handle
+    // while the provider is still answering, and the operation completes
+    // later by its aq.judgment.completed event.
+    judge.held.lock().unwrap().insert("held?".into());
+    judge
+        .replies
+        .lock()
+        .unwrap()
+        .insert("held?".into(), Ok(reply("isolated", 100, 10)));
+    let held = h
+        .accepted(
+            "judge-h",
+            "judgment.request",
+            judgment_input("held?", work.clone()),
+        )
+        .await;
+    let r = h.get(&held).await;
+    assert_eq!(r.outcome, "running", "{r:?}");
+    assert_eq!(r.output["reference"], format!("judgment:{held}"));
+    assert_eq!(outbox(&pool, ns).await, 5);
+    judge.release.notify_one();
+    let (outcome, output) = h.settled(&held).await;
+    assert_eq!(
+        (outcome.as_str(), &output["choice"]),
+        ("assessed", &json!("isolated"))
+    );
+    assert_eq!(judge.requests.lock().unwrap().len(), 6);
+    assert_eq!(outbox(&pool, ns).await, 6);
 
     // With no permitted credential profile the host refuses; it never asks
     // the playbook for one.
