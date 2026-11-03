@@ -2,6 +2,8 @@
 
 Task `steady-harbor-87.2.3`, based on the supervisor-authorized F1b checkpoint
 `b807f893fa50089c1b7108168a3a4a4faa5973aa` from `aq/steady-harbor-87.2`.
+The final merge of `origin/main` at `d616375f` retains reservation consumption as
+migration 0049 and advances this follow-up's revocation migration to 0050.
 
 ## Credential and reply transactions
 
@@ -20,13 +22,13 @@ mailbox writes. A stop, loss, replacement credential or successor between the
 first check and the write cannot admit a reply. After the second check, lifecycle
 and credential changes serialize after the protected transaction commits.
 
-Migration 0049 explicitly sets `revoked_at_ms` in the same transaction that changes
+Migration 0050 explicitly sets `revoked_at_ms` in the same transaction that changes
 a generation to an inactive phase. This includes stop requested, stop uncertain,
 stopped, cancelled before start, permit expiry and HostLost, regardless of whether
 the transition came through the host controller or the central owner. The first
 revocation timestamp is retained. The migration also revokes previously retained
 credentials whose generation is inactive or no longer current. The format version,
-readable formats and Docker default advance together to 49.
+readable formats and Docker default advance together to 50.
 
 ## Route integration contract
 
@@ -71,7 +73,7 @@ compilation and writes each check's exact Cargo output to
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Credential scopes, lifecycle, reply race, locks and upgrade | 5 passed | [credentials.txt](F1b-scope-evidence/credentials.txt) |
-| Central sessions and supervisor conversation | 15 passed | [area.txt](F1b-scope-evidence/area.txt) |
+| Central sessions, supervisor conversation and turn consumption | 20 passed | [area.txt](F1b-scope-evidence/area.txt) |
 | Host owner-message/reply acceptance | 1 passed | [acceptance_host.txt](F1b-scope-evidence/acceptance_host.txt) |
 | State-format/migration consistency | 1 passed | [format_version.txt](F1b-scope-evidence/format_version.txt) |
 | Rust formatting | Passed | [format.txt](F1b-scope-evidence/format.txt) |

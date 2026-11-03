@@ -359,6 +359,9 @@ async fn write(
         body_digest: body_digest.clone(),
     };
     link.validate().map_err(|_| invalid())?;
+    // Migration 49 consumes the associated reservation and clears its actor's
+    // current pointer in this transaction. Reply replay returns the original
+    // receipt above, so it cannot release a newer reservation.
     sqlx::query("INSERT INTO central_supervisor_replies(reply_message_id,reply_operation_id,dispatch_id,body_digest,association) VALUES($1,$2,$3,$4,$5)")
         .bind(request.message_id)
         .bind(request.operation_id)

@@ -128,7 +128,7 @@ impl Fixture {
 
 #[tokio::test]
 async fn supervisor_credential_scopes_are_required_for_each_operation() {
-    let f = Fixture::new(49).await;
+    let f = Fixture::new(50).await;
     let token = f.token().await;
     for scope in SCOPES {
         assert!(
@@ -172,7 +172,7 @@ async fn supervisor_credential_scopes_are_required_for_each_operation() {
 #[tokio::test]
 async fn supervisor_credentials_revoke_on_stop_loss_and_expiry() {
     for end in ["stop", "lost", "expiry"] {
-        let f = Fixture::new(49).await;
+        let f = Fixture::new(50).await;
         let token = f.token().await;
         let (event, at) = match end {
             "stop" => (
@@ -215,7 +215,7 @@ async fn supervisor_credentials_revoke_on_stop_loss_and_expiry() {
 
 #[tokio::test]
 async fn supervisor_reply_rechecks_lifecycle_and_token_inside_write() {
-    let f = Fixture::new(49).await;
+    let f = Fixture::new(50).await;
     let token = f.token().await;
     let principal = authenticate(&f.pool, &token, "messaging", 2000)
         .await
@@ -249,7 +249,7 @@ async fn supervisor_reply_rechecks_lifecycle_and_token_inside_write() {
 
 #[tokio::test]
 async fn supervisor_write_authentication_holds_lifecycle_and_credential_locks() {
-    let f = Fixture::new(49).await;
+    let f = Fixture::new(50).await;
     let token = f.token().await;
     let mut tx = f.pool.begin().await.unwrap();
     authenticate_in_transaction(&f.pool, &mut tx, &token, "messaging", 2000)

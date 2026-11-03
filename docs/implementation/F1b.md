@@ -73,8 +73,8 @@ acceptance test fail at `supervisor_session.rs:886` (left `"pending"`, right
 ## Known limits (follow-ups)
 
 - One turn per generation (`UNIQUE(actor_id, generation)`): a second owner
-  message needs a successor generation. Reservation consumption after a turn
-  is not implemented.
+  message needs a successor generation. A completed turn releases its
+  reservation; see [F1b-reservation-consumption.md](F1b-reservation-consumption.md).
 - Credential lifecycle and authenticate/write races are addressed by
   `steady-harbor-87.2.3`; see [F1b-scopes.md](F1b-scopes.md) for explicit
   transactional revocation and the reply write check.

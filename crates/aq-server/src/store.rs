@@ -297,7 +297,11 @@ const MIGRATIONS: &[(i32, &str)] = &[
     ),
     (
         49,
-        include_str!("../migrations/0049_supervisor_credential_revocation.sql"),
+        include_str!("../migrations/0049_supervisor_reservation_consumption.sql"),
+    ),
+    (
+        50,
+        include_str!("../migrations/0050_supervisor_credential_revocation.sql"),
     ),
 ];
 
@@ -482,7 +486,7 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         media36_storage_guard(&mut tx).await?;
     }
     if supported >= 37 {
-        central37::central37_storage_guard(&mut tx).await?;
+        central37::central37_storage_guard(&mut tx, supported).await?;
     }
     if supported == 38 {
         result38::validate(&mut tx).await?;
