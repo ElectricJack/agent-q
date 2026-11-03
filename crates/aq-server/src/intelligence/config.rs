@@ -51,6 +51,65 @@ pub struct IntelligenceConfig {
     pub credentials: Vec<CredentialConfig>,
     #[serde(default)]
     pub qualified_harnesses: Vec<InstalledHarness>,
+    /// Trusted accounting catalog (H2). Owner data only: workers never supply
+    /// source policy, namespace or parser priority. Excluded from the
+    /// selection registry digest, which covers credentials and harnesses.
+    #[serde(default)]
+    pub accounting: AccountingCatalog,
+}
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct AccountingCatalog {
+    #[serde(default)]
+    pub sources: Vec<SourcePolicy>,
+    #[serde(default)]
+    pub rate_cards: Vec<aq_accounting::pricing::RateCardRevision>,
+}
+/// Observation source policy for one (provider, harness) pair.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SourcePolicy {
+    pub provider: String,
+    pub harness: String,
+    pub reference: aq_accounting::wire::ArtifactRef,
+    pub layout: aq_accounting::Layout,
+    pub parsers: Vec<aq_accounting::reconcile::ParserAuthority>,
+}
+impl AccountingCatalog {
+    pub fn validate(&self) -> Result<(), String> {
+        if self.sources.len() > 32 {
+            return Err("too many accounting sources".into());
+        }
+        let mut keys = BTreeSet::new();
+        for s in &self.sources {
+            let policy = aq_accounting::reconcile::Policy {
+                reference: s.reference.clone(),
+                account_scope: aq_accounting::wire::Digest::of(b"validate"),
+                call_namespace: aq_accounting::wire::Digest::of(b"validate"),
+                provider: aq_accounting::wire::Text::new(&s.provider)
+                    .map_err(|_| "invalid accounting source provider")?,
+                layout: s.layout.clone(),
+                parsers: s.parsers.clone(),
+            };
+            if policy.validate().is_err()
+                || s.harness.is_empty()
+                || s.harness.len() > 512
+                || !keys.insert((s.provider.clone(), s.harness.clone()))
+            {
+                return Err("invalid or duplicate accounting source policy".into());
+            }
+        }
+        self.book().map(|_| ())
+    }
+    pub fn book(&self) -> Result<aq_accounting::pricing::RateCardBook, String> {
+        aq_accounting::pricing::RateCardBook::new(self.rate_cards.clone())
+            .map_err(|_| "invalid rate-card revisions".into())
+    }
+    pub fn source(&self, provider: &str, harness: &str) -> Option<&SourcePolicy> {
+        self.sources
+            .iter()
+            .find(|s| s.provider == provider && s.harness == harness)
+    }
 }
 impl IntelligenceConfig {
     pub fn validate(&self) -> Result<(), String> {
@@ -61,6 +120,7 @@ impl IntelligenceConfig {
         {
             return Err("invalid intelligence registry bounds/revision".into());
         }
+        self.accounting.validate()?;
         let mut keys = BTreeSet::new();
         for item in &self.credentials {
             let c = &item.credential;

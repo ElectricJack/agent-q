@@ -196,6 +196,7 @@ mod tests {
     }
     fn config(path: std::path::PathBuf, lease: &MaterialLease, node: Uuid) -> IntelligenceConfig {
         IntelligenceConfig {
+            accounting: Default::default(),
             revision: 1,
             credentials: vec![CredentialConfig {
                 kind: Default::default(),

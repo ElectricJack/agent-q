@@ -86,6 +86,7 @@ async fn seeded(transport_active: Option<bool>) -> (Fixture, OwnerSource) {
                 )),
             }],
         },
+        billing: None,
     };
     (f, source)
 }
@@ -933,4 +934,303 @@ async fn admitted_http_context_cannot_write_or_replay_after_credential_rotation(
         .await
         .unwrap();
     assert_eq!(counts(&f).await, (1, 1));
+}
+
+// H2: production usage accounting. The catalog, credential kind and rate cards
+// are owner configuration; the worker only supplies batches through the route.
+mod accounting {
+    use super::*;
+    use aq_accounting::{
+        Category,
+        pricing::{RateCard, RateCardRevision, Rule},
+    };
+    use aq_server::intelligence::config::{
+        AccountingCatalog, CredentialConfig, IntelligenceConfig, SourcePolicy,
+    };
+    use aq_server::observations::{budget, catalog};
+    use std::sync::Arc;
+
+    fn layout() -> Layout {
+        Layout {
+            policy: artifact("layout", b"layout"),
+            input_includes_cache_read: false,
+            input_includes_cache_write: false,
+            output_includes_reasoning: false,
+        }
+    }
+    fn card(f: &Fixture, revision: u64, input_rate: u64) -> RateCardRevision {
+        let reference = |r: u64| artifact(&format!("rate-card-r{r}"), b"rates");
+        RateCardRevision {
+            revision,
+            corrects: (revision > 1).then(|| reference(revision - 1)),
+            card: RateCard {
+                reference: reference(revision),
+                allocation_policy: artifact("allocation", b"per-call"),
+                currency: text("USD"),
+                provider: text(&f.selection.choice.provider),
+                model: text("model"),
+                layout: layout(),
+                rules: [
+                    (Category::Input, input_rate),
+                    (Category::Output, 15_000_000),
+                    (Category::CacheRead, 0),
+                    (Category::CacheWrite, 0),
+                    (Category::Reasoning, 0),
+                ]
+                .into_iter()
+                .map(|(category, rate)| Rule {
+                    category,
+                    subtract: vec![],
+                    microunits_per_million_tokens: rate,
+                })
+                .collect(),
+            },
+        }
+    }
+    fn install(f: &mut Fixture, kind: aq_selection::CredentialKind, cards: Vec<RateCardRevision>) {
+        let choice = &f.selection.choice;
+        let credential = aq_selection::AuthorizedCredential {
+            allowed_backends: aq_selection::default_allowed_backends(),
+            profile: choice.credential_profile.clone(),
+            provider: choice.provider.clone(),
+            account_reference: choice.account_reference.clone(),
+            endpoint_reference: choice.endpoint_reference.clone(),
+            revision: 1,
+            enabled: true,
+            provisionable: false,
+            material_owner: None,
+        };
+        let accounting = AccountingCatalog {
+            sources: vec![SourcePolicy {
+                provider: choice.provider.clone(),
+                harness: choice.harness.clone(),
+                reference: artifact("aq.accounting.source", b"catalog"),
+                layout: layout(),
+                parsers: vec![ParserAuthority {
+                    parser: artifact("parser", b"parser"),
+                    category_claim: artifact("parser", b"parser"),
+                    priority: 1,
+                    complete_accounting_evidence: Some(artifact(
+                        "synthetic-qualification",
+                        b"test-only",
+                    )),
+                }],
+            }],
+            rate_cards: cards,
+        };
+        let mut config = (*f.state.config).clone();
+        config.intelligence = Some(Arc::new(
+            IntelligenceConfig {
+                revision: 1,
+                credentials: vec![CredentialConfig {
+                    kind,
+                    allowed_backends: aq_selection::default_allowed_backends(),
+                    credential,
+                    allowed_node_ids: vec![],
+                    secret_file: None,
+                    delivery_mode: None,
+                }],
+                accounting,
+                ..Default::default()
+            }
+            .load()
+            .unwrap(),
+        ));
+        f.state.config = Arc::new(config);
+    }
+    fn call(source: &OwnerSource, sequence: u64, native: &str, input: u64) -> ObservationRecord {
+        let mut body = event(source, sequence, input).body;
+        if let ObservationKind::Usage { usage } = &mut body.kind {
+            usage.call.native_call_id = text(native);
+        }
+        ObservationRecord::seal(Uuid::new_v4(), body).unwrap()
+    }
+    async fn send(f: &Fixture, p: &Packet) -> StatusCode {
+        aq_server::build_worker_router(f.state.clone())
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/v1/worker/observations/batch")
+                    .header("content-type", "application/json")
+                    .header("authorization", format!("Bearer {}", f.credential))
+                    .body(Body::from(serde_json::to_vec(p).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap()
+            .status()
+    }
+    async fn costs(
+        f: &Fixture,
+        attempt: Uuid,
+    ) -> (Vec<Cost>, aq_lifecycle_api::AccountingCompleteness) {
+        let view = observations::inspection::usage(&f.state, f.actor, attempt)
+            .await
+            .unwrap();
+        view.validate().unwrap();
+        (view.usage.costs, view.usage.completeness)
+    }
+    fn estimate(f: &Fixture, revision: u64, amount: u64) -> Cost {
+        let c = card(f, revision, 0).card;
+        Cost::NonInvoiceEstimate {
+            amount_microunits: amount,
+            currency: text("USD"),
+            rate_card: c.reference,
+            basis: EstimateBasis::TokenRates,
+            allocation_policy: c.allocation_policy,
+        }
+    }
+    async fn policy_events(f: &Fixture, lineage: Uuid) -> i64 {
+        sqlx::query_scalar("SELECT count(*) FROM accounting_policy_events WHERE lineage_id=$1")
+            .bind(lineage)
+            .fetch_one(&f.db.pool().await)
+            .await
+            .unwrap()
+    }
+
+    #[tokio::test]
+    async fn attempt_usage_feeds_ledger_and_budget() {
+        let (mut f, _) = seeded(Some(true)).await;
+        let cards = vec![card(&f, 1, 3_000_000)];
+        install(&mut f, aq_selection::CredentialKind::ApiKey, cards);
+        let attempt = f.profiled.offer.binding.attempt_id;
+        let s = catalog::source_for_attempt(&f.state, attempt)
+            .await
+            .unwrap()
+            .expect("catalog covers the selected provider and harness");
+        assert_eq!(s.billing, Some(EstimateBasis::TokenRates));
+        assert_eq!(
+            s.account_claim.as_str(),
+            f.selection.choice.account_reference
+        );
+        // The production batch route registers the trusted source before ingest.
+        let first = packet(&f, vec![call(&s, 1, "call-1", 1000)]);
+        assert_eq!(send(&f, &first).await, StatusCode::OK);
+        assert_eq!(counts(&f).await, (1, 1));
+        // 1000 input x 3 + 4 output x 15 microunits per token, rounded up once.
+        let (got, completeness) = costs(&f, attempt).await;
+        assert_eq!(got, vec![estimate(&f, 1, 3060)]);
+        assert!(matches!(
+            completeness,
+            aq_lifecycle_api::AccountingCompleteness::CompleteForPolicy { .. }
+        ));
+        // An exact replay neither appends nor recounts.
+        assert_eq!(send(&f, &first).await, StatusCode::OK);
+        assert_eq!(counts(&f).await, (1, 1));
+        // A rate-card correction is a new revision; it re-prices, never adds.
+        let cards = vec![card(&f, 1, 3_000_000), card(&f, 2, 2_000_000)];
+        install(&mut f, aq_selection::CredentialKind::ApiKey, cards);
+        assert_eq!(costs(&f, attempt).await.0, vec![estimate(&f, 2, 2060)]);
+        let soft = budget::SoftCeiling {
+            limit_microunits: 2500,
+            currency: "USD".into(),
+        };
+        let lineage = s.binding.lineage_id;
+        let before = budget::lineage(&f.state, lineage, Some(&soft))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(before.spent_microunits, Some(2060));
+        assert_eq!(before.currency.as_deref(), Some("USD"));
+        assert_eq!(
+            before.accounting,
+            aq_selection::AccountingCompleteness::Complete
+        );
+        assert_eq!(policy_events(&f, lineage).await, 0);
+        // A retry shares the lineage: history it re-imports is not recounted
+        // and its new calls add to, never reset, the lineage spend.
+        let previous = s.clone();
+        successor(&mut f, &previous).await;
+        let next = f.profiled.offer.binding.attempt_id;
+        let s2 = catalog::source_for_attempt(&f.state, next)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_ne!(s2.source_id, s.source_id);
+        let retry = packet(
+            &f,
+            vec![call(&s2, 2, "call-1", 1000), call(&s2, 3, "call-2", 500)],
+        );
+        assert_eq!(send(&f, &retry).await, StatusCode::OK);
+        assert_eq!(costs(&f, attempt).await.0, vec![estimate(&f, 2, 2060)]);
+        assert_eq!(costs(&f, next).await.0, vec![estimate(&f, 2, 1060)]);
+        let after = budget::lineage(&f.state, lineage, Some(&soft))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(after.spent_microunits, Some(3120));
+        assert!(after.ledger_revision > before.ledger_revision);
+        // The soft ceiling is crossed once and emits exactly one policy event.
+        assert!(after.soft_ceiling_reached);
+        assert_eq!(policy_events(&f, lineage).await, 1);
+        budget::lineage(&f.state, lineage, Some(&soft))
+            .await
+            .unwrap();
+        assert_eq!(policy_events(&f, lineage).await, 1);
+        // No hard budget provider exists, so a requested hard ceiling is still
+        // refused by selection (hard_cost_enforcement_unqualified, 0004 §2.2).
+        assert!(after.snapshot().hard_budget_provider.is_none());
+        drop(f);
+    }
+
+    #[tokio::test]
+    async fn flat_subscription_usage_is_labelled_not_costed() {
+        let (mut f, _) = seeded(Some(true)).await;
+        let cards = vec![card(&f, 1, 3_000_000)];
+        install(
+            &mut f,
+            aq_selection::CredentialKind::SubscriptionLogin,
+            cards,
+        );
+        let attempt = f.profiled.offer.binding.attempt_id;
+        let s = catalog::source_for_attempt(&f.state, attempt)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(s.billing, Some(EstimateBasis::SubscriptionAllocation));
+        let p = packet(&f, vec![call(&s, 1, "call-1", 1000)]);
+        assert_eq!(send(&f, &p).await, StatusCode::OK);
+        // Token usage is recorded in full...
+        let view = observations::inspection::usage(&f.state, f.actor, attempt)
+            .await
+            .unwrap();
+        assert_eq!(view.canonical_calls, 1);
+        assert_eq!(view.known_category_subtotals[0], 1000);
+        // ...but no rate card is pinned and nothing is charged at token rates.
+        let fact: Value =
+            sqlx::query_scalar("SELECT fact FROM observation_call_heads WHERE owner_attempt_id=$1")
+                .bind(attempt)
+                .fetch_one(&f.db.pool().await)
+                .await
+                .unwrap();
+        assert_eq!(fact["pricing_reference"], Value::Null);
+        assert_eq!(
+            view.usage.costs,
+            vec![Cost::Unknown {
+                reason: UnknownReason::NotApplicable
+            }]
+        );
+        assert!(!view.usage.costs.iter().any(|c| matches!(
+            c,
+            Cost::NonInvoiceEstimate {
+                basis: EstimateBasis::TokenRates,
+                ..
+            }
+        )));
+        let aq_lifecycle_api::AccountingCompleteness::Incomplete { reason } =
+            &view.usage.completeness
+        else {
+            panic!("subscription cost is labelled, not complete");
+        };
+        assert!(reason.as_str().contains("subscription"));
+        let lineage = budget::lineage(&f.state, s.binding.lineage_id, None)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_ne!(
+            lineage.accounting,
+            aq_selection::AccountingCompleteness::Complete
+        );
+        drop(f);
+    }
 }

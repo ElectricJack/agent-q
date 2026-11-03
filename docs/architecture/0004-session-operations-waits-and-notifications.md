@@ -359,6 +359,58 @@ Stall mechanics and wait lifetime stay in AQ; playbooks express escalation,
 reminder and digest policy using these services. No runner fork or duplicate
 transport/wait store is required.
 
+### 5.1 Playbook catalog profiles (as implemented)
+
+The embedded host registers a fixed, numbered catalog profile for each
+namespace. The playbooks config field `profile` selects it. A profile only ever
+adds contracts. An existing profile's registry and stored grants are never
+widened in place, so new contracts need a new profile number.
+
+| # | Config value | Registry |
+| --- | --- | --- |
+| 1 | — (not selectable in config) | Mail1: the `message.send` command and the `aq.operation.updated` v1 event (producer `aq.host.bridge@1`) |
+| 2 | `human_review_v2` | Mail1 plus the `decision.request` and `operation.get` commands and the `aq.decision.completed` v1 event (producer `aq.human.decisions@1`) |
+| 3 | `graph_events_v3` | HumanReview2 plus the `aq.graph.operation.confirmed` v1 event contract (D3) |
+
+The `aq.graph.operation.confirmed` v1 contract
+(`playbooks/review_domain.rs::graph_operation_event`) has:
+
+- trusted producer `aq.graph.operations@1`;
+- scope `project`;
+- correlation field `operation`;
+- payload `{operation_id, task_id, attempt_id}`, each a UUID string.
+
+Profiles 2 and 3 accept the same grant capabilities: `message.send`,
+`decision.request` and `operation.get`.
+
+**Graph-event collection (profile 3).** Each driver quantum seals at most two
+graph events into the engine's `playbook_outbox`. A row of `agent_graph_outbox`
+is eligible when it is undelivered, its operation is `confirmed`, and its
+launch binding matches the namespace's project and workspace. Rows already
+sealed for the namespace are skipped. Rows are taken in `operation_seq` order.
+Each event uses epoch 0, and its `event_id` is the graph outbox `event_id`.
+
+The driver collects only after an artifact that declares this exact contract
+is installed, because the engine refuses events whose contract no installed
+artifact declares. Runtime startup installs the configured deployments, so
+production sets this condition at boot.
+
+`agent_graph_outbox.delivered=true` is set only by `acknowledge_event`, in the
+same transaction that records the engine's durable acceptance (the engine ACK).
+A crash between the engine commit and the AQ ACK replays the same sealed event.
+The engine then answers `duplicate` for the same key,
+digest(producer, 0, event_id), so the workflow sees each event once.
+
+Two limits apply:
+
+- **Delivery is per event, not per namespace.** With two `graph_events_v3`
+  namespaces on one project, the first ACK marks the row delivered, and the
+  second namespace no longer collects it.
+- **A refused event stops the outbox page loop.** This is existing driver
+  behaviour.
+
+See the [D3 implementation notes](../implementation/D3.md).
+
 ## 6. Bounds and verification
 
 Publish negotiated record/batch sizes, per-session/per-node spool limits,

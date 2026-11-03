@@ -336,3 +336,19 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **B2 PR #35 failed to compile.** My last merge kept B2's older test, which calls `runtime::require_document`; main's `swift-willow-91` replaced that function with typed attempt extraction. Removed those calls (main's typed test covers batch scoping; `253f4e1`). CI is re-running.
   - Moved `clear-crest-61.2` (H2) and `steady-cascade-45.3` (G2) from Codex to Claude.
   - #37 (`bright-nexus-44`) is still being fixed. #36 and #38 have CI pending. B4 follow-ups are running.
+- **03:50 check.**
+  - **Main CI: `observations.rs:501`** `worker_route_requires_node_credentials_and_rejects_wrong_packet_scope` fails on main (403 vs 401) and on PRs #35, #36 and #38. Filed `clear-rapids-48` (standard-medium Claude).
+  - **My doc pushes were cancelling main CI** (W45). From now on, supervision-doc commits use `[skip ci]`.
+  - **`steady-harbor-87.2.4`:** the work is done (PR #38); it is held only on a close-pipeline stop. I will merge #38 once its pending checks match main, then close the task.
+  - **B4 migration collision:** B4 used 0050, the same as main. The supervisor reopened B4 to renumber; its follow-up `.4.2` is held. B4 should take 0052 or higher.
+  - #37 still overflows its stack; its task is working on it. Codex is at 94%.
+- **04:05 check.**
+  - **Merged B2** (aq-server PR #35, `620533f6`) after three migration renumbers and two operator merges. Its failures (the observations 403/401 test and update-lifecycle case 1) also fail on other branches. This ends the B2 migration race; B4 renumbers against main.
+  - Merged #38 (`steady-harbor-87.2.4`, `53912143`) and closed the task with `--done`.
+  - **Filed** `prime-dune-72` (update-lifecycle CI: the server container fails `docker compose up` in "case 1: first install of 0.1.0", on #35 and #37) and H2's cross-repo follow-up `swift-journey-80` (aq-worker H1 readers emit server-derived source_id). Both are standard-medium Claude.
+  - G2, H2 and C4 started. #37 (I0 server findings) still overflows its stack and is in progress; MS0 waits on it.
+- **04:50 check.**
+  - aq-worker main CI broken by a clippy lint from `swift-journey-80` (observations_tests.rs:589, `slice::from_ref`); reopened that task with the exact fix.
+  - Filed C4's cross-repo follow-up as `bold-ridge-78` (aq-worker): sandbox nodes report the template digest as InstalledHarness.environment.digest, plus exact harness versions.
+  - Moved `calm-delta-18.6.2`/`.3` (C4 follow-ups) and `clear-crest-61.2.1`/`.2` (H2 follow-ups) from Codex to Claude.
+  - `bright-nexus-44` found the #37 stack overflow root cause (large unoptimized future frames, not recursion) and is fixing it. `clear-rapids-48` (observations 403/401) is running. Disk is at 79%.

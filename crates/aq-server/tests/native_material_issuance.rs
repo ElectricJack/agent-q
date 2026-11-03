@@ -17,6 +17,7 @@ async fn selected_account_node_and_current_private_bytes_are_required() {
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
     let choice = &f.selection.choice;
     let registry = IntelligenceConfig {
+        accounting: Default::default(),
         revision: 1,
         credentials: vec![CredentialConfig {
             kind: Default::default(),
@@ -112,6 +113,7 @@ async fn restricted_backend_cannot_issue_material_lease() {
     for kind in [CredentialKind::ApiKey, CredentialKind::SubscriptionLogin] {
         let choice = &f.selection.choice;
         let registry = IntelligenceConfig {
+            accounting: Default::default(),
             revision: 1,
             credentials: vec![CredentialConfig {
                 kind,

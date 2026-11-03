@@ -14,6 +14,12 @@ unavailable with null binding in this foundation.
   Both are exclusive. `next_cursor` is the next before/after value when has_more;
   `through_cursor` records the observed latest admitted cursor. Maximum 256 KiB
   encoded response; a page may be shorter to fit. No reply is invented.
+  Owner items carry cursor `N` (their mailbox cursor). A supervisor reply carries
+  its own cursor `A.R`: `A` is the max cursor of the batch it answers and `R`
+  (positive) its reply-mailbox cursor. Items are ordered by `(N, 0)` / `(A, R)`,
+  so each reply follows the owner message it answers. `limit`, `has_more` and
+  `next_cursor` count replies like any other item, and `before`/`after` accept
+  either cursor form. `through_cursor` stays an owner-mailbox cursor.
 - POST the messages path: closed Create, all fields required. Body nonblank,
   at most 16384 UTF-8 bytes, no NUL. Whole literal JSON at most 131072 bytes.
   Context and attachments must both be empty arrays. Positive revision is a
