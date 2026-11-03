@@ -510,3 +510,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - D6 blocker: its three follow-ups (`crisp-meadow-36.7.1/.2/.3`) were filed as children and claimed by other workers. Reparented them to the root and told D6 to retry its close.
 - **15:50 after #2202.** 10 v2 tasks are in progress (up from 2 at 14:00): main-CI fix, G11 server contracts (Overview, Supervisor, Work), E5, two D6 follow-ups, two dashboard gap fixes, and the playbooks spec. D6 closed after the reparent.
   - Load is now 27 on 24 cores, mostly agents' parallel aq-server `rustc`/clippy builds plus three post-restart `git fsck --full` runs of the v1 repo. Cycles run 30–100 s under that load. Limits are now CPU and Claude usage (73%), not the scheduler.
+- **16:10 check.**
+  - D6 (`crisp-meadow-36.7`) and both main-CI fixes completed.
+  - **aq-dashboard:** merged PR #13 (Search and 426 fixtures aligned with the G3/G8 contracts). Its one failure, a SupervisorConversation 5 s timeout, was a CI flake that passed on rerun. Updated the gap-fix PRs #12 and #14–#17 onto the new main. #12 also breaks `Shell.test.tsx` on its own.
+  - **aq-server:** PR #56 (calm-current-41 main-CI fix) is waiting on CI.
+  - **Disk:** aq-server slot build caches reached 286 GB. Removed idle slot-1's 60 GB `target` (nothing was compiling there), leaving 179 GB free (82%). Logged as retro W53.
