@@ -851,3 +851,146 @@ mod definitions;
 
 #[path = "playbook_activation/catalog.rs"]
 mod catalog;
+
+/// Production Host7 construction: the configured owner binds the gateway
+/// work graph and leaves the check executor and judgment provider unbound,
+/// so both commands refuse with typed reasons and record no evidence.
+#[tokio::test]
+async fn host7_profile_starts_on_gateway_graph_with_unbound_check_and_judgment_ports() {
+    use aq_playbook_host::runner::{Intent, IntentStatus};
+    use aq_server::playbooks::review_domain::{CatalogProfile, HOST7_CAPABILITIES};
+    let s = setup().await;
+    let (head, _) = s.text.split_once("[[playbooks.deployments]]").unwrap();
+    let text = head.replace(
+        "profile=\"human_review_v2\"",
+        "profile=\"host_v7\"\ndeployments=[]",
+    );
+    let config: Config = toml::from_str(&text).unwrap();
+    let mut state = s.f.state.clone();
+    state.config = Arc::new(config);
+    let loaded = state.config.playbooks.clone().unwrap();
+    // Host7 needs the production work graph; without it startup refuses.
+    assert!(state.agent_access.is_none());
+    assert!(
+        aq_server::playbooks::runtime::Runtime::start(&state, loaded.clone())
+            .await
+            .is_err()
+    );
+    let token = s._dir.path().join("graph-token");
+    private(&token, "g".repeat(48));
+    state.agent_access = Some(Arc::new(
+        aq_server::agent_access::Runtime::new(&aq_server::agent_access::AgentAccessConfig {
+            graph_url: "http://127.0.0.1:9/".into(),
+            graph_token_file: token,
+            credential_ttl_ms: 10000,
+            mutation_actor_id: None,
+        })
+        .await
+        .unwrap(),
+    ));
+    let runtime = aq_server::playbooks::runtime::Runtime::start(&state, loaded)
+        .await
+        .unwrap();
+    let service = runtime.driver.service.clone();
+    runtime.shutdown().await.unwrap();
+
+    // Drive the production-constructed service directly under a fresh owner.
+    let pool = s.f.db.pool().await;
+    let revision: i64 = sqlx::query_scalar(
+        "SELECT runtime_revision FROM playbook_namespaces WHERE namespace_id=$1",
+    )
+    .bind(s.namespace)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let owner = service
+        .adopt_runtime(Uuid::new_v4(), revision)
+        .await
+        .unwrap();
+    let l = &s.f.selection.lineage;
+    let scope = GrantScope {
+        workspace_id: l.workspace_id,
+        project_id: l.project_id,
+        recipients: vec![],
+        capabilities: BTreeSet::from(HOST7_CAPABILITIES.map(String::from)),
+    };
+    let now = (state.clock)().timestamp_millis();
+    service
+        .grant(s.f.actor, s.grant, scope.clone(), now + 10_000)
+        .await
+        .unwrap();
+    let intent = |id: &str, name: &str, input: Value| Intent {
+        id: id.into(),
+        run: "synthetic-run".into(),
+        step: name.replace('.', "-"),
+        invocation: 1,
+        deadline_at_ms: now + 5000,
+        command: CatalogProfile::Host7.registry().commands[name].clone(),
+        input_digest: aq_server::playbooks::domain::digest(&input).unwrap(),
+        input,
+        authority: CatalogProfile::Host7.authority(s.grant, 1, &scope).unwrap(),
+        status: IntentStatus::Dispatched,
+        cancel_requested: false,
+        cancel_dispatched: false,
+        handle: None,
+        result: None,
+        reason: None,
+        late_results: vec![],
+        completion_event: None,
+    };
+    // Subjects are not graph node ids, so no graph call is made.
+    let subject = json!({"id": "work-1", "revision": 1});
+    let check = json!({"check": {"id": "unit", "validator": {"id": "aq.check.cargo-test",
+            "version": "1.0.0", "digest": format!("sha256:{}", "1".repeat(64))}},
+        "source": {"format": "sha1", "hex": "0123456789abcdef0123456789abcdef01234567"},
+        "subject": subject});
+    let r = service
+        .host_dispatch(
+            &owner,
+            s.grant,
+            1,
+            &intent("check-1", "check.request", check),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        (
+            r.outcome.as_str(),
+            &r.output["reason"],
+            &r.output["disposition"]
+        ),
+        ("refused", &json!("unavailable"), &Value::Null),
+        "{r:?}"
+    );
+    let judgment = json!({"budget": {"deadline_ms": 60000, "max_cost_microunits": 50000,
+            "max_input_tokens": 8192, "max_output_tokens": 512},
+        "context": {"artifacts": [{"digest": format!("sha256:{}", "a".repeat(64)),
+            "id": "snapshot-1", "version": "1"}], "text": "Work item summary."},
+        "output": {"choices": ["permitted-default", "isolated"], "rationale_max_bytes": 2048},
+        "question": "fits?", "subject": subject});
+    let r = service
+        .host_dispatch(
+            &owner,
+            s.grant,
+            1,
+            &intent("judge-1", "judgment.request", judgment),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        (
+            r.outcome.as_str(),
+            &r.output["reason"],
+            &r.output["provenance"]
+        ),
+        ("refused", &json!("no_permitted_profile"), &Value::Null),
+        "{r:?}"
+    );
+    // Refusals fabricate no check evidence.
+    let evidence: i64 = sqlx::query_scalar("SELECT count(*) FROM profiled_check_evidence")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(evidence, 0);
+    service.retire_runtime(&owner).await.unwrap();
+}
