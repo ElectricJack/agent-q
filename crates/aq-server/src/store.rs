@@ -300,6 +300,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         include_str!("../migrations/0049_supervisor_reservation_consumption.sql"),
     ),
     (50, include_str!("../migrations/0050_delegated_permits.sql")),
+    (
+        51,
+        include_str!("../migrations/0051_supervisor_credential_revocation.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
