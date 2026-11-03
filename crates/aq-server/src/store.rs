@@ -328,8 +328,15 @@ const MIGRATIONS: &[(i32, &str)] = &[
         57,
         include_str!("../migrations/0057_observation_source_generations.sql"),
     ),
-    (58, include_str!("../migrations/0058_notification_policy.sql")),
+    (
+        58,
+        include_str!("../migrations/0058_notification_policy.sql"),
+    ),
     (59, include_str!("../migrations/0059_auto_settlement.sql")),
+    (
+        60,
+        include_str!("../migrations/0060_notification_sources_gc.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.

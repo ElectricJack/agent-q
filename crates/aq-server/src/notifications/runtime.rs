@@ -16,11 +16,11 @@ pub async fn run(
     let mut interval = tokio::time::interval(Duration::from_millis(250));
     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut last_warning = std::time::Instant::now() - Duration::from_secs(30);
-    // F4 flood summaries: SQL-only, bounded, and never holds dispatch capacity.
+    // Bounded producer observations and summaries never hold dispatch capacity.
     let policy = super::policy::Policy::new(service.clone());
     let mut flush = tokio::time::interval(Duration::from_secs(5));
     flush.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
-    let mut flushing: Option<tokio::task::JoinHandle<()>> = None;
+    let mut flushing: Option<tokio::task::JoinHandle<bool>> = None;
     loop {
         if *shutdown.borrow() {
             break;
@@ -42,9 +42,29 @@ pub async fn run(
             }
             _=flush.tick()=>{
                 if flushing.as_ref().is_none_or(|h|h.is_finished()) {
+                    if let Some(handle)=flushing.take() {
+                        if !matches!(handle.await,Ok(true)) && last_warning.elapsed()>=Duration::from_secs(30) {
+                            last_warning=std::time::Instant::now();
+                            tracing::warn!("notification policy deferred; retained sources will retry");
+                        }
+                    }
                     let policy=policy.clone();
+                    let state=state.clone();
                     flushing=Some(tokio::spawn(async move {
-                        let _=tokio::time::timeout(Duration::from_secs(10),policy.flush()).await;
+                        tokio::time::timeout(Duration::from_secs(15),async {
+                            // Independent sources cannot block one another or
+                            // occupy execution/dispatch slots. Retry next tick.
+                            let mut ok=true;
+                            ok &= policy.retry_pending().await.is_ok();
+                            ok &= policy.reconcile_reviews().await.is_ok();
+                            let groups=serde_json::to_value(&state.config.projects.worker_groups).unwrap_or_default();
+                            ok &= policy.reconcile_workers(state.config.workers.offline_after_secs,groups).await.is_ok();
+                            ok &= policy.reconcile_tasks().await.is_ok();
+                            ok &= policy.flush().await.is_ok();
+                            ok &= policy.garbage_collect().await.is_ok();
+                            ok &= policy.reconcile_graph(&state).await.is_ok();
+                            ok
+                        }).await.unwrap_or(false)
                     }));
                 }
             }

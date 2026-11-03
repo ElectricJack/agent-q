@@ -4,6 +4,7 @@ pub mod config;
 pub mod persistence;
 pub mod policy;
 pub mod runtime;
+pub mod sources;
 use axum::{
     Json,
     http::StatusCode,

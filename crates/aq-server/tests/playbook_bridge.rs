@@ -1285,3 +1285,57 @@ async fn outbox_replay_delivers_each_event_once() {
     assert_eq!(count(&e, "playbook_outbox").await, 1);
     driver.stop().await.unwrap();
 }
+
+#[tokio::test]
+async fn notification_outbox_replays_frozen_projection_independently_of_engine_ack() {
+    use aq_server::notifications::{api, policy::Policy, sources::milestone_events};
+    let e = setup_with(true).await;
+    let pool = e.f.db.pool().await;
+    let scope = aq_lifecycle_api::Scope {
+        project_id: e.f.selection.lineage.project_id,
+        workspace_id: e.f.selection.lineage.workspace_id,
+    };
+    sqlx::query("INSERT INTO project_execution_bindings(project_id,revision,binding,validated_at_ms,binding_observation) VALUES($1,1,$2,1,'{}') ON CONFLICT(project_id) DO UPDATE SET binding=project_execution_bindings.binding || EXCLUDED.binding")
+        .bind(scope.project_id).bind(json!({"project_id":scope.project_id,"enabled":true,"graph_workspace_id":scope.workspace_id})).execute(&pool).await.unwrap();
+    let (operation, source) = (Uuid::new_v4(), Uuid::new_v4());
+    sqlx::query("INSERT INTO agent_graph_operations(operation_id,attempt_id,node_id,request,payload_digest,mapped,policy,status,phase,created_at_ms,retained_bytes) VALUES($1,$2,$3,'{}','d3','{}','{}','{}','confirmed',0,0)")
+        .bind(operation).bind(e.attempt).bind(e.f.node.node_id).execute(&pool).await.unwrap();
+    // Projection fixture stands for an already validated Graph ready response.
+    // Mark engine delivery first: notification fanout must still consume it.
+    let events = milestone_events(
+        source,
+        scope,
+        &[json!({"id":Uuid::new_v4(),"labels":["aq:milestone-gate"]})],
+    )
+    .unwrap();
+    sqlx::query("INSERT INTO agent_graph_outbox(event_id,operation_id,kind,payload,delivered,notification_events) VALUES($1,$2,'graph.operation_confirmed','{}',TRUE,$3)")
+        .bind(source).bind(operation).bind(json!(events)).execute(&pool).await.unwrap();
+    let service = api::service(&e.f.state);
+    service.install(Uuid::new_v4()).await.unwrap();
+    let policy = Policy::new(service);
+    assert_eq!(policy.reconcile_graph(&e.f.state).await.unwrap(), 1);
+    assert_eq!(policy.reconcile_graph(&e.f.state).await.unwrap(), 0);
+    // Crash after policy commit but before source ACK: exact events replay.
+    sqlx::query("UPDATE agent_graph_outbox SET notification_observed=FALSE WHERE event_id=$1")
+        .bind(source)
+        .execute(&pool)
+        .await
+        .unwrap();
+    assert_eq!(policy.reconcile_graph(&e.f.state).await.unwrap(), 1);
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>("SELECT count(*) FROM notification_messages")
+            .fetch_one(&pool)
+            .await
+            .unwrap(),
+        1
+    );
+    let row = sqlx::query(
+        "SELECT delivered,notification_observed FROM agent_graph_outbox WHERE event_id=$1",
+    )
+    .bind(source)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert!(row.get::<bool, _>("delivered"));
+    assert!(row.get::<bool, _>("notification_observed"));
+}

@@ -3,6 +3,8 @@
 #[path = "profiled_results/cancellation.rs"]
 mod cancellation;
 mod common;
+#[path = "profiled_results/notification_sources.rs"]
+mod notification_sources;
 use aq_admission::{
     execution_spec::ProfiledExecutionSpec,
     transport::{self, ResultReport},
