@@ -713,3 +713,94 @@ fn native_policy_binding_does_not_allow_rehashed_instruction_or_permission_forge
     input.compositions[0].digest = digest(&input.compositions[0].composition).unwrap();
     assert!(select(&catalog, &input).is_err());
 }
+
+#[test]
+fn credential_restricted_backend_is_ineligible() {
+    let (catalog, mut input) = fixture();
+    input.node.backend_kind = Some(BackendKind::Boat);
+    for credential in &mut input.credentials {
+        credential.allowed_backends = vec![BackendKind::DockerLocal];
+    }
+    let out = select(&catalog, &input).unwrap();
+    assert!(out.resolved.is_none());
+    assert!(
+        out.traces
+            .iter()
+            .all(|t| t.state == CandidateState::PolicyDenied)
+    );
+    assert!(
+        out.traces[0]
+            .reason_codes
+            .contains(&"credential_backend_not_allowed".into())
+    );
+
+    input.node.backend_kind = None;
+    let out = select(&catalog, &input).unwrap();
+    assert!(out.resolved.is_none());
+    assert!(
+        out.traces[0]
+            .reason_codes
+            .contains(&"credential_backend_unknown".into())
+    );
+
+    input.node.backend_kind = Some(BackendKind::DockerLocal);
+    assert!(select(&catalog, &input).unwrap().resolved.is_some());
+
+    for credential in &mut input.credentials {
+        credential.allowed_backends = default_allowed_backends();
+    }
+    input.node.backend_kind = None;
+    assert!(select(&catalog, &input).unwrap().resolved.is_some());
+    for backend in default_allowed_backends() {
+        input.node.backend_kind = Some(backend);
+        assert!(select(&catalog, &input).unwrap().resolved.is_some());
+    }
+    for credential in &mut input.credentials {
+        credential.allowed_backends.clear();
+    }
+    assert!(select(&catalog, &input).unwrap().resolved.is_none());
+}
+
+#[test]
+fn credential_backend_denial_obeys_explicit_fallback_policy() {
+    let (catalog, mut input) = fixture();
+    input.credentials[0].allowed_backends = vec![BackendKind::DockerLocal];
+    input.node.backend_kind = Some(BackendKind::Boat);
+    let out = select(&catalog, &input).unwrap();
+    assert_eq!(out.traces[0].state, CandidateState::PolicyDenied);
+    assert_eq!(out.resolved.unwrap().choice.model, "model-b");
+    let mut policy = policy();
+    policy
+        .fallback_on
+        .retain(|r| *r != FallbackReason::PolicyDenied);
+    let catalog = change_policy(&catalog, policy, &mut input);
+    let out = select(&catalog, &input).unwrap();
+    assert!(out.resolved.is_none());
+    assert!(out.reason_codes.contains(&"no_permitted_fallback".into()));
+}
+
+#[test]
+fn credential_backend_snapshot_validation_and_legacy_defaults() {
+    let (catalog, mut input) = fixture();
+    let encoded = serde_json::to_value(&input).unwrap();
+    assert!(encoded["node"].get("backend_kind").is_none());
+    assert!(encoded["credentials"][0].get("allowed_backends").is_none());
+    let decoded: SelectionInputs = serde_json::from_value(encoded.clone()).unwrap();
+    assert_eq!(decoded.node.backend_kind, None);
+    assert_eq!(
+        decoded.credentials[0].allowed_backends,
+        default_allowed_backends()
+    );
+    for (field, value) in [
+        ("backend_kind", serde_json::json!("unknown")),
+        ("backend_kind", serde_json::json!("x".repeat(513))),
+    ] {
+        let mut unknown = encoded.clone();
+        unknown["node"][field] = value;
+        assert!(serde_json::from_value::<SelectionInputs>(unknown).is_err());
+    }
+    for backends in [vec![BackendKind::Boat; 2], vec![BackendKind::Boat; 4]] {
+        input.credentials[0].allowed_backends = backends;
+        assert!(select(&catalog, &input).is_err());
+    }
+}

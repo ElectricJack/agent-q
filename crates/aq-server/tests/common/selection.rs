@@ -378,6 +378,8 @@ pub async fn selection_fixture() -> SelectionFixture {
         .map(|mut c| {
             c.provisionable = false;
             CredentialConfig {
+                kind: Default::default(),
+                allowed_backends: aq_selection::default_allowed_backends(),
                 credential: c,
                 allowed_node_ids: vec![env.node],
                 secret_file: Some(key.clone()),
@@ -394,6 +396,8 @@ pub async fn selection_fixture() -> SelectionFixture {
     unrelated.provider = "unrelated-provider".into();
     unrelated.account_reference = "unrelated-account".into();
     configured.push(CredentialConfig {
+        kind: Default::default(),
+        allowed_backends: aq_selection::default_allowed_backends(),
         credential: unrelated.clone(),
         allowed_node_ids: vec![],
         secret_file: Some(key.clone()),
