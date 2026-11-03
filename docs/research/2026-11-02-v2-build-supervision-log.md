@@ -180,3 +180,37 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - `native_accepted_preparation`, if it still fails.
   - `sharp-harbor-18` stalled and was returned to READY by the reconciler.
   - The D1a reviewer is running. aq-server #26 (F1a) and aq-worker #26 have checks pending.
+- **23:10 check.**
+  - **D1a review** (`rev-steady-dune`): the reviewer found and reproduced a real blocker. A publish error that is not explicitly flagged uncertain releases the destination hold, so a new operation can re-publish to the same target, which breaks at-most-once.
+    - Requested changes: fold in that finding plus a one-line doc fix; four nits become a follow-up. Revision task `crisp-meadow-36.15` is at standard-high.
+  - **F1a:** its only gate is review `rev-nimble-horizon`, which had no reviewer. Dispatched `wise-summit-84`, pinned to Claude standard-high.
+  - **B2:** the child merge conflict with main (both added migration 45) made B2 unstartable. I merged main into `aq/noble-summit-37.2` and renumbered B2's migration to 0046 and the state format to 46 (`787ef68`). Released the hold and reopened B2 with verification instructions (W41).
+  - **`sharp-harbor-18`:** answered the three owner decisions the supervisor had forwarded (operator under overnight delegation, owner may override). Choices:
+    - (a) a separate stack generator in aq-worker on a fresh Compose project;
+    - (b) enroll a fresh node;
+    - (c) the 3 measurements in the I0 image with a clean CODEX_HOME.
+    Released the hold and reopened it. My monitor had missed this message (W42); its filter is widened.
+  - **Filed C7's cross-repo follow-up** as `sound-vault-88` (E1d, the aq-worker-boat Compose service). It waits on E1c and C7; MS3 waits on it.
+  - **Merged:** aq-worker #26 (`e833abea`), aq-dashboard #7 (`079b9ee1`), aq-graph #3 (`11d779d6`), aq-git #5 (`07d72677`). aq-server #27 waits for its tests job.
+  - Started: C7, E6a and B6a2.
+- **23:25 check.**
+  - **F1a review** (`rev-nimble-horizon`): no blocking findings. I approved with `follow_up` dispositions for the nits, but v1 forced them to `fold_in` because the comment text matched its prerequisite regex. This is a second form of W37, and I did not gate on the preview's effective option.
+    - Narrowed the resulting revision `steady-harbor-87.8` to the SIGTERM/STOPSIGNAL fix (as shipped, every `docker stop` SIGKILLs the guardian) plus the one-sentence crash-window documentation.
+    - Filed the remaining nits as `quick-flare-47` (standard-medium, after F1a).
+  - **D1a:** revision `crisp-meadow-36.15` produced aq-server PR #28 (keep unknown publish outcomes fenced); I will decide r2 when it is resubmitted.
+  - The supervisor also filed `sharp-pinnacle-28` for B2's merge conflict, duplicating my `787ef68`. `--obsolete` failed with "could not stop the writer", so I messaged the worker to close without changes.
+  - Routed B6a2's cross-repo requirement (runner HTTP envelopes and receipt fixtures) to B2 by message and comment; B2 is running.
+  - Merged aq-server #27 (`99fa8d86`), aq-playbooks #4 (`56236d40`) and aq-dashboard #8 (`e6a2a285`). aq-dashboard main CI is green.
+- **23:40 check.**
+  - **D1a done.** Review `rev-steady-dune` r3 approved (preview gated on `approve`; deferred nits marked `no_change`). The fix fails closed: a dispatched publish hold is released only on validated success or an explicit `Failed` state without uncertainty flags, with a regression test.
+    - Filed the nits as `clear-meadow-17` (standard-medium).
+    - Closed PR #28 as superseded; the revision task and D1a itself both fixed it (W43). PR #29 merges when its tests job finishes.
+    - The D1a task is COMPLETED.
+  - **B2 owner decision** (renewal after a new boot), decided as operator; the owner may override. Option A:
+    - grant history stays bound to the original boot;
+    - a new delegated-node incarnation fences the old boot;
+    - renewal uses only the grant, cancellation and the unchanged hard deadline (120 s lease);
+    - fail closed if the re-registered backend, template or capabilities differ;
+    - no new native authority seam.
+  - F1a is running again, with its revision (`steady-harbor-87.8`, PR #30). B6c started.
+  - The paused duplicates `sharp-pinnacle-28` and `agile-torrent-31` cannot be closed ("could not stop the writer"); left paused.
