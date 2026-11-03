@@ -804,3 +804,110 @@ fn credential_backend_snapshot_validation_and_legacy_defaults() {
         assert!(select(&catalog, &input).is_err());
     }
 }
+fn sandbox_placement(input: &SelectionInputs, harness_version: &str) -> Placement {
+    let template = input.node.harnesses[0].environment.digest.clone();
+    Placement {
+        capabilities: vec!["vm-isolation".into()],
+        required_capabilities: vec![],
+        templates: vec![AdvertisedTemplate {
+            digest: template.clone(),
+            harnesses: vec![AdvertisedHarness {
+                harness: "codex".into(),
+                version: harness_version.into(),
+            }],
+        }],
+        environment_templates: vec![EnvironmentTemplate {
+            environment: "confined-worktree".into(),
+            template,
+        }],
+        ceiling: None,
+        preferred_peer: None,
+    }
+}
+fn all_traces_refuse(out: &SelectionOutcome, state: CandidateState, reason: &str) {
+    assert!(out.resolved.is_none());
+    assert!(!out.traces.is_empty());
+    for trace in &out.traces {
+        assert_eq!(trace.state, state, "{trace:?}");
+        assert!(trace.reason_codes.contains(&reason.into()), "{trace:?}");
+    }
+}
+#[test]
+fn template_missing_selected_harness_version_is_ineligible() {
+    let (catalog, mut input) = fixture();
+    input.placement = Some(sandbox_placement(&input, "fixture-1"));
+    let selected = select(&catalog, &input).unwrap().resolved.unwrap();
+    assert_eq!(
+        selected.choice.environment.digest,
+        input.placement.as_ref().unwrap().environment_templates[0].template,
+        "the frozen environment pin is the resolved template digest"
+    );
+    input.placement = Some(sandbox_placement(&input, "fixture-2"));
+    let out = select(&catalog, &input).unwrap();
+    all_traces_refuse(
+        &out,
+        CandidateState::Unsupported,
+        "template_missing_selected_harness_version",
+    );
+    let mut placement = sandbox_placement(&input, "fixture-1");
+    placement.environment_templates.clear();
+    input.placement = Some(placement);
+    let out = select(&catalog, &input).unwrap();
+    all_traces_refuse(
+        &out,
+        CandidateState::Unsupported,
+        "environment_template_unresolved",
+    );
+    let mut placement = sandbox_placement(&input, "fixture-1");
+    placement.environment_templates[0].template = Digest::of(b"other-template");
+    input.placement = Some(placement);
+    let out = select(&catalog, &input).unwrap();
+    all_traces_refuse(
+        &out,
+        CandidateState::Unsupported,
+        "environment_template_digest_mismatch",
+    );
+    let mut placement = sandbox_placement(&input, "fixture-1");
+    placement.templates.clear();
+    input.placement = Some(placement);
+    let out = select(&catalog, &input).unwrap();
+    all_traces_refuse(&out, CandidateState::Unsupported, "template_not_advertised");
+    let mut placement = sandbox_placement(&input, "fixture-1");
+    placement.required_capabilities = vec!["nested-docker".into()];
+    input.placement = Some(placement);
+    let out = select(&catalog, &input).unwrap();
+    all_traces_refuse(
+        &out,
+        CandidateState::Unsupported,
+        "required_backend_capability_unsupported",
+    );
+}
+#[test]
+fn node_at_spend_ceiling_refuses_with_reason_in_trace() {
+    let (catalog, mut input) = fixture();
+    for (ceiling, reason) in [
+        (NodeCeiling::Spend, "node_spend_ceiling_reached"),
+        (NodeCeiling::Concurrency, "node_concurrency_ceiling_reached"),
+        (NodeCeiling::SpendUnaccounted, "node_spend_unaccounted"),
+    ] {
+        let mut placement = sandbox_placement(&input, "fixture-1");
+        placement.ceiling = Some(ceiling);
+        input.placement = Some(placement);
+        let out = select(&catalog, &input).unwrap();
+        all_traces_refuse(&out, CandidateState::Unavailable, reason);
+    }
+    let mut placement = sandbox_placement(&input, "fixture-1");
+    placement.preferred_peer = Some(BackendKind::DockerLocal);
+    input.placement = Some(placement);
+    let out = select(&catalog, &input).unwrap();
+    all_traces_refuse(
+        &out,
+        CandidateState::Unavailable,
+        "placement_preferred_backend_available",
+    );
+    // Old persisted inputs without placement still deserialize.
+    let mut json = serde_json::to_value(&input).unwrap();
+    json.as_object_mut().unwrap().remove("placement");
+    let old: SelectionInputs = serde_json::from_value(json).unwrap();
+    assert!(old.placement.is_none());
+}
