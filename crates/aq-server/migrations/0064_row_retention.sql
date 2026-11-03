@@ -55,4 +55,4 @@ CREATE TRIGGER observation_packet_immutable BEFORE UPDATE OR DELETE ON observati
 CREATE INDEX retention_tasks_oldest_check ON retention_tasks(checked_at_ms);
 CREATE INDEX retention_observation_age ON observation_events(recorded_at_ms);
 CREATE INDEX retention_mail_age ON mailbox_messages(created_at_ms);
-UPDATE meta SET value='63' WHERE key='state_format_version';
+UPDATE meta SET value='64' WHERE key='state_format_version';
