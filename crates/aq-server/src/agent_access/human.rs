@@ -103,6 +103,14 @@ pub fn routes(state: &AppState) -> Router<AppState> {
             "/api/human/projects/{project}/knowledge/{node}",
             get(document),
         )
+        .route(
+            "/api/human/projects/{project}/knowledge/{node}/relationships",
+            get(relationships),
+        )
+        .route(
+            "/api/human/projects/{project}/knowledge/{node}/revisions",
+            get(revisions),
+        )
         .layer(Extension(runtime.clone()))
         .layer(middleware::from_fn_with_state(runtime, gate))
 }
@@ -384,8 +392,10 @@ async fn list(
     project: Uuid,
     page: Page,
     kind: &str,
+    count: bool,
 ) -> Result<Json<Envelope>> {
     let limit = page.limit.unwrap_or(25);
+    let count = count && page.cursor.is_none();
     if !(1..=64).contains(&limit)
         || page.q.as_ref().is_some_and(|q| {
             q.trim().is_empty() || q.len() > 256 || q.chars().any(char::is_control)
@@ -448,7 +458,69 @@ async fn list(
         Some(c) => Some(r.cursors.encode(&binding, c, stamp(state))?),
         None => None,
     };
-    finish(state, r, a, json!({"items":items,"next_cursor":next})).await
+    let mut data = json!({"items":items,"next_cursor":next});
+    if count {
+        data["total"] = total(
+            runtime(state)?,
+            binding.workspace,
+            kind,
+            binding.q.as_deref(),
+        )
+        .await;
+    }
+    finish(state, r, a, data).await
+}
+/// Bounded filtered count for the first page. Graph has no count endpoint, so AQ
+/// enumerates at most four 200-node pages within 1.5 s. A failure or an exceeded
+/// bound is reported as unknown, never as zero, and never fails the list read.
+async fn total(rt: &Runtime, w: Uuid, kind: &str, q: Option<&str>) -> Value {
+    let count = async {
+        let endpoint = if q.is_some() { "search" } else { "nodes" };
+        let mut seen = std::collections::BTreeSet::new();
+        let mut cursor: Option<String> = None;
+        for page in 0..4 {
+            let mut query = vec![
+                ("kind".to_owned(), kind.to_owned()),
+                ("limit".to_owned(), "200".to_owned()),
+            ];
+            if let Some(c) = &cursor {
+                query.push(("cursor".into(), c.clone()))
+            }
+            if let Some(q) = q {
+                query.push(("q".into(), q.into()))
+            }
+            let raw = rt
+                .human_get(&format!("/v1/workspaces/{w}/{endpoint}"), &query, 4_194_304)
+                .await
+                .ok()?;
+            if !contract::upstream_valid("NodePage", &raw) {
+                return None;
+            }
+            for item in raw["items"].as_array()? {
+                if item["workspace_id"] != json!(w)
+                    || item["kind"] != kind
+                    || item["deleted"] != false
+                {
+                    return None;
+                }
+                if !seen.insert(item["id"].as_str()?.to_owned()) {
+                    return None;
+                }
+            }
+            match raw["next_cursor"].as_str() {
+                None => return Some((seen.len(), page == 0)),
+                Some(c) => cursor = Some(c.to_owned()),
+            }
+        }
+        None
+    };
+    match tokio::time::timeout(Duration::from_millis(1500), count).await {
+        // One complete page is an exact snapshot; several pages may straddle writes.
+        Ok(Some((n, exact))) => {
+            json!({"value": n, "accuracy": if exact { "exact" } else { "estimated" }})
+        }
+        _ => json!({"value": null, "accuracy": "unknown"}),
+    }
 }
 /// Internal sanitized search adapter; retains the same owner and binding fences.
 pub(crate) async fn search_display(
@@ -473,6 +545,7 @@ pub(crate) async fn search_display(
             q: Some(q.into()),
         },
         kind,
+        false,
     )
     .await?;
     Ok(envelope.data)
@@ -485,7 +558,7 @@ async fn tasks(
     q: std::result::Result<Query<Page>, axum::extract::rejection::QueryRejection>,
 ) -> Result<Json<Envelope>> {
     let Query(q) = q.map_err(|_| invalid())?;
-    list(&s, &r, u, p, q, "task").await
+    list(&s, &r, u, p, q, "task", false).await
 }
 async fn knowledge(
     State(s): State<AppState>,
@@ -495,7 +568,7 @@ async fn knowledge(
     q: std::result::Result<Query<Page>, axum::extract::rejection::QueryRejection>,
 ) -> Result<Json<Envelope>> {
     let Query(q) = q.map_err(|_| invalid())?;
-    list(&s, &r, u, p, q, "knowledge").await
+    list(&s, &r, u, p, q, "knowledge", true).await
 }
 async fn detail(
     s: &AppState,
@@ -607,27 +680,7 @@ async fn graph(
             truncated = true;
             continue;
         }
-        let mut e = serde_json::Map::new();
-        for k in ["id", "source", "target", "edge_type", "description"] {
-            e.insert(k.into(), edge[k].clone());
-        }
-        for k in ["version", "source_revision", "target_revision"] {
-            e.insert(
-                k.into(),
-                if edge[k].is_null() && k != "version" {
-                    Value::Null
-                } else {
-                    json!(
-                        edge[k]
-                            .as_u64()
-                            .filter(|n| *n > 0)
-                            .ok_or_else(unavailable)?
-                            .to_string()
-                    )
-                },
-            );
-        }
-        edges.push(Value::Object(e));
+        edges.push(project_edge(edge)?);
     }
     finish(
         &s,
@@ -636,4 +689,279 @@ async fn graph(
         json!({"root_id":id,"nodes":nodes,"edges":edges,"truncated":truncated}),
     )
     .await
+}
+fn positive(value: &Value) -> Result<String> {
+    Ok(value
+        .as_u64()
+        .filter(|n| *n > 0 && *n <= i64::MAX as u64)
+        .ok_or_else(unavailable)?
+        .to_string())
+}
+fn project_edge(edge: &Value) -> Result<Value> {
+    let mut e = serde_json::Map::new();
+    for k in ["id", "source", "target", "edge_type", "description"] {
+        e.insert(k.into(), edge[k].clone());
+    }
+    for k in ["version", "source_revision", "target_revision"] {
+        e.insert(
+            k.into(),
+            if edge[k].is_null() && k != "version" {
+                Value::Null
+            } else {
+                json!(positive(&edge[k])?)
+            },
+        );
+    }
+    Ok(Value::Object(e))
+}
+fn exact_or_unknown(n: usize, truncated: bool) -> Value {
+    if truncated {
+        json!({"value": null, "accuracy": "unknown"})
+    } else {
+        json!({"value": n, "accuracy": "exact"})
+    }
+}
+/// Sources / Linked work row: live edges incident to one knowledge node, the
+/// neighbour nodes they reach, and the task ids among them. Counts are exact only
+/// when the depth-1 neighbourhood was fully represented.
+async fn relationships(
+    State(s): State<AppState>,
+    Extension(r): Extension<Arc<ReadRuntime>>,
+    RequireOwner(u): RequireOwner,
+    Path((p, id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<Envelope>> {
+    if id.is_nil() {
+        return Err(invalid());
+    }
+    let a = access(&s, &r, u, p).await?;
+    let w = a.record.binding.graph_workspace_id;
+    let raw = runtime(&s)?
+        .human_get(
+            &format!("/v1/workspaces/{w}/nodes/{id}/context"),
+            &[
+                ("depth".into(), "1".into()),
+                ("limit".into(), "63".into()),
+                ("max_bytes".into(), "262144".into()),
+                ("direction".into(), "both".into()),
+            ],
+            262144,
+        )
+        .await?;
+    if !contract::upstream_valid("Context", &raw) || raw["node"]["id"] != json!(id) {
+        return Err(unavailable());
+    }
+    let root = id.to_string();
+    let mut nodes = vec![node(&raw["node"], w, "knowledge")?];
+    let mut kinds = std::collections::BTreeMap::from([(root.clone(), "knowledge".to_owned())]);
+    let mut gone = std::collections::BTreeSet::new();
+    let mut truncated = raw["truncated"].as_bool().ok_or_else(unavailable)?;
+    for value in raw["nodes"].as_array().ok_or_else(unavailable)? {
+        if value["workspace_id"] != json!(w) {
+            return Err(unavailable());
+        }
+        let nid = value["id"].as_str().ok_or_else(unavailable)?;
+        if value["deleted"] != false {
+            gone.insert(nid.to_owned());
+            continue;
+        }
+        if kinds.contains_key(nid) {
+            continue;
+        }
+        if nodes.len() >= 64 {
+            truncated = true;
+            continue;
+        }
+        let kind = value["kind"].as_str().ok_or_else(unavailable)?;
+        let n = node(value, w, kind)?;
+        kinds.insert(nid.to_owned(), kind.to_owned());
+        nodes.push(n)
+    }
+    let mut edges = Vec::new();
+    let mut seen = std::collections::BTreeSet::new();
+    let mut linked = Vec::new();
+    for edge in raw["edges"].as_array().ok_or_else(unavailable)? {
+        if edge["workspace_id"] != json!(w) {
+            return Err(unavailable());
+        }
+        let source = edge["source"].as_str().ok_or_else(unavailable)?;
+        let target = edge["target"].as_str().ok_or_else(unavailable)?;
+        let other = if source == root {
+            target
+        } else if target == root {
+            source
+        } else {
+            continue;
+        };
+        if edge["deleted"] != false || gone.contains(other) {
+            continue;
+        }
+        if edges.len() >= 256 || !kinds.contains_key(other) {
+            truncated = true;
+            continue;
+        }
+        if !seen.insert(edge["id"].as_str().ok_or_else(unavailable)?.to_owned()) {
+            continue;
+        }
+        if kinds[other] == "task" && !linked.iter().any(|t: &String| t == other) {
+            linked.push(other.to_owned())
+        }
+        edges.push(project_edge(edge)?);
+    }
+    let counts = json!({
+        "relationships": exact_or_unknown(edges.len(), truncated),
+        "linked_work": exact_or_unknown(linked.len(), truncated),
+    });
+    finish(
+        &s,
+        &r,
+        a,
+        json!({"root_id":id,"nodes":nodes,"edges":edges,"linked_work":linked,"counts":counts,"truncated":truncated}),
+    )
+    .await
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct HistoryPage {
+    limit: Option<u16>,
+    cursor: Option<String>,
+}
+/// History tab: Graph-owned audit entries for one knowledge node. Entries carry
+/// the revision, version, title and edge identity only; bodies, metadata and raw
+/// snapshots never leave AQ.
+async fn revisions(
+    State(s): State<AppState>,
+    Extension(r): Extension<Arc<ReadRuntime>>,
+    RequireOwner(u): RequireOwner,
+    Path((p, id)): Path<(Uuid, Uuid)>,
+    q: std::result::Result<Query<HistoryPage>, axum::extract::rejection::QueryRejection>,
+) -> Result<Json<Envelope>> {
+    let Query(page) = q.map_err(|_| invalid())?;
+    let limit = page.limit.unwrap_or(25);
+    if id.is_nil() || !(1..=64).contains(&limit) {
+        return Err(invalid());
+    }
+    let a = access(&s, &r, u, p).await?;
+    let w = a.record.binding.graph_workspace_id;
+    let rt = runtime(&s)?;
+    let current = rt
+        .human_get(&format!("/v1/workspaces/{w}/nodes/{id}"), &[], 1_000_000)
+        .await?;
+    if current["id"] != json!(id) {
+        return Err(unavailable());
+    }
+    node(&current, w, "knowledge")?;
+    let binding = cursor::Binding {
+        actor: a.actor.id,
+        project: p,
+        revision: a.record.revision,
+        workspace: w,
+        kind: format!("knowledge-history:{id}"),
+        limit,
+        q: None,
+    };
+    let mut query = vec![("limit".to_owned(), limit.to_string())];
+    if let Some(token) = page.cursor {
+        query.push((
+            "cursor".into(),
+            r.cursors.decode(&token, &binding, stamp(&s))?,
+        ))
+    }
+    // Revision entries embed full node snapshots, so the page budget is larger.
+    let raw = rt
+        .human_get(
+            &format!("/v1/workspaces/{w}/nodes/{id}/history"),
+            &query,
+            8_388_608,
+        )
+        .await?;
+    if !contract::upstream_valid("HistoryPage", &raw) {
+        return Err(unavailable());
+    }
+    let rows = raw["items"].as_array().ok_or_else(unavailable)?;
+    if rows.len() > usize::from(limit) {
+        return Err(unavailable());
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    let mut items = Vec::new();
+    for entry in rows {
+        if !seen.insert(
+            entry["entry_id"]
+                .as_str()
+                .ok_or_else(unavailable)?
+                .to_owned(),
+        ) {
+            return Err(unavailable());
+        }
+        items.push(history_entry(entry, id, w)?);
+    }
+    let next = match raw["next_cursor"].as_str() {
+        Some(c) => Some(r.cursors.encode(&binding, c, stamp(&s))?),
+        None => None,
+    };
+    finish(&s, &r, a, json!({"items":items,"next_cursor":next})).await
+}
+fn bounded(value: &Value, max: usize) -> Result<Value> {
+    match value {
+        Value::Null => Ok(Value::Null),
+        Value::String(t) if t.len() <= max => Ok(value.clone()),
+        _ => Err(unavailable()),
+    }
+}
+fn history_entry(entry: &Value, id: Uuid, w: Uuid) -> Result<Value> {
+    let data = &entry["data"];
+    let category = entry["category"].as_str().ok_or_else(unavailable)?;
+    let operation = entry["operation"].as_str().ok_or_else(unavailable)?;
+    let actor = entry["actor_id"].as_str().ok_or_else(unavailable)?;
+    if operation.is_empty() || operation.len() > 64 || actor.is_empty() || actor.len() > 256 {
+        return Err(unavailable());
+    }
+    let version = match data.get("version") {
+        Some(v) if !v.is_null() => json!(positive(v)?),
+        _ => Value::Null,
+    };
+    let (revision, title, edge) = match category {
+        "revision" => {
+            if data["id"] != json!(id) || data["workspace_id"] != json!(w) {
+                return Err(unavailable());
+            }
+            let title = data["title"]
+                .as_str()
+                .filter(|t| !t.is_empty() && t.len() <= 512);
+            (
+                json!(positive(&data["content_revision"])?),
+                json!(title.ok_or_else(unavailable)?),
+                Value::Null,
+            )
+        }
+        "edge" => {
+            if !contract::upstream_valid("Edge", data)
+                || data["workspace_id"] != json!(w)
+                || (data["source"] != json!(id) && data["target"] != json!(id))
+            {
+                return Err(unavailable());
+            }
+            let edge = json!({
+                "id": data["id"],
+                "edge_type": data["edge_type"],
+                "source": data["source"],
+                "target": data["target"],
+            });
+            (Value::Null, Value::Null, edge)
+        }
+        _ => (Value::Null, Value::Null, Value::Null),
+    };
+    Ok(json!({
+        "sequence": positive(&entry["sequence"])?,
+        "entry_id": entry["entry_id"],
+        "category": category,
+        "operation": operation,
+        "actor_id": actor,
+        "reason": bounded(&entry["reason"], 4096)?,
+        "change_set_id": entry["change_set_id"],
+        "created_at": entry["created_at"],
+        "revision": revision,
+        "version": version,
+        "title": title,
+        "edge": edge,
+    }))
 }
