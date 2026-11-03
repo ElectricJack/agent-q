@@ -163,3 +163,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **`agile-torrent-31`** (spec-ingest for B1's r6 approval) found nothing to create. Its empty proposal was refused because "no_op settlement requires an approved design", and then it was paused. `aq task close --no-change` failed with "could not stop the writer". It is harmless and nothing depends on it; left paused.
   - aq-server PR #24 (owner clock) has checks still running; its update-lifecycle job failed. I will decide next check. aq-worker PR #23 (`bright-nexus-60`) has conflicts; its worker is in backoff.
   - `wise-journey-87` (dashboard CI) is running; `sharp-forge-44` is waiting on aq-worker's cap. Disk is at 54%.
+- **22:40 check.**
+  - **B1b (`agile-delta-29`) completed.** It ran on Claude standard-high after the usage override. Merged aq-worker PR #25 (`a2ff7454`).
+  - Also merged aq-worker #24 (`wise-dune-90`, bounded target growth) and aq-server #24 (`smart-delta-18.1`, owner clock). Each PR failed only the tests that also fail on main (aq-worker supervisor_session; aq-server native_accepted_preparation and update-lifecycle registry startup).
+  - **B2:** messaged it about B1b's contract. Its hold release was refused while the pr-merged gate for agile-delta-29 is open; I will retry once the sweep resolves it.
+  - **Dashboard:** `wise-journey-87` fixed the browser checks (22 failing to 35/35; PR #5 merged), and main's Browser checks now pass. The unit job still fails on one flaky SupervisorConversation test; filed `grand-lantern-86` at standard-medium.
+  - D1a's reviewer `solid-cascade-10` was unrouted for more than 15 minutes; pinned it to Claude standard-high (cross-family).
+  - aq-server PR #25 (`fair-zenith-27`) is waiting for pending checks.
