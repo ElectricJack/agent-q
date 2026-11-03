@@ -521,3 +521,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Sent back:** #15 (OV-C) and #16 (OV-D) to merge main, since they now conflict with #14. #12 (OV-A) to fix its own Shell.test regressions.
   - **aq-server #56:** one `phase_execution::atomicity` proposal-expiry timing failure. I'll rerun it when the run completes.
   - Disk: 173 GB free. Claude usage: 75%.
+- **17:20 check.** aq-dashboard main CI is green again.
+  - **Merged dashboard PRs** #22 (SH-I), #23 (WK-G), #19 (SV-F) and #20 (WK-A). Their only failures were the flaky ResultMediaUpload/SessionUsage pair, in files they don't touch.
+  - **Sent back** #21 (WK-B) and #18 (SV-H) to merge main; they conflict with #23 and #19.
+  - **Dashboard throughput** is capped by `standard-high-claude` max_active=8 (8 busy), plus PR-merge gates between gap tasks.
+  - **aq-platform holds:** `bright-willow-25` (PR #57) and `crisp-meadow-36.7.2` are under supervisor recovery holds (`session_close_pipeline_stop`). The work passed, but the merge slot was held. Opened PR #59 for `aq/crisp-meadow-36.7.2`, which had no PR. #57 fails only the known `native_accepted_preparation` test that #56 fixes. Plan: merge #56, update #57 and #59, merge them, then release the holds.
+  - **Notes branch:** found the aq-server notes checkout on `feat/v2-execution`; three notes pushes had gone there. Pushed them to main and switched back to main.
