@@ -108,3 +108,12 @@ run counts.
   `live` path.
 - The `CROSS-REPO FOLLOW-UP (aq-dashboard)` task comment covers the history
   schema additions.
+
+## Final merge
+
+`git merge origin/main` (merge `ed37b6dd`, main `c753a633`) brought only
+compose/deploy/docs changes: no Rust, migration or Dockerfile changes. After
+the merge, the `acceptance` check was rerun and
+`F1b-evidence/acceptance.txt` now holds that post-merge run:
+`owner_message_reaches_supervisor_and_reply_is_recorded ... ok`, 1 passed and 0
+failed, with every other test binary matching 0 tests.
