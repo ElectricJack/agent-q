@@ -132,6 +132,13 @@ fn observation() -> Value {
     let c = credential();
     json!({"operation_id":Uuid::new_v4(),"expected_revision":1,"sequence":1,"scope":{"credential_revision":1,"provider":c.provider,"credential_profile":c.profile,"account_reference":c.account_reference,"endpoint_reference":c.endpoint_reference,"model":"model-a","node_id":null},"state":"quota_unavailable","ttl_ms":1000,"cooldown_ms":1000})
 }
+
+#[tokio::test]
+async fn absent_registry_inspection_is_a_conflict() {
+    let (_db, _state, app) = setup(registry(None)).await;
+    let (status, body) = call(&app, "/api/intelligence/registry", None, true, false).await;
+    assert_eq!(status, StatusCode::CONFLICT, "{body}");
+}
 #[test]
 fn credential_loading_is_private_bounded_regular_and_never_claims_missing_keys() {
     let dir = tempfile::tempdir().unwrap();

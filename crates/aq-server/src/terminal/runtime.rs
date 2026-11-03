@@ -61,6 +61,7 @@ struct Buffers {
 }
 struct PollState {
     slot: Arc<Semaphore>,
+    output_slot: Arc<Semaphore>,
     wake: Notify,
     #[cfg(feature = "test-support")]
     waiting: std::sync::atomic::AtomicBool,
@@ -68,30 +69,38 @@ struct PollState {
 pub struct Poll {
     state: Arc<PollState>,
     _permit: OwnedSemaphorePermit,
+    #[cfg(feature = "test-support")]
+    output: bool,
 }
 impl Poll {
     pub async fn wait(&self, hold: u32) {
         #[cfg(feature = "test-support")]
-        self.state
-            .waiting
-            .store(true, std::sync::atomic::Ordering::Release);
+        if !self.output {
+            self.state
+                .waiting
+                .store(true, std::sync::atomic::Ordering::Release);
+        }
         let _ = tokio::time::timeout(
             std::time::Duration::from_millis(hold as u64),
             self.state.wake.notified(),
         )
         .await;
         #[cfg(feature = "test-support")]
-        self.state
-            .waiting
-            .store(false, std::sync::atomic::Ordering::Release);
+        if !self.output {
+            self.state
+                .waiting
+                .store(false, std::sync::atomic::Ordering::Release);
+        }
     }
 }
 impl Drop for Poll {
     fn drop(&mut self) {
         #[cfg(feature = "test-support")]
-        self.state
-            .waiting
-            .store(false, std::sync::atomic::Ordering::Release);
+        if !self.output {
+            self.state
+                .waiting
+                .store(false, std::sync::atomic::Ordering::Release);
+        }
     }
 }
 #[derive(Default)]
@@ -275,6 +284,12 @@ impl Runtime {
         Ok(())
     }
     pub fn poll(&self, node: Uuid) -> Result<Poll, AppError> {
+        self.poll_lane(node, false)
+    }
+    pub fn output_poll(&self, node: Uuid) -> Result<Poll, AppError> {
+        self.poll_lane(node, true)
+    }
+    fn poll_lane(&self, node: Uuid, output: bool) -> Result<Poll, AppError> {
         let mut polls = self.polls.lock().map_err(|_| fail())?;
         polls.retain(|_, v| v.strong_count() > 0);
         let state = match polls.get(&node).and_then(Weak::upgrade) {
@@ -287,6 +302,7 @@ impl Runtime {
                 }
                 let v = Arc::new(PollState {
                     slot: Arc::new(Semaphore::new(1)),
+                    output_slot: Arc::new(Semaphore::new(1)),
                     wake: Notify::new(),
                     #[cfg(feature = "test-support")]
                     waiting: Default::default(),
@@ -295,14 +311,24 @@ impl Runtime {
                 v
             }
         };
-        let permit = state
-            .slot
-            .clone()
-            .try_acquire_owned()
-            .map_err(|_| AppError::Conflict("one terminal poll per node".into()))?;
+        // Control may long-poll while output delivery progresses independently.
+        // Each lane still admits only one request, under the shared node cap.
+        let slot = if output {
+            &state.output_slot
+        } else {
+            &state.slot
+        };
+        let permit = slot.clone().try_acquire_owned().map_err(|_| {
+            AppError::Conflict(format!(
+                "one terminal {} poll per node",
+                if output { "output" } else { "control" }
+            ))
+        })?;
         Ok(Poll {
             state,
             _permit: permit,
+            #[cfg(feature = "test-support")]
+            output,
         })
     }
     #[cfg(feature = "test-support")]
@@ -388,5 +414,39 @@ pub async fn run(state: crate::AppState, mut stop: tokio::sync::watch::Receiver<
                 match maintenance(&state,cursor).await {Ok(next)=>cursor=next,Err(AppError::IdentityUnavailable(_))=>break,Err(_)=>tracing::warn!("terminal maintenance unavailable")}
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn poll_lanes_share_the_node_cap_and_release_on_drop() {
+        let runtime = Runtime::default();
+        let nodes: Vec<_> = (0..33).map(|_| Uuid::new_v4()).collect();
+        let mut controls: Vec<_> = nodes[..32]
+            .iter()
+            .map(|id| runtime.poll(*id).unwrap())
+            .collect();
+        let mut outputs: Vec<_> = nodes[..32]
+            .iter()
+            .map(|id| runtime.output_poll(*id).unwrap())
+            .collect();
+        assert!(matches!(runtime.poll(nodes[0]), Err(AppError::Conflict(_))));
+        assert!(matches!(
+            runtime.output_poll(nodes[0]),
+            Err(AppError::Conflict(_))
+        ));
+        assert!(matches!(
+            runtime.output_poll(nodes[32]),
+            Err(AppError::IdentityUnavailable(_))
+        ));
+        drop(controls.pop());
+        // An output permit alone still owns that node's capacity.
+        assert!(runtime.poll(nodes[32]).is_err());
+        drop(outputs.pop());
+        let _next = runtime.poll(nodes[32]).unwrap();
+        let _next_output = runtime.output_poll(nodes[32]).unwrap();
     }
 }

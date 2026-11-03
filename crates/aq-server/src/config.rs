@@ -219,6 +219,13 @@ fn validate(c: &Config) -> Result<(), (String, String)> {
     if c.provider_quota.len() > 32 {
         return invalid("provider_quota", "at most 32 quota sources".into());
     }
+    if c.terminals.is_none()
+        && c.profiled_execution
+            .as_ref()
+            .is_some_and(|policy| policy.projects.iter().any(|project| project.enabled))
+    {
+        return invalid("terminals", "required when profiled_execution has enabled projects; configure terminal protection keys before starting the server".into());
+    }
     let mut quota_accounts = std::collections::BTreeSet::new();
     for source in &c.provider_quota {
         if !source.validate()

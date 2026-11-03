@@ -269,7 +269,7 @@ pub async fn output_poll(
     }
     let state = state.terminal_view();
     let config = configured(&state)?;
-    let _slot = config.runtime.poll(node.id())?;
+    let _slot = config.runtime.output_poll(node.id())?;
     poll_once(&state, node, r, PollMode::Output).await
 }
 #[derive(Clone, Copy, PartialEq, Eq)]
