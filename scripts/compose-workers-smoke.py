@@ -29,7 +29,9 @@ spec.loader.exec_module(prod)
 SANDBOX_IMAGE = "docker.io/library/busybox@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec"
 MAIN_SOCKETS = ("/var/run/docker.sock", "/run/docker.sock")
 SLICE_TEMPLATE = ROOT / "deploy/systemd/aq-sandbox-user.slice.conf"
-VPS = {"cpus": 8.0, "memory": 16 * 2**30}
+# Budget conservatively against decimal 8 GB; deployment must verify MemTotal.
+VPS = {"cpus": 4.0, "memory": 8_000_000_000}
+HOST_MEMORY_MIN = 1_000_000_000
 STACK = ("postgres", "server", "aq-graph", "aq-git")
 LOAD_SECONDS = 30
 READINESS_DEADLINE = 5.0  # server healthcheck timeout
@@ -144,7 +146,7 @@ def validate_production(config, slice_values):
     total_cpus = long_running["cpus"] + sandbox_cpus
     total_memory = long_running["memory"] + sandbox_memory
     assert total_cpus <= VPS["cpus"], ("CPU budget exceeds VPS", total_cpus)
-    assert total_memory <= VPS["memory"] - 2 * 2**30, ("memory budget leaves under 2 GiB for the host", total_memory)
+    assert total_memory <= VPS["memory"] - HOST_MEMORY_MIN, ("memory budget leaves under 1 GB for the host", total_memory)
 
     worker = services["aq-worker-cloud"]
     assert set(worker["networks"]) == {"workers"}, "worker must not join edge/database"
