@@ -470,3 +470,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - #51 merged as `2b3e99ad`.
     - #52 (owner's monthly boat budget enforcement) had a code conflict in `placement.rs`: its time-windowed `spends(conn, ledger, advertised, now_ms, exclude)` against main's SBX25 disk-pressure ceiling. Combined both. Workspace clippy is clean and the placement and replacement DB tests have 8 passed. Merged as `5d4afdba`.
   - Main migrations run 0001–0068 contiguous; catalog state format 68.
+- **12:00–12:15 owner-approved v1 daemon restart.**
+  - Only 1 task (E5) was running; standard-high-claude was at `desired 4, live 0`.
+  - After the restart: Postgres had a high volume of short queries at ~365% CPU. `operational_retention` was timing out on `playbook_private_values` (1.96M rows, never analyzed). Six orphan branches were retried every cycle (812 times each). A stale workspace at `/home/jkern/dev/aq-platform` (not a repository) failed inventory every cycle.
+  - Ran `ANALYZE` on `playbook_private_values`, `wait_source_events` and `messages`; CPU dropped to ~96%. No code or config changes. Recorded as W49.
