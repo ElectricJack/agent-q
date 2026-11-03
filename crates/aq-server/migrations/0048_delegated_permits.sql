@@ -52,7 +52,7 @@ BEGIN
 END $$;
 CREATE TRIGGER delegated_attempt_revoke AFTER INSERT ON profiled_cancellations
  FOR EACH ROW EXECUTE FUNCTION delegated_attempt_revoke();
-UPDATE meta SET value='46' WHERE key='state_format_version';
+UPDATE meta SET value='48' WHERE key='state_format_version';
 
 -- The issuance record is immutable. Scope upgrades, renewal revisions and boot
 -- adoption are separate, durable current authority, with no bearer bytes.

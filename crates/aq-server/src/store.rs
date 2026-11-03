@@ -286,7 +286,7 @@ const MIGRATIONS: &[(i32, &str)] = &[
     ),
     (44, include_str!("../migrations/0044_results_feedback.sql")),
     (45, include_str!("../migrations/0045_central_delivery.sql")),
-    (46, include_str!("../migrations/0046_delegated_permits.sql")),
+    (48, include_str!("../migrations/0048_delegated_permits.sql")),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.
@@ -366,7 +366,7 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
             "state format metadata does not match applied migrations".into(),
         ));
     }
-    if supported >= 46 {
+    if supported >= 48 {
         let intact: bool = sqlx::query_scalar(
             r#"SELECT
           to_regclass('delegated_permits') IS NOT NULL
