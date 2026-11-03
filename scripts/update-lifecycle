@@ -455,11 +455,17 @@ enabled = true
 spool_dir = "/updater"
 EOF
 chmod 0644 "$VAULT/config.toml"
-# Read by the postgres and server container users through Compose secrets.
-(umask 022 && head -c 24 /dev/urandom | base64 | tr -d '\n' >"$SECRETS/postgres_password")
+# Read by the postgres, db-init and server container users through Compose
+# secrets: compose.yaml's production server authenticates as aq_server (the
+# same set as compose-prod-smoke.py). This vault configures no agent access or
+# source retention, so readiness does not need aq-graph or aq-git.
+for name in postgres_password server_database_password graph_database_password graph_token; do
+  (umask 022 && head -c 24 /dev/urandom | base64 | tr -d '\n' >"$SECRETS/$name")
+  chmod 0644 "$SECRETS/$name"
+done
 # cloudflared is never started; Compose only needs the file to exist.
 echo "suite-dummy-tunnel-token" >"$SECRETS/tunnel_token"
-chmod 0644 "$SECRETS/postgres_password" "$SECRETS/tunnel_token"
+chmod 0644 "$SECRETS/tunnel_token"
 "$UPDATER" test-keygen "$KEYS" >/dev/null 2>>"$UPDATER_LOG"
 cat >"$CONFIG" <<EOF
 state_dir = "$STATE"
@@ -574,6 +580,12 @@ step "start postgres"
 dc up -d --wait --wait-timeout 120 postgres </dev/null >>"$COMPOSE_LOG" 2>&1 || {
   tail -20 "$COMPOSE_LOG" >&2
   fail "postgres did not become healthy"
+}
+# The updater starts the server with --no-deps, so create its aq_server role
+# and database here, as `compose up` would on a real host.
+dc run --rm --no-deps server-db-init </dev/null >>"$COMPOSE_LOG" 2>&1 || {
+  tail -20 "$COMPOSE_LOG" >&2
+  fail "server-db-init failed"
 }
 
 # ------------------------------------------------------------------ cases
