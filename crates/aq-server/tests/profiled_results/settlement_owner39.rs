@@ -2,6 +2,8 @@
 //! binding, Git inspection and Graph peers. Not provider/physical/real-Git or
 //! GATE04 qualification. Every positive owner fact is obtained through its port.
 use super::*;
+#[path = "settlement_owner39/source_retention_gc.rs"]
+mod source_retention_gc;
 use aq_server::{
     profiled_execution::settlement::{self, EvaluationDisposition},
     reviews::combined::*,
@@ -705,6 +707,8 @@ async fn settlement39_prepare_held_git_reply_fences_revoked_preparer_before_priv
     c.env.f.state.source_retention = Some(Arc::new(
         aq_server::source_retention::Runtime::new(
             aq_server::source_retention::SourceRetentionConfig {
+                keep_per_task: 2,
+                max_age: 30 * 86400,
                 staging_root: c.env._directory.path().join("held-stage"),
                 git_root: c.env._directory.path().join("held-git"),
                 git_socket: path,
