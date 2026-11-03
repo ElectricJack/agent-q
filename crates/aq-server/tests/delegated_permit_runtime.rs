@@ -1068,8 +1068,14 @@ async fn exercise_reboot(
         "stop after reboot: {}",
         String::from_utf8_lossy(&bytes)
     );
-    // Owner 0.3.1 cannot correlate the immutable original boot with the rebound
-    // permit for stopped replay. Preserve that fail-closed boundary explicitly.
+    // Authenticate the adopted credential, then replay immutable original-boot
+    // history from retained server state. Reconstruct Store before the retry.
+    let replay_state_sql = "SELECT jsonb_build_object('stops',(SELECT jsonb_agg(to_jsonb(s)) FROM profiled_stopped_receipts s),'hot',(SELECT state FROM profiled_authority_hot LIMIT 1),'permit',(SELECT state FROM delegated_permit_current LIMIT 1),'ops',(SELECT count(*) FROM delegated_operations))";
+    let committed: serde_json::Value = sqlx::query_scalar(replay_state_sql)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    restarted.store = f.c.env.env._db.store().await;
     let retry = request(
         &restarted,
         "/v1/worker/profiled-v2/stopped",
@@ -1077,14 +1083,89 @@ async fn exercise_reboot(
         serde_json::to_value(&stop_request).unwrap(),
     )
     .await;
-    assert_eq!(retry.status(), 409);
+    assert_eq!(retry.status(), 200);
+    let replay_bytes = axum::body::to_bytes(retry.into_body(), 16384)
+        .await
+        .unwrap();
+    assert_eq!(replay_bytes, bytes);
+    let native: aq_admission::stopped::Receipt = serde_json::from_value(
+        serde_json::from_slice::<serde_json::Value>(&replay_bytes).unwrap()["original"].clone(),
+    )
+    .unwrap();
+    native.validate_for(&stop_request.original).unwrap();
     capture(
-        "readoption-stopped-replay-refused",
+        "readoption-stopped-replay-accepted",
         serde_json::json!({
             "request":stop_request,"original_response":serde_json::from_slice::<serde_json::Value>(&bytes).unwrap(),
             "permit":live,"context":{"binding":live.binding,"phase":"ended","grant_expires_at_ms":live.expires_at_ms,"hard_deadline_ms":live.hard_deadline_ms},
-            "server_now_ms":clock.load(Ordering::SeqCst),"http_status":409,
+            "server_now_ms":clock.load(Ordering::SeqCst),"http_status":200,
+            "replay_response":serde_json::from_slice::<serde_json::Value>(&replay_bytes).unwrap(),
         }),
+    );
+    // Neither the previous credential nor a forged channel boot can use this
+    // exception, even when they supply exact historical bytes.
+    let mut old_headers = headers(&upgraded.permit);
+    old_headers.insert("aq-phase-terminal-api-version", "1".parse().unwrap());
+    let mut forged = live.clone();
+    forged.binding.node.boot_id = Uuid::new_v4();
+    let mut forged_headers = headers(&forged);
+    forged_headers.insert("aq-phase-terminal-api-version", "1".parse().unwrap());
+    for rejected in [&old_headers, &forged_headers] {
+        assert_eq!(
+            request(
+                &restarted,
+                "/v1/worker/profiled-v2/stopped",
+                rejected,
+                serde_json::to_value(&stop_request).unwrap()
+            )
+            .await
+            .status(),
+            403
+        );
+    }
+    for boot in [live.binding.node.boot_id, Uuid::new_v4()] {
+        let mut changed = stop_request.clone();
+        let aq_admission::SessionIdentity::Remote { boot_id, .. } =
+            &mut changed.original.evidence.binding.session
+        else {
+            panic!()
+        };
+        *boot_id = boot;
+        changed.original.proof.observation.guardian.intent.session =
+            changed.original.evidence.binding.session.clone();
+        let aq_admission::transport::StopDisposition::Stopped {
+            stop_receipt_digest,
+            ..
+        } = &mut changed.original.evidence.disposition
+        else {
+            panic!()
+        };
+        *stop_receipt_digest = changed.original.proof.digest().unwrap();
+        changed.validate().unwrap();
+        assert_eq!(
+            request(
+                &restarted,
+                "/v1/worker/profiled-v2/stopped",
+                &stop_headers,
+                serde_json::to_value(changed).unwrap()
+            )
+            .await
+            .status(),
+            409
+        );
+    }
+    let mut changed = stop_request.clone();
+    changed.original.evidence.stop_operation_id = Uuid::new_v4();
+    assert_eq!(
+        request(
+            &restarted,
+            "/v1/worker/profiled-v2/stopped",
+            &stop_headers,
+            serde_json::to_value(changed).unwrap()
+        )
+        .await
+        .status(),
+        409
     );
     q.permit = live.clone();
     q.revision = renewed.revision;
@@ -1100,4 +1181,25 @@ async fn exercise_reboot(
         .status(),
         403
     );
+    clock.store(live.expires_at_ms as i64, Ordering::SeqCst);
+    assert_eq!(
+        request(
+            &restarted,
+            "/v1/worker/profiled-v2/stopped",
+            &stop_headers,
+            serde_json::to_value(&stop_request).unwrap()
+        )
+        .await
+        .status(),
+        403
+    );
+    let after: serde_json::Value = sqlx::query_scalar(replay_state_sql)
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        after, committed,
+        "retries and refusals must preserve native history and authority"
+    );
+    assert_eq!(after["stops"].as_array().unwrap().len(), 1);
 }

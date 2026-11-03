@@ -5,11 +5,25 @@ use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, fs, path::Path};
 
 const FIXTURES: &str =
-    include_str!("../../../vendor/aq-admission-0.3.1/artifacts/sandbox-v1.fixtures.json");
+    include_str!("../../../vendor/aq-admission-0.3.2/artifacts/sandbox-v1.fixtures.json");
 
 #[test]
 fn permit_fixture_conformance() {
     let fixtures: Vec<Fixture> = serde_json::from_str(FIXTURES).unwrap();
+    for required in [
+        "ended_stopped_readopted_original_boot_replay",
+        "ended_stopped_readopted_stale_permit",
+        "ended_stopped_readopted_forged_permit",
+        "ended_stopped_readopted_stale_context",
+        "ended_stopped_readopted_changed_boot",
+        "ended_stopped_readopted_rebound_boot",
+        "ended_stopped_readopted_expired_replay",
+    ] {
+        assert!(
+            fixtures.iter().any(|f| f.name == required),
+            "missing {required}"
+        );
+    }
     let mut cases = BTreeMap::new();
     let mut outcomes = BTreeMap::new();
     for fixture in &fixtures {
@@ -44,7 +58,7 @@ fn permit_fixture_conformance() {
         cases,
         BTreeMap::from([
             ("permit", 38),
-            ("stopped_replay", 6),
+            ("stopped_replay", 13),
             ("readoption", 5),
             ("replay", 4),
             ("compatibility", 3),
@@ -63,18 +77,18 @@ fn permit_fixture_conformance() {
     assert_eq!(
         outcomes,
         BTreeMap::from([
-            ("accepted", 27),
-            ("binding_mismatch", 27),
+            ("accepted", 28),
+            ("binding_mismatch", 30),
             ("deadline_mismatch", 12),
-            ("expired", 12),
+            ("expired", 13),
             ("invalid_shape", 5),
-            ("replay_conflict", 9),
+            ("replay_conflict", 11),
             ("scope_denied", 30),
             ("unsupported_required_capability", 3),
         ])
     );
     let published_schema: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../vendor/aq-admission-0.3.1/artifacts/sandbox-v1.schema.json"
+        "../../../vendor/aq-admission-0.3.2/artifacts/sandbox-v1.schema.json"
     ))
     .unwrap();
     assert_eq!(sandbox::schema(), published_schema);
@@ -225,19 +239,29 @@ fn published_runner_receipts_match_native_owners() {
         sandbox::RenewalReply::AwaitingNodeReadoption { .. }
     ));
     assert!(awaiting.delivery.is_none());
-    let refusal = read("readoption-stopped-replay-refused");
-    let permit: DelegatedPermit = serde_json::from_value(refusal["permit"].clone()).unwrap();
-    let context: PermitContext = serde_json::from_value(refusal["context"].clone()).unwrap();
+    let replay = read("readoption-stopped-replay-accepted");
+    let permit: DelegatedPermit = serde_json::from_value(replay["permit"].clone()).unwrap();
+    let context: PermitContext = serde_json::from_value(replay["context"].clone()).unwrap();
     let stopped: aq_admission_sandbox::stopped::Request =
-        serde_json::from_value(refusal["request"]["original"].clone()).unwrap();
+        serde_json::from_value(replay["request"]["original"].clone()).unwrap();
+    let aq_admission_sandbox::SessionIdentity::Remote { boot_id, .. } =
+        &stopped.evidence.binding.session
+    else {
+        panic!()
+    };
+    assert_ne!(*boot_id, permit.binding.node.boot_id);
+    let receipt: aq_admission_sandbox::stopped::Receipt =
+        serde_json::from_value(replay["replay_response"]["original"].clone()).unwrap();
+    receipt.validate_for(&stopped).unwrap();
     assert_eq!(
         permit.validate_stopped_replay(
             &context,
             &stopped,
             &stopped,
-            refusal["server_now_ms"].as_u64().unwrap()
+            replay["server_now_ms"].as_u64().unwrap()
         ),
-        Err(sandbox::ContractError::BindingMismatch)
+        Ok(())
     );
-    assert_eq!(refusal["http_status"], 409);
+    assert_eq!(replay["http_status"], 200);
+    assert_eq!(replay["original_response"], replay["replay_response"]);
 }
