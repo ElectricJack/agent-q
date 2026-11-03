@@ -336,3 +336,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **B2 PR #35 failed to compile.** My last merge kept B2's older test, which calls `runtime::require_document`; main's `swift-willow-91` replaced that function with typed attempt extraction. Removed those calls (main's typed test covers batch scoping; `253f4e1`). CI is re-running.
   - Moved `clear-crest-61.2` (H2) and `steady-cascade-45.3` (G2) from Codex to Claude.
   - #37 (`bright-nexus-44`) is still being fixed. #36 and #38 have CI pending. B4 follow-ups are running.
+- **03:50 check.**
+  - **Main CI: `observations.rs:501`** `worker_route_requires_node_credentials_and_rejects_wrong_packet_scope` fails on main (403 vs 401) and on PRs #35, #36 and #38. Filed `clear-rapids-48` (standard-medium Claude).
+  - **My doc pushes were cancelling main CI** (W45). From now on, supervision-doc commits use `[skip ci]`.
+  - **`steady-harbor-87.2.4`:** the work is done (PR #38); it is held only on a close-pipeline stop. I will merge #38 once its pending checks match main, then close the task.
+  - **B4 migration collision:** B4 used 0050, the same as main. The supervisor reopened B4 to renumber; its follow-up `.4.2` is held. B4 should take 0052 or higher.
+  - #37 still overflows its stack; its task is working on it. Codex is at 94%.
