@@ -122,3 +122,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Filed G5's follow-up as `fleet-stone-84`: rebuild the retained E0 stack from current main (it predates G4). G11 depends on it.
   - **B1's review (`rev-keen-ember`) is changes-requested again after round 4; round 5 (`steady-nexus-22`) is running.** Review cycling on B1 is now the critical-path bottleneck: B1b, B2, B6a2.
   - Merged aq-worker #19 and #20.
+- **21:04 check.**
+  - G5 completed. B1's round-5 revision finished; `rev-keen-ember` r5 and `rev-grand-meadow` (B5a) r3 are waiting for the supervisor's decision.
+  - `fleet-stone-84` (E0 refresh) started.
+  - Merged aq-server #23 (D1a: durable central aq-git candidate creation and publication) and aq-worker #21 (B1 review reconciliation docs).
