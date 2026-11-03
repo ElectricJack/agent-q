@@ -11,7 +11,7 @@ COMMANDS = {
     "acceptance": ["cargo", "test", "--locked", "--workspace", ACCEPT, "--", "--exact", "--include-ignored"],
     "acceptance_host": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", ACCEPT],
     "host": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", "--", "--test-threads=1"],
-    "conversation": ["cargo", "test", "--locked", "-p", "aq-server", "--features", "test-support", "supervisor_conversation"],
+    "conversation": ["cargo", "test", "--locked", "-p", "aq-server", "--features", "test-support", "--test", "supervisor_conversation"],
     "central37": ["cargo", "test", "--locked", "-p", "aq-server", "--features", "test-support", "central37"],
     "format_version": ["cargo", "test", "--locked", "-p", "aq-server", "--features", "test-support", "--lib", "state_format_is_the_latest_migration"],
     "format": ["cargo", "fmt", "--check"],

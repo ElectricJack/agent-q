@@ -70,3 +70,7 @@ vendored workspace from this nested worktree; package-scoped formatting succeeds
 This follow-up requires parent F1b commit `baf26451`, merged into the assigned
 branch because its dispatch/reply files were absent at the assigned source base
 `e84129d9`. The parent implementation and merge ancestry remain intact.
+The final merge of `origin/main` at `b807f893` reconciles the parent's squashed
+implementation with that prerequisite history. Its runtime code is identical to
+`baf26451`; the corrected parent evidence adapter and new evidence are retained.
+The five turn-consumption tests pass again after this merge resolution.

@@ -269,3 +269,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - Reopened the task with the exact fix (standard-medium Claude).
   - A4 stays on Codex: it is running and cannot be re-routed.
   - aq-worker PR #29 (`fleet-flare-68`, original-boot stopped replay) has CI pending.
+- **01:35 check.**
+  - F1b split off 4 follow-ups (`steady-harbor-87.2.1`–`.4`); 3 are running. Pinned `.2.4` from Codex to Claude standard-high.
+  - Routed F1b's cross-repo follow-up to G8 (`steady-cascade-45.9`, the dashboard supervisor panel) as a comment. The conversation History schema now includes SupervisorItem, host_delivery states and maxItems 80.
+  - Merged aq-worker #29 (`fleet-flare-68`, original-boot stopped replay; CI green).
+  - aq-server #33 (cloud worker image) has the fix and its checks are re-running.
+  - aq-platform now has 7 tasks in progress.
