@@ -39,6 +39,18 @@ def test_results_feedback():
         'area-retry': [
             ('dashboard-area-recheck', ['cargo', 'test', '--locked', '-p', 'aq-server', '--test', 'dashboard_read', '--test', 'dashboard_actions', '--test', 'dashboard_mounts']),
         ],
+        'merged-compat-retry': [
+            ('wire-merged-recheck', [sys.executable, 'protocol/results-feedback/v1/check.py']),
+            ('action-merged-recheck', [sys.executable, 'protocol/dashboard-actions/v1/check.py']),
+            ('read-merged-recheck', [sys.executable, 'protocol/dashboard-read/v1/check.py']),
+            ('dashboard-area-merged', ['cargo', 'test', '--locked', '-p', 'aq-server', '--test', 'dashboard_read', '--test', 'dashboard_actions', '--test', 'dashboard_mounts']),
+        ],
+        'merged-compat': [
+            ('wire-merged', [sys.executable, 'protocol/results-feedback/v1/check.py']),
+            ('action-merged', [sys.executable, 'protocol/dashboard-actions/v1/check.py']),
+            ('read-merged', [sys.executable, 'protocol/dashboard-read/v1/check.py']),
+            ('dashboard-area-merged', ['cargo', 'test', '--locked', '-p', 'aq-server', '--test', 'dashboard_read', '--test', 'dashboard_actions', '--test', 'dashboard_mounts']),
+        ],
         'merged': [
             ('results-feedback-merged', ['cargo', 'test', '--locked', '--workspace', '--test', 'profiled_results', 'results_feedback']),
             ('decoder-merged', ['cargo', 'test', '--locked', '-p', 'aq-server', '--lib', 'results_feedback']),

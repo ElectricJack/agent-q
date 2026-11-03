@@ -56,6 +56,9 @@ read = json.loads((ROOT / '../../dashboard-read/v1/schema.json').resolve().read_
 actions = json.loads((ROOT / '../../dashboard-actions/v1/schema.json').resolve().read_text())
 jsonschema.validate(compat['read'], read)
 jsonschema.validate(compat['action'], actions)
+for contract in compat['read']['data']['contracts']:
+    contract_schema = ROOT / '../../' / contract['name'] / 'v1/schema.json'
+    assert contract['digest'] == 'sha256:' + hashlib.sha256(contract_schema.read_bytes()).hexdigest()
 assert compat['read']['api_version'] == 'dashboard-read-1'
 assert compat['action']['kind'] == 'result.comment'
 print('Results feedback: valid, invalid, replay and compatibility fixtures passed')

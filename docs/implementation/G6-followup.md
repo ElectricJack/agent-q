@@ -121,4 +121,45 @@ an independently built Graph binary when the slot-local copy is unavailable;
 the adapter verifies its digest before use. `DATABASE_URL` can select another
 disposable PostgreSQL service. Fixture-only phases do not require Graph.
 
-Final synchronization and targeted merge verification are recorded below.
+## Final synchronization
+
+`aq git pull --branch main --json` fetched and merged
+`origin/main` at `ea28da1ca62184e9f5f945b73b62320edbe903e0` into the task
+branch without conflicts. Explicit `git merge origin/main` then reported already
+up to date. The single implementation commit remains a parent of the merge;
+no default-branch write was performed.
+
+The fetched main already contains a deterministic ACL test wait replacing the
+50 ms delay (`crates/aq-server/tests/dashboard_read.rs` in `ea28da1c`). This
+addresses the timing assumption observed in the earlier area run and is retained
+through the merge, without a separate change from this task.
+
+The first post-merge compatibility adapter caught stale copied dashboard-read
+schema digests in the action fixture (`action-merged.log`). The incoming schema
+changed to SHA-256 `9d7cac3073706afa942033b8f7975588285f1b47fb92db47b764c40348f07801`.
+Only the copied digest metadata was refreshed in action and Results compatibility
+fixtures; the Results checker also now verifies those copied digests. No action
+contract or production behavior changed. Results, action and dashboard-read
+fixture checks then passed against the fetched schemas (`wire-merged-recheck.log`,
+`action-merged-recheck.log`, `read-merged-recheck.log`).
+
+Post-merge compatibility and area admission passed through
+`G6_FOLLOWUP_PHASE=merged-compat-retry aq test .aq/tmp/g6-followup/test_checks.py -q`
+(one serial adapter, 225.95 seconds, including Cargo lock/build time). Results,
+action and read fixtures passed; the dashboard area suite passed all 18 tests
+(8 action, 3 mount and 7 read), including the deterministic ACL wait test.
+
+The focused post-merge runtime checks use
+`G6_FOLLOWUP_PHASE=merged aq test .aq/tmp/g6-followup/test_checks.py -q`
+(one serial adapter, 676.80 seconds, including Cargo lock/build time).
+All targeted merged checks passed:
+
+| Exact subprocess command | Result / evidence log |
+| --- | --- |
+| `cargo test --locked --workspace --test profiled_results results_feedback` | Nine passed; `results-feedback-merged.log` |
+| `cargo test --locked -p aq-server --lib results_feedback` | One legacy/current decoder test passed; `decoder-merged.log` |
+| `cargo run --locked -p aq-server --example results_feedback_contract -- --check` | Passed with no drift; `schema-merged.log` |
+
+The final branch publication OID and AQ close/integration result are recorded in
+the task's closing evidence. The independent follow-up submission owner/operation
+remains the named, supervisor-owned follow-up described above.
