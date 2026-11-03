@@ -1,8 +1,19 @@
 use crate::{PlanAuthority, bridge, journal};
 use aq_central_authority::{owner::*, *};
 use aq_session_host::{GuardianIdentity, HostObservation, HostPhase, HostPlan};
+use serde::{Deserialize, Serialize};
 use sqlx::{Postgres, Row, Transaction};
 use std::sync::Arc;
+
+/// F1b journaled handoff fact: the staged input re-read from the launch directory.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct HandoffFact {
+    pub launch_id: uuid::Uuid,
+    pub association: DispatchAssociation,
+    pub disposition: HandoffDisposition,
+    pub input: Digest,
+}
 
 pub(crate) struct Verifier<A> {
     pub authority: Arc<A>,
@@ -132,7 +143,35 @@ impl<A: PlanAuthority> EvidenceVerifier for Verifier<A> {
                 }
             }
             Event::Tick | Event::Cancel { .. } => {}
-            // Mailbox dispatch and its evidence are F1b; no permissive fallback.
+            Event::Handoff { evidence: e } | Event::ReconcileHandoff { evidence: e } => {
+                let launch: uuid::Uuid = sqlx::query_scalar(
+                    "SELECT launch_id FROM central_host_launches WHERE actor_id=$1 AND generation=$2",
+                )
+                .bind(run.plan().subject.actor_id())
+                .bind(run.plan().generation as i64)
+                .fetch_one(&mut **tx)
+                .await?;
+                let body = original(tx, launch, "handoff", &e.receipt).await?;
+                let fact: HandoffFact =
+                    serde_json::from_str(&body).map_err(|_| OwnerError::Evidence)?;
+                let h = self.host(tx, run.plan()).await?;
+                if fact.launch_id != launch
+                    || fact.association != e.association
+                    || fact.disposition != e.disposition
+                    || run.association() != Some(&e.association)
+                    || (fact.disposition == HandoffDisposition::HandedOff
+                        && fact.input != h.startup.payload.digest)
+                {
+                    return Err(OwnerError::Evidence);
+                }
+            }
+            Event::ReportUnknown { association } => {
+                if run.association() != Some(association) {
+                    return Err(OwnerError::Evidence);
+                }
+            }
+            // Any other event has no verified evidence path; no permissive fallback.
+            #[allow(unreachable_patterns)]
             _ => return Err(OwnerError::Unsupported),
         }
         Ok(())

@@ -49,11 +49,34 @@ struct Case {
     local: LocalEnvironment,
     central: CentralPlan,
     host: HostPlan,
+    startup: Vec<u8>,
+}
+fn example_plan() -> CentralPlan {
+    let examples: serde_json::Value = serde_json::from_str(include_str!(
+        "../../aq-central-authority/artifacts/examples.json"
+    ))
+    .unwrap();
+    let Document::Plan(mut central) =
+        decode(&serde_json::to_vec(&examples["plan"]).unwrap()).unwrap()
+    else {
+        panic!()
+    };
+    central.wall_time_ms = 60_000;
+    central.max_permit_ms = 30_000;
+    central
 }
 impl Case {
     async fn new() -> Self {
         let db = aq_server::test_support::TestDb::create().await;
         drop(db.store().await);
+        Self::build(db, example_plan(), b"supervisor startup\n".to_vec()).await
+    }
+    async fn build(
+        db: aq_server::test_support::TestDb,
+        central: CentralPlan,
+        startup: Vec<u8>,
+    ) -> Self {
+        let mut central = central;
         let pool = db.pool().await;
         let root = tempfile::Builder::new()
             .prefix("aqsh-")
@@ -61,17 +84,6 @@ impl Case {
             .unwrap();
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(root.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
-        let examples: serde_json::Value = serde_json::from_str(include_str!(
-            "../../aq-central-authority/artifacts/examples.json"
-        ))
-        .unwrap();
-        let Document::Plan(mut central) =
-            decode(&serde_json::to_vec(&examples["plan"]).unwrap()).unwrap()
-        else {
-            panic!()
-        };
-        central.wall_time_ms = 60_000;
-        central.max_permit_ms = 30_000;
         let legacy: LaunchManifest = serde_json::from_str(include_str!(
             "../../../vendor/aq-session-host-0.1.7/tests/fixtures/manifest.json"
         ))
@@ -112,10 +124,10 @@ impl Case {
             startup: HostStartup {
                 descriptor: pin("startup"),
                 payload: ArtifactRef {
-                    digest: Digest::of(b"supervisor startup\n"),
+                    digest: Digest::of(&startup),
                     ..pin("payload")
                 },
-                bytes: 19,
+                bytes: startup.len() as u64,
             },
             machine_boot_id: now.machine_boot_id,
             admitted_boot_ms: now.boot_ms,
@@ -149,22 +161,26 @@ impl Case {
             local,
             central,
             host,
+            startup,
         }
     }
     fn controller(&self) -> Supervisor<Admission, FixtureAdapter> {
+        self.controller_with(Admission)
+    }
+    fn controller_with<A: PlanAuthority>(&self, authority: A) -> Supervisor<A, FixtureAdapter> {
         Supervisor::new(
             self.pool.clone(),
             self.root.path().into(),
             self.local.clone(),
-            Arc::new(Admission),
+            Arc::new(authority),
             Arc::new(FixtureAdapter),
         )
     }
-    async fn start(&self, host: &Supervisor<Admission, FixtureAdapter>) -> Snapshot {
+    async fn start<A: PlanAuthority>(&self, host: &Supervisor<A, FixtureAdapter>) -> Snapshot {
         host.start(
             self.central.clone(),
             self.host.clone(),
-            b"supervisor startup\n".to_vec(),
+            self.startup.clone(),
             30_000,
         )
         .await
@@ -604,7 +620,7 @@ async fn main_delivery_database_upgrades_without_losing_history() {
             .fetch_one(&pool)
             .await
             .unwrap(),
-        "47"
+        "48"
     );
     assert_eq!(
         sqlx::query_scalar::<_, i64>("SELECT count(*) FROM delivery_intents")
@@ -618,5 +634,373 @@ async fn main_delivery_database_upgrades_without_losing_history() {
             .fetch_one(&pool)
             .await
             .unwrap()
+    );
+}
+
+/// F1b plan authority: the plan and its startup bytes must be the recorded turn.
+struct Dispatched;
+#[async_trait::async_trait]
+impl PlanAuthority for Dispatched {
+    async fn authorize(
+        &self,
+        tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+        central: &CentralPlan,
+        host: &HostPlan,
+    ) -> Result<()> {
+        aq_server::agent_access::supervisor_conversation::dispatch::authorize_dispatch(
+            tx,
+            central,
+            &host.startup.payload.digest,
+        )
+        .await
+        .map_err(|e| anyhow::anyhow!("dispatch refused: {e:?}"))
+    }
+}
+async fn call(
+    app: &axum::Router,
+    method: &str,
+    path: &str,
+    headers: &[(&str, &str)],
+    body: Option<String>,
+) -> (axum::http::StatusCode, serde_json::Value) {
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+    let mut r = axum::http::Request::builder()
+        .method(method)
+        .uri(path)
+        .header("content-type", "application/json");
+    for (k, v) in headers {
+        r = r.header(*k, *v);
+    }
+    let response = app
+        .clone()
+        .oneshot(
+            r.body(axum::body::Body::from(body.unwrap_or_default()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let status = response.status();
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    (
+        status,
+        serde_json::from_slice(&bytes)
+            .unwrap_or_else(|_| serde_json::json!({"text": String::from_utf8_lossy(&bytes)})),
+    )
+}
+fn conversation_schema(v: &serde_json::Value) {
+    let s: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../protocol/human-supervisor-conversation/v1/schema.json"
+    ))
+    .unwrap();
+    assert!(aq_agent_api::check(&s, &s, v), "public schema {v}");
+}
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn owner_message_reaches_supervisor_and_reply_is_recorded() {
+    use aq_server::agent_access::supervisor_conversation::{
+        self as conversation, dispatch, reply, reservations::*,
+    };
+    use axum::http::StatusCode;
+    use chrono::TimeZone;
+    use serde_json::json;
+    const BODY: &str = "Hello supervisor ☃\nPlease plan the next milestone.";
+    let db = aq_server::test_support::TestDb::create().await;
+    let store = db.store().await;
+    let now = chrono::Utc.timestamp_millis_opt(1_000_000).unwrap();
+    let user = store
+        .bootstrap_owner("owner@localhost", "dev", "owner@localhost", now)
+        .await
+        .unwrap()
+        .unwrap();
+    let config: aq_server::config::Config = toml::from_str("format_version=1\nenvironment='development'\n[server]\nadmin_bind='127.0.0.1:0'\nworker_bind='127.0.0.1:0'\npublic_origin='http://127.0.0.1:8080'\n[auth]\nmode='dev'\ndev_email='owner@localhost'\n[bootstrap]\nowner_email='owner@localhost'\nenabled=true\n").unwrap();
+    let state = aq_server::AppState {
+        store,
+        identity: aq_server::identity::verifier_from_config(&config.auth, reqwest::Client::new()),
+        config: Arc::new(config),
+        clock: Arc::new(move || now),
+        agent_access: None,
+        source_retention: None,
+    };
+    let owner_app = conversation::routes(&state)
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            aq_server::authz::csrf_guard,
+        ))
+        .with_state(state.clone());
+    let supervisor_app = conversation::supervisor_routes(&state).with_state(state.clone());
+    let as_owner = [("x-aq-dev-email", "owner@localhost"), ("x-aq-request", "1")];
+    // 1. The owner sends one message through the mounted owner route.
+    let (c, found) = call(
+        &owner_app,
+        "GET",
+        "/api/human/conversations/global",
+        &as_owner,
+        None,
+    )
+    .await;
+    assert_eq!(c, StatusCode::OK, "{found}");
+    let conversation_id: Uuid = found["conversation"]["id"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    let messages = format!("/api/human/conversations/{conversation_id}/messages");
+    let message_id = Uuid::new_v4();
+    let create = json!({"operation_id":Uuid::new_v4(),"message_id":message_id,"expected_conversation_revision":"1","body":BODY,"context":[],"attachments":[]});
+    let (c, queued) = call(
+        &owner_app,
+        "POST",
+        &messages,
+        &as_owner,
+        Some(create.to_string()),
+    )
+    .await;
+    assert_eq!(c, StatusCode::OK, "{queued}");
+    assert_eq!(queued["state"], "queued");
+    // 2. Reserve it as one bounded batch for the configured supervisor actor.
+    let actor = Uuid::new_v4();
+    let owner = ReservationOwner::new(&state);
+    owner
+        .configure_actor(
+            &user,
+            &serde_json::to_vec(&Configure {
+                operation_id: Uuid::new_v4(),
+                actor_id: actor,
+                expected_actor_revision: 0,
+                policy: LocalPolicy {
+                    schema_version: 1,
+                    kind: PolicyKind::GlobalSupervisorReservation,
+                    actor_id: actor,
+                    conversation_id,
+                    enabled: true,
+                },
+            })
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+    let revision = owner.inspect_actor(&user, actor).await.unwrap().revision;
+    let preview = owner
+        .preview_batch(
+            &user,
+            PreviewRequest {
+                actor_id: actor,
+                expected_actor_revision: revision,
+                scan_after: 0,
+                through_cursor: None,
+            },
+        )
+        .await
+        .unwrap();
+    let reserved = owner
+        .reserve_batch(
+            &user,
+            &serde_json::to_vec(&Reserve {
+                operation_id: Uuid::new_v4(),
+                reservation_id: Uuid::new_v4(),
+                actor_id: actor,
+                expected_actor_revision: preview.actor_revision,
+                expected_policy_revision: preview.policy_revision,
+                scan_after: preview.scan_after,
+                through_cursor: preview.through_cursor,
+                selection_digest: preview.selection_digest.clone(),
+            })
+            .unwrap(),
+        )
+        .await
+        .unwrap()
+        .reservation
+        .unwrap();
+    // 3. Record the turn (dispatch intent + exact host input) before any handoff.
+    let mut central = example_plan();
+    let CentralSubject::CentralConversation {
+        actor_id,
+        conversation_id: subject_conversation,
+        ..
+    } = &mut central.subject;
+    *actor_id = actor;
+    *subject_conversation = conversation_id;
+    let SessionIdentity::Central { session_id, .. } = central.session else {
+        panic!("central session")
+    };
+    let pool = db.pool().await;
+    let turn = dispatch::prepare_turn(
+        &pool,
+        actor,
+        reserved.id,
+        central.generation,
+        session_id,
+        1_000_000,
+    )
+    .await
+    .unwrap();
+    assert_eq!(turn.batch.messages.len(), 1);
+    assert_eq!(turn.batch.messages[0].message_id, message_id);
+    assert!(
+        String::from_utf8(turn.input.clone())
+            .unwrap()
+            .contains(BODY)
+    );
+    let replayed = dispatch::prepare_turn(
+        &pool,
+        actor,
+        reserved.id,
+        central.generation,
+        session_id,
+        1_000_001,
+    )
+    .await
+    .unwrap();
+    assert_eq!(
+        replayed, turn,
+        "the recorded turn is replayed, never re-rendered"
+    );
+    central.dispatch_id = turn.dispatch_id;
+    central.host_operation_id = turn.host_operation_id;
+    central.batch = turn.batch.clone();
+    let plan_wire = serde_json::to_string(&central).unwrap();
+    assert!(
+        !plan_wire.contains("Please plan"),
+        "plans carry refs, never bodies"
+    );
+    // 4. Start the F1a session on that exact plan; the host stages the turn.
+    let case = Case::build(db, central, turn.input.clone()).await;
+    assert!(!dispatch::live(&case.pool).await);
+    let host = case.controller_with(Dispatched);
+    let started = case.start(&host).await;
+    assert_eq!(started.run.phase(), Phase::RunningReported);
+    assert!(dispatch::live(&case.pool).await);
+    let observed = host.observe(actor).await.unwrap();
+    let directory = case
+        .root
+        .path()
+        .join(observed.guardian.intent.launch_id.to_string());
+    tokio::time::sleep(Duration::from_millis(100)).await;
+    assert_eq!(
+        std::fs::read(directory.join("delivered")).unwrap(),
+        turn.input
+    );
+    // Host Running is not delivery: until the handoff proof the owner sees pending.
+    let (_, history) = call(&owner_app, "GET", &messages, &as_owner, None).await;
+    assert_eq!(history["items"][0]["host_delivery"], "pending", "{history}");
+    // 5. Record the handoff proof; it is idempotent.
+    let handed = host.handoff(actor).await.unwrap();
+    let DispatchState::Resolved { evidence } = handed.run.dispatch() else {
+        panic!("handoff resolved: {:?}", handed.run.dispatch())
+    };
+    assert_eq!(evidence.disposition, HandoffDisposition::HandedOff);
+    assert_eq!(
+        host.handoff(actor).await.unwrap().run.dispatch(),
+        handed.run.dispatch()
+    );
+    // 6. One scoped credential, bound to this generation, only beside the session.
+    let token = reply::issue_credential(&case.pool, actor, 60_000, 999_000)
+        .await
+        .unwrap();
+    let path = host.install_credential(actor, &token).await.unwrap();
+    assert!(path.starts_with(&directory));
+    use std::os::unix::fs::PermissionsExt;
+    assert_eq!(
+        std::fs::metadata(&path).unwrap().permissions().mode() & 0o777,
+        0o600
+    );
+    let installed = std::fs::read_to_string(&path).unwrap();
+    assert_eq!(installed, token);
+    let principal = reply::authenticate(&case.pool, &installed, "messaging", 1_000_000)
+        .await
+        .unwrap();
+    assert_eq!(principal.actor_id, actor);
+    assert_eq!(principal.generation, 1);
+    assert_eq!(principal.scopes, reply::SCOPES.map(String::from).to_vec());
+    // 7. The supervisor replies with the exact dispatch association.
+    let bearer = format!("Bearer {installed}");
+    let as_supervisor = [("authorization", bearer.as_str())];
+    let reply_id = Uuid::new_v4();
+    let request = json!({"operation_id":Uuid::new_v4(),"message_id":reply_id,"dispatch_id":turn.dispatch_id,"body":"Supervisor reply: milestone plan follows."}).to_string();
+    let path_reply = "/v1/supervisor/conversation/replies";
+    let (c, receipt) = call(
+        &supervisor_app,
+        "POST",
+        path_reply,
+        &as_supervisor,
+        Some(request.clone()),
+    )
+    .await;
+    assert_eq!(c, StatusCode::OK, "{receipt}");
+    assert_eq!(receipt["dispatch_id"], json!(turn.dispatch_id));
+    assert_eq!(
+        receipt["author"],
+        json!({"kind":"central_supervisor","actor_id":actor,"generation":1,"session_id":session_id})
+    );
+    assert_eq!(receipt["logical_admission"], "queued");
+    let (c, again) = call(
+        &supervisor_app,
+        "POST",
+        path_reply,
+        &as_supervisor,
+        Some(request),
+    )
+    .await;
+    assert_eq!((c, &again), (StatusCode::OK, &receipt), "reply replays");
+    let wrong = json!({"operation_id":Uuid::new_v4(),"message_id":Uuid::new_v4(),"dispatch_id":Uuid::new_v4(),"body":"wrong turn"}).to_string();
+    let (c, _) = call(
+        &supervisor_app,
+        "POST",
+        path_reply,
+        &as_supervisor,
+        Some(wrong),
+    )
+    .await;
+    assert_eq!(c, StatusCode::CONFLICT);
+    let (c, _) = call(
+        &supervisor_app,
+        "POST",
+        path_reply,
+        &as_owner,
+        Some("{}".into()),
+    )
+    .await;
+    assert_eq!(
+        c,
+        StatusCode::UNAUTHORIZED,
+        "owner sessions cannot author replies"
+    );
+    // 8. The conversation shows the delivered owner message, then the reply.
+    let (c, history) = call(&owner_app, "GET", &messages, &as_owner, None).await;
+    assert_eq!(c, StatusCode::OK, "{history}");
+    conversation_schema(&history);
+    let items = history["items"].as_array().unwrap();
+    assert_eq!(items.len(), 2, "{history}");
+    assert_eq!(items[0]["message_id"], json!(message_id));
+    assert_eq!(items[0]["host_delivery"], "delivered");
+    assert_eq!(items[1]["message_id"], json!(reply_id));
+    assert_eq!(items[1]["author"]["kind"], "supervisor");
+    assert_eq!(items[1]["dispatch"]["dispatch_id"], json!(turn.dispatch_id));
+    assert_eq!(
+        items[1]["dispatch"]["host_operation_id"],
+        json!(turn.host_operation_id)
+    );
+    // 9. Stopping the generation ends the credential and the live capability.
+    let stopped = host.stop(actor).await.unwrap();
+    assert_eq!(stopped.run.phase(), Phase::StoppedReported);
+    assert!(!dispatch::live(&case.pool).await);
+    let late = json!({"operation_id":Uuid::new_v4(),"message_id":Uuid::new_v4(),"dispatch_id":turn.dispatch_id,"body":"too late"}).to_string();
+    let (c, _) = call(
+        &supervisor_app,
+        "POST",
+        path_reply,
+        &as_supervisor,
+        Some(late),
+    )
+    .await;
+    assert_eq!(c, StatusCode::UNAUTHORIZED);
+    let leaked: i64 = sqlx::query_scalar("SELECT (SELECT count(*) FROM central_supervisor_credentials c WHERE strpos(to_jsonb(c)::text,$1)>0)+(SELECT count(*) FROM central_host_facts f WHERE strpos(to_jsonb(f)::text,$1)>0)+(SELECT count(*) FROM mailbox_messages m WHERE strpos(to_jsonb(m)::text,$1)>0)")
+        .bind(&token)
+        .fetch_one(&case.pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        leaked, 0,
+        "the plaintext credential is never stored centrally"
     );
 }

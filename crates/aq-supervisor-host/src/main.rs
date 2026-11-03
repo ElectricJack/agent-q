@@ -1,9 +1,10 @@
 use anyhow::{Context, Result, ensure};
 use aq_session_host::{LocalEnvironment, ResourcePolicy};
 use aq_supervisor_host::{
-    Supervisor,
+    RETRY_ATTEMPTS, RETRY_BACKOFF, Supervisor,
     adapter::NativeAdapter,
     config::{Config, InstalledAuthority},
+    is_transient, retry_bounded,
 };
 use std::{path::PathBuf, sync::Arc, time::Duration};
 use tokio::signal::unix::{Signal, SignalKind, signal};
@@ -95,12 +96,18 @@ async fn run() -> Result<()> {
             let mut signals = ShutdownSignals::new()?;
             let ttl = c.central.max_permit_ms.min(120_000);
             let startup = aq_supervisor_host::config::protected_read(&c.startup_file, 1048576)?;
-            Box::pin(host.start(c.central, c.host, startup, ttl)).await?;
+            let mut s = Box::pin(host.start(c.central, c.host, startup, ttl)).await?;
             let shutdown = signals.recv();
             tokio::pin!(shutdown);
             loop {
                 tokio::select! {result=&mut shutdown=>{result?;host.stop(actor).await?;break;},_ = tokio::time::sleep(Duration::from_millis(250))=>{}}
-                let s = host.reconcile(actor).await?;
+                // A transient DB/network error must not exit the controller while
+                // the guardian keeps running; retry within the last known permit.
+                let expires = s.run.permit().map_or(0, |p| p.expires_boot_ms);
+                s = retry_bounded(RETRY_ATTEMPTS, RETRY_BACKOFF, expires, is_transient, || {
+                    host.reconcile(actor)
+                })
+                .await?;
                 if !matches!(
                     s.run.phase(),
                     aq_central_authority::Phase::StartCommitted
@@ -113,7 +120,12 @@ async fn run() -> Result<()> {
                 if now >= p.issued_boot_ms + (p.expires_boot_ms - p.issued_boot_ms) / 2
                     && p.expires_boot_ms < s.run.original_deadline_boot_ms()
                 {
-                    host.renew(actor, p.sequence, ttl).await?;
+                    let expires = p.expires_boot_ms;
+                    let sequence = p.sequence;
+                    s = retry_bounded(RETRY_ATTEMPTS, RETRY_BACKOFF, expires, is_transient, || {
+                        host.renew(actor, sequence, ttl)
+                    })
+                    .await?;
                 }
             }
         }
