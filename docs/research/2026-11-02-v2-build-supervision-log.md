@@ -422,3 +422,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - #47 (`sharp-current-24`, storage amendment folded into 0005, after an operator doc-conflict merge `4619d1b`).
   - #46 (`smart-lantern-97`, Postgres retention) had its own clippy `items_after_test_module`. Moved the impl above the test module and merged main; full workspace clippy is clean; pushed `95ddee1`.
   - Re-ran update-branch on #50 and #51; their failures were stale `dashboard_task_knowledge` clippy runs from before `61aeef1`.
+- **10:50 check.**
+  - **C7 first live boat.dev run PASS:** create, provision, run, observe, handoff and destroy in 197.5 s, on a personal account with a stock busybox image. One scenario hit a client timeout shorter than the server's 60 s command bound; fixed in `b60e424`. Post-run: 0 sandboxes, 0 snapshots.
+    - C7 asked the owner to approve 5 more short sandboxes. I approved as operator (about $0.01, well inside $20) and reopened C7.
+  - **Merged #48 (F2, `9b86df47`)** and closed F2 with `--done`.
+  - #43 (`keen-quest-39`, generated migration catalog) and #44 (`brisk-delta-43`) conflicted after #48. Resolved #43 by keeping the generated catalog (it picks up main's 0061; format 61; workspace clippy clean) and pushed `c52a23e`. I will resolve #44 against the catalog after #43 lands.
+  - `grand-vault-92` (H2 monthly boat VM-time budget accounting) started.
