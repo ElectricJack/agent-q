@@ -82,3 +82,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Raised `sharp-harbor-18` (on the MS0 path) to high priority; aq-worker is at its cap of 6.
   - Merged aq-server #20 (C5a1 revision 2), aq-worker #16 (C2 handoff docs) and aq-worker #17 (heartbeat diagnostics).
   - C3b completed; C3c (template publish) and G5 (Overview) started.
+- **19:45 owner check-in.**
+  - **My monitor had been missing agents' "Blocked on …" messages to the owner's dashboard inbox.** The inbox query filtered them out. The monitor now reads them directly.
+  - **Owner approved GHCR publication:** `docker login ghcr.io` using the owner's gh token (write:packages), with public packages under ghcr.io/electricjack. C3c was released.
+  - Asked the supervisor again to decide six delegated reviews (B1 round 2, B5a, C5a1, C2, J7, a flakiness investigation), and flagged D10's inconsistent round-3 changes-requested.
+  - The 12 imported-policy-playbook reviews are owner-only but non-blocking; system defaults apply.
