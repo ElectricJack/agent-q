@@ -383,3 +383,26 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - F4 (Discord) completed. D3's implementation review `rev-keen-glacier` had no reviewer; dispatched `quick-journey-12` (Claude).
   - F2 was paused/held on a degraded-Codex route; overrode it to Claude standard-high and it is READY.
   - D5 was reopened for its substantive main-merge conflicts. The I0 re-run and `amber-rapids-59` are running.
+- **08:05 check.**
+  - **Storage tasks were misfiled:** the storage design filed all 13 implementation tasks in aq-platform, but 4 are aq-worker code and 1 is dashboard UI. Recreated them in the right projects: aq-worker `clear-lantern-42` (docker-local disk limit), `vivid-delta-76` (boat disk mapping and df watchdog), `smart-torrent-92` (node disk reporting) and `brisk-delta-45` (bounded preserved sandboxes); aq-dashboard `clear-crest-22` (Capacity panel). Closed the originals as obsolete. Pinned all of these, plus `smart-beacon-11`, `keen-impact-33` and `sharp-current-24`, to Claude (Codex 95%).
+  - **F2** was held on a pre-start merge conflict (its migration was 0058; main is at 0060). Merged main into `aq/steady-harbor-87.3` and renumbered to 0061 (`67ca73b`). Released the hold and reopened it with "merge immediately".
+  - Merged aq-worker #31 (`swift-vault-73`, preserve template toolchain env; `50f02159`). `keen-quest-39` (structural fix for migration registration conflicts) is running.
+- **08:25 check.**
+  - **aq-server main's "fmt and clippy" job was failing** on `notifications/runtime.rs:45` (clippy collapsible-if, from the F4 merge), so every open PR inherited the failure. Collapsed it into a let-chain; `cargo clippy -p aq-server --lib -D warnings` is clean. Pushed `68db049`.
+  - **Owner rule:** pause all six v2 projects when Claude weekly usage reaches 80%. The monitor now does this automatically, once, and alerts. Current usage: Claude 65%, Codex 96%.
+  - Storage implementation tasks are running in aq-worker (`clear-lantern-42`, `smart-torrent-92`, `brisk-delta-45`) and aq-platform (`smart-beacon-11`, `sharp-current-24`). F2 is running again after the renumber. PRs #42–#47 are open.
+- **08:30 owner decision: boat.dev budget $20/month** (the $20 plan). Recorded on C7, `sound-vault-88` (E1d) and `vivid-delta-76`:
+  - boat side: auto top-up off, extra starts off, an org-member usage cap, concurrency 4, saved snapshots within the 10 included;
+  - AQ side: `aq-worker-boat` spend_ceiling $18/month from H2 accounting, max_concurrent_sandboxes 4;
+  - small sandboxes by default.
+- **08:40 owner re-scope: test boat first from the desktop; the VPS comes later.**
+  - E5 became E5a: the desktop-hosted production stack behind Cloudflare Tunnel and Access (description updated and the agent messaged).
+  - Filed E5b `crisp-beacon-74`: the VPS move (purchase, SSH, firewall, repoint the tunnel, backups, reboot drill). E6b and MS2 now depend on E5b.
+  - Told `sound-vault-88` (aq-worker-boat) to run in the desktop stack.
+  - Owner inputs still needed: Cloudflare domain and option, team name and email, release tag, boat keys.
+- **09:15 boat.dev live.**
+  - The owner signed up (free trial, then the $20 plan) and saved the attempts key at `~/.config/aq-secrets/boat-api-key` (0600). Verified without printing it: `/me` 200, `/sandboxes` 200 (empty), `/account` 403 (expected).
+  - Scopes: create, read, update, stop, resume, fork, delete-own, exec, file, snapshot r/w, environment read, account read; no `environment.write` (template builds need the second key). Expires 2027-02-01.
+  - Released C7's hold and reopened it for live acceptance: personal account (no org; seats cost $20 each), so sweeps scope by name prefix plus delete-own; small size; at most 2 short sandboxes with 15-minute auto-stop, deleted afterwards.
+  - **I0 run 12 completed:** a real Codex run of 916 s, every worker route 200 and the source retained. It is short of MS0 because the pinned task had no concrete edit and aq-server settlement gaps remain (router unmounted, no combined-decision path). `keen-impact-58` is fixing those; the re-run reopens after.
+  - The disk guard ran at 85% and freed 111 GB (now 74%).
