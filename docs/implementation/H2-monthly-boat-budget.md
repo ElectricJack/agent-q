@@ -83,9 +83,9 @@ or subscription costs are not VM-time costs; keep the vendor-side limits above.
 
 ## Compatibility and verification
 
-Migration `0061_vm_time_accounting.sql` adds `accounting_vm_time`; old token
+Migration `0062_vm_time_accounting.sql` adds `accounting_vm_time`; old token
 facts and advertisements remain valid. State format and image label advance to
-61. Rate cards are pinned in the ledger, so later price changes do not silently
+62. Rate cards are pinned in the ledger, so later price changes do not silently
 reprice retained intervals.
 
 Run the focused checks with the disposable PostgreSQL available:

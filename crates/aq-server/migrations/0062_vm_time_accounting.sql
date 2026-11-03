@@ -13,4 +13,4 @@ CREATE TABLE accounting_vm_time (
  CHECK(octet_length(rate_card::TEXT)<=4096)
 );
 CREATE INDEX accounting_vm_time_month ON accounting_vm_time(node_id,stopped_at_ms);
-UPDATE meta SET value='61' WHERE key='state_format_version';
+UPDATE meta SET value='62' WHERE key='state_format_version';

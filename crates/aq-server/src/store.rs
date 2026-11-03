@@ -339,7 +339,11 @@ const MIGRATIONS: &[(i32, &str)] = &[
     ),
     (
         61,
-        include_str!("../migrations/0061_vm_time_accounting.sql"),
+        include_str!("../migrations/0061_supervisor_action_principals.sql"),
+    ),
+    (
+        62,
+        include_str!("../migrations/0062_vm_time_accounting.sql"),
     ),
 ];
 

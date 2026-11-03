@@ -30,6 +30,9 @@ pub enum AppError {
     BadRequest(String),
     InputDeadline,
     Conflict(String),
+    DefinitionIdentityConflict,
+    /// Fixed endpoint diagnostic; never includes database or terminal payloads.
+    TerminalRelayFailure(&'static str),
     ExecutionCancelled,
     PayloadTooLarge(String),
     /// 426 with a `CompatibilityError` body.
@@ -54,7 +57,9 @@ impl AppError {
             AppError::NotFound(_) => StatusCode::NOT_FOUND,
             AppError::BadRequest(_) => StatusCode::BAD_REQUEST,
             AppError::InputDeadline => StatusCode::UNPROCESSABLE_ENTITY,
-            AppError::Conflict(_) | AppError::ExecutionCancelled => StatusCode::CONFLICT,
+            AppError::Conflict(_)
+            | AppError::ExecutionCancelled
+            | AppError::DefinitionIdentityConflict => StatusCode::CONFLICT,
             AppError::PayloadTooLarge(_) => StatusCode::PAYLOAD_TOO_LARGE,
             AppError::UnsupportedProtocol(_) => StatusCode::UPGRADE_REQUIRED,
             AppError::InvalidCredential(_) | AppError::CredentialRevoked => {
@@ -66,7 +71,9 @@ impl AppError {
                 StatusCode::SERVICE_UNAVAILABLE
             }
             AppError::InvalidVersion(_) => StatusCode::BAD_REQUEST,
-            AppError::Internal => StatusCode::INTERNAL_SERVER_ERROR,
+            AppError::Internal | AppError::TerminalRelayFailure(_) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         }
     }
 
@@ -83,6 +90,14 @@ impl AppError {
                 aq_terminal_relay::Error::InputDeadline.to_string(),
             ),
             AppError::Conflict(m) => (CONFLICT, m.clone()),
+            AppError::DefinitionIdentityConflict => (
+                "admission_definition_identity_conflict",
+                "Definition identity/version already retains different bytes; publish a new definition version".into(),
+            ),
+            AppError::TerminalRelayFailure(code) => (
+                *code,
+                "Terminal relay failed; retry the request and inspect server diagnostics if it persists".into(),
+            ),
             AppError::ExecutionCancelled => (CONFLICT, "execution cancelled".into()),
             AppError::PayloadTooLarge(m) => (BAD_REQUEST, m.clone()),
             AppError::UnsupportedProtocol(c) => (c.error.as_str(), c.message.clone()),
