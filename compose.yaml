@@ -1,7 +1,7 @@
 # Production stack. See vault.production.example and docs/operations.md.
 # Per-service CPU/memory/PID caps (E1c) keep sandbox and supervisor load from
 # starving this stack; NVMe 8 values are in docs/architecture/0005 §9.1.
-# compose.workers.yaml adds the supervisor host and cloud worker.
+# compose.workers.yaml adds the supervisor host, docker-local and Boat workers.
 name: agent-q
 x-runtime: &runtime
   read_only: true

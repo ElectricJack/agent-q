@@ -216,6 +216,45 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --check
 ```
 
+## Database migrations
+
+`crates/aq-server/migrations/` is the migration manifest. Its SQL filenames,
+sorted lexically, must be exactly `0001_description.sql`, `0002_description.sql`,
+and so on, with four decimal digits, a lowercase description, unique numbers,
+and no gaps. Cargo's `build.rs` rejects duplicates, gaps and invalid ordering
+before compiling the server. CI also runs `python3 scripts/migration_catalog.py`
+and the focused catalog regressions.
+
+Coordinate the next unused numbers before parallel work: reserve distinct
+consecutive numbers and integrate in that order. Two branches adding, for example,
+`0061_first_change.sql` and `0062_second_change.sql` only add their own files;
+merging them needs no registry edits. The second branch's catalog check will
+reject the missing 0061 until it includes the first migration. If both branches
+choose 0061, the combined catalog fails CI even when Git merges their different
+filenames cleanly. Renumber only an unpublished, unapplied migration after
+coordination. Never rename, renumber or edit a migration already applied to a
+database; add a new migration instead.
+
+Each migration must set `meta.state_format_version` to its number in the same
+transaction. `store.rs` registration, `STATE_FORMAT_VERSION`, and
+`READABLE_STATE_FORMATS` are generated from this directory at build time; do not
+edit them when adding a migration. SQL remains embedded in the binary, and Docker
+copies the entire crate tree. No generated registry is checked in.
+
+Server image labels use the same catalog. Release, dev-stack and smoke entrypoints
+derive the build argument automatically. For a direct Docker build use:
+
+```sh
+docker build --target server \
+  --build-arg AQ_STATE_FORMAT="$(python3 scripts/migration_catalog.py)" .
+```
+
+For direct development Compose builds export
+`AQ_STATE_FORMAT=$(python3 scripts/migration_catalog.py)` first. Docker's server
+build rejects a missing or stale value against the compiled catalog, so the image
+label always agrees with the release manifest. No numeric Dockerfile default
+needs to change when adding a migration.
+
 ## Smoke test
 
 ```sh

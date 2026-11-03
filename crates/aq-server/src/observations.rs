@@ -322,7 +322,7 @@ async fn ingest_subject(
     let retention_enabled = {
         #[cfg(any(test, feature = "test-support"))]
         {
-            state.store.fixture_profile.is_none_or(|v| v >= 61)
+            state.store.fixture_profile.is_none_or(|v| v >= 63)
         }
         #[cfg(not(any(test, feature = "test-support")))]
         {

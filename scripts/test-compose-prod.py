@@ -103,6 +103,25 @@ def test_worker_overlay_limits_and_socket_boundaries():
     assert not {"aq-supervisor-host", "aq-worker-cloud"} & set(config()["services"])
 
 
+def test_boat_profile_has_distinct_state_and_requires_additional_host_capacity():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("workers_smoke", ROOT / "scripts/compose-workers-smoke.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert "aq-worker-boat" not in module.merged_config()["services"]
+    document = module.merged_config("boat")
+    with pytest.raises(AssertionError, match="CPU budget exceeds VPS"):
+        module.validate_production(document, module.slice_properties())
+    report = module.validate_production(document, module.slice_properties(),
+                                        {"cpus": 8.0, "memory": 16_000_000_000})
+    assert report["budget"]["cpus"] == 4.125
+    example = json.loads((ROOT / "deploy/boat.example/controller.json.example").read_text())
+    assert "docker_local" not in example
+    assert example["boat"]["attempt_org"] != example["boat"]["template_org"]
+    assert example["node"]["max_concurrent_sandboxes"] == 4
+    assert example["node"]["spend_ceiling"] == {"currency": "USD", "micros": 18000000}
+
+
 @pytest.mark.parametrize("key,value,message", [
     ("CPUQuota", "400%", "CPU budget exceeds VPS"),
     ("MemoryMax", "8G", "memory budget leaves under 1 GB for the host"),
