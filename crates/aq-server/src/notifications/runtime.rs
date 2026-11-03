@@ -42,11 +42,12 @@ pub async fn run(
             }
             _=flush.tick()=>{
                 if flushing.as_ref().is_none_or(|h|h.is_finished()) {
-                    if let Some(handle)=flushing.take() {
-                        if !matches!(handle.await,Ok(true)) && last_warning.elapsed()>=Duration::from_secs(30) {
-                            last_warning=std::time::Instant::now();
-                            tracing::warn!("notification policy deferred; retained sources will retry");
-                        }
+                    if let Some(handle)=flushing.take()
+                        && !matches!(handle.await,Ok(true))
+                        && last_warning.elapsed()>=Duration::from_secs(30)
+                    {
+                        last_warning=std::time::Instant::now();
+                        tracing::warn!("notification policy deferred; retained sources will retry");
                     }
                     let policy=policy.clone();
                     let state=state.clone();
