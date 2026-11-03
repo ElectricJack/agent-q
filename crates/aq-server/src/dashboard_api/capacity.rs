@@ -105,8 +105,8 @@ pub(super) async fn capacity(
         pool: &state.store.observation_pool,
         book: &book,
     };
-    let loads = placement::loads(&mut *tx, &ledger, &ids, now).await?;
-    let storage = node_storage::latest(&mut *tx, &ids).await?;
+    let loads = placement::loads(&mut tx, &ledger, &ids, now).await?;
+    let storage = node_storage::latest(&mut tx, &ids).await?;
     let occupied_all: i64 =
         sqlx::query_scalar("SELECT count(*) FROM execution_attempts WHERE holds_task")
             .fetch_one(&mut *tx)
