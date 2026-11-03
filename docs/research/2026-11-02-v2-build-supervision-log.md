@@ -106,3 +106,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - G5 was already running; sent it G4's published schema digest.
   - **`rev-amber-quest` is deadlocked by review tooling:** an unchanged resubmission is refused, and a decision is refused while changes are requested. Handed back to the supervisor. Asked again for decisions on `rev-keen-ember` (B1 round 2) and `rev-grand-meadow` (B5a round 2).
   - Merged aq-worker #18.
+- **20:19 check.**
+  - B1's review came back changes-requested again (round 3). Its fourth revision (`sharp-lantern-29`) is running. B1b and then B2 stay queued behind it; I updated the follow-up list.
+  - `crisp-nexus-12` (HostPlan) is running after the owner decision.
+  - Merged aq-server #21.
