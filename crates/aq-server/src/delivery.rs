@@ -194,7 +194,7 @@ impl DeliveryService {
             params,
         })
     }
-    /// Create from historical server-owned retained source records. Acceptance
+    /// Create from active server-owned retained source records. Acceptance
     /// and delivery policy are the caller's responsibility, not this primitive's.
     pub async fn create_candidate(&self, r: CandidateRequest) -> Result<Receipt<CandidateResult>> {
         let inputs = serde_json::to_value(&r)?;
@@ -381,10 +381,12 @@ impl DeliveryService {
             let parsed = decode::<T>(raw.clone(), c, operation, &intent.params);
             let mut tx = self.pool.begin().await?;
             Self::save_receipt(&mut tx, c.operation_id, &raw).await?;
-            // An unrecognized envelope is never proof of a conclusive outcome.
+            // After dispatch, absent uncertainty flags are not proof of refusal.
+            // Only a validated success or an explicitly failed operation without
+            // uncertainty signals can release the destination hold.
             let conclusive = parsed.as_ref().is_ok_and(|r| match &r.outcome {
                 Ok(_) => true,
-                Err(e) => !e.uncertain() && r.operation_state != Some(OperationStatus::Pending),
+                Err(e) => !e.uncertain() && r.operation_state == Some(OperationStatus::Failed),
             });
             if conclusive {
                 sqlx::query("DELETE FROM delivery_destinations WHERE operation_id=$1")

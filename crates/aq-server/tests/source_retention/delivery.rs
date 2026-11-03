@@ -562,6 +562,92 @@ async fn delivery_indeterminate_receipts_and_lost_replies_keep_destination_held(
 }
 
 #[tokio::test]
+async fn delivery_publish_errors_require_conclusive_failed_state() {
+    let h = Harness::new().await;
+    let source = retain(&h).await;
+    let svc = service(&h);
+    let request = candidate(&h, source);
+    let task = peer(&h, ready(&h, request.context.operation_id)).await;
+    svc.create_candidate(request.clone()).await.unwrap();
+    task.await.unwrap();
+    std::fs::remove_file(h.dir.path().join("git.sock")).unwrap();
+
+    for (index, (state, dispatched, conclusive)) in [
+        (None, false, false),
+        (Some("pending"), false, false),
+        (Some("complete"), false, false),
+        (Some("failed"), true, false),
+        (Some("failed"), false, true),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let p = PublishRequest {
+            context: context(&h),
+            candidate_id: request.context.operation_id,
+            target: format!("refs/heads/error-{index}"),
+            expected_old: h.manifest.source.base.clone(),
+        };
+        // The first case reproduces an ENOSPC after the remote push, when
+        // aq-git cannot read its journal to attach operation_state.
+        let mut reply = json!({"protocol_version":1,"request_id":p.context.operation_id.to_string(),"operation_id":p.context.operation_id,"ok":false,"error":{"code":"io_error","message":"No space left on device","details":null,"retry":"safe_same_operation"}});
+        if let Some(state) = state {
+            reply["operation_state"] = json!(state);
+        }
+        if dispatched {
+            reply["error"]["details"] = json!({"dispatched":true});
+        }
+        let raw = format!("{reply}\n").into_bytes();
+        let expected = raw.clone();
+        let listener = tokio::net::UnixListener::bind(h.dir.path().join("git.sock")).unwrap();
+        let task = tokio::spawn(async move {
+            let (stream, _) = listener.accept().await.unwrap();
+            let mut reader = BufReader::new(stream);
+            let mut line = String::new();
+            reader.read_line(&mut line).await.unwrap();
+            reader.get_mut().write_all(&raw).await.unwrap();
+        });
+        let receipt = svc.publish(p.clone()).await.unwrap();
+        task.await.unwrap();
+        std::fs::remove_file(h.dir.path().join("git.sock")).unwrap();
+        assert_eq!(receipt.raw, expected);
+        assert_eq!(receipt.outcome.unwrap_err().code, "io_error");
+        assert_eq!(
+            service(&h).publish(p.clone()).await.unwrap().raw,
+            expected,
+            "replay must retain the exact error evidence without redispatch"
+        );
+        let held: i64 =
+            sqlx::query_scalar("SELECT count(*) FROM delivery_destinations WHERE operation_id=$1")
+                .bind(p.context.operation_id)
+                .fetch_one(&h.pool)
+                .await
+                .unwrap();
+        assert_eq!(held, i64::from(!conclusive), "state {state:?}");
+        let mut next = p;
+        next.context.operation_id = Uuid::new_v4();
+        if conclusive {
+            let task = peer(
+                &h,
+                json!({"outcome":"rejected","reason":"stale_expected_old"}),
+            )
+            .await;
+            assert!(matches!(
+                svc.publish(next).await.unwrap().outcome,
+                Ok(PublishResult::Rejected { .. })
+            ));
+            task.await.unwrap();
+            std::fs::remove_file(h.dir.path().join("git.sock")).unwrap();
+        } else {
+            assert!(matches!(
+                svc.publish(next).await,
+                Err(DeliveryError::DestinationBlocked)
+            ));
+        }
+    }
+}
+
+#[tokio::test]
 async fn delivery_candidate_retries_frozen_request_after_lost_reply() {
     let h = Harness::new().await;
     let source = retain(&h).await;
