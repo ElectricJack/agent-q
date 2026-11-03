@@ -25,6 +25,8 @@ pub(crate) fn registry(
         .register(crate::reviews::action::ResolveDecision(reviews))
         .expect("static decision adapter");
     crate::results_feedback::actions::register(&mut registry);
+    crate::agent_access::human::graph_actions::register(state, &mut registry);
+    crate::agent_access::human::task_execution::register(state, &mut registry);
     registry
 }
 pub(crate) fn schemas() -> Registry {
@@ -40,6 +42,8 @@ pub(crate) fn schemas() -> Registry {
         .register_schema::<crate::reviews::action::ResolveDecision>()
         .expect("decision schema");
     crate::results_feedback::actions::schemas(&mut registry);
+    crate::agent_access::human::graph_actions::schemas(&mut registry);
+    crate::agent_access::human::task_execution::schemas(&mut registry);
     registry
 }
 pub(crate) async fn owner(state: &AppState, user: &User) -> Result<(), ApiError> {
@@ -105,6 +109,7 @@ pub(crate) fn disposition(disposition: Disposition) -> Outcome {
         disposition,
         receipt_refs: vec![],
         affected_entities: vec![],
+        current_versions: Default::default(),
     }
 }
 pub(crate) fn failure(error: AppError) -> Outcome {

@@ -355,3 +355,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
 - **05:20 check.**
   - Merged aq-server #36 (`bright-torrent-63`: CI runs product and release smokes against the 0.5.1 worker). Every check passed (smoke and update-lifecycle included) except the known flaky `original_inputs_remain_scoped_after_proposal_expiry_then_expire_held`.
   - #37 (I0 server findings) has the stack fix and a main merge; mergeable, CI pending. `prime-dune-72` (update-lifecycle) and the G2 and C4 follow-ups are running. `clear-rapids-48` and H2 completed earlier; aq-worker main CI is green again.
+- **05:50 check.**
+  - **G2 blocked close:** its own follow-up `steady-cascade-45.3.1` had been filed as a child and was claimed by another agent, which refused G2's close. Reparented it to the root (owner-style option a) and told G2 to close.
+  - **`bright-nexus-44` completed;** PR #37 is mergeable with CI pending. The I0 re-run `calm-stone-85` is READY. Told it to prep the image and confirm #37 is on main before the single real run (deadline 2026-11-04 07:22 UTC).
+  - **D3 completed with PR #39 conflicting and failing tests.** Reopened it to merge main, renumber any migration and fix tests; pinned it to Claude.
+  - E6a was reclaimed (IN_PROGRESS; the owner's restart drill is still pending). Moved D5 from Codex to Claude. Disk is at 82%.

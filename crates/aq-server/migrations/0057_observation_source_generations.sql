@@ -40,4 +40,4 @@ BEGIN
 END $$;
 CREATE INDEX observation_call_heads_lineage ON observation_call_heads(lineage_id, call_key)
  WHERE lineage_id IS NOT NULL;
-UPDATE meta SET value='56' WHERE key='state_format_version';
+UPDATE meta SET value='57' WHERE key='state_format_version';

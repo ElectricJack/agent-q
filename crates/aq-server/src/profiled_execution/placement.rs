@@ -12,7 +12,7 @@ use crate::AppState;
 use crate::error::AppError;
 use aq_admission_sandbox::sandbox::{BackendAdvertisement, BackendCapability, BackendKind, Money};
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
 
 pub const DEFAULT_PREFERENCE: [BackendKind; 3] = [
@@ -167,12 +167,18 @@ fn policy(state: &AppState, project_id: Uuid) -> Option<PlacementPolicy> {
         .clone()
 }
 
-async fn active(pool: &PgPool, nodes: &[Uuid]) -> Result<Vec<(Uuid, i64)>, AppError> {
+async fn active(
+    conn: &mut PgConnection,
+    nodes: &[Uuid],
+    exclude_attempt: Option<Uuid>,
+) -> Result<Vec<(Uuid, i64)>, AppError> {
     sqlx::query_as(
-        "SELECT node_id, count(*) FROM execution_attempts WHERE holds_task AND node_id = ANY($1) GROUP BY node_id",
+        "SELECT node_id, count(*) FROM execution_attempts WHERE holds_task AND node_id = ANY($1) \
+         AND attempt_id IS DISTINCT FROM $2 GROUP BY node_id",
     )
     .bind(nodes)
-    .fetch_all(pool)
+    .bind(exclude_attempt)
+    .fetch_all(conn)
     .await
     .map_err(db)
 }
@@ -223,10 +229,54 @@ pub async fn facts_in(
     environment: &str,
     now_ms: u64,
 ) -> Result<Option<aq_selection::Placement>, AppError> {
+    let mut conn = pool.acquire().await.map_err(db)?;
+    derive(
+        &mut conn,
+        ledger,
+        policy,
+        node_id,
+        catalog_digest,
+        environment,
+        now_ms,
+        Derivation::SELECTION,
+    )
+    .await
+}
+
+/// What a derivation reads beyond the node's own registration, pins and load.
+#[derive(Debug, Clone, Copy)]
+pub struct Derivation {
+    /// Scan peers for the preference hold. Selection only: once a node holds a
+    /// reservation, a newly eligible preferred peer does not take it away.
+    pub peers: bool,
+    /// The fenced attempt's own reservation, which must not count toward its
+    /// node's concurrency ceiling.
+    pub exclude_attempt: Option<Uuid>,
+}
+impl Derivation {
+    pub const SELECTION: Self = Self {
+        peers: true,
+        exclude_attempt: None,
+    };
+}
+
+/// Placement facts read on `conn`, so an admission fence reads them inside its
+/// SERIALIZABLE transaction.
+#[allow(clippy::too_many_arguments)]
+pub async fn derive(
+    conn: &mut PgConnection,
+    ledger: &Ledger<'_>,
+    policy: Option<&PlacementPolicy>,
+    node_id: Uuid,
+    catalog_digest: &str,
+    environment: &str,
+    now_ms: u64,
+    derivation: Derivation,
+) -> Result<Option<aq_selection::Placement>, AppError> {
     let own: Option<serde_json::Value> =
         sqlx::query_scalar("SELECT registration FROM delegated_node_boots WHERE node_id=$1")
             .bind(node_id)
-            .fetch_optional(pool)
+            .fetch_optional(&mut *conn)
             .await
             .map_err(db)?;
     let Some(own) = own else {
@@ -242,24 +292,38 @@ pub async fn facts_in(
     } else {
         policy.preference.clone()
     };
-    let resolutions = crate::templates::load(pool, catalog_digest).await?;
+    let resolutions = crate::templates::load(&mut *conn, catalog_digest).await?;
     let resolved = resolutions
         .iter()
         .find(|r| r.environment == environment)
         .map(|r| r.template_digest.as_str().to_owned());
 
-    let peers: Vec<(Uuid, serde_json::Value)> = sqlx::query_as(
-        "SELECT b.node_id, b.registration FROM delegated_node_boots b \
-         JOIN intelligence_node_snapshots s ON s.node_id=b.node_id \
-         WHERE b.node_id<>$1 AND (s.snapshot->>'expires_at_ms')::bigint > $2 \
-         ORDER BY b.node_id LIMIT $3",
-    )
-    .bind(node_id)
-    .bind(i64::try_from(now_ms).unwrap_or(i64::MAX))
-    .bind(MAX_PEERS)
-    .fetch_all(pool)
-    .await
-    .map_err(db)?;
+    let peers: Vec<(Uuid, serde_json::Value)> = if derivation.peers {
+        sqlx::query_as(
+            "SELECT b.node_id, b.registration FROM delegated_node_boots b \
+             JOIN intelligence_node_snapshots s ON s.node_id=b.node_id \
+             WHERE b.node_id<>$1 AND (s.snapshot->>'expires_at_ms')::bigint > $2 \
+             ORDER BY b.node_id LIMIT $3",
+        )
+        .bind(node_id)
+        .bind(i64::try_from(now_ms).unwrap_or(i64::MAX))
+        .bind(MAX_PEERS)
+        .fetch_all(&mut *conn)
+        .await
+        .map_err(db)?
+    } else {
+        Vec::new()
+    };
+    if peer_scan_truncated(peers.len()) {
+        // Peers past the bound are never considered for the hold, so a
+        // preferred peer may be missed and this node offered work instead.
+        tracing::warn!(
+            target: "aq_server::placement",
+            node_id = %node_id,
+            peer_scan_bound = MAX_PEERS,
+            "placement peer scan reached its bound; later peers were not considered for the preference hold"
+        );
+    }
     // A malformed peer registration is never a reason to hold.
     let peers: Vec<(Uuid, Registered)> = peers
         .into_iter()
@@ -267,7 +331,7 @@ pub async fn facts_in(
         .collect();
     let mut nodes: Vec<Uuid> = peers.iter().map(|(n, _)| *n).collect();
     nodes.push(node_id);
-    let active = active(pool, &nodes).await?;
+    let active = active(&mut *conn, &nodes, derivation.exclude_attempt).await?;
     let mut advertised: Vec<(Uuid, &BackendAdvertisement)> =
         peers.iter().map(|(n, r)| (*n, &r.backend)).collect();
     advertised.push((node_id, &own.backend));
@@ -332,6 +396,70 @@ pub async fn facts_in(
             .map(convert)
             .transpose()?,
     }))
+}
+
+fn peer_scan_truncated(scanned: usize) -> bool {
+    i64::try_from(scanned).is_ok_and(|n| n >= MAX_PEERS)
+}
+
+/// Admission-fence re-check (offer, preparation and grant replay). The node's
+/// placement facts are re-derived inside the fence's SERIALIZABLE transaction
+/// from `delegated_node_boots`, `profile_catalog_environment_templates` and the
+/// node's active attempts, then the frozen choice is re-checked with the same
+/// typed reasons as selection. A ceiling reached or a template lost since
+/// selection refuses with 409 and the reason code. The preference hold is
+/// selection-only and is not re-derived here.
+pub(crate) async fn fence_locked(
+    state: &AppState,
+    tx: &mut PgConnection,
+    decision: &crate::intelligence::resolver::Decision,
+    owned_attempt: Option<Uuid>,
+    now_ms: u64,
+) -> Result<(), AppError> {
+    let project = &decision.project;
+    let book = crate::observations::catalog::rate_book(state);
+    let ledger = Ledger {
+        pool: &state.store.observation_pool,
+        book: &book,
+    };
+    let current = derive(
+        tx,
+        &ledger,
+        policy(state, decision.inputs.project.lineage.project_id).as_ref(),
+        project.node_id,
+        &project.project.binding.catalog_digest,
+        &project.environment,
+        now_ms,
+        Derivation {
+            peers: false,
+            exclude_attempt: owned_attempt,
+        },
+    )
+    .await?;
+    let choice = &decision
+        .outcome
+        .resolved
+        .as_ref()
+        .ok_or_else(|| AppError::Conflict("decision has no eligible selection".into()))?
+        .choice;
+    recheck(decision.inputs.placement.as_ref(), current.as_ref(), choice)
+}
+
+fn recheck(
+    selected: Option<&aq_selection::Placement>,
+    current: Option<&aq_selection::Placement>,
+    choice: &aq_selection::ConcreteChoice,
+) -> Result<(), AppError> {
+    match (selected, current) {
+        (None, None) => Ok(()),
+        // Selection did not see this node's sandbox registration, or saw one
+        // that is gone; either way its placement facts no longer apply.
+        (None, Some(_)) | (Some(_), None) => {
+            Err(AppError::Conflict("placement_registration_changed".into()))
+        }
+        (Some(_), Some(current)) => aq_selection::recheck(current, choice)
+            .map_err(|reason| AppError::Conflict(reason.into())),
+    }
 }
 
 #[cfg(test)]
@@ -623,5 +751,189 @@ mod tests {
         );
         // Host-native nodes carry no placement facts.
         assert_eq!(facts(Uuid::new_v4(), 1_000).await.unwrap(), None);
+    }
+
+    fn refusal(result: Result<(), AppError>) -> Option<String> {
+        match result {
+            Ok(()) => None,
+            Err(AppError::Conflict(reason)) => Some(reason),
+            Err(other) => panic!("unexpected fence error {other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn fence_rechecks_ceiling_and_template_after_selection() {
+        let db = crate::test_support::TestDb::create().await;
+        let pool = db.store().await.pool;
+        let hex = |c: char| std::iter::repeat_n(c, 64).collect::<String>();
+        let user = Uuid::new_v4();
+        sqlx::query(
+            "INSERT INTO users(id,email,role,created_at) VALUES($1,'o@example.test','owner',now())",
+        )
+        .bind(user)
+        .execute(&pool)
+        .await
+        .unwrap();
+        let catalog = hex('f');
+        sqlx::query("INSERT INTO profile_catalog_artifacts(digest,artifact,created_by,created_at_ms) VALUES($1,'\x7b\x7d',$2,1)")
+            .bind(&catalog).bind(user).execute(&pool).await.unwrap();
+        let pin = |template: Option<String>| {
+            let pool = pool.clone();
+            let catalog = catalog.clone();
+            async move {
+                let resolutions: Vec<_> = template
+                    .into_iter()
+                    .map(|t| crate::templates::Resolution {
+                        environment: "ci@1".into(),
+                        template_digest: serde_json::from_value(serde_json::json!(t)).unwrap(),
+                    })
+                    .collect();
+                let mut tx = pool.begin().await.unwrap();
+                crate::templates::store(&mut tx, &catalog, &resolutions)
+                    .await
+                    .unwrap();
+                tx.commit().await.unwrap();
+            }
+        };
+        pin(Some(hex('a'))).await;
+        let registration = |kind: &str, templates: serde_json::Value| {
+            serde_json::json!({"backend":{"kind":kind,"capabilities":["vm-isolation"],
+                "max_concurrent_sandboxes":1,"spend_ceiling":null,"templates":templates}})
+        };
+        let template_a = serde_json::json!([{"digest":hex('a'),"harnesses":[{"harness":"codex","version":"1"}],
+            "estimated_cold_start_ms":1,"estimated_cold_start_cost":{"currency":"USD","micros":0}}]);
+        let node = |kind: &str| {
+            let pool = pool.clone();
+            let registration = registration(kind, template_a.clone());
+            async move {
+                let id = Uuid::new_v4();
+                sqlx::query("INSERT INTO nodes(id,name,credential_hash,worker_version,protocol_version,enrolled_at) VALUES($1,'n',$2,'t',1,now())")
+                    .bind(id).bind(id.to_string()).execute(&pool).await.unwrap();
+                sqlx::query("INSERT INTO delegated_node_boots(node_id,boot_id,registration) VALUES($1,$2,$3)")
+                    .bind(id).bind(Uuid::new_v4()).bind(registration).execute(&pool).await.unwrap();
+                sqlx::query("INSERT INTO intelligence_node_snapshots(node_id,boot_id,sequence,revision,snapshot) VALUES($1,$2,1,1,$3)")
+                    .bind(id).bind(Uuid::new_v4()).bind(serde_json::json!({"expires_at_ms":5_000})).execute(&pool).await.unwrap();
+                id
+            }
+        };
+        let boat = node("boat").await;
+        let artifact =
+            |id: &str, digest: String| serde_json::json!({"id":id,"version":"1","digest":digest});
+        let choice: aq_selection::ConcreteChoice = serde_json::from_value(serde_json::json!({
+            "candidate_id":"c","profile_candidate_id":"p","provider":"openai","model":"m",
+            "native_reasoning":"high","reasoning_configuration_reference":"r",
+            "harness":"codex","cli_version":"1",
+            "adapter":artifact("adapter",hex('1')),"environment":artifact("ci",hex('a')),
+            "qualification":artifact("q",hex('2')),"failure_classifier":null,
+            "credential_profile":artifact("cred",hex('3')),
+            "account_reference":"acct","endpoint_reference":"ep","composition_digest":hex('4'),
+            "resources":{"context_bytes":1,"wall_time_ms":1,"memory_bytes":1,"cpu_millis":1,
+                "process_limit":1,"cost_limit_microunits":null,"currency":null,
+                "require_hard_cost_enforcement":false},
+            "max_output_tokens":1,"estimate":null
+        }))
+        .unwrap();
+        let fence_facts = |exclude_attempt| {
+            let pool = pool.clone();
+            let catalog = catalog.clone();
+            async move {
+                let mut conn = pool.acquire().await.unwrap();
+                let book = aq_accounting::pricing::RateCardBook::default();
+                let ledger = Ledger {
+                    pool: &pool,
+                    book: &book,
+                };
+                let derivation = Derivation {
+                    peers: false,
+                    exclude_attempt,
+                };
+                derive(
+                    &mut conn, &ledger, None, boat, &catalog, "ci@1", 1_000, derivation,
+                )
+                .await
+                .unwrap()
+            }
+        };
+        let book = aq_accounting::pricing::RateCardBook::default();
+        let ledger = Ledger {
+            pool: &pool,
+            book: &book,
+        };
+        let selected = facts_in(&pool, &ledger, None, boat, &catalog, "ci@1", 1_000)
+            .await
+            .unwrap();
+        assert!(selected.is_some());
+        let at_fence = |current: Option<aq_selection::Placement>| {
+            refusal(recheck(selected.as_ref(), current.as_ref(), &choice))
+        };
+        assert_eq!(at_fence(fence_facts(None).await), None);
+        // Host-native stays unchecked; a registration appearing or vanishing
+        // since selection refuses.
+        assert_eq!(refusal(recheck(None, None, &choice)), None);
+        let changed = Some("placement_registration_changed".to_owned());
+        assert_eq!(at_fence(None), changed);
+        assert_eq!(
+            refusal(recheck(None, fence_facts(None).await.as_ref(), &choice)),
+            changed
+        );
+
+        // The preference hold is selection-only: a preferred peer coming
+        // online after selection does not refuse the fence.
+        node("docker-local").await;
+        let held = facts_in(&pool, &ledger, None, boat, &catalog, "ci@1", 1_000)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(
+            held.preferred_peer,
+            Some(aq_selection::BackendKind::DockerLocal)
+        );
+        assert_eq!(fence_facts(None).await.unwrap().preferred_peer, None);
+        assert_eq!(at_fence(fence_facts(None).await), None);
+
+        // The node reached its concurrency ceiling since selection.
+        let attempt = Uuid::new_v4();
+        sqlx::query("INSERT INTO execution_attempts(attempt_id,task_id,node_id,offer_id,session_id,state) VALUES($1,$2,$3,$4,$5,'{}')")
+            .bind(attempt).bind(Uuid::new_v4()).bind(boat).bind(Uuid::new_v4()).bind(Uuid::new_v4())
+            .execute(&pool).await.unwrap();
+        assert_eq!(
+            at_fence(fence_facts(None).await).as_deref(),
+            Some("node_concurrency_ceiling_reached")
+        );
+        // The fenced attempt's own reservation does not count against it.
+        assert_eq!(at_fence(fence_facts(Some(attempt)).await), None);
+        sqlx::query("UPDATE execution_attempts SET holds_task=FALSE WHERE attempt_id=$1")
+            .bind(attempt)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        // A later activation re-pinned or dropped the environment's template.
+        pin(Some(hex('b'))).await;
+        assert_eq!(
+            at_fence(fence_facts(None).await).as_deref(),
+            Some("environment_template_digest_mismatch")
+        );
+        pin(None).await;
+        assert_eq!(
+            at_fence(fence_facts(None).await).as_deref(),
+            Some("environment_template_unresolved")
+        );
+        pin(Some(hex('a'))).await;
+        assert_eq!(at_fence(fence_facts(None).await), None);
+
+        // The node's registration no longer advertises the template.
+        sqlx::query("UPDATE delegated_node_boots SET registration=$2 WHERE node_id=$1")
+            .bind(boat)
+            .bind(registration("boat", serde_json::json!([])))
+            .execute(&pool)
+            .await
+            .unwrap();
+        assert_eq!(
+            at_fence(fence_facts(None).await).as_deref(),
+            Some("template_not_advertised")
+        );
+        assert!(!peer_scan_truncated(255));
+        assert!(peer_scan_truncated(256));
     }
 }
