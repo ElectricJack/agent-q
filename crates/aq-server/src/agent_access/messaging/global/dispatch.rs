@@ -77,6 +77,9 @@ pub(super) fn session_id(plan: &CentralPlan) -> Option<Uuid> {
 }
 
 /// Records (or returns the already recorded) turn for one awaiting reservation.
+/// Each generation has one immutable startup turn; later reservations need a
+/// successor generation. A consumed turn is retained for exact lookup/replay,
+/// never retargeted to a new generation or session.
 pub async fn prepare_turn(
     pool: &PgPool,
     actor: Uuid,
