@@ -11,6 +11,7 @@ pub mod error;
 pub mod execution;
 pub mod identity;
 pub mod intelligence;
+pub mod node_storage;
 pub mod notifications;
 pub mod observations;
 pub mod playbooks;
@@ -53,12 +54,12 @@ use std::sync::Arc;
 /// every migration is a state-format change (`store` tests enforce it). The
 /// updater restores the pre-update backup on rollback only when the format
 /// changes, so a migration without a bump would strand the old release.
-pub const STATE_FORMAT_VERSION: u32 = 60;
+pub const STATE_FORMAT_VERSION: u32 = 61;
 /// State formats this binary can read; always contains `STATE_FORMAT_VERSION`.
 pub const READABLE_STATE_FORMATS: &[u32] = &[
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
     27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,
-    51, 52, 53, 54, 55, 56, 57, 58, 59, 60,
+    51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61,
 ];
 /// Versions that may be upgraded to this release.
 pub const UPGRADE_FROM: &str = ">=0.1.0";
@@ -356,6 +357,7 @@ fn build_worker_router_inner(
         .merge(profiled_execution::material_api::routes(state.clone()))
         .merge(profiled_execution::artifact_api::routes(state.clone()))
         .merge(profiled_execution::source_api::routes(state.clone()))
+        .merge(node_storage::routes(state.clone()))
         .merge(observations::api::routes(state.clone()))
         .merge(observations::api::transport_routes(state.clone()))
         .merge(intelligence::worker_routes())

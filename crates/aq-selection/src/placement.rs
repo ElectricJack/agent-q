@@ -47,6 +47,8 @@ pub enum NodeCeiling {
     Spend,
     /// A spend ceiling is configured but no comparable spend is accounted.
     SpendUnaccounted,
+    /// The node's measured disk usage is above the placement refusal line.
+    DiskPressure,
 }
 impl NodeCeiling {
     pub fn reason(self) -> &'static str {
@@ -54,6 +56,7 @@ impl NodeCeiling {
             NodeCeiling::Concurrency => "node_concurrency_ceiling_reached",
             NodeCeiling::Spend => "node_spend_ceiling_reached",
             NodeCeiling::SpendUnaccounted => "node_spend_unaccounted",
+            NodeCeiling::DiskPressure => "node_disk_pressure",
         }
     }
 }
