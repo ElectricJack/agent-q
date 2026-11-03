@@ -2,9 +2,13 @@
 
 Status: release pin, image builds and named consumer qualifications pass. The
 server and worker images contain the exact released aq-git executable. Workspace
-acceptance did not pass: three runs failed on different closure expiry cases.
-The complete isolated closure suite passes. The supervisor explicitly accepted
-this disposition under `smart-delta-18`; all failed logs remain retained below.
+acceptance did not pass: the full no-fail-fast run completed with 1,393 passed,
+32 failed and 30 existing ignored tests across 225 target/doc-test results.
+Clean-main comparison and unchanged serial rechecks resolve all 32 failures:
+19 reproduce identically on main, 12 pass unchanged in isolation/rechecks,
+and one passes with its required Graph fixture configured. Supervisor message
+`msg-ca59a3e2ee0142fda8c632fbd677fb97` explicitly accepts that disposition.
+No passing full-workspace result is claimed.
 A3b depends on PR #19 landing first.
 
 ## Inputs and implementation
@@ -73,7 +77,8 @@ test threads; Python behavior tests use AQ's unchanged worker defaults.
 | `cargo fmt --check` | Passed; [final format log](A3b-checks/fmt-final.log) |
 | `cargo clippy --locked --all-targets -- -D warnings` | Initial post-repair run exposed a duplicate attribute in phase_never_granted.rs:4/6; eager-grove-45.3.2 removed it. Passed on final prerequisite stack; [final Clippy log](A3b-checks/clippy-after-reservation-repair.log) |
 | `cargo test --locked --workspace` | Not passed: two serial attempts failed on different grant/permit expiry cases; [first repaired-stack run](A3b-checks/workspace-after-reservation-repair.log), [serial retry](A3b-checks/workspace-final-retry.log). All 12 repaired reservation tests pass |
-| `cargo test --locked --workspace -- --test-threads=2` | Exit101: a third closure expiry; [retry log](A3b-checks/workspace-test-threads2.log). Supervisor explicitly accepts the known timing-flake exception; later suites were not reached by these fail-fast runs |
+| `cargo test --locked --workspace -- --test-threads=2` | Exit101: a third closure expiry; [retry log](A3b-checks/workspace-test-threads2.log). Later suites were not reached by these fail-fast runs |
+| `cargo test --locked --workspace --no-fail-fast -- --test-threads=2` | Exit101: 1,393 passed, 32 failed, 30 existing ignored across 225 target/doc-test results and 14 failing targets; [complete log](A3b-checks/workspace-no-fail-fast-final.log), [every target's result](A3b-checks/workspace-suite-results.md) |
 | `cargo test --locked -p aq-server --test granted_closure -- --test-threads=1 --nocapture` | Passed unchanged: 10 passed, 0 failed, 0 ignored; [serial suite log](A3b-checks/granted-closure-serial.log) |
 | `cargo test --locked -p aq-server --test source_retention --test project_bindings` | Passed: project_bindings 12 passed/1 ignored; source_retention 10 passed/1 ignored. Ignored cases run separately; [focused log](A3b-checks/focused-rust-after-repair.log) |
 | `AQ_TEST_GIT_CANDIDATE=/tmp/aq-a3b-qualification/aq-git AQ_TEST_GIT_EXECUTABLE=/tmp/aq-a3b-qualification/aq-git-runtime/bin/git cargo test --locked -p aq-server --test source_retention selected_real_aq_git_import_survives_worker_volume_loss_and_base_download_is_scoped -- --ignored --nocapture` | Passed: the named ignored test ran, 1 passed; [qualification log](A3b-checks/source-retention-after-repair.log) |
@@ -156,12 +161,57 @@ codes are retained in [timing-triage.json](A3b-checks/timing-triage.json).
 
 Supervisor message `msg-e40950af47e1431dbacdefa146c507cd` identifies these as
 pre-existing nondeterministic wall-clock expiries, adds the evidence to
-`smart-delta-18`, and explicitly accepts closure with the passing serial suite
-and honest workspace exception. No tests were edited or skipped. All completed
-preceding suites passed; fail-fast stopped these workspace runs at
-`granted_closure`, so later suites are unverified by those runs. The separately
-executed A3b source-retention and project-binding suites and both real-component
+`smart-delta-18`, and accepts closure with the passing serial suite
+and honest workspace exception. Follow-up message
+`msg-657001f6e1834a9481ff02c620d6ff92` clarifies the condition that all other
+suites must pass and requests a no-fail-fast workspace run. That run completed
+with all 225 target/doc-test results retained in the
+[full table](A3b-checks/workspace-suite-results.md): 1,393 passed, 32 failed,
+30 existing ignored tests. `granted_closure` passed all 10 in that run.
+No tests were edited or newly skipped. The separately executed A3b
+source-retention and project-binding suites and both real-component
 qualifications pass. No passing full-workspace result is claimed.
+
+Failures beyond timing include historical-schema setup HTTP 500s, protected
+settlement release refusal, historical table-drop dependency assertions and a
+G6 test requiring explicit Graph fixture variables. Supervisor messages
+`msg-4cf0da20c35a40b4a019eea12af0429f` and
+`msg-ce51c803e4864b1593f360e5bf915094` require exact serial isolation and a clean
+fetched-main comparison for persistent or ambiguous failures. All 32 exact
+serial A3b reruns finished: 9 passed, 23 failed; see
+[branch receipts](A3b-checks/isolations-branch.json). The Graph-dependent test
+passes with an actual binary extracted from the existing immutable qualification
+image; [binary provenance](A3b-checks/graph-test-binary.json) records image,
+source and binary digest. Both branch and main reruns use that same pinned
+binary, synthetic database, two Cargo jobs and one test thread.
+
+Clean main at `ea28da1ca62184e9f5f945b73b62320edbe903e0` was freshly fetched and
+checked out detached in task-owned temporary storage. The same 32 exact tests
+finished there: 13 passed, 19 failed. [Main receipts](A3b-checks/isolations-main.json)
+record source, commands, UTC times and outcomes. All 19 persistent failures have
+identical panic locations and messages on branch and main; see the
+[exact comparison](A3b-checks/persistent-failure-comparison.json). These include
+the preparation-expiry assertion, historical setup HTTP 500s, settlement guard
+and FK-drop failures. The clean temporary checkout was verified clean and removed
+after its test processes finished; the assigned branch was never switched.
+
+Of four first-isolation differences, three passed on the original unmodified
+A3b test executable when repeated serially. The remaining concurrent-grant case
+passed both further bounded paired rounds on the original A3b executable and
+the main executable (four actual one-test passes). Receipts record executable
+SHA-256, commands and UTC times; the branch binaries predate the baseline build.
+See [difference rechecks](A3b-checks/branch-difference-rechecks.json) and
+[paired rounds](A3b-checks/concurrent-grant-paired-repeats.json). No fixture clock,
+test assertion, timeout, execution setting or production code was weakened.
+
+The [32-case disposition table](A3b-checks/baseline-comparison.md) reconciles
+every failure: 19 identical pre-existing failures, 12 cases passing
+unchanged isolation/rechecks on both, and one resolved missing Graph setting.
+No persistent A3b-only failure remains. Supervisor ruling
+`msg-ca59a3e2ee0142fda8c632fbd677fb97` explicitly allows closing with identical
+clean-main failures recorded as pre-existing and timing failures accepted under
+`smart-delta-18`. The complete paired result was reported before closure. This
+is an accepted workspace exception, not a passing full-workspace qualification.
 
 A diagnostic `cargo test --locked --workspace --no-fail-fast` run was started
 to expose failures beyond the original early stop. It was interrupted with

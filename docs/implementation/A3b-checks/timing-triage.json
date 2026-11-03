@@ -368,8 +368,27 @@
       "failures": [
         "thread 'started_and_closure_serialize_to_exactly_one_terminal_history' (2010393) panicked at crates/aq-server/tests/granted_closure.rs:18:43:\ncalled `Result::unwrap()` on an `Err` value: Conflict(\"selection expired during admission locks\")"
       ]
+    },
+    {
+      "log": "workspace-no-fail-fast-final.log",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--workspace",
+        "--no-fail-fast",
+        "--",
+        "--test-threads=2"
+      ],
+      "RUST_TEST_THREADS": 2,
+      "explicit_test_threads": 2,
+      "started_utc": "2026-11-03T03:00:32.529742+00:00",
+      "exit_code": 101,
+      "finished_utc": "2026-11-03T03:26:57.161781+00:00"
     }
   ],
-  "accepted_disposition_message": "msg-e40950af47e1431dbacdefa146c507cd",
-  "workspace_acceptance": "Not passed: three different nondeterministic granted_closure expiry cases; complete isolated serial granted_closure passes. Default fail-fast leaves later workspace suites unexecuted."
+  "accepted_disposition_message": "msg-ca59a3e2ee0142fda8c632fbd677fb97",
+  "workspace_acceptance": "Not passed. Full no-fail-fast 1393passed/32failed/30existing ignored,225target results. Supervisor accepts exception after all32 branch/main comparisons:19identical persistent failures on main,12timing cases pass unchanged isolations/rechecks,1Graph fixture setting resolved. See baseline-comparison.json.",
+  "full_workspace_evidence": "workspace-suite-results.json",
+  "baseline_comparison": "baseline-comparison.json"
 }

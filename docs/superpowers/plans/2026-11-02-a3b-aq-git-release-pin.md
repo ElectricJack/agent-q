@@ -70,14 +70,16 @@ RUN echo '3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2  /src
 - [x] Run format, strict Clippy and the required locked workspace test command with bounded jobs/test threads; heartbeat before long foreground commands and retain logs.
 - [x] Reconcile all A3b requirements, record commands/results, image digests, commit identity, source/tag/build-record evidence and remaining limits.
 - [x] Commit implementation, squash own unpublished implementation history onto its recorded source base preserving the tree and attribution. Merge `origin/main` (supervisor waiver for absent `origin/dev`) into the task branch, resolve with context, run only targeted checks after the merge, and guarded-push the final SHA.
-- [x] Record final verification and prepare publication/close evidence. Full workspace acceptance has an explicit supervisor-approved exception (`msg-e40950af47e1431dbacdefa146c507cd`): three different pre-existing closure expiry failures, with the complete unchanged serial suite passing. Final AQ close must carry that exception and the PR #19 dependency; its receipt and subsequent `aq session drain-ack` are recorded by AQ.
+- [x] Record complete no-fail-fast results and all 32 exact branch/main comparisons. Full workspace acceptance has an explicit supervisor-approved exception (`msg-ca59a3e2ee0142fda8c632fbd677fb97`): 19 persistent failures reproduce identically on clean main, 12 cases pass unchanged isolation/rechecks, and one Graph case passes with its fixture configured. Final AQ close must carry that exception and the PR #19 dependency; its receipt and subsequent `aq session drain-ack` are recorded by AQ.
 
 Current integration dependency: supervisor message
 `msg-41efaa94f6ce40f093a85cb3b25549b1` explicitly authorizes stacking A3b on
 `aq/eager-grove-45.3.3` (PR #19). That genuine historical-fixture prerequisite
 was merged into A3b as `46fb7a19`. Strict Clippy, fmt, official verifier, image
 builds and named A3b qualifications pass. Complete isolated `granted_closure`
-passes 10/0; full workspace attempts fail on three different nondeterministic
-expiry cases accepted by the supervisor under `smart-delta-18`. All logs and
-the unexecuted later-suite limit are retained in `docs/implementation/A3b.md`.
+passes 10/0. Full workspace no-fail-fast completes 225 target/doc-test results:
+1,393 passed, 32 failed, 30 existing ignored. Every failure is reconciled by
+clean-main comparisons and unchanged serial rechecks; no persistent A3b-only
+failure remains. The supervisor accepts the explicit workspace exception.
+All per-target and per-case results are retained in `docs/implementation/A3b.md`.
 A3b depends on PR #19 landing first; the human owns that PR merge.

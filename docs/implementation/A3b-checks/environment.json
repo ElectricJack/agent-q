@@ -33,5 +33,26 @@
       1,
       2
     ]
+  },
+  "full_workspace_source_commit": "43212ff9371125b6f089b329757370eb972e6390",
+  "full_workspace_result": {
+    "exit_code": 101,
+    "target_results": 225,
+    "passed": 1393,
+    "failed": 32,
+    "ignored": 30,
+    "evidence": "workspace-suite-results.json"
+  },
+  "baseline_source_commit": "ea28da1ca62184e9f5f945b73b62320edbe903e0",
+  "baseline_checkout": "/tmp/aq-a3b-main-isolation-20261103",
+  "graph_fixture": "graph-test-binary.json",
+  "baseline_checkout_removed_after_tests": true,
+  "accepted_workspace_disposition": {
+    "message": "msg-ca59a3e2ee0142fda8c632fbd677fb97",
+    "pre_existing_identical_on_main": 19,
+    "missing_graph_fixture_corrected": 1,
+    "persistent_branch_only": 0,
+    "evidence": "baseline-comparison.json",
+    "passed_in_unchanged_isolation_or_recheck": 12
   }
 }
