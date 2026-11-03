@@ -94,3 +94,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - B1b after B1's review revision (`bold-summit-78`);
     - D10 (claim-binding mismatch, retries exhausted) reopened after its revision (`stark-dune-58`) is approved;
     - I0 after `sharp-harbor-18`.
+- **19:49 check.**
+  - D1a (code delivery) and E1a (production Compose) started.
+  - Filed F1a's cross-repo prerequisite as `crisp-nexus-12` (aq-worker): a subject-neutral session-host contract for central supervisor sessions. F1a depends on it.
+  - Verified B6a1's pass is genuine. F1a's note cited B6a1's earlier blocked checkpoint `a3d9411`; the final `3052c9c` has full tests, Clippy, formatting, named tests and review evidence.
+  - Queued holds (I0, B1b, B2, D10) are unchanged; their prerequisites are still running.
