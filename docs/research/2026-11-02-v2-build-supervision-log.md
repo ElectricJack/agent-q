@@ -126,3 +126,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - G5 completed. B1's round-5 revision finished; `rev-keen-ember` r5 and `rev-grand-meadow` (B5a) r3 are waiting for the supervisor's decision.
   - `fleet-stone-84` (E0 refresh) started.
   - Merged aq-server #23 (D1a: durable central aq-git candidate creation and publication) and aq-worker #21 (B1 review reconciliation docs).
+- **21:23 — disk emergency.**
+  - `/` hit **99% (16 GB free of 1 TB)**. `aq-platform-agents` held 559 GB, almost all of it per-slot Cargo `target/` directories; aq-server slot-0 alone was 141 GB.
+  - Deleted `target/` in the 8 idle slots only, after re-checking each slot's lock and that no process used it. Usage went from 940 GB to 819 GB (137 GB free).
+  - The monitor now reports disk usage on every check and repeats the idle-slot cleanup automatically above 85%.
+  - Agents had already filed the investigation `bright-zenith-30`, which is working on a lasting policy; I left it a note about the cleanup.
