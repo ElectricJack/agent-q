@@ -64,8 +64,8 @@ acceptance test fail at `supervisor_session.rs:886` (left `"pending"`, right
 - **`aq-central-authority/src/owner.rs` changed outside the plan:** its
   `SET LOCAL` statements use `sqlx::query`, and `inspect`/`generation` return
   boxed `Send` futures, so owner reads can run inside Axum handlers.
-- **History schema `maxItems` was raised to 80** (from 16 history items),
-  because up to 64 supervisor replies interleave with the owner items. This
+- **History schema `maxItems` was raised to 80** (from 16 history items;
+  since reverted to 16 by `steady-harbor-87.2.4`), because up to 64 supervisor replies interleave with the owner items. This
   is a protocol addition and needs a matching dashboard consumer change
   (cross-repo follow-up comment).
 - **No adversarial review:** the task is not marked for one (subtask 6 is N/A).
@@ -73,6 +73,21 @@ acceptance test fail at `supervisor_session.rs:886` (left `"pending"`, right
 ## Known limits (follow-ups)
 
 - One turn per generation (`UNIQUE(actor_id, generation)`): a second owner
+  message needs a successor generation. Reservation consumption after a turn
+  is not implemented.
+- Credential revocation is check-based: the credential is unusable once the
+  generation is no longer the active head, because every use re-checks this.
+  Only re-issue writes `revoked_at_ms`; stop does not. There is a TOCTOU
+  window between `authenticate` and the reply write.
+- Only the `messaging` scope is exercised. The `graph.read`, `graph.write`,
+  `enqueue` and `decisions` scopes are issued but not yet enforced by any
+  route (F2/F5 own those commands).
+- ~~History anchors replies at the batch's max cursor.~~ ~~`inspect` takes a
+  `FOR UPDATE` row lock.~~ Both are fixed by `steady-harbor-87.2.4`
+  (`F1b-reply-cursoring.md`): replies have their own `A.R` cursor, pagination
+  counts them, `maxItems` is back to 16, and `inspect` reads a lock-free
+  snapshot.
+
   message needs a successor generation. A completed turn releases its
   reservation; see [F1b-reservation-consumption.md](F1b-reservation-consumption.md).
 - Credential lifecycle and authenticate/write races are addressed by

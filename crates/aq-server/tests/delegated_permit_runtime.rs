@@ -1,5 +1,9 @@
 //! Durable delegated authority, exercised with the injected server clock.
 mod common;
+#[path = "delegated_permit_runtime/restart.rs"]
+mod restart;
+#[path = "delegated_permit_runtime/routes.rs"]
+mod routes;
 use aq_admission_sandbox::sandbox::*;
 use aq_server::delegated_permits::{CredentialKey, runtime};
 use axum::http::HeaderMap;
@@ -63,7 +67,7 @@ fn headers(p: &DelegatedPermit) -> HeaderMap {
     h
 }
 #[tokio::test]
-async fn delegated_runner_scope_is_rechecked_after_authentication() {
+async fn permit_scope_refuses_foreign_attempt_and_expired_use_after_authentication() {
     let (f, p, _) = setup().await;
     let h = headers(&p);
     let auth = runtime::authenticate_runner(
@@ -81,6 +85,15 @@ async fn delegated_runner_scope_is_rechecked_after_authentication() {
     );
     assert!(
         aq_server::worker_api::authenticate_context(&f.state, &h)
+            .await
+            .is_err()
+    );
+    // Batch attempt scoping is covered by the typed checks in
+    // delegated_typed_attempt_checks_reject_foreign_and_mixed_bindings.
+    let mut stale = p.clone();
+    stale.binding.node.boot_id = Uuid::new_v4();
+    assert!(
+        runtime::authenticate_runner(&f.state, &headers(&stale), RunnerOperation::Observe, None)
             .await
             .is_err()
     );
@@ -185,10 +198,18 @@ async fn reboot_after_native_stop_readopts_only_result_and_exact_stopped_replay(
     Box::pin(exercise_phase(7)).await;
 }
 #[tokio::test]
+async fn server_restart_mid_attempt_resumes_or_preserves() {
+    Box::pin(exercise_phase(9)).await;
+}
+#[tokio::test]
 async fn readoption_refuses_backend_template_capability_changes_and_expired_grants() {
     for mode in 2..=6 {
         Box::pin(exercise_phase(mode)).await;
     }
+}
+#[tokio::test]
+async fn expired_permit_is_refused_by_every_runner_route() {
+    Box::pin(exercise_phase(8)).await;
 }
 async fn exercise_phase(mode: u8) {
     use aq_admission::preparation_refresh_v1::Document;
@@ -396,7 +417,9 @@ async fn exercise_phase(mode: u8) {
         .await
         .unwrap();
     assert_eq!(status, 200, "started: {}", String::from_utf8_lossy(&bytes));
-    if mode != 0 {
+    if mode == 8 {
+        routes::exercise(&f, &upgraded, &started, installed_revision).await;
+    } else if mode != 0 {
         exercise_reboot(
             &f,
             &upgraded,
@@ -1072,6 +1095,10 @@ async fn exercise_reboot(
     q.permit = permit.clone();
     q.operation_id = Uuid::new_v4();
     clock.fetch_add(1, Ordering::SeqCst);
+    if mode == 9 {
+        restart::exercise(f, started, &q).await;
+        return;
+    }
     // Reconstruct the store: re-adoption must not depend on an in-memory flag.
     let mut restarted = state.clone();
     restarted.store = f.c.env.env._db.store().await;
