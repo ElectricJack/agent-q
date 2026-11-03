@@ -1,0 +1,121 @@
+# A3b: aq-git v0.2.0 consumer pin
+
+Status: implementation prepared; consumer qualification blocked by a pre-existing
+admission compilation failure. This is not a passing task or server-image qualification.
+
+## Inputs and implementation
+
+The published [v0.2.0 release](https://github.com/ElectricJack/aq-git/releases/tag/v0.2.0)
+points at `e75f7b4bc36a83ae5001fefa0d5f87618e87ad4a`. GitHub's release asset
+metadata independently confirms the retained bytes:
+
+| Input | SHA-256 |
+| --- | --- |
+| Release source archive | `f64891f03e2d28263cf3af20b38123935ae08d6917699becb9d77e76af2fd3c6` |
+| Linux x86_64 executable | `3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2` |
+| A3a build record | `94e318a2285369002c1df8ea9844ca0295ce3b867fa35691d201cc77f1c7852f` |
+| Retained Git bundle | `217d925d105b12a1fcd40b02a4a0a24b0c3cfc31a98cdc46d72918a94debd084` |
+| Unchanged upstream Git 2.56.0 archive | `26c56c296b38c0695b26fa95f475f1d01704d2d38e73465ca30b0b2f5dc789d3` |
+
+The first three files are byte-preserved copies of A3a's downloaded assets.
+The bundle was created with `git bundle create <vendor/aq-git-source.bundle> HEAD`
+in A3a's clean detached release checkout. Its HEAD is the published commit;
+verification clones the bundle into temporary bare storage and compares every
+committed source blob with the archive inventory. The consumer never reads a
+sibling checkout or fetches a floating source revision.
+
+`vendor/git-candidate.json` records release, executable, build-record and inventory
+paths plus digests. `vendor/git-candidate.sha256` covers archive, bundle,
+executable, build record and upstream Git. The new versioned vendor directory
+preserves upstream Git and its checksum provenance, and inventories all 366
+release source files. The checker validates archive safety before reading
+members, embedded commit, locked package version, build record provenance,
+source inventory and retained bundle. Official overrides remain refused.
+
+Both application Dockerfiles embed the canonical aq-git stages byte-for-byte.
+They verify the release archive and executable with `sha256sum -c`, then copy
+the executable's exact bytes. Copying the released executable meets the consumer
+release pin without requiring a reproducible Rust rebuild. Both stages preserve
+`rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663`.
+Non-aq-git base stages, state labels and Compose supervision are untouched.
+
+The project-binding wrapper selects the newly built immutable image ID and runs
+its named Rust qualification with `--locked`. The existing fixture-derived
+checkout selection is preserved. `docs/source-retention.md` records the new
+commit, binary digest and release-copy choice.
+
+## Environment and commands
+
+See [environment.json](A3b-checks/environment.json). Commands were run in the
+assigned task worktree with Rust/Cargo 1.96.1, Python 3.12, Docker BuildKit and
+disposable PostgreSQL 17. Rust commands use `CARGO_BUILD_JOBS=2` and
+`RUST_TEST_THREADS=1`; Python behavior tests use AQ's unchanged worker defaults.
+`DATABASE_URL` for database tests selects only the disposable database started by
+`scripts/test-db`.
+
+| Command | Observed result |
+| --- | --- |
+| `aq test scripts/test-git-candidate.py` before implementation | 5 failed, 3 passed: missing executable/provenance/path validation and old release pin; [red log](A3b-checks/verifier-red.log) |
+| `aq test scripts/test-git-candidate.py` after implementation | 10 passed, including release acceptance, executable tampering, provenance tampering, unsafe paths, archive traversal, inventory mismatch, bundle/source disagreement, official overrides and Docker drift; [green log](A3b-checks/verifier-green.log) |
+| `python3 scripts/check-git-candidate.py --official` | Passed; [verified manifest](A3b-checks/candidate.json) |
+| `gh api repos/ElectricJack/aq-git/git/ref/tags/v0.2.0` | Published tag resolves to retained commit; [tag receipt](A3b-checks/release-tag.json) |
+| `gh api repos/ElectricJack/aq-git/releases/tags/v0.2.0` with asset name/digest projection | Published source/binary/build-record digests match; [asset receipt](A3b-checks/published-assets.json) |
+| `DOCKER_BUILDKIT=1 docker build --progress=plain -f scripts/Dockerfile.aq-git -t aq-git-a3b:0.2.0 .` | Passed; [build log](A3b-checks/build-aq-git.log) |
+| `DOCKER_BUILDKIT=1 docker build --progress=plain -t aq-server-a3b:0.2.0 .` | Failed compiling untouched aq-admission; [server build log](A3b-checks/build-server.log) |
+| `docker build --progress=plain -f Dockerfile.worker --build-arg AQ_SOURCE_REVISION=3fb2bcb2f63f73838ddd97e44580fe721a539bdd --build-arg AQ_WORKER_ARCHIVE_SHA256=ed33076d62d37884cab04f1206d1fda3dd5e06181ddb1ccdebec58fda789b535 --build-arg AQ_VERSION=0.3.1 -t aq-worker-a3b:0.2.0 .` | Passed; [worker build log](A3b-checks/build-worker.log) |
+| `docker build --target aq-git-build` with a deliberately corrupted retained executable in a disposable context | Correctly refused by `sha256sum -c`; [negative build log](A3b-checks/corrupt-binary-build.log) |
+| `cargo fmt --check` | Passed; [format log](A3b-checks/fmt.log) |
+| `cargo clippy --locked --all-targets -- -D warnings` | Failed compiling untouched aq-admission; [Clippy log](A3b-checks/clippy.log) |
+| `cargo test --locked --workspace` | Failed compiling untouched aq-admission; no passing workspace claim; [workspace log](A3b-checks/workspace-tests.log) |
+| `cargo test --locked -p aq-server --test source_retention --test project_bindings` | Failed compiling untouched aq-admission; [focused log](A3b-checks/focused-rust.log) |
+| `AQ_TEST_GIT_CANDIDATE=/tmp/aq-a3b-qualification/aq-git AQ_TEST_GIT_EXECUTABLE=/tmp/aq-a3b-qualification/aq-git-runtime/bin/git cargo test --locked -p aq-server --test source_retention selected_real_aq_git_import_survives_worker_volume_loss_and_base_download_is_scoped -- --ignored --nocapture` | Failed compiling untouched aq-admission; [qualification log](A3b-checks/source-retention-qualification.log) |
+| `python3 scripts/test-project-bindings.py` | Pinned graph and aq-git fixture reached Cargo; named ignored public binding qualification failed compiling untouched aq-admission; synthetic resources cleaned up; [wrapper log](A3b-checks/project-bindings-qualification.log) |
+
+## Embedded executable checks
+
+For each successful image, `docker run --rm --entrypoint sha256sum IMAGE
+/usr/local/bin/aq-git` equals the release binary digest. Separate invocations
+of `/usr/local/bin/aq-git --version` and `/opt/aq-git-runtime/bin/git --version`
+report `aq-git 0.2.0` and `git version 2.56.0`.
+
+| Image | Immutable image ID | Embedded aq-git SHA-256 |
+| --- | --- | --- |
+| Standalone `aq-git-a3b:0.2.0` | `sha256:4e405e60f637f766582fcb182d1e3bd963ba8e78c94d2cc57203d28f0f358642` | `3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2` |
+| Worker `aq-worker-a3b:0.2.0` | `sha256:bfb1309ad2f7fc1765ff0526b0b568882b4611f05981c5c9841120375d08fbf1` | `3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2` |
+| Server | Build blocked; no image produced | Unverified |
+
+Machine-readable results: [image-digests.json](A3b-checks/image-digests.json).
+
+## Remaining blockers and limits
+
+At source base `ab314605`, `crates/aq-admission/src/delivery_clock_interactive.rs`
+and `interactive_delivery.rs` both implement three identical-named DeliveryClock
+methods. Rust emits E0592/E0034 before the server or test harness can execute.
+This is outside A3b; direct follow-up `eager-grove-45.3.1` owns reconciliation.
+The supervisor was notified with the exact failing files and evidence. Required
+Rust qualifications, server build and its embedded digest remain unmet until
+that fix is integrated and the checks pass. No test was weakened or skipped to
+hide this failure.
+
+The completion profile's `git merge origin/dev` failed because no such ref
+exists. Supervisor message `msg-c6f2114e7cd64deeb8ab1aed23c51a9c` explicitly
+waives that instruction: fetch and merge `origin/main`, never create `dev` or
+push `main`. `aq git pull --branch main --json` succeeded; fetched main remains
+`ab314605eeccf89bb49cc2d23e4fc6e98c230bd7`, already an ancestor of this branch.
+The admission repair is not yet present in that fetched source.
+
+A truthful `aq task close --outcome fail --work-outcome blocked` was also
+refused because required child `eager-grove-45.3.1` is open. No child was
+abandoned or reparented to bypass the gate. The published branch and claim
+remain preserved pending supervisor delivery of the landed repair. Verified
+wait registration is disabled by the project.
+
+A3b is not marked for adversarial review. The executable is Linux x86_64 and its
+recorded maximum GLIBC requirement is 2.34. No new hosted deployment, performance,
+host-power-loss or exhaustive compatibility qualification is claimed. The retained
+A3a build record intentionally preserves its original preparation-time status.
+
+The implementation plan was committed before code as `32ff7432`; the
+unreviewed feature history was then consolidated before final integration.
+The implementation commit is the commit containing this evidence file, with
+its exact SHA recorded in the AQ task comment and guarded push receipt. No default-branch delivery is claimed by a worker push.

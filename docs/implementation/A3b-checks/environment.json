@@ -1,0 +1,16 @@
+{
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "machine": "x86_64",
+  "python": "3.12.3",
+  "base_commit": "ab314605eeccf89bb49cc2d23e4fc6e98c230bd7",
+  "task_branch": "aq/eager-grove-45.3",
+  "rustc": "rustc 1.96.1 (31fca3adb 2026-06-26)",
+  "cargo": "cargo 1.96.1 (356927216 2026-06-26)",
+  "docker": "Docker version 29.3.1, build c2be9cc",
+  "resource_controls": {
+    "CARGO_BUILD_JOBS": "2",
+    "RUST_TEST_THREADS": "1",
+    "python_tests": "aq test defaults (-n 6, loadfile)"
+  },
+  "database": "disposable PostgreSQL 17 bookworm, scripts/test-db, loopback port 55432"
+}
