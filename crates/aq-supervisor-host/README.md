@@ -23,9 +23,29 @@ absolute, canonical, owner-only regular JSON file, at most 64 KiB, matching
 not an unauthenticated plan submission interface. Install the exact approved
 CentralPlan, HostPlan, resolved model, startup file and runtime paths. Changing
 or removing the file revokes that process's admission. The host uses a database
-already migrated by aq-server through state format 47. It never migrates the
-database itself. A new plan does not bypass a retained generation's stop or mail
+already migrated by aq-server (F1b requires state format 48 or later). It never
+migrates the database itself. A new plan does not bypass a retained generation's stop or mail
 fence. F1b supplies application dispatch and original-mail authorization.
+
+After Running, `run` verifies the exact staged turn's handoff and issues the
+generation-bound supervisor reply credential. It installs the token as
+`/host/<launch-id>/supervisor.credential` (root-owned 0600), with expiry no later
+than the generation's original deadline. Re-adoption authenticates and reuses
+the installed token; it does not rotate a live native session's credential.
+An invalid installed token or unverified handoff refuses activation and retains
+the launch for inspection.
+
+The native wrapper waits for this installation before spawning Codex, then
+stages a 0600 copy in that session's private native home, owned by UID 10001.
+`AQ_SUPERVISOR_CREDENTIAL_FILE` names this copy, and
+`AQ_SUPERVISOR_DISPATCH_ID` identifies the turn. Both are explicitly available
+in the native and tool shell environments; neither contains credential bytes.
+Supervisor tool networking is enabled so it can POST
+`/v1/supervisor/conversation/replies` on the installed AQ machine listener with
+the file's contents as the bearer token and the dispatch ID in the request.
+The listener origin remains deployment/startup context, not a worker identity.
+Only the central supervisor recipe receives this access. Keep `/host` and
+`/native-homes` private to the supervisor host and absent from worker mounts.
 
 Run the container with its own PID namespace. Do not use privileged mode, the
 host PID namespace or a Docker socket. `/host` must be a persistent canonical
@@ -79,8 +99,8 @@ published closure.
 
 ResourcePolicy::CallerAdmission records admission; it does not claim cgroup
 memory/CPU/process enforcement. Real Codex/provider qualification, aggregate
-spend enforcement, hostile-kernel isolation, F1b mailbox dispatch/reply/tool
-credentials, E1c production Compose, F2 enqueue, H4/H6 waits and J4 final security
+spend enforcement, hostile-kernel isolation, E1c production Compose, F2 enqueue,
+H4/H6 waits and J4 final security
 review are outside this increment. The physical acceptance tests use a native
 shell fixture and real PostgreSQL, guardian and tmux. The container boundary
 check uses a fixture CLI and a dummy provider key; it makes no provider request.

@@ -34,6 +34,21 @@ fn native_recipe_uses_scoped_route_stdin_and_no_provider_material() {
             .any(|s| s.contains("http://127.0.0.1:12345/v1"))
     );
     assert!(recipe.arguments.iter().any(|s| s == "--ignore-user-config"));
+    assert_eq!(
+        recipe.environment["AQ_SUPERVISOR_CREDENTIAL_FILE"],
+        "/homes/test/supervisor.credential"
+    );
+    assert!(recipe.arguments.iter().any(|s| s ==
+        "shell_environment_policy.set.AQ_SUPERVISOR_CREDENTIAL_FILE=\"/homes/test/supervisor.credential\""));
+    assert_eq!(
+        recipe
+            .arguments
+            .iter()
+            .rev()
+            .find(|s| s.starts_with("sandbox_workspace_write.network_access="))
+            .unwrap(),
+        "sandbox_workspace_write.network_access=true"
+    );
     assert!(
         !recipe
             .environment

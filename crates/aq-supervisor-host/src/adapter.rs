@@ -23,6 +23,7 @@ pub fn native_recipe(
     paths: Paths<'_>,
     port: u16,
 ) -> Result<Recipe> {
+    let reply_credential = paths.private_home.join("supervisor.credential");
     let mut recipe = aq_codex_mapper::map(
         Settings {
             harness,
@@ -34,12 +35,39 @@ pub fn native_recipe(
     let stdin = recipe.arguments.pop().context("missing stdin recipe")?;
     for value in aq_codex_mapper::responses_overrides(LoopbackResponsesEndpoint::new(port)?)
         .into_iter()
-        .chain(["cli_auth_credentials_store=\"file\"".into()])
+        .chain([
+            "cli_auth_credentials_store=\"file\"".into(),
+            // Central supervisor tools call AQ; worker recipes are unchanged.
+            "sandbox_workspace_write.network_access=true".into(),
+        ])
     {
         recipe.arguments.extend(["--config".into(), value]);
     }
     recipe.arguments.push(stdin);
+    supervisor_environment(
+        &mut recipe,
+        "AQ_SUPERVISOR_CREDENTIAL_FILE",
+        reply_credential
+            .to_str()
+            .context("supervisor credential path UTF8")?,
+    )?;
     Ok(recipe)
+}
+
+fn supervisor_environment(recipe: &mut Recipe, key: &str, value: &str) -> Result<()> {
+    // Codex tools use an explicit shell environment; setting only the parent
+    // process environment would hide the path from the actual reply command.
+    let stdin = recipe.arguments.pop().context("missing stdin recipe")?;
+    recipe.arguments.extend([
+        "--config".into(),
+        format!(
+            "shell_environment_policy.set.{key}={}",
+            serde_json::to_string(value)?
+        ),
+    ]);
+    recipe.arguments.push(stdin);
+    recipe.environment.insert(key.into(), value.into());
+    Ok(())
 }
 pub struct NativeAdapter {
     pub config: PathBuf,
@@ -124,6 +152,13 @@ pub async fn native(path: &Path, expected: &str) -> Result<()> {
     let home = c.homes.join(uuid::Uuid::new_v4().to_string());
     std::fs::create_dir(&home)?;
     std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700))?;
+    let reply_credential = crate::credentials::stage_supervisor_credential(
+        &directory.join("supervisor.credential"),
+        &home,
+        c.host.deadline_boot_ms,
+    )
+    .await?;
+    std::os::unix::fs::chown(&reply_credential, Some(10001), Some(10001))?;
     let key = Arc::new(crate::credentials::SecretFile::open(c.secret_file.clone())?);
     let listener = std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))?;
     let port = listener.local_addr()?.port();
@@ -185,7 +220,7 @@ pub async fn native(path: &Path, expected: &str) -> Result<()> {
     drop(bytes);
     let fd = executable.as_raw_fd();
     let exec_path = PathBuf::from(format!("/proc/self/fd/{fd}"));
-    let recipe = native_recipe(
+    let mut recipe = native_recipe(
         &c.host.harness,
         &c.model,
         c.host.terminal.input_enabled,
@@ -195,6 +230,11 @@ pub async fn native(path: &Path, expected: &str) -> Result<()> {
             private_home: &home,
         },
         port,
+    )?;
+    supervisor_environment(
+        &mut recipe,
+        "AQ_SUPERVISOR_DISPATCH_ID",
+        &c.central.dispatch_id.to_string(),
     )?;
     let mut command = std::process::Command::new(recipe.executable);
     command
