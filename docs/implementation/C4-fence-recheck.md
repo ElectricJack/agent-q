@@ -1,14 +1,13 @@
 # C4 follow-up: placement re-check at the admission fences
 
-Task: `calm-delta-18.6.2`. This branch is stacked on `aq/calm-delta-18.6` (C4, not yet on `main`).
-The C4 migration is renumbered to `0055_environment_templates.sql` (state format 55), because `main` already has `0054_accounting_policy_events.sql`.
-This matches the resolution used by `calm-delta-18.6.1`.
+Task: `calm-delta-18.6.2`. The branch was started stacked on `aq/calm-delta-18.6` (C4), which has since merged to `main` together with `calm-delta-18.6.1` (H2 node spend). The final `git merge origin/main` adopts main's migration numbering (`0055_environment_templates.sql`, state format 55).
 
 ## What changed
 - `aq_selection::recheck(&Placement, &ConcreteChoice)` runs the selection placement checks against the frozen choice and returns the same typed reason (`crates/aq-selection/src/placement.rs`).
   - `check` and `recheck` share `check_parts`, so selection and fences cannot drift apart.
 - `profiled_execution::placement::derive(conn, …, Derivation)` re-derives placement facts on a caller's connection.
-  - It reads `delegated_node_boots`, `profile_catalog_environment_templates` and `execution_attempts`.
+  - It reads `delegated_node_boots`, `profile_catalog_environment_templates` and `execution_attempts` on that connection.
+  - Node spend for the spend ceilings comes from the H2 observation ledger (`Ledger`, `observation_pool`), as at selection. That ledger lives in a separate pool, outside the fence transaction. An unreadable ledger refuses with `node_spend_unaccounted`.
   - Selection uses `Derivation::SELECTION`. `facts`/`facts_in` are unchanged.
 - `fence_locked` runs inside `fence_retained_decision`, inside the SERIALIZABLE admission transaction, after `fence_snapshot`. That covers:
   - `fence_for_offer` (offer publication);

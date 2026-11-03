@@ -41,7 +41,9 @@ services:
     pids_limit: 512
   aq-worker-cloud:
     <<: *hardening
-    # Dockerfile.worker pins aq-worker 0.5.1 with the C2/B5b docker-local backend.
+    # aq-worker with the docker-local backend (C2/B5b): the production `worker`
+    # target of Dockerfile.worker (vendored 0.5.1), never its CI-only
+    # synthetic-runtime target.
     image: ${AQ_WORKER_IMAGE:?set AQ_WORKER_IMAGE to a digest-pinned aq-worker reference with docker-local}
     # Owner of the dedicated rootless sandbox daemon socket.
     user: ${AQ_SANDBOX_UID:?set AQ_SANDBOX_UID to the sandbox user UID}:${AQ_SANDBOX_GID:?set AQ_SANDBOX_GID to the sandbox user GID}
