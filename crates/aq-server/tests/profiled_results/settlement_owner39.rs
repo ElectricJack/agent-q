@@ -14,6 +14,8 @@ use serde_json::Value;
 use std::sync::atomic::{AtomicBool, AtomicUsize};
 const POLICY: &str =
     r#"{"schema_version":1,"kind":"source_change_reviewed_human_owner_no_checks_v1"}"#;
+const USER_AUTHORIZATION_LOCK: &str = "SELECT role,email,issuer,subject,xmin::text AS authorization_revision FROM users WHERE id=$1 FOR SHARE";
+const CANCELLATION_NODE_LOCK: &str = "SELECT id FROM nodes WHERE id=$1 FOR UPDATE";
 pub(super) fn policy() -> aq_server::profiled_execution::definitions::Definition {
     aq_server::profiled_execution::definitions::Definition::new(
         artifact("pilot-settlement-policy", POLICY.as_bytes()),
@@ -352,15 +354,20 @@ async fn native_cancellation_waits_for_acceptance_owner_and_preserves_accepted_r
         .execute(&mut *user_lock)
         .await
         .unwrap();
+    let blocker: i32 = sqlx::query_scalar("SELECT pg_backend_pid()")
+        .fetch_one(&mut *user_lock)
+        .await
+        .unwrap();
     let service = c.service.clone();
     let actor = c.actor.clone();
     let request = c.request.clone();
-    let evaluating =
+    let mut evaluating =
         tokio::spawn(async move { Box::pin(service.evaluate(&actor, &request)).await });
-    wait_user_lock(&pool).await;
+    let acceptance_owner =
+        wait_for_lock(&pool, blocker, USER_AUTHORIZATION_LOCK, &mut evaluating).await;
     let state = c.env.f.state.clone();
     let attempt = c.env.report.binding.attempt_id;
-    let cancelling = tokio::spawn(async move {
+    let mut cancelling = tokio::spawn(async move {
         aq_server::profiled_execution::cancellation::cancel(
             &state,
             attempt,
@@ -369,13 +376,13 @@ async fn native_cancellation_waits_for_acceptance_owner_and_preserves_accepted_r
         )
         .await
     });
-    tokio::time::timeout(std::time::Duration::from_secs(1),async {
-        loop {
-            let waiting:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query='SELECT id FROM nodes WHERE id=$1 FOR UPDATE')").fetch_one(&pool).await.unwrap();
-            if waiting {break;}
-            tokio::time::sleep(std::time::Duration::from_millis(5)).await;
-        }
-    }).await.expect("cancellation must wait for the actual acceptance node lock");
+    wait_for_lock(
+        &pool,
+        acceptance_owner,
+        CANCELLATION_NODE_LOCK,
+        &mut cancelling,
+    )
+    .await;
     user_lock.commit().await.unwrap();
     let accepted = evaluating.await.unwrap().unwrap();
     assert_eq!(accepted.disposition, EvaluationDisposition::Accepted);
@@ -467,10 +474,38 @@ async fn settlement39_actual_owners_accept_one_combined_decision_hold_until_exac
     c._graph.abort();
 }
 
-async fn wait_user_lock(pool: &sqlx::PgPool) {
-    tokio::time::timeout(std::time::Duration::from_millis(400),async{
-        loop{let waiting:bool=sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query LIKE '%authorization_revision%FOR SHARE')").fetch_one(pool).await.unwrap();if waiting{break}tokio::time::sleep(std::time::Duration::from_millis(2)).await;}
-    }).await.expect("actual final user lock wait must be observed");
+async fn wait_for_lock<T: std::fmt::Debug>(
+    pool: &sqlx::PgPool,
+    blocker: i32,
+    query: &str,
+    pending: &mut tokio::task::JoinHandle<T>,
+) -> i32 {
+    // Preliminary owner/Graph/Git reads do not have a 400 ms startup contract.
+    // Observe the actual blocking edge, while the operation's own SQL/I/O
+    // deadlines bound the wait. Early completion (including a lock timeout)
+    // must fail the barrier, never masquerade as an observed authorization wait.
+    tokio::select! {
+        biased;
+        result = pending => panic!(
+            "operation completed before its lock wait was observed: blocker={blocker}, query={query}, result={result:?}"
+        ),
+        pid = async {
+            loop {
+                let pid: Option<i32> = sqlx::query_scalar(
+                    "SELECT pid FROM pg_stat_activity WHERE datname=current_database() AND wait_event_type='Lock' AND query=$2 AND $1=ANY(pg_blocking_pids(pid))",
+                )
+                .bind(blocker)
+                .bind(query)
+                .fetch_optional(pool)
+                .await
+                .unwrap();
+                if let Some(pid) = pid {
+                    break pid;
+                }
+                tokio::time::sleep(std::time::Duration::from_millis(2)).await;
+            }
+        } => pid,
+    }
 }
 #[tokio::test]
 async fn settlement39_expiry_after_final_requester_wait_rolls_back_acceptance() {
@@ -483,12 +518,16 @@ async fn settlement39_expiry_after_final_requester_wait_rolls_back_acceptance() 
             .execute(&mut *lock)
             .await
             .unwrap();
+        let blocker: i32 = sqlx::query_scalar("SELECT pg_backend_pid()")
+            .fetch_one(&mut *lock)
+            .await
+            .unwrap();
         let service = c.service.clone();
         let actor = c.actor.clone();
         let request = c.request.clone();
-        let pending =
+        let mut pending =
             tokio::spawn(async move { Box::pin(service.evaluate(&actor, &request)).await });
-        wait_user_lock(&pool).await;
+        wait_for_lock(&pool, blocker, USER_AUTHORIZATION_LOCK, &mut pending).await;
         c.env.f.time.store(after, Ordering::SeqCst);
         lock.commit().await.unwrap();
         assert!(pending.await.unwrap().is_err());
@@ -518,10 +557,14 @@ async fn settlement39_expiry_after_final_approver_wait_rolls_back_first_dispatch
         .execute(&mut *lock)
         .await
         .unwrap();
+    let blocker: i32 = sqlx::query_scalar("SELECT pg_backend_pid()")
+        .fetch_one(&mut *lock)
+        .await
+        .unwrap();
     let service = c.service.clone();
     let actor = c.actor.clone();
-    let pending = tokio::spawn(async move { Box::pin(service.complete(&actor, op)).await });
-    wait_user_lock(&pool).await;
+    let mut pending = tokio::spawn(async move { Box::pin(service.complete(&actor, op)).await });
+    wait_for_lock(&pool, blocker, USER_AUTHORIZATION_LOCK, &mut pending).await;
     c.env.f.time.store((NOW + 30000) as i64, Ordering::SeqCst);
     lock.commit().await.unwrap();
     assert!(pending.await.unwrap().is_err());
