@@ -1,0 +1,285 @@
+{
+  "receipts": {
+    "finished": {
+      "attempt": {
+        "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+        "launch_id": "b9506fd1-7817-4529-84b3-fe46df338b00",
+        "manifest_digest": "dfe3de95485575db3a119b9977b4d933040b05abed294df443c3d3b07ba330ed"
+      },
+      "receipt_id": "108129fe-e7f6-472f-8155-16d3ade8ab42"
+    },
+    "result": {
+      "artifact_digest": "463b13fb0055c32ef829a203f71544effcebb15bddd65b3adc38f4b4c08dfe71",
+      "attempt": {
+        "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+        "launch_id": "b9506fd1-7817-4529-84b3-fe46df338b00",
+        "manifest_digest": "dfe3de95485575db3a119b9977b4d933040b05abed294df443c3d3b07ba330ed"
+      },
+      "receipt_id": "108129fe-e7f6-472f-8155-16d3ade8ab42"
+    },
+    "schema_version": 1,
+    "source": null
+  },
+  "request": {
+    "binding": {
+      "assignment_generation": 1,
+      "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+      "execution_spec_digest": "e20a8c6e3c32a209777a77497da166758fbe987df9258814ed17bdd179f83d43",
+      "graph_access_profile_digest": "ecab8264c903154efa0721169b2a85c84aa2846aaea1fca4afefacbbcafb9775",
+      "launch_manifest_digest": "dfe3de95485575db3a119b9977b4d933040b05abed294df443c3d3b07ba330ed",
+      "offer_id": "8e87f626-e47a-59af-a505-b13d916b7aa5",
+      "schema_version": 1,
+      "session": {
+        "assignment_generation": 1,
+        "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+        "boot_id": "07357eb4-9638-40af-8676-6d08e25e9340",
+        "kind": "remote",
+        "node_id": "ba2bdaca-fc4f-471f-b4d2-58db850b532b",
+        "session_id": "90a21351-0e2d-525f-aff2-1630099ee073"
+      }
+    },
+    "conclusion": "Synthetic delegated receipt fixture; no task settlement",
+    "identity": {
+      "boot_id": "07357eb4-9638-40af-8676-6d08e25e9340",
+      "node_id": "ba2bdaca-fc4f-471f-b4d2-58db850b532b"
+    },
+    "operation_id": "664e70a2-2cc2-431d-b5d0-5e68f802c01b",
+    "outcome": "success",
+    "pending_effect_ids": [],
+    "report_id": "108129fe-e7f6-472f-8155-16d3ade8ab42",
+    "schema_version": 1,
+    "source_receipt_ids": [],
+    "stop": {
+      "binding": {
+        "assignment_generation": 1,
+        "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+        "execution_spec_digest": "e20a8c6e3c32a209777a77497da166758fbe987df9258814ed17bdd179f83d43",
+        "graph_access_profile_digest": "ecab8264c903154efa0721169b2a85c84aa2846aaea1fca4afefacbbcafb9775",
+        "launch_manifest_digest": "dfe3de95485575db3a119b9977b4d933040b05abed294df443c3d3b07ba330ed",
+        "offer_id": "8e87f626-e47a-59af-a505-b13d916b7aa5",
+        "schema_version": 1,
+        "session": {
+          "assignment_generation": 1,
+          "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+          "boot_id": "07357eb4-9638-40af-8676-6d08e25e9340",
+          "kind": "remote",
+          "node_id": "ba2bdaca-fc4f-471f-b4d2-58db850b532b",
+          "session_id": "90a21351-0e2d-525f-aff2-1630099ee073"
+        }
+      },
+      "disposition": {
+        "grant_id": "7d224bd2-57de-4fa5-96d5-6d90a49ac770",
+        "kind": "stopped",
+        "stop_receipt_digest": "c8952b6026fe03a40bf55b31fe0475a54b1aba863478cdeba2fe11d08f0d5358"
+      },
+      "guardian_id": "259f72c2-222b-4283-91f0-934e730a3788",
+      "journal": {
+        "digest": "88884009b2a153df25f5e15216efbdf8e0116abe329b93f7a928b9de6ac47db6",
+        "kind": "recorded",
+        "revision": 4
+      },
+      "launch_id": "b9506fd1-7817-4529-84b3-fe46df338b00",
+      "reason": "execution_expiry",
+      "schema_version": 1,
+      "stop_operation_id": "db2756b9-7ccf-4859-9103-eb4033827f56"
+    },
+    "supersedes": null
+  },
+  "response": {
+    "binding": {
+      "assignment_generation": 1,
+      "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+      "execution_spec_digest": "e20a8c6e3c32a209777a77497da166758fbe987df9258814ed17bdd179f83d43",
+      "graph_access_profile_digest": "ecab8264c903154efa0721169b2a85c84aa2846aaea1fca4afefacbbcafb9775",
+      "launch_manifest_digest": "dfe3de95485575db3a119b9977b4d933040b05abed294df443c3d3b07ba330ed",
+      "offer_id": "8e87f626-e47a-59af-a505-b13d916b7aa5",
+      "schema_version": 1,
+      "session": {
+        "assignment_generation": 1,
+        "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+        "boot_id": "07357eb4-9638-40af-8676-6d08e25e9340",
+        "kind": "remote",
+        "node_id": "ba2bdaca-fc4f-471f-b4d2-58db850b532b",
+        "session_id": "90a21351-0e2d-525f-aff2-1630099ee073"
+      }
+    },
+    "disposition": "recorded",
+    "expected_outcome": {
+      "digest": "f71914eed4f42b65afc57e9aa7ab575bd7fb9bb5da270de48878348e958d536e",
+      "id": "aq.expected-outcome",
+      "version": "1"
+    },
+    "operation_id": "664e70a2-2cc2-431d-b5d0-5e68f802c01b",
+    "recorded_at_ms": 1793696686828,
+    "report_digest": "463b13fb0055c32ef829a203f71544effcebb15bddd65b3adc38f4b4c08dfe71",
+    "report_id": "108129fe-e7f6-472f-8155-16d3ade8ab42",
+    "schema_version": 1,
+    "stopped_receipt": {
+      "digest": "ee32e35d3e4000ff32f4266f54fdc48168a6e5298b0423fa31d4a6f232dad776",
+      "id": "aq.native-stopped/943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+      "version": "1"
+    }
+  },
+  "stopped_request": {
+    "negotiation": {
+      "contract": {
+        "digest": "f9af55c49127a8cb93f03ef5bbb28313d13f94a221affa3e26d91d45bffd6c2d",
+        "id": "aq.phase-terminal.registry-refresh-v1.contract",
+        "version": "1"
+      },
+      "features": [
+        "started_stopped_closure_v1",
+        "original_lease_no_renewal_v1",
+        "registry_observation_continuity_v1"
+      ],
+      "protocol": "aq.phase-terminal.v1"
+    },
+    "origin": {
+      "accepted_receipt_digest": "8d35fad101bbba6648c26badd4aebd7ee9b557310140255b98260d6ab9864704",
+      "execution_receipt_digest": "a4a9f8eb18c1c17b5ee04222f87aa2551b5941afabe69ba269b8a63b45d669be",
+      "kind": "phase_execution_v2"
+    },
+    "original": {
+      "evidence": {
+        "binding": {
+          "assignment_generation": 1,
+          "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+          "execution_spec_digest": "e20a8c6e3c32a209777a77497da166758fbe987df9258814ed17bdd179f83d43",
+          "graph_access_profile_digest": "ecab8264c903154efa0721169b2a85c84aa2846aaea1fca4afefacbbcafb9775",
+          "launch_manifest_digest": "dfe3de95485575db3a119b9977b4d933040b05abed294df443c3d3b07ba330ed",
+          "offer_id": "8e87f626-e47a-59af-a505-b13d916b7aa5",
+          "schema_version": 1,
+          "session": {
+            "assignment_generation": 1,
+            "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+            "boot_id": "07357eb4-9638-40af-8676-6d08e25e9340",
+            "kind": "remote",
+            "node_id": "ba2bdaca-fc4f-471f-b4d2-58db850b532b",
+            "session_id": "90a21351-0e2d-525f-aff2-1630099ee073"
+          }
+        },
+        "disposition": {
+          "grant_id": "7d224bd2-57de-4fa5-96d5-6d90a49ac770",
+          "kind": "stopped",
+          "stop_receipt_digest": "c8952b6026fe03a40bf55b31fe0475a54b1aba863478cdeba2fe11d08f0d5358"
+        },
+        "guardian_id": "259f72c2-222b-4283-91f0-934e730a3788",
+        "journal": {
+          "digest": "88884009b2a153df25f5e15216efbdf8e0116abe329b93f7a928b9de6ac47db6",
+          "kind": "recorded",
+          "revision": 4
+        },
+        "launch_id": "b9506fd1-7817-4529-84b3-fe46df338b00",
+        "reason": "execution_expiry",
+        "schema_version": 1,
+        "stop_operation_id": "db2756b9-7ccf-4859-9103-eb4033827f56"
+      },
+      "proof": {
+        "observation": {
+          "guardian": {
+            "intent": {
+              "configuration_digest": "ffc97f1d2e34b3ffb1f2b48ea02c5e4a904460987f1ad27539a33d462e57f6cd",
+              "launch_id": "b9506fd1-7817-4529-84b3-fe46df338b00",
+              "manifest_digest": "dfe3de95485575db3a119b9977b4d933040b05abed294df443c3d3b07ba330ed",
+              "session": {
+                "assignment_generation": 1,
+                "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+                "boot_id": "07357eb4-9638-40af-8676-6d08e25e9340",
+                "kind": "remote",
+                "node_id": "ba2bdaca-fc4f-471f-b4d2-58db850b532b",
+                "session_id": "90a21351-0e2d-525f-aff2-1630099ee073"
+              }
+            },
+            "machine_boot_id": "00000000-0000-0000-0000-000000000050",
+            "nonce": "00000000-0000-0000-0000-00000000004f",
+            "pid_namespace": "pid:[4026532000]",
+            "process": {
+              "pid": 10,
+              "start_ticks": 100
+            }
+          },
+          "kernel_wait_echild": true,
+          "observed_boot_ms": 31000,
+          "pane": {
+            "pane": {
+              "pid": 12,
+              "start_ticks": 102
+            },
+            "pane_id": "%0",
+            "server": {
+              "pid": 11,
+              "start_ticks": 101
+            },
+            "session_name": "aq"
+          },
+          "permit_deadline_boot_ms": 30000,
+          "permit_sequence": 1,
+          "phase": "stopped",
+          "reaped_count": 2,
+          "root_status": 0,
+          "stop_reason": "execution permit expired"
+        }
+      },
+      "qualification": {
+        "digest": "9771e340cc04730a1ee73935ca8147108acf8d9aeaaf1134ee103223b1704a82",
+        "id": "native-test-runtime-qualification",
+        "version": "1"
+      },
+      "reservation_id": "a83276fb-15db-45a7-a6fa-ffaf07e7d793",
+      "runtime": {
+        "digest": "e9c39038d4671c7bcfecc145a6626f90aff5d137c047ede24d5c830ea0af3038",
+        "id": "native-test-runtime",
+        "version": "1"
+      },
+      "schema_version": 1
+    },
+    "schema_version": 1
+  },
+  "stopped_response": {
+    "negotiation": {
+      "contract": {
+        "digest": "f9af55c49127a8cb93f03ef5bbb28313d13f94a221affa3e26d91d45bffd6c2d",
+        "id": "aq.phase-terminal.registry-refresh-v1.contract",
+        "version": "1"
+      },
+      "features": [
+        "started_stopped_closure_v1",
+        "original_lease_no_renewal_v1",
+        "registry_observation_continuity_v1"
+      ],
+      "protocol": "aq.phase-terminal.v1"
+    },
+    "origin": {
+      "accepted_receipt_digest": "8d35fad101bbba6648c26badd4aebd7ee9b557310140255b98260d6ab9864704",
+      "execution_receipt_digest": "a4a9f8eb18c1c17b5ee04222f87aa2551b5941afabe69ba269b8a63b45d669be",
+      "kind": "phase_execution_v2"
+    },
+    "original": {
+      "authority_revision_at_record": 5,
+      "binding": {
+        "assignment_generation": 1,
+        "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+        "execution_spec_digest": "e20a8c6e3c32a209777a77497da166758fbe987df9258814ed17bdd179f83d43",
+        "graph_access_profile_digest": "ecab8264c903154efa0721169b2a85c84aa2846aaea1fca4afefacbbcafb9775",
+        "launch_manifest_digest": "dfe3de95485575db3a119b9977b4d933040b05abed294df443c3d3b07ba330ed",
+        "offer_id": "8e87f626-e47a-59af-a505-b13d916b7aa5",
+        "schema_version": 1,
+        "session": {
+          "assignment_generation": 1,
+          "attempt_id": "943f6170-c1f6-527f-952d-fcd1c42a7ffa",
+          "boot_id": "07357eb4-9638-40af-8676-6d08e25e9340",
+          "kind": "remote",
+          "node_id": "ba2bdaca-fc4f-471f-b4d2-58db850b532b",
+          "session_id": "90a21351-0e2d-525f-aff2-1630099ee073"
+        }
+      },
+      "grant_id": "7d224bd2-57de-4fa5-96d5-6d90a49ac770",
+      "operation_id": "db2756b9-7ccf-4859-9103-eb4033827f56",
+      "recorded_at_ms": 1793696686828,
+      "request_digest": "84c1562ca7c53d9a7c9d672800445771373938db91892b95013026330978bd4d",
+      "schema_version": 1
+    },
+    "request_digest": "04e3e9860e528ff4850b3f4afce45dc6e7c960f3ea6a97d62c3d5f2a3a96add3",
+    "schema_version": 1
+  }
+}

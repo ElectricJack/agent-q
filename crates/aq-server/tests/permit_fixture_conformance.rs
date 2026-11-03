@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, fs, path::Path};
 
 const FIXTURES: &str =
-    include_str!("../../../vendor/aq-admission-0.3.0/artifacts/sandbox-v1.fixtures.json");
+    include_str!("../../../vendor/aq-admission-0.3.1/artifacts/sandbox-v1.fixtures.json");
 
 #[test]
 fn permit_fixture_conformance() {
@@ -21,6 +21,7 @@ fn permit_fixture_conformance() {
         );
         let kind = match fixture.case {
             FixtureCase::Permit { .. } => "permit",
+            FixtureCase::StoppedReplay { .. } => "stopped_replay",
             FixtureCase::Readoption { .. } => "readoption",
             FixtureCase::ReadoptionReplay { .. } => "replay",
             FixtureCase::Compatibility { .. } => "compatibility",
@@ -42,7 +43,8 @@ fn permit_fixture_conformance() {
     assert_eq!(
         cases,
         BTreeMap::from([
-            ("permit", 20),
+            ("permit", 38),
+            ("stopped_replay", 6),
             ("readoption", 5),
             ("replay", 4),
             ("compatibility", 3),
@@ -61,18 +63,18 @@ fn permit_fixture_conformance() {
     assert_eq!(
         outcomes,
         BTreeMap::from([
-            ("accepted", 25),
-            ("binding_mismatch", 26),
+            ("accepted", 27),
+            ("binding_mismatch", 27),
             ("deadline_mismatch", 12),
-            ("expired", 7),
+            ("expired", 12),
             ("invalid_shape", 5),
-            ("replay_conflict", 7),
-            ("scope_denied", 16),
+            ("replay_conflict", 9),
+            ("scope_denied", 30),
             ("unsupported_required_capability", 3),
         ])
     );
     let published_schema: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../vendor/aq-admission-0.3.0/artifacts/sandbox-v1.schema.json"
+        "../../../vendor/aq-admission-0.3.1/artifacts/sandbox-v1.schema.json"
     ))
     .unwrap();
     assert_eq!(sandbox::schema(), published_schema);
@@ -127,4 +129,115 @@ fn permit_fixture_conformance_frozen_transport() {
     sandbox::decode_document(&bytes).unwrap();
     // Frozen endpoints explicitly reject the new envelope during negotiation.
     assert!(aq_admission::transport::decode_transport(&bytes).is_err());
+}
+
+#[test]
+fn published_runner_receipts_match_native_owners() {
+    use aq_server::delegated_permits::receipts::Envelope;
+    use sandbox::{DelegatedPermit, PermitContext, RunnerRenewalResponse};
+    let directory = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../docs/implementation/B2-evidence/runner-receipts");
+    let manifest: BTreeMap<String, String> =
+        serde_json::from_slice(&fs::read(directory.join("sha256.json")).unwrap()).unwrap();
+    assert_eq!(manifest.len(), 8);
+    for (name, expected) in manifest {
+        assert_eq!(
+            format!(
+                "{:x}",
+                Sha256::digest(fs::read(directory.join(name)).unwrap())
+            ),
+            expected
+        );
+    }
+    let read = |name: &str| -> serde_json::Value {
+        serde_json::from_slice(&fs::read(directory.join(format!("{name}.json"))).unwrap()).unwrap()
+    };
+    let renewal = read("renewal");
+    let SandboxDocument::RunnerRenewalRequest(request) =
+        serde_json::from_value(renewal["request"].clone()).unwrap()
+    else {
+        panic!()
+    };
+    let SandboxDocument::RunnerRenewalResponse(response) =
+        serde_json::from_value(renewal["response"].clone()).unwrap()
+    else {
+        panic!()
+    };
+    let context: PermitContext = serde_json::from_value(renewal["context"].clone()).unwrap();
+    response
+        .validate_for(
+            &request,
+            &context,
+            response.delivery.as_ref().unwrap().nonce,
+            renewal["server_now_ms"].as_u64().unwrap(),
+        )
+        .unwrap();
+    for profile in ["PhaseV2", "PhaseRefreshV1"] {
+        let source = read(&format!("source-{profile}"));
+        let source_envelope: Envelope = serde_json::from_value(source["receipts"].clone()).unwrap();
+        let source_receipt = source_envelope.source.unwrap();
+        let native_source: aq_worker_protocol::TransferStatus =
+            serde_json::from_value(source["status"].clone()).unwrap();
+        let native_source = native_source.receipt.unwrap();
+        assert_eq!(source_receipt.receipt_id, native_source.receipt_id);
+        assert_eq!(
+            source_receipt.artifact_digest.as_str(),
+            native_source.manifest_digest
+        );
+        let result = read(&format!("result-{profile}"));
+        let report: aq_admission::transport::ResultReport =
+            serde_json::from_value(result["request"].clone()).unwrap();
+        let native: aq_admission::result_record::Receipt =
+            serde_json::from_value(result["response"].clone()).unwrap();
+        native.validate_for(&report).unwrap();
+        let envelope: Envelope = serde_json::from_value(result["receipts"].clone()).unwrap();
+        let central = envelope.result.unwrap();
+        let finished = envelope.finished.unwrap();
+        assert_eq!(source_receipt.attempt, central.attempt);
+        assert_eq!(central.attempt, finished.attempt);
+        assert_eq!(central.attempt.launch_id, report.stop.launch_id);
+        assert_eq!(central.attempt.attempt_id, report.binding.attempt_id);
+        assert_eq!(
+            central.attempt.manifest_digest,
+            report.binding.launch_manifest_digest
+        );
+        assert_eq!(central.receipt_id, native.report_id);
+        assert_eq!(finished.receipt_id, native.report_id);
+        assert_eq!(central.artifact_digest, native.report_digest);
+        assert!(
+            report
+                .source_receipt_ids
+                .contains(&source_receipt.receipt_id)
+        );
+    }
+    let adoption = read("readoption");
+    let request: sandbox::ReadoptionRequest =
+        serde_json::from_value(adoption["request"].clone()).unwrap();
+    let response: sandbox::ReadoptionResponse =
+        serde_json::from_value(adoption["response"].clone()).unwrap();
+    request.validate().unwrap();
+    response.validate().unwrap();
+    assert_eq!(request.operation_id, response.operation_id);
+    let awaiting: RunnerRenewalResponse =
+        serde_json::from_value(adoption["awaiting"].clone()).unwrap();
+    assert!(matches!(
+        awaiting.reply,
+        sandbox::RenewalReply::AwaitingNodeReadoption { .. }
+    ));
+    assert!(awaiting.delivery.is_none());
+    let refusal = read("readoption-stopped-replay-refused");
+    let permit: DelegatedPermit = serde_json::from_value(refusal["permit"].clone()).unwrap();
+    let context: PermitContext = serde_json::from_value(refusal["context"].clone()).unwrap();
+    let stopped: aq_admission_sandbox::stopped::Request =
+        serde_json::from_value(refusal["request"]["original"].clone()).unwrap();
+    assert_eq!(
+        permit.validate_stopped_replay(
+            &context,
+            &stopped,
+            &stopped,
+            refusal["server_now_ms"].as_u64().unwrap()
+        ),
+        Err(sandbox::ContractError::BindingMismatch)
+    );
+    assert_eq!(refusal["http_status"], 409);
 }

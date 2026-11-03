@@ -123,3 +123,19 @@ old incarnation atomically. Post-adoption renewal uses current grant/cancellatio
 and the original hard deadline with a 120-second cap, without collecting new
 native policy/inventory/health/source facts. See B2.md for implementation and
 consumer details. The terminal-report owner release remains independently pending.
+
+## B6a2 receipt handoff follow-up
+
+Message `msg-f8f7d6189f034835a5b9973ab1c0379c` adds the concrete renewal context,
+source/result CentralReceipt and FinishedReceipt transport needed by B6a2's
+RunnerExchange. The mapping is `docs/implementation/B2-runner-receipts.md`.
+This uses the unmodified published aq-admission 0.3.1 terminal contract;
+ReportResult may use ended authority within its original deadlines. Exact
+stopped replay after Option A remains refused by that owner release because
+its boot equality check cannot represent immutable original native history
+with a rebound permit. This owner follow-up has been reported. Do not rewrite
+native history or patch the vendored contract to bypass it.
+
+The handoff checkpoint includes actual HTTP receipt fixtures and focused Git
+retention/replay evidence. Full process restart qualification, remaining route
+coverage, adversarial review and complete B2 acceptance remain open.
