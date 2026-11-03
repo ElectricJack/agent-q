@@ -1,5 +1,6 @@
 //! Human global-conversation admission over AQ-11 mail, never runtime delivery.
 pub mod dispatch;
+mod marker;
 mod reads;
 pub mod reply;
 pub mod reservations;
@@ -81,6 +82,18 @@ fn runtime() -> Runtime {
         reason: "central_runtime_not_connected".into(),
     }
 }
+/// X4: owner reads report the active central session bound to this
+/// conversation. Admission receipts keep the admission-time [`runtime`].
+async fn live_runtime(pool: &PgPool, conversation: Uuid) -> Runtime {
+    match dispatch::binding(pool, Some(conversation)).await {
+        Some(b) => Runtime {
+            state: "available".into(),
+            binding: Some(json!(b)),
+            reason: "central_session_active".into(),
+        },
+        None => runtime(),
+    }
+}
 pub(crate) struct Service {
     pool: PgPool,
     gate: Semaphore,
@@ -120,6 +133,10 @@ pub fn routes(state: &AppState) -> Router<AppState> {
         .route(
             "/api/human/conversations/{conversation}/operations/{operation}",
             get(writes::lookup),
+        )
+        .route(
+            "/api/human/conversations/{conversation}/read-marker",
+            get(marker::read).put(marker::write),
         )
         .layer(DefaultBodyLimit::max(131072))
         .layer(Extension(service.clone()))

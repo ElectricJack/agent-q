@@ -3,8 +3,12 @@
 Current authenticated Owner only; session inspection ACLs do not grant global
 conversation access. Protected admin routes retain normal CSRF rules.
 Capabilities: `supervisor.history.read@1`, `supervisor.message.enqueue@1`. The
-legacy live-supervisor capability remains false. Runtime is always explicitly
-unavailable with null binding in this foundation.
+`supervisor.conversation` is true only while an active central session serves
+the conversation. Discovery and History `runtime` (`$defs/Runtime`) is
+`unavailable` with null binding until then, and `available` with
+`binding: {actor_id, generation, session_id}` and reason
+`central_session_active` while that session is active. Receipts keep the
+admission-time unavailable runtime and never change after they are written.
 
 - GET `/api/human/conversations/global`: Discovery, stable conversation UUID and
   definition revision across restarts. It creates no message or session.
@@ -22,9 +26,20 @@ unavailable with null binding in this foundation.
   either cursor form. `through_cursor` stays an owner-mailbox cursor.
 - POST the messages path: closed Create, all fields required. Body nonblank,
   at most 16384 UTF-8 bytes, no NUL. Whole literal JSON at most 131072 bytes.
-  Context and attachments must both be empty arrays. Positive revision is a
+  `context` holds at most 16 pinned refs (`$defs/ContextRef`:
+  `{type, id, revision}`), unique by `(type, id)`, with non-nil ids;
+  `attachments` must be an empty array (`limits.attachments` stays 0 until a
+  human artifact service exists). Owner History items echo non-empty context
+  as `context`; the field is absent otherwise. The supervisor turn text lists
+  each ref after the message body. Positive revision is a
   signed 64-bit decimal string. Operation and message UUIDs are client minted,
   stable, nonnil and different; preserve them with the original request.
+- GET/PUT `/api/human/conversations/{id}/read-marker`: the caller's read cursor
+  (`$defs/ReadMarker`). PUT takes `{"cursor": "N" | "A.R"}`
+  (`$defs/ReadMarkerUpdate`). The marker only moves forward: an earlier cursor
+  is a no-op and a cursor past `latest_cursor` is 400. `unread.count` counts
+  items after the marker that the caller did not author, capped at 100 with
+  `capped: true`. Markers are per principal, so owners do not share them.
 - GET `/api/human/conversations/{id}/operations/{op}`: pure original-actor receipt
   lookup, 200 Receipt or 404. A 404 is not proof an earlier request has finished.
 
@@ -51,7 +66,7 @@ new operations while history, lookup and exact replay remain available.
 
 ## Supervisor History attachments (additive, for G8)
 
-Published schema digest: `sha256:2a295e5376e0708543d2f667fc511ece4aaffb61590b9eb56ef30c5daf708ccc`
+Published schema digest: `sha256:a149cfa82cc9ff6ce98098d76c1bd1bad541401a13039268e8e7ea61cb7f860d`
 (also in `schema.sha256`; `supervisor_turns` fails if the two diverge). Pin it.
 
 A supervisor `SupervisorItem` may carry `attachments` (0–4 items, schema

@@ -156,6 +156,37 @@ pub(super) fn envelope<T>(
         },
     })
 }
+/// X4: the mounted conversation and whether an active central session serves it.
+async fn global_supervisor(pool: &sqlx::PgPool) -> Supervisor {
+    let id: Option<Uuid> = sqlx::query_scalar(
+        "SELECT conversation_id FROM global_supervisor_conversation WHERE singleton AND revision=1",
+    )
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten()
+    .filter(|id: &Uuid| !id.is_nil());
+    let Some(id) = id else {
+        return Supervisor {
+            status: "unconfigured".into(),
+            conversation_id: None,
+            reason: "The global supervisor conversation is not provisioned".into(),
+        };
+    };
+    let bound = crate::agent_access::supervisor_conversation::dispatch::binding(pool, Some(id))
+        .await
+        .is_some();
+    Supervisor {
+        status: if bound { "available" } else { "unavailable" }.into(),
+        conversation_id: Some(id),
+        reason: if bound {
+            "central_session_active"
+        } else {
+            "central_runtime_not_connected"
+        }
+        .into(),
+    }
+}
 pub(super) async fn bootstrap(
     state: &AppState,
     runtime: &Runtime,
@@ -168,9 +199,16 @@ pub(super) async fn bootstrap(
     let graph_mutation = graph && crate::agent_access::human::task_create_available(state);
     let reviews = a.owner && mounted.reviews;
     let playbooks = a.owner && mounted.playbook_owner == Some(a.actor);
-    let conversation = mounted.supervisor_conversation
-        && a.owner
-        && crate::agent_access::supervisor_conversation::dispatch::live(&state.store.pool).await;
+    let global = if mounted.supervisor_conversation && a.owner {
+        global_supervisor(&state.store.pool).await
+    } else {
+        Supervisor {
+            status: "unconfigured".into(),
+            conversation_id: None,
+            reason: "The global supervisor is not connected yet".into(),
+        }
+    };
+    let conversation = global.status == "available";
     let caps = vec![
         capability("dashboard.overview", true, ""),
         capability(
@@ -425,11 +463,7 @@ pub(super) async fn bootstrap(
             snapshot_ttl_ms: runtime::TTL as u32,
         },
         default_scope: Scope::AllAuthorized,
-        global_supervisor: Supervisor {
-            status: "unconfigured".into(),
-            conversation_id: None,
-            reason: "The global supervisor is not connected yet".into(),
-        },
+        global_supervisor: global,
     };
     let mut tx = tx(runtime).await?;
     let mut pending: Vec<Uuid> = if a.owner {
