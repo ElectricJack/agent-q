@@ -156,7 +156,21 @@ pub(crate) async fn close_locked(
         }
     }
     let now = (state.clock)().timestamp_millis();
-    let row = sqlx::query("SELECT * FROM profiled_close_ungranted($1,$2,$3,$4,$5,$6)")
+    let sql = "SELECT * FROM profiled_close_ungranted($1,$2,$3,$4,$5,$6)";
+    // Historical fixtures exercise the genuine pre-cancellation expiry owner.
+    // Keep a sixth bind without changing the old SQL function's signature.
+    #[cfg(feature = "test-support")]
+    let sql = if state
+        .store
+        .fixture_profile
+        .is_some_and(|version| version < 43)
+        && cancellation.is_none()
+    {
+        "SELECT * FROM profiled_close_expired_ungranted($1,$2,$3,$4,$5) WHERE NOT $6"
+    } else {
+        sql
+    };
+    let row = sqlx::query(sql)
         .bind(node)
         .bind(attempt)
         .bind(now)

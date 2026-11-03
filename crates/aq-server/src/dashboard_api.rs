@@ -1,9 +1,12 @@
 //! Bounded authenticated dashboard reads. No action proxy, no browser authority.
 pub mod actions;
+mod aggregation;
 pub mod contract;
 pub mod cursor;
 pub mod errors;
+pub mod quota;
 mod runtime;
+mod search;
 mod service;
 use crate::{AppState, authz::CurrentUser, error::AppError};
 use axum::{
@@ -153,13 +156,17 @@ pub(crate) fn routes_with_reviews(
     state: AppState,
     reviews: Option<Arc<crate::reviews::Service>>,
 ) -> Router<AppState> {
-    let runtime = Arc::new(Runtime::new(&state));
+    let mut runtime = Runtime::new(&state);
+    runtime.reviews = reviews.clone();
+    let runtime = Arc::new(runtime);
     Router::new()
         .merge(actions::routes(Arc::new(actions::existing::registry(
             &state, reviews,
         ))))
         .route("/api/v1/bootstrap", get(bootstrap))
         .route("/api/v1/overview", get(overview))
+        .route("/api/v1/search", get(search::read))
+        .route("/api/v1/provider-usage", get(provider_usage))
         .route("/api/v1/sessions", get(sessions))
         .route("/api/v1/sessions/{id}", get(detail))
         .route("/api/v1/projects", get(projects))
@@ -197,6 +204,7 @@ async fn bootstrap(
     )
 }
 async fn overview(
+    owners: Option<Extension<MountedOwners>>,
     State(state): State<AppState>,
     DashboardUser(user): DashboardUser,
     Extension(runtime): Extension<Arc<Runtime>>,
@@ -207,7 +215,33 @@ async fn overview(
     bounded(
         tokio::time::timeout(
             Duration::from_secs(2),
-            service::overview(&state, &runtime, &user, scope),
+            aggregation::overview(
+                &state,
+                &runtime,
+                &user,
+                scope,
+                owners.map(|Extension(v)| v).unwrap_or_default(),
+            ),
+        )
+        .await
+        .map_err(|_| Error::Unavailable)??,
+    )
+}
+async fn provider_usage(
+    State(state): State<AppState>,
+    DashboardUser(user): DashboardUser,
+    Extension(runtime): Extension<Arc<Runtime>>,
+    DashboardQuery(query): DashboardQuery,
+) -> Result<Json<Envelope<Vec<ProviderUsage>>>> {
+    let _permit = runtime.gate.try_acquire().map_err(|_| Error::Unavailable)?;
+    let scope = query.scope()?;
+    if query.limit.is_some() || query.cursor.is_some() {
+        return Err(Error::Invalid);
+    }
+    bounded(
+        tokio::time::timeout(
+            Duration::from_secs(4),
+            service::provider_usage(&state, &runtime, &user, scope),
         )
         .await
         .map_err(|_| Error::Unavailable)??,

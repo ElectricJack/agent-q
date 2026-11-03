@@ -1,13 +1,14 @@
 # BEGIN PINNED AQ-GIT BUILD STAGES
-# Standalone pinned source build, also usable as a stage in server/worker images.
+# Verified release executable and pinned Git runtime for all consumer images.
 FROM rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663 AS aq-git-build
 WORKDIR /src
 COPY vendor/aq-git-source.tar.gz /tmp/source.tar.gz
-RUN echo '8f6a2f8ce04361c3cabaff5de7274505e28a042235da18cc346086f47e4c6cd5  /tmp/source.tar.gz' | sha256sum -c - && tar -xzf /tmp/source.tar.gz -C /src
-RUN cargo build --locked --release -p aq-git-cli
+RUN echo 'f64891f03e2d28263cf3af20b38123935ae08d6917699becb9d77e76af2fd3c6  /tmp/source.tar.gz' | sha256sum -c -
+COPY vendor/aq-git-v0.2.0-linux-x86_64 /src/target/release/aq-git
+RUN echo '3feca63cffa5065566f2c604fd00d4ad92e1bc367c62ec69bedd42c2b37f35d2  /src/target/release/aq-git' | sha256sum -c - && chmod 755 /src/target/release/aq-git
 FROM rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663 AS git-build
 RUN apt-get update && apt-get install -y --no-install-recommends libssl-dev libcurl4-openssl-dev libexpat1-dev gettext zlib1g-dev && rm -rf /var/lib/apt/lists/*
-COPY vendor/aq-git-0.1.0/git-2.56.0.tar.xz /tmp/git.tar.xz
+COPY vendor/aq-git-0.2.0/git-2.56.0.tar.xz /tmp/git.tar.xz
 RUN echo '26c56c296b38c0695b26fa95f475f1d01704d2d38e73465ca30b0b2f5dc789d3  /tmp/git.tar.xz' | sha256sum -c - && mkdir /git && tar -xf /tmp/git.tar.xz -C /git --strip-components=1
 WORKDIR /git
 RUN make -j4 prefix=/opt/aq-git-runtime RUNTIME_PREFIX=YesPlease NO_TCLTK=YesPlease NO_GETTEXT=YesPlease all && make prefix=/opt/aq-git-runtime RUNTIME_PREFIX=YesPlease NO_TCLTK=YesPlease NO_GETTEXT=YesPlease install
@@ -54,7 +55,7 @@ ARG AQ_VERSION=unknown
 # them from the source (STATE_FORMAT_VERSION, SUPPORTED_WORKER_PROTOCOLS) and
 # checks the pushed labels against the manifest; the updater refuses a
 # server image whose state-format label disagrees with its manifest.
-ARG AQ_STATE_FORMAT=44
+ARG AQ_STATE_FORMAT=46
 ARG AQ_PROTOCOL_MAX=1
 LABEL org.opencontainers.image.title="agent-q-server" \
       org.opencontainers.image.revision="${AQ_SOURCE_REVISION}" \
@@ -67,6 +68,13 @@ COPY --from=git-build /opt/aq-git-runtime /opt/aq-git-runtime
 RUN ln -s /opt/aq-git-runtime/bin/git /usr/bin/git
 COPY vendor/git-candidate.json /usr/share/agent-q/git-candidate.json
 ENV PATH="/opt/aq-git-runtime/bin:${PATH}"
+COPY vendor/aq-dashboard-v0.1.0.tar.gz /tmp/dashboard.tar.gz
+RUN echo '162f2cd29e7123570f4568df68ff2ffffa1c97417c1f51369fcd55b1c7bd2465  /tmp/dashboard.tar.gz' | sha256sum -c - \
+    && mkdir -p /usr/share/agent-q/dashboard \
+    && tar -xzf /tmp/dashboard.tar.gz -C /usr/share/agent-q/dashboard \
+    && rm /tmp/dashboard.tar.gz
+COPY vendor/dashboard-candidate.json /usr/share/agent-q/dashboard-candidate.json
+ENV AQ_DASHBOARD_DIR=/usr/share/agent-q/dashboard
 ENV AQ_VAULT_DIR=/vault
 USER 10001:10001
 EXPOSE 8080 8081

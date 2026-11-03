@@ -148,6 +148,7 @@ async fn observe_ready(
     crate::agent_access::scheduling::ReadyPage,
     crate::agent_access::scheduling::SchedulingReadError,
 > {
-    let _ = state;
-    graph.scheduling_ready(workspace, 8, None).await
+    graph
+        .scheduling_ready_current(workspace, 8, None, state.clock.as_ref())
+        .await
 }

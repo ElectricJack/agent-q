@@ -298,3 +298,214 @@ async fn dashboard_decision_resolve_binds_subject_and_shares_native_finality() {
     );
     env.peer.abort();
 }
+
+#[tokio::test]
+async fn overview_attention_lists_waiting_decision_and_failed_task() {
+    let env = Box::pin(review_env_for_outcome(1, None, false, true)).await;
+    let request = aq_review_protocol::DecisionRequest {
+        schema_version: 1,
+        operation_id: Uuid::new_v4(),
+        decision_id: Uuid::new_v4(),
+        subject: env.prepared.subject().artifact().unwrap(),
+        eligible_owners: vec![env.f.actor],
+        eligibility_project_revision: 1,
+        review_policy: env.prepared.subject().validation_policy.clone(),
+        expires_at_ms: NOW + 30000,
+    };
+    env.service
+        .admit(env.f.actor, &env.prepared, &request)
+        .await
+        .unwrap();
+    let app = aq_server::build_admin_router_with_policy_owners(
+        env.f.state.clone(),
+        None,
+        Some(Arc::new(env.service.clone())),
+    );
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::get("/api/v1/overview")
+                .header("x-aq-dev-email", "owner@localhost")
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), 200);
+    let body: Value = serde_json::from_slice(
+        &axum::body::to_bytes(response.into_body(), 1048576)
+            .await
+            .unwrap(),
+    )
+    .unwrap();
+    let items = body["data"]["attention"].as_array().unwrap();
+    assert!(items.iter().any(|v| v["kind"] == "decision"), "{body}");
+    assert!(items.iter().any(|v| v["kind"] == "failed"), "{body}");
+    assert!(items.iter().all(|v| v["subject"]["revision"].is_string()));
+    assert!(
+        !body["data"]["recent_outcomes"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    let typed: aq_server::dashboard_api::contract::Envelope<
+        aq_server::dashboard_api::contract::Overview,
+    > = serde_json::from_value(body.clone()).unwrap();
+    assert_eq!(serde_json::to_value(typed).unwrap(), body);
+    if std::env::var_os("AQ_DASHBOARD_WRITE_FIXTURES").is_some() {
+        std::fs::write(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../../protocol/dashboard-read/v1/fixtures/overview-nonempty.json"),
+            format!("{}\n", serde_json::to_string_pretty(&body).unwrap()),
+        )
+        .unwrap();
+    }
+    let project = env.prepared.subject().project_id;
+    let decision = items.iter().find(|v| v["kind"] == "decision").unwrap();
+    assert_eq!(decision["subject"]["id"], json!(request.decision_id));
+    assert_eq!(decision["subject"]["revision"], "1");
+    assert!(decision["since"].is_null());
+    assert!(decision["action"].is_null());
+    assert_eq!(decision["project"]["id"], json!(project));
+    assert_eq!(body["data"]["counts"]["needs_you"]["value"], 1);
+    assert_eq!(body["data"]["counts"]["needs_you"]["accuracy"], "estimated");
+    let retained = Box::pin(aq_server::profiled_execution::human_results::read_as(
+        &env.f.state,
+        &env.f
+            .state
+            .store
+            .find_user_by_binding("dev", "owner@localhost")
+            .await
+            .unwrap()
+            .unwrap(),
+        &aq_server::profiled_execution::human_results::Page::default(),
+        None,
+    ))
+    .await
+    .unwrap();
+    let digest = format!("sha256:{}", retained.items[0].revision);
+    let failed = items.iter().find(|v| v["kind"] == "failed").unwrap();
+    assert_eq!(failed["subject"]["id"], json!(env.report.report_id));
+    assert_eq!(failed["subject"]["revision"], digest);
+    assert_eq!(failed["project"]["id"], json!(project));
+    let outcome = body["data"]["recent_outcomes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|v| v["subject"]["id"] == json!(env.report.report_id))
+        .unwrap();
+    assert_eq!(outcome["subject"]["revision"], digest);
+    assert_eq!(outcome["outcome"], "process_failed");
+    assert_eq!(outcome["at"], "1970-01-01T00:16:40.000Z");
+    assert_eq!(body["coverage"]["state"], "partial");
+    let sources = body["data"]["sources"].as_array().unwrap();
+    assert!(sources.iter().any(|v| v["source"] == "questions"
+        && v["total"]["value"].is_null()
+        && v["coverage"]["reason"] == "question_owner_not_mounted"));
+    assert!(sources.iter().any(|v| v["source"] == "results"
+        && v["observation"]["observed_at"] == "1970-01-01T00:16:40.000Z"
+        && v["total"]["value"] == 1));
+    let pool = env.f.db.pool().await;
+    for (email, role) in [
+        ("other-owner@localhost", "owner"),
+        ("excluded-viewer@localhost", "viewer"),
+    ] {
+        sqlx::query("INSERT INTO users(id,email,role,issuer,subject,created_at) VALUES($1,$2,$3,'dev',$2,now())").bind(Uuid::new_v4()).bind(email).bind(role).execute(&pool).await.unwrap();
+        let other = overview_as(&app, "/api/v1/overview", email).await;
+        assert!(!other.to_string().contains(&request.decision_id.to_string()));
+        if role == "viewer" {
+            assert!(other["data"]["attention"].as_array().unwrap().is_empty());
+        }
+    }
+    let excluded = overview_as(
+        &app,
+        &format!("/api/v1/overview?scope=project:{}", Uuid::new_v4()),
+        "owner@localhost",
+    )
+    .await;
+    assert!(excluded["data"]["attention"].as_array().unwrap().is_empty());
+    assert!(
+        excluded["data"]["recent_outcomes"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(
+        !excluded
+            .to_string()
+            .contains(&env.report.report_id.to_string())
+    );
+    // A missing mounted review owner is an unknown contribution, never zero.
+    let unmounted = aq_server::build_admin_router(env.f.state.clone());
+    let partial = overview_as(&unmounted, "/api/v1/overview", "owner@localhost").await;
+    assert!(partial["data"]["counts"]["needs_you"]["value"].is_null());
+    assert!(
+        partial["data"]["attention"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v["kind"] == "failed")
+    );
+    // An unavailable result owner is contained within the source contribution.
+    sqlx::query("ALTER TABLE profiled_result_reports RENAME TO unavailable_result_reports")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let partial = overview_as(&unmounted, "/api/v1/overview", "owner@localhost").await;
+    assert!(
+        partial["data"]["sources"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v["source"] == "results" && v["total"]["value"].is_null())
+    );
+    assert!(
+        partial["data"]["recent_outcomes"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    env.peer.abort();
+}
+
+pub(super) async fn overview_as(app: &axum::Router, path: &str, email: &str) -> Value {
+    let response = app
+        .clone()
+        .oneshot(
+            axum::http::Request::get(path)
+                .header("x-aq-dev-email", email)
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), 200);
+    serde_json::from_slice(
+        &axum::body::to_bytes(response.into_body(), 1048576)
+            .await
+            .unwrap(),
+    )
+    .unwrap()
+}
+
+#[tokio::test]
+async fn overview_running_and_recovering_use_started_and_stopped_owners() {
+    let (f, start, _) = Box::pin(prepare(true, false)).await;
+    let app = aq_server::build_admin_router(f.state.clone());
+    let running = overview_as(&app, "/api/v1/overview", "owner@localhost").await;
+    assert_eq!(
+        running["data"]["counts"]["running"]["value"], 1,
+        "{running}"
+    );
+    assert_eq!(running["data"]["counts"]["recovering"]["value"], 0);
+    let auth = context(&f).await;
+    stopped::record(&f.state, &auth, &native_started::stop_request(&start))
+        .await
+        .unwrap();
+    let stopped = overview_as(&app, "/api/v1/overview", "owner@localhost").await;
+    assert_eq!(stopped["data"]["counts"]["running"]["value"], 0);
+    assert_eq!(
+        stopped["data"]["counts"]["recovering"]["value"], 1,
+        "{stopped}"
+    );
+}

@@ -23,9 +23,10 @@ kinds `result.follow`, `result.comment`, `comment.revise`, `thread.resolve`,
 - GET `/api/v1/results/{id}/revisions/{revision}`: exact retained SHA-256 report
   revision. `id` is the supersession-root Result ID (a report ID is also accepted
   for compatibility). The immutable revision contains only native submitted
-  content; native reports have no supplemental media/check/addressed-feedback
-  fields, so those submitted arrays are empty. Supplemental upload references
-  and evidence availability belong to the independently versioned assessment.
+  content except the legacy `addressed_feedback` compatibility projection
+  described below. Native reports have no supplemental media/check fields, so
+  those submitted arrays remain empty. Supplemental upload references and
+  evidence availability belong to the independently versioned assessment.
 - PUT `/api/v1/results/{id}/follow`: Follow payload; expected Result version.
 - GET/POST `/api/v1/results/{id}/revisions/{revision}/comments`: reads use
   `limit` and `cursor`; POST uses Comment payload with **result_id and revision
@@ -70,3 +71,50 @@ claimed source, or have an authorized exact-policy waiver. Scenario/steps and
 source are human claims; this evaluation establishes evidence presence, never
 capture correctness or task acceptance. Assessments remain `unreviewed` until an
 acceptance owner supplies that authority; G6 performs no completion-policy write.
+
+## Additive read revision 1.1
+
+Routes, `dashboard-read-1` envelopes, write payloads and operation identities are
+unchanged. Detail (including feed items) and comments pages now advertise
+`feedback_read_version: "results-feedback-1.1"`. An absent marker identifies the
+original v1 response; do not treat absent legacy fields as observed server state.
+The Rust decoder accepts original v1 responses through defaults. `schema-1.0.json`
+retains the original schema, pinned by the compatibility fixture. Strict v1
+readers that reject unknown fields must update their decoder; tolerant readers
+can ignore the additive fields. Compatibility checks explicitly remove only
+these documented additions before checking the frozen strict schema.
+
+- `result.directly_following` is the current principal's retained boolean in
+  `result_follows`, defaulting to false when no preference exists. It follows the
+  stable Result identity across revisions and is independent of thread opt-in.
+  A result can remain in Following while this value is false. The existing
+  Result version remains the precondition for the follow toggle.
+- Each comment has `feedback_links`, ordered by operation UUID. Each item has
+  `operation_id`, `project_id`, `task_id` and `origin`. The origin retains
+  `result_id`, exact `revision`, `thread_id`, `comment_id`, `comment_revision` and
+  `artifacts` (artifact UUID and digest). Creation and linking use the same
+  projection. Links attach only to their exact origin report/revision and
+  comment, and keep the original comment revision after corrections. Linked
+  task references prove the retained link, without claiming current task status.
+- Each comment has nullable `resolution`. Open threads return null. Explicitly
+  resolved threads return `resolved_by`, `reason`, `follow_up` (stable Result ID
+  and exact revision), and `follow_up_report_id` (the exact native report UUID).
+  Replies share their thread's resolution. An existing resolution is never
+  inferred from a created or linked task.
+- `revision.addressed_feedback` now contains sorted thread UUIDs whose explicit
+  resolution pins this exact report UUID **and** revision. These are thread IDs,
+  not comment IDs or task/link IDs. This legacy field is a mutable supplemental
+  compatibility observation, not an immutable native submission claim. It is
+  absent from the native report digest. Its changes participate in assessment
+  version observation; readers must refresh this field with the assessment.
+- Detail and comments pages expose `follow_up_submission: {"state":"unsupported"}`.
+  There is no authoritative submission owner/record in the current system. This
+  value does not mean "unsubmitted", and resolution does not turn it into
+  "submitted". The supervisor authorized this bounded delivery; the separate
+  submission owner/operation is a named follow-up. Creation, submission,
+  resolution and result acceptance remain independent.
+
+No new write route, SQL migration, Graph status lookup or action-union change is
+introduced. The valid, invalid, replay and compatibility fixtures cover the
+additions, exact retained origins and legacy decoding. Runtime tests cover reload,
+principal partitioning, revision isolation, replay and real Graph creation/linking.

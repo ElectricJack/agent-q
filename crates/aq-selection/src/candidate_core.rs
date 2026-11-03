@@ -29,6 +29,7 @@ pub(crate) type DeliveryCheck<'a> =
 pub(crate) type CostCheck<'a> =
     dyn Fn(&InstalledHarness, Option<&CandidateEstimate>) -> CandidateResult + 'a;
 pub(crate) struct CoreInputs<'a> {
+    pub backend_kind: Option<BackendKind>,
     pub target: ObservationTarget,
     pub installation: CoreInstallation<'a>,
     pub credentials: &'a [AuthorizedCredential],
@@ -314,6 +315,11 @@ pub(crate) fn evaluate(
                                     "credential_profile_disabled",
                                 ));
                             }
+                            credential_backend_policy(
+                                &credential.allowed_backends,
+                                input.backend_kind,
+                            )
+                            .map_err(|reason| (CandidateState::PolicyDenied, reason))?;
                             if !credential.provisionable {
                                 return Err((
                                     CandidateState::MissingCredentials,

@@ -13,6 +13,7 @@ pub fn issue_for_selection(
     lease_id: Uuid,
     issued_at_ms: u64,
     expires_at_ms: u64,
+    backend_kind: Option<aq_selection::BackendKind>,
 ) -> Result<MaterialLease, MaterialError> {
     let ExecutionTarget::Worker { node_id, boot_id } = selection.target else {
         return Err(MaterialError::Scope);
@@ -40,6 +41,8 @@ pub fn issue_for_selection(
         || credential.material_owner.is_none()
         || configured.delivery_mode.is_none()
         || !configured.allowed_node_ids.contains(&node_id)
+        || aq_selection::credential_backend_policy(&configured.allowed_backends, backend_kind)
+            .is_err()
         || credential.provider != selection.choice.provider
         || credential.account_reference != selection.choice.account_reference
         || credential.endpoint_reference != selection.choice.endpoint_reference

@@ -3,13 +3,107 @@
     "Accuracy": {
       "enum": [
         "exact",
+        "estimated",
         "unknown"
       ],
       "type": "string"
     },
+    "ActionDescriptor": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "subject": {
+          "$ref": "#/$defs/EntityRef"
+        }
+      },
+      "required": [
+        "kind",
+        "label",
+        "subject"
+      ],
+      "type": "object"
+    },
     "ApiVersion": {
       "enum": [
         "dashboard-read-1"
+      ],
+      "type": "string"
+    },
+    "AttentionItem": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ActionDescriptor"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "id": {
+          "type": "string"
+        },
+        "impact": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/AttentionKind"
+        },
+        "project": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reason": {
+          "type": "string"
+        },
+        "since": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "subject": {
+          "$ref": "#/$defs/EntityRef"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "title",
+        "reason",
+        "impact",
+        "subject"
+      ],
+      "type": "object"
+    },
+    "AttentionKind": {
+      "enum": [
+        "decision",
+        "question",
+        "blocked",
+        "failed",
+        "uncertain_operation",
+        "worker_offline"
       ],
       "type": "string"
     },
@@ -260,7 +354,7 @@
         "revision": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Revision"
+              "$ref": "#/$defs/ReferenceRevision"
             },
             {
               "type": "null"
@@ -377,7 +471,7 @@
           "$ref": "#/$defs/Coverage"
         },
         "data": {
-          "$ref": "#/$defs/Page"
+          "$ref": "#/$defs/Search"
         },
         "observation": {
           "$ref": "#/$defs/Observation"
@@ -422,7 +516,10 @@
           "$ref": "#/$defs/Coverage"
         },
         "data": {
-          "$ref": "#/$defs/SessionDetail"
+          "items": {
+            "$ref": "#/$defs/ProviderUsage"
+          },
+          "type": "array"
         },
         "observation": {
           "$ref": "#/$defs/Observation"
@@ -458,6 +555,96 @@
       "type": "object"
     },
     "Envelope5": {
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "$ref": "#/$defs/ApiVersion"
+        },
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "data": {
+          "$ref": "#/$defs/Page"
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        },
+        "pending_operations": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "request_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "server_time": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "api_version",
+        "request_id",
+        "server_time",
+        "scope",
+        "data",
+        "observation",
+        "pending_operations",
+        "coverage"
+      ],
+      "type": "object"
+    },
+    "Envelope6": {
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "$ref": "#/$defs/ApiVersion"
+        },
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "data": {
+          "$ref": "#/$defs/SessionDetail"
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        },
+        "pending_operations": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "request_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "server_time": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "api_version",
+        "request_id",
+        "server_time",
+        "scope",
+        "data",
+        "observation",
+        "pending_operations",
+        "coverage"
+      ],
+      "type": "object"
+    },
+    "Envelope7": {
       "additionalProperties": false,
       "properties": {
         "api_version": {
@@ -628,8 +815,9 @@
       "additionalProperties": false,
       "properties": {
         "attention": {
-          "items": true,
-          "maxItems": 0,
+          "items": {
+            "$ref": "#/$defs/AttentionItem"
+          },
           "type": "array"
         },
         "counts": {
@@ -642,8 +830,16 @@
           "type": "array"
         },
         "recent_outcomes": {
-          "items": true,
-          "maxItems": 0,
+          "items": {
+            "$ref": "#/$defs/RecentOutcome"
+          },
+          "type": "array"
+        },
+        "sources": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SourceObservation"
+          },
           "type": "array"
         }
       },
@@ -843,12 +1039,179 @@
       ],
       "type": "object"
     },
+    "ProviderScope": {
+      "enum": [
+        "provider_account"
+      ],
+      "type": "string"
+    },
+    "ProviderUsage": {
+      "additionalProperties": false,
+      "properties": {
+        "account_label": {
+          "type": "string"
+        },
+        "account_ref": {
+          "type": "string"
+        },
+        "availability_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntityRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "preferred_window_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "provider_id": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/ProviderScope"
+        },
+        "windows": {
+          "items": {
+            "$ref": "#/$defs/QuotaWindow"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "provider_id",
+        "account_ref",
+        "account_label",
+        "scope",
+        "windows"
+      ],
+      "type": "object"
+    },
     "Quality": {
       "enum": [
         "reported",
         "unknown"
       ],
       "type": "string"
+    },
+    "QuotaState": {
+      "enum": [
+        "known",
+        "unknown",
+        "unavailable"
+      ],
+      "type": "string"
+    },
+    "QuotaWindow": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "limit": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        },
+        "resets_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "starts_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "$ref": "#/$defs/QuotaState"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "used": {
+          "format": "double",
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "used_percent": {
+          "format": "double",
+          "maximum": 100.0,
+          "minimum": 0.0,
+          "type": [
+            "number",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "label",
+        "unit",
+        "state",
+        "observation"
+      ],
+      "type": "object"
+    },
+    "RecentOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "outcome": {
+          "type": "string"
+        },
+        "project": {
+          "$ref": "#/$defs/ProjectRef"
+        },
+        "subject": {
+          "$ref": "#/$defs/TitledRef"
+        }
+      },
+      "required": [
+        "subject",
+        "project",
+        "outcome",
+        "at"
+      ],
+      "type": "object"
+    },
+    "ReferenceRevision": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Revision"
+        },
+        {
+          "$ref": "#/$defs/Digest"
+        }
+      ],
+      "description": "Reference pins retain the owner's numeric revision or exact content digest."
     },
     "Revision": {
       "pattern": "^[1-9][0-9]{0,39}$",
@@ -888,6 +1251,117 @@
           "type": "object"
         }
       ]
+    },
+    "Search": {
+      "additionalProperties": false,
+      "properties": {
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/SearchGroup"
+          },
+          "type": "array"
+        },
+        "snapshot_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceObservation"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "groups",
+        "sources",
+        "snapshot_id"
+      ],
+      "type": "object"
+    },
+    "SearchGroup": {
+      "additionalProperties": false,
+      "properties": {
+        "has_more": {
+          "type": "boolean"
+        },
+        "hits": {
+          "items": {
+            "$ref": "#/$defs/SearchHit"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "type": {
+          "$ref": "#/$defs/SearchType"
+        }
+      },
+      "required": [
+        "type",
+        "hits",
+        "has_more"
+      ],
+      "type": "object"
+    },
+    "SearchHit": {
+      "additionalProperties": false,
+      "properties": {
+        "excerpt": {
+          "type": "string"
+        },
+        "project": {
+          "$ref": "#/$defs/ProjectRef"
+        },
+        "ref": {
+          "$ref": "#/$defs/SearchRef"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "ref",
+        "title",
+        "excerpt",
+        "project"
+      ],
+      "type": "object"
+    },
+    "SearchRef": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SearchType"
+        },
+        "revision": {
+          "$ref": "#/$defs/ReferenceRevision"
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "revision"
+      ],
+      "type": "object"
+    },
+    "SearchType": {
+      "description": "Owner-specific identity: playbook names are not UUIDs.",
+      "enum": [
+        "task",
+        "session",
+        "result",
+        "playbook",
+        "knowledge"
+      ],
+      "type": "string"
     },
     "SessionDetail": {
       "additionalProperties": false,
@@ -1303,6 +1777,46 @@
       ],
       "type": "object"
     },
+    "SourceObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "observation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Observation"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "project": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProjectRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source": {
+          "type": "string"
+        },
+        "total": {
+          "$ref": "#/$defs/Total"
+        }
+      },
+      "required": [
+        "source",
+        "coverage",
+        "total"
+      ],
+      "type": "object"
+    },
     "Supervisor": {
       "additionalProperties": false,
       "properties": {
@@ -1340,7 +1854,7 @@
         "revision": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Revision"
+              "$ref": "#/$defs/ReferenceRevision"
             },
             {
               "type": "null"
@@ -1415,6 +1929,12 @@
     },
     {
       "$ref": "#/$defs/Envelope5"
+    },
+    {
+      "$ref": "#/$defs/Envelope6"
+    },
+    {
+      "$ref": "#/$defs/Envelope7"
     }
   ],
   "title": "Response"

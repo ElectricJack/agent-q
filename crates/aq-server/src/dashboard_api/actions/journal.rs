@@ -73,7 +73,7 @@ pub(super) fn retired(id: Uuid) -> ApiError {
     )
     .operation(id)
 }
-pub(super) async fn lookup(
+pub(in crate::dashboard_api) async fn lookup(
     pool: &PgPool,
     principal: Uuid,
     id: Uuid,

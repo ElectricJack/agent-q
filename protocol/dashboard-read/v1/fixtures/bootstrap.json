@@ -37,9 +37,8 @@
         "version": "1"
       },
       {
-        "enabled": false,
+        "enabled": true,
         "name": "search.read",
-        "reason": "Search is not connected yet",
         "version": "1"
       },
       {
@@ -94,7 +93,7 @@
       {
         "name": "dashboard-read",
         "version": "dashboard-read-1",
-        "digest": "sha256:a913e589689043d743ca8ccbe756f34fb7a2beb0f44d14a3cb089de777ca00fb"
+        "digest": "sha256:9d7cac3073706afa942033b8f7975588285f1b47fb92db47b764c40348f07801"
       },
       {
         "name": "dashboard-actions",

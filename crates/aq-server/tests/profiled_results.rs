@@ -1035,7 +1035,18 @@ async fn review_env_options(
     profile: Option<serde_json::Value>,
     pilot: bool,
 ) -> ReviewEnv {
+    Box::pin(review_env_for_outcome(peer_count, profile, pilot, false)).await
+}
+async fn review_env_for_outcome(
+    peer_count: usize,
+    profile: Option<serde_json::Value>,
+    pilot: bool,
+    failed: bool,
+) -> ReviewEnv {
     let (mut f, _, mut report) = Box::pin(prepare_with_inputs(true, true, profile, pilot)).await;
+    if failed {
+        report.outcome = transport::ProcessOutcome::Failed;
+    }
     if pilot {
         report.outcome = transport::ProcessOutcome::Unknown;
     }

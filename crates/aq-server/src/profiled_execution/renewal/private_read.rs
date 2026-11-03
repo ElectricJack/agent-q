@@ -186,6 +186,8 @@ mod tests {
         let registry = IntelligenceConfig {
             revision: 1,
             credentials: vec![CredentialConfig {
+                kind: Default::default(),
+                allowed_backends: aq_selection::default_allowed_backends(),
                 credential: aq_selection::AuthorizedCredential {
                     profile: profile.clone(),
                     provider: "fixture".into(),
@@ -195,6 +197,7 @@ mod tests {
                     enabled: true,
                     provisionable: false,
                     material_owner: None,
+                    allowed_backends: aq_selection::default_allowed_backends(),
                 },
                 allowed_node_ids: vec![node],
                 secret_file: Some(path),
