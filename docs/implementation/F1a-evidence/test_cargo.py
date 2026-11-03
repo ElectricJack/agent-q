@@ -2,9 +2,22 @@
 import os
 from pathlib import Path
 import subprocess
+import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 COMMANDS = {
+    "start_revocation_red": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", "revocation_before_physical_start"],
+    "image": [sys.executable, "docs/implementation/F1a-evidence/image_check.py"],
+    "host_all": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--", "--test-threads=1"],
+    "named_start": ["cargo", "test", "--locked", "--workspace", "supervisor_session_starts_under_central_permit"],
+    "named_restart": ["cargo", "test", "--locked", "--workspace", "supervisor_restart_resumes_without_duplicate_session"],
+    "host_clippy": ["cargo", "clippy", "--locked", "-p", "aq-supervisor-host", "--all-targets", "--", "-D", "warnings"],
+    "adapter_red": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "adapter"],
+    "adapter": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "adapter"],
+    "credentials": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "credentials"],
+    "credentials_red": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "credentials"],
+    "host": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", "--", "--test-threads=1"],
+    "host_red": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session"],
     "owner": ["cargo", "test", "--locked", "-p", "aq-server", "--test", "central_sessions", "--", "--test-threads=1"],
     "model": ["cargo", "test", "--locked", "-p", "aq-central-authority"],
     "format": ["cargo", "fmt", "--check"],
