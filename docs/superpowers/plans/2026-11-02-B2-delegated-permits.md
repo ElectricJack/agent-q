@@ -142,3 +142,33 @@ retries remain negative cases.
 The handoff checkpoint includes actual HTTP receipt fixtures and focused Git
 retention/replay evidence. Full process restart qualification, remaining route
 coverage, adversarial review and complete B2 acceptance remain open.
+
+## Epoch 8 completion plan (2026-11-03)
+
+Migration 50 is now reserved for B2 and integrated with current main. Preserve
+the existing implementation and immutable 0.3.2 owner pin. The remaining work is:
+
+- [ ] Confirm migration/storage with the existing AQ Cargo adapter, then check
+  aq-server with two build jobs.
+- [ ] Add `server_restart_mid_attempt_resumes_or_preserves` in
+  `tests/delegated_permit_runtime.rs`. Use a fresh child test process with a new
+  Store, production worker router, private key-file reload and injected clock.
+  Exercise an active re-adopted permit after process exit, exact renewal replay,
+  expired renewal refusal without mutations, and result replay across processes
+  with exactly one result row. Keep node reboot coverage independently named.
+- [ ] Add a route authorization matrix covering the listed runner routes and
+  node-only routes with preparation, foreign-attempt, stale and expired permits.
+  Verify terminal counters remain shared across delegated attempts. Any newly
+  exposed defect gets a failing test before its production fix.
+- [ ] Run the three named workspace-filter commands through AQ; each must report
+  a matching passing test. Run focused strict Clippy and formatting once after
+  changes. No full suite or provider qualification is required by the owner's
+  velocity rules.
+- [ ] Replace stale current-status prose in B2.md with final evidence, publish
+  the branch and PR, request the required cross-family review through the
+  supervisor, and preserve the claim until the review outcome is delivered.
+
+Ruling: the task's explicit targeted-validation and AQ review rules govern this
+continuation over generic skill full-suite and local review defaults. Historical
+implementation is preserved; only newly discovered defects require production
+changes. Existing parent merge ancestry must not be rewritten during publication.
