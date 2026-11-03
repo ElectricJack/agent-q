@@ -109,10 +109,37 @@ async fn begin(pool: &PgPool) -> OwnerResult<Transaction<'_, Postgres>> {
         .await?;
     Ok(tx)
 }
+/// A read-only REPEATABLE READ snapshot: the head and generation rows are read
+/// consistently without row locks, so inspection never blocks a writer.
+async fn begin_read(pool: &PgPool) -> OwnerResult<Transaction<'_, Postgres>> {
+    let mut tx = pool.begin().await?;
+    sqlx::query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY")
+        .execute(&mut *tx)
+        .await?;
+    sqlx::query("SET LOCAL statement_timeout='3s'")
+        .execute(&mut *tx)
+        .await?;
+    Ok(tx)
+}
+const HEAD: &str = "SELECT actor_id,conversation_id,authority_id,current_generation FROM central_session_heads WHERE actor_id=$1";
 async fn head(tx: &mut Transaction<'_, Postgres>, actor: Uuid) -> OwnerResult<Option<Head>> {
+    read_head(tx, actor, true).await
+}
+async fn read_head(
+    tx: &mut Transaction<'_, Postgres>,
+    actor: Uuid,
+    lock: bool,
+) -> OwnerResult<Option<Head>> {
     id(actor)?;
-    let row = sqlx::query("SELECT actor_id,conversation_id,authority_id,current_generation FROM central_session_heads WHERE actor_id=$1 FOR UPDATE")
-        .bind(actor).fetch_optional(&mut **tx).await?;
+    let sql = if lock {
+        format!("{HEAD} FOR UPDATE")
+    } else {
+        HEAD.to_owned()
+    };
+    let row = sqlx::query(&sql)
+        .bind(actor)
+        .fetch_optional(&mut **tx)
+        .await?;
     row.map(|row| {
         let generation: i64 = row.try_get("current_generation")?;
         if !(1..=MAX_GENERATIONS as i64).contains(&generation) {
@@ -367,6 +394,8 @@ impl<V: EvidenceVerifier> SessionOwner<V> {
 
     /// Historical data only: neither inspection nor reconstruction renews a
     /// permit, observes a live process, or authorizes physical re-adoption.
+    /// Reads take no row locks (a read-only snapshot), so the `dispatch::live`
+    /// capability probe and credential checks never wait on a writer.
     // Reads return boxed Send futures so HTTP handlers can await them.
     pub fn inspect(&self, actor: Uuid) -> Read<'_> {
         Box::pin(self.read(actor, None))
@@ -379,8 +408,8 @@ impl<V: EvidenceVerifier> SessionOwner<V> {
     }
     async fn read(&self, actor: Uuid, generation: Option<u64>) -> OwnerResult<Option<Snapshot>> {
         bounded(async {
-            let mut tx = begin(&self.pool).await?;
-            let Some(h) = head(&mut tx, actor).await? else {
+            let mut tx = begin_read(&self.pool).await?;
+            let Some(h) = read_head(&mut tx, actor, false).await? else {
                 return Ok(None);
             };
             let g = generation.unwrap_or(h.generation);
