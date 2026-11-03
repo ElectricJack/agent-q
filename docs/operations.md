@@ -214,6 +214,129 @@ aq-updater --version
   for a disposable worker startup, heartbeat, controller journal and sandbox
   load drill. This test uses a local server route and seeded foundation
   credential; it does not qualify Access enrollment or B2 admission.
+- The same overlay includes `aq-worker-boat` (E1d), an independent `boat`
+  node. Deploy it first in the desktop-hosted production stack (E5a); use the
+  same service on the VPS later (E5b). It has no host sandbox socket or host
+  port. Its only network is worker egress, and its node and runner traffic
+  must use the public **machine** HTTPS hostname through Cloudflare Access.
+  `aq-worker-cloud` continues to use only `docker-local`.
+
+  Enable the Compose profile with `docker compose --profile boat up -d` when
+  using `compose.yaml:compose.workers.yaml`. It is opt-in because adding this
+  controller to the existing topology needs **4.125 vCPU and 6.625 GiB** of
+  service/sandbox ceilings, plus at least **1 decimal GB** for the host
+  (minimum 8,113,539,584 bytes total). The unchanged 4-vCPU/8-GB VPS budget
+  fails that check. E5b must establish a fitting aggregate budget before
+  enabling the same profile there; do not relax the existing smoke guard.
+
+  The default `AQ_BOAT_ENABLED=0`, example config directory and empty key
+  sentinel start a `configuration-required` placeholder. Its healthcheck
+  reports process availability; that state does **not** mean an enrolled,
+  admission-ready worker. Check `docker compose exec aq-worker-boat cat
+  /run/aq-boat/status`. No enrollment, provider request or attempt is made
+  in this state. Restart the service after completing configuration:
+
+  ```sh
+  AQ_BOAT_WORKER_IMAGE=ghcr.io/electricjack/agent-q-worker@sha256:<C7-manifest-digest>
+  AQ_BOAT_CONFIG_DIR=/etc/agent-q/worker-boat
+  AQ_BOAT_ATTEMPT_KEY_FILE=/etc/agent-q/secrets/boat_attempt_key
+  AQ_PUBLIC_HOSTNAME=machine.example.com
+  # Set to 1 only after the deployment gates below are met.
+  AQ_BOAT_ENABLED=0
+  ```
+
+  `AQ_BOAT_WORKER_IMAGE` must contain C7's Boat backend and the existing
+  `/usr/local/bin/worker-init-volumes` image helper. The qualified cloud image
+  in `deploy/worker-image.env` and the current vendored worker candidate
+  predate C7: they can run the placeholder but cannot run Boat attempts.
+  Build the separate image from aq-worker C7 commit `c009b6d` (supervisor
+  disposition, 2026-11-03), and set the variable to its immutable manifest
+  SHA-256, never a tag. C7 release-image publication follows the owner's C7
+  PR merge and is outside E1d. A C7-capable image is a deployment prerequisite;
+  setting the image variable is not evidence of backend qualification.
+
+  Create the Boat configuration directory with owner 10001:10001, mode
+  0700. Enroll a **new** node using a fresh enrollment code and a dedicated
+  node Access service token; never copy `AQ_WORKER_CONFIG_DIR`, its
+  `agent-q/worker.toml`, node UUID, controller state or credentials. Enrollment
+  needs a writable config mount for this one command (the service mounts it
+  read-only). With the env variables above exported, run:
+
+  ```sh
+  docker run --rm -i --user 10001:10001 \
+    --mount "type=bind,src=$AQ_BOAT_CONFIG_DIR,dst=/config" \
+    --entrypoint aq-worker "$AQ_BOAT_WORKER_IMAGE" \
+    enroll --server "https://$AQ_PUBLIC_HOSTNAME" \
+    --name aq-worker-boat --cf-service-token
+  ```
+
+  Supply the enrollment code, CF client ID and secret on stdin as prompted,
+  never as arguments. Confirm the saved `server_url` is the machine HTTPS
+  hostname and both `cf_client_id` and `cf_client_secret` are present. Keep
+  `agent-q/worker.toml` mode 0600, readable only by UID 10001. The saved
+  enrollment controls transport; `AQ_SERVER_URL` does not override it.
+  Provision a second, distinct Access token for this node's sandbox runners
+  through the runner material path; never forward the node token or Boat key.
+
+  Copy `deploy/boat.example/controller.json.example` to the directory as
+  `controller.json`. Replace all placeholders from the C7 runtime and the
+  reviewed template allowlist; set `boat.node_id` to the **new** enrolled
+  UUID. C7 refuses a mismatch. `node.templates` must advertise the selected
+  qualified templates, and `boat.templates` must contain their pinned image
+  digest, saved snapshot name, immutable snapshot ID and scan policy from
+  the Boat materialization. The example deliberately advertises none until
+  qualification is complete. Configure exactly one `boat` backend, with no
+  `docker_local`. Leave `state_dir=/state/controller`,
+  `boat.journal_path=/state/boat-mappings.json` and
+  `boat.key_file=/run/aq-boat/api-key`. The dedicated `aq_worker_boat_state`
+  volume persists controller identity and authoritative sandbox mappings;
+  `aq_worker_boat_leases` is also independent of the cloud node. The
+  networkless initializer owns only those volumes as UID/GID 10001.
+
+  Use distinct Boat organizations `attempt_org` and `template_org`. The
+  attempt key needs sandbox create/read/update/stop/delete, command/file
+  operations and read access to the scanned build snapshots. Do not grant
+  template snapshot writes, wildcard, account-admin, AI proxy, SSH, desktop
+  or hosting rights. Put that key only in `AQ_BOAT_ATTEMPT_KEY_FILE`, owned
+  by 10001 with mode 0600. Compose file-backed secrets retain host ownership
+  and mode. The entrypoint copies it to node-only tmpfs as a same-owner
+  0600 file, as required by C7 `BoatKey`; it is never stored in the state
+  volume or passed to sandboxes. The build key has a separate scope/org
+  and stays off this service. `boat-build.json.example` shows the C7
+  materializer configuration; use it on the separate template build host.
+
+  Keep C7 hard-deadline auto-stop enabled: every VM create/update supplies
+  a positive TTL bounded by the original attempt hard deadline plus its
+  five-second margin (rounded by less than one second). The controller's
+  one-second sweep and five-second deadline margin back up provider TTL.
+  Compose's stop grace period is not the VM deadline mechanism. Attempt
+  archives remain automatic stopped retention, never paid saved snapshots;
+  saved snapshots are for scanned templates only, at most the 10 included.
+  Default resource requests are small (2 vCPU / 4 GiB); a request for the
+  default size (4 vCPU / 8 GiB) must be explicit. C7 derives size from the
+  attempt resource request; it has no `default_size` configuration field.
+
+  Before enabling attempts, establish both owner-mandated budget stops:
+  the $20/month Boat plan with auto top-up **off**, run
+  `boat billing extra-starts off`, set the dedicated attempt member's usage
+  cap within the included $20 of VM time, and concurrent-sandbox cap **4**.
+  Keep `node.max_concurrent_sandboxes=4` and
+  `node.spend_ceiling={"currency":"USD","micros":18000000}` ($18).
+  The required H2 accounting input is monthly VM usage priced at the owner's
+  reference rates: small $0.018/hour, default $0.036/hour. Placement must
+  refuse at the ceiling (`node_spend_ceiling_reached`) or when spend is
+  unknown (`node_spend_unaccounted`). **Deployment gate:** the current H2
+  node ledger accounts lifetime token calls, not monthly VM time. It is
+  not the required Boat budget feed; do not enable attempts until that
+  integration is delivered and verified. Do not reset state or assume
+  unreported VM use is zero. C7 live provider/template qualification and
+  the authenticated admission/runner transport must also be ready.
+
+  Run `scripts/compose-smoke.sh prod-boat` without Boat credentials. It
+  starts only this node and its initializer, checks the placeholder,
+  isolation, engine limits and state persistence across restart, then
+  removes its own containers/volumes. It creates no Boat VMs and does not
+  qualify public Access enrollment, monthly accounting or live execution.
 - `/etc/agent-q/agent-q.env`, the operator's env file. It holds only the
   operator's paths:
 

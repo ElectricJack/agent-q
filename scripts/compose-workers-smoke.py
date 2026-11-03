@@ -103,12 +103,13 @@ def size(value):
     return int(value[:-1]) * units[value[-1]] if value[-1] in units else int(value)
 
 
-def merged_config():
+def merged_config(*profiles):
     env = dict(os.environ, **PLACEHOLDERS)
     for name in ("COMPOSE_PROFILES", "COMPOSE_FILE"):
         env.pop(name, None)
     return json.loads(subprocess.check_output(
         ["docker", "compose", "-f", str(ROOT / "compose.yaml"), "-f", str(ROOT / "compose.workers.yaml"),
+         *[arg for profile in profiles for arg in ("--profile", profile)],
          "config", "--format", "json"], cwd=ROOT, env=env))
 
 
@@ -116,7 +117,7 @@ def binds(service):
     return [v for v in service.get("volumes", []) if v["type"] == "bind"]
 
 
-def validate_production(config, slice_values):
+def validate_production(config, slice_values, host_budget=VPS):
     """Static production contract: limits everywhere, sockets only where intended."""
     services = config["services"]
     assert {"aq-supervisor-host", "aq-worker-cloud", "cloudflared", *STACK} <= set(services)
@@ -145,8 +146,8 @@ def validate_production(config, slice_values):
     assert slice_values["MemorySwapMax"] == "0"
     total_cpus = long_running["cpus"] + sandbox_cpus
     total_memory = long_running["memory"] + sandbox_memory
-    assert total_cpus <= VPS["cpus"], ("CPU budget exceeds VPS", total_cpus)
-    assert total_memory <= VPS["memory"] - HOST_MEMORY_MIN, ("memory budget leaves under 1 GB for the host", total_memory)
+    assert total_cpus <= host_budget["cpus"], ("CPU budget exceeds VPS/host", total_cpus)
+    assert total_memory <= host_budget["memory"] - HOST_MEMORY_MIN, ("memory budget leaves under 1 GB for the host", total_memory)
 
     worker = services["aq-worker-cloud"]
     assert set(worker["networks"]) == {"workers"}, "worker must not join edge/database"
@@ -164,6 +165,9 @@ def validate_production(config, slice_values):
     assert initializer["network_mode"] == "none" and not binds(initializer)
     assert {v["target"] for v in initializer["volumes"]} == worker_targets
 
+    if "aq-worker-boat" in services:
+        validate_boat(services)
+
     supervisor = services["aq-supervisor-host"]
     assert set(supervisor["networks"]) <= {"database", "supervisor"}, "supervisor is not a worker node"
     assert [(b["source"], b["target"], b.get("read_only")) for b in binds(supervisor)] == [
@@ -179,7 +183,30 @@ def validate_production(config, slice_values):
             assert not supervisor_sources & {v.get("source") for v in service.get("volumes", [])}, \
                 f"{name} shares supervisor state or credentials"
     return {"service_limits": limits, "sandbox_slice": slice_values,
-            "budget": {"cpus": total_cpus, "memory_bytes": total_memory, "vps": VPS}}
+            "budget": {"cpus": total_cpus, "memory_bytes": total_memory, "host": host_budget}}
+
+
+def validate_boat(services):
+    boat, worker = services["aq-worker-boat"], services["aq-worker-cloud"]
+    assert boat["user"] == "10001:10001" and set(boat["networks"]) == {"workers"}
+    assert boat["environment"]["AQ_SERVER_URL"] == worker["environment"]["AQ_SERVER_URL"]
+    assert "DOCKER_HOST" not in boat["environment"]
+    assert boat["entrypoint"] == ["/bin/sh", "/boat-entrypoint.sh"]
+    assert {v["target"] for v in boat["volumes"]} == {
+        "/config", "/boat-entrypoint.sh", "/state", "/var/lib/aq-worker/leases"}
+    assert all(v.get("read_only") for v in binds(boat))
+    assert [s["source"] for s in boat["secrets"]] == ["boat_attempt_key"]
+    boat_sources = {v["source"] for v in boat["volumes"]}
+    assert not boat_sources & {v["source"] for v in worker["volumes"]}, "Boat shares cloud identity/state"
+    boat_init = services["aq-worker-boat-state-init"]
+    assert boat["depends_on"]["aq-worker-boat-state-init"]["condition"] == "service_completed_successfully"
+    assert boat_init["network_mode"] == "none" and not binds(boat_init)
+    assert boat_init["image"] == boat["image"] and boat_init["user"] == "0:0"
+    assert {v["source"] for v in boat_init["volumes"]} == {
+        v["source"] for v in boat["volumes"] if v["type"] == "volume"}
+    for name, service in services.items():
+        if name != "aq-worker-boat":
+            assert "boat_attempt_key" not in {s["source"] for s in service.get("secrets", [])}
 
 
 def validate_running(stack, limits, names=STACK):
