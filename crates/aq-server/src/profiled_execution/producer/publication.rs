@@ -78,6 +78,20 @@ pub async fn publish(
         return Err(refused());
     }
     crate::intelligence::resolver::fence_for_offer(state, &mut tx, &built.decision).await?;
+    if let Some(replacement) = &built.decision.inputs.replacement {
+        let retained = super::super::replacement::retained_source_locked(
+            &mut tx,
+            built.spec.task.task_id,
+            replacement.predecessor_attempt_id,
+            &replacement.retained_source_receipt,
+        )
+        .await?;
+        if retained.token().request_digest() != export.request_digest()
+            || retained.fact().canonical_bytes()? != fact.canonical_bytes()?
+        {
+            return Err(refused());
+        }
+    }
     let expected_generation=sqlx::query_scalar::<_,Option<i64>>("SELECT max(COALESCE((state#>>'{offer,binding,assignment_generation}')::BIGINT,(state#>>'{offer,attempt,generation}')::BIGINT)) FROM execution_attempts WHERE task_id=$1").bind(built.spec.task.task_id).fetch_one(&mut *tx).await.map_err(db)?.unwrap_or(0).checked_add(1).ok_or_else(refused)?;
     let binding = &built.state.offer.binding;
     if expected_generation as u64 != binding.assignment_generation {
