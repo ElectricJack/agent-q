@@ -352,6 +352,334 @@
         {
           "properties": {
             "kind": {
+              "const": "knowledge.author"
+            },
+            "payload": {
+              "$defs": {
+                "ContentType": {
+                  "enum": [
+                    "fact",
+                    "decision",
+                    "policy",
+                    "procedure",
+                    "incident",
+                    "reference",
+                    "note"
+                  ],
+                  "type": "string"
+                }
+              },
+              "$id": "urn:aq:dashboard-actions:1:knowledge.author:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "body": {
+                  "maxLength": 32768,
+                  "type": "string"
+                },
+                "content_type": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ContentType"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "expected_project_revision": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "labels": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 16,
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "title": {
+                  "maxLength": 512,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_project_revision",
+                "title",
+                "body"
+              ],
+              "title": "KnowledgeAuthor",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "knowledge.correct"
+            },
+            "payload": {
+              "$defs": {
+                "ContentType": {
+                  "enum": [
+                    "fact",
+                    "decision",
+                    "policy",
+                    "procedure",
+                    "incident",
+                    "reference",
+                    "note"
+                  ],
+                  "type": "string"
+                }
+              },
+              "$id": "urn:aq:dashboard-actions:1:knowledge.correct:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "body": {
+                  "maxLength": 32768,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "content_type": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/$defs/ContentType"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "labels": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 16,
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "title": {
+                  "maxLength": 512,
+                  "minLength": 1,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version"
+              ],
+              "title": "KnowledgeCorrect",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "knowledge.restore"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:knowledge.restore:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "include_lifecycle": {
+                  "type": [
+                    "boolean",
+                    "null"
+                  ]
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "revision": {
+                  "format": "uint64",
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version",
+                "revision"
+              ],
+              "title": "KnowledgeRestore",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "knowledge.retire"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:knowledge.retire:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "retirement_reason": {
+                  "maxLength": 4096,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "successor_id": {
+                  "format": "uuid",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version",
+                "retirement_reason"
+              ],
+              "title": "KnowledgeRetire",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "knowledge.verify"
+            },
+            "payload": {
+              "$defs": {
+                "Verdict": {
+                  "enum": [
+                    "verified",
+                    "disputed"
+                  ],
+                  "type": "string"
+                }
+              },
+              "$id": "urn:aq:dashboard-actions:1:knowledge.verify:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "evidence": {
+                  "description": "Graph `Source` objects; each is validated against the pinned Graph schema.",
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "maxItems": 64,
+                  "minItems": 1,
+                  "type": "array"
+                },
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "verification": {
+                  "$ref": "#/$defs/Verdict"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version",
+                "verification",
+                "evidence"
+              ],
+              "title": "KnowledgeVerify",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
               "const": "result.comment"
             },
             "payload": {
@@ -661,6 +989,43 @@
         {
           "properties": {
             "kind": {
+              "const": "task.cancel"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:task.cancel:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version"
+              ],
+              "title": "Execution",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
               "const": "task.create"
             },
             "payload": {
@@ -726,6 +1091,247 @@
                 "task_state"
               ],
               "title": "Create",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "task.dependency.add"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:task.dependency.add:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "blocker_id": {
+                  "description": "The task that must finish first: `blocker blocks subject`.",
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version",
+                "blocker_id"
+              ],
+              "title": "DependencyAdd",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "task.dependency.remove"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:task.dependency.remove:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "edge_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "edge_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version",
+                "edge_id",
+                "edge_version"
+              ],
+              "title": "DependencyRemove",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "task.edit"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:task.edit:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "acceptance_criteria": {
+                  "maxLength": 8192,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "body": {
+                  "maxLength": 32768,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "labels": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 16,
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "title": {
+                  "maxLength": 512,
+                  "minLength": 1,
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version"
+              ],
+              "title": "TaskEdit",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "task.reprioritize"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:task.reprioritize:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "priority": {
+                  "description": "Stored as Graph metadata `aq:priority`; the scheduler sorts descending.",
+                  "format": "int64",
+                  "maximum": 1000000,
+                  "minimum": -1000000,
+                  "type": "integer"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version",
+                "priority"
+              ],
+              "title": "TaskReprioritize",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "task.retry"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:task.retry:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "expected_version": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version"
+              ],
+              "title": "Execution",
               "type": "object"
             }
           },
@@ -1052,6 +1658,14 @@
         },
         "created_at": {
           "$ref": "#/$defs/Timestamp"
+        },
+        "current_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Live versions observed when the disposition is `conflict`; empty otherwise.",
+          "maxProperties": 32,
+          "type": "object"
         },
         "disposition": {
           "$ref": "#/$defs/Disposition"

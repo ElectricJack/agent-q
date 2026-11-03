@@ -280,16 +280,25 @@ async fn finish(
             .all(EntityRef::valid)
         && (outcome.disposition == Disposition::Confirmed
             || (outcome.receipt_refs.is_empty() && outcome.affected_entities.is_empty()))
+        && (outcome.current_versions.is_empty()
+            || (outcome.disposition == Disposition::Conflict
+                && outcome.current_versions.len() <= 32
+                && outcome
+                    .current_versions
+                    .iter()
+                    .all(|(k, v)| contract::safe(k, 128) && contract::revision(v))))
     {
         completed.disposition = outcome.disposition;
         completed.receipt_refs = outcome.receipt_refs;
         completed.affected_entities = outcome.affected_entities;
+        completed.current_versions = outcome.current_versions;
     } else {
         completed.disposition = Disposition::Unknown;
     }
     if completed.disposition == original.disposition
         && completed.receipt_refs == original.receipt_refs
         && completed.affected_entities == original.affected_entities
+        && completed.current_versions == original.current_versions
     {
         return Ok(original);
     }

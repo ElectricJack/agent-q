@@ -50,6 +50,15 @@ impl ActionKind for TestAction {
         }
         if p.value == "lost" {
             Outcome::unknown()
+        } else if p.value == "conflict" {
+            Outcome::conflict(std::collections::BTreeMap::from([(
+                "test".into(),
+                "3".into(),
+            )]))
+        } else if p.value == "confirmed_with_versions" {
+            let mut o = Outcome::confirmed(vec![], vec![]);
+            o.current_versions = std::collections::BTreeMap::from([("test".into(), "3".into())]);
+            o
         } else {
             Outcome::confirmed(vec![], vec![])
         }
@@ -97,6 +106,37 @@ fn request(value: &str) -> ActionRequest {
     serde_json::from_value(json!({"operation_id":Uuid::new_v4(),"kind":"test.effect",
         "subject":{"type":"test","id":"subject"},"expected_versions":{},"payload":{"value":value}}))
     .unwrap()
+}
+#[tokio::test]
+async fn conflict_outcome_carries_current_versions() {
+    let (_db, state, user, registry, _) = setup().await;
+    let request = request("conflict");
+    let op = submit(&state, &registry, &user, request.clone())
+        .await
+        .unwrap();
+    assert_eq!(op.disposition, Disposition::Conflict);
+    assert_eq!(op.recovery, Recovery::RefreshAndReview);
+    assert_eq!(
+        op.current_versions,
+        std::collections::BTreeMap::from([("test".into(), "3".into())])
+    );
+    let lookup = journal::lookup(&state.store.pool, user.id, request.operation_id)
+        .await
+        .unwrap();
+    assert_eq!(lookup, op);
+    assert_eq!(json!(lookup)["current_versions"], json!({"test":"3"}));
+    // Current versions are only conflict evidence; anything else is unproven.
+    let bad = submit(
+        &state,
+        &registry,
+        &user,
+        self::request("confirmed_with_versions"),
+    )
+    .await
+    .unwrap();
+    assert_eq!(bad.disposition, Disposition::Unknown);
+    assert!(bad.current_versions.is_empty());
+    assert!(json!(bad).get("current_versions").is_none());
 }
 #[tokio::test]
 async fn unknown_effect_operation_is_recoverable_by_lookup() {
@@ -652,4 +692,32 @@ async fn lookup_requires_current_policy_for_retired_and_unregistered_kinds() {
             .status(),
         StatusCode::NOT_FOUND
     );
+}
+
+#[test]
+fn dashboard_action_schema_lists_task_and_knowledge_kinds() {
+    let registry = existing::schemas();
+    for kind in [
+        "task.edit",
+        "task.cancel",
+        "task.retry",
+        "task.reprioritize",
+        "task.dependency.add",
+        "task.dependency.remove",
+        "knowledge.author",
+        "knowledge.correct",
+        "knowledge.verify",
+        "knowledge.retire",
+        "knowledge.restore",
+    ] {
+        let schema = registry
+            .schemas()
+            .get(kind)
+            .unwrap_or_else(|| panic!("{kind} schema"));
+        assert_eq!(schema["type"], "object", "{kind}");
+        assert_eq!(schema["additionalProperties"], false, "{kind}");
+        for field in ["operation_id", "project_id"] {
+            assert!(schema["properties"][field].is_object(), "{kind} {field}");
+        }
+    }
 }
