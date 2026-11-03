@@ -97,7 +97,7 @@ async fn upload_in(
         .chain(r.snapshots.iter().map(|x| &x.terminal))
         .chain(r.gaps.iter().map(|x| &x.terminal))
     {
-        crate::delegated_permits::runtime::require_document(node, t)?;
+        crate::delegated_permits::runtime::require_session(node, &t.session)?;
         if let Some(old) = terminals.insert(t.terminal_id, t.clone())
             && old != *t
         {
@@ -333,7 +333,7 @@ async fn poll_once(
     initial.commit().await.map_err(|_| AppError::Internal)?;
     let mut effects = vec![];
     for (t, ids) in grouped.values() {
-        crate::delegated_permits::runtime::require_document(node, t)?;
+        crate::delegated_permits::runtime::require_session(node, &t.session)?;
         let mut tx = super::persistence::begin(state).await?;
         current_peer(state, &mut tx, node, &r.peer).await?;
         let view =
@@ -543,7 +543,7 @@ async fn dispatch_candidate(
     use sqlx::Row;
     let t: TerminalIdentity =
         serde_json::from_str(row.get::<&str, _>(0)).map_err(|_| AppError::Internal)?;
-    crate::delegated_permits::runtime::require_document(node, &t)?;
+    crate::delegated_permits::runtime::require_session(node, &t.session)?;
     let id: Uuid = row.get(1);
     let principal: Uuid = row.get(2);
     let mut tx = super::persistence::begin(state).await?;

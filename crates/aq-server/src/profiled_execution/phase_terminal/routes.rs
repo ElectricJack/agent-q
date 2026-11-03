@@ -67,7 +67,7 @@ fn profile(bytes: &[u8]) -> Result<wire::Profile, AppError> {
         .map_err(|_| AppError::BadRequest("invalid phase terminal request".into()))
 }
 macro_rules! endpoint {
-    ($name:ident, $lane:ident, $decode:ident, $receipt:ident, $owner:ident, $method:ident) => {
+    ($name:ident, $lane:ident, $decode:ident, $receipt:ident, $owner:ident, $method:ident, $($binding:ident).+) => {
         async fn $name(
             State(state): State<AppState>,
             request: Request,
@@ -106,7 +106,7 @@ macro_rules! endpoint {
                         let q = wire::$decode(&bytes).map_err(|_| {
                             AppError::BadRequest("invalid phase terminal request".into())
                         })?;
-                        crate::delegated_permits::runtime::require_document(&node, &q)?;
+                        crate::delegated_permits::runtime::require_binding(&node, &q.$($binding).+)?;
                         super::$owner::$method(&state, &node, &q)
                             .await
                             .map(|r| Json(r).into_response())
@@ -115,7 +115,7 @@ macro_rules! endpoint {
                         let q = refresh_wire::$decode(&bytes).map_err(|_| {
                             AppError::BadRequest("invalid phase terminal request".into())
                         })?;
-                        crate::delegated_permits::runtime::require_document(&node, &q)?;
+                        crate::delegated_permits::runtime::require_binding(&node, &q.$($binding).+)?;
                         super::super::phase_refresh_terminal::$owner::$method(&state, &node, &q)
                             .await
                             .map(|r| Json(r).into_response())
@@ -135,7 +135,8 @@ endpoint!(
     decode_started_request,
     StartedReceipt,
     started,
-    record
+    record,
+    original.binding
 );
 endpoint!(
     history,
@@ -143,7 +144,8 @@ endpoint!(
     decode_history_request,
     HistoryReceipt,
     history,
-    read
+    read,
+    binding
 );
 endpoint!(
     stopped,
@@ -151,7 +153,8 @@ endpoint!(
     decode_stopped_request,
     StoppedReceipt,
     stopped,
-    record
+    record,
+    original.evidence.binding
 );
 endpoint!(
     closure,
@@ -159,7 +162,8 @@ endpoint!(
     decode_closure_request,
     ClosureReceipt,
     closure,
-    record
+    record,
+    original.binding
 );
 
 #[cfg(test)]

@@ -62,6 +62,9 @@ class RecoveryFixture(product.Fixture):
             shutil.copy2(ROOT / name, source / name)
         for name in ["crates", "vendor", "protocol"]:
             shutil.copytree(ROOT / name, source / name)
+        # Dockerfile.worker installs the worker volume initializer from scripts/.
+        (source / "scripts").mkdir()
+        shutil.copy2(ROOT / "scripts/worker-init-volumes.sh", source / "scripts/worker-init-volumes.sh")
         if self.prototype_revision:
             raw = subprocess.check_output(["git", "archive", "--format=tar", self.prototype_revision], cwd=self.prototype_repository)
             compressed = gzip.compress(raw, mtime=0)
@@ -92,6 +95,7 @@ class RecoveryFixture(product.Fixture):
                   "--build-arg", "AQ_SOURCE_REVISION=recovery-" + tree[:24], "-t", server, str(source)],
                  name="build-fixture-server", timeout=1800)
         self.run(["docker", "build", "--target", "worker", "-f", str(source / "Dockerfile.worker"),
+                  "--build-arg", "AQ_WORKER_FEATURES=synthetic-runtime",
                   "--build-arg", "AQ_SOURCE_REVISION=" + candidate["source_revision"],
                   "--build-arg", "AQ_WORKER_ARCHIVE_SHA256=" + candidate["archive_sha256"],
                   "--build-arg", "AQ_STATE_FORMAT=" + state_format,

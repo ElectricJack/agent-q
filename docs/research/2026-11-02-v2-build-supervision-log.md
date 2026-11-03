@@ -322,3 +322,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **`steady-harbor-87.2.4`** pre-start merge conflict: only F1b.md conflicted. Merged main (`7c2a32f`), released the hold and reopened it.
   - **I0 re-run `calm-stone-85`:** `22.1.1` (Codex package in the image) and `22.1.3` (worker recovery) are COMPLETED. Only `bright-nexus-44` (server held-task release) remains.
   - Usage: Codex 93%, Claude 56%. aq-worker has nothing claimable apart from a spec-ingest task.
+- **03:05 check.**
+  - **B2 completed and its review was approved** (`rev-sound-stone`; reviewer `sound-apex-52` found no blocking defects). The four nits are filed as `swift-willow-91` (standard-medium).
+  - **D10 completed.** D3 started.
+  - **Four aq-server PRs are waiting for CI,** to be merged next check if failures match main: #37 (`bright-nexus-44`, the I0 server findings, which unblocks the I0 re-run), #35 (B2), #36 (smoke against the 0.5.1 worker) and #33 (cloud worker image).
+  - Usage: Codex 93%, Claude 57%.

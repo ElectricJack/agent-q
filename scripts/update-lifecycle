@@ -208,6 +208,8 @@ versioned_copy() {
   cp -r "$REPO/crates" "$dir/"
   cp -r "$REPO/vendor" "$dir/"
   cp -r "$REPO/protocol" "$dir/"
+  # Dockerfile.worker installs the worker volume initializer from scripts/.
+  mkdir -p "$dir/scripts" && cp "$REPO/scripts/worker-init-volumes.sh" "$dir/scripts/"
   sed -i -E '/^\[workspace\.package\]/,/^\[/ s/^version = "[^"]*"/version = "'"$version"'"/' \
     "$dir/Cargo.toml"
   grep -q "^version = \"$version\"$" "$dir/Cargo.toml" || fail "cannot set version $version"
