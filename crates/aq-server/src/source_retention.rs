@@ -49,6 +49,11 @@ fn digest(b: &[u8]) -> String {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct SourceRetentionConfig {
+    #[serde(default = "default_keep_per_task")]
+    pub keep_per_task: usize,
+    /// Seconds after settlement before even the newest handles may be released.
+    #[serde(default = "default_max_age")]
+    pub max_age: u64,
     pub staging_root: PathBuf,
     pub git_root: PathBuf,
     pub git_socket: PathBuf,
@@ -60,6 +65,12 @@ pub struct SourceRetentionConfig {
     pub bulk_concurrency: usize,
     #[serde(default = "default_ttl")]
     pub incomplete_ttl_secs: u64,
+}
+pub const fn default_keep_per_task() -> usize {
+    2
+}
+pub const fn default_max_age() -> u64 {
+    30 * 86400
 }
 fn default_quota() -> u64 {
     4 * 1024 * 1024 * 1024
@@ -82,7 +93,9 @@ impl SourceRetentionConfig {
             "source retention paths must be absolute"
         );
         anyhow::ensure!(
-            self.bulk_concurrency > 0
+            self.max_age > 0
+                && self.max_age <= i64::MAX as u64 / 1000
+                && self.bulk_concurrency > 0
                 && self.bulk_concurrency <= 64
                 && self.max_staging_bytes <= i64::MAX as u64
                 && self.staging_root != Path::new("/")
@@ -1193,3 +1206,5 @@ pub async fn load_confirmed_locked(
 }
 
 pub mod result_retention;
+
+pub mod gc;

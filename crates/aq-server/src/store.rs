@@ -337,6 +337,10 @@ const MIGRATIONS: &[(i32, &str)] = &[
         60,
         include_str!("../migrations/0060_notification_sources_gc.sql"),
     ),
+    (
+        61,
+        include_str!("../migrations/0061_source_retention_gc.sql"),
+    ),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.

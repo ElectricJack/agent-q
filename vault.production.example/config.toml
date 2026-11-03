@@ -52,6 +52,8 @@ graph_url = "http://aq-graph:8741"
 graph_token_file = "/run/aq/graph_token"
 mutation_actor_id = "aq-server"
 [source_retention]
+keep_per_task = 2
+max_age = 2592000 # seconds (30 days)
 staging_root = "/var/lib/aq/source-staging"
 git_root = "/var/lib/aq/git"
 git_socket = "/run/aq-git/central.sock"
