@@ -1,5 +1,6 @@
 //! Durable AQ22 ledger adapter with separate human and worker HTTP surfaces.
-//! Trusted catalog admission remains pending; source registration is not a worker API.
+//! Sources are derived from the trusted accounting catalog (`catalog`); source
+//! registration is never a worker API.
 use crate::{
     AppState,
     execution::authority::{self, AuthorityView, Kind, Policy as AuthorityPolicy},
@@ -15,6 +16,8 @@ use sqlx::{Postgres, Row, Transaction};
 use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
 pub mod api;
+pub mod budget;
+pub mod catalog;
 pub mod inspection;
 pub mod transport;
 
@@ -44,9 +47,8 @@ fn integer(v: u64) -> Result<i64> {
     i64::try_from(v).map_err(|_| Error::Invalid)
 }
 
-/// Constructed by the daemon's trusted catalog/native-session admission adapter,
-/// never deserialized as a worker request. Account/namespace policy is owner data.
-/// This checkpoint does not implement that producer or claim native qualification.
+/// Constructed by the daemon's trusted catalog (`catalog::owner_source`), never
+/// deserialized as a worker request. Account/namespace policy is owner data.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OwnerSource {
@@ -56,6 +58,10 @@ pub struct OwnerSource {
     pub native_session_key: Text,
     pub account_claim: Text,
     pub policy: Policy,
+    /// How this source's usage is costed, from the selected credential kind.
+    /// Absent on sources registered before H2; the digest of those is unchanged.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub billing: Option<EstimateBasis>,
 }
 impl OwnerSource {
     fn validate(&self) -> Result<()> {
@@ -379,6 +385,7 @@ async fn ingest_subject(
     if recorded_at <= 0 {
         return Err(Error::Invalid);
     }
+    let book = catalog::rate_book(state);
     let mut retained = 0i64;
     for event in &batch.events {
         let source = &sources[&(
@@ -410,6 +417,14 @@ async fn ingest_subject(
             } else {
                 None
             };
+            // Only token-rate sources pin a rate card. Flat subscription and
+            // local usage is recorded but never priced at token rates.
+            let pin = match source.billing {
+                Some(EstimateBasis::TokenRates) => book
+                    .current(&usage.call.provider, &usage.call.model)
+                    .map(|card| card.reference.clone()),
+                _ => None,
+            };
             let decision = if usage.call.account_reference != source.account_claim {
                 Decision::Unresolved {
                     reason: UnresolvedReason::AttributionChanged,
@@ -423,7 +438,7 @@ async fn ingest_subject(
                         current: current.as_ref(),
                         correction_target: target.as_ref(),
                         baseline: None,
-                        pricing_reference: None,
+                        pricing_reference: pin.as_ref(),
                     },
                 ) {
                     Ok(v) => v,

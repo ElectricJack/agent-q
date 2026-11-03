@@ -723,6 +723,7 @@ impl Prepared {
             "actual node/protected credential path"
         );
         let registry = IntelligenceConfig {
+            accounting: Default::default(),
             revision: 1,
             credentials: vec![CredentialConfig {
                 kind: Default::default(),

@@ -68,6 +68,7 @@ async fn setup() -> Case {
     let mut cfg = (*f.state.config).clone();
     cfg.intelligence = Some(Arc::new(
         IntelligenceConfig {
+            accounting: Default::default(),
             revision: 1,
             credentials: vec![CredentialConfig {
                 kind: Default::default(),

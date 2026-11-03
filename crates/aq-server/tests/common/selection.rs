@@ -404,6 +404,7 @@ pub async fn selection_fixture() -> SelectionFixture {
         delivery_mode: None,
     });
     let config = IntelligenceConfig {
+        accounting: Default::default(),
         revision: 1,
         credentials: configured,
         qualified_harnesses: input.node.harnesses.clone(),
