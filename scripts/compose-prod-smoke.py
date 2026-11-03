@@ -42,7 +42,7 @@ class Stack:
 
 
 @contextlib.contextmanager
-def production_stack(prefix, evidence):
+def production_stack(prefix, evidence, *, compose_files=(), setup=None):
     """Build/pin the server image, start compose.yaml without the tunnel, and
     remove only this project's containers, volumes, registry and image."""
     project = prefix + uuid.uuid4().hex[:12]
@@ -77,7 +77,10 @@ def production_stack(prefix, evidence):
                 raise RuntimeError("command failed: " + " ".join(args) + "\n" + result.stdout + result.stderr)
             return result
         def compose(*args, check=True):
-            return run("docker", "compose", "-p", project, "-f", str(ROOT / "compose.yaml"),
+            files = ["-f", str(ROOT / "compose.yaml")]
+            for path in compose_files:
+                files += ["-f", str(ROOT / path)]
+            return run("docker", "compose", "-p", project, *files,
                        "-f", str(directory / "smoke.json"), *args, check=check)
         def wait(check, description, seconds=120):
             deadline = time.monotonic() + seconds
@@ -120,6 +123,8 @@ def production_stack(prefix, evidence):
             vault = ROOT / "vault.production.example/config.toml"
             (directory / "vault/config.toml").write_text(vault.read_text())
             (directory / "smoke.json").write_text(json.dumps({"services": {"cloudflared": {"profiles": ["tunnel"]}}}))
+            if setup:
+                setup(stack)
             config = json.loads(compose("config", "--format", "json").stdout)
             validate(config)
             stack.config = config
@@ -129,12 +134,14 @@ def production_stack(prefix, evidence):
             yield stack
         except BaseException:
             if started:
-                print(compose("logs", "--no-color", "--tail", "40", check=False).stdout)
+                print(compose("--profile", "*", "logs", "--no-color", "--tail", "40", check=False).stdout)
             raise
         finally:
             cleanup_errors = []
             if started:
-                if compose("down", "--volumes", "--remove-orphans", check=False).returncode:
+                # Explicitly targeted profiled services are still known to
+                # Compose, so --remove-orphans alone does not remove them.
+                if compose("--profile", "*", "down", "--volumes", "--remove-orphans", check=False).returncode:
                     cleanup_errors.append("Compose down failed")
                 if compose("ps", "-aq", check=False).stdout.strip():
                     cleanup_errors.append("owned containers survived cleanup")

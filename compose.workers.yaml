@@ -41,8 +41,7 @@ services:
     pids_limit: 512
   aq-worker-cloud:
     <<: *hardening
-    # aq-worker with the docker-local backend (C2/B5b). Must come from aq-worker's
-    # packaging, not this repository's vendored 0.3.1 Dockerfile.worker.
+    # Dockerfile.worker pins aq-worker 0.5.1 with the C2/B5b docker-local backend.
     image: ${AQ_WORKER_IMAGE:?set AQ_WORKER_IMAGE to a digest-pinned aq-worker reference with docker-local}
     # Owner of the dedicated rootless sandbox daemon socket.
     user: ${AQ_SANDBOX_UID:?set AQ_SANDBOX_UID to the sandbox user UID}:${AQ_SANDBOX_GID:?set AQ_SANDBOX_GID to the sandbox user GID}
@@ -64,6 +63,8 @@ services:
       - aq_worker_leases:/var/lib/aq-worker/leases
     tmpfs: [/tmp]
     networks: [workers]
+    depends_on:
+      aq-worker-state-init: {condition: service_completed_successfully}
     init: true
     stop_grace_period: 30s
     restart: unless-stopped
@@ -71,6 +72,24 @@ services:
     mem_limit: 256m
     memswap_limit: 256m
     pids_limit: 256
+  aq-worker-state-init:
+    <<: *hardening
+    image: ${AQ_WORKER_IMAGE:?set AQ_WORKER_IMAGE to a digest-pinned aq-worker reference with docker-local}
+    user: '0:0'
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER]
+    entrypoint: [/usr/local/bin/worker-init-volumes]
+    environment:
+      AQ_SANDBOX_UID: ${AQ_SANDBOX_UID:?set AQ_SANDBOX_UID to the sandbox user UID}
+      AQ_SANDBOX_GID: ${AQ_SANDBOX_GID:?set AQ_SANDBOX_GID to the sandbox user GID}
+    volumes:
+      - aq_worker_journal:/state
+      - aq_worker_leases:/var/lib/aq-worker/leases
+    network_mode: none
+    restart: 'no'
+    cpus: 0.25
+    mem_limit: 128m
+    memswap_limit: 128m
+    pids_limit: 64
 networks:
   supervisor: {}
   workers: {}
