@@ -406,3 +406,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Released C7's hold and reopened it for live acceptance: personal account (no org; seats cost $20 each), so sweeps scope by name prefix plus delete-own; small size; at most 2 short sandboxes with 15-minute auto-stop, deleted afterwards.
   - **I0 run 12 completed:** a real Codex run of 916 s, every worker route 200 and the source retained. It is short of MS0 because the pinned task had no concrete edit and aq-server settlement gaps remain (router unmounted, no combined-decision path). `keen-impact-58` is fixing those; the re-run reopens after.
   - The disk guard ran at 85% and freed 111 GB (now 74%).
+- **09:30 check.**
+  - **aq-server PRs #42–#47** still failed fmt and clippy on the old `runtime.rs:45` lint, because their CI predates the `68db049` fix. `gh pr update-branch` isn't available in this gh, so I used the REST `PUT /pulls/{n}/update-branch` on all six to re-run CI on current main.
+  - **C7 had a pre-start conflict** in `controller/service.rs` (RunConfig: optional docker_local plus boat versus main's `template_allowlist`). I resolved it (union of fields, test fields `disk_bytes`/`preserve`; `cargo check --all-targets` clean; `boat_backend` 11 passed), but the global supervisor pushed its own resolution `c009b6d` first and mine was rejected (W47). C7 is IN_PROGRESS.
+  - `smart-torrent-92` is held on a similar conflict with the other storage tasks on main; the supervisor is handling it.
