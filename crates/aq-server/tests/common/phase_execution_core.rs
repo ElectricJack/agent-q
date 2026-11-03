@@ -120,7 +120,7 @@ pub async fn setup_with_inventory_and_config(
     v2: bool,
     extra: fn(&mut aq_server::profiled_execution::config::ProfiledConfig),
 ) -> (Case, phase::Proposal, AcceptRequest) {
-    let ready = on_heap(|| presence_fixture::setup()).await;
+    let ready = on_heap(presence_fixture::setup).await;
     on_heap(|| setup_from_presence(ready, v2, extra)).await
 }
 /// Actual-source fixtures supply their owner before admission; never rewrite a

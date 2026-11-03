@@ -351,7 +351,12 @@ async fn offers(
         .collect::<Vec<_>>();
     let graph = state.agent_access.as_ref().ok_or_else(refused)?;
     let polled_at = now(state)?;
-    let served = on_heap(|| fairness::served(&state.store.pool)).await?;
+    let recorded = on_heap(|| fairness::recorded(&state.store.pool)).await?;
+    let served = if recorded {
+        on_heap(|| fairness::served(&state.store.pool)).await?
+    } else {
+        Default::default()
+    };
     // Fair share (§8.2): priority plus aging. A project is charged a turn
     // before its Graph read, so one with no work or a failing owner read
     // cannot hold the head of the order and starve the others.
@@ -365,7 +370,9 @@ async fn offers(
             .iter()
             .find(|p| p.project_id == candidate.project_id)
             .ok_or_else(refused)?;
-        on_heap(|| fairness::record(&state.store.pool, policy.project_id, polled_at)).await?;
+        if recorded {
+            on_heap(|| fairness::record(&state.store.pool, policy.project_id, polled_at)).await?;
+        }
         let record = on_heap(|| crate::project_bindings::current(state, policy.project_id)).await?;
         let ready = on_heap(|| {
             graph.scheduling_ready_current(
