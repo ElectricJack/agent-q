@@ -360,3 +360,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **`bright-nexus-44` completed;** PR #37 is mergeable with CI pending. The I0 re-run `calm-stone-85` is READY. Told it to prep the image and confirm #37 is on main before the single real run (deadline 2026-11-04 07:22 UTC).
   - **D3 completed with PR #39 conflicting and failing tests.** Reopened it to merge main, renumber any migration and fix tests; pinned it to Claude.
   - E6a was reclaimed (IN_PROGRESS; the owner's restart drill is still pending). Moved D5 from Codex to Claude. Disk is at 82%.
+- **06:05 check.**
+  - **Merged aq-server #37** (`bright-nexus-44`, I0 server findings: held-task release for stopped attempts, relay 409 storm, typed input-deadline refusal, `[terminals]` validation; `9b59a11d`). Its only failure is the known flaky `original_inputs_remain_scoped...`. Told the I0 re-run `calm-stone-85` to rebuild the qual server from main. It is READY, waiting for a Claude session (scheduler slow, W44).
+  - **F4 (Discord) needs the owner's webhook** for one real message; added to the morning list. Told F4 to close blocked and free its slot.
+  - E6a completed (install guide, aq-worker PR #30). The owner's Windows restart drill is still on the morning list.
+  - F2, D5 and G3 started. `prime-dune-72` opened #40 (update-lifecycle fix), with CI pending.
