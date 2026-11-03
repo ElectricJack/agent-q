@@ -3,11 +3,13 @@
 This server-owned contract adds `POST /api/v1/actions` and
 `GET /api/v1/operations/{operation_id}` to the authenticated human router.
 All mutations require `X-AQ-Request: 1` and the existing same-origin policy.
-Production registers `task.create`, `decision.resolve` and
-`supervisor.message.send`. The owner-only `dashboard.actions@1` capability
-advertises this boundary. Check each mutation capability as well: task creation
-requires the configured Graph mutation identity, decision resolution requires a
-mounted review owner, and supervisor send requires the mounted global mailbox.
+Production registers `task.create`, `decision.resolve`,
+`supervisor.message.send` and the typed task and knowledge kinds listed below.
+The owner-only `dashboard.actions@1` capability advertises this boundary. Check
+each mutation capability as well: task creation requires the configured Graph
+mutation identity, decision resolution requires a mounted review owner, and
+supervisor send requires the mounted global mailbox. Each typed kind has its own
+bootstrap capability named after the kind (for example `task.retry@1`).
 
 ## Admission and recovery
 
@@ -108,6 +110,38 @@ same key and its ID is the actual project, decision or conversation UUID.
   `context` and `attachments` arrays. Confirmed means durable mailbox enqueue;
   native receipts still say host delivery `not_attempted`, with no agent receipt.
 
+## Typed task and knowledge kinds
+
+Each typed payload carries `operation_id` (equal to the outer ID), `project_id`
+and `expected_version`, the decimal Graph node version that must also equal the
+subject revision and the single `expected_versions` entry (`task` or
+`knowledge`). `knowledge.author` instead uses `expected_project_revision` with a
+`project` subject. A stale version returns a `conflict` whose operation carries
+`current_versions` with the live Graph version; nothing is written.
+
+- `task.edit` patches title, body, acceptance criteria or labels.
+- `task.reprioritize` writes Graph metadata `aq:priority` (integer in
+  -1,000,000..1,000,000, higher first) and preserves other metadata keys.
+- `task.dependency.add` adds a `blocks` edge from `blocker_id`;
+  `task.dependency.remove` removes `edge_id` at `edge_version`.
+- `task.cancel` requires a `reason` and records a B3 native cancellation for the
+  attempt holding the task; with no holding attempt it is `rejected`.
+- `task.retry` asks B4 to assess the task; only an admissible replacement
+  records the predecessor's replacement release (receipt `replacement_release`),
+  after which the scheduler starts the replacement attempt. An unsettled or
+  exhausted predecessor is `rejected`. Neither kind writes Graph task lifecycle.
+- `knowledge.author` creates an unverified note (default content type `note`)
+  whose Graph node ID equals the operation ID.
+- `knowledge.correct` patches title, body, labels or content type.
+- `knowledge.verify` requires a `reason` and 1 to 64 Graph `Source` evidence
+  objects with verdict `verified` or `disputed`. Graph may answer `forbidden`,
+  which is `rejected`.
+- `knowledge.retire` requires a retirement reason and an optional successor;
+  `knowledge.restore` restores an earlier `revision`.
+
+Graph writes use the idempotency key `aq-dashboard-action:{operation_id}` and a
+confirmed operation references the Graph change set and the exact new revision.
+
 Legacy task-create, decision-resolve and supervisor-send HTTP handlers enter the
 same action admission path and retain their native response envelopes. A legacy
 message/decision handler racing an admitted operation before its native commit
@@ -133,3 +167,5 @@ Named acceptance tests:
 - `cargo test --locked --workspace unknown_effect_operation_is_recoverable_by_lookup`
 - `cargo test --locked --workspace action_union_rejects_unknown_kind_with_envelope`
 - `cargo test --locked --workspace bootstrap_lists_pending_operations`
+- `cargo test --locked -p aq-server --test dashboard_task_knowledge knowledge_correct_with_stale_version_conflicts`
+- `cargo test --locked -p aq-server --test dashboard_task_knowledge task_retry_creates_replacement_attempt`

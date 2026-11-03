@@ -103,6 +103,7 @@ pub(super) async fn admit(
         receipt_refs: vec![],
         affected_entities: vec![],
         recovery: Recovery::LookupOriginal,
+        current_versions: Default::default(),
     };
     let response = serde_json::to_value(&operation).map_err(|_| ApiError::unavailable())?;
     let mut tx = transaction(pool).await?;
