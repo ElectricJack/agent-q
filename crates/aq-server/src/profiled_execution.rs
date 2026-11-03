@@ -22,6 +22,7 @@ pub mod registration;
 pub mod source;
 pub mod started;
 
+pub mod disposition;
 pub mod stopped;
 
 pub mod human_results;

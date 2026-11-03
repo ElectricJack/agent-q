@@ -278,6 +278,7 @@ pub fn build_admin_router_with_optional_owners(
         .merge(agent_access::human::routes(&state))
         .merge(agent_access::supervisor_conversation::routes(&state))
         .merge(profiled_execution::human_results::routes())
+        .merge(profiled_execution::disposition::routes(state.clone()))
         .merge(results_feedback::routes())
         .merge(provider_accounts::routes())
         .merge(notifications::api::routes(state.clone()))
