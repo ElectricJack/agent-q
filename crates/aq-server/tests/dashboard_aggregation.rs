@@ -52,7 +52,7 @@ async fn quota_unknown_is_not_zero() {
     let credentials = [credential, second]
         .into_iter()
         .map(|credential| CredentialConfig {
-            kind: Default::default(),
+            kind: aq_selection::CredentialKind::ApiKey,
             allowed_backends: aq_selection::default_allowed_backends(),
             credential,
             allowed_node_ids: vec![],
