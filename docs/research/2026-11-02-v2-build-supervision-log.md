@@ -489,3 +489,22 @@ Each entry records what was observed, the action taken, and anything waiting on 
 - **14:00 owner: replace the demo stack with the real code.** Tore down and deleted the `aq-demo` dev stack completely (containers, volumes, `aq-demo-server:main` image, dashboard worktree, wrapper scripts). Reopened E5 (it was IN_PROGRESS with no agent) to stand up the real production Compose stack on the owner's desktop on localhost now (project `aq-local`): local worker enrolled (E6a), supervisor host (F1a), Claude logins preferred. Cloudflare stays in the paused child `.7.2`.
   - Told the owner which "not hooked up" items are unbuilt features rather than wiring: provider accounts (C5a1/C5b/C6), attention questions (F5), agent views (G10), playbook actions (G9/D9), Claude in sandboxes (I1).
   - `sharp-horizon-92` was widened to a wiring audit (wired / no data / server path missing / UI missing).
+- **14:10–15:30 owner: "Shut down AQ and fast track the AQ scheduler fix yourself. Then restart it."** Stopped the daemon with `--keep-sessions`.
+  - **Root cause 1:** the cycle-wide hierarchy frontier read included PAUSED projects. The paused v1 `agent-queue` project timed out at 60 s on every read (1,182 timeouts on 2026-11-03).
+  - **Root cause 2:** the container sweep crashed the whole cycle when one container's settlement raised.
+  - **Fix:** agent-queue PR #2201, merged to `dev` as admin. The required "Integration Attestation" check comes from AQ's own train, which was stopped. Targeted tests: 2 + 3 new and focused; pool/delivery/hierarchy area suites 399 passed.
+  - Fast-forwarded the live checkout (83 + 1 commits, no migrations; schema at head) and started the daemon. The frontier timeouts stopped.
+  - **Root cause 3 (found after restart):** the scheduler's delivery admission still took READY tasks from paused projects. That pulled cycles into a multi-minute `git fsck --full` of the 7.1 GB agent-queue retained store. Cycles were still 55–100 s and the pool scaler stalled (desired 6, live 2). Follow-up fix in progress.
+  - Filed main-CI fixes:
+    - aq-platform: `native_accepted_preparation` returns a 500.
+    - aq-dashboard: Search.test.tsx times out, and one bundleCompatibility test fails.
+  - Codex is exhausted for about 5 days; Claude usage is at 72%.
+- **15:30–15:50 follow-up scheduler fix.**
+  - PR #2201 put v1's integration-engine size budget over by 12 lines, so dev CI went red. Separately, `test_bazel_metrics` hit a pytester INTERNAL_ERROR that doesn't reproduce locally (34 passed).
+  - agent-queue PR #2202, merged as admin:
+    - moves the paused-project scoping into the orchestrator callers, putting `delivery_observer.py` back to its original text;
+    - drops paused projects' READY tasks from scheduler delivery admission;
+    - records an exact +9 owned / +0 engine grant. New regression test; size, generated-artifact and scheduler tests: 187 passed.
+  - Deployed with `aq restart --no-dashboard` (sessions kept).
+  - Filed the G11-pre audit's 37 cross-repo follow-ups as 8 grouped aq-platform tasks, one per view: Overview brisk-harbor-73, Supervisor sharp-falcon-11, Work bright-willow-25, Decisions sharp-current-37, Agents nimble-forge-36, Results bright-impact-86, Playbooks grand-falcon-29, Knowledge azure-apex-96. Each one checks the plan first so it doesn't duplicate C5/F5/G9/G10/SBX25.
+  - D6 blocker: its three follow-ups (`crisp-meadow-36.7.1/.2/.3`) were filed as children and claimed by other workers. Reparented them to the root and told D6 to retry its close.
