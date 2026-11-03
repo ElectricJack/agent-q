@@ -38,7 +38,7 @@ assert!(record.authorize(&current, RunnerOperation::Observe, record.expires_at_m
 ```
 
 - [ ] Run the focused test through an AQ pytest adapter and retain the failing log.
-- [ ] Implement metadata validation using the pinned owner rules; credential comparisons use a keyed constant-time verification primitive. Exact operation replay compares retained request digest and never extends deadlines.
+- [ ] Implement metadata validation using the pinned owner rules; credentials use keyed derivation and constant-time verifier comparison. Exact operation replay compares retained request digest and never extends deadlines.
 - [ ] Run the focused tests, including credential redaction and replay under a different derivation key.
 
 ## 2. PostgreSQL integration and revocation
@@ -91,3 +91,13 @@ Files: `delegated_permits/readoption.rs`, `delegated_permits/renewal.rs`, `profi
 - [ ] Write `docs/implementation/B2.md` with exact commands, results, environment, commit and remaining limits. Reconcile every route and operator-added requirement.
 - [ ] Squash local leaf implementation history as instructed, publish via `aq git push`, and request the required cross-family review through the supervisor. Resolve findings against the final SHA.
 - [ ] Merge the authorized integration branch, rerun affected tests, push and open the required PR. Close only with truthful deliverable evidence; incomplete work is not a passing result.
+
+## Blocked checkpoint
+
+The core/model and verifier-only PostgreSQL persistence are implemented and
+tested, including concurrent replay, rollback/reconnect, node/B3 revocation and
+storage safeguards. The storage filename is `delegated_permits/storage.rs`.
+The final serial focused/area run passed 11 tests. The checklist above remains
+open for full acceptance: current authority integration, owner transport
+publication, every runner route, reboot/restart scenarios and review are absent.
+See `docs/implementation/B2.md` for exact limits, failures and verification.
