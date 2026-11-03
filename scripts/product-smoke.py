@@ -20,6 +20,8 @@ import urllib.error
 import urllib.request
 import uuid
 
+from migration_catalog import state_format as migration_state_format
+
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location("worker_candidate", ROOT / "scripts/check-worker-candidate.py")
 checker = importlib.util.module_from_spec(spec)
@@ -182,7 +184,7 @@ class Fixture:
         self.record["source_tree_sha256"] = sha(canonical(inventory))
         self.record["source_revision"] = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
         self.record["working_tree_dirty"] = bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT))
-        state = re.search(r"pub const STATE_FORMAT_VERSION: u32 = (\d+);", (snapshot / "crates/aq-server/src/lib.rs").read_text()).group(1)
+        state = str(migration_state_format(snapshot))
         worker_args = ["--build-arg", "AQ_SOURCE_REVISION=" + candidate["source_revision"],
                        "--build-arg", "AQ_WORKER_ARCHIVE_SHA256=" + candidate["archive_sha256"],
                        "--build-arg", "AQ_VERSION=" + candidate["version"], "--build-arg", "AQ_STATE_FORMAT=" + state]

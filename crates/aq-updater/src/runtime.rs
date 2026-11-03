@@ -57,6 +57,12 @@ pub trait Runtime: Send + Sync {
     /// The state format recorded in the database's `meta` table; `None` when
     /// there is no database or table yet.
     async fn server_state_format(&self) -> RuntimeResult<Option<u32>>;
+    /// Local images of `repository` (no tag or digest) that have a digest,
+    /// as digest references (`<repository>@sha256:<hex>`).
+    async fn list_images(&self, repository: &str) -> RuntimeResult<Vec<String>>;
+    /// Remove the local image `image` (a digest reference). Docker refuses
+    /// images a container still uses.
+    async fn remove_image(&self, image: &str) -> RuntimeResult<()>;
 }
 
 // ------------------------------------------------------------------ DockerCli
@@ -135,6 +141,32 @@ fn digest_ref(image: &str) -> RuntimeResult<&str> {
             image
         )))
     }
+}
+
+/// A repository name with no tag or digest, as the part of a digest ref
+/// before `@`.
+fn repository(repo: &str) -> RuntimeResult<&str> {
+    if aq_release::is_digest_ref(&format!("{repo}@sha256:{}", "0".repeat(64))) {
+        Ok(repo)
+    } else {
+        Err(failed(format!(
+            "refusing repository {repo:.200?}: not host[:port]/path with no tag or digest"
+        )))
+    }
+}
+
+/// Digest refs from `docker image ls --digests` lines; images without a
+/// digest (`<none>`) are skipped.
+pub fn parse_image_list(out: &[u8]) -> Vec<String> {
+    let mut v: Vec<String> = String::from_utf8_lossy(out)
+        .lines()
+        .map(str::trim)
+        .filter(|l| aq_release::is_digest_ref(l))
+        .map(str::to_string)
+        .collect();
+    v.sort();
+    v.dedup();
+    v
 }
 
 fn container_id(id: &str) -> RuntimeResult<&str> {
@@ -512,6 +544,21 @@ impl DockerCli {
             "--",
             digest_ref(image)?,
         ]))
+    }
+    pub fn image_list_argv(&self, repo: &str) -> RuntimeResult<Vec<OsString>> {
+        Ok(os(&[
+            "image",
+            "ls",
+            "--digests",
+            "--no-trunc",
+            "--format",
+            "{{.Repository}}@{{.Digest}}",
+            "--",
+            repository(repo)?,
+        ]))
+    }
+    pub fn image_rm_argv(&self, image: &str) -> RuntimeResult<Vec<OsString>> {
+        Ok(os(&["image", "rm", "--", digest_ref(image)?]))
     }
     pub fn health_argv(&self, id: &str) -> RuntimeResult<Vec<OsString>> {
         Ok(os(&[
@@ -938,6 +985,23 @@ impl Runtime for DockerCli {
             .await?;
         parse_state_format(&ran.status, &ran.stdout, &ran.stderr)
     }
+
+    async fn list_images(&self, repository: &str) -> RuntimeResult<Vec<String>> {
+        let out = self
+            .run(
+                "docker image ls",
+                self.image_list_argv(repository)?,
+                CMD_TIMEOUT,
+            )
+            .await?;
+        Ok(parse_image_list(&out))
+    }
+
+    async fn remove_image(&self, image: &str) -> RuntimeResult<()> {
+        self.run("docker image rm", self.image_rm_argv(image)?, CMD_TIMEOUT)
+            .await
+            .map(drop)
+    }
 }
 
 /// The one stderr line a failure of a command run through `docker compose`
@@ -1248,6 +1312,40 @@ mod tests {
             assert!(c.cp_argv(bad, "/manifest.json").is_err(), "{bad}");
             assert!(c.rm_argv(bad).is_err(), "{bad}");
         }
+        assert_eq!(
+            strs(
+                &c.image_list_argv("ghcr.io/electricjack/agent-q-server")
+                    .unwrap()
+            ),
+            [
+                "image",
+                "ls",
+                "--digests",
+                "--no-trunc",
+                "--format",
+                "{{.Repository}}@{{.Digest}}",
+                "--",
+                "ghcr.io/electricjack/agent-q-server"
+            ]
+        );
+        assert_eq!(
+            strs(&c.image_rm_argv(IMAGE).unwrap()),
+            ["image", "rm", "--", IMAGE]
+        );
+        for bad in [
+            "",
+            "--help",
+            "ghcr.io/electricjack/agent-q-server:latest",
+            IMAGE,
+        ] {
+            assert!(c.image_list_argv(bad).is_err(), "{bad}");
+        }
+        assert!(
+            c.image_rm_argv("ghcr.io/electricjack/agent-q-server:latest")
+                .is_err()
+        );
+        let listed = format!("{IMAGE}\nghcr.io/electricjack/agent-q-server@<none>\n{IMAGE}\n");
+        assert_eq!(parse_image_list(listed.as_bytes()), [IMAGE]);
         let id = "0123456789ab";
         assert_eq!(
             strs(&c.health_argv(id).unwrap()),

@@ -25,6 +25,26 @@ enabled = false
 "#;
 
 #[test]
+fn standalone_reviews_require_retained_private_keys_without_playbooks() {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = vault_with(VALID);
+    let key = dir.path().join("review-key");
+    std::fs::write(&key, [32u8; 32]).unwrap();
+    std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o600)).unwrap();
+    let text = format!(
+        "{VALID}\n[reviews.protection]\nactive_key_id = \"fixture\"\n[[reviews.protection.keys]]\nid = \"fixture\"\nfile = {key:?}\n"
+    );
+    std::fs::write(dir.path().join("config.toml"), &text).unwrap();
+    let config = load(dir.path()).unwrap();
+    assert!(config.reviews.is_some());
+    assert!(config.playbooks.is_none());
+    std::fs::set_permissions(&key, std::fs::Permissions::from_mode(0o644)).unwrap();
+    assert!(load(dir.path()).is_err());
+    std::fs::remove_file(key).unwrap();
+    assert!(load(dir.path()).is_err());
+}
+
+#[test]
 fn enabled_profiled_execution_requires_terminal_keys_at_startup() {
     let policy = r#"
 [profiled_execution]
