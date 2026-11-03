@@ -16,6 +16,11 @@ pub async fn run(
     let mut interval = tokio::time::interval(Duration::from_millis(250));
     interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
     let mut last_warning = std::time::Instant::now() - Duration::from_secs(30);
+    // F4 flood summaries: SQL-only, bounded, and never holds dispatch capacity.
+    let policy = super::policy::Policy::new(service.clone());
+    let mut flush = tokio::time::interval(Duration::from_secs(5));
+    flush.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    let mut flushing: Option<tokio::task::JoinHandle<()>> = None;
     loop {
         if *shutdown.borrow() {
             break;
@@ -35,6 +40,14 @@ pub async fn run(
                     });
                 }
             }
+            _=flush.tick()=>{
+                if flushing.as_ref().is_none_or(|h|h.is_finished()) {
+                    let policy=policy.clone();
+                    flushing=Some(tokio::spawn(async move {
+                        let _=tokio::time::timeout(Duration::from_secs(10),policy.flush()).await;
+                    }));
+                }
+            }
             Some(result)=work.join_next(),if !work.is_empty()=>{
                 // Never print transport errors or secret URLs. A fenced old
                 // runtime exits; storage errors leave durable state for recovery.
@@ -42,6 +55,9 @@ pub async fn run(
                 if !matches!(result,Ok(Ok(_))) && last_warning.elapsed()>=Duration::from_secs(30){last_warning=std::time::Instant::now();tracing::warn!("notification dispatch deferred; inspect retained delivery state");}
             }
         }
+    }
+    if let Some(handle) = flushing {
+        handle.abort();
     }
     work.abort_all();
     while work.join_next().await.is_some() {}

@@ -324,6 +324,7 @@ const MIGRATIONS: &[(i32, &str)] = &[
         56,
         include_str!("../migrations/0056_dashboard_graph_intents.sql"),
     ),
+    (58, include_str!("../migrations/0058_notification_policy.sql")),
 ];
 
 /// Applies missing migrations in one transaction under an advisory lock.

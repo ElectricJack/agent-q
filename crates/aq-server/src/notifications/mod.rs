@@ -2,6 +2,7 @@
 pub mod api;
 pub mod config;
 pub mod persistence;
+pub mod policy;
 pub mod runtime;
 use axum::{
     Json,
