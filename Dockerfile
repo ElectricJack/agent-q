@@ -25,7 +25,7 @@ LABEL org.opencontainers.image.title="agent-q-release" \
       org.opencontainers.image.version="${AQ_VERSION}"
 COPY manifest.json manifest.sigstore.json /
 
-FROM rust:1.96.1-bookworm AS build
+FROM rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f8a926153677902663 AS build
 WORKDIR /build
 ARG AQ_SOURCE_REVISION=unknown
 ENV AQ_SOURCE_REVISION=${AQ_SOURCE_REVISION}
@@ -43,7 +43,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     && mkdir -p /out \
     && cp target/release/aq-server /out/
 
-FROM debian:bookworm-slim AS runtime
+FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3 AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libcurl4 libexpat1 libssl3 zlib1g \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd --gid 10001 aq && useradd --uid 10001 --gid aq --create-home --home-dir /home/aq aq
