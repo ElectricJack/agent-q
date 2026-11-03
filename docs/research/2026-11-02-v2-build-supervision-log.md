@@ -234,3 +234,44 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Merged aq-dashboard #10 (`0634356a`).
   - The dashboard unit job still fails on a different test each run, always at about 1000–1040 ms, which matches Testing Library's default asyncUtilTimeout. Filed `azure-harbor-91` (standard-medium) to fix the class in the global test setup, instead of more per-test flake tasks.
   - My previous check's notes command hung on a stray `cat >>` reading stdin, and `pkill -f` on that pattern also killed my shell. The notes were redone and pushed in `8c204b7`.
+- **00:30 check.**
+  - **Codex usage at 87% weekly with 5.7 days to reset; the provider is degraded.** At about 9 points per 3 hours it would run out overnight.
+    - `aq provider reroute` does nothing for a degraded provider.
+    - Pinned all 9 queued Codex-routed tasks to the equivalent Claude profiles (Claude is at 52% weekly): C5a1, C6a, H5, D3, B4, `bright-nexus-60`, D1b, I2, F4.
+    - The monitor now prints usage and any Codex-routed queued work.
+  - **D10 review deadlock** (`rev-wise-rapids`). Round-3 reviewer `prime-summit-42` found no blocking defects, but the review sat in changes_requested at r3. v1 refuses a decision ("Return a revision or create an amendment review"), and the revision task `stark-dune-58` was IN_PROGRESS with no agent.
+    - Stopped and reopened it, scoped to a doc-only r4 that refreshes the stale dispositions/status sections (the reviewer's one nit); pinned to standard-medium Claude.
+    - I will approve r4. This is the same deadlock class as `rev-amber-quest`.
+  - H1 and `quick-flare-47` completed. `clear-grove-63` (terminal ReportResult authorization) claimed.
+- **00:45 check.**
+  - E1c completed. It filed `smart-falcon-16.10` (build aq-worker-cloud from aq-worker packaging; it answers E6a's re-pin follow-up) and `smart-falcon-16.11` (docs PR #32, merged as `772a0695`).
+  - **E5 (VPS and Cloudflare provisioning) started** on operator-standard-high-claude. It will likely need owner VPS and Cloudflare access; I'm watching for its question.
+  - **`slot_reset_failed` ("branch holder reservation is not clean and taskless")** on `stark-dune-58` and `bright-nexus-60`.
+    - `stark-dune-58`: its slot branch had no `origin/aq/stark-dune-58` (deleted after merge), so the "branch matches origin" check could never pass. Re-pushed the branch from the slot (`56b8158`).
+    - `bright-nexus-60`'s slot was clean and matched origin, with no live session; the conflict was transient.
+    - `aq task resume` on both; both are READY.
+  - Filed E1c's cross-repo follow-up as `calm-forge-32` in aq-worker: docker-local must refuse daemons with CgroupDriver none or non-v2 cgroups. Pinned to Claude standard-medium.
+  - Usage: Codex 87%, Claude 53%. New tasks still fall back to degraded Codex (`smart-falcon-16.10`); already running, left as is.
+- **01:05 check.**
+  - **D10 plan approved** (`rev-wise-rapids` r4, after 4 rounds; the doc-only r4 cleared the changes_requested deadlock). Released D10's hold and reopened it to implement the approved TDD plan. Pinned it to Claude standard-high (Codex 88%, Claude deep pool disabled).
+  - **`sharp-harbor-18` completed.**
+    - Separate qualification stack `aq-e0-qual`, freshly enrolled node `f761410b`.
+    - 3 real Codex calls measured; capacity fact 475000; expires 2026-11-04 07:22 UTC.
+    - Merged aq-worker PR #28 (`02056060`).
+  - **I0** (MS0 first real agent run): released its hold and reopened it against `aq-e0-qual`, telling it to run before the fact expires. The orchestrator is pinned to Claude.
+  - **Completed and landed on aq-worker main:** `clear-grove-63` (aq-admission 0.3.1, terminal ReportResult; B2 told its pin), `calm-forge-32` (docker-local cgroup refusal) and H1.
+  - **aq-worker main CI regressed** on `generated_source_reparse_capability_and_normalized_goldens_do_not_drift`, likely from H1. Filed `fresh-willow-34` (standard-medium Claude).
+  - **`bright-nexus-60` closed** as done (`--done`): its probes were already on main via B6b, and it only conflicted with them. Closed PR #23.
+- **01:20 check.**
+  - I0 (MS0 first real run) and D10 implementation are running. Usage: Codex 89%, Claude 53%.
+  - **Did not merge aq-server PR #33** (`smart-falcon-16.10`, docker-local cloud worker image). It breaks three CI jobs that pass on main: smoke, distributed recovery, and real daemon.
+    - Cause: `Dockerfile.worker` now copies `scripts/worker-init-volumes.sh`, but `scripts/product-smoke.py` and `scripts/recovery-smoke.py` build from snapshots that copy only crates/, vendor/ and protocol/.
+    - Reopened the task with the exact fix (standard-medium Claude).
+  - A4 stays on Codex: it is running and cannot be re-routed.
+  - aq-worker PR #29 (`fleet-flare-68`, original-boot stopped replay) has CI pending.
+- **01:35 check.**
+  - F1b split off 4 follow-ups (`steady-harbor-87.2.1`–`.4`); 3 are running. Pinned `.2.4` from Codex to Claude standard-high.
+  - Routed F1b's cross-repo follow-up to G8 (`steady-cascade-45.9`, the dashboard supervisor panel) as a comment. The conversation History schema now includes SupervisorItem, host_delivery states and maxItems 80.
+  - Merged aq-worker #29 (`fleet-flare-68`, original-boot stopped replay; CI green).
+  - aq-server #33 (cloud worker image) has the fix and its checks are re-running.
+  - aq-platform now has 7 tasks in progress.

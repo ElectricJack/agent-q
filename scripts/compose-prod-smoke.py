@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Disposable production Compose acceptance; Access auth remains enabled."""
+import contextlib
 import json
 import os
 from pathlib import Path
@@ -36,13 +37,21 @@ def validate(config):
         assert sources[0][target] == sources[1][target]
 
 
-def compose_prod_reaches_ready_with_graph_and_git():
-    project = "aq-e1a-" + uuid.uuid4().hex[:12]
+class Stack:
+    """Running disposable production stack; helpers bound to its project."""
+
+
+@contextlib.contextmanager
+def production_stack(prefix, evidence):
+    """Build/pin the server image, start compose.yaml without the tunnel, and
+    remove only this project's containers, volumes, registry and image."""
+    project = prefix + uuid.uuid4().hex[:12]
     env = os.environ.copy()
     # Avoid inheriting a tunnel profile or an unrelated project.
     env.pop("COMPOSE_PROFILES", None)
-    evidence = {"test": "compose_prod_reaches_ready_with_graph_and_git", "project": project,
-                "source_revision": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()}
+    env.pop("COMPOSE_FILE", None)
+    evidence.update(project=project,
+                    source_revision=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip())
     with tempfile.TemporaryDirectory(prefix=project) as temporary:
         directory = Path(temporary)
         for path in ("vault", "secrets", "spool/requests", "spool/status"):
@@ -78,6 +87,12 @@ def compose_prod_reaches_ready_with_graph_and_git():
                     return value
                 time.sleep(0.5)
             raise AssertionError("timed out: " + description)
+        def readiness():
+            result = compose("exec", "-T", "server", "aq-server", "dependency-readiness", "--vault", "/vault", check=False)
+            return result.returncode, json.loads(result.stdout or "{}")
+        stack = Stack()
+        stack.__dict__.update(project=project, env=env, directory=directory, run=run, compose=compose,
+                              wait=wait, readiness=readiness)
         try:
             if not supplied:
                 # Use the engine host's loopback. Published Desktop ports may
@@ -107,61 +122,12 @@ def compose_prod_reaches_ready_with_graph_and_git():
             (directory / "smoke.json").write_text(json.dumps({"services": {"cloudflared": {"profiles": ["tunnel"]}}}))
             config = json.loads(compose("config", "--format", "json").stdout)
             validate(config)
+            stack.config = config
             evidence["images"] = {name: service["image"] for name, service in config["services"].items()}
             started = True
             compose("up", "-d", "--no-build", "--wait", "--wait-timeout", "120")
-            def readiness():
-                result = compose("exec", "-T", "server", "aq-server", "dependency-readiness", "--vault", "/vault", check=False)
-                return result.returncode, json.loads(result.stdout)
-            code, ready = readiness()
-            assert code == 0 and ready["dependencies"] == {"graph": "ready", "aq_git": "ready"}, ready
-            evidence["initial_readiness"] = ready
-            # The loopback updater readiness contract reports the live auth mode.
-            auth = json.loads(compose("exec", "-T", "server", "aq-server", "readiness").stdout or "{}")
-            assert auth["auth_mode"] == "cloudflare_access", auth
-            evidence["auth_mode"] = auth["auth_mode"]
-            ownership = compose("exec", "-T", "aq-graph", "stat", "-c", "%u:%g:%a", "/run/aq/graph_token").stdout.strip()
-            assert ownership == "10001:10001:600", ownership
-            evidence["graph_token_permissions"] = ownership
-            checksum = compose("exec", "-T", "aq-git", "sha256sum", "/usr/local/bin/aq-git").stdout.split()[0]
-            candidate = json.loads((ROOT / "vendor/git-candidate.json").read_text())
-            assert checksum == candidate["binary_sha256"], "Git binary differs from A3b"
-            evidence["aq_git_binary_sha256"] = checksum
-            def sql(query):
-                return compose("exec", "-T", "postgres", "sh", "-ec",
-                    'export PGPASSWORD="$(cat /run/secrets/postgres_password)"; exec psql -h 127.0.0.1 -U agent_q -d agent_q -tAc "$1"',
-                    "sh", query).stdout.strip()
-            owners = sql("SELECT d.datname || ':' || r.rolname || ':' || r.rolsuper FROM pg_database d JOIN pg_roles r ON r.oid=d.datdba WHERE d.datname IN ('aq_server','aq_graph') ORDER BY d.datname")
-            assert owners.splitlines() == ["aq_graph:aq_graph:false", "aq_server:aq_server:false"], owners
-            evidence["database_owners"] = owners.splitlines()
-            assert sql("SELECT has_database_privilege('aq_server','aq_graph','CONNECT') || ':' || has_database_privilege('aq_graph','aq_server','CONNECT')") == "false:false"
-            for initializer in ("graph-db-init", "server-db-init"):
-                compose("run", "--rm", "--no-deps", initializer)
-            sql("ALTER ROLE aq_graph CREATEDB")
-            try:
-                refused = compose("run", "--rm", "--no-deps", "graph-db-init", check=False)
-                assert refused.returncode != 0 and "owner privileges differ" in refused.stdout + refused.stderr, (refused.returncode, refused.stdout, refused.stderr)
-            finally:
-                sql("ALTER ROLE aq_graph NOCREATEDB")
-            evidence["database_init"] = "replay preserves owners; owner privilege drift refused; cross-owner CONNECT denied"
-            for service, key in (("aq-git", "aq_git"), ("aq-graph", "graph")):
-                compose("stop", service)
-                code, degraded = readiness()
-                assert code != 0 and degraded["dependencies"][key] == "degraded", degraded
-                evidence[key + "_outage"] = degraded
-                compose("start", service)
-                wait(lambda: readiness()[0] == 0, service + " recovery")
-            # Kill the serve engine and require the supervisor to replace it.
-            before = compose("exec", "-T", "aq-git", "cat", "/run/aq-git/child.pid").stdout.strip()
-            compose("exec", "-T", "aq-git", "sh", "-ec",
-                'guard=$(cat /run/aq-git/child.pid); for pid in $(cat /proc/$guard/task/$guard/children); do if [ "$(cat /proc/$pid/comm)" = aq-git ]; then kill -KILL "$pid"; exit 0; fi; done; exit 1')
-            wait(lambda: readiness()[1]["dependencies"]["aq_git"] == "degraded", "Git crash degradation", 10)
-            def recovered():
-                after = compose("exec", "-T", "aq-git", "cat", "/run/aq-git/child.pid").stdout.strip()
-                return after != before and readiness()[0] == 0
-            wait(recovered, "supervised Git recovery")
-            evidence["git_crash_recovery"] = "new guard PID and dependencies ready"
-        except Exception:
+            yield stack
+        except BaseException:
             if started:
                 print(compose("logs", "--no-color", "--tail", "40", check=False).stdout)
             raise
@@ -180,8 +146,62 @@ def compose_prod_reaches_ready_with_graph_and_git():
                 cleanup_errors.append("temporary image cleanup failed")
             assert not cleanup_errors, cleanup_errors
         evidence["cleanup"] = "owned Compose containers and volumes removed"
-        print(json.dumps(evidence, sort_keys=True))
-        print("PASS compose_prod_reaches_ready_with_graph_and_git")
+
+
+def compose_prod_reaches_ready_with_graph_and_git():
+    evidence = {"test": "compose_prod_reaches_ready_with_graph_and_git"}
+    with production_stack("aq-e1a-", evidence) as stack:
+        compose, wait, readiness = stack.compose, stack.wait, stack.readiness
+        code, ready = readiness()
+        assert code == 0 and ready["dependencies"] == {"graph": "ready", "aq_git": "ready"}, ready
+        evidence["initial_readiness"] = ready
+        # The loopback updater readiness contract reports the live auth mode.
+        auth = json.loads(compose("exec", "-T", "server", "aq-server", "readiness").stdout or "{}")
+        assert auth["auth_mode"] == "cloudflare_access", auth
+        evidence["auth_mode"] = auth["auth_mode"]
+        ownership = compose("exec", "-T", "aq-graph", "stat", "-c", "%u:%g:%a", "/run/aq/graph_token").stdout.strip()
+        assert ownership == "10001:10001:600", ownership
+        evidence["graph_token_permissions"] = ownership
+        checksum = compose("exec", "-T", "aq-git", "sha256sum", "/usr/local/bin/aq-git").stdout.split()[0]
+        candidate = json.loads((ROOT / "vendor/git-candidate.json").read_text())
+        assert checksum == candidate["binary_sha256"], "Git binary differs from A3b"
+        evidence["aq_git_binary_sha256"] = checksum
+        def sql(query):
+            return compose("exec", "-T", "postgres", "sh", "-ec",
+                'export PGPASSWORD="$(cat /run/secrets/postgres_password)"; exec psql -h 127.0.0.1 -U agent_q -d agent_q -tAc "$1"',
+                "sh", query).stdout.strip()
+        owners = sql("SELECT d.datname || ':' || r.rolname || ':' || r.rolsuper FROM pg_database d JOIN pg_roles r ON r.oid=d.datdba WHERE d.datname IN ('aq_server','aq_graph') ORDER BY d.datname")
+        assert owners.splitlines() == ["aq_graph:aq_graph:false", "aq_server:aq_server:false"], owners
+        evidence["database_owners"] = owners.splitlines()
+        assert sql("SELECT has_database_privilege('aq_server','aq_graph','CONNECT') || ':' || has_database_privilege('aq_graph','aq_server','CONNECT')") == "false:false"
+        for initializer in ("graph-db-init", "server-db-init"):
+            compose("run", "--rm", "--no-deps", initializer)
+        sql("ALTER ROLE aq_graph CREATEDB")
+        try:
+            refused = compose("run", "--rm", "--no-deps", "graph-db-init", check=False)
+            assert refused.returncode != 0 and "owner privileges differ" in refused.stdout + refused.stderr, (refused.returncode, refused.stdout, refused.stderr)
+        finally:
+            sql("ALTER ROLE aq_graph NOCREATEDB")
+        evidence["database_init"] = "replay preserves owners; owner privilege drift refused; cross-owner CONNECT denied"
+        for service, key in (("aq-git", "aq_git"), ("aq-graph", "graph")):
+            compose("stop", service)
+            code, degraded = readiness()
+            assert code != 0 and degraded["dependencies"][key] == "degraded", degraded
+            evidence[key + "_outage"] = degraded
+            compose("start", service)
+            wait(lambda: readiness()[0] == 0, service + " recovery")
+        # Kill the serve engine and require the supervisor to replace it.
+        before = compose("exec", "-T", "aq-git", "cat", "/run/aq-git/child.pid").stdout.strip()
+        compose("exec", "-T", "aq-git", "sh", "-ec",
+            'guard=$(cat /run/aq-git/child.pid); for pid in $(cat /proc/$guard/task/$guard/children); do if [ "$(cat /proc/$pid/comm)" = aq-git ]; then kill -KILL "$pid"; exit 0; fi; done; exit 1')
+        wait(lambda: readiness()[1]["dependencies"]["aq_git"] == "degraded", "Git crash degradation", 10)
+        def recovered():
+            after = compose("exec", "-T", "aq-git", "cat", "/run/aq-git/child.pid").stdout.strip()
+            return after != before and readiness()[0] == 0
+        wait(recovered, "supervised Git recovery")
+        evidence["git_crash_recovery"] = "new guard PID and dependencies ready"
+    print(json.dumps(evidence, sort_keys=True))
+    print("PASS compose_prod_reaches_ready_with_graph_and_git")
 
 
 if __name__ == "__main__":
