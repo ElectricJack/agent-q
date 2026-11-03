@@ -57,3 +57,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
 - **B1's PR #4 was superseded by #12,** which carried its commits to main. The PR-merge gate resolved through the sweep. B6a1 was released.
 - **Status at about 18:15:** 18 of 91 plan tasks (about 20%) and 47 follow-ups completed. Postgres is CPU-bound on the admission query, which limits scheduler throughput.
 - **Waiting on the owner:** nothing open.
+- **18:19 check.**
+  - B6a1 is running again, with all three review revisions in flight (B1, C5a1, D10).
+  - Filed G7's cross-repo follow-up as `keen-current-13` in aq-platform: additive results-feedback read fields.
+  - Merged aq-worker #13 (runner renewal validation).
+  - `sharp-harbor-18` (blocks I0) is in v1's automatic retry after `slot_reset_failed: branch holder reservation is not clean`; the standard-high-codex pool is at 5 of 6 busy. Re-check next pass.
