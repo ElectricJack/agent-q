@@ -135,12 +135,19 @@ replacement uses atomic rename, but this first request publication does not.
 The failure is safe refusal, not execution without authority, and the central
 bridge attempts verified cleanup. It still prevents reliable startup acceptance.
 
+**Acceptance status:** `supervisor_session_starts_under_central_permit` is
+blocked on upstream task **bold-stone-39**, despite the later isolated pass.
+Supervisor guidance `msg-50f798ec4a3c4d92adcd4a5b0627d2c8` confirmed the race,
+filed atomic temp-file/rename publication and a 0.1.7 release, and authorized a
+blocked close pending reopening with the new pin. The published implementation
+and retained failure evidence remain available on this task branch.
+
 Reported once to `session:supervisor-aq-platform` as
 `msg-da16d0b744f349cbb654d80b47f3fd71`, requesting an upstream atomic-publication
 fix and pinned-release/admission guidance. No vendor fork, sibling edit, silent
 launch replay or test retry was introduced. A later isolated passing test does
-not resolve this known failure. The held claim awaits upstream disposition after
-independent work is published.
+not resolve this known failure. The task closes with a blocked work outcome pending the upstream fix and
+new pinned-release guidance. No passing qualification is claimed.
 
 ## Limits and review
 
