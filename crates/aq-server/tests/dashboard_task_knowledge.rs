@@ -22,7 +22,8 @@ use std::{
 use tower::ServiceExt;
 use uuid::Uuid;
 
-type GraphReceipts = Arc<Mutex<HashMap<String, (Vec<u8>, Value)>>>;
+/// Idempotency key -> (original request bytes, stored receipt).
+type Receipts = Arc<Mutex<HashMap<String, (Vec<u8>, Value)>>>;
 
 #[derive(Clone, Default)]
 struct Graph {
@@ -30,7 +31,7 @@ struct Graph {
     posts: Arc<Mutex<Vec<Value>>>,
     reply: Arc<Mutex<Option<(u16, Value)>>>,
     bodies: Arc<Mutex<Vec<Vec<u8>>>>,
-    receipts: GraphReceipts,
+    receipts: Receipts,
     timeout_after_commit: Arc<AtomicBool>,
     committed: Arc<tokio::sync::Notify>,
 }
