@@ -6,6 +6,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[3]
 COMMANDS = {
+    "merged_start": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", "supervisor_session_starts_under_central_permit"],
+    "merged_restart": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", "supervisor_restart_resumes_without_duplicate_session"],
     "upgrade": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", "main_delivery_database_upgrades_without_losing_history"],
     "start_revocation_red": ["cargo", "test", "--locked", "-p", "aq-supervisor-host", "--test", "supervisor_session", "revocation_before_physical_start"],
     "image": [sys.executable, "docs/implementation/F1a-evidence/image_check.py"],

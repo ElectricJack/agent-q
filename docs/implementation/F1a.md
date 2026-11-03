@@ -3,22 +3,26 @@
 Task `steady-harbor-87.1`. The earlier prerequisite block is resolved by
 `crisp-nexus-12`. This increment implements the physical bridge, executable and
 image on top of the previously committed SQL session owner. Independent
-validation is recorded below. Overall qualification is blocked on the
-newly observed upstream request-publication race described below; no passing
-close is claimed.
+validation is recorded below. The upstream request-publication race is fixed
+by the 0.1.7 pin requested in the latest reopening. Cross-family review remains
+pending before a passing close.
 
 ## Source and integration
 
 The dependency is the published aq-worker commit
-`5794c3280611f6a95f2e60eab514393ad376cfd4`: aq-session-host 0.1.6, shared
+`4992a16d6c2f794d692803fbe25e69ea400a97db` (aq-worker main, PR #22):
+aq-session-host 0.1.7, shared
 Codex mapper 0.1.1 and scoped Responses transport 0.1.0. The exact source archive
-SHA-256 is `e68ad4071935cec0bf7d67b5ab52e5e30364c12869e8e6b99b964b8fd69f3f1a`.
+SHA-256 is `ab37cb192870f07290b4aff887b57b73783931ba5dfc248184da483c99036bdb`.
 The archive and its receipt are retained in `vendor/`. Runtime sources are
 unchanged; Cargo manifests normalize workspace inheritance and dependency paths,
 with originals retained as `Cargo.toml.upstream`. The existing session and
 terminal-relay protocol sources match the published closure. Docker verifies
 the archive digest and compares the three consumed runtime source trees.
-There is no sibling-checkout dependency.
+There is no sibling-checkout dependency. All 1,201 receipt file digests and
+the five consumed runtime/protocol source trees were verified against the
+release archive (`F1a-evidence/pin-0.1.7.txt`). Mapper and transport sources are
+unchanged from the prior pin.
 
 Reopened checkout base: `b183e0cdbcdd7c5e597e3c0ea1b0465c19cfcc7e`.
 Plan: `docs/superpowers/plans/2026-11-02-f1a-supervisor-host.md` (128f7f50).
@@ -28,6 +32,17 @@ Implementation checkpoint: 0c014048; async stack fix and migration regression:
 this branch's unintegrated owner and host migrations are now **46 and 47**.
 The server's migration list, readable formats and image label advance to 47.
 The old branch-only format-45 checkpoint was never a production upgrade target.
+
+Claim 4 resumed at `5159be86ee30981d57b39b1fa278684b27814759`, which already
+merges main `3919a844b98021f07a00f1884ef2ed06b4278abc`. Guarded
+`aq git pull --branch main` confirmed that base. Existing published checkpoints
+and merge ancestry are retained. This increment changes only the runtime pin,
+its Cargo/Docker/fixture references, and evidence. The pin implementation is
+`317815c6a804fd076e9207da0cef784b4491796a`. Final `git merge origin/main`
+integrated `ae0c89b8f7cb08a30823a5b4fb57cce02da9f291` as
+`ec2ba0fd90a30e7e5c4eb4b268b55ae9459146f1`; that merge brings unrelated
+scheduling-freshness changes. The two supervisor acceptance tests are checked
+again on this merged source.
 
 ## Implemented behavior
 
@@ -69,7 +84,41 @@ The old branch-only format-45 checkpoint was never a production upgrade target.
   socket integration or production Compose service. Installation requirements and
   exact config fields are documented in `crates/aq-supervisor-host/README.md`.
 
-## Verification
+## Current 0.1.7 verification
+
+The operator explicitly limited this reopening to the named startup and restart
+filters. They run through the same resource-gated adapter described below,
+using real tmux and disposable PostgreSQL on Linux WSL2, Rust/Cargo 1.96.1.
+
+At pin commit `317815c6`, both exact required workspace commands passed their
+one intended physical test (1 passed, 0 failed, 10 host cases filtered out):
+
+- `cargo test --locked --workspace supervisor_session_starts_under_central_permit`
+  — wrapper 838.41 seconds, including 13m37s fresh compilation.
+- `cargo test --locked --workspace supervisor_restart_resumes_without_duplicate_session`
+  — wrapper 9.15 seconds.
+
+Logs: `F1a-evidence/named_start.txt` and `named_restart.txt`. Each command uses
+`F1A_CHECK=named_start|named_restart DATABASE_URL=<disposable-test-db> aq test
+docs/implementation/F1a-evidence/test_cargo.py -q --timeout=1800`. The restart
+command used the compiled pre-merge artifacts; the post-merge runs below provide
+the final-source evidence.
+
+On merged source `ec2ba0fd`, both focused commands also passed their one named
+physical test (1 passed, 0 failed, 10 filtered out):
+
+- `cargo test --locked -p aq-supervisor-host --test supervisor_session supervisor_session_starts_under_central_permit`
+  — wrapper 240.98 seconds, including 3m56s package compilation.
+- `cargo test --locked -p aq-supervisor-host --test supervisor_session supervisor_restart_resumes_without_duplicate_session`
+  — wrapper 7.34 seconds.
+
+These use `F1A_CHECK=merged_start|merged_restart` with the same AQ invocation;
+logs are `F1a-evidence/merged_start.txt` and `merged_restart.txt`. These are
+actual real-guardian/tmux passes, not zero-match filters. No broad suite or
+container rebuild was run for this pin update. The prior image digest below
+is historical, not a 0.1.7 build.
+
+## Prior 0.1.6 verification
 
 Linux WSL2, Rust/Cargo 1.96.1, real tmux, disposable PostgreSQL from
 `scripts/test-db`. Each SQL test creates its own database. Every test/build/lint
@@ -89,7 +138,7 @@ Retained red evidence:
 - `start_revocation_red.txt`: revocation during adapter preparation incorrectly
   allowed physical launch. The new pre-start check and error cleanup address it.
 
-The latest post-merge host suite passed the credential and mapper checks and
+The prior 0.1.6 post-merge host suite passed the credential and mapper checks and
 10 of 11 integration cases (ten physical lifecycle cases plus one database
 upgrade case). The one failure was the named startup case hitting the published
 runtime race below. The same startup case passed earlier; the failure is retained
@@ -122,7 +171,7 @@ checkpoint 0043e894 passed with image digest
 the build and boundary result are retained in `F1a-evidence/image.txt`. The
 subsequent lint cleanup only avoids allocating a PathBuf for a path comparison.
 
-## Open upstream publication race
+## Resolved upstream publication race
 
 `F1a-evidence/upstream_start_publication_race.txt` records a natural failure:
 `session ended before startup: startup failed: EOF while parsing a value at line
@@ -133,21 +182,21 @@ immediately parses it (supervisor.rs:208-211); a reader scheduled before the wri
 sees empty/truncated JSON and enters Stopping (supervisor.rs:306-310). State
 replacement uses atomic rename, but this first request publication does not.
 The failure is safe refusal, not execution without authority, and the central
-bridge attempts verified cleanup. It still prevents reliable startup acceptance.
+bridge attempts verified cleanup. It prevented reliable startup acceptance
+with the 0.1.6 pin.
 
-**Acceptance status:** `supervisor_session_starts_under_central_permit` is
-blocked on upstream task **bold-stone-39**, despite the later isolated pass.
-Supervisor guidance `msg-50f798ec4a3c4d92adcd4a5b0627d2c8` confirmed the race,
-filed atomic temp-file/rename publication and a 0.1.7 release, and authorized a
-blocked close pending reopening with the new pin. The published implementation
-and retained failure evidence remain available on this task branch.
+The upstream owner resolved **bold-stone-39** in aq-worker main merge
+`4992a16d6c2f794d692803fbe25e69ea400a97db`, publishing 0.1.7. The new
+`durable_write_with` writes and syncs a private temporary file before
+`renameat2(RENAME_NOREPLACE)` publishes a new request. Existing-file exclusion
+is retained. Three deterministic upstream tests cover partial-write visibility,
+failed writes/existing entries, and competing publishers. The vendored source
+is identical to that release; no consumer patch or replay retry was added.
 
-Reported once to `session:supervisor-aq-platform` as
-`msg-da16d0b744f349cbb654d80b47f3fd71`, requesting an upstream atomic-publication
-fix and pinned-release/admission guidance. No vendor fork, sibling edit, silent
-launch replay or test retry was introduced. A later isolated passing test does
-not resolve this known failure. The task closes with a blocked work outcome pending the upstream fix and
-new pinned-release guidance. No passing qualification is claimed.
+The earlier failure remains in `upstream_start_publication_race.txt` and the
+0.1.6 full-host log. It was reported as `msg-da16d0b744f349cbb654d80b47f3fd71`
+and confirmed by `msg-50f798ec4a3c4d92adcd4a5b0627d2c8`. The operator's latest
+reopen feedback authorizes this exact pin and targeted requalification.
 
 ## Limits and review
 
@@ -164,4 +213,6 @@ remain outside scope. No architecture/specification files were changed.
 The full unfiltered workspace suite is not claimed: prime restricts this worker
 to focused and related-area checks. The two required filtered workspace commands
 are explicit acceptance obligations. Cross-family adversarial review and the
-required PR remain outstanding before a passing close.
+required PR/review disposition are recorded in the task comments and review
+request. A passing close awaits cross-family review; no review approval is
+claimed in this evidence checkpoint.

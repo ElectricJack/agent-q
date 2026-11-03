@@ -1,4 +1,4 @@
-    Finished `test` profile [unoptimized] target(s) in 2.18s
+    Finished `test` profile [unoptimized] target(s) in 1.44s
      Running unittests src/lib.rs (target/debug/deps/aq_accounting-42eea94446798b82)
 
 running 0 tests
@@ -453,7 +453,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; fini
 
 running 0 tests
 
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 191 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 193 filtered out; finished in 0.00s
 
      Running unittests src/main.rs (target/debug/deps/aq_server-2509b6e86dcc582a)
 
@@ -531,7 +531,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; fini
 
 running 0 tests
 
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
 
      Running tests/dashboard_mounts.rs (target/debug/deps/dashboard_mounts-50d2f39c3efc4ace)
 
@@ -1139,42 +1139,42 @@ running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests src/lib.rs (target/debug/deps/aq_supervisor_host-013751a7d10ea74c)
+     Running unittests src/lib.rs (target/debug/deps/aq_supervisor_host-438a186d833bd683)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests src/helper.rs (target/debug/deps/aq_session_host-7689d7c4bcfe304b)
+     Running unittests src/helper.rs (target/debug/deps/aq_session_host-6ca78fe8eb06e4eb)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running unittests src/main.rs (target/debug/deps/aq_supervisor_host-36bcb7c584614d61)
+     Running unittests src/main.rs (target/debug/deps/aq_supervisor_host-ec5444857dbac9a8)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
 
-     Running tests/adapter.rs (target/debug/deps/adapter-70f38555155e14b5)
+     Running tests/adapter.rs (target/debug/deps/adapter-fd231ff2253b4529)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
-     Running tests/credentials.rs (target/debug/deps/credentials-a425b4ac3c579397)
+     Running tests/credentials.rs (target/debug/deps/credentials-d60c6307f07852cc)
 
 running 0 tests
 
 test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
 
-     Running tests/supervisor_session.rs (target/debug/deps/supervisor_session-3799b5c2f93bbd7b)
+     Running tests/supervisor_session.rs (target/debug/deps/supervisor_session-df862887bad5de27)
 
 running 1 test
 test supervisor_restart_resumes_without_duplicate_session ... ok
 
-test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 2.75s
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 1.94s
 
      Running unittests src/lib.rs (target/debug/deps/aq_terminal_relay-3667364734355dbe)
 
