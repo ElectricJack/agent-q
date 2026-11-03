@@ -105,7 +105,7 @@ pub async fn settle_after_record(
     let Some(delivery) = applicable(state, &r) else {
         return Ok(None);
     };
-    sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1,55))")
+    sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1,56))")
         .bind(format!("aq-auto-settlement:{report_id}"))
         .execute(&mut *tx)
         .await

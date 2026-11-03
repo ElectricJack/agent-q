@@ -124,6 +124,14 @@ Placement stays central (worker spec §8). Additions:
 - Project and pool policy orders eligible nodes by an explicit **placement preference**. The default ordering prefers `docker-local` nodes (no marginal cost), then `boat`, then `cloudflare-containers`. This default is the designer's call and is configurable per project.
 - A node at its sandbox or spend ceiling refuses offers with a typed reason. Refusals are explainable (W13).
 
+**As implemented (C4, `calm-delta-18.6`).** Central selection turns these advertisements into typed eligibility refusals. The field-level contract is in [intelligence selection](../specs/0004-intelligence-selection.md#sandbox-placement-facts-c4), and the evidence is in `docs/implementation/C4.md`.
+
+- **Scope.** Placement facts apply only to nodes with a B1 registration in `delegated_node_boots`, using that registration's authenticated `BackendAdvertisement`. A host-native node without a registration gets no placement facts and is unchanged.
+- **Preference.** The default order is `docker-local`, `boat`, `cloudflare-containers`. A project overrides it with `placement.preference` in its `ProjectPolicy` ([execution spec §3.2](../specs/0002-execution-and-agent-access.md#32-sandbox-placement-policy)). Kinds the list leaves out rank last.
+- **Bounded hold.** A lower-preference node gets no offer while a higher-ranked peer is eligible. Eligible means the peer is registered, has an unexpired `intelligence_node_snapshots` snapshot, is under its ceilings, has the required capabilities and advertises the pinned template. The refusal reason is `placement_preferred_backend_available`. The hold ends no later than when that peer's snapshot expires, and the peer scan is capped at 256 nodes.
+- **Ceilings.** A node at its concurrency ceiling is refused with `node_concurrency_ceiling_reached`. Its active count is the attempts with `holds_task` set, compared against `max_concurrent_sandboxes`. A node at its spend ceiling is refused with `node_spend_ceiling_reached`. If the node advertises a spend ceiling but has no accounted spend in the same currency, it is refused with `node_spend_unaccounted`; unknown spend never counts as zero. Until H2 accounted spend is fed in (`calm-delta-18.6.1`), every node that advertises a spend ceiling is refused this way.
+- **Where it applies.** Placement is checked at selection only. The grant and launch fences do not re-derive it (`calm-delta-18.6.2`).
+
 ## 4. Sandbox lifecycle
 
 Each accepted attempt goes through these steps:
@@ -199,6 +207,8 @@ All backends implement one Rust trait in aq-worker:
 - report capabilities
 
 Backend capabilities are advertised to placement and are part of eligibility. Examples are `vm-isolation`, `nested-docker`, `suspend-snapshot` and `persistent-disk-during-attempt`.
+
+As implemented (C4), a project lists the capabilities it needs in `placement.required_capabilities` (at most 4). A node that lacks any of them is refused with `required_backend_capability_unsupported` (candidate state `Unsupported`). The work never falls back to a lesser backend.
 
 **Proposed C1 contract extension:** add a template-presence operation, `ensure_template`, to `PlacementBackend` so admission can preflight an exact allowlisted digest through the common interface. It must confirm that the backend's materialization is present, or return a typed refusal or uncertainty; a failed check is not template availability. It does not create a sandbox or grant execution authority. C1 currently has no such trait operation, and C2's `pull_template` is backend-specific. The C1/admission owners should settle the signature and conformance coverage before adoption; this is a recommendation, not a claim that the method is implemented.
 
@@ -324,7 +334,7 @@ The layer order is deliberate. The parts that change most often (runner and harn
 
 **On boat,** "fork" is literal: each template has a saved snapshot in which that template's image is already pulled, and every attempt forks that snapshot (section 5.2). Rebuilding a template produces a new snapshot. Old snapshots are deleted once no active attempt, warm start or rollback target references their digest.
 
-A template advertises the exact harness versions it contains. Selection requires that the chosen template contain the chosen harness version (P5, SBX13).
+A template advertises the exact harness versions it contains. Selection requires that the chosen template contain the chosen harness version (P5, SBX13). As implemented (C4), a pinned template that the node does not advertise is refused with `template_not_advertised`. A template whose advertised harnesses do not include the selected harness's exact `cli_version` is refused with `template_missing_selected_harness_version`.
 
 ### 8.2 Template artifacts
 
@@ -333,6 +343,13 @@ A template advertises the exact harness versions it contains. Selection requires
   - an OCI image digest;
   - per backend, a materialization record (boat snapshot ID, Cloudflare image reference) with provenance (recipe digest, base digest, build time, builder identity).
 - **Resolution:** an execution profile's environment resolves to exactly one template digest at catalog activation. The launch manifest pins it (architecture 0003 §3.1). Rebuilding a template creates a new digest. Running attempts are unaffected.
+  - *As implemented (C4):*
+    - **Allowlist.** The server reads the C3b allowlist from `[templates] allowlist = "<path>"` once, at startup.
+    - **Resolution and refusals.** Activation resolves every `Execution.environments` entry against that allowlist. A missing environment refuses activation with `environment_template_missing`, and one that matches more than one digest refuses with `environment_template_ambiguous`.
+    - **Storage.** The pins are stored in `profile_catalog_environment_templates` and returned as `environment_templates` in the activation receipt.
+    - **Manifest pin.** The manifest gains no new field. Selection requires the selected harness's environment digest to equal the pin, and that digest is already frozen in the manifest.
+    - **No allowlist.** If no allowlist is configured, nothing is pinned and every B1-registered sandbox node refuses with `environment_template_unresolved`.
+    - Details are in [intelligence selection](../specs/0004-intelligence-selection.md#environment-template-allowlist-and-activation-pins-c4).
 - **Cost:** template builds run on an explicitly configured build node, not on ordinary attempt capacity. The local desktop is acceptable for the first deployment.
 - Arbitrary images are not allowed. Only templates built by the pipeline and allowlisted by digest may launch.
 - **Registry:** base templates are published with releases. A project template that bakes in pre-fetched objects from a private repository must be pushed to a private registry or package, never to the public release registry.
@@ -476,6 +493,7 @@ These documents are updated to reference this design:
   - The "stronger per-attempt isolation can later be added" note is fulfilled.
 - **Profiles, harnesses and terminals:** tmux and the guardian run inside the sandbox; environments resolve to template digests. The "at most one terminal long poll per node" limit becomes per sandbox, with per-node aggregates (SBX16).
 - **Worker profiled tmux sessions (0003 §5):** same per-sandbox polling amendment.
+- **Intelligence selection (spec 0004) and execution coordination (spec 0002 §3.2):** C4 adds the `[templates]` allowlist and activation pins, the `ProjectPolicy.placement` override, and the typed placement reason codes (sections 3.2, 5 and 8.2).
 
 The existing guarantees on grants, stop proof, retention, tmux, terminals and outbound-only networking are unchanged. This design changes *where* they are enforced.
 

@@ -34,6 +34,9 @@ pub struct Config {
     )]
     pub profiled_execution:
         Option<std::sync::Arc<crate::profiled_execution::config::ProfiledConfig>>,
+    /// C3b environment template allowlist (C4); absent means no sandbox pins.
+    #[serde(default, deserialize_with = "crate::templates::deserialize")]
+    pub templates: Option<std::sync::Arc<crate::templates::Allowlist>>,
     pub format_version: u32,
     pub environment: Environment,
     pub server: ServerConfig,
@@ -323,6 +326,7 @@ mod tests {
             playbooks: None,
             notifications: None,
             profiled_execution: None,
+            templates: None,
             format_version: 1,
             environment: env,
             server: ServerConfig {

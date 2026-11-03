@@ -166,6 +166,8 @@ Cancellation is a durable typed directive. Admission records intent, closes new 
 
 AQ serializes cancellation and result eligibility for an attempt. If cancellation is recorded before result acceptance, a later result is retained but cannot automatically qualify as successful task completion. If result acceptance wins first, a later cancellation cannot erase that fact or undo completed effects; it can prevent subsequent undispatched actions under policy. The UI must distinguish accepted execution results from later task completion. Outstanding graph/publication operations need reconciliation according to their own admission boundaries.
 
+The default completion policy (§7.1) enforces this serialization in its acceptance gate. A cancelled or superseded report records `rework` with `not_accepted`, so it can never complete the task. A report without a stop proof is held with `not_stopped`.
+
 Conversational guidance may be delivered during a session but cannot change typed permissions, renew grants, or approve publication. Record `queued`, `received_by_node`, `delivered_to_harness`, `delivery_unknown`, and stale/undeliverable dispositions. Harness delivery is not proof of model comprehension. Ambiguous input injection is not automatically repeated unless the harness supports deduplication.
 
 ## 7. Results, source and completion
@@ -182,6 +184,57 @@ after stopped-writer proof while required source remains protected until retenti
 and release. Wake creates a newly authorized attempt from verified dependency
 outcome and retained context, potentially on another eligible node. Wait resolution
 alone cannot release a workspace, prove stopped writers or settle the task.
+
+### 7.1 Default completion policy and automatic settlement (as implemented, D3)
+
+D3 (`crisp-meadow-36.4`, state format 54, `migrations/0054_auto_settlement.sql`) implements the evidence-and-policy completion described at the start of §7, for one policy. The details are in [D3 implementation notes](../implementation/D3.md).
+
+**Policy body.** The default policy applies when the result review is the policy actor and the retained definition body is exactly:
+
+```json
+{"schema_version": 1, "kind": "aq.default-completion.v1", "delivery": "required" | "not_required"}
+```
+
+Any other schema version, kind or extra field, or a missing `delivery`, means the policy does not apply.
+
+**Gate order.** The gate (`settlement/default_policy.rs`) is pure and reads server-owned evidence only. The worker's report outcome and conclusion are never evidence. The gates run in this order, and the first one that fails decides the verdict:
+
+1. **Acceptance.** The report is the current head, carries a stop proof, and is neither cancelled nor superseded (see §6).
+2. **Retained source.** The source has a confirmed aq-git retention receipt.
+3. **Required checks.** Each required check has a row in `profiled_check_evidence` bound to (report, source digest, check id, validator digest).
+4. **Delivery.** This gate runs only when `delivery` is `required`. It reads `profiled_delivery_evidence`, and only `published` passes.
+
+**Reason codes.** A `rework` verdict means the evidence shows the work is wrong. A `hold` verdict means evidence is missing or not yet determinate.
+
+| Gate | Code | Verdict |
+| --- | --- | --- |
+| Acceptance | `not_accepted` (refused, cancelled or superseded report) | rework |
+| Acceptance | `not_stopped` (no stop proof) | hold |
+| Retained source | `source_not_retained` | hold |
+| Required checks | `required_check_failed` | rework |
+| Required checks | `required_check_evidence_missing` | hold |
+| Delivery | `delivery_unpublished` | rework |
+| Delivery | `delivery_indeterminate` | hold |
+| Delivery | `delivery_evidence_missing` | hold |
+
+A further hold, `graph_version_conflict`, comes from completion delivery rather than the gate (see below).
+
+**Settlement owner.** `profiled_auto_settlements` is the automatic settlement owner. A trigger requires the owner identity `aq.settlement-owner.auto.1` on every write. `settlement_claim_guard` and `profiled_historical_snapshot_guard` accept a confirmed automatic row as settlement, alongside human settlement and B4 replacement release. After a report is recorded, the server attempts settlement. A settlement error is logged and deferred, and never fails the record. Each attempt takes a per-report advisory lock and the row lock, then applies the verdict:
+
+- **Hold or rework.** The row records the verdict, the reason and the evidence: policy actor, policy, report, acceptance facts, source, each check with its validator digest and verdict, and delivery. Nothing is completed and dependents are not released. A later attempt re-evaluates a held row. A `rework` row is terminal for that report.
+- **Complete.** The row is prepared with a single version-checked graph `update_node`:
+  - the expected version is the task version retained in the attempt's execution spec;
+  - the patch is `task_state=completed`;
+  - the idempotency key is stable and derived from the report;
+  - the payload is at most 8192 bytes.
+
+  The row is committed as `possible` before the request is sent. A valid graph receipt sets `confirmed` and releases the attempt's task hold. Any other outcome is replayed with the same operation ID and payload, at most 8 times. A 409 holds the row with `graph_version_conflict` and is never re-dispatched. Only a new report can settle the task after a conflict, so no read-new-version-and-overwrite loop exists.
+
+**Limits.**
+
+- Rework is recorded in AQ only. No graph mutation reopens or reroutes the task.
+- The gate does not consult the effects ledger.
+- `profiled_check_evidence` and `profiled_delivery_evidence` have no production writers until the D6 (checks) and D1 (delivery) seams land. Until then, a policy with required checks or required delivery holds, which fails closed.
 
 ## 8. Remote graph access
 
