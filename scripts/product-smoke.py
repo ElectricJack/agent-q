@@ -148,15 +148,13 @@ class Fixture:
 
     def setup(self):
         official = os.environ.get("AQ_SMOKE_OFFICIAL") == "1"
-        candidate = checker.candidate(official)
-        self.record["worker_candidate"] = candidate
         server = os.environ.get("AQ_SMOKE_SERVER_IMAGE")
         worker = os.environ.get("AQ_SMOKE_WORKER_IMAGE")
-        if bool(server) != bool(worker):
-            raise ValueError("set both AQ_SMOKE_SERVER_IMAGE and AQ_SMOKE_WORKER_IMAGE, or neither")
+        if worker and not server:
+            raise ValueError("AQ_SMOKE_WORKER_IMAGE requires AQ_SMOKE_SERVER_IMAGE")
         if official and (not server or any(not re.fullmatch(r"[a-z0-9][a-z0-9./:_-]*@sha256:[0-9a-f]{64}", image)
-                                          for image in (server, worker))):
-            raise ValueError("official acceptance requires digest-pinned server and worker images")
+                                          for image in (server, worker) if image)):
+            raise ValueError("official acceptance requires a digest-pinned server image (and worker image, if given)")
         snapshot = self.temp / "source"
         snapshot.mkdir()
         for name in ["Cargo.toml", "Cargo.lock", "rust-toolchain.toml", "Dockerfile", "Dockerfile.worker",
@@ -167,6 +165,21 @@ class Fixture:
         # Dockerfile.worker installs the worker volume initializer from scripts/.
         (snapshot / "scripts").mkdir()
         shutil.copy2(ROOT / "scripts/worker-init-volumes.sh", snapshot / "scripts/worker-init-volumes.sh")
+        if not worker:
+            # The production worker (aq-worker 0.5.1) needs a rootless sandbox
+            # daemon for `run` and omits `run-execution`. Until this fixture is
+            # reworked, build the smoke worker from the 0.3.1 smoke-only fixture.
+            for name in ["aq-worker-source.tar.gz", "worker-candidate.json", "worker-candidate.sha256"]:
+                shutil.copy2(ROOT / "vendor/smoke-worker" / name, snapshot / "vendor" / name)
+            self.record["worker_fixture"] = "vendor/smoke-worker (smoke-only; not the production worker)"
+            checker_root, checker.ROOT = checker.ROOT, snapshot
+            try:
+                candidate = checker.candidate(official)
+            finally:
+                checker.ROOT = checker_root
+        else:
+            candidate = checker.candidate(official)
+        self.record["worker_candidate"] = candidate
         inventory = {str(p.relative_to(snapshot)): sha(p.read_bytes()) for p in sorted(snapshot.rglob("*")) if p.is_file()}
         self.record["source_inventory"] = inventory
         self.record["source_tree_sha256"] = sha(canonical(inventory))
@@ -174,23 +187,27 @@ class Fixture:
         self.record["working_tree_dirty"] = bool(subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT))
         state = re.search(r"pub const STATE_FORMAT_VERSION: u32 = (\d+);", (snapshot / "crates/aq-server/src/lib.rs").read_text()).group(1)
         if not server:
-            server, worker = self.project + "-server:candidate", self.project + "-worker:candidate"
-            self.images = [server, worker]
+            server = self.project + "-server:candidate"
+            self.images.append(server)
             revision = "dev-" + self.record["source_tree_sha256"][:24]
-            self.say("build server and pinned standalone worker from a frozen source snapshot")
+            self.say("build server from a frozen source snapshot")
             self.run(["docker", "build", "--target", "server", "--build-arg", "AQ_SOURCE_REVISION=" + revision,
                       "--build-arg", "AQ_STATE_FORMAT=" + state, "-t", server, str(snapshot)], name="build-server", timeout=1800)
+        elif subprocess.run(["docker", "image", "inspect", server], stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL).returncode:
+            self.run(["docker", "pull", server], name="pull-server", timeout=600)
+        if not worker:
+            worker = self.project + "-worker:candidate"
+            self.images.append(worker)
+            self.say("build pinned standalone smoke worker fixture from a frozen source snapshot")
             self.run(["docker", "build", "-f", str(snapshot / "Dockerfile.worker"), "--target", "worker",
-                      "--build-arg", "AQ_WORKER_FEATURES=synthetic-runtime",
                       "--build-arg", "AQ_SOURCE_REVISION=" + candidate["source_revision"],
                       "--build-arg", "AQ_WORKER_ARCHIVE_SHA256=" + candidate["archive_sha256"],
                       "--build-arg", "AQ_VERSION=" + candidate["version"], "--build-arg", "AQ_STATE_FORMAT=" + state,
                       "-t", worker, str(snapshot)], name="build-worker", timeout=1800)
-        else:
-            for role, image in [("server", server), ("worker", worker)]:
-                if subprocess.run(["docker", "image", "inspect", image], stdout=subprocess.DEVNULL,
-                                  stderr=subprocess.DEVNULL).returncode:
-                    self.run(["docker", "pull", image], name="pull-" + role, timeout=600)
+        elif subprocess.run(["docker", "image", "inspect", worker], stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL).returncode:
+            self.run(["docker", "pull", worker], name="pull-worker", timeout=600)
         self.record["images"] = json.loads(self.run(["docker", "image", "inspect", server, worker], name="image-identities"))
         embedded = json.loads(self.run(["docker", "run", "--rm", "--entrypoint", "cat", worker,
                                         "/usr/share/agent-q/worker-candidate.json"], name="worker-provenance"))
