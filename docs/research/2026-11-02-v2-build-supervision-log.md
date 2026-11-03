@@ -243,3 +243,12 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - Stopped and reopened it, scoped to a doc-only r4 that refreshes the stale dispositions/status sections (the reviewer's one nit); pinned to standard-medium Claude.
     - I will approve r4. This is the same deadlock class as `rev-amber-quest`.
   - H1 and `quick-flare-47` completed. `clear-grove-63` (terminal ReportResult authorization) claimed.
+- **00:45 check.**
+  - E1c completed. It filed `smart-falcon-16.10` (build aq-worker-cloud from aq-worker packaging; it answers E6a's re-pin follow-up) and `smart-falcon-16.11` (docs PR #32, merged as `772a0695`).
+  - **E5 (VPS and Cloudflare provisioning) started** on operator-standard-high-claude. It will likely need owner VPS and Cloudflare access; I'm watching for its question.
+  - **`slot_reset_failed` ("branch holder reservation is not clean and taskless")** on `stark-dune-58` and `bright-nexus-60`.
+    - `stark-dune-58`: its slot branch had no `origin/aq/stark-dune-58` (deleted after merge), so the "branch matches origin" check could never pass. Re-pushed the branch from the slot (`56b8158`).
+    - `bright-nexus-60`'s slot was clean and matched origin, with no live session; the conflict was transient.
+    - `aq task resume` on both; both are READY.
+  - Filed E1c's cross-repo follow-up as `calm-forge-32` in aq-worker: docker-local must refuse daemons with CgroupDriver none or non-v2 cgroups. Pinned to Claude standard-medium.
+  - Usage: Codex 87%, Claude 53%. New tasks still fall back to degraded Codex (`smart-falcon-16.10`); already running, left as is.
