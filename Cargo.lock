@@ -151,11 +151,24 @@ name = "aq-central-authority"
 version = "0.1.0"
 dependencies = [
  "aq-session-protocol",
+ "async-trait",
  "schemars",
  "serde",
  "serde_json",
+ "sqlx",
+ "sqlx-postgres",
  "thiserror",
+ "tokio",
  "uuid",
+]
+
+[[package]]
+name = "aq-codex-mapper"
+version = "0.1.1"
+dependencies = [
+ "anyhow",
+ "aq-session-protocol",
+ "toml",
 ]
 
 [[package]]
@@ -364,6 +377,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-responses-transport"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aq-session-protocol",
+ "libc",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "uuid",
+ "zeroize",
+]
+
+[[package]]
 name = "aq-result-media"
 version = "0.1.0"
 dependencies = [
@@ -459,6 +487,7 @@ dependencies = [
  "tower",
  "tracing",
  "tracing-subscriber",
+ "unicode-normalization",
  "uuid",
  "zeroize",
 ]
@@ -494,6 +523,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-session-host"
+version = "0.1.7"
+dependencies = [
+ "anyhow",
+ "aq-session-protocol",
+ "aq-terminal-relay-protocol",
+ "chacha20poly1305",
+ "libc",
+ "rand 0.8.8",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "uuid",
+ "zeroize",
+]
+
+[[package]]
 name = "aq-session-protocol"
 version = "0.1.0"
 dependencies = [
@@ -503,6 +549,29 @@ dependencies = [
  "sha2 0.10.9",
  "thiserror",
  "uuid",
+]
+
+[[package]]
+name = "aq-supervisor-host"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aq-central-authority",
+ "aq-codex-mapper",
+ "aq-responses-transport",
+ "aq-server",
+ "aq-session-host",
+ "aq-session-protocol",
+ "async-trait",
+ "libc",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "sqlx-postgres",
+ "tempfile",
+ "tokio",
+ "uuid",
+ "zeroize",
 ]
 
 [[package]]

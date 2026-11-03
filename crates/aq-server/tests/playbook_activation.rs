@@ -35,17 +35,24 @@ impl Drop for Peer {
     }
 }
 async fn peer(path: &Path) -> Peer {
+    // Forward to whichever disposable loopback PostgreSQL DATABASE_URL names:
+    // scripts/test-db (127.0.0.1:55432) locally, localhost:5432 in CI.
     let env = reqwest::Url::parse(&std::env::var("DATABASE_URL").unwrap()).unwrap();
-    assert_eq!(env.host_str(), Some("127.0.0.1"));
-    assert_eq!(env.port(), Some(55432));
+    let host = env.host_str().unwrap().to_owned();
+    assert!(
+        matches!(host.as_str(), "127.0.0.1" | "localhost"),
+        "the Unix peer only forwards to a loopback test database, got {host}"
+    );
+    let port = env.port().unwrap_or(5432);
     let listener = UnixListener::bind(path.join(".s.PGSQL.5432")).unwrap();
     let connections = Arc::new(Mutex::new(vec![]));
     let saved = connections.clone();
     let task = tokio::spawn(async move {
         loop {
             let (mut unix, _) = listener.accept().await.unwrap();
+            let host = host.clone();
             let task = tokio::spawn(async move {
-                let mut tcp = TcpStream::connect("127.0.0.1:55432").await.unwrap();
+                let mut tcp = TcpStream::connect((host.as_str(), port)).await.unwrap();
                 let _ = tokio::io::copy_bidirectional(&mut unix, &mut tcp).await;
             });
             saved.lock().unwrap().push(task);
@@ -287,16 +294,26 @@ async fn ready(base: &str, task: &JoinHandle<anyhow::Result<()>>) {
     panic!("owner startup timeout");
 }
 async fn get(base: &str, path: &str) -> Value {
-    let r = client()
-        .get(format!("{base}{path}"))
-        .header("x-aq-dev-email", "owner@localhost")
-        .send()
-        .await
-        .unwrap();
-    let status = r.status();
-    let body: Value = r.json().await.unwrap();
-    assert!(status.is_success(), "{status}: {body}");
-    body
+    // Inspection reads queue on the single owner thread behind a drive quantum
+    // (up to 8 transitions, ~1-2s in unoptimized test builds) and report 503
+    // playbook_storage_unknown when that outlasts the 2s inspect deadline.
+    // Re-reading is idempotent; every other status still fails immediately.
+    for attempt in 1.. {
+        let r = client()
+            .get(format!("{base}{path}"))
+            .header("x-aq-dev-email", "owner@localhost")
+            .send()
+            .await
+            .unwrap();
+        let status = r.status();
+        let body: Value = r.json().await.unwrap();
+        if status == 503 && body["code"] == "playbook_storage_unknown" && attempt < 5 {
+            continue;
+        }
+        assert!(status.is_success(), "{status}: {body}");
+        return body;
+    }
+    unreachable!()
 }
 #[tokio::test]
 async fn explicit_unix_owner_starts_dispatches_restarts_without_regrant_and_drains() {

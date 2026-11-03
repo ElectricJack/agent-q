@@ -113,6 +113,11 @@ pub struct GitError {
     pub retry: RetryAdvice,
 }
 impl GitError {
+    pub(super) fn retryable_candidate(&self) -> bool {
+        matches!(self.code.as_str(), "overloaded" | "io_error" | "state_busy")
+            && self.retry == RetryAdvice::SafeSameOperation
+            && !self.uncertain()
+    }
     pub(super) fn uncertain(&self) -> bool {
         self.code == "operation_indeterminate"
             || self.retry == RetryAdvice::ReconcileFirst
@@ -197,6 +202,7 @@ impl WireResult for PublishResult {
                     && serde_json::to_value(old).ok().as_ref() == Some(&params["expected_old"])
                     && old.validate().is_ok()
                     && new.validate().is_ok()
+                    && serde_json::to_value(new).ok().as_ref() == Some(&params["candidate"])
                     && !new.hex.bytes().all(|b| b == b'0')
                     && chrono::DateTime::parse_from_rfc3339(acknowledged_at).is_ok()
             }
@@ -219,6 +225,7 @@ impl WireResult for OperationResult {
         self.version == 1
             && params["target_operation_id"] == self.id.to_string()
             && self.payload["repository_id"] == c.repository_id.to_string()
+            && self.payload["expected_binding_generation"] == c.binding_generation
     }
 }
 pub(super) fn decode<T: WireResult>(

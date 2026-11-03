@@ -413,9 +413,12 @@ PY
   if docker run -d --name "$REGISTRY_NAME" -p "$REGISTRY:5000" registry:2 >>"$COMPOSE_LOG" 2>&1 &&
       poll "registry API" 30 0.5 curl -fsS --max-time 2 "http://$REGISTRY/v2/"; then
     # A missing manifest proves the daemon reaches the registry as well as WSL.
+    # The classic image store says "manifest unknown"; the containerd image
+    # store (GitHub runners) says 'failed to resolve reference "<ref>": ... not found'.
     timeout -k 5 30 docker pull "$REGISTRY/aq-connectivity-probe:not-present" \
       </dev/null >"$LOG_DIR/registry-daemon-probe.log" 2>&1 || true
-    if grep -Eq 'manifest unknown|manifest .*not found' "$LOG_DIR/registry-daemon-probe.log"; then
+    if grep -Eq 'manifest unknown|manifest .*not found|failed to resolve reference .*aq-connectivity-probe:not-present: not found$' \
+        "$LOG_DIR/registry-daemon-probe.log"; then
       REGISTRY_READY=1
       break
     fi

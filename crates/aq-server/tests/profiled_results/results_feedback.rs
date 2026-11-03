@@ -178,6 +178,7 @@ async fn feedback_comments_replay_history_resolution_and_feeds() {
 }
 
 #[tokio::test]
+#[ignore = "requires explicit pinned AQ_TEST_GRAPH_BINARY and AQ_TEST_GRAPH_SHA256"]
 async fn feedback_task_links_result_revision() {
     use sqlx::ConnectOptions;
     use std::os::unix::fs::PermissionsExt;
