@@ -16,6 +16,7 @@ pub const TTL: u64 = 30000;
 pub enum Resource {
     Sessions,
     Projects,
+    Search,
 }
 #[derive(Clone, Debug)]
 pub struct Snapshot {
@@ -25,13 +26,17 @@ pub struct Snapshot {
     pub scope: Scope,
     pub resource: Resource,
     pub ids: Vec<Uuid>,
+    pub filters: serde_json::Value,
+    pub search: Option<super::search::SnapshotData>,
     pub truncated: bool,
     pub expires: u64,
     pub created: u64,
 }
 pub struct Runtime {
+    pub reviews: Option<std::sync::Arc<crate::reviews::Service>>,
     pub pool: PgPool,
     pub gate: Semaphore,
+    pub quota: super::quota::Collector,
     codec: CursorCodec,
     snapshots: Mutex<BTreeMap<Uuid, Snapshot>>,
 }
@@ -50,12 +55,19 @@ impl Runtime {
                 .acquire_timeout(Duration::from_millis(500))
                 .connect_lazy_with(options),
             gate: Semaphore::new(4),
+            reviews: None,
+            quota: super::quota::Collector::new(),
             codec: CursorCodec::default(),
             snapshots: Mutex::new(BTreeMap::new()),
         }
     }
     pub fn insert(&self, mut snapshot: Snapshot, now: u64) -> Result<Snapshot> {
-        if snapshot.ids.len() > MEMBERS {
+        if snapshot.ids.len() > MEMBERS
+            || snapshot
+                .search
+                .as_ref()
+                .is_some_and(|s| s.hits.len() > MEMBERS)
+        {
             return Err(Error::Unavailable);
         }
         let mut all = self.snapshots.lock().map_err(|_| Error::Unavailable)?;
@@ -83,24 +95,32 @@ impl Runtime {
         scope: &Scope,
         resource: Resource,
         limit: u16,
+        filters: &serde_json::Value,
     ) -> Binding {
         Binding {
             principal: actor,
             authorization_partition: partition.into(),
             scope: serde_json::json!(scope),
-            filters: serde_json::json!({}),
+            filters: filters.clone(),
             sort: "snapshot_membership,id".into(),
             page_size: limit,
             resource: format!("{resource:?}"),
         }
     }
     pub fn next(&self, s: &Snapshot, offset: usize, limit: u16) -> Result<String> {
-        if offset > s.ids.len() {
+        if offset > s.search.as_ref().map_or(s.ids.len(), |s| s.hits.len()) {
             return Err(Error::Invalid);
         }
         self.codec
             .encode(
-                &Self::binding(s.actor, &s.partition, &s.scope, s.resource, limit),
+                &Self::binding(
+                    s.actor,
+                    &s.partition,
+                    &s.scope,
+                    s.resource,
+                    limit,
+                    &s.filters,
+                ),
                 &s.id.to_string(),
                 &offset.to_string(),
                 s.created,
@@ -117,12 +137,30 @@ impl Runtime {
         limit: u16,
         now: u64,
     ) -> Result<(Snapshot, usize)> {
-        let (scope, resource) = target;
+        self.resume_filtered(
+            token,
+            actor,
+            partition,
+            (target.0, target.1, &serde_json::json!({})),
+            limit,
+            now,
+        )
+    }
+    pub fn resume_filtered(
+        &self,
+        token: &str,
+        actor: Uuid,
+        partition: &str,
+        target: (&Scope, Resource, &serde_json::Value),
+        limit: u16,
+        now: u64,
+    ) -> Result<(Snapshot, usize)> {
+        let (scope, resource, filters) = target;
         let c = self
             .codec
             .decode(
                 token,
-                &Self::binding(actor, partition, scope, resource, limit),
+                &Self::binding(actor, partition, scope, resource, limit, filters),
                 now,
             )
             .map_err(|error| match error {
@@ -142,7 +180,8 @@ impl Runtime {
             || &s.scope != scope
             || s.resource != resource
             || s.expires != c.expires
-            || offset > s.ids.len()
+            || &s.filters != filters
+            || offset > s.search.as_ref().map_or(s.ids.len(), |s| s.hits.len())
         {
             return Err(Error::Restart);
         }
@@ -158,6 +197,8 @@ mod tests {
                 .connect_lazy("postgres://localhost/unused")
                 .unwrap(),
             gate: Semaphore::new(4),
+            reviews: None,
+            quota: super::super::quota::Collector::new(),
             codec: CursorCodec::default(),
             snapshots: Mutex::new(BTreeMap::new()),
         }
@@ -170,6 +211,8 @@ mod tests {
             scope: Scope::AllAuthorized,
             resource: Resource::Sessions,
             ids: vec![Uuid::new_v4(); 3],
+            filters: serde_json::json!({}),
+            search: None,
             truncated: false,
             expires: now + TTL,
             created: now,

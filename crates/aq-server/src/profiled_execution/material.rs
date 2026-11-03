@@ -122,6 +122,7 @@ pub(crate) fn provisioning_bindings(
     delivery: &aq_selection::DeliveryCapability,
     observed: u64,
     expires: u64,
+    backend_kind: Option<aq_selection::BackendKind>,
 ) -> Vec<aq_selection::CredentialBinding> {
     if node.is_nil()
         || boot.is_nil()
@@ -143,6 +144,8 @@ pub(crate) fn provisioning_bindings(
                 || !c.provisionable
                 || cfg.delivery_mode.is_none()
                 || !cfg.allowed_node_ids.contains(&node)
+                || aq_selection::credential_backend_policy(&cfg.allowed_backends, backend_kind)
+                    .is_err()
                 || read_configured(registry, index).is_err()
             {
                 return None;
@@ -195,6 +198,8 @@ mod tests {
         IntelligenceConfig {
             revision: 1,
             credentials: vec![CredentialConfig {
+                kind: Default::default(),
+                allowed_backends: aq_selection::default_allowed_backends(),
                 credential: aq_selection::AuthorizedCredential {
                     profile: lease.credential_profile.clone(),
                     provider: lease.provider.as_str().into(),
@@ -204,12 +209,90 @@ mod tests {
                     enabled: true,
                     provisionable: false,
                     material_owner: None,
+                    allowed_backends: aq_selection::default_allowed_backends(),
                 },
                 allowed_node_ids: vec![node],
                 secret_file: Some(path),
                 delivery_mode: Some(MaterialDeliveryMode::ServerMaterialV1),
             }],
             qualified_harnesses: vec![],
+        }
+    }
+    #[test]
+    fn credential_backend_policy_gates_provisioning_before_private_reads() {
+        use aq_selection::{BackendKind, CredentialKind, DeliveryCapability};
+        let lease = lease();
+        let SessionIdentity::Remote {
+            node_id, boot_id, ..
+        } = lease.binding.session
+        else {
+            unreachable!()
+        };
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("private-key");
+        std::fs::write(&path, b"synthetic-key").unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let delivery = DeliveryCapability {
+            adapter: lease.credential_profile.clone(),
+            version: 1,
+        };
+        for kind in [CredentialKind::ApiKey, CredentialKind::SubscriptionLogin] {
+            let mut cfg = config(path.clone(), &lease, node_id);
+            cfg.credentials[0].kind = kind;
+            cfg.credentials[0].allowed_backends = vec![BackendKind::DockerLocal];
+            let registry = cfg.load().unwrap();
+            for backend in [
+                None,
+                Some(BackendKind::Boat),
+                Some(BackendKind::CloudflareContainers),
+            ] {
+                assert!(
+                    provisioning_bindings(
+                        &registry, node_id, boot_id, &delivery, 1000, 2000, backend
+                    )
+                    .is_empty()
+                );
+            }
+            assert_eq!(
+                provisioning_bindings(
+                    &registry,
+                    node_id,
+                    boot_id,
+                    &delivery,
+                    1000,
+                    2000,
+                    Some(BackendKind::DockerLocal)
+                )
+                .len(),
+                1
+            );
+            cfg.credentials[0].allowed_backends = aq_selection::default_allowed_backends();
+            assert_eq!(
+                provisioning_bindings(
+                    &cfg.load().unwrap(),
+                    node_id,
+                    boot_id,
+                    &delivery,
+                    1000,
+                    2000,
+                    None
+                )
+                .len(),
+                1
+            );
+            cfg.credentials[0].allowed_node_ids.clear();
+            assert!(
+                provisioning_bindings(
+                    &cfg.load().unwrap(),
+                    node_id,
+                    boot_id,
+                    &delivery,
+                    1000,
+                    2000,
+                    Some(BackendKind::DockerLocal)
+                )
+                .is_empty()
+            );
         }
     }
     #[test]

@@ -5,6 +5,18 @@ use uuid::Uuid;
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
 #[serde(transparent)]
 pub struct Revision(#[schemars(regex(pattern = "^[1-9][0-9]{0,39}$"))] pub String);
+/// Reference pins retain the owner's numeric revision or exact content digest.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum ReferenceRevision {
+    Revision(Revision),
+    Digest(Digest),
+}
+impl From<Revision> for ReferenceRevision {
+    fn from(value: Revision) -> Self {
+        Self::Revision(value)
+    }
+}
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(transparent)]
 pub struct Timestamp(
@@ -149,6 +161,7 @@ pub struct Bootstrap {
 #[serde(rename_all = "snake_case")]
 pub enum Accuracy {
     Exact,
+    Estimated,
     Unknown,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -187,7 +200,7 @@ pub struct EntityRef {
     pub kind: String,
     pub id: Uuid,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub revision: Option<Revision>,
+    pub revision: Option<ReferenceRevision>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -196,7 +209,7 @@ pub struct TitledRef {
     pub kind: String,
     pub id: Uuid,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub revision: Option<Revision>,
+    pub revision: Option<ReferenceRevision>,
     pub title: String,
 }
 #[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
@@ -313,17 +326,146 @@ pub struct InMotion {
 #[serde(deny_unknown_fields)]
 pub struct Overview {
     pub counts: Counts,
-    #[schemars(length(max = 0))]
-    pub attention: Vec<serde_json::Value>,
+    pub attention: Vec<AttentionItem>,
     pub in_motion: Vec<InMotion>,
-    #[schemars(length(max = 0))]
-    pub recent_outcomes: Vec<serde_json::Value>,
+    pub recent_outcomes: Vec<RecentOutcome>,
+    #[serde(default)]
+    pub sources: Vec<SourceObservation>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum AttentionKind {
+    Decision,
+    Question,
+    Blocked,
+    Failed,
+    UncertainOperation,
+    WorkerOffline,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ActionDescriptor {
+    pub kind: String,
+    pub label: String,
+    pub subject: EntityRef,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct AttentionItem {
+    pub id: String,
+    pub kind: AttentionKind,
+    pub title: String,
+    pub project: Option<ProjectRef>,
+    pub reason: String,
+    pub impact: String,
+    pub since: Option<Timestamp>,
+    pub subject: EntityRef,
+    pub action: Option<ActionDescriptor>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RecentOutcome {
+    pub subject: TitledRef,
+    pub project: ProjectRef,
+    pub outcome: String,
+    pub at: Timestamp,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SourceObservation {
+    pub source: String,
+    pub project: Option<ProjectRef>,
+    pub observation: Option<Observation>,
+    pub coverage: Coverage,
+    pub total: Total,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum QuotaState {
+    Known,
+    Unknown,
+    Unavailable,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct QuotaWindow {
+    pub id: String,
+    pub label: String,
+    pub starts_at: Option<Timestamp>,
+    pub resets_at: Option<Timestamp>,
+    #[schemars(range(min = 0.0, max = 100.0))]
+    pub used_percent: Option<f64>,
+    pub used: Option<f64>,
+    pub limit: Option<f64>,
+    pub unit: String,
+    pub state: QuotaState,
+    pub observation: Observation,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum ProviderScope {
+    ProviderAccount,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ProviderUsage {
+    pub provider_id: String,
+    pub account_ref: String,
+    pub account_label: String,
+    pub scope: ProviderScope,
+    pub windows: Vec<QuotaWindow>,
+    pub preferred_window_id: Option<String>,
+    pub availability_ref: Option<EntityRef>,
+}
+/// Owner-specific identity: playbook names are not UUIDs.
+#[derive(
+    Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord,
+)]
+#[serde(rename_all = "snake_case")]
+pub enum SearchType {
+    Task,
+    Session,
+    Result,
+    Playbook,
+    Knowledge,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SearchRef {
+    pub kind: SearchType,
+    pub id: String,
+    pub revision: ReferenceRevision,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SearchHit {
+    pub r#ref: SearchRef,
+    pub title: String,
+    pub excerpt: String,
+    pub project: ProjectRef,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SearchGroup {
+    pub r#type: SearchType,
+    pub hits: Vec<SearchHit>,
+    pub has_more: bool,
+    pub next_cursor: Option<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Search {
+    pub groups: Vec<SearchGroup>,
+    pub sources: Vec<SourceObservation>,
+    pub snapshot_id: Uuid,
 }
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum Response {
     Bootstrap(Envelope<Bootstrap>),
     Overview(Envelope<Overview>),
+    Search(Envelope<Search>),
+    ProviderUsage(Envelope<Vec<ProviderUsage>>),
     Sessions(Envelope<Page<SessionSummary>>),
     Session(Box<Envelope<SessionDetail>>),
     Projects(Envelope<Page<ProjectRef>>),

@@ -98,7 +98,7 @@ pub async fn accept(
         tokio::task::spawn_blocking(move || {
             let _permit = permit;
             super::super::material::issue_for_selection(
-                &registry, &selection, &binding, lease_id, received, expiry,
+                &registry, &selection, &binding, lease_id, received, expiry, None,
             )
         }),
     )

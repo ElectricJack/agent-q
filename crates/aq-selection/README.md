@@ -35,3 +35,16 @@ scope from the retained selection and requires its qualified classifier artifact
 Generic lifecycle `ProviderError {code,retryable}` is unverified source evidence
 and cannot directly become quota/authentication truth. No classifier is implied
 by a provider name or an arbitrary worker error string.
+
+Credential backend policy uses the closed `docker-local`, `boat`, and
+`cloudflare-containers` set. Startup profiles accept `kind = "api-key"` (default)
+or `kind = "subscription-login"`; kind is metadata only. Their optional
+`allowed_backends` defaults to all three, with placement separately deciding
+which backends are enabled. An explicit empty list denies every backend.
+`CapabilitySnapshot.backend_kind` is a trusted eligibility input. Narrowed
+allowlists deny missing identity with `credential_backend_unknown`; known denied
+backends produce `credential_backend_not_allowed`. Both are `PolicyDenied` and
+obey the configured fallback policy. Default snapshots keep their historical
+serialized form. Existing server producers supply unknown until C4 connects
+authenticated advertisements; restricted profiles therefore fail closed there.
+The material provisioning and issuance helpers require the same explicit input.
