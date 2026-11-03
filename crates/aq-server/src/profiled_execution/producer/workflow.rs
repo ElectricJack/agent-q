@@ -305,7 +305,12 @@ async fn offers(
     let record = crate::project_bindings::current(state, policy.project_id).await?;
     let graph = state.agent_access.as_ref().ok_or_else(refused)?;
     let ready = graph
-        .scheduling_ready(record.binding.graph_workspace_id, 8, None)
+        .scheduling_ready_current(
+            record.binding.graph_workspace_id,
+            8,
+            None,
+            state.clock.as_ref(),
+        )
         .await
         .map_err(|_| refused())?;
     let Some(task) = first_eligible_task(&ready, |task| {
@@ -318,7 +323,7 @@ async fn offers(
     let generation =
         super::super::no_grant::next_generation(&state.store.pool, task.task_id).await?;
     let context = graph
-        .scheduling_context(&task, 1, 64, 1_048_576)
+        .scheduling_context_current(&task, 1, 64, 1_048_576, state.clock.as_ref())
         .await
         .map_err(|_| refused())?;
     let compiled = compose::compile(state, &record, auth.id(), &snapshot, &context).await?;
@@ -384,7 +389,12 @@ async fn offers(
     // External export can consume the original graph/selection freshness. Read
     // actual owners again; a task CAS/content change refuses this original task.
     let ready = graph
-        .scheduling_ready(record.binding.graph_workspace_id, 8, None)
+        .scheduling_ready_current(
+            record.binding.graph_workspace_id,
+            8,
+            None,
+            state.clock.as_ref(),
+        )
         .await
         .map_err(|_| refused())?;
     if canonical(
@@ -399,7 +409,7 @@ async fn offers(
         return Err(refused());
     }
     let context = graph
-        .scheduling_context(&task, 1, 64, 1_048_576)
+        .scheduling_context_current(&task, 1, 64, 1_048_576, state.clock.as_ref())
         .await
         .map_err(|_| refused())?;
     let compiled = compose::compile(state, &record, auth.id(), &snapshot, &context).await?;
