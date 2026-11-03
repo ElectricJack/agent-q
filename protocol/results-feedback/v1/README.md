@@ -118,3 +118,39 @@ No new write route, SQL migration, Graph status lookup or action-union change is
 introduced. The valid, invalid, replay and compatibility fixtures cover the
 additions, exact retained origins and legacy decoding. Runtime tests cover reload,
 principal partitioning, revision isolation, replay and real Graph creation/linking.
+
+## Additive read revision 1.2
+
+Routes, envelopes, writes and the immutable `revision` object are unchanged.
+Detail (including feed items) and comments pages advertise
+`feedback_read_version: "results-feedback-1.2"`. The new fields default when
+absent, so 1.0 and 1.1 responses still decode. `detail_1_2` and `comments_1_2`
+in the compatibility fixture project back exactly to their 1.1 shapes.
+
+- `presentation` holds the human labels for a Result card or detail:
+  - `project_name` is the execution binding's name, or the project UUID string
+    when the binding has no name.
+  - `task_title` comes from the Graph task read behind the same owner/binding
+    fences. When Graph is unavailable or the task is not visible, it is null and
+    `task_title_state` is `"unavailable"`. Never show a placeholder as a title.
+  - `task_key` is the first 8 hex digits of the task UUID, uppercased. AQ has no
+    sequential task keys.
+  - `revision_number` and `revision_label` (`r<N>`) give the 1-based position of
+    this report in the Result's supersession chain.
+  - `comment_count` is the number of comments across all retained revisions.
+- `revision_history` lists every retained revision of the Result for Compare,
+  oldest first and bounded to 64. Each entry has `report_id`, exact `revision`,
+  `revision_number`/`revision_label`, `submitted_at_ms`, the per-revision
+  `comment_count`, up to 20 retained `artifacts` (artifact UUID and digest, for
+  before/after pairs through
+  `GET /api/human/results/{report_id}/revisions/{revision}/media/{artifact_id}/content?variant=preview`),
+  and `current`.
+- Each comment has `author`:
+  - `id` and `display_name` come from the current user record. The display name
+    is the email address, the same as the bootstrap principal.
+  - `initials` is derived from the email's local part.
+  - `avatar_url` is always null, because no avatar owner exists.
+- Comments pages have `comment_count` for the exact revision, at the page's
+  snapshot.
+
+Video clips are not part of this revision. Media remains image-only, as in G6.

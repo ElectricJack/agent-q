@@ -298,11 +298,55 @@
         "revision"
       ]
     },
+    "CommentAuthor": {
+      "description": "Display profile for a comment author. AQ stores no avatar images.",
+      "type": "object",
+      "properties": {
+        "avatar_url": {
+          "description": "Always null: no avatar owner is mounted.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "display_name": {
+          "type": "string",
+          "maxLength": 320,
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "initials": {
+          "type": "string",
+          "pattern": "^[A-Z0-9?]{1,2}$"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "display_name",
+        "initials"
+      ]
+    },
     "CommentProjection": {
       "type": "object",
       "properties": {
         "anchor": {
           "$ref": "#/$defs/Anchor"
+        },
+        "author": {
+          "description": "Present from results-feedback-1.2.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CommentAuthor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "author_id": {
           "type": "string",
@@ -404,6 +448,16 @@
     "CommentsPage": {
       "type": "object",
       "properties": {
+        "comment_count": {
+          "description": "Total comments on this exact revision; present from results-feedback-1.2.",
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "default": null,
+          "minimum": 0
+        },
         "feedback_read_version": {
           "$ref": "#/$defs/FeedbackReadVersion",
           "default": "results-feedback-1"
@@ -498,11 +552,32 @@
             "state": "unsupported"
           }
         },
+        "presentation": {
+          "description": "Present from results-feedback-1.2 on the feed and exact-revision reads.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResultPresentation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "result": {
           "$ref": "#/$defs/ResultProjection"
         },
         "revision": {
           "$ref": "#/$defs/ResultRevision"
+        },
+        "revision_history": {
+          "description": "Every retained revision of this Result, oldest first (at most 64).",
+          "type": "array",
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/RevisionHistoryEntry"
+          },
+          "maxItems": 64
         }
       },
       "additionalProperties": false,
@@ -934,10 +1009,19 @@
     },
     "FeedbackReadVersion": {
       "description": "Additive read contract revision; missing markers identify legacy v1 responses.",
-      "type": "string",
-      "enum": [
-        "results-feedback-1",
-        "results-feedback-1.1"
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "results-feedback-1",
+            "results-feedback-1.1"
+          ]
+        },
+        {
+          "description": "Adds display labels, revision history and comment author profiles.",
+          "type": "string",
+          "const": "results-feedback-1.2"
+        }
       ]
     },
     "FeedbackTaskStatus": {
@@ -1016,6 +1100,22 @@
           "required": [
             "state"
           ]
+        }
+      ]
+    },
+    "LabelState": {
+      "description": "Whether an upstream-owned display label could be read for this response.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "available"
+          ]
+        },
+        {
+          "description": "The Graph task read was unavailable, unauthorized or not mounted.",
+          "type": "string",
+          "const": "unavailable"
         }
       ]
     },
@@ -1185,6 +1285,61 @@
         "unresolved_review"
       ]
     },
+    "ResultPresentation": {
+      "description": "Supplemental card-header and filter labels. Observed at read time; never\npart of the immutable submitted revision.",
+      "type": "object",
+      "properties": {
+        "comment_count": {
+          "description": "Comments across every revision of this Result.",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "project_name": {
+          "description": "Current project display name; the project ID when the binding is unnamed.",
+          "type": "string",
+          "maxLength": 512,
+          "minLength": 1
+        },
+        "revision_label": {
+          "description": "`r<revision_number>`.",
+          "type": "string",
+          "pattern": "^r[1-9][0-9]*$"
+        },
+        "revision_number": {
+          "description": "One-based position of this revision in its supersession chain.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 1
+        },
+        "task_key": {
+          "description": "Short display handle derived from `task_id` (AQ has no sequential task keys).",
+          "type": "string",
+          "pattern": "^[0-9A-F]{8}$"
+        },
+        "task_title": {
+          "description": "Current Graph task title; null whenever `task_title_state` is unavailable.",
+          "type": [
+            "string",
+            "null"
+          ],
+          "maxLength": 512,
+          "minLength": 1
+        },
+        "task_title_state": {
+          "$ref": "#/$defs/LabelState"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "project_name",
+        "task_title_state",
+        "task_key",
+        "revision_number",
+        "revision_label",
+        "comment_count"
+      ]
+    },
     "ResultProjection": {
       "description": "Result identity and principal preference, independent of mutable assessment.",
       "type": "object",
@@ -1323,6 +1478,61 @@
       "additionalProperties": false,
       "required": [
         "items"
+      ]
+    },
+    "RevisionHistoryEntry": {
+      "description": "One retained revision of a Result, oldest first, for Compare and before/after pairs.",
+      "type": "object",
+      "properties": {
+        "artifacts": {
+          "description": "Currently retained image evidence on that revision (previewable media).",
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ArtifactPin"
+          },
+          "maxItems": 20
+        },
+        "comment_count": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        },
+        "current": {
+          "type": "boolean"
+        },
+        "report_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "revision_label": {
+          "type": "string",
+          "pattern": "^r[1-9][0-9]*$"
+        },
+        "revision_number": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 1
+        },
+        "submitted_at_ms": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "report_id",
+        "revision",
+        "revision_number",
+        "revision_label",
+        "submitted_at_ms",
+        "comment_count",
+        "artifacts",
+        "current"
       ]
     },
     "RevisionRef": {

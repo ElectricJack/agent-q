@@ -148,7 +148,7 @@ async fn feedback_comments_replay_history_resolution_and_feeds() {
     );
     assert_eq!(
         detail["data"]["feedback_read_version"],
-        "results-feedback-1.1"
+        "results-feedback-1.2"
     );
     assert_eq!(
         detail["data"]["follow_up_submission"],
@@ -157,7 +157,7 @@ async fn feedback_comments_replay_history_resolution_and_feeds() {
     let (_, comments) = send(&app, "GET", &path, Value::Null).await;
     assert_eq!(
         comments["data"]["feedback_read_version"],
-        "results-feedback-1.1"
+        "results-feedback-1.2"
     );
     assert_eq!(
         comments["data"]["follow_up_submission"],
@@ -998,4 +998,90 @@ async fn feedback_reload_keeps_exact_resolution_and_direct_principal_preference(
             .unwrap()
             .is_empty()
     );
+    assert_eq!(fresh_comments["data"]["comment_count"], 0);
+
+    // results-feedback-1.2 human labels, revision history and comment authors.
+    let shown = &new_detail["data"]["presentation"];
+    assert_eq!(shown["revision_label"], "r2");
+    assert_eq!(shown["revision_number"], 2);
+    assert_eq!(shown["comment_count"], 1);
+    let key = shown["task_key"].as_str().unwrap();
+    assert_eq!(
+        key,
+        &new_detail["data"]["result"]["task_id"]
+            .as_str()
+            .unwrap()
+            .replace('-', "")[..8]
+            .to_ascii_uppercase()
+    );
+    let project: Uuid = new_detail["data"]["result"]["project_id"]
+        .as_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    let name: Option<String> = sqlx::query_scalar(
+        "SELECT binding->>'name' FROM project_execution_bindings WHERE project_id=$1",
+    )
+    .bind(project)
+    .fetch_optional(&pool)
+    .await
+    .unwrap()
+    .flatten();
+    assert_eq!(
+        shown["project_name"],
+        name.unwrap_or_else(|| project.to_string())
+    );
+    assert_ne!(shown["project_name"], "");
+    match shown["task_title_state"].as_str().unwrap() {
+        "available" => assert!(shown["task_title"].is_string()),
+        "unavailable" => assert!(shown["task_title"].is_null()),
+        other => panic!("unexpected title state {other}"),
+    }
+    assert_eq!(old_detail["data"]["presentation"]["revision_label"], "r1");
+    let history = new_detail["data"]["revision_history"].as_array().unwrap();
+    assert_eq!(
+        history,
+        old_detail["data"]["revision_history"].as_array().unwrap()
+    );
+    let compact: Vec<_> = history
+        .iter()
+        .map(|h| {
+            (
+                h["revision_label"].clone(),
+                h["revision"].clone(),
+                h["comment_count"].clone(),
+                h["current"].clone(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        compact,
+        vec![
+            (
+                json!("r1"),
+                json!(receipt.report_digest.as_str()),
+                json!(1),
+                json!(false)
+            ),
+            (
+                json!("r2"),
+                json!(next.report_digest.as_str()),
+                json!(0),
+                json!(true)
+            ),
+        ]
+    );
+    assert_eq!(comments["data"]["comment_count"], 1);
+    assert_eq!(
+        comments["data"]["items"][0]["author"],
+        json!({"id":comments["data"]["items"][0]["author_id"],"display_name":"owner@localhost","initials":"O","avatar_url":null})
+    );
+    let (_, feed) = send(&reloaded, "GET", "/api/v1/results", Value::Null).await;
+    let card = feed["data"]["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|i| i["result"]["id"] == json!(report.report_id))
+        .unwrap();
+    assert_eq!(card["presentation"]["revision_label"], "r2");
 }

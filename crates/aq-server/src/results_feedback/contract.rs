@@ -212,6 +212,75 @@ pub enum FeedbackReadVersion {
     V1,
     #[serde(rename = "results-feedback-1.1")]
     V1_1,
+    /// Adds display labels, revision history and comment author profiles.
+    #[serde(rename = "results-feedback-1.2")]
+    V1_2,
+}
+
+/// Whether an upstream-owned display label could be read for this response.
+#[derive(Serialize, Deserialize, JsonSchema, PartialEq, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum LabelState {
+    Available,
+    /// The Graph task read was unavailable, unauthorized or not mounted.
+    Unavailable,
+}
+
+/// Supplemental card-header and filter labels. Observed at read time; never
+/// part of the immutable submitted revision.
+#[derive(Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ResultPresentation {
+    /// Current project display name; the project ID when the binding is unnamed.
+    #[schemars(length(min = 1, max = 512))]
+    pub project_name: String,
+    /// Current Graph task title; null whenever `task_title_state` is unavailable.
+    #[schemars(length(min = 1, max = 512))]
+    pub task_title: Option<String>,
+    pub task_title_state: LabelState,
+    /// Short display handle derived from `task_id` (AQ has no sequential task keys).
+    #[schemars(regex(pattern = "^[0-9A-F]{8}$"))]
+    pub task_key: String,
+    /// One-based position of this revision in its supersession chain.
+    #[schemars(range(min = 1))]
+    pub revision_number: u32,
+    /// `r<revision_number>`.
+    #[schemars(regex(pattern = "^r[1-9][0-9]*$"))]
+    pub revision_label: String,
+    /// Comments across every revision of this Result.
+    pub comment_count: u64,
+}
+
+/// One retained revision of a Result, oldest first, for Compare and before/after pairs.
+#[derive(Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RevisionHistoryEntry {
+    pub report_id: Uuid,
+    #[schemars(regex(pattern = "^[0-9a-f]{64}$"))]
+    pub revision: String,
+    #[schemars(range(min = 1))]
+    pub revision_number: u32,
+    #[schemars(regex(pattern = "^r[1-9][0-9]*$"))]
+    pub revision_label: String,
+    pub submitted_at_ms: u64,
+    pub comment_count: u64,
+    /// Currently retained image evidence on that revision (previewable media).
+    #[schemars(length(max = 20))]
+    pub artifacts: Vec<ArtifactPin>,
+    pub current: bool,
+}
+
+/// Display profile for a comment author. AQ stores no avatar images.
+#[derive(Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct CommentAuthor {
+    pub id: Uuid,
+    #[schemars(length(min = 1, max = 320))]
+    pub display_name: String,
+    #[schemars(regex(pattern = "^[A-Z0-9?]{1,2}$"))]
+    pub initials: String,
+    /// Always null: no avatar owner is mounted.
+    pub avatar_url: Option<String>,
 }
 
 /// No submission owner exists yet. Links and resolution never imply submission.
@@ -333,6 +402,13 @@ pub struct Detail {
     pub result: ResultProjection,
     pub revision: ResultRevision,
     pub assessment: ResultAssessment,
+    /// Present from results-feedback-1.2 on the feed and exact-revision reads.
+    #[serde(default)]
+    pub presentation: Option<ResultPresentation>,
+    /// Every retained revision of this Result, oldest first (at most 64).
+    #[serde(default)]
+    #[schemars(length(max = 64))]
+    pub revision_history: Vec<RevisionHistoryEntry>,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
@@ -361,6 +437,9 @@ pub struct CommentProjection {
     pub created_at_ms: i64,
     pub anchor: Anchor,
     pub history: Vec<CommentRevision>,
+    /// Present from results-feedback-1.2.
+    #[serde(default)]
+    pub author: Option<CommentAuthor>,
 }
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]
@@ -377,6 +456,9 @@ pub struct CommentsPage {
     pub follow_up_submission: FollowUpSubmission,
     pub items: Vec<CommentProjection>,
     pub next_cursor: Option<String>,
+    /// Total comments on this exact revision; present from results-feedback-1.2.
+    #[serde(default)]
+    pub comment_count: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, JsonSchema)]
@@ -449,5 +531,25 @@ mod tests {
         );
         assert_eq!(current.items[0].revision, "2");
         assert!(current.items[0].resolution.is_some());
+        assert!(current.items[0].author.is_none() && current.comment_count.is_none());
+        let labelled: Detail = serde_json::from_value(reads["detail_1_2"].clone()).unwrap();
+        assert!(matches!(
+            labelled.feedback_read_version,
+            FeedbackReadVersion::V1_2
+        ));
+        let shown = labelled.presentation.unwrap();
+        assert_eq!(
+            (shown.revision_label.as_str(), shown.task_title_state),
+            ("r2", LabelState::Available)
+        );
+        assert_eq!(labelled.revision_history.len(), 2);
+        assert!(labelled.revision_history[1].current);
+        let authored: CommentsPage = serde_json::from_value(reads["comments_1_2"].clone()).unwrap();
+        assert_eq!(authored.comment_count, Some(1));
+        let author = authored.items[0].author.as_ref().unwrap();
+        assert_eq!(
+            (author.initials.as_str(), author.avatar_url.as_deref()),
+            ("R", None)
+        );
     }
 }

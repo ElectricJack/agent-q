@@ -185,6 +185,22 @@ pub(crate) async fn authorize_task(
         .await
         .map(|_| ())
 }
+/// Current Graph task title for Results display labels, through the same
+/// bounded owner, binding and node-kind fences as the task detail read.
+pub(crate) async fn task_title(
+    state: &AppState,
+    r: &ReadRuntime,
+    actor: &User,
+    project: Uuid,
+    task: Uuid,
+) -> Result<String> {
+    let Json(envelope) = detail(state, r, actor.clone(), project, task, "task", None).await?;
+    envelope.data["title"]
+        .as_str()
+        .filter(|t| !t.is_empty() && t.len() <= 512)
+        .map(str::to_owned)
+        .ok_or_else(unavailable)
+}
 async fn access(state: &AppState, r: &ReadRuntime, actor: User, project: Uuid) -> Result<Access> {
     if project.is_nil() {
         return Err(invalid());

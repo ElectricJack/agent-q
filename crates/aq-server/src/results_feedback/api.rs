@@ -212,9 +212,12 @@ async fn feed(
     }
     let end = (start + usize::from(bind.page_size)).min(snapshot.pins.len());
     let mut items = Vec::new();
+    let mut labels = store::Labeler::new(&state);
     for (id, rev) in &snapshot.pins[start..end] {
         let p = store::pin(&state, *id, Some(rev)).await?;
-        items.push(store::detail(&state, &user, &p).await?);
+        let mut d = store::detail(&state, &user, &p).await?;
+        store::present(&state, &user, &mut labels, &p, &mut d).await?;
+        items.push(d);
     }
     let next = if end < snapshot.pins.len() {
         let token = runtime
@@ -258,7 +261,15 @@ async fn detail(
 ) -> Result<Json<Envelope<Detail>>> {
     let Path((id, revision)) = path.map_err(|_| store::invalid())?;
     let p = store::pin(&state, id, Some(&revision)).await?;
-    let data = store::detail(&state, &user, &p).await?;
+    let mut data = store::detail(&state, &user, &p).await?;
+    store::present(
+        &state,
+        &user,
+        &mut store::Labeler::new(&state),
+        &p,
+        &mut data,
+    )
+    .await?;
     store::principal(&state, &user).await?;
     Ok(Json(envelope(
         &state,
@@ -329,6 +340,7 @@ async fn comments(
         i64::from(bind.page_size) + 1,
     )
     .await?;
+    let count = store::revision_comment_count(&state, &p, snapshot).await?;
     let next = if items.len() > usize::from(bind.page_size) {
         items.pop();
         let position = items
@@ -349,7 +361,7 @@ async fn comments(
         Scope::Project {
             project_id: p.project,
         },
-        json!({"feedback_read_version":FeedbackReadVersion::V1_1,"follow_up_submission":FollowUpSubmission::Unsupported,"items":items,"next_cursor":next}),
+        json!({"feedback_read_version":FeedbackReadVersion::V1_2,"follow_up_submission":FollowUpSubmission::Unsupported,"items":items,"next_cursor":next,"comment_count":count}),
     )))
 }
 type Body =

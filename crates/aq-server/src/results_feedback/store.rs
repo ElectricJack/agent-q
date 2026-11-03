@@ -571,7 +571,9 @@ pub(super) async fn detail(state: &AppState, user: &User, p: &Pin) -> Result<Det
         vec![]
     };
     Ok(Detail {
-        feedback_read_version: FeedbackReadVersion::V1_1,
+        feedback_read_version: FeedbackReadVersion::V1_2,
+        presentation: None,
+        revision_history: vec![],
         follow_up_submission: FollowUpSubmission::Unsupported,
         result: ResultProjection {
             directly_following,
@@ -625,7 +627,7 @@ pub(super) async fn comments(
     limit: i64,
 ) -> Result<Vec<Value>> {
     principal(state, user).await?;
-    let rows=sqlx::query("SELECT c.id,c.revision,c.created_at_ms,c.position,t.id AS thread_id,t.version AS thread_version,t.state,t.anchor,t.resolved_by,t.reason,t.follow_up_report,t.follow_up_revision,fp.result_id AS follow_up_result_id,r.body,r.author_id FROM result_comments c JOIN result_threads t ON t.id=c.thread_id JOIN result_comment_revisions r ON r.comment_id=c.id AND r.revision=c.revision LEFT JOIN result_revision_pins fp ON fp.report_id=t.follow_up_report AND fp.report_revision=t.follow_up_revision WHERE t.report_id=$1 AND t.report_revision=$2 AND c.position<=$3 AND c.position>$4 ORDER BY c.position LIMIT $5").bind(p.report).bind(&p.revision).bind(snapshot).bind(after).bind(limit).fetch_all(&state.store.pool).await?;
+    let rows=sqlx::query("SELECT c.id,c.revision,c.created_at_ms,c.position,t.id AS thread_id,t.version AS thread_version,t.state,t.anchor,t.resolved_by,t.reason,t.follow_up_report,t.follow_up_revision,fp.result_id AS follow_up_result_id,r.body,r.author_id,u.email AS author_email FROM result_comments c JOIN result_threads t ON t.id=c.thread_id JOIN result_comment_revisions r ON r.comment_id=c.id AND r.revision=c.revision LEFT JOIN result_revision_pins fp ON fp.report_id=t.follow_up_report AND fp.report_revision=t.follow_up_revision JOIN users u ON u.id=r.author_id WHERE t.report_id=$1 AND t.report_revision=$2 AND c.position<=$3 AND c.position>$4 ORDER BY c.position LIMIT $5").bind(p.report).bind(&p.revision).bind(snapshot).bind(after).bind(limit).fetch_all(&state.store.pool).await?;
     let mut output = Vec::new();
     for r in rows {
         let id: Uuid = r.get("id");
@@ -671,10 +673,166 @@ pub(super) async fn comments(
         } else {
             None
         };
-        output.push(json!({"feedback_links":feedback_links,"resolution":resolution,"position":r.get::<i64,_>("position").to_string(),"id":id,"revision":r.get::<i64,_>("revision").to_string(),"thread_id":r.get::<Uuid,_>("thread_id"),"thread_version":r.get::<i64,_>("thread_version").to_string(),"thread_state":r.get::<String,_>("state"),"body":r.get::<String,_>("body"),"author_id":r.get::<Uuid,_>("author_id"),"created_at_ms":r.get::<i64,_>("created_at_ms"),"anchor":r.get::<Value,_>("anchor"),"history":history}));
+        output.push(json!({"feedback_links":feedback_links,"resolution":resolution,"position":r.get::<i64,_>("position").to_string(),"id":id,"revision":r.get::<i64,_>("revision").to_string(),"thread_id":r.get::<Uuid,_>("thread_id"),"thread_version":r.get::<i64,_>("thread_version").to_string(),"thread_state":r.get::<String,_>("state"),"body":r.get::<String,_>("body"),"author_id":r.get::<Uuid,_>("author_id"),"created_at_ms":r.get::<i64,_>("created_at_ms"),"anchor":r.get::<Value,_>("anchor"),"history":history,"author":author(r.get("author_id"),r.get("author_email"))}));
     }
     principal(state, user).await?;
     Ok(output)
+}
+
+/// Author display profile from the current user record; no avatar owner exists.
+fn author(id: Uuid, email: String) -> CommentAuthor {
+    let local = email.split('@').next().unwrap_or_default();
+    let initials: String = local
+        .split(['.', '_', '-', '+'])
+        .filter_map(|part| part.chars().find(char::is_ascii_alphanumeric))
+        .take(2)
+        .map(|c| c.to_ascii_uppercase())
+        .collect();
+    CommentAuthor {
+        id,
+        display_name: email,
+        initials: if initials.is_empty() {
+            "?".into()
+        } else {
+            initials
+        },
+        avatar_url: None,
+    }
+}
+
+/// Comments on one exact revision within the frozen cursor snapshot.
+pub(super) async fn revision_comment_count(
+    state: &AppState,
+    p: &Pin,
+    snapshot: i64,
+) -> Result<u64> {
+    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM result_comments c JOIN result_threads t ON t.id=c.thread_id WHERE t.report_id=$1 AND t.report_revision=$2 AND c.position<=$3")
+        .bind(p.report)
+        .bind(&p.revision)
+        .bind(snapshot)
+        .fetch_one(&state.store.pool)
+        .await?;
+    Ok(n as u64)
+}
+
+/// Per-request label reader. Graph task titles are cached per task, and after
+/// the first unavailable Graph read the rest of the page reports unavailable
+/// instead of paying another bounded timeout.
+pub(super) struct Labeler {
+    graph: crate::agent_access::human::ReadRuntime,
+    titles: std::collections::HashMap<(Uuid, Uuid), Option<String>>,
+    graph_failed: bool,
+}
+impl Labeler {
+    pub(super) fn new(state: &AppState) -> Self {
+        Self {
+            graph: crate::agent_access::human::ReadRuntime::with_pool(state.store.pool.clone()),
+            titles: Default::default(),
+            graph_failed: state.agent_access.is_none(),
+        }
+    }
+    async fn title(
+        &mut self,
+        state: &AppState,
+        user: &User,
+        project: Uuid,
+        task: Uuid,
+    ) -> Option<String> {
+        if let Some(t) = self.titles.get(&(project, task)) {
+            return t.clone();
+        }
+        if self.graph_failed {
+            return None;
+        }
+        let read = crate::agent_access::human::task_title(state, &self.graph, user, project, task);
+        let title = match tokio::time::timeout(std::time::Duration::from_millis(1500), read).await {
+            Ok(Ok(title)) => Some(title),
+            Ok(Err(crate::error::AppError::NotFound(_))) => None,
+            _ => {
+                self.graph_failed = true;
+                None
+            }
+        };
+        self.titles.insert((project, task), title.clone());
+        title
+    }
+}
+
+fn revision_label(n: u32) -> String {
+    format!("r{n}")
+}
+
+/// Fill the results-feedback-1.2 display labels and revision history.
+pub(super) async fn present(
+    state: &AppState,
+    user: &User,
+    labels: &mut Labeler,
+    p: &Pin,
+    d: &mut Detail,
+) -> Result<()> {
+    let project_name = sqlx::query_scalar::<_, Option<String>>(
+        "SELECT binding->>'name' FROM project_execution_bindings WHERE project_id=$1",
+    )
+    .bind(p.project)
+    .fetch_optional(&state.store.pool)
+    .await?
+    .flatten()
+    .filter(|s| !s.trim().is_empty() && s.len() <= 512)
+    .unwrap_or_else(|| p.project.to_string());
+    let task_title = labels.title(state, user, p.project, p.task).await;
+    let rows = sqlx::query("WITH RECURSIVE chain AS (SELECT report_id,1 AS n FROM profiled_result_reports WHERE report_id=$1 UNION ALL SELECT r.report_id,c.n+1 FROM profiled_result_reports r JOIN chain c ON r.supersedes=c.report_id WHERE c.n<64) SELECT c.report_id,c.n,p.report_revision,p.submitted_at_ms,(SELECT count(*) FROM result_comments m JOIN result_threads t ON t.id=m.thread_id WHERE t.report_id=c.report_id AND t.report_revision=p.report_revision) AS comments FROM chain c JOIN result_revision_pins p USING(report_id) ORDER BY c.n,p.submitted_at_ms,c.report_id LIMIT 64")
+        .bind(p.result)
+        .fetch_all(&state.store.pool)
+        .await?;
+    let now = (state.clock)().timestamp_millis();
+    let mut history = Vec::with_capacity(rows.len());
+    for row in rows {
+        let report: Uuid = row.get("report_id");
+        let revision: String = row.get("report_revision");
+        let n = row.get::<i32, _>("n") as u32;
+        let artifacts = sqlx::query("SELECT operation_id,input_digest FROM result_media_intents WHERE report_id=$1 AND report_revision=$2 AND state='retained' AND cleanup_state='none' AND withheld_at_ms IS NULL AND retain_until_ms>$3 ORDER BY operation_id LIMIT 20")
+            .bind(report)
+            .bind(&revision)
+            .bind(now)
+            .fetch_all(&state.store.pool)
+            .await?
+            .iter()
+            .map(|a| ArtifactPin {
+                artifact_id: a.get("operation_id"),
+                digest: a.get("input_digest"),
+            })
+            .collect();
+        history.push(RevisionHistoryEntry {
+            report_id: report,
+            current: revision == d.result.current_revision,
+            revision,
+            revision_number: n,
+            revision_label: revision_label(n),
+            submitted_at_ms: row.get::<i64, _>("submitted_at_ms") as u64,
+            comment_count: row.get::<i64, _>("comments") as u64,
+            artifacts,
+        });
+    }
+    let n = history
+        .iter()
+        .find(|h| h.report_id == p.report)
+        .map(|h| h.revision_number)
+        .ok_or_else(ApiError::unavailable)?;
+    d.presentation = Some(ResultPresentation {
+        project_name,
+        task_title_state: if task_title.is_some() {
+            LabelState::Available
+        } else {
+            LabelState::Unavailable
+        },
+        task_title,
+        task_key: p.task.simple().to_string()[..8].to_ascii_uppercase(),
+        revision_number: n,
+        revision_label: revision_label(n),
+        comment_count: history.iter().map(|h| h.comment_count).sum(),
+    });
+    d.revision_history = history;
+    Ok(())
 }
 
 pub(super) async fn draft_intent(

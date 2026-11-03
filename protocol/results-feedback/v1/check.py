@@ -102,3 +102,27 @@ for response in reload.values():
     validate('CommentsPage', response)
 assert reload['before'] == reload['after_identical_replay'] == reload['after_reload']
 print('Results feedback 1.1: additive reads, exact origins and reload fixtures passed')
+
+# results-feedback-1.2 adds display labels, Compare history and comment authors;
+# dropping those fields must yield the 1.1 wire shape.
+for kind, old_key, new_key in (
+    ('Detail', 'detail_1_1', 'detail_1_2'),
+    ('CommentsPage', 'comments_1_1', 'comments_1_2'),
+):
+    validate(kind, additions[new_key])
+    projected = json.loads(json.dumps(additions[new_key]))
+    assert projected.pop('feedback_read_version') == 'results-feedback-1.2'
+    projected['feedback_read_version'] = 'results-feedback-1.1'
+    if kind == 'Detail':
+        shown = projected.pop('presentation')
+        history = projected.pop('revision_history')
+        assert shown['revision_label'] == 'r%d' % shown['revision_number']
+        assert [h['current'] for h in history].count(True) == 1
+        assert shown['comment_count'] == sum(h['comment_count'] for h in history)
+    else:
+        assert projected.pop('comment_count') == len(projected['items'])
+        for comment in projected['items']:
+            author = comment.pop('author')
+            assert author['id'] == comment['author_id'] and author['avatar_url'] is None
+    assert projected == additions[old_key]
+print('Results feedback 1.2: labels, revision history and comment authors passed')
