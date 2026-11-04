@@ -598,3 +598,12 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Fix:** following the owner's "run everything on Claude", overrode with `aq provider set-state --provider claude --state available --for 2h` (lasts until about the 21:59Z weekly reset).
   - #2203 was probably fine and should be re-landed; the 30 s reconcile timeout is back until then.
   - Also: the owner's Claude sandbox token was verified. B7 (`noble-summit-37.10`) was handed back to the router during the investigation.
+- **20:45 claim stall: real root cause found and fixed.**
+  - **Diagnostics (owner-authorised):** added temporary logging (agent-queue #2206 claim.empty, #2207 pr_admission.withheld) and restarted.
+  - **The claims were empty, not broken.** Every remaining READY candidate was withheld with `pull_request_dependency_delivery`: "PR does not identify the current completed source".
+  - **The trap:** three merged prerequisite PRs (aq-server #20 `calm-delta-18.15`, #29 `crisp-meadow-36.1`, #35 `noble-summit-37.2`) have head commits that are *operator merge commits* (my day-1 renumber and main merges), not the task's recorded completion commit. v1 PR admission requires the PR head to equal `completion.commits[-1]`, so their dependents were withheld forever. Everything else had been claimed already, which made it look like a sudden stall.
+  - **Fix:** verified all five completion commits are on main, then removed the seven satisfied `blocks` edges (`aq task remove-dependency --dep-type blocks`), with a comment on each dependent.
+  - **Result:** C5a1, B7 and H4 were claimed within a minute. D1b is waiting for a slot.
+  - **Scan:** no other READY/DEFINED dependency on a mismatched PR.
+  - **Clean-up:** reverted the debug logging (#2208) and restarted. The provider override and the #2203 reland stay; the 30 s reconcile timeouts are at 0.
+  - **Earlier wrong hypotheses, both disproven:** #2203 (wrongly reverted, then relanded in #2205) and the degraded provider (overridden with no effect).
