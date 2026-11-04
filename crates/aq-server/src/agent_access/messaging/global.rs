@@ -1,4 +1,5 @@
 //! Human global-conversation admission over AQ-11 mail, never runtime delivery.
+mod attachments;
 pub mod dispatch;
 mod marker;
 mod reads;
@@ -138,6 +139,12 @@ pub fn routes(state: &AppState) -> Router<AppState> {
             "/api/human/conversations/{conversation}/read-marker",
             get(marker::read).put(marker::write),
         )
+        .route(
+            "/api/human/conversations/{conversation}/attachments/{attachment}",
+            get(attachments::download)
+                .put(attachments::upload)
+                .layer(DefaultBodyLimit::max(attachments::MAX_SIZE)),
+        )
         .layer(DefaultBodyLimit::max(131072))
         .layer(Extension(service.clone()))
         .layer(middleware::from_fn_with_state(service, gate))
@@ -148,6 +155,10 @@ pub fn supervisor_routes(state: &AppState) -> Router<AppState> {
     let service = Arc::new(Service::new(state));
     Router::new()
         .route("/v1/supervisor/conversation/replies", post(reply::reply))
+        .route(
+            "/v1/supervisor/conversation/attachments/{attachment}",
+            get(attachments::supervisor_download),
+        )
         .layer(DefaultBodyLimit::max(131072))
         .layer(Extension(service.clone()))
         .layer(middleware::from_fn_with_state(service, gate))
