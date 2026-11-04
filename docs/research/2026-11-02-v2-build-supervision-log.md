@@ -616,3 +616,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - J4 to `deep-low-claude`, because the deep-high pool is at max 0.
   - Left I4b (`azure-horizon-22.3`, Codex qualification) unrouted because it needs Codex.
   - Most of these are still dependency-blocked; this lets them start as soon as their dependencies clear. The dashboard landing steward `quick-flare-90` and G9–G11 can now be claimed.
+- **21:20 check.**
+  - **MS1 chain:** C5a1 (`calm-delta-18.12`) completed by direct integration; commit `efadf6dde9` is on aq-server main. C5a2 is now running, along with D1b, H4 and B7.
+  - **Merged aq-server #72** (azure-grove-68, which redesigns the atomicity test; all 9 checks green), then #73 (agile-vault-27, supervisor owner-message attachments; only the old atomicity failure). Per W61, I merged #73 as-is rather than update-branch, so I didn't create a PR-head/completion mismatch.
+  - Closed #66 (superseded by #72).
+  - Dashboard #43, #46 and #55 still fail their own specs; the steward `quick-flare-90` is on them.
+  - Claude usage: 89%.
