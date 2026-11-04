@@ -24,4 +24,4 @@ CREATE TABLE human_decision_evidence_views (
  viewed_at_ms bigint NOT NULL CHECK (viewed_at_ms >= 0),
  PRIMARY KEY(decision_id, actor_id, evidence_id)
 );
-UPDATE meta SET value='72' WHERE key='state_format_version';
+UPDATE meta SET value='73' WHERE key='state_format_version';
