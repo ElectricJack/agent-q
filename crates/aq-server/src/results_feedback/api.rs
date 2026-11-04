@@ -152,7 +152,7 @@ async fn feed(
         || page.scope.as_deref() == Some("project") && page.project_id.is_none()
         || !matches!(
             page.media.as_deref(),
-            None | Some("any") | Some("image") | Some("none")
+            None | Some("any") | Some("image") | Some("video") | Some("none")
         )
         || page.since_ms.is_some_and(|n| n < 0)
         || page.until_ms.is_some_and(|n| n < 0)
