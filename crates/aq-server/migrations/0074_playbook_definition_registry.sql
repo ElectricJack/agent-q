@@ -16,4 +16,4 @@ CREATE TABLE playbook_definitions (
  UNIQUE(namespace_id,generation,name,version),
  FOREIGN KEY(namespace_id,generation) REFERENCES playbook_namespaces(namespace_id,generation)
 );
-UPDATE meta SET value='72' WHERE key='state_format_version';
+UPDATE meta SET value='74' WHERE key='state_format_version';
