@@ -81,3 +81,16 @@ responses. Expired overview observations and search cursors are refused, so no
 stale aggregate/search success fixture is asserted. The retained search cursor is
 an opaque shape example, not reusable across processes; replay and restart are
 verified by the owning integration test. Prior five read fixtures remain checked.
+
+`capacity.read@1` advertises owner-only GET `/api/v1/capacity` (`capacity.json`).
+`slots` totals and idle count online workers only and are `unknown`, with partial
+coverage, when an online worker advertises no slot total (host-native) or the
+inventory exceeds 256 workers; `occupied` is the exact count of task-holding
+attempts. Each node's `eligibility.reasons` are the worker state, capability
+report freshness and the placement owner's own ceiling refusal
+(`node_concurrency_ceiling_reached`, `node_spend_ceiling_reached`,
+`node_spend_unaccounted`, `node_disk_pressure`). Provider availability comes from
+unexpired node credential bindings for the account's profiles: `unknown` with
+`no_fresh_node_report` when no live node reports one. Nothing here grants placement.
+`/api/workers` rows carry the latest storage report flattened (`disk_*_bytes`,
+`preserved_*`, `storage_used_bps`, `storage_observed_at`), absent when unreported.

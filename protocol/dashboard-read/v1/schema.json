@@ -107,6 +107,22 @@
       ],
       "type": "string"
     },
+    "AvailabilityReason": {
+      "enum": [
+        "account_disabled",
+        "no_fresh_node_report",
+        "credential_unavailable_on_nodes"
+      ],
+      "type": "string"
+    },
+    "AvailabilityState": {
+      "enum": [
+        "available",
+        "unavailable",
+        "unknown"
+      ],
+      "type": "string"
+    },
     "Binding": {
       "additionalProperties": false,
       "properties": {
@@ -229,6 +245,33 @@
       ],
       "type": "string"
     },
+    "Capacity": {
+      "additionalProperties": false,
+      "description": "X1/X2 installation capacity: slot load, per-node placement eligibility and\nper-account provider availability. Owner-only and installation-wide.",
+      "properties": {
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/NodeCapacity"
+          },
+          "type": "array"
+        },
+        "providers": {
+          "items": {
+            "$ref": "#/$defs/ProviderAvailability"
+          },
+          "type": "array"
+        },
+        "slots": {
+          "$ref": "#/$defs/SlotSummary"
+        }
+      },
+      "required": [
+        "slots",
+        "nodes",
+        "providers"
+      ],
+      "type": "object"
+    },
     "Completeness": {
       "enum": [
         "complete",
@@ -342,6 +385,32 @@
     },
     "Digest": {
       "pattern": "^sha256:[0-9a-f]{64}$",
+      "type": "string"
+    },
+    "Eligibility": {
+      "additionalProperties": false,
+      "properties": {
+        "reasons": {
+          "items": {
+            "$ref": "#/$defs/IneligibleReason"
+          },
+          "type": "array"
+        },
+        "state": {
+          "$ref": "#/$defs/EligibilityState"
+        }
+      },
+      "required": [
+        "state",
+        "reasons"
+      ],
+      "type": "object"
+    },
+    "EligibilityState": {
+      "enum": [
+        "eligible",
+        "ineligible"
+      ],
       "type": "string"
     },
     "EntityRef": {
@@ -564,7 +633,7 @@
           "$ref": "#/$defs/Coverage"
         },
         "data": {
-          "$ref": "#/$defs/Page"
+          "$ref": "#/$defs/Capacity"
         },
         "observation": {
           "$ref": "#/$defs/Observation"
@@ -609,7 +678,7 @@
           "$ref": "#/$defs/Coverage"
         },
         "data": {
-          "$ref": "#/$defs/SessionDetail"
+          "$ref": "#/$defs/Page"
         },
         "observation": {
           "$ref": "#/$defs/Observation"
@@ -645,6 +714,51 @@
       "type": "object"
     },
     "Envelope7": {
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "$ref": "#/$defs/ApiVersion"
+        },
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "data": {
+          "$ref": "#/$defs/SessionDetail"
+        },
+        "observation": {
+          "$ref": "#/$defs/Observation"
+        },
+        "pending_operations": {
+          "items": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "request_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "server_time": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "api_version",
+        "request_id",
+        "server_time",
+        "scope",
+        "data",
+        "observation",
+        "pending_operations",
+        "coverage"
+      ],
+      "type": "object"
+    },
+    "Envelope8": {
       "additionalProperties": false,
       "properties": {
         "api_version": {
@@ -725,6 +839,20 @@
       ],
       "type": "object"
     },
+    "IneligibleReason": {
+      "description": "Why placement would refuse new work on a node. Ceiling reasons are the\nplacement refusal codes.",
+      "enum": [
+        "worker_offline",
+        "worker_revoked",
+        "capability_unreported",
+        "capability_expired",
+        "node_concurrency_ceiling_reached",
+        "node_spend_ceiling_reached",
+        "node_spend_unaccounted",
+        "node_disk_pressure"
+      ],
+      "type": "string"
+    },
     "Limits": {
       "additionalProperties": false,
       "properties": {
@@ -757,6 +885,167 @@
         "max_page_size",
         "snapshot_members",
         "snapshot_ttl_ms"
+      ],
+      "type": "object"
+    },
+    "NodeCapacity": {
+      "additionalProperties": false,
+      "properties": {
+        "backend_kind": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "capability_fresh_until": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "capability_observed_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "eligibility": {
+          "$ref": "#/$defs/Eligibility"
+        },
+        "health": {
+          "$ref": "#/$defs/WorkerHealth"
+        },
+        "last_seen_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "node": {
+          "$ref": "#/$defs/EntityRef"
+        },
+        "slots": {
+          "$ref": "#/$defs/NodeSlots"
+        },
+        "storage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NodeStorage"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "node",
+        "name",
+        "health",
+        "slots",
+        "eligibility"
+      ],
+      "type": "object"
+    },
+    "NodeSlots": {
+      "additionalProperties": false,
+      "description": "A node's slots: `total`/`idle` are null when no backend advertises them.",
+      "properties": {
+        "idle": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "occupied": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "total": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "occupied"
+      ],
+      "type": "object"
+    },
+    "NodeStorage": {
+      "additionalProperties": false,
+      "description": "The latest SBX25 storage report for a node.",
+      "properties": {
+        "disk_free_bytes": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "disk_reserved_bytes": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "disk_total_bytes": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "disk_used_bytes": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "preserved_bytes": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "preserved_count": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "used_bps": {
+          "format": "uint16",
+          "maximum": 65535,
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "used_bps",
+        "disk_total_bytes",
+        "disk_used_bytes",
+        "disk_free_bytes",
+        "disk_reserved_bytes",
+        "preserved_count",
+        "preserved_bytes",
+        "observed_at"
       ],
       "type": "object"
     },
@@ -1036,6 +1325,63 @@
       "required": [
         "id",
         "label"
+      ],
+      "type": "object"
+    },
+    "ProviderAvailability": {
+      "additionalProperties": false,
+      "description": "One configured provider account's availability from unexpired node\ncredential reports. `observed_at` is the newest report used; it is null\nwhen no unexpired node reports the account's credential profiles.",
+      "properties": {
+        "account_ref": {
+          "type": "string"
+        },
+        "available_nodes": {
+          "format": "uint32",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "fresh_until": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observed_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provider_id": {
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AvailabilityReason"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "state": {
+          "$ref": "#/$defs/AvailabilityState"
+        }
+      },
+      "required": [
+        "provider_id",
+        "account_ref",
+        "state",
+        "available_nodes"
       ],
       "type": "object"
     },
@@ -1777,6 +2123,35 @@
       ],
       "type": "object"
     },
+    "SlotSummary": {
+      "additionalProperties": false,
+      "description": "Sandbox slots across online, unrevoked workers. `occupied` counts every\ntask-holding attempt; `total` and `idle` are unknown while any online\nworker advertises no slot total (host-native workers).",
+      "properties": {
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "idle": {
+          "$ref": "#/$defs/Total"
+        },
+        "observed_at": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "occupied": {
+          "$ref": "#/$defs/Total"
+        },
+        "total": {
+          "$ref": "#/$defs/Total"
+        }
+      },
+      "required": [
+        "total",
+        "occupied",
+        "idle",
+        "observed_at",
+        "coverage"
+      ],
+      "type": "object"
+    },
     "SourceObservation": {
       "additionalProperties": false,
       "properties": {
@@ -1911,6 +2286,14 @@
         "explanation"
       ],
       "type": "object"
+    },
+    "WorkerHealth": {
+      "enum": [
+        "online",
+        "offline",
+        "revoked"
+      ],
+      "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -1935,6 +2318,9 @@
     },
     {
       "$ref": "#/$defs/Envelope7"
+    },
+    {
+      "$ref": "#/$defs/Envelope8"
     }
   ],
   "title": "Response"

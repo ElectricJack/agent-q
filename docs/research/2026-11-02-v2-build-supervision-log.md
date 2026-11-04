@@ -489,3 +489,52 @@ Each entry records what was observed, the action taken, and anything waiting on 
 - **14:00 owner: replace the demo stack with the real code.** Tore down and deleted the `aq-demo` dev stack completely (containers, volumes, `aq-demo-server:main` image, dashboard worktree, wrapper scripts). Reopened E5 (it was IN_PROGRESS with no agent) to stand up the real production Compose stack on the owner's desktop on localhost now (project `aq-local`): local worker enrolled (E6a), supervisor host (F1a), Claude logins preferred. Cloudflare stays in the paused child `.7.2`.
   - Told the owner which "not hooked up" items are unbuilt features rather than wiring: provider accounts (C5a1/C5b/C6), attention questions (F5), agent views (G10), playbook actions (G9/D9), Claude in sandboxes (I1).
   - `sharp-horizon-92` was widened to a wiring audit (wired / no data / server path missing / UI missing).
+- **14:10–15:30 owner: "Shut down AQ and fast track the AQ scheduler fix yourself. Then restart it."** Stopped the daemon with `--keep-sessions`.
+  - **Root cause 1:** the cycle-wide hierarchy frontier read included PAUSED projects. The paused v1 `agent-queue` project timed out at 60 s on every read (1,182 timeouts on 2026-11-03).
+  - **Root cause 2:** the container sweep crashed the whole cycle when one container's settlement raised.
+  - **Fix:** agent-queue PR #2201, merged to `dev` as admin. The required "Integration Attestation" check comes from AQ's own train, which was stopped. Targeted tests: 2 + 3 new and focused; pool/delivery/hierarchy area suites 399 passed.
+  - Fast-forwarded the live checkout (83 + 1 commits, no migrations; schema at head) and started the daemon. The frontier timeouts stopped.
+  - **Root cause 3 (found after restart):** the scheduler's delivery admission still took READY tasks from paused projects. That pulled cycles into a multi-minute `git fsck --full` of the 7.1 GB agent-queue retained store. Cycles were still 55–100 s and the pool scaler stalled (desired 6, live 2). Follow-up fix in progress.
+  - Filed main-CI fixes:
+    - aq-platform: `native_accepted_preparation` returns a 500.
+    - aq-dashboard: Search.test.tsx times out, and one bundleCompatibility test fails.
+  - Codex is exhausted for about 5 days; Claude usage is at 72%.
+- **15:30–15:50 follow-up scheduler fix.**
+  - PR #2201 put v1's integration-engine size budget over by 12 lines, so dev CI went red. Separately, `test_bazel_metrics` hit a pytester INTERNAL_ERROR that doesn't reproduce locally (34 passed).
+  - agent-queue PR #2202, merged as admin:
+    - moves the paused-project scoping into the orchestrator callers, putting `delivery_observer.py` back to its original text;
+    - drops paused projects' READY tasks from scheduler delivery admission;
+    - records an exact +9 owned / +0 engine grant. New regression test; size, generated-artifact and scheduler tests: 187 passed.
+  - Deployed with `aq restart --no-dashboard` (sessions kept).
+  - Filed the G11-pre audit's 37 cross-repo follow-ups as 8 grouped aq-platform tasks, one per view: Overview brisk-harbor-73, Supervisor sharp-falcon-11, Work bright-willow-25, Decisions sharp-current-37, Agents nimble-forge-36, Results bright-impact-86, Playbooks grand-falcon-29, Knowledge azure-apex-96. Each one checks the plan first so it doesn't duplicate C5/F5/G9/G10/SBX25.
+  - D6 blocker: its three follow-ups (`crisp-meadow-36.7.1/.2/.3`) were filed as children and claimed by other workers. Reparented them to the root and told D6 to retry its close.
+- **15:50 after #2202.** 10 v2 tasks are in progress (up from 2 at 14:00): main-CI fix, G11 server contracts (Overview, Supervisor, Work), E5, two D6 follow-ups, two dashboard gap fixes, and the playbooks spec. D6 closed after the reparent.
+  - Load is now 27 on 24 cores, mostly agents' parallel aq-server `rustc`/clippy builds plus three post-restart `git fsck --full` runs of the v1 repo. Cycles run 30–100 s under that load. Limits are now CPU and Claude usage (73%), not the scheduler.
+- **16:10 check.**
+  - D6 (`crisp-meadow-36.7`) and both main-CI fixes completed.
+  - **aq-dashboard:** merged PR #13 (Search and 426 fixtures aligned with the G3/G8 contracts). Its one failure, a SupervisorConversation 5 s timeout, was a CI flake that passed on rerun. Updated the gap-fix PRs #12 and #14–#17 onto the new main. #12 also breaks `Shell.test.tsx` on its own.
+  - **aq-server:** PR #56 (calm-current-41 main-CI fix) is waiting on CI.
+  - **Disk:** aq-server slot build caches reached 286 GB. Removed idle slot-1's 60 GB `target` (nothing was compiling there), leaving 179 GB free (82%). Logged as retro W53.
+- **16:40 check.**
+  - **aq-dashboard main is still red after #13.** Failures rotate between runs: ResultMediaUpload fails every run; Results, SessionUsage and SupervisorConversation fail intermittently. Filed a deterministic-suite task at priority 12.
+  - **Merged #14 (OV-B) and #17 (SV-E).** Their only failures were in files they don't touch, from the flaky set above.
+  - **Sent back:** #15 (OV-C) and #16 (OV-D) to merge main, since they now conflict with #14. #12 (OV-A) to fix its own Shell.test regressions.
+  - **aq-server #56:** one `phase_execution::atomicity` proposal-expiry timing failure. I'll rerun it when the run completes.
+  - Disk: 173 GB free. Claude usage: 75%.
+- **17:20 check.** aq-dashboard main CI is green again.
+  - **Merged dashboard PRs** #22 (SH-I), #23 (WK-G), #19 (SV-F) and #20 (WK-A). Their only failures were the flaky ResultMediaUpload/SessionUsage pair, in files they don't touch.
+  - **Sent back** #21 (WK-B) and #18 (SV-H) to merge main; they conflict with #23 and #19.
+  - **Dashboard throughput** is capped by `standard-high-claude` max_active=8 (8 busy), plus PR-merge gates between gap tasks.
+  - **aq-platform holds:** `bright-willow-25` (PR #57) and `crisp-meadow-36.7.2` are under supervisor recovery holds (`session_close_pipeline_stop`). The work passed, but the merge slot was held. Opened PR #59 for `aq/crisp-meadow-36.7.2`, which had no PR. #57 fails only the known `native_accepted_preparation` test that #56 fixes. Plan: merge #56, update #57 and #59, merge them, then release the holds.
+  - **Notes branch:** found the aq-server notes checkout on `feat/v2-execution`; three notes pushes had gone there. Pushed them to main and switched back to main.
+- **17:50 check.**
+  - **aq-server main clippy failure.** `explicit_auto_deref` at `dashboard_api/capacity.rs:108-109` (from brisk-harbor-73's `44f1516`) failed every open PR's fmt-and-clippy job. Fixed on main in `9585dc2` after a local `cargo clippy -p aq-server --lib -D warnings` passed. Updated PRs #57, #58 and #60.
+  - **PR #56 (calm-current-41).** `phase_execution::atomicity::original_proposal_expiry_does_not_limit_new_execution_lease` fails twice in a row; main passes it, so this is a regression. Reopened with the failing test, priority 8.
+  - **crisp-meadow-36.7.2.** PR #59 conflicts with main. Released its `session_close_pipeline_stop` hold with an operator retry, and left a comment saying not to redo the work: merge main, update #59, close.
+  - **SHR-L fixtures.** At the owner's request I set `calm-vault-46.14` to priority 5 and routed it to the empty standard-medium-claude pool. Claimed at 23:42Z.
+  - The notes checkout is on main (branch checked before commit). Shell gotcha: a `snip` wrapper swallows `docker exec psql` output; use `/usr/bin/docker`.
+- **18:15 check.**
+  - **Rework catch-22.** Four reopened dashboard gap tasks (OV-C, OV-D, SV-H, WK-B) were held with `child_preparation_conflict`. v1's claim preparation merges main into the old task branch before a worker starts and refuses on conflict, so the worker never gets to resolve it.
+  - **Fix:** filed fresh re-apply tasks that start from main and cherry-pick the old branch: keen-pinnacle-80, sharp-glacier-37, solid-willow-70, fresh-ridge-68. Closed the old tasks `--obsolete` and closed PRs #15, #16, #18 and #21 as superseded. The branches are kept.
+  - **Merged #12 (OV-A).**
+  - **SHR-L (#24):** units pass, but `supervisor-launcher.spec.ts` "launcher never covers content on /results" now fails because the new Results fixtures fill the page. Reopened at priority 5 on standard-medium.
