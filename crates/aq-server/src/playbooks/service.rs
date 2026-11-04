@@ -104,6 +104,7 @@ impl Service {
             graph,
             checks: None,
             judgments: None,
+            integration: None,
         }));
         Ok(service)
     }
@@ -118,12 +119,26 @@ impl Service {
         checks: Option<Arc<dyn super::host_adapters::CheckExecutor>>,
         judgments: Option<Arc<dyn super::host_adapters::JudgmentProvider>>,
     ) -> Result<Self> {
+        Self::new_host7_integration(state, namespace, keys, graph, checks, judgments, None).await
+    }
+    /// Profile 7 with the D7 integration port (D1 delivery service); `None`
+    /// refuses candidate.prepare / candidate.publish `unavailable`.
+    pub async fn new_host7_integration(
+        state: &crate::AppState,
+        namespace: Namespace,
+        keys: Arc<Keyring>,
+        graph: Arc<dyn super::host_adapters::WorkGraph>,
+        checks: Option<Arc<dyn super::host_adapters::CheckExecutor>>,
+        judgments: Option<Arc<dyn super::host_adapters::JudgmentProvider>>,
+        integration: Option<Arc<dyn super::host_adapters::Integration>>,
+    ) -> Result<Self> {
         let mut service = Self::with_profile(state, namespace, keys, CatalogProfile::Host7).await?;
         service.host = Some(Arc::new(super::host_adapters::HostPorts {
             state: state.clone(),
             graph,
             checks,
             judgments,
+            integration,
         }));
         Ok(service)
     }
@@ -141,6 +156,7 @@ impl Service {
             graph,
             checks: None,
             judgments: None,
+            integration: None,
         }));
         Ok(service)
     }

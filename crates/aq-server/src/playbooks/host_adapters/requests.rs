@@ -917,6 +917,10 @@ impl Service {
             outcome: "refused".into(),
             output: json!({"reference": handle, "subject": subject(handle, 0)}),
         };
+        if let Some(result) = self.integration_get(handle).await? {
+            self.validated(intent, &result.outcome, &result.output)?;
+            return Ok(result);
+        }
         let Ok(operation) = Uuid::parse_str(handle) else {
             return Ok(missing());
         };
