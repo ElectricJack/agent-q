@@ -533,3 +533,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **crisp-meadow-36.7.2.** PR #59 conflicts with main. Released its `session_close_pipeline_stop` hold with an operator retry, and left a comment saying not to redo the work: merge main, update #59, close.
   - **SHR-L fixtures.** At the owner's request I set `calm-vault-46.14` to priority 5 and routed it to the empty standard-medium-claude pool. Claimed at 23:42Z.
   - The notes checkout is on main (branch checked before commit). Shell gotcha: a `snip` wrapper swallows `docker exec psql` output; use `/usr/bin/docker`.
+- **18:15 check.**
+  - **Rework catch-22.** Four reopened dashboard gap tasks (OV-C, OV-D, SV-H, WK-B) were held with `child_preparation_conflict`. v1's claim preparation merges main into the old task branch before a worker starts and refuses on conflict, so the worker never gets to resolve it.
+  - **Fix:** filed fresh re-apply tasks that start from main and cherry-pick the old branch: keen-pinnacle-80, sharp-glacier-37, solid-willow-70, fresh-ridge-68. Closed the old tasks `--obsolete` and closed PRs #15, #16, #18 and #21 as superseded. The branches are kept.
+  - **Merged #12 (OV-A).**
+  - **SHR-L (#24):** units pass, but `supervisor-launcher.spec.ts` "launcher never covers content on /results" now fails because the new Results fixtures fill the page. Reopened at priority 5 on standard-medium.
