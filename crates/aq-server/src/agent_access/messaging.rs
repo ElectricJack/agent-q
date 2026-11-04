@@ -327,12 +327,70 @@ pub(crate) async fn owner_send_in_tx(
     }
     send(tx, request, json!({"kind":"owner","user_id":owner_id}), at)
         .await
-        .map_err(|error| match error.0 {
-            "invalid_request" => OwnerSendError::Invalid,
-            "not_found" | "stale_generation" => OwnerSendError::NotFound,
-            "id_conflict" => OwnerSendError::Conflict,
-            _ => OwnerSendError::Unknown,
-        })
+        .map_err(send_error)
+}
+fn send_error(error: Error) -> OwnerSendError {
+    match error.0 {
+        "invalid_request" => OwnerSendError::Invalid,
+        "not_found" | "stale_generation" => OwnerSendError::NotFound,
+        "id_conflict" => OwnerSendError::Conflict,
+        _ => OwnerSendError::Unknown,
+    }
+}
+/// H3 stall nudges from AQ itself. The sender is the fixed system component,
+/// never a caller-supplied principal; the ladder action ID is the operation ID.
+pub(crate) async fn system_send_in_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    request: Send,
+    at: u64,
+) -> std::result::Result<Value, OwnerSendError> {
+    send(
+        tx,
+        request,
+        json!({"kind":"system","component":"stall_ladder"}),
+        at,
+    )
+    .await
+    .map_err(send_error)
+}
+/// Mail the node may hand to the harness now, oldest first. H3: a stall nudge
+/// stored inbox-only, or any stall nudge while the attempt's terminal input is
+/// unknown or a human controller holds the pane, stays readable in the inbox
+/// but is never injected.
+async fn injectable(
+    tx: &mut Transaction<'_, Postgres>,
+    attempt: Uuid,
+    task_key: &str,
+    session_key: &str,
+    limit: i64,
+) -> Result<Vec<sqlx::postgres::PgRow>> {
+    let sql = format!(
+        "SELECT m.*,d.delivery_id,d.disposition FROM mailbox_messages m LEFT JOIN mailbox_deliveries d ON d.message_id=m.message_id AND d.attempt_id=$1 WHERE m.mailbox_key IN ($2,$3) AND (d.disposition IS NULL OR d.disposition IN ('pending','received_by_node')) AND NOT EXISTS(SELECT 1 FROM mailbox_receipts a WHERE a.message_id=m.message_id) AND NOT EXISTS(SELECT 1 FROM mailbox_deliveries previous WHERE previous.message_id=m.message_id AND (previous.disposition IN ('handed_to_harness','delivery_unknown') OR (previous.attempt_id<>$1 AND previous.disposition IN ('pending','received_by_node')))) AND NOT EXISTS(SELECT 1 FROM stall_nudges n WHERE n.message_id=m.message_id AND (n.inbox_only OR {} OR {})) ORDER BY m.created_at_ms,m.mailbox_key,m.cursor LIMIT $4",
+        crate::stall::ports::HUMAN_CONTROL_SQL,
+        crate::stall::ports::INPUT_UNKNOWN_SQL
+    );
+    Ok(sqlx::query(&sql)
+        .bind(attempt)
+        .bind(task_key)
+        .bind(session_key)
+        .bind(limit)
+        .fetch_all(&mut **tx)
+        .await?)
+}
+/// Message IDs `node_poll` would hand this attempt's harness now.
+pub(crate) async fn injectable_ids(
+    tx: &mut Transaction<'_, Postgres>,
+    attempt: Uuid,
+    task: &Recipient,
+    session: &Recipient,
+    limit: i64,
+) -> std::result::Result<Vec<Uuid>, OwnerSendError> {
+    let keys = task.key().and_then(|t| Ok((t, session.key()?)));
+    let (task, session) = keys.map_err(|_| OwnerSendError::Invalid)?;
+    let rows = injectable(tx, attempt, &task, &session, limit)
+        .await
+        .map_err(|_| OwnerSendError::Unknown)?;
+    Ok(rows.iter().map(|r| r.get("message_id")).collect())
 }
 async fn owner_send(
     State(state): State<AppState>,
@@ -612,7 +670,14 @@ async fn node_poll(
     let recipients = recipients(&b)?;
     let task = recipients[0].key()?;
     let session = recipients[1].key()?;
-    let rows=sqlx::query("SELECT m.*,d.delivery_id,d.disposition FROM mailbox_messages m LEFT JOIN mailbox_deliveries d ON d.message_id=m.message_id AND d.attempt_id=$1 WHERE m.mailbox_key IN ($2,$3) AND (d.disposition IS NULL OR d.disposition IN ('pending','received_by_node')) AND NOT EXISTS(SELECT 1 FROM mailbox_receipts a WHERE a.message_id=m.message_id) AND NOT EXISTS(SELECT 1 FROM mailbox_deliveries previous WHERE previous.message_id=m.message_id AND (previous.disposition IN ('handed_to_harness','delivery_unknown') OR (previous.attempt_id<>$1 AND previous.disposition IN ('pending','received_by_node')))) ORDER BY m.created_at_ms,m.mailbox_key,m.cursor LIMIT $4").bind(r.attempt.attempt_id).bind(task).bind(session).bind(r.limit as i64).fetch_all(&mut *tx).await?;
+    let rows = injectable(
+        &mut tx,
+        r.attempt.attempt_id,
+        &task,
+        &session,
+        r.limit as i64,
+    )
+    .await?;
     let mut deliveries = Vec::new();
     for row in rows {
         let message: Uuid = row.get("message_id");

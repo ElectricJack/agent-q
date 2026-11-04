@@ -516,7 +516,7 @@ async fn session_message_send_enqueues_to_bound_session_mailbox() {
     let (_, detail) = call(&app, &path, None, "owner@localhost").await;
     assert_eq!(
         detail["data"]["permissions"],
-        json!(["session.inspect", "session.message.send"])
+        json!(["session.inspect", "session.message.send", "session.nudge"])
     );
     let (_, b) = call(&app, "/api/v1/bootstrap", None, "owner@localhost").await;
     assert!(
@@ -577,4 +577,35 @@ async fn session_message_send_enqueues_to_bound_session_mailbox() {
             .0,
         StatusCode::NOT_FOUND
     );
+}
+
+#[tokio::test]
+async fn session_nudge_action_uses_the_stall_nudge_path() {
+    let f = fixture().await;
+    let attempt = common::profiled::insert(&f).await;
+    let pool = f.db.pool().await;
+    let app = aq_server::build_admin_router(f.state.clone());
+    let (_, list) = call(&app, "/api/v1/sessions", None, "owner@localhost").await;
+    let session = list["data"]["items"][0]["id"].clone();
+    let l = &f.selection.lineage;
+    sqlx::query("INSERT INTO agent_launch_bindings(attempt_id,node_id,binding,profile,context) VALUES($1,$2,$3,'{}','{}')")
+        .bind(attempt).bind(f.node.node_id)
+        .bind(json!({"task_id":l.task_id,"project_id":l.project_id,"workspace_id":l.workspace_id,"attempt_id":attempt,"session_id":session,"generation":1}))
+        .execute(&pool).await.unwrap();
+    let op = Uuid::new_v4();
+    let request = json!({"operation_id":op,"kind":"session.nudge",
+        "subject":{"type":"session","id":session,"revision":"1"},
+        "expected_versions":{"session":"1"},
+        "payload":{"operation_id":op,"project_id":l.project_id,"expected_generation":"1","body":"Are you stuck?"}});
+    let (status, result) = call(&app, "/api/v1/actions", Some(&request), "owner@localhost").await;
+    assert_eq!(status, StatusCode::OK, "{result}");
+    assert_eq!(result["data"]["disposition"], "confirmed");
+    let message = Uuid::new_v5(&op, b"stall-nudge-message");
+    assert_eq!(result["data"]["affected_entities"][0]["id"], json!(message));
+    let (_, replay) = call(&app, "/api/v1/actions", Some(&request), "owner@localhost").await;
+    assert_eq!(replay["data"], result["data"]);
+    let (inbox_only, sender): (bool, Value) = sqlx::query_as("SELECT n.inbox_only,m.sender FROM stall_nudges n JOIN mailbox_messages m USING(message_id) WHERE n.message_id=$1")
+        .bind(message).fetch_one(&pool).await.unwrap();
+    assert!(!inbox_only, "no terminal: input is ready");
+    assert_eq!(sender["kind"], "owner");
 }
