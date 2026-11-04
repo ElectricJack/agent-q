@@ -45,9 +45,16 @@ async fn final_receipt_insert_failure_rolls_back_hot_journal_and_installation() 
 }
 #[tokio::test]
 async fn original_proposal_expiry_does_not_limit_new_execution_lease() {
-    let f = prepared(true).await;
+    // The offer is capped by the older credential-wide health source; the
+    // younger model-scoped source keeps continuing health observed afterwards.
+    let f = fixture::prepared_with_superseded_health(true).await;
     let now = (f.c.env.env.state.clock)().timestamp_millis() as u64;
-    let wait = f.p.original.offered.clock.expires_at_ms.saturating_sub(now) + 25;
+    let offered = &f.p.original.offered.clock;
+    assert!(
+        offered.expires_at_ms - offered.server_time_ms <= 5001 - fixture::SUPERSEDED_HEALTH_LEAD_MS,
+        "offer must be bounded by the older actual health source"
+    );
+    let wait = offered.expires_at_ms.saturating_sub(now) + 25;
     assert!(wait < 5000, "bounded actual original proposal wait");
     f.c.env
         .env

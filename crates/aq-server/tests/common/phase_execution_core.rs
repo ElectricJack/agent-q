@@ -130,6 +130,45 @@ pub async fn setup_from_presence(
     v2: bool,
     extra: fn(&mut aq_server::profiled_execution::config::ProfiledConfig),
 ) -> (Case, phase::Proposal, AcceptRequest) {
+    setup_from_presence_with_health(ready, v2, extra, None).await
+}
+/// Logical lead of the older, credential-wide health source in
+/// [`prepared_with_superseded_health`]. Shorter than the observation max age, so
+/// the selected offer stays open for a bounded window after the poll.
+pub const SUPERSEDED_HEALTH_LEAD_MS: u64 = 1000;
+async fn post_observation(c: &Case, mut observation: Value, sequence: u64) {
+    let revision: i64 =
+        sqlx::query_scalar("SELECT revision FROM intelligence_registry WHERE singleton")
+            .fetch_one(&c.env.env.pool)
+            .await
+            .unwrap();
+    observation["operation_id"] = serde_json::json!(Uuid::new_v4());
+    observation["expected_revision"] = serde_json::json!(revision);
+    observation["sequence"] = serde_json::json!(sequence);
+    let admin = aq_server::build_admin_router(c.env.env.state.clone());
+    let (status, body) = on_heap(|| {
+        common::selection::call(
+            &admin,
+            "/api/intelligence/observations",
+            Some(observation),
+            "owner@localhost",
+        )
+    })
+    .await;
+    assert_eq!(status, 200, "{body}");
+}
+/// `superseded_health_lead_ms`: before the fresh model-scoped observation, post
+/// an actual credential-wide (`model: null`) available observation and advance
+/// the logical clock by this lead. Both sources are recorded before the poll,
+/// so the decision pins the final registry revision. The resolver caps the
+/// offer at the older source's age, while continuing health stays observed
+/// through the younger source until `lead` milliseconds later.
+async fn setup_from_presence_with_health(
+    ready: presence_fixture::Case,
+    v2: bool,
+    extra: fn(&mut aq_server::profiled_execution::config::ProfiledConfig),
+    superseded_health_lead_ms: Option<u64>,
+) -> (Case, phase::Proposal, AcceptRequest) {
     let mut c = ready.c;
     on_heap(|| configure(&mut c, extra)).await;
     if v2 {
@@ -146,26 +185,16 @@ pub async fn setup_from_presence(
         receipt.validate_for(&ready.request).unwrap();
         c.request.inventory_sequence = ready.request.sequence;
     }
-    let revision: i64 =
-        sqlx::query_scalar("SELECT revision FROM intelligence_registry WHERE singleton")
-            .fetch_one(&c.env.env.pool)
-            .await
-            .unwrap();
-    let mut observation = c.env.manual.clone();
-    observation["operation_id"] = serde_json::json!(Uuid::new_v4());
-    observation["expected_revision"] = serde_json::json!(revision);
-    observation["sequence"] = serde_json::json!(2);
-    let admin = aq_server::build_admin_router(c.env.env.state.clone());
-    let (status, body) = on_heap(|| {
-        common::selection::call(
-            &admin,
-            "/api/intelligence/observations",
-            Some(observation),
-            "owner@localhost",
-        )
-    })
-    .await;
-    assert_eq!(status, 200, "{body}");
+    if let Some(lead) = superseded_health_lead_ms {
+        let mut wide = c.env.manual.clone();
+        wide["scope"]["model"] = Value::Null;
+        on_heap(|| post_observation(&c, wide, 1)).await;
+        c.env
+            .env
+            .time
+            .fetch_add(lead as i64, std::sync::atomic::Ordering::SeqCst);
+    }
+    on_heap(|| post_observation(&c, c.env.manual.clone(), 2)).await;
     let (status, body) = on_heap(|| native_offer::poll(&c)).await;
     assert_eq!(status, 200, "{body}");
     let ControlReply::Poll(mut page) = decode_reply(&serde_json::to_vec(&body).unwrap()).unwrap()
@@ -241,6 +270,24 @@ pub struct Prepared {
 }
 pub fn prepared(v2: bool) -> impl std::future::Future<Output = Prepared> {
     Box::pin(prepare_with_optional_config(v2, None))
+}
+/// Prepared fixture whose original offer is bounded by an older health source
+/// while a younger source keeps continuing health observed past that offer.
+#[allow(dead_code)] // Selected only by the phase execution atomicity tests.
+pub fn prepared_with_superseded_health(v2: bool) -> impl std::future::Future<Output = Prepared> {
+    Box::pin(async move {
+        let ready = on_heap(presence_fixture::setup).await;
+        let (c, p, q) = on_heap(|| {
+            setup_from_presence_with_health(
+                ready,
+                v2,
+                |_| {},
+                Some(SUPERSEDED_HEALTH_LEAD_MS),
+            )
+        })
+        .await;
+        prepare_from_parts(c, p, q).await
+    })
 }
 #[allow(dead_code)] // Selected only by the path-imported qualified terminal fixture.
 pub fn prepared_with_config(
