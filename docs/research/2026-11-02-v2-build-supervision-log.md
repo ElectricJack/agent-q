@@ -527,3 +527,18 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Dashboard throughput** is capped by `standard-high-claude` max_active=8 (8 busy), plus PR-merge gates between gap tasks.
   - **aq-platform holds:** `bright-willow-25` (PR #57) and `crisp-meadow-36.7.2` are under supervisor recovery holds (`session_close_pipeline_stop`). The work passed, but the merge slot was held. Opened PR #59 for `aq/crisp-meadow-36.7.2`, which had no PR. #57 fails only the known `native_accepted_preparation` test that #56 fixes. Plan: merge #56, update #57 and #59, merge them, then release the holds.
   - **Notes branch:** found the aq-server notes checkout on `feat/v2-execution`; three notes pushes had gone there. Pushed them to main and switched back to main.
+- **17:50 check.**
+  - **aq-server main clippy failure.** `explicit_auto_deref` at `dashboard_api/capacity.rs:108-109` (from brisk-harbor-73's `44f1516`) failed every open PR's fmt-and-clippy job. Fixed on main in `9585dc2` after a local `cargo clippy -p aq-server --lib -D warnings` passed. Updated PRs #57, #58 and #60.
+  - **PR #56 (calm-current-41).** `phase_execution::atomicity::original_proposal_expiry_does_not_limit_new_execution_lease` fails twice in a row; main passes it, so this is a regression. Reopened with the failing test, priority 8.
+  - **crisp-meadow-36.7.2.** PR #59 conflicts with main. Released its `session_close_pipeline_stop` hold with an operator retry, and left a comment saying not to redo the work: merge main, update #59, close.
+  - **SHR-L fixtures.** At the owner's request I set `calm-vault-46.14` to priority 5 and routed it to the empty standard-medium-claude pool. Claimed at 23:42Z.
+  - The notes checkout is on main (branch checked before commit). Shell gotcha: a `snip` wrapper swallows `docker exec psql` output; use `/usr/bin/docker`.
+- **18:15 check.**
+  - **Rework catch-22.** Four reopened dashboard gap tasks (OV-C, OV-D, SV-H, WK-B) were held with `child_preparation_conflict`. v1's claim preparation merges main into the old task branch before a worker starts and refuses on conflict, so the worker never gets to resolve it.
+  - **Fix:** filed fresh re-apply tasks that start from main and cherry-pick the old branch: keen-pinnacle-80, sharp-glacier-37, solid-willow-70, fresh-ridge-68. Closed the old tasks `--obsolete` and closed PRs #15, #16, #18 and #21 as superseded. The branches are kept.
+  - **Merged #12 (OV-A).**
+  - **SHR-L (#24):** units pass, but `supervisor-launcher.spec.ts` "launcher never covers content on /results" now fails because the new Results fixtures fill the page. Reopened at priority 5 on standard-medium.
+- **18:40 check.**
+  - **calm-current-41 pushed back, correctly.** The atomicity test also fails on main. Main CI never reached that binary because cargo stopped at `native_accepted_preparation`. Root cause: `f0253a76` (offer TTL 2 s to 30 s) makes the scenario unreachable. I chose option (a): merge #56 as-is once clippy passes on `55a451fe`, and filed `brisk-quest-74` (priority 10) to redesign that test and run the other masked binaries with `--no-fail-fast`. My earlier reopen was wrong: I compared against main's failure list without accounting for cargo stopping at the first failing binary.
+  - **crisp-meadow-36.7.2** was held again (`child_preparation_conflict`, last recovery budget). The only conflict was `docs/implementation/D6.md`. Resolved it by hand: kept main's newer item 1 and marked check cancellation as shipped. Pushed to `aq/crisp-meadow-36.7.2`, which updates PR #59.
+  - Claude usage: 78%. The auto-pause triggers at 80%.
