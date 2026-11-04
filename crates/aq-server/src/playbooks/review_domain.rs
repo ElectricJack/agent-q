@@ -26,7 +26,7 @@ pub enum CatalogProfile {
 pub const HOST7_VERSION: &str = "2.0.0";
 pub const HOST7_FINGERPRINT: &str =
     "sha256:e2ce7dc8ff4b37538f8d27f175a4e365ff95cf14508ae7074beea04026b143db";
-pub const HOST7_CAPABILITIES: [&str; 7] = [
+pub const HOST7_CAPABILITIES: [&str; 9] = [
     "context.read",
     "work.ensure",
     "work.change",
@@ -34,6 +34,8 @@ pub const HOST7_CAPABILITIES: [&str; 7] = [
     "operation.get",
     "judgment.request.v2",
     "check.request.v2",
+    "candidate.prepare",
+    "candidate.publish",
 ];
 fn host7_registry() -> Registry {
     static REGISTRY: std::sync::OnceLock<Registry> = std::sync::OnceLock::new();

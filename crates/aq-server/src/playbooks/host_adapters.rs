@@ -18,7 +18,9 @@ use sqlx::{Postgres, Row, Transaction};
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 use uuid::Uuid;
 
+mod integration;
 mod requests;
+pub use integration::*;
 pub use requests::*;
 
 /// External ports. Authority never comes from here: it comes from the grant.
@@ -29,6 +31,8 @@ pub struct HostPorts {
     pub checks: Option<Arc<dyn CheckExecutor>>,
     /// D6 judgment provider; `None` refuses `no_permitted_profile`.
     pub judgments: Option<Arc<dyn JudgmentProvider>>,
+    /// D7 integration port (D1 delivery); `None` refuses `unavailable`.
+    pub integration: Option<Arc<dyn Integration>>,
 }
 
 /// Typed graph gateway port. Only node reads by UUID and validated
@@ -91,7 +95,7 @@ pub const HOST5_COMMANDS: [&str; 5] = [
     "findings.reconcile",
 ];
 /// Catalog 2.0.0 adds asynchronous judgments/checks and operation.get.
-pub const HOST7_COMMANDS: [&str; 7] = [
+pub const HOST7_COMMANDS: [&str; 9] = [
     "context.read",
     "work.ensure",
     "work.change",
@@ -99,6 +103,8 @@ pub const HOST7_COMMANDS: [&str; 7] = [
     "judgment.request",
     "check.request",
     "operation.get",
+    "candidate.prepare",
+    "candidate.publish",
 ];
 const WORK_REF: &str = "aq.playbook.work/";
 const ATTEMPT_REF: &str = "aq.execution.attempt/";
@@ -155,6 +161,8 @@ impl Service {
             "judgment.request" => self.judgment_request(owner, id, revision, intent).await,
             "check.request" => self.check_request(owner, id, revision, intent).await,
             "operation.get" => self.host_operation_get(owner, id, revision, intent).await,
+            "candidate.prepare" => self.candidate_prepare(owner, id, revision, intent).await,
+            "candidate.publish" => self.candidate_publish(owner, id, revision, intent).await,
             _ => Err(Error::Invalid),
         }
     }
