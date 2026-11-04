@@ -214,9 +214,22 @@ impl Host for MailHost {
         let Ok((id, revision)) = grant_actor(&intent.authority) else {
             return CancellationResult::Refused;
         };
+        if self.service.profile == super::review_domain::CatalogProfile::Host7
+            && intent.command.name == "check.request"
+        {
+            // Catalog 2.0.0 check.request is cancellable: confirmed only by an
+            // executor-reported cancelled stop, never by the request alone.
+            return self
+                .handle
+                .block_on(
+                    self.service
+                        .check_cancel(&self.runtime, id, revision, intent),
+                )
+                .unwrap_or(CancellationResult::Unknown);
+        }
         if self.host_command(intent) {
-            // Host effects are cancelled through operation.cancel, never by
-            // the runner withdrawing an admitted effect.
+            // Other host effects are cancelled through operation.cancel, never
+            // by the runner withdrawing an admitted effect.
             return CancellationResult::Refused;
         }
         if intent.command.name == "decision.request" {
@@ -395,6 +408,7 @@ impl Driver {
                     .registry()
                     .events
                     .get("aq.signal.reported");
+        let registered = artifact.clone();
         self.owner
             .call(
                 Request::Install {
@@ -404,6 +418,13 @@ impl Driver {
             )
             .await
             .map_err(host_error)?;
+        // G11 X30/X32 read model only: a registry failure leaves the run's
+        // definition view null and never refuses an owner-committed install.
+        if self.service.register_definition(&registered).await.is_err() {
+            tracing::warn!(
+                "playbook definition registry write failed; definition view unavailable"
+            );
+        }
         if schedule_consumer {
             self.schedule_consumer
                 .store(true, std::sync::atomic::Ordering::SeqCst);
