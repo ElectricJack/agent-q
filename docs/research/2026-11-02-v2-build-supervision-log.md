@@ -591,3 +591,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
 - **20:20 Claude sandbox credential spike: PASSED.** The owner created a long-lived subscription token (`claude setup-token`), stored at `~/.config/aq-secrets/claude-oauth-token` (0600; the first save was empty and was redone).
   - Ran a throwaway `node:22-slim` container as user `node`, with no host mounts and the token only in env `CLAUDE_CODE_OAUTH_TOKEN`. Claude Code 2.1.318 answered `claude -p` and made a headless file edit (`--permission-mode acceptEdits`). The host login was unaffected. The container was removed and the token never appeared in argv or output.
   - Recorded as the confirmed sandbox credential path on C5a1, C5b, C6a, C6b and I4a: env-only lease, no refresh write-back or shared lineage with the host login, wipe on teardown.
+- **19:00–20:35 claims stopped; I misdiagnosed it and reverted #2203.**
+  - **What happened:** claim results went from about 11 claimed per hour to 0 (85 no_ready_work). Workers polled `aq task claim --next --wait 60` and got nothing, although an SQL probe of `select_ready_for_profile` (rolled-back transaction) returned the MS1 tasks.
+  - **My error:** the drop lined up with the #2203 deploy restart, so I reverted it (agent-queue #2204, restarted 20:19). Claims stayed at about zero.
+  - **Actual cause:** v1 had marked the `claude` provider **degraded** at about 18:04Z ("week (all models) window at 85–88%"), and a degraded provider stops new claims.
+  - **Fix:** following the owner's "run everything on Claude", overrode with `aq provider set-state --provider claude --state available --for 2h` (lasts until about the 21:59Z weekly reset).
+  - #2203 was probably fine and should be re-landed; the 30 s reconcile timeout is back until then.
+  - Also: the owner's Claude sandbox token was verified. B7 (`noble-summit-37.10`) was handed back to the router during the investigation.
