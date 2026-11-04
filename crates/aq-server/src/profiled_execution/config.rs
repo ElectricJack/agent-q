@@ -26,6 +26,11 @@ pub struct ProjectPolicy {
     /// C4 placement preference/capability override; absent uses the default.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub placement: Option<super::placement::PlacementPolicy>,
+    /// D6 checks pinned into every expected outcome produced for this
+    /// project (at most 32, unique ids). Absent means none, so existing
+    /// configuration and outcome digests are unchanged.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_checks: Vec<aq_admission::outcome::RequiredCheck>,
 }
 #[derive(Debug, Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -143,6 +148,14 @@ impl ProfiledConfig {
                 .map_err(|_| "explicit immutable object or safe source ref required")?;
             if let Some(placement) = &project.placement {
                 placement.validate()?;
+            }
+            let ids: std::collections::BTreeSet<_> = project
+                .required_checks
+                .iter()
+                .map(|c| c.id.as_str())
+                .collect();
+            if project.required_checks.len() > 32 || ids.len() != project.required_checks.len() {
+                return Err("project required checks bounds".into());
             }
         }
         Ok(())

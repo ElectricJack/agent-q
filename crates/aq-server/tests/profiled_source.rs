@@ -62,6 +62,7 @@ async fn fixed_public_source_reads_preserve_original_age_and_refuse_released_ret
             },
             retention_handle: handle,
             placement: None,
+            required_checks: vec![],
         }],
     };
     let policy = config

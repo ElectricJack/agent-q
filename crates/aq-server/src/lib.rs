@@ -2,6 +2,7 @@ pub mod admin_api;
 pub mod admission;
 pub mod agent_access;
 pub mod authz;
+pub mod check_attempts;
 pub mod config;
 pub mod dashboard_api;
 pub mod dashboard_assets;
@@ -366,6 +367,7 @@ fn build_worker_router_inner(
         .merge(observations::api::routes(state.clone()))
         .merge(observations::api::transport_routes(state.clone()))
         .merge(intelligence::worker_routes())
+        .merge(check_attempts::worker_routes())
         .merge(agent_access::machine_routes(state.clone()))
         .merge(agent_access::supervisor_conversation::supervisor_routes(
             &state,

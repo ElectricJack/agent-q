@@ -643,6 +643,7 @@ pub fn prepare(input: PrepareInput<'_>) -> Result<Prepared> {
             source: SourceSelection::Immutable { object: input.base },
             retention_handle: input.retention,
             placement: None,
+            required_checks: vec![],
         }],
         context_qualifications: vec![context_fact],
         definition_bodies: defs,

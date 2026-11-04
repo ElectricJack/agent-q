@@ -121,6 +121,7 @@ pub async fn setup_with_capabilities(qualified_required: bool, registered_journa
             },
             retention_handle,
             placement: None,
+            required_checks: vec![],
         }],
     }));
     env.env.state.config = Arc::new(config);

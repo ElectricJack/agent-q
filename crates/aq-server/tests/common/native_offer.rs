@@ -260,6 +260,7 @@ pub async fn setup() -> Case {
             },
             retention_handle: handle,
             placement: None,
+            required_checks: vec![],
         }],
         context_qualifications: vec![fact],
         definition_bodies: definitions,

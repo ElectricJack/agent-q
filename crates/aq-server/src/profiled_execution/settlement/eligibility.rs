@@ -25,7 +25,12 @@ pub enum Disposition {
 pub enum Reason {
     UnsupportedPolicy,
     UnsupportedOutcome,
+    /// Retained for previously recorded plans; no longer produced.
     RequiredChecksUnsupported,
+    /// A required check has no node-reported evidence for this exact source.
+    RequiredCheckEvidenceMissing,
+    /// A required check's node-reported evidence is a failure.
+    RequiredCheckFailed,
     SupersededReport,
     SourceMismatch,
     ReviewUnavailable,
@@ -214,6 +219,18 @@ pub struct Evidence<'a> {
     pub aq_effects: Option<&'a AqEffectsSnapshot>,
     pub external_effects: Option<&'a VerifiedEffectDisposition>,
     pub applicability: Option<&'a CurrentApplicability>,
+    /// One verdict per `outcome.required_checks` entry, in order, from
+    /// `profiled_check_evidence` bound to the confirmed source.
+    pub checks: Option<&'a [CheckVerdict]>,
+}
+/// Server-owned verdict of one required check for the exact retained source.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CheckVerdict {
+    Passed,
+    Failed,
+    /// No server-owned evidence bound to this exact source and validator.
+    Missing,
 }
 impl Evidence<'_> {
     pub fn unavailable() -> Self {
@@ -223,6 +240,7 @@ impl Evidence<'_> {
             aq_effects: None,
             external_effects: None,
             applicability: None,
+            checks: None,
         }
     }
 }
@@ -277,9 +295,6 @@ pub fn evaluate_pilot(
     {
         return plan(Disposition::Rejected, Reason::UnsupportedOutcome);
     }
-    if !result.outcome.required_checks.is_empty() {
-        return plan(Disposition::Rejected, Reason::RequiredChecksUnsupported);
-    }
     let Some(policy) = evidence
         .policy
         .filter(|p| p.artifact == result.outcome.validation_policy)
@@ -288,6 +303,23 @@ pub fn evaluate_pilot(
     };
     if !source_matches(result, source) {
         return plan(Disposition::Stale, Reason::SourceMismatch);
+    }
+    if !result.outcome.required_checks.is_empty() {
+        let checks = evidence
+            .checks
+            .filter(|c| c.len() == result.outcome.required_checks.len());
+        match checks {
+            Some(c) if c.contains(&CheckVerdict::Failed) => {
+                return plan(Disposition::Rejected, Reason::RequiredCheckFailed);
+            }
+            Some(c) if c.iter().all(|v| *v == CheckVerdict::Passed) => {}
+            _ => {
+                return plan(
+                    Disposition::NeedsReconciliation,
+                    Reason::RequiredCheckEvidenceMissing,
+                );
+            }
+        }
     }
     let Some(review) = evidence.review else {
         return plan(Disposition::NeedsReconciliation, Reason::ReviewUnavailable);

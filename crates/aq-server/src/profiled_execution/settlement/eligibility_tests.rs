@@ -11,6 +11,7 @@ struct Synthetic {
     aq: AqEffectsSnapshot,
     external: VerifiedEffectDisposition,
     current: CurrentApplicability,
+    checks: Vec<CheckVerdict>,
 }
 fn pin(id: &str, bytes: &[u8]) -> ArtifactRef {
     ArtifactRef {
@@ -246,6 +247,7 @@ impl Synthetic {
             aq,
             external,
             current,
+            checks: vec![],
         }
     }
     fn evidence(&self) -> Evidence<'_> {
@@ -255,6 +257,7 @@ impl Synthetic {
             aq_effects: Some(&self.aq),
             external_effects: Some(&self.external),
             applicability: Some(&self.current),
+            checks: Some(&self.checks),
         }
     }
     fn reason(&self) -> Option<Reason> {
@@ -338,7 +341,20 @@ fn synthetic_policy_and_revision_changes_never_inherit_approval() {
             id: aq_admission::Label::new("actual-tests-required").unwrap(),
             validator: pin("unsupported-check", b"not executed"),
         });
-    assert_eq!(f.reason(), Some(Reason::RequiredChecksUnsupported));
+    // Required checks settle only from node-reported evidence per check.
+    assert_eq!(f.reason(), Some(Reason::RequiredCheckEvidenceMissing));
+    f.checks = vec![CheckVerdict::Missing];
+    assert_eq!(f.reason(), Some(Reason::RequiredCheckEvidenceMissing));
+    f.checks = vec![CheckVerdict::Failed];
+    assert_eq!(f.reason(), Some(Reason::RequiredCheckFailed));
+    f.checks = vec![CheckVerdict::Passed];
+    assert_eq!(f.reason(), None);
+    let mut e = f.evidence();
+    e.checks = None;
+    assert_eq!(
+        evaluate_pilot(&f.result, &f.source, &e).unwrap().reason,
+        Some(Reason::RequiredCheckEvidenceMissing)
+    );
     let mut f = Synthetic::new();
     f.result.outcome.review = ReviewRequirement::PolicyActor;
     assert_eq!(f.reason(), Some(Reason::UnsupportedOutcome));

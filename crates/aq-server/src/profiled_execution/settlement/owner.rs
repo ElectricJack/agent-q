@@ -254,6 +254,15 @@ impl Service {
         let current = observation
             .verify_locked(&self.state, &mut tx, &result, &source)
             .await?;
+        let checks = super::automatic::check_verdicts_locked(
+            &mut tx,
+            &result,
+            Some((
+                request.source_operation_id,
+                source.manifest.checkpoint.hex.as_str(),
+            )),
+        )
+        .await?;
         actor.fence(&mut tx).await?;
         let plan = eligibility::evaluate_pilot(
             &result,
@@ -264,6 +273,7 @@ impl Service {
                 aq_effects: Some(&ledger),
                 external_effects: Some(&external),
                 applicability: Some(&current),
+                checks: Some(&checks),
             },
         )?;
         let eligible = plan.disposition == Disposition::Eligible;

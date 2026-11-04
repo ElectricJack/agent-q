@@ -27,14 +27,7 @@ pub(super) fn parse(body: &str) -> Option<Delivery> {
     (b.schema_version == 1 && b.kind == KIND).then_some(b.delivery)
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "snake_case")]
-pub(super) enum CheckVerdict {
-    Passed,
-    Failed,
-    /// No server-owned evidence bound to this exact source and validator.
-    Missing,
-}
+pub(super) use super::eligibility::CheckVerdict;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub(super) enum DeliveryState {
