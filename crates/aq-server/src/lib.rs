@@ -21,6 +21,7 @@ pub mod project_bindings;
 pub mod protected_storage;
 pub mod provider_accounts;
 pub mod readiness;
+pub mod repository_onboarding;
 pub mod result_media;
 pub mod results_feedback;
 pub mod reviews;
@@ -287,6 +288,7 @@ pub fn build_admin_router_with_optional_owners(
         .merge(terminal::api::human_routes(state.clone()))
         .merge(profile_catalog::admin_routes())
         .merge(project_bindings::admin_routes())
+        .merge(repository_onboarding::admin_routes())
         .merge(intelligence::admin_routes())
         .merge(agent_access::admin_routes(state.clone()))
         .merge(source_retention::admin_routes())
@@ -529,6 +531,30 @@ async fn shutdown_signal() {
     tracing::info!("shutdown signal received");
 }
 
+/// Builds the runtime state shared by `serve` and one-shot owner commands.
+pub async fn build_state(
+    config: Config,
+    store: Store,
+    http: reqwest::Client,
+) -> anyhow::Result<AppState> {
+    let agent_access = match &config.agent_access {
+        Some(settings) => Some(Arc::new(agent_access::Runtime::new(settings).await?)),
+        None => None,
+    };
+    let source_retention = match &config.source_retention {
+        Some(settings) => Some(Arc::new(source_retention::Runtime::new(settings.clone())?)),
+        None => None,
+    };
+    Ok(AppState {
+        agent_access,
+        source_retention,
+        identity: identity::verifier_from_config(&config.auth, http),
+        config: Arc::new(config),
+        store,
+        clock: system_clock(),
+    })
+}
+
 /// Binds both listeners and serves until SIGTERM or ctrl-c.
 pub async fn run(config: Config, store: Store) -> anyhow::Result<()> {
     let dashboard = std::env::var_os("AQ_DASHBOARD_DIR")
@@ -542,21 +568,6 @@ pub async fn run(config: Config, store: Store) -> anyhow::Result<()> {
     let admin = tokio::net::TcpListener::bind(config.server.admin_bind).await?;
     let worker = tokio::net::TcpListener::bind(config.server.worker_bind).await?;
     tracing::info!(admin = %admin.local_addr()?, worker = %worker.local_addr()?, "listening");
-    let agent_access = match &config.agent_access {
-        Some(settings) => Some(Arc::new(agent_access::Runtime::new(settings).await?)),
-        None => None,
-    };
-    let source_retention = match &config.source_retention {
-        Some(settings) => Some(Arc::new(source_retention::Runtime::new(settings.clone())?)),
-        None => None,
-    };
-    let state = AppState {
-        agent_access,
-        source_retention,
-        identity: identity::verifier_from_config(&config.auth, http),
-        config: Arc::new(config),
-        store,
-        clock: system_clock(),
-    };
+    let state = build_state(config, store, http).await?;
     run_with_listeners_and_dashboard(state, admin, worker, shutdown_signal(), dashboard).await
 }
