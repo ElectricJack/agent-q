@@ -173,6 +173,33 @@ impl Fixture {
         let bytes = response.into_body().collect().await.unwrap().to_bytes();
         (status, serde_json::from_slice(&bytes).unwrap())
     }
+    async fn human(&self, method: &str, path: &str, body: Option<Value>) -> (StatusCode, Value) {
+        let request = Request::builder()
+            .method(method)
+            .uri(path)
+            .header("content-type", "application/json")
+            .header("x-aq-dev-email", "owner@localhost")
+            .header("x-aq-request", "1");
+        let body = body.map_or_else(Body::empty, |v| Body::from(v.to_string()));
+        let response = self
+            .app
+            .clone()
+            .oneshot(request.body(body).unwrap())
+            .await
+            .unwrap();
+        let status = response.status();
+        let bytes = response.into_body().collect().await.unwrap().to_bytes();
+        (
+            status,
+            serde_json::from_slice(&bytes).unwrap_or(Value::Null),
+        )
+    }
+    fn marker_path(&self) -> String {
+        format!("/api/human/conversations/{}/read-marker", self.conversation)
+    }
+    fn history_path(&self) -> String {
+        format!("/api/human/conversations/{}/messages", self.conversation)
+    }
     async fn send(&self) -> Uuid {
         let id = Uuid::new_v4();
         let (status, result) = self.post(&format!("/api/human/conversations/{}/messages", self.conversation), None, json!({"operation_id":Uuid::new_v4(),"message_id":id,"expected_conversation_revision":"1","body":"next owner message","context":[],"attachments":[]})).await;
@@ -860,4 +887,218 @@ async fn reply_attachments_serve_typed_drafts_and_session_receipts_through_histo
              "receipt_refs":[{"type":"graph_change_set","id":change_set}],"request_digest":request_digest}
         ])
     );
+}
+
+#[tokio::test]
+async fn runtime_reports_the_live_central_binding() {
+    let f = Fixture::new(aq_server::STATE_FORMAT_VERSION).await;
+    let unavailable =
+        json!({"state":"unavailable","binding":null,"reason":"central_runtime_not_connected"});
+    let (status, discovery) = f
+        .human("GET", "/api/human/conversations/global", None)
+        .await;
+    assert_eq!(status, StatusCode::OK, "{discovery}");
+    assert_eq!(discovery["runtime"], unavailable);
+    assert_eq!(discovery["limits"]["context_refs"], json!(16));
+    assert_eq!(discovery["limits"]["attachments"], json!(0));
+    conversation_schema(&discovery);
+    f.send().await;
+    let reservation = f.reserve().await.reservation.unwrap();
+    let p = f.plan(reservation.id, 1).await;
+    let s = f.start(&p).await;
+    let available = json!({"state":"available","binding":{"actor_id":f.actor,"generation":1,"session_id":dispatch_session(&p)},"reason":"central_session_active"});
+    let (_, discovery) = f
+        .human("GET", "/api/human/conversations/global", None)
+        .await;
+    assert_eq!(discovery["runtime"], available);
+    conversation_schema(&discovery);
+    let (status, history) = f.human("GET", &f.history_path(), None).await;
+    assert_eq!(status, StatusCode::OK, "{history}");
+    assert_eq!(history["runtime"], available);
+    conversation_schema(&history);
+    f.report(
+        &p,
+        Event::Handoff {
+            evidence: HandoffEvidence {
+                association: s.run.association().unwrap().clone(),
+                disposition: HandoffDisposition::HandedOff,
+                receipt: artifact(),
+            },
+        },
+    )
+    .await;
+    f.report(
+        &p,
+        Event::Stopped {
+            evidence: StopEvidenceRef {
+                host: observation(&p),
+                stopped_writers: artifact(),
+            },
+        },
+    )
+    .await;
+    let (_, history) = f.human("GET", &f.history_path(), None).await;
+    assert_eq!(
+        history["runtime"], unavailable,
+        "a stopped session is not live"
+    );
+}
+
+#[tokio::test]
+async fn context_refs_are_validated_echoed_and_rendered_into_the_turn() {
+    let f = Fixture::new(aq_server::STATE_FORMAT_VERSION).await;
+    let (task, project) = (Uuid::new_v4(), Uuid::new_v4());
+    let create = |context: Value| json!({"operation_id":Uuid::new_v4(),"message_id":Uuid::new_v4(),"expected_conversation_revision":"1","body":"look at this","context":context,"attachments":[]});
+    let many: Vec<Value> = (0..17)
+        .map(|_| json!({"type":"task","id":Uuid::new_v4(),"revision":null}))
+        .collect();
+    for bad in [
+        json!([{"type":"task","id":task,"revision":"1"},{"type":"task","id":task,"revision":"2"}]),
+        json!([{"type":"task","id":Uuid::nil(),"revision":null}]),
+        json!([{"type":"task","id":task,"revision":"0"}]),
+        json!([{"type":"task","id":task}]),
+        json!([{"type":"widget","id":task,"revision":null}]),
+        json!([{"type":"task","id":task,"revision":null,"extra":1}]),
+        json!(many),
+    ] {
+        let (status, body) = f.post(&f.history_path(), None, create(bad.clone())).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST, "{bad} -> {body}");
+    }
+    let context = json!([{"type":"task","id":task,"revision":"3"},{"type":"project","id":project,"revision":null}]);
+    let request = create(context.clone());
+    let (status, receipt) = f.post(&f.history_path(), None, request.clone()).await;
+    assert_eq!(status, StatusCode::OK, "{receipt}");
+    let (status, history) = f.human("GET", &f.history_path(), None).await;
+    assert_eq!(status, StatusCode::OK, "{history}");
+    conversation_schema(&history);
+    let items = history["items"].as_array().unwrap();
+    assert_eq!(items.len(), 1, "{history}");
+    assert_eq!(items[0]["message_id"], request["message_id"]);
+    assert_eq!(items[0]["context"], context);
+    let plain = f.send().await;
+    let (_, history) = f.human("GET", &f.history_path(), None).await;
+    let item = history["items"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|i| i["message_id"] == json!(plain))
+        .unwrap()
+        .clone();
+    assert!(item.get("context").is_none(), "refless items are unchanged");
+    let reservation = f.reserve().await.reservation.unwrap();
+    let turn = dispatch::prepare_turn(
+        &f.pool,
+        f.actor,
+        reservation.id,
+        1,
+        Uuid::new_v4(),
+        1_000_000,
+    )
+    .await
+    .unwrap();
+    let input = String::from_utf8(turn.input).unwrap();
+    assert!(
+        input.contains(&format!(
+            "look at this\n[context task {task} revision 3]\n[context project {project}]\n"
+        )),
+        "{input}"
+    );
+    assert!(input.contains("next owner message\n"), "{input}");
+}
+
+#[tokio::test]
+async fn read_marker_is_per_principal_monotonic_and_bounded_by_latest() {
+    let f = Fixture::new(aq_server::STATE_FORMAT_VERSION).await;
+    let path = f.marker_path();
+    let (status, marker) = f.human("GET", &path, None).await;
+    assert_eq!(status, StatusCode::OK, "{marker}");
+    conversation_schema(&marker);
+    assert_eq!(marker["principal_id"], json!(f.user.id));
+    assert_eq!(marker["read_cursor"], Value::Null);
+    assert_eq!(marker["latest_cursor"], Value::Null);
+    assert_eq!(marker["unread"], json!({"count":0,"capped":false}));
+    let put = |cursor: Value| f.human("PUT", &path, Some(json!({"cursor":cursor})));
+    assert_eq!(
+        put(json!("1")).await.0,
+        StatusCode::BAD_REQUEST,
+        "nothing to read yet"
+    );
+
+    f.send().await;
+    let reservation = f.reserve().await.reservation.unwrap();
+    let p = f.plan(reservation.id, 1).await;
+    let s = f.start(&p).await;
+    f.report(
+        &p,
+        Event::Handoff {
+            evidence: HandoffEvidence {
+                association: s.run.association().unwrap().clone(),
+                disposition: HandoffDisposition::HandedOff,
+                receipt: artifact(),
+            },
+        },
+    )
+    .await;
+    f.answer(&p).await;
+    let (_, history) = f.human("GET", &f.history_path(), None).await;
+    let items = history["items"].as_array().unwrap();
+    assert_eq!(items.len(), 2, "{history}");
+    let (owner, reply) = (items[0]["cursor"].clone(), items[1]["cursor"].clone());
+
+    let (_, marker) = f.human("GET", &path, None).await;
+    conversation_schema(&marker);
+    assert_eq!(marker["latest_cursor"], reply);
+    assert_eq!(
+        marker["unread"],
+        json!({"count":1,"capped":false}),
+        "the owner's own message is never unread"
+    );
+    let (status, marker) = put(owner.clone()).await;
+    assert_eq!(status, StatusCode::OK, "{marker}");
+    assert_eq!(
+        (&marker["read_cursor"], marker["unread"]["count"].as_u64()),
+        (&owner, Some(1))
+    );
+    let (status, marker) = put(reply.clone()).await;
+    assert_eq!(status, StatusCode::OK, "{marker}");
+    conversation_schema(&marker);
+    assert_eq!(
+        (&marker["read_cursor"], marker["unread"]["count"].as_u64()),
+        (&reply, Some(0))
+    );
+    let (status, marker) = put(owner.clone()).await;
+    assert_eq!(status, StatusCode::OK, "{marker}");
+    assert_eq!(
+        marker["read_cursor"], reply,
+        "the marker never moves backward"
+    );
+    let (anchor, r) = reply.as_str().unwrap().split_once('.').unwrap();
+    let r: u64 = r.parse().unwrap();
+    for bad in [
+        json!({"cursor":format!("{anchor}.{}", r + 1)}),
+        json!({"cursor":(anchor.parse::<u64>().unwrap() + 1).to_string()}),
+        json!({"cursor":"x"}),
+        json!({"cursor":"0"}),
+        json!({"cursor":owner,"extra":1}),
+    ] {
+        assert_eq!(
+            f.human("PUT", &path, Some(bad.clone())).await.0,
+            StatusCode::BAD_REQUEST,
+            "{bad}"
+        );
+    }
+    // Markers are keyed by principal: another principal's row is invisible here.
+    let other: Uuid = sqlx::query_scalar("INSERT INTO users(id,email,role,created_at) SELECT gen_random_uuid(),'viewer@localhost','viewer',created_at FROM users WHERE id=$1 RETURNING id")
+        .bind(f.user.id)
+        .fetch_one(&f.pool)
+        .await
+        .unwrap();
+    sqlx::query("INSERT INTO global_supervisor_read_markers(principal_id,conversation_id,anchor,reply,updated_at_ms) VALUES($1,$2,1,0,1)")
+        .bind(other)
+        .bind(f.conversation)
+        .execute(&f.pool)
+        .await
+        .unwrap();
+    let (_, marker) = f.human("GET", &path, None).await;
+    assert_eq!(marker["read_cursor"], reply);
 }

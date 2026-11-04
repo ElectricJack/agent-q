@@ -17,7 +17,14 @@ revision is a decimal cache partition derived from current role and a bounded
 visibility set, not a database revision. A changed partition refuses cursor
 reuse. Snapshot membership expires after 30 seconds and never grants inspection:
 each page reloads current rows and ACLs, then checks the current partition again.
-Sessions totals remain unknown across pages. At most 256 members, 100 items per
+The sessions `total` counts the snapshot's authorized members: `exact` when every
+member projected, `estimated` when some were skipped as no longer visible, and
+`unknown` when membership was truncated. Each summary carries optional
+`last_output_at`, the last terminal output the relay recorded. Output is not
+progress: repaints and heartbeats also advance it, and last-progress time is not
+projected yet. Session detail `permissions` lists `session.inspect` and, for an
+owner of a session with an unrevoked launch binding, `session.message.send` (see
+`dashboard-actions-1`). At most 256 members, 100 items per
 page, 64 cached snapshots, four per principal and four concurrent reads are
 admitted. Each SQL statement and lock wait is bounded; common authority locks
 are released per item. Responses are bounded to 1 MiB. The separate `dashboard-actions-1` contract

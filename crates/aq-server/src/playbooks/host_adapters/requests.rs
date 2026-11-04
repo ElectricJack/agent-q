@@ -14,6 +14,7 @@
 //! host never fabricates a receipt: every passed/failed disposition comes from
 //! an executor-reported exit, and an absent port is a typed refusal.
 use super::*;
+use aq_playbook_host::runner::CancellationResult;
 use serde::{Deserialize, Serialize};
 
 /// Check execution profile every D6 check attempt runs under.
@@ -108,6 +109,11 @@ pub trait CheckExecutor: Send + Sync {
     /// ambiguous: the attempt may or may not exist.
     async fn start(&self, attempt: &CheckAttempt) -> Result<()>;
     async fn observe(&self, operation: Uuid) -> Result<CheckObservation>;
+    /// Requests that the attempt stop; idempotent by `operation`, and a
+    /// cancelled operation is never started afterwards. Acknowledgement only:
+    /// the attempt is cancelled once `observe` reports `CheckStop::Cancelled`.
+    /// An error is ambiguous.
+    async fn cancel(&self, operation: Uuid) -> Result<()>;
 }
 
 /// One bounded provider request. `credential_profile` is a reference chosen
@@ -412,6 +418,20 @@ impl Service {
             Stage::Pending(_) => return Err(Error::Conflict),
             Stage::Fresh => {}
         }
+        // A runner cancellation confirmed before admission admits no attempt.
+        if let Some(cancel) = sqlx::query_scalar::<_, String>("SELECT request_digest FROM playbook_cancellations WHERE namespace_id=$1 AND generation=$2 AND intent_id=$3")
+            .bind(self.namespace.namespace_id)
+            .bind(self.namespace.generation)
+            .bind(&intent.id)
+            .fetch_optional(&mut *tx)
+            .await?
+        {
+            return Err(if cancel == identity {
+                Error::Forbidden
+            } else {
+                Error::Conflict
+            });
+        }
         let input = &intent.input;
         let subject = &input["subject"];
         let check = &input["check"];
@@ -564,6 +584,118 @@ impl Service {
         self.complete_operation(operation, &op.command, &op.intent_id, result)
             .await
             .map(Some)
+    }
+
+    /// The check operation an operation.cancel handle names in this namespace
+    /// generation, with its subject. Judgment operations are not cancellable.
+    pub(super) async fn check_target(&self, handle: &str) -> Result<Option<(Uuid, Value)>> {
+        let Ok(operation) = Uuid::parse_str(handle) else {
+            return Ok(None);
+        };
+        let Some(op) = self.load_operation(operation).await? else {
+            return Ok(None);
+        };
+        if op.command != "check.request" {
+            return Ok(None);
+        }
+        let s = &op.request["subject"];
+        Ok(Some((operation, subject(text(s, "id")?, revision_of(s)?))))
+    }
+
+    /// Asks the executor to stop a running check, then observes it once. The
+    /// operation completes as cancelled only from an executor-reported
+    /// `CheckStop::Cancelled`; a check that stopped otherwise is too_late and
+    /// one still running is accepted. Idempotent: repeating it re-asks and
+    /// re-observes, never completing twice.
+    pub(super) async fn cancel_check(&self, operation: Uuid) -> Result<&'static str> {
+        let op = self
+            .load_operation(operation)
+            .await?
+            .ok_or(Error::Unknown)?;
+        if op.command != "check.request" {
+            return Err(Error::Invalid);
+        }
+        if op.status == "running" {
+            let checks = self.ports()?.checks.as_ref().ok_or(Error::Unknown)?;
+            checks.cancel(operation).await.map_err(|_| Error::Unknown)?;
+        }
+        Ok(match self.observe_check(operation).await? {
+            None => "accepted",
+            Some(done) if done.output["disposition"] == "cancelled" => "cancelled",
+            Some(_) => "too_late",
+        })
+    }
+
+    /// Runner cancellation of a check.request intent (catalog 2.0.0 declares
+    /// `cancellation: true`). Before admission the cancellation is recorded
+    /// and confirmed, so no attempt is ever started; an admitted attempt is
+    /// confirmed only once the executor reports it cancelled.
+    pub async fn check_cancel(
+        &self,
+        owner: &RuntimeOwner,
+        id: Uuid,
+        revision: i64,
+        intent: &Intent,
+    ) -> Result<CancellationResult> {
+        if self.profile != CatalogProfile::Host7 || intent.command.name != "check.request" {
+            return Err(Error::Invalid);
+        }
+        let identity = self.identity(intent)?;
+        let key = aq_playbook_host::runner::cancellation_key(intent).map_err(|_| Error::Invalid)?;
+        let mut tx = self.tx().await?;
+        let ns = self.namespace_locked(&mut tx).await?;
+        self.runtime(&ns, owner)?;
+        let scope = self.grant_locked(&mut tx, id, revision, false).await?;
+        self.intent_authority(intent, id, revision, &scope)?;
+        if let Some(row) = sqlx::query("SELECT request_digest,disposition FROM playbook_cancellations WHERE namespace_id=$1 AND generation=$2 AND cancellation_key=$3")
+            .bind(self.namespace.namespace_id)
+            .bind(self.namespace.generation)
+            .bind(&key)
+            .fetch_optional(&mut *tx)
+            .await?
+        {
+            if row.get::<String, _>("request_digest") != identity {
+                return Err(Error::Conflict);
+            }
+            return Ok(if row.get::<String, _>("disposition") == "confirmed" {
+                CancellationResult::Confirmed
+            } else {
+                CancellationResult::TooLate
+            });
+        }
+        let effect = sqlx::query("SELECT request_digest,status FROM playbook_effects WHERE namespace_id=$1 AND generation=$2 AND intent_id=$3")
+            .bind(self.namespace.namespace_id)
+            .bind(self.namespace.generation)
+            .bind(&intent.id)
+            .fetch_optional(&mut *tx)
+            .await?;
+        let Some(effect) = effect else {
+            self.budget(&mut tx, 0, 0, 1, 0, 2048).await?;
+            sqlx::query("INSERT INTO playbook_cancellations(namespace_id,generation,cancellation_key,intent_id,request_digest,disposition,created_at_ms) VALUES($1,$2,$3,$4,$5,'confirmed',$6)")
+                .bind(self.namespace.namespace_id)
+                .bind(self.namespace.generation)
+                .bind(&key)
+                .bind(&intent.id)
+                .bind(&identity)
+                .bind(self.now()?)
+                .execute(&mut *tx)
+                .await?;
+            tx.commit().await?;
+            return Ok(CancellationResult::Confirmed);
+        };
+        if effect.get::<String, _>("request_digest") != identity {
+            return Err(Error::Conflict);
+        }
+        tx.commit().await?;
+        // A synchronously settled request (a typed refusal) has no operation.
+        if effect.get::<String, _>("status") != "accepted" {
+            return Ok(CancellationResult::TooLate);
+        }
+        Ok(match self.cancel_check(self.operation(intent)?).await? {
+            "cancelled" => CancellationResult::Confirmed,
+            "accepted" => CancellationResult::Accepted,
+            _ => CancellationResult::TooLate,
+        })
     }
 
     // ---------------------------------------------------------- judgment.request
