@@ -421,6 +421,123 @@ pub struct ProviderUsage {
     pub preferred_window_id: Option<String>,
     pub availability_ref: Option<EntityRef>,
 }
+/// X1/X2 installation capacity: slot load, per-node placement eligibility and
+/// per-account provider availability. Owner-only and installation-wide.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Capacity {
+    pub slots: SlotSummary,
+    pub nodes: Vec<NodeCapacity>,
+    pub providers: Vec<ProviderAvailability>,
+}
+/// Sandbox slots across online, unrevoked workers. `occupied` counts every
+/// task-holding attempt; `total` and `idle` are unknown while any online
+/// worker advertises no slot total (host-native workers).
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SlotSummary {
+    pub total: Total,
+    pub occupied: Total,
+    pub idle: Total,
+    pub observed_at: Timestamp,
+    pub coverage: Coverage,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum WorkerHealth {
+    Online,
+    Offline,
+    Revoked,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum EligibilityState {
+    Eligible,
+    Ineligible,
+}
+/// Why placement would refuse new work on a node. Ceiling reasons are the
+/// placement refusal codes.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum IneligibleReason {
+    WorkerOffline,
+    WorkerRevoked,
+    CapabilityUnreported,
+    CapabilityExpired,
+    NodeConcurrencyCeilingReached,
+    NodeSpendCeilingReached,
+    NodeSpendUnaccounted,
+    NodeDiskPressure,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct Eligibility {
+    pub state: EligibilityState,
+    pub reasons: Vec<IneligibleReason>,
+}
+/// A node's slots: `total`/`idle` are null when no backend advertises them.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct NodeSlots {
+    pub total: Option<u32>,
+    pub occupied: u32,
+    pub idle: Option<u32>,
+}
+/// The latest SBX25 storage report for a node.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct NodeStorage {
+    pub used_bps: u16,
+    pub disk_total_bytes: u64,
+    pub disk_used_bytes: u64,
+    pub disk_free_bytes: u64,
+    pub disk_reserved_bytes: u64,
+    pub preserved_count: u64,
+    pub preserved_bytes: u64,
+    pub observed_at: Timestamp,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct NodeCapacity {
+    pub node: EntityRef,
+    pub name: String,
+    pub health: WorkerHealth,
+    pub last_seen_at: Option<Timestamp>,
+    pub backend_kind: Option<String>,
+    pub slots: NodeSlots,
+    pub eligibility: Eligibility,
+    pub capability_observed_at: Option<Timestamp>,
+    pub capability_fresh_until: Option<Timestamp>,
+    pub storage: Option<NodeStorage>,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AvailabilityState {
+    Available,
+    Unavailable,
+    Unknown,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum AvailabilityReason {
+    AccountDisabled,
+    NoFreshNodeReport,
+    CredentialUnavailableOnNodes,
+}
+/// One configured provider account's availability from unexpired node
+/// credential reports. `observed_at` is the newest report used; it is null
+/// when no unexpired node reports the account's credential profiles.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ProviderAvailability {
+    pub provider_id: String,
+    pub account_ref: String,
+    pub state: AvailabilityState,
+    pub reason: Option<AvailabilityReason>,
+    pub available_nodes: u32,
+    pub observed_at: Option<Timestamp>,
+    pub fresh_until: Option<Timestamp>,
+}
 /// Owner-specific identity: playbook names are not UUIDs.
 #[derive(
     Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq, PartialOrd, Ord,
@@ -470,6 +587,7 @@ pub enum Response {
     Overview(Envelope<Overview>),
     Search(Envelope<Search>),
     ProviderUsage(Envelope<Vec<ProviderUsage>>),
+    Capacity(Envelope<Capacity>),
     Sessions(Envelope<Page<SessionSummary>>),
     Session(Box<Envelope<SessionDetail>>),
     Projects(Envelope<Page<ProjectRef>>),

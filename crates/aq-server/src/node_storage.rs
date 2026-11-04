@@ -121,6 +121,33 @@ pub async fn pressured(conn: &mut PgConnection, nodes: &[Uuid]) -> Result<Vec<Uu
     .map_err(|_| AppError::Internal)
 }
 
+/// The latest report per node among `nodes`, with its used share and
+/// observation time. A stored report that no longer parses is omitted.
+pub async fn latest(
+    conn: &mut PgConnection,
+    nodes: &[Uuid],
+) -> Result<Vec<(Uuid, StorageReport, i32, u64)>, AppError> {
+    let rows: Vec<(Uuid, serde_json::Value, i32, i64)> = sqlx::query_as(
+        "SELECT node_id, report, used_bps, observed_at_ms FROM node_storage_reports \
+         WHERE node_id = ANY($1)",
+    )
+    .bind(nodes)
+    .fetch_all(conn)
+    .await
+    .map_err(|_| AppError::Internal)?;
+    Ok(rows
+        .into_iter()
+        .filter_map(|(node, report, bps, at)| {
+            Some((
+                node,
+                serde_json::from_value(report).ok()?,
+                bps,
+                u64::try_from(at).ok()?,
+            ))
+        })
+        .collect())
+}
+
 /// Sample the central root filesystem and database size into the `central`
 /// report. A missing root (development hosts) records nothing.
 pub async fn sample_central(
