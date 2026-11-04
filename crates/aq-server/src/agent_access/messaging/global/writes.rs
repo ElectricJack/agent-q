@@ -9,10 +9,71 @@ pub(crate) struct Create {
     expected_conversation_revision: String,
     #[schemars(length(min = 1, max = 16384))]
     body: String,
-    #[schemars(length(max = 0))]
-    context: Vec<Value>,
+    #[schemars(length(max = 16))]
+    context: Vec<ContextRef>,
     #[schemars(length(max = 0))]
     attachments: Vec<Value>,
+}
+pub(super) const MAX_CONTEXT_REFS: usize = 16;
+/// X5: a pinned reference to an AQ entity the owner attached to a message.
+/// The server checks shape only; the supervisor resolves refs under its own
+/// authority.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub(super) struct ContextRef {
+    #[serde(rename = "type")]
+    kind: ContextKind,
+    id: Uuid,
+    /// Required, nullable: an absent field is refused like the schema does.
+    #[schemars(regex(pattern = "^[1-9][0-9]{0,18}$"))]
+    #[serde(deserialize_with = "Option::deserialize")]
+    revision: Option<String>,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub(super) enum ContextKind {
+    Project,
+    Task,
+    Result,
+    Review,
+    Knowledge,
+    Session,
+    PlaybookRun,
+}
+impl ContextRef {
+    fn valid(&self) -> bool {
+        !self.id.is_nil() && self.revision.as_deref().is_none_or(|r| positive(r).is_ok())
+    }
+    /// One stable line for the supervisor turn text.
+    pub(super) fn render(&self) -> String {
+        let kind = serde_json::to_value(self.kind)
+            .ok()
+            .and_then(|v| v.as_str().map(str::to_owned))
+            .unwrap_or_default();
+        match &self.revision {
+            Some(r) => format!("{kind} {} revision {r}", self.id),
+            None => format!("{kind} {}", self.id),
+        }
+    }
+}
+/// Decodes stored context refs, refusing anything the writer could not produce.
+pub(super) fn stored_context(raw: Option<Value>) -> Result<Vec<ContextRef>> {
+    let Some(raw) = raw else {
+        return Ok(vec![]);
+    };
+    let refs: Vec<ContextRef> = serde_json::from_value(raw).map_err(|_| unavailable())?;
+    if refs.is_empty() || !context_valid(&refs) {
+        return Err(unavailable());
+    }
+    Ok(refs)
+}
+fn context_valid(refs: &[ContextRef]) -> bool {
+    refs.len() <= MAX_CONTEXT_REFS
+        && refs.iter().all(ContextRef::valid)
+        && refs
+            .iter()
+            .enumerate()
+            .all(|(i, a)| refs[..i].iter().all(|b| (b.kind, b.id) != (a.kind, a.id)))
 }
 impl Create {
     fn parse(bytes: &[u8]) -> Result<Self> {
@@ -28,7 +89,7 @@ impl Create {
             || v.body.trim().is_empty()
             || v.body.len() > 16384
             || v.body.contains('\0')
-            || !v.context.is_empty()
+            || !context_valid(&v.context)
             || !v.attachments.is_empty()
         {
             return Err(invalid());
@@ -229,6 +290,14 @@ async fn enqueue_domain(
         .await;
         match appended {
             Ok(cursor) => {
+                if !request.context.is_empty() {
+                    sqlx::query("INSERT INTO global_supervisor_message_context(message_id,refs) VALUES($1,$2)")
+                        .bind(request.message_id)
+                        .bind(json!(request.context))
+                        .execute(&mut *tx)
+                        .await
+                        .map_err(db)?;
+                }
                 result.state = "queued".into();
                 result.cursor = Some(cursor.to_string());
             }

@@ -38,9 +38,9 @@ def validate_request(value):
     payload, subject = value['payload'], value['subject']
     assert UUID(value['operation_id']).int and payload['operation_id'] == value['operation_id']
     kind = value['kind']
-    key = {'task.graph.create':'project', 'task.create':'project', 'decision.resolve':'decision', 'supervisor.message.send':'conversation'}.get(kind)
+    key = {'task.graph.create':'project', 'task.create':'project', 'decision.resolve':'decision', 'supervisor.message.send':'conversation', 'session.message.send':'session'}.get(kind)
     key = key or ('project' if kind == 'knowledge.author' else kind.split('.')[0])
-    field = {'task.create':'expected_project_revision', 'decision.resolve':'expected_decision_revision', 'supervisor.message.send':'expected_conversation_revision', 'knowledge.author':'expected_project_revision'}.get(kind, 'expected_version')
+    field = {'task.create':'expected_project_revision', 'decision.resolve':'expected_decision_revision', 'supervisor.message.send':'expected_conversation_revision', 'knowledge.author':'expected_project_revision', 'session.message.send':'expected_generation'}.get(kind, 'expected_version')
     revision = str(payload[field])
     assert value['expected_versions'] == {key:revision} and subject['revision'] == revision
     assert subject['type'] == key and UUID(subject['id']).int
@@ -69,6 +69,10 @@ def validate_request(value):
         assert UUID(payload['message_id']).int and payload['message_id'] != value['operation_id']
         assert payload['body'].strip() and len(payload['body'].encode()) <= 16384
         assert payload['context'] == [] and payload['attachments'] == []
+    elif kind == 'session.message.send':
+        assert UUID(payload['project_id']).int and UUID(payload['message_id']).int
+        assert payload['message_id'] != value['operation_id']
+        assert payload['body'].strip() and len(payload['body'].encode()) <= 16384
     elif kind in TYPED:
         assert UUID(payload['project_id']).int
         if kind == 'knowledge.author':
@@ -82,7 +86,7 @@ def validate_request(value):
         assert payload['expected_subject']['version'] == '1'
     assert len(canonical(value)) <= 65536
 
-for name in ('task-create', 'decision-resolve', 'supervisor-message-send') + tuple(k.replace('.', '-') for k in TYPED):
+for name in ('task-create', 'decision-resolve', 'supervisor-message-send', 'session-message-send') + tuple(k.replace('.', '-') for k in TYPED):
     validate_request(load('request-' + name))
 conflict = load('operation-conflict-current-versions')
 validator.validate(conflict)
@@ -137,4 +141,4 @@ for contract in compat['read']['data']['contracts']:
 assert len(compat['read']['data']['contracts']) == 2
 assert compat['read']['api_version'] == 'dashboard-read-1'
 validate_request(load('request-task-create-metadata'))
-print('16 requests, 5 dispositions, current-versions conflict, 10 errors, cursor, replay, invalid and compatibility fixtures passed')
+print('17 requests, 5 dispositions, current-versions conflict, 10 errors, cursor, replay, invalid and compatibility fixtures passed')

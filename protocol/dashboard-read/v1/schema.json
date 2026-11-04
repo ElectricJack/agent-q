@@ -1745,6 +1745,17 @@
             }
           ]
         },
+        "last_output_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Last terminal output the relay recorded for this session. Output is\nnot progress: repaints and heartbeats also advance it."
+        },
         "lifecycle": {
           "anyOf": [
             {
@@ -2042,6 +2053,17 @@
         },
         "label": {
           "type": "string"
+        },
+        "last_output_at": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Last terminal output the relay recorded for this session. Output is\nnot progress: repaints and heartbeats also advance it."
         },
         "lifecycle": {
           "anyOf": [
