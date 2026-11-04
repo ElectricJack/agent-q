@@ -538,3 +538,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Fix:** filed fresh re-apply tasks that start from main and cherry-pick the old branch: keen-pinnacle-80, sharp-glacier-37, solid-willow-70, fresh-ridge-68. Closed the old tasks `--obsolete` and closed PRs #15, #16, #18 and #21 as superseded. The branches are kept.
   - **Merged #12 (OV-A).**
   - **SHR-L (#24):** units pass, but `supervisor-launcher.spec.ts` "launcher never covers content on /results" now fails because the new Results fixtures fill the page. Reopened at priority 5 on standard-medium.
+- **18:40 check.**
+  - **calm-current-41 pushed back, correctly.** The atomicity test also fails on main. Main CI never reached that binary because cargo stopped at `native_accepted_preparation`. Root cause: `f0253a76` (offer TTL 2 s to 30 s) makes the scenario unreachable. I chose option (a): merge #56 as-is once clippy passes on `55a451fe`, and filed `brisk-quest-74` (priority 10) to redesign that test and run the other masked binaries with `--no-fail-fast`. My earlier reopen was wrong: I compared against main's failure list without accounting for cargo stopping at the first failing binary.
+  - **crisp-meadow-36.7.2** was held again (`child_preparation_conflict`, last recovery budget). The only conflict was `docs/implementation/D6.md`. Resolved it by hand: kept main's newer item 1 and marked check cancellation as shipped. Pushed to `aq/crisp-meadow-36.7.2`, which updates PR #59.
+  - Claude usage: 78%. The auto-pause triggers at 80%.
