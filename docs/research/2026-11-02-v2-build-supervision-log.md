@@ -576,3 +576,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - `task close --obsolete` was refused ("Managed slot process termination is unproved"), as was a plain `release-workspace` ("ownership is retained"). Released `ws-foggy-bay` and `ws-dusty-cabin` with `release-workspace --force --task-id <exact task>`, then closed both as obsolete.
   - `sharp-pinnacle-28` (paused B2 reconcile) still holds slot-0.
   - The owner hasn't created the Claude sandbox token yet; the container test is waiting on it.
+- **17:30 pool starts stalled again.** `Pool reconciliation timed out after 30s` (hard-coded `POOL_RECONCILE_TIMEOUT` in pools.py) repeats. When starts are authorised, aq-platform shows 'no unserved demand' despite 20+ READY tasks: fresh delivery admission (GitHub PR reads plus git checks per completed dependency) doesn't finish in time. MS1 head C5a1 (deep-low-claude) has never started. Proposed to the owner: sizing uses cached delivery evidence, while claims still re-verify under locks. Waiting for approval to change v1.
+- **17:55 check.** 19 new aq-dashboard gap PRs (#41–#59) came in; main is green.
+  - **Merged:** #45 (stark-rapids-21, landing DC-N, KN-C, KN-B, DC-M and KN-E together; closed #31, #34, #36, #37 and #39 as landed), #41, #42, #51, #54, #56 and #58.
+  - **Conflicting after those merges:** #44, #50 and #52.
+  - **Failing their own Playwright or unit specs:** #43 and #55 (overview-header), #46, #47 and #49 (inspection), #48 and #53 (supervisor-launcher, TerminalTail).
+  - Filed one steward task in aq-dashboard (priority 15) to land them in order on their existing branches. #57 and #59 are still in CI.
+  - aq-platform pool starts are still blocked by the 30 s reconcile timeout; waiting on the owner's OK for the v1 fix.
