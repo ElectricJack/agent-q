@@ -21,4 +21,4 @@ BEGIN
 END $$;
 CREATE TRIGGER admission_material_permit_guard BEFORE INSERT OR UPDATE ON admission_material_leases
  FOR EACH ROW EXECUTE FUNCTION admission_material_permit_guard();
-UPDATE meta SET value='76' WHERE key='state_format_version';
+UPDATE meta SET value='78' WHERE key='state_format_version';
