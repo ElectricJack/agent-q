@@ -647,3 +647,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **aq-server main red:** aq-updater `compose_failures_do_not_leak_stderr_into_the_error`, an ETXTBSY race (likely flaky). Filed a fix task (priority 9) with the finding.
 - **23:10 check.** Merged aq-server #74 (C5a2, migration renumbered to 0078). Its only failure was aq-updater `fetch_release_removes_the_container_even_on_error`, the same flaky updater family as `bright-lantern-83`; the PR doesn't touch aq-updater. Applied the W61 rule: C5a2 commit `1055094ea0` is on main, so I removed MS1's satisfied `blocks` edge on C5a2.
 - **23:25 status.** v2 plan: 64 of 91 tasks complete, 6 in progress, 21 ready. C6a completed; its follow-ups .9.2 and .9.4 are running, .9.5 is ready and .9.1 is paused. aq-dashboard main is red after the round-1 merges (Work inspector specs, SupervisorConversation 401/403); filed a fix task (priority 9). aq-server main is red on the flaky aq-updater tests (`bright-lantern-83`). The round-2 dashboard steward `prime-beacon-85` is running. Claude usage: 3%. Disk: 136G free.
+- **23:40 check.** Merged aq-worker #36 (C6a harness config with confinement modes; green). Filed four cross-repo follow-ups at priority 60:
+  - aq-platform `bold-stone-51`: agent-access supervisor recipient, from F3;
+  - aq-git `fair-current-80`: PR-mode non-default head branch, from D1b;
+  - aq-platform `bright-summit-37`: harness-confinement permission in aq-profiles, from C6a;
+  - aq-git `sound-impact-48`: named credential profiles for central bindings, from D2.
+  Dashboard main-CI fix `keen-harbor-66` and round-2 steward `prime-beacon-85` are running.
+- **23:55 check.** Merged aq-dashboard #66 (keen-harbor-66: ports WK-E/WK-F Work behaviour into WorkWorkspace; fixes the red main). The router is routing again now that Claude usage is low; the four cross-repo follow-ups were routed automatically, and aq-git `fair-current-80` is running. Round-2 steward `prime-beacon-85` is still on #46, #53, #55, #60, #61, #63 and #64.
