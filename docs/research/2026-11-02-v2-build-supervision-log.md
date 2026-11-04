@@ -607,3 +607,12 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Scan:** no other READY/DEFINED dependency on a mismatched PR.
   - **Clean-up:** reverted the debug logging (#2208) and restarted. The provider override and the #2203 reland stay; the 30 s reconcile timeouts are at 0.
   - **Earlier wrong hypotheses, both disproven:** #2203 (wrongly reverted, then relanded in #2205) and the degraded provider (overridden with no effect).
+- **21:00 check.**
+  - The MS1 heads are running: C5a1, D1b and H4 in aq-platform, and B7 in aq-worker.
+  - **22 READY tasks were never routed.** Half of the `default-assignment-routing` runs fail: `plan_first` returns `no_candidates`, presumably from Claude usage pressure with Codex exhausted. Following the owner's "run everything on Claude", I route-overrode 21 of them:
+    - standard work to `standard-high-claude`;
+    - operator gates (MS1–MS3, J5) to `operator-standard-high-claude`;
+    - MS4 to `operator-deep-high-claude`;
+    - J4 to `deep-low-claude`, because the deep-high pool is at max 0.
+  - Left I4b (`azure-horizon-22.3`, Codex qualification) unrouted because it needs Codex.
+  - Most of these are still dependency-blocked; this lets them start as soon as their dependencies clear. The dashboard landing steward `quick-flare-90` and G9–G11 can now be claimed.
