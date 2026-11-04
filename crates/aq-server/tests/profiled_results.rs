@@ -1860,3 +1860,5 @@ mod media_http;
 mod auto_settlement56;
 #[path = "profiled_results/settlement_owner39.rs"]
 mod settlement_owner39;
+#[path = "profiled_results/waits.rs"]
+mod waits;

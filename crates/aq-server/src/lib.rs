@@ -451,6 +451,7 @@ async fn run_with_listeners_and_dashboard(
     ));
     let terminal_task = tokio::spawn(terminal::runtime::run(state.clone(), rx.clone()));
     let retention_task = tokio::spawn(row_retention::run(state.clone(), rx.clone()));
+    let waits_task = tokio::spawn(agent_access::waits::run(state.clone(), rx.clone()));
     let expiry_task = tokio::spawn(profiled_execution::expiry::run(state.clone(), rx.clone()));
     let source_gc_task = tokio::spawn(source_retention::gc::run(state.clone(), rx.clone()));
     tokio::spawn(async move {
@@ -488,6 +489,8 @@ async fn run_with_listeners_and_dashboard(
     );
     retention_task.abort();
     let _ = retention_task.await;
+    waits_task.abort();
+    let _ = waits_task.await;
     terminal_task.abort();
     let _ = terminal_task.await;
     notification_task.abort();

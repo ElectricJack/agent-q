@@ -7,6 +7,7 @@ pub use messaging::global as supervisor_conversation;
 mod mutations;
 pub(crate) mod native_binding;
 pub mod scheduling;
+pub mod waits;
 use crate::{
     AppState,
     authz::RequireOwner,
@@ -316,6 +317,7 @@ pub fn admin_routes(state: AppState) -> Router<AppState> {
     Router::new()
         .merge(messaging::admin_routes())
         .merge(mutations::admin_routes())
+        .merge(waits::routes::admin_routes())
         .route("/api/agent-access/provision", post(provision))
         .with_state(state.clone())
         .merge(
@@ -329,6 +331,7 @@ pub fn machine_routes(state: AppState) -> Router<AppState> {
     Router::new()
         .merge(messaging::machine_routes())
         .merge(mutations::machine_routes())
+        .merge(waits::routes::machine_routes())
         .route("/v1/agent/context", get(context))
         .route("/v1/agent/graph/read", post(read))
         .with_state(state.clone())
