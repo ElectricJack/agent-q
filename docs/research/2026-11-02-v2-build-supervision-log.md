@@ -627,3 +627,4 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **C6a (`calm-delta-18.9`) was held** (`slot_reset_failed` five times: "branch holder reservation is not clean and taskless").
   - **Cause:** aq-worker slot-2 (`ws-frosty-gate`) was still checked out on `aq/calm-delta-18.9`. That branch has no origin copy and is 0 commits ahead of main, so `_slot_branch_matches_origin` could never pass.
   - **Fix:** detached slot-2 (no work lost) and released the hold with an operator retry. C6a is READY again.
+- **21:50 check.** Completed: D1b (`crisp-meadow-36.2`), C5a2 (`calm-delta-18.13`) and F3 (`steady-harbor-87.4`). C6a is running after the slot fix; D7, H3, D2, C5b and H4 are also running. aq-server main CI is green again (atomicity redesign #72). F3 left aq-worker main failing `cargo fmt --check` (module order in `native/runner/sandbox.rs`); pushed the one-line rustfmt fix `be49d32`. Claude usage: 92%.
