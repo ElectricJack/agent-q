@@ -548,3 +548,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - #27: kept both the OV-C and OV-D CSS blocks;
     - #30: SHR-L's `bootstrap` variable plus the `projects.read` grant, and both scenario names.
     - Verified with `tsc --noEmit` and the overview, mocks and knowledge unit tests (26 + 31 passed). Waiting on CI.
+- **19:30 check.**
+  - **aq-dashboard:** merged #27 (OV-D) and #30 (WK-B) after my conflict resolutions passed CI, apart from the known flakes. Every open gap PR is now merged.
+  - **aq-server:** merged #56 (calm-current-41, which fixes `native_accepted_preparation`). Per decision (a), its only failure was the pre-existing atomicity test that `brisk-quest-74` owns. Also merged #59 (D6 `operation.cancel`), whose only failure was the old `native_accepted_preparation` test; closed `crisp-meadow-36.7.2` `--done`. Updated #57 (Work view contracts) onto main and am watching its CI before releasing `bright-willow-25`'s hold.
+  - Claude usage: 79%.
