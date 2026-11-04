@@ -897,19 +897,60 @@ mod definitions;
 #[path = "playbook_activation/catalog.rs"]
 mod catalog;
 
-/// Production Host7 construction: the configured owner binds the gateway
-/// work graph and leaves the check executor and judgment provider unbound,
-/// so both commands refuse with typed reasons and record no evidence.
-#[tokio::test]
-async fn host7_profile_starts_on_gateway_graph_with_unbound_check_and_judgment_ports() {
-    use aq_playbook_host::runner::{Intent, IntentStatus};
-    use aq_server::playbooks::review_domain::{CatalogProfile, HOST7_CAPABILITIES};
-    let s = setup().await;
+struct Host7 {
+    s: Setup,
+    service: aq_server::playbooks::service::Service,
+    owner: aq_server::playbooks::service::RuntimeOwner,
+    scope: GrantScope,
+    now: i64,
+    pool: sqlx::PgPool,
+}
+impl Host7 {
+    async fn dispatch(
+        &self,
+        id: &str,
+        name: &str,
+        input: Value,
+    ) -> aq_server::playbooks::host_adapters::HostResult {
+        use aq_playbook_host::runner::{Intent, IntentStatus};
+        use aq_server::playbooks::review_domain::CatalogProfile;
+        let intent = Intent {
+            id: id.into(),
+            run: "synthetic-run".into(),
+            step: name.replace('.', "-"),
+            invocation: 1,
+            deadline_at_ms: self.now + 5000,
+            command: CatalogProfile::Host7.registry().commands[name].clone(),
+            input_digest: aq_server::playbooks::domain::digest(&input).unwrap(),
+            input,
+            authority: CatalogProfile::Host7
+                .authority(self.s.grant, 1, &self.scope)
+                .unwrap(),
+            status: IntentStatus::Dispatched,
+            cancel_requested: false,
+            cancel_dispatched: false,
+            handle: None,
+            result: None,
+            reason: None,
+            late_results: vec![],
+            completion_event: None,
+        };
+        self.service
+            .host_dispatch(&self.owner, self.s.grant, 1, &intent)
+            .await
+            .unwrap()
+    }
+}
+/// Starts the production-configured Host7 owner (with `extra` appended to the
+/// `[playbooks]` head), then adopts its service under a fresh owner with a
+/// Host7 grant so commands can be driven directly.
+async fn host7(s: Setup, extra: &str) -> Host7 {
+    use aq_server::playbooks::review_domain::HOST7_CAPABILITIES;
     let (head, _) = s.text.split_once("[[playbooks.deployments]]").unwrap();
     let text = head.replace(
         "profile=\"human_review_v2\"",
         "profile=\"host_v7\"\ndeployments=[]",
-    );
+    ) + extra;
     let config: Config = toml::from_str(&text).unwrap();
     let mut state = s.f.state.clone();
     state.config = Arc::new(config);
@@ -964,40 +1005,37 @@ async fn host7_profile_starts_on_gateway_graph_with_unbound_check_and_judgment_p
         .grant(s.f.actor, s.grant, scope.clone(), now + 10_000)
         .await
         .unwrap();
-    let intent = |id: &str, name: &str, input: Value| Intent {
-        id: id.into(),
-        run: "synthetic-run".into(),
-        step: name.replace('.', "-"),
-        invocation: 1,
-        deadline_at_ms: now + 5000,
-        command: CatalogProfile::Host7.registry().commands[name].clone(),
-        input_digest: aq_server::playbooks::domain::digest(&input).unwrap(),
-        input,
-        authority: CatalogProfile::Host7.authority(s.grant, 1, &scope).unwrap(),
-        status: IntentStatus::Dispatched,
-        cancel_requested: false,
-        cancel_dispatched: false,
-        handle: None,
-        result: None,
-        reason: None,
-        late_results: vec![],
-        completion_event: None,
-    };
+    Host7 {
+        s,
+        service,
+        owner,
+        scope,
+        now,
+        pool,
+    }
+}
+fn host7_judgment(question: &str) -> Value {
     // Subjects are not graph node ids, so no graph call is made.
+    json!({"budget": {"deadline_ms": 60000, "max_cost_microunits": 50000,
+            "max_input_tokens": 8192, "max_output_tokens": 512},
+        "context": {"artifacts": [{"digest": format!("sha256:{}", "a".repeat(64)),
+            "id": "snapshot-1", "version": "1"}], "text": "Work item summary."},
+        "output": {"choices": ["permitted-default", "isolated"], "rationale_max_bytes": 2048},
+        "question": question, "subject": {"id": "work-1", "revision": 1}})
+}
+
+/// Production Host7 construction: the configured owner binds the gateway
+/// work graph and leaves the check executor and judgment provider unbound,
+/// so both commands refuse with typed reasons and record no evidence.
+#[tokio::test]
+async fn host7_profile_starts_on_gateway_graph_with_unbound_check_and_judgment_ports() {
+    let h = host7(setup().await, "").await;
     let subject = json!({"id": "work-1", "revision": 1});
     let check = json!({"check": {"id": "unit", "validator": {"id": "aq.check.cargo-test",
             "version": "1.0.0", "digest": format!("sha256:{}", "1".repeat(64))}},
         "source": {"format": "sha1", "hex": "0123456789abcdef0123456789abcdef01234567"},
         "subject": subject});
-    let r = service
-        .host_dispatch(
-            &owner,
-            s.grant,
-            1,
-            &intent("check-1", "check.request", check),
-        )
-        .await
-        .unwrap();
+    let r = h.dispatch("check-1", "check.request", check).await;
     assert_eq!(
         (
             r.outcome.as_str(),
@@ -1007,21 +1045,9 @@ async fn host7_profile_starts_on_gateway_graph_with_unbound_check_and_judgment_p
         ("refused", &json!("unavailable"), &Value::Null),
         "{r:?}"
     );
-    let judgment = json!({"budget": {"deadline_ms": 60000, "max_cost_microunits": 50000,
-            "max_input_tokens": 8192, "max_output_tokens": 512},
-        "context": {"artifacts": [{"digest": format!("sha256:{}", "a".repeat(64)),
-            "id": "snapshot-1", "version": "1"}], "text": "Work item summary."},
-        "output": {"choices": ["permitted-default", "isolated"], "rationale_max_bytes": 2048},
-        "question": "fits?", "subject": subject});
-    let r = service
-        .host_dispatch(
-            &owner,
-            s.grant,
-            1,
-            &intent("judge-1", "judgment.request", judgment),
-        )
-        .await
-        .unwrap();
+    let r = h
+        .dispatch("judge-1", "judgment.request", host7_judgment("fits?"))
+        .await;
     assert_eq!(
         (
             r.outcome.as_str(),
@@ -1033,9 +1059,176 @@ async fn host7_profile_starts_on_gateway_graph_with_unbound_check_and_judgment_p
     );
     // Refusals fabricate no check evidence.
     let evidence: i64 = sqlx::query_scalar("SELECT count(*) FROM profiled_check_evidence")
-        .fetch_one(&pool)
+        .fetch_one(&h.pool)
         .await
         .unwrap();
     assert_eq!(evidence, 0);
-    service.retire_runtime(&owner).await.unwrap();
+    h.service.retire_runtime(&h.owner).await.unwrap();
+}
+
+/// What the fake Responses endpoint saw: (Authorization header, body).
+type Seen = Arc<Mutex<Vec<(String, Value)>>>;
+/// A local fake OpenAI Responses-compatible endpoint on loopback; no real
+/// network. Answers every request with a fixed completed judgment.
+async fn fake_responses(seen: Seen) -> (String, JoinHandle<()>) {
+    use axum::{Json, extract::State, http::HeaderMap, routing::post};
+    async fn respond(
+        State(seen): State<Seen>,
+        headers: HeaderMap,
+        Json(body): Json<Value>,
+    ) -> Json<Value> {
+        let auth = headers
+            .get("authorization")
+            .and_then(|v| v.to_str().ok())
+            .unwrap_or_default()
+            .to_owned();
+        seen.lock().unwrap().push((auth, body));
+        Json(json!({
+            "id": "resp_1", "object": "response", "status": "completed",
+            "model": "judge-model-2026-10-01",
+            "output": [{"type": "message", "role": "assistant", "content": [{
+                "type": "output_text",
+                "text": "{\"choice\":\"isolated\",\"rationale\":\"Needs its own environment.\"}"
+            }]}],
+            "usage": {"input_tokens": 300, "output_tokens": 40, "total_tokens": 340}
+        }))
+    }
+    let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap();
+    let app = axum::Router::new()
+        .route("/v1/responses", post(respond))
+        .with_state(seen);
+    let task = tokio::spawn(async move {
+        axum::serve(listener, app).await.unwrap();
+    });
+    (format!("http://{addr}/v1/responses"), task)
+}
+
+/// keen-harbor-32: the production-configured judgment provider leases the
+/// credential profile for one bounded request to the configured endpoint,
+/// records provenance and the budget, and never leaks the credential into
+/// rows or results.
+#[tokio::test]
+async fn host7_configured_judgment_provider_records_provenance_and_never_leaks_credential() {
+    const SECRET: &str = "sk-keen-harbor-32-NEVER-PERSIST-0123456789abcdef";
+    let seen: Seen = Arc::default();
+    let (endpoint, server) = fake_responses(seen.clone()).await;
+    let s = setup().await;
+    let secret_file = s._dir.path().join("judgment-credential");
+    private(&secret_file, format!("{SECRET}\n"));
+    let l = &s.f.selection.lineage;
+    // 2 microunits/input token, 10/output token (per million: 2e6, 1e7).
+    let extra = format!(
+        r#"[playbooks.judgment]
+credential_profile="profile/judgment-default"
+provider="openai"
+model="judge-model"
+endpoint="{endpoint}"
+secret_file="{secret}"
+input_microunits_per_mtok=2000000
+output_microunits_per_mtok=10000000
+[[playbooks.judgment.permitted]]
+workspace_id="{workspace}"
+project_id="{project}"
+"#,
+        secret = secret_file.display(),
+        workspace = l.workspace_id,
+        project = l.project_id,
+    );
+    let h = host7(s, &extra).await;
+    let r = h
+        .dispatch("judge-1", "judgment.request", host7_judgment("fits?"))
+        .await;
+    assert_eq!(r.outcome, "accepted", "{r:?}");
+    let handle = r.output["handle"].as_str().unwrap().to_owned();
+    let mut results = vec![r.output.clone()];
+    // Reconcile through operation.get (bounded; the fake answers at once).
+    let mut done = None;
+    for i in 0..400 {
+        let r = h
+            .dispatch(
+                &format!("get-{i}"),
+                "operation.get",
+                json!({"handle": handle}),
+            )
+            .await;
+        results.push(r.output.clone());
+        if r.outcome == "completed" {
+            done = Some(r.output);
+            break;
+        }
+        assert_eq!(r.outcome, "running", "{r:?}");
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    let done = done.expect("judgment did not complete");
+    assert_eq!(done["outcome"], "assessed", "{done}");
+    let output = &done["output"];
+    assert_eq!(output["choice"], "isolated");
+    assert_eq!(output["reference"], format!("judgment:{handle}"));
+    let p = &output["provenance"];
+    assert_eq!(p["provider"], "openai");
+    assert_eq!(p["model"], "judge-model-2026-10-01");
+    assert_eq!(p["credential_profile"], "profile/judgment-default");
+    for d in ["prompt_digest", "context_digest", "output_digest"] {
+        assert!(p[d].as_str().unwrap().starts_with("sha256:"), "{d}");
+    }
+    // Usage priced with the configured rates: 300*2 + 40*10.
+    assert_eq!(
+        p["usage"],
+        json!({"input_tokens": 300, "output_tokens": 40, "cost_microunits": 1000})
+    );
+
+    // Exactly one bounded request reached the endpoint, carrying the leased
+    // credential only in the Authorization header.
+    {
+        let seen = seen.lock().unwrap();
+        assert_eq!(seen.len(), 1, "one provider request");
+        let (auth, body) = &seen[0];
+        assert_eq!(auth, &format!("Bearer {SECRET}"));
+        assert!(!body.to_string().contains(SECRET), "no secret in the body");
+        assert_eq!(body["model"], "judge-model");
+        assert_eq!(body["store"], false);
+        assert_eq!(body["max_output_tokens"], 512, "the output budget");
+        assert_eq!(
+            body["text"]["format"]["schema"]["properties"]["choice"]["enum"],
+            json!(["permitted-default", "isolated"])
+        );
+        assert!(body["input"].as_str().unwrap().contains("fits?"));
+        assert!(body.get("tools").is_none(), "no tool loop");
+    }
+
+    // The durable operation row records the profile reference and budget.
+    let request: Value = sqlx::query_scalar(
+        "SELECT request FROM playbook_host_operations WHERE namespace_id=$1 AND command_name='judgment.request'",
+    )
+    .bind(h.s.namespace)
+    .fetch_one(&h.pool)
+    .await
+    .unwrap();
+    assert_eq!(request["credential_profile"], "profile/judgment-default");
+    assert!(request["estimated_input_tokens"].as_u64().unwrap() > 0);
+    assert!(request["deadline_at_ms"].as_i64().unwrap() > h.now);
+
+    // The credential never appears in any result or any playbook row.
+    for r in &results {
+        assert!(!r.to_string().contains(SECRET), "secret in result {r}");
+    }
+    assert!(!done.to_string().contains(SECRET));
+    for table in [
+        "playbook_host_operations",
+        "playbook_effects",
+        "playbook_outbox",
+    ] {
+        let rows: Vec<String> =
+            sqlx::query_scalar(&format!("SELECT row_to_json(t)::text FROM {table} t"))
+                .fetch_all(&h.pool)
+                .await
+                .unwrap();
+        assert!(!rows.is_empty(), "{table} has rows");
+        for row in rows {
+            assert!(!row.contains(SECRET), "secret in {table}: {row}");
+        }
+    }
+    h.service.retire_runtime(&h.owner).await.unwrap();
+    server.abort();
 }
