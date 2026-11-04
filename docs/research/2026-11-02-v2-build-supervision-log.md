@@ -571,3 +571,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Appended the decision to C5b (`calm-delta-18.8`), C6a (`.9`), C6b (`.10`) and MS1 (`stark-zenith-16.2`). Claude Code credentials and runner config come first; Codex stays in the design but off MS1's path.
   - Re-scoped and retitled I4a (`azure-horizon-22.2`) to Claude Code CLI qualification in docker-local sandboxes. Asked C5b to evaluate `claude setup-token` / `CLAUDE_CODE_OAUTH_TOKEN` as a long-lived subscription token for sandboxes, verifying CLI behaviour first.
   - Filed the deferred Codex qualification as `noble-meadow-73` and paused it until Codex resets.
+- **17:10 MS1 chain head (C5a1) wouldn't start.** I rerouted it from the full `standard-high-claude` pool (8 of 8) to the idle `deep-low-claude` slot, but no session started. Cause: all 8 aq-server worktree slots were held. Five were active; three belonged to PAUSED tasks.
+  - Two of those were superseded duplicates with empty branches: `sound-journey-35.1`, whose work merged as aq-worker `stark-harbor-81`, and `bright-willow-76`, merged as aq-dashboard `amber-bridge-62`.
+  - `task close --obsolete` was refused ("Managed slot process termination is unproved"), as was a plain `release-workspace` ("ownership is retained"). Released `ws-foggy-bay` and `ws-dusty-cabin` with `release-workspace --force --task-id <exact task>`, then closed both as obsolete.
+  - `sharp-pinnacle-28` (paused B2 reconcile) still holds slot-0.
+  - The owner hasn't created the Claude sandbox token yet; the container test is waiting on it.
