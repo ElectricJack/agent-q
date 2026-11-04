@@ -462,7 +462,14 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         acceptance_criteria: criteria(&compiled.projection.context, task.task_id)?,
         validation_policy: validation,
         review: ReviewRequirement::HumanOwner,
-        required_checks: vec![],
+        // Server-owned D6 checks configured for this project; settlement
+        // consults only executor-reported evidence for them.
+        required_checks: configuration
+            .projects
+            .iter()
+            .find(|p| p.project_id == project.project_id)
+            .map(|p| p.required_checks.clone())
+            .unwrap_or_default(),
     };
     outcome.validate().map_err(|_| refused())?;
     let outcome_ref = outcome.artifact().map_err(|_| refused())?;

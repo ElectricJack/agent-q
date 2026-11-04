@@ -155,6 +155,36 @@ pub async fn settle_after_record(
     Ok(Some(s))
 }
 
+/// One verdict per required check, in order, from node-reported
+/// `profiled_check_evidence` bound to this attempt, the exact confirmed source
+/// operation and checkpoint, and the pinned validator digest.
+pub(super) async fn check_verdicts_locked(
+    tx: &mut Transaction<'_, Postgres>,
+    r: &results::RecordedResult,
+    source: Option<(Uuid, &str)>,
+) -> Result<Vec<CheckVerdict>> {
+    let attempt = r.report.binding.attempt_id;
+    let mut checks = Vec::with_capacity(r.outcome.required_checks.len());
+    for check in &r.outcome.required_checks {
+        let verdict = match source {
+            None => CheckVerdict::Missing,
+            Some((op, checkpoint)) => {
+                let found: Option<String> = sqlx::query_scalar("SELECT verdict FROM profiled_check_evidence WHERE attempt_id=$1 AND check_id=$2 AND source_operation_id=$3 AND checkpoint=$4 AND validator_digest=$5")
+                    .bind(attempt).bind(check.id.as_str()).bind(op).bind(checkpoint).bind(check.validator.digest.as_str())
+                    .fetch_optional(&mut **tx).await.map_err(db)?;
+                match found.as_deref() {
+                    Some("passed") => CheckVerdict::Passed,
+                    Some("failed") => CheckVerdict::Failed,
+                    Some(_) => return Err(crate::error::AppError::Internal),
+                    None => CheckVerdict::Missing,
+                }
+            }
+        };
+        checks.push(verdict);
+    }
+    Ok(checks)
+}
+
 /// Gathers only server-owned facts under the report/attempt locks.
 async fn evaluate_locked(
     state: &AppState,
@@ -197,26 +227,21 @@ async fn evaluate_locked(
         }
     }
     let attempt = r.report.binding.attempt_id;
-    let mut checks = Vec::with_capacity(r.outcome.required_checks.len());
-    let mut check_evidence = Vec::with_capacity(r.outcome.required_checks.len());
-    for check in &r.outcome.required_checks {
-        let verdict = match &source {
-            None => CheckVerdict::Missing,
-            Some((op, checkpoint)) => {
-                let found: Option<String> = sqlx::query_scalar("SELECT verdict FROM profiled_check_evidence WHERE attempt_id=$1 AND check_id=$2 AND source_operation_id=$3 AND checkpoint=$4 AND validator_digest=$5")
-                    .bind(attempt).bind(check.id.as_str()).bind(op).bind(checkpoint).bind(check.validator.digest.as_str())
-                    .fetch_optional(&mut **tx).await.map_err(db)?;
-                match found.as_deref() {
-                    Some("passed") => CheckVerdict::Passed,
-                    Some("failed") => CheckVerdict::Failed,
-                    Some(_) => return Err(crate::error::AppError::Internal),
-                    None => CheckVerdict::Missing,
-                }
-            }
-        };
-        checks.push(verdict);
-        check_evidence.push(json!({"id":check.id.as_str(),"validator_digest":check.validator.digest.as_str(),"verdict":verdict}));
-    }
+    let checks = check_verdicts_locked(
+        tx,
+        r,
+        source
+            .as_ref()
+            .map(|(op, checkpoint)| (*op, checkpoint.as_str())),
+    )
+    .await?;
+    let check_evidence: Vec<Value> = r
+        .outcome
+        .required_checks
+        .iter()
+        .zip(&checks)
+        .map(|(check, verdict)| json!({"id":check.id.as_str(),"validator_digest":check.validator.digest.as_str(),"verdict":verdict}))
+        .collect();
     let delivery_state = match &source {
         None => DeliveryState::Missing,
         Some((op, _)) => {

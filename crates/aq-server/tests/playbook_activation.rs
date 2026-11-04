@@ -897,9 +897,11 @@ mod definitions;
 #[path = "playbook_activation/catalog.rs"]
 mod catalog;
 
-/// Production Host7 construction: the configured owner binds the gateway
-/// work graph and leaves the check executor and judgment provider unbound,
-/// so both commands refuse with typed reasons and record no evidence.
+/// Production Host7 construction without `[profiled_execution]`: the owner
+/// binds the gateway work graph, but no check executor is configured (it is
+/// bound only with profiled execution) and no judgment provider exists, so
+/// both commands refuse with typed reasons and record no evidence. The
+/// configured executor path is covered by `profiled_results::check_attempts`.
 #[tokio::test]
 async fn host7_profile_starts_on_gateway_graph_with_unbound_check_and_judgment_ports() {
     use aq_playbook_host::runner::{Intent, IntentStatus};
@@ -914,6 +916,8 @@ async fn host7_profile_starts_on_gateway_graph_with_unbound_check_and_judgment_p
     let mut state = s.f.state.clone();
     state.config = Arc::new(config);
     let loaded = state.config.playbooks.clone().unwrap();
+    // No executor is configured: `unavailable` below is that case.
+    assert!(state.config.profiled_execution.is_none());
     // Host7 needs the production work graph; without it startup refuses.
     assert!(state.agent_access.is_none());
     assert!(

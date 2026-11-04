@@ -102,17 +102,17 @@ impl Runtime {
             .await
         } else if config.profile == super::review_domain::CatalogProfile::Host7 {
             let graph = state.agent_access.clone().ok_or_else(refused)?;
-            // No production sandbox check executor (server->node check-attempt
-            // execution with profiled check evidence) or judgment provider
-            // (credential lease) exists yet. The ports stay unbound, so
-            // check.request refuses `unavailable` and judgment.request refuses
-            // `no_permitted_profile`; nothing is fabricated.
+            // The check executor is the server->node check-attempt execution
+            // kind, bound only where profiled execution is configured; without
+            // it check.request refuses `unavailable`. No production judgment
+            // provider (credential lease) exists yet, so judgment.request
+            // refuses `no_permitted_profile`. Nothing is fabricated.
             Service::new_host7(
                 state,
                 config.namespace.clone(),
                 config.keys.clone(),
                 Arc::new(super::host_adapters::GatewayGraph(graph)),
-                None,
+                crate::check_attempts::production_executor(state),
                 None,
             )
             .await
