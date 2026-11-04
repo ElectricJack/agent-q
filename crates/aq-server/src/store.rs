@@ -374,7 +374,7 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         }
     }
     if supported >= 36 {
-        media36_storage_guard(&mut tx).await?;
+        media36_storage_guard(&mut tx, supported).await?;
     }
     if supported >= 37 {
         central37::central37_storage_guard(&mut tx, supported).await?;
