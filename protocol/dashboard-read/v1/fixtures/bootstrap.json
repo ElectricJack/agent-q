@@ -17,6 +17,16 @@
       },
       {
         "enabled": true,
+        "name": "session.usage.read",
+        "version": "1"
+      },
+      {
+        "enabled": true,
+        "name": "session.events.read",
+        "version": "1"
+      },
+      {
+        "enabled": true,
         "name": "projects.read",
         "version": "1"
       },
@@ -31,9 +41,110 @@
         "version": "1"
       },
       {
+        "enabled": true,
+        "name": "notifications.read",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "human.graph.read",
+        "reason": "Human Graph inspection requires an owner account and configured Graph runtime",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "human.overview.tasks.read",
+        "reason": "Recorded task summaries require an owner account and configured Graph runtime",
+        "version": "1"
+      },
+      {
         "enabled": false,
         "name": "tasks.read",
-        "reason": "Task inspection is not connected yet",
+        "reason": "Task inspection requires an owner account and configured Graph runtime",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "tasks.create",
+        "reason": "Task creation requires an owner account and configured Graph mutation identity",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "tasks.graph.create",
+        "reason": "Task graph creation requires an owner account and configured Graph mutation identity",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "tasks.edit",
+        "reason": "Task edits require an owner account and configured Graph mutation identity",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "tasks.reprioritize",
+        "reason": "Task reprioritization requires an owner account and configured Graph mutation identity",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "tasks.dependencies.add",
+        "reason": "Dependency changes require an owner account and configured Graph mutation identity",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "tasks.dependencies.remove",
+        "reason": "Dependency changes require an owner account and configured Graph mutation identity",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "tasks.cancel",
+        "reason": "Task cancellation requires an owner account and configured Graph mutation identity",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "tasks.retry",
+        "reason": "Task retry requires an owner account and configured Graph mutation identity",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "knowledge.author",
+        "reason": "Knowledge authoring requires an owner account and configured Graph mutation identity",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "knowledge.correct",
+        "reason": "Knowledge correction requires an owner account and configured Graph mutation identity",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "knowledge.verify",
+        "reason": "Knowledge verification requires an owner account and configured Graph mutation identity",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "knowledge.retire",
+        "reason": "Knowledge retirement requires an owner account and configured Graph mutation identity",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "knowledge.restore",
+        "reason": "Knowledge restore requires an owner account and configured Graph mutation identity",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "knowledge.read",
+        "reason": "Knowledge inspection requires an owner account and configured Graph runtime",
         "version": "1"
       },
       {
@@ -44,13 +155,38 @@
       {
         "enabled": false,
         "name": "decisions.read",
-        "reason": "Decision inspection is not connected yet",
+        "reason": "Decision inspection requires an owner account and a mounted review owner",
         "version": "1"
       },
       {
         "enabled": false,
+        "name": "decisions.resolve",
+        "reason": "Decision resolution requires an owner account and a mounted review owner",
+        "version": "1"
+      },
+      {
+        "enabled": true,
+        "name": "providers.configured.read",
+        "version": "1"
+      },
+      {
+        "enabled": true,
         "name": "provider.quota",
-        "reason": "Provider account usage is unavailable",
+        "version": "1"
+      },
+      {
+        "enabled": true,
+        "name": "supervisor.history.read",
+        "version": "1"
+      },
+      {
+        "enabled": true,
+        "name": "supervisor.message.enqueue",
+        "version": "1"
+      },
+      {
+        "enabled": true,
+        "name": "session.message.enqueue",
         "version": "1"
       },
       {
@@ -62,43 +198,81 @@
       {
         "enabled": false,
         "name": "terminal.watch",
-        "reason": "Terminal viewing is not connected to this dashboard yet",
+        "reason": "Terminal relay or session inspection is unavailable",
         "version": "1"
       },
       {
         "enabled": false,
         "name": "terminal.control",
-        "reason": "Terminal control is not connected to this dashboard yet",
+        "reason": "Terminal control requires an owner account and configured terminal relay",
         "version": "1"
       },
       {
         "enabled": true,
         "name": "dashboard.actions",
+        "operation_retention": {
+          "minimum_days": 90,
+          "retired_ids_indefinite": true,
+          "unresolved_indefinite": true
+        },
+        "version": "1"
+      },
+      {
+        "enabled": true,
+        "name": "results.read",
+        "version": "1"
+      },
+      {
+        "enabled": true,
+        "name": "results.comment",
+        "version": "1"
+      },
+      {
+        "enabled": true,
+        "name": "results.feedback",
         "version": "1"
       },
       {
         "enabled": false,
-        "name": "results.read",
-        "reason": "Results are not connected yet",
+        "name": "results.media.read",
+        "reason": "Supplemental images require an owner account and mounted media storage",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "results.media.upload",
+        "reason": "Result media store is not configured",
         "version": "1"
       },
       {
         "enabled": false,
         "name": "playbooks.inspect",
-        "reason": "Playbook inspection is not connected yet",
+        "reason": "Playbook inspection requires the mounted runtime namespace owner",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "playbooks.loaded-definitions.read",
+        "reason": "Loaded definitions require the configured runtime namespace owner",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "playbooks.catalog.read",
+        "reason": "Current catalog inspection requires the mounted component query and namespace owner",
         "version": "1"
       }
     ],
     "contracts": [
       {
+        "digest": "sha256:1d651086816613e2a8fa5728241fda39e993930ef154c3748a1c27f4b61db985",
         "name": "dashboard-read",
-        "version": "dashboard-read-1",
-        "digest": "sha256:9d7cac3073706afa942033b8f7975588285f1b47fb92db47b764c40348f07801"
+        "version": "dashboard-read-1"
       },
       {
+        "digest": "sha256:34c5b6d6e5ba09fe3e19180011b6164a42c37ac0880caad8f035fc2ddda326c1",
         "name": "dashboard-actions",
-        "version": "dashboard-actions-1",
-        "digest": "sha256:9086d523fe3dd1ce7295b476938d59c2de4dfc701359be343ace100d66192641"
+        "version": "dashboard-actions-1"
       }
     ],
     "default_scope": {
@@ -116,9 +290,9 @@
       "snapshot_ttl_ms": 30000
     },
     "principal": {
-      "authorization_revision": "282462697803667508442044028870264284114",
+      "authorization_revision": "226525575435949422614085788678179289998",
       "display_name": "owner@localhost",
-      "id": "0d36007a-b179-452b-aa33-bc911e102c5a"
+      "id": "fbf81a21-de16-41a6-a875-f03327f87dab"
     },
     "product": {
       "dashboard_digest": null,
@@ -133,7 +307,7 @@
     "source": "aq_dashboard_read"
   },
   "pending_operations": [],
-  "request_id": "969c3714-f0fc-4f47-8ed8-ffd06439b0b2",
+  "request_id": "2921ee29-b868-4ff9-a00d-72a64a95bd02",
   "scope": {
     "kind": "all_authorized"
   },

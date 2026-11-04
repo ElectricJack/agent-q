@@ -68,6 +68,7 @@ const CAPABILITIES: &[&str] = &[
     "provider.quota",
     "supervisor.history.read",
     "supervisor.message.enqueue",
+    "session.message.enqueue",
     "terminal.watch",
     "terminal.control",
     "dashboard.actions",

@@ -2,6 +2,7 @@
 use super::*;
 use axum::routing::post;
 pub mod global;
+pub(crate) mod session_action;
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
