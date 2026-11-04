@@ -11,8 +11,9 @@ pub(crate) struct Create {
     body: String,
     #[schemars(length(max = 16))]
     context: Vec<ContextRef>,
-    #[schemars(length(max = 0))]
-    attachments: Vec<Value>,
+    /// agile-vault-27: staged uploads pinned by id and content digest.
+    #[schemars(length(max = 4))]
+    attachments: Vec<super::attachments::AttachmentRef>,
 }
 pub(super) const MAX_CONTEXT_REFS: usize = 16;
 /// X5: a pinned reference to an AQ entity the owner attached to a message.
@@ -90,7 +91,7 @@ impl Create {
             || v.body.len() > 16384
             || v.body.contains('\0')
             || !context_valid(&v.context)
-            || !v.attachments.is_empty()
+            || !super::attachments::refs_valid(&v.attachments)
         {
             return Err(invalid());
         }
@@ -154,7 +155,11 @@ impl Receipt {
                 if r.cursor.is_none()
                     && matches!(
                         r.reason.as_deref(),
-                        Some("conversation_revision_changed" | "message_id_conflict")
+                        Some(
+                            "conversation_revision_changed"
+                                | "message_id_conflict"
+                                | "attachment_unavailable"
+                        )
                     ) => {}
             _ => return Err(unavailable()),
         }
@@ -248,7 +253,15 @@ async fn enqueue_domain(
         tx.commit().await.map_err(db)?;
         return Ok(receipt);
     }
-    let reserved = i64::try_from(request.body.len() + 4096).map_err(|_| invalid())?;
+    // Attachment rows are locked here and bound only when the message lands;
+    // their bytes count against the conversation's retained capacity.
+    let at_ms = i64::try_from(at).map_err(|_| unavailable())?;
+    let attached =
+        super::attachments::claim(&mut tx, &request.attachments, user.id, id, at_ms).await?;
+    let reserved = i64::try_from(request.body.len() + 4096)
+        .ok()
+        .and_then(|n| n.checked_add(attached.unwrap_or(0)))
+        .ok_or_else(invalid)?;
     let row=sqlx::query("UPDATE global_supervisor_conversation SET retained_operations=retained_operations+1,retained_bytes=retained_bytes+$1 WHERE singleton AND retained_operations<$2 AND retained_bytes<=$3-$1 RETURNING conversation_id")
   .bind(reserved).bind(MAX_OPERATIONS).bind(MAX_BYTES).fetch_optional(&mut *tx).await.map_err(db)?;
     if row.is_none() {
@@ -273,6 +286,8 @@ async fn enqueue_domain(
     };
     if result.conversation.revision != request.expected_conversation_revision {
         result.reason = Some("conversation_revision_changed".into());
+    } else if attached.is_none() {
+        result.reason = Some("attachment_unavailable".into());
     } else {
         let appended = append(
             &mut tx,
@@ -298,6 +313,7 @@ async fn enqueue_domain(
                         .await
                         .map_err(db)?;
                 }
+                super::attachments::bind(&mut tx, &request.attachments, request.message_id).await?;
                 result.state = "queued".into();
                 result.cursor = Some(cursor.to_string());
             }

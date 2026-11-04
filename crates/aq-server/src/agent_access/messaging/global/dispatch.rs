@@ -145,7 +145,18 @@ pub async fn prepare_turn(
     } else {
         "NULL::jsonb"
     };
-    let bodies: Vec<(Uuid, String)> = sqlx::query(&format!("SELECT m.message_id,m.body,{refs} AS refs FROM central_supervisor_mail_members b JOIN mailbox_messages m ON m.message_id=b.message_id WHERE b.reservation_id=$1 ORDER BY b.ordinal LIMIT 17"))
+    // agile-vault-27: bound owner files render after the refs, in Create order.
+    let stored: bool =
+        sqlx::query_scalar("SELECT to_regclass('global_supervisor_attachments') IS NOT NULL")
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(db)?;
+    let files = if stored {
+        super::attachments::DESCRIPTORS
+    } else {
+        "NULL::jsonb"
+    };
+    let bodies: Vec<(Uuid, String)> = sqlx::query(&format!("SELECT m.message_id,m.body,{refs} AS refs,{files} AS files FROM central_supervisor_mail_members b JOIN mailbox_messages m ON m.message_id=b.message_id WHERE b.reservation_id=$1 ORDER BY b.ordinal LIMIT 17"))
         .bind(reservation)
         .fetch_all(&mut *tx)
         .await
@@ -155,6 +166,9 @@ pub async fn prepare_turn(
             let mut body: String = r.get("body");
             for c in super::writes::stored_context(r.get("refs"))? {
                 body.push_str(&format!("\n[context {}]", c.render()));
+            }
+            for a in super::attachments::stored(r.get("files"))? {
+                body.push_str(&format!("\n[attachment {}]", a.render()));
             }
             Ok((r.get("message_id"), body))
         })
