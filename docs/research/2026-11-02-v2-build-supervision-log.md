@@ -533,3 +533,24 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **crisp-meadow-36.7.2.** PR #59 conflicts with main. Released its `session_close_pipeline_stop` hold with an operator retry, and left a comment saying not to redo the work: merge main, update #59, close.
   - **SHR-L fixtures.** At the owner's request I set `calm-vault-46.14` to priority 5 and routed it to the empty standard-medium-claude pool. Claimed at 23:42Z.
   - The notes checkout is on main (branch checked before commit). Shell gotcha: a `snip` wrapper swallows `docker exec psql` output; use `/usr/bin/docker`.
+- **18:15 check.**
+  - **Rework catch-22.** Four reopened dashboard gap tasks (OV-C, OV-D, SV-H, WK-B) were held with `child_preparation_conflict`. v1's claim preparation merges main into the old task branch before a worker starts and refuses on conflict, so the worker never gets to resolve it.
+  - **Fix:** filed fresh re-apply tasks that start from main and cherry-pick the old branch: keen-pinnacle-80, sharp-glacier-37, solid-willow-70, fresh-ridge-68. Closed the old tasks `--obsolete` and closed PRs #15, #16, #18 and #21 as superseded. The branches are kept.
+  - **Merged #12 (OV-A).**
+  - **SHR-L (#24):** units pass, but `supervisor-launcher.spec.ts` "launcher never covers content on /results" now fails because the new Results fixtures fill the page. Reopened at priority 5 on standard-medium.
+- **18:40 check.**
+  - **calm-current-41 pushed back, correctly.** The atomicity test also fails on main. Main CI never reached that binary because cargo stopped at `native_accepted_preparation`. Root cause: `f0253a76` (offer TTL 2 s to 30 s) makes the scenario unreachable. I chose option (a): merge #56 as-is once clippy passes on `55a451fe`, and filed `brisk-quest-74` (priority 10) to redesign that test and run the other masked binaries with `--no-fail-fast`. My earlier reopen was wrong: I compared against main's failure list without accounting for cargo stopping at the first failing binary.
+  - **crisp-meadow-36.7.2** was held again (`child_preparation_conflict`, last recovery budget). The only conflict was `docs/implementation/D6.md`. Resolved it by hand: kept main's newer item 1 and marked check cancellation as shipped. Pushed to `aq/crisp-meadow-36.7.2`, which updates PR #59.
+  - Claude usage: 78%. The auto-pause triggers at 80%.
+- **19:05 check.**
+  - **Merged aq-dashboard** #26 (OV-C re-apply), #25 (DC-J), #24 (SHR-L fixtures, which unblocks the Agents and Results gap tasks), #28 (SV-H re-apply) and #29 (ST-A). Remaining failures were only the flaky ResultMediaUpload, SessionUsage and SupervisorConversation tests; fresh-zenith-62 is fixing those.
+  - **#27 (OV-D) and #30 (WK-B) conflicted again.** Rather than another reopen (claim preparation would refuse it), I resolved them on their branches:
+    - #27: kept both the OV-C and OV-D CSS blocks;
+    - #30: SHR-L's `bootstrap` variable plus the `projects.read` grant, and both scenario names.
+    - Verified with `tsc --noEmit` and the overview, mocks and knowledge unit tests (26 + 31 passed). Waiting on CI.
+- **19:30 check.**
+  - **aq-dashboard:** merged #27 (OV-D) and #30 (WK-B) after my conflict resolutions passed CI, apart from the known flakes. Every open gap PR is now merged.
+  - **aq-server:** merged #56 (calm-current-41, which fixes `native_accepted_preparation`). Per decision (a), its only failure was the pre-existing atomicity test that `brisk-quest-74` owns. Also merged #59 (D6 `operation.cancel`), whose only failure was the old `native_accepted_preparation` test; closed `crisp-meadow-36.7.2` `--done`. Updated #57 (Work view contracts) onto main and am watching its CI before releasing `bright-willow-25`'s hold.
+  - Claude usage: 79%.
+- **19:55 check.** Disk dropped to 109 GB free; aq-server slot build caches grow about 15 GB per 30 min under parallel Rust builds. Cleared `target/` in slots 0, 6 and 7, whose tasks are PAUSED and where nothing was compiling, leaving 142 GB free. Active slots kept theirs (slot-3 is 92 GB). Claude usage is 79%; no auto-pause yet. #57 CI is still running.
+- **20:10 Claude weekly usage reached 80%.** Following the owner's rule, the monitor paused all six v2 projects (`aq project pause`) and the owner was told. No new claims start. Five pool sessions are still finishing their current tasks: amber-bridge-62, calm-current-41.2, brisk-quest-74, agile-vault-27 and bright-impact-86.1. Codex is exhausted (99%). Waiting for the usage reset or an owner decision. PR #57 CI is still running; I'll merge it if it's clean.
