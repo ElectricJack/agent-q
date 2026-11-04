@@ -4,6 +4,7 @@ pub mod api;
 pub mod domain;
 pub mod driver;
 pub mod host_adapters;
+pub mod judgment_provider;
 pub mod service;
 
 pub mod review_domain;
