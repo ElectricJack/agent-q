@@ -588,3 +588,6 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Pool sizing now always reads cached delivery evidence. The scheduler's admission pass keeps refreshing the cache, a cold `delivery-of` cache still withholds, and claims keep their fresh checks under locks.
   - Added a regression test (fails without the fix); pool-reconciler and size-budget suites green; pools.py line count unchanged.
   - Merged as admin, fast-forwarded the live checkout to `ff9ab871f`, `aq restart --no-dashboard` (sessions kept). Watching for C5a1 to be claimed and the 30 s reconcile timeouts to stop.
+- **20:20 Claude sandbox credential spike: PASSED.** The owner created a long-lived subscription token (`claude setup-token`), stored at `~/.config/aq-secrets/claude-oauth-token` (0600; the first save was empty and was redone).
+  - Ran a throwaway `node:22-slim` container as user `node`, with no host mounts and the token only in env `CLAUDE_CODE_OAUTH_TOKEN`. Claude Code 2.1.318 answered `claude -p` and made a headless file edit (`--permission-mode acceptEdits`). The host login was unaffected. The container was removed and the token never appeared in argv or output.
+  - Recorded as the confirmed sandbox credential path on C5a1, C5b, C6a, C6b and I4a: env-only lease, no refresh write-back or shared lineage with the host login, wipe on teardown.
