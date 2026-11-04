@@ -395,6 +395,7 @@ impl Driver {
                     .registry()
                     .events
                     .get("aq.signal.reported");
+        let registered = artifact.clone();
         self.owner
             .call(
                 Request::Install {
@@ -404,6 +405,13 @@ impl Driver {
             )
             .await
             .map_err(host_error)?;
+        // G11 X30/X32 read model only: a registry failure leaves the run's
+        // definition view null and never refuses an owner-committed install.
+        if self.service.register_definition(&registered).await.is_err() {
+            tracing::warn!(
+                "playbook definition registry write failed; definition view unavailable"
+            );
+        }
         if schedule_consumer {
             self.schedule_consumer
                 .store(true, std::sync::atomic::Ordering::SeqCst);
