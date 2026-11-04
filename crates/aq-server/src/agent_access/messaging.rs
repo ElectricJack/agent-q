@@ -37,7 +37,7 @@ impl Recipient {
             } => (workspace_id, project_id, task_id),
         }
     }
-    fn key(&self) -> Result<String> {
+    pub(in crate::agent_access) fn key(&self) -> Result<String> {
         digest(&serde_json::to_value(self)?)
     }
     fn validate(&self) -> Result<()> {
