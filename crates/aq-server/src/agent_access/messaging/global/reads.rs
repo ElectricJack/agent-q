@@ -28,7 +28,7 @@ pub(super) async fn discovery(
         limits: Limits {
             body_bytes: 16384,
             context_refs: writes::MAX_CONTEXT_REFS as u8,
-            attachments: 0,
+            attachments: attachments::MAX_ATTACHMENTS as u8,
             history_page: 16,
         },
     }))
@@ -58,6 +58,10 @@ struct Message {
     /// X5: pinned context refs; omitted when the message has none.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     context: Vec<writes::ContextRef>,
+    /// agile-vault-27: owner files bound to this message, in Create order;
+    /// omitted when the message has none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    attachments: Vec<attachments::Descriptor>,
     logical_admission: &'static str,
     host_delivery: &'static str,
     agent_receipt: Option<Value>,
@@ -120,6 +124,7 @@ fn message(row: sqlx::postgres::PgRow, id: Uuid) -> Result<Message> {
     let at: i64 = row.get("created_at_ms");
     let payload: String = row.get("payload_digest");
     let context = writes::stored_context(row.get("context_refs"))?;
+    let attachments = attachments::stored(row.get("attachment_items"))?;
     let user = sender
         .get("user_id")
         .and_then(Value::as_str)
@@ -155,6 +160,7 @@ fn message(row: sqlx::postgres::PgRow, id: Uuid) -> Result<Message> {
         body,
         created_at_ms: at as u64,
         context,
+        attachments,
         logical_admission: "queued",
         host_delivery: "not_attempted",
         agent_receipt: None,
@@ -231,17 +237,18 @@ pub(super) async fn history(
     };
     let (human_sql, reply_sql) = if forward {
         (
-            "SELECT m.*,c.refs AS context_refs FROM mailbox_messages m LEFT JOIN global_supervisor_message_context c ON c.message_id=m.message_id WHERE m.mailbox_key=$1 AND (m.cursor,0::bigint)>($2,$3) AND m.cursor<=$4 ORDER BY m.cursor LIMIT $5",
+            "SELECT m.*,c.refs AS context_refs,{descriptors} AS attachment_items FROM mailbox_messages m LEFT JOIN global_supervisor_message_context c ON c.message_id=m.message_id WHERE m.mailbox_key=$1 AND (m.cursor,0::bigint)>($2,$3) AND m.cursor<=$4 ORDER BY m.cursor LIMIT $5",
             "SELECT * FROM (SELECT r.dispatch_id,r.attachments,d.host_operation_id,d.batch_digest,d.actor_id,d.generation,d.session_id,m.*,(SELECT max(mm.cursor) FROM central_supervisor_mail_members mm WHERE mm.actor_id=d.actor_id AND mm.reservation_id=d.reservation_id) AS anchor FROM central_supervisor_replies r JOIN central_supervisor_dispatches d ON d.dispatch_id=r.dispatch_id JOIN mailbox_messages m ON m.message_id=r.reply_message_id WHERE m.mailbox_key=$1) x WHERE (x.anchor,x.cursor)>($2,$3) AND x.anchor<=$4 ORDER BY x.anchor,x.cursor LIMIT $5",
         )
     } else {
         (
-            "SELECT m.*,c.refs AS context_refs FROM mailbox_messages m LEFT JOIN global_supervisor_message_context c ON c.message_id=m.message_id WHERE m.mailbox_key=$1 AND (m.cursor,0::bigint)<($2,$3) AND m.cursor<=$4 ORDER BY m.cursor DESC LIMIT $5",
+            "SELECT m.*,c.refs AS context_refs,{descriptors} AS attachment_items FROM mailbox_messages m LEFT JOIN global_supervisor_message_context c ON c.message_id=m.message_id WHERE m.mailbox_key=$1 AND (m.cursor,0::bigint)<($2,$3) AND m.cursor<=$4 ORDER BY m.cursor DESC LIMIT $5",
             "SELECT * FROM (SELECT r.dispatch_id,r.attachments,d.host_operation_id,d.batch_digest,d.actor_id,d.generation,d.session_id,m.*,(SELECT max(mm.cursor) FROM central_supervisor_mail_members mm WHERE mm.actor_id=d.actor_id AND mm.reservation_id=d.reservation_id) AS anchor FROM central_supervisor_replies r JOIN central_supervisor_dispatches d ON d.dispatch_id=r.dispatch_id JOIN mailbox_messages m ON m.message_id=r.reply_message_id WHERE m.mailbox_key=$1) x WHERE (x.anchor,x.cursor)<($2,$3) AND x.anchor<=$4 ORDER BY x.anchor DESC,x.cursor DESC LIMIT $5",
         )
     };
     let fetch = i64::from(limit) + 1;
-    let humans = sqlx::query(human_sql)
+    let human_sql = human_sql.replace("{descriptors}", attachments::DESCRIPTORS);
+    let humans = sqlx::query(&human_sql)
         .bind(&mailbox)
         .bind(anchor)
         .bind(at)

@@ -28,10 +28,11 @@ admission-time unavailable runtime and never change after they are written.
   at most 16384 UTF-8 bytes, no NUL. Whole literal JSON at most 131072 bytes.
   `context` holds at most 16 pinned refs (`$defs/ContextRef`:
   `{type, id, revision}`), unique by `(type, id)`, with non-nil ids;
-  `attachments` must be an empty array (`limits.attachments` stays 0 until a
-  human artifact service exists). Owner History items echo non-empty context
-  as `context`; the field is absent otherwise. The supervisor turn text lists
-  each ref after the message body. Positive revision is a
+  `attachments` holds at most 4 staged uploads (`$defs/AttachmentRef`:
+  `{id, digest}`), unique by id (see Owner attachments below). Owner History
+  items echo non-empty context as `context` and bound files as `attachments`
+  (`$defs/AttachmentDescriptor`); each field is absent when empty. The
+  supervisor turn text lists each ref, then each attachment, after the body. Positive revision is a
   signed 64-bit decimal string. Operation and message UUIDs are client minted,
   stable, nonnil and different; preserve them with the original request.
 - GET/PUT `/api/human/conversations/{id}/read-marker`: the caller's read cursor
@@ -44,7 +45,8 @@ admission-time unavailable runtime and never change after they are written.
   lookup, 200 Receipt or 404. A 404 is not proof an earlier request has finished.
 
 POST 200 means queued in the durable AQ mailbox, never delivered or reasoned.
-POST 409 with a typed not_queued Receipt is a retained revision/message-ID refusal.
+POST 409 with a typed not_queued Receipt is a retained revision, message-ID or
+`attachment_unavailable` refusal.
 Its original operation cannot later enqueue. Generic admission/auth/error bodies
 are not receipts; preserve ambiguous requests and look up their operation.
 An identical request returns its immutable receipt; changed bytes that change the
@@ -64,9 +66,43 @@ null; no runtime/worker fallback, external notification or provider call occurs.
 Retention is bounded to 4096 operations and 64 MiB reserved bytes; capacity refuses
 new operations while history, lookup and exact replay remain available.
 
+## Owner attachments (agile-vault-27)
+
+Owners upload a file first, then reference it from a Create.
+
+- PUT `/api/human/conversations/{id}/attachments/{attachment}?name=<urlencoded>`
+  with the raw bytes as the body. `attachment` is a client-minted non-nil UUID.
+  `Content-Type` must be exactly one of `text/plain`, `text/markdown`,
+  `text/csv`, `application/json`, `application/pdf`, `image/png`,
+  `image/jpeg`, `image/gif` or `image/webp` (no parameters). Bodies are 1 to
+  1048576 bytes (413 above). Text types must be UTF-8 without NUL, JSON must
+  parse, and binary types must start with their format's signature. `name` is
+  one path segment of at most 255 UTF-8 bytes. 201 returns a staged
+  `$defs/AttachmentUpload`; an identical retry (same owner, conversation,
+  name, type and bytes) returns 200 with the current state; any other reuse
+  of the id is 409.
+- Staged uploads expire 24h after `created_at_ms` and are then purged. At most
+  16 staged files (16 MiB) per conversation; more is refused as maintenance
+  until a staged file is attached or expires.
+- A Create lists `{id, digest}` for up to 4 staged uploads of the same owner
+  and conversation. If any ref is missing, expired, already attached, someone
+  else's, or pinned to a different digest, the operation is a retained
+  `not_queued` receipt with reason `attachment_unavailable` and nothing is
+  bound. A queued message binds every file in order; bound files count
+  against the 64 MiB retention reservation and live exactly as long as the
+  owner message.
+- GET the same path downloads the bytes (staged: uploader only; attached: any
+  current owner) as `Content-Disposition: attachment` with `nosniff`, a
+  sandbox CSP and `x-aq-content-digest`.
+- The central supervisor downloads a bound file with
+  GET `/v1/supervisor/conversation/attachments/{attachment}` and its
+  `messaging`-scoped credential, only after the message was dispatched to it.
+  Its turn text carries one line per file:
+  `[attachment {id} name {JSON string} {media_type} {size} bytes {digest}]`.
+
 ## Supervisor History attachments (additive, for G8)
 
-Published schema digest: `sha256:a149cfa82cc9ff6ce98098d76c1bd1bad541401a13039268e8e7ea61cb7f860d`
+Published schema digest: `sha256:2056d6fe1cdff14eca53784a93981c8a943fcdbc3033c7dee8cb80d79220ef3b`
 (also in `schema.sha256`; `supervisor_turns` fails if the two diverge). Pin it.
 
 A supervisor `SupervisorItem` may carry `attachments` (0–4 items, schema

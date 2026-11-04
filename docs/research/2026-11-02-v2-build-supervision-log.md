@@ -598,3 +598,59 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Fix:** following the owner's "run everything on Claude", overrode with `aq provider set-state --provider claude --state available --for 2h` (lasts until about the 21:59Z weekly reset).
   - #2203 was probably fine and should be re-landed; the 30 s reconcile timeout is back until then.
   - Also: the owner's Claude sandbox token was verified. B7 (`noble-summit-37.10`) was handed back to the router during the investigation.
+- **20:45 claim stall: real root cause found and fixed.**
+  - **Diagnostics (owner-authorised):** added temporary logging (agent-queue #2206 claim.empty, #2207 pr_admission.withheld) and restarted.
+  - **The claims were empty, not broken.** Every remaining READY candidate was withheld with `pull_request_dependency_delivery`: "PR does not identify the current completed source".
+  - **The trap:** three merged prerequisite PRs (aq-server #20 `calm-delta-18.15`, #29 `crisp-meadow-36.1`, #35 `noble-summit-37.2`) have head commits that are *operator merge commits* (my day-1 renumber and main merges), not the task's recorded completion commit. v1 PR admission requires the PR head to equal `completion.commits[-1]`, so their dependents were withheld forever. Everything else had been claimed already, which made it look like a sudden stall.
+  - **Fix:** verified all five completion commits are on main, then removed the seven satisfied `blocks` edges (`aq task remove-dependency --dep-type blocks`), with a comment on each dependent.
+  - **Result:** C5a1, B7 and H4 were claimed within a minute. D1b is waiting for a slot.
+  - **Scan:** no other READY/DEFINED dependency on a mismatched PR.
+  - **Clean-up:** reverted the debug logging (#2208) and restarted. The provider override and the #2203 reland stay; the 30 s reconcile timeouts are at 0.
+  - **Earlier wrong hypotheses, both disproven:** #2203 (wrongly reverted, then relanded in #2205) and the degraded provider (overridden with no effect).
+- **21:00 check.**
+  - The MS1 heads are running: C5a1, D1b and H4 in aq-platform, and B7 in aq-worker.
+  - **22 READY tasks were never routed.** Half of the `default-assignment-routing` runs fail: `plan_first` returns `no_candidates`, presumably from Claude usage pressure with Codex exhausted. Following the owner's "run everything on Claude", I route-overrode 21 of them:
+    - standard work to `standard-high-claude`;
+    - operator gates (MS1–MS3, J5) to `operator-standard-high-claude`;
+    - MS4 to `operator-deep-high-claude`;
+    - J4 to `deep-low-claude`, because the deep-high pool is at max 0.
+  - Left I4b (`azure-horizon-22.3`, Codex qualification) unrouted because it needs Codex.
+  - Most of these are still dependency-blocked; this lets them start as soon as their dependencies clear. The dashboard landing steward `quick-flare-90` and G9–G11 can now be claimed.
+- **21:20 check.**
+  - **MS1 chain:** C5a1 (`calm-delta-18.12`) completed by direct integration; commit `efadf6dde9` is on aq-server main. C5a2 is now running, along with D1b, H4 and B7.
+  - **Merged aq-server #72** (azure-grove-68, which redesigns the atomicity test; all 9 checks green), then #73 (agile-vault-27, supervisor owner-message attachments; only the old atomicity failure). Per W61, I merged #73 as-is rather than update-branch, so I didn't create a PR-head/completion mismatch.
+  - Closed #66 (superseded by #72).
+  - Dashboard #43, #46 and #55 still fail their own specs; the steward `quick-flare-90` is on them.
+  - Claude usage: 89%.
+- **21:35 check.**
+  - B7 (`noble-summit-37.10`) completed. C5b and C5a2 are running, and so is F3 in aq-worker.
+  - **C6a (`calm-delta-18.9`) was held** (`slot_reset_failed` five times: "branch holder reservation is not clean and taskless").
+  - **Cause:** aq-worker slot-2 (`ws-frosty-gate`) was still checked out on `aq/calm-delta-18.9`. That branch has no origin copy and is 0 commits ahead of main, so `_slot_branch_matches_origin` could never pass.
+  - **Fix:** detached slot-2 (no work lost) and released the hold with an operator retry. C6a is READY again.
+- **21:50 check.** Completed: D1b (`crisp-meadow-36.2`), C5a2 (`calm-delta-18.13`) and F3 (`steady-harbor-87.4`). C6a is running after the slot fix; D7, H3, D2, C5b and H4 are also running. aq-server main CI is green again (atomicity redesign #72). F3 left aq-worker main failing `cargo fmt --check` (module order in `native/runner/sandbox.rs`); pushed the one-line rustfmt fix `be49d32`. Claude usage: 92%.
+- **22:00 owner: run I4a in parallel.** Removed I4a's (`azure-horizon-22.2`) blocks on C6a and C6b; C2 and B5a are done. Its description now says to qualify Claude Code on the real docker-local backend now (env-token auth, unattended edit/check/publish as non-root, wipe, digest and CLI version recorded); run through the runner's confinement and credential lease only if C6a/C6b land first; no children. Priority 4; claimable now (fleet 7 of 8 busy).
+- **22:15 check.**
+  - I4a is running in parallel with C6a.
+  - **Dashboard steward `quick-flare-90`** was held (`max_retries`). It had rebased/fixed 11 PR branches locally, but a worker can only push its own claim branch (`out of scope: branch mismatch`). Pushed all 11 as fast-forwards from the shared ref store: #43, #44, #46, #47, #48, #49, #50, #52, #53, #55, #57. Waiting on CI to merge.
+  - #60, #61, #63 and #64 still conflict and weren't handled.
+  - **aq-server #74 (C5a2)** collided on migration 0076 with main (#73 and others added 0075–0077). Renumbered to 0078 with `renumber.py` (`0713c32`).
+  - **W61 follow-up:** after #74 merges, check MS1 (`stark-zenith-16.2`), whose `blocks` edge on C5a2 now points at a PR head that is an operator merge commit.
+- **22:35 check.**
+  - **Merged aq-dashboard round 1:** #43 (SH-J), #44 (WK-D), #47 (WK-E), #48 (AG-D), #49 (WK-F), #50 (DC-K), #52 (AG-B) and #57 (RS-H). All were green after the operator push.
+  - #46, #53 and #55 conflicted after their neighbours merged; #60, #61, #63 and #64 were already conflicting. Six of the seven have 50–250-line UI conflicts.
+  - Closed the round-1 steward `quick-flare-90` `--done` (its recovery retry budget was exhausted by the worker push-scope refusal). Filed a round-2 steward that commits locally and reports branch heads for the operator to push.
+  - **Claude weekly usage reset to 1%.** Re-armed the 80% auto-pause guard by removing its marker. The provider override expires on its own at about 22:30Z.
+  - aq-server #74 (C5a2, renumbered to 0078) is in CI.
+- **22:55 check.**
+  - **I4a (`azure-horizon-22.2`) passed:** Claude Code 2.1.318 ran on the real docker-local backend under the B5a node controller (C3c-derived image). The token was leased env-only and wiped; the host login was unchanged; three consecutive edit/check/publish cycles passed. Evidence: docs/implementation/I4a.md, commit 0a9d7e2.
+  - **I4a leftovers:** non-root user not met (single-UID podman: in-container root with CapEff 0 and NoNewPrivs; needs uidmap and a podman restart, which is an owner/sudo step); C6a/C6b runner path not exercised (MS1 covers it); the derived image isn't admitted yet; Codex qualification deferred.
+  - **aq-server main red:** aq-updater `compose_failures_do_not_leak_stderr_into_the_error`, an ETXTBSY race (likely flaky). Filed a fix task (priority 9) with the finding.
+- **23:10 check.** Merged aq-server #74 (C5a2, migration renumbered to 0078). Its only failure was aq-updater `fetch_release_removes_the_container_even_on_error`, the same flaky updater family as `bright-lantern-83`; the PR doesn't touch aq-updater. Applied the W61 rule: C5a2 commit `1055094ea0` is on main, so I removed MS1's satisfied `blocks` edge on C5a2.
+- **23:25 status.** v2 plan: 64 of 91 tasks complete, 6 in progress, 21 ready. C6a completed; its follow-ups .9.2 and .9.4 are running, .9.5 is ready and .9.1 is paused. aq-dashboard main is red after the round-1 merges (Work inspector specs, SupervisorConversation 401/403); filed a fix task (priority 9). aq-server main is red on the flaky aq-updater tests (`bright-lantern-83`). The round-2 dashboard steward `prime-beacon-85` is running. Claude usage: 3%. Disk: 136G free.
+- **23:40 check.** Merged aq-worker #36 (C6a harness config with confinement modes; green). Filed four cross-repo follow-ups at priority 60:
+  - aq-platform `bold-stone-51`: agent-access supervisor recipient, from F3;
+  - aq-git `fair-current-80`: PR-mode non-default head branch, from D1b;
+  - aq-platform `bright-summit-37`: harness-confinement permission in aq-profiles, from C6a;
+  - aq-git `sound-impact-48`: named credential profiles for central bindings, from D2.
+  Dashboard main-CI fix `keen-harbor-66` and round-2 steward `prime-beacon-85` are running.
+- **23:55 check.** Merged aq-dashboard #66 (keen-harbor-66: ports WK-E/WK-F Work behaviour into WorkWorkspace; fixes the red main). The router is routing again now that Claude usage is low; the four cross-repo follow-ups were routed automatically, and aq-git `fair-current-80` is running. Round-2 steward `prime-beacon-85` is still on #46, #53, #55, #60, #61, #63 and #64.

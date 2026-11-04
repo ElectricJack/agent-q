@@ -208,6 +208,27 @@ pub async fn fetch(
     {
         return Err(refused());
     }
+    // A delegated caller may fetch only the lease bound to its own permit, and
+    // only while that permit's row is still unrevoked.
+    if let Some(delegate) = auth.delegated() {
+        let record = &delegate.current.record;
+        let bound: Option<uuid::Uuid> = row.get("permit_id");
+        let live: Option<bool> = sqlx::query_scalar(
+            "SELECT NOT revoked FROM delegated_permits WHERE permit_id=$1 AND node_id=$2 AND attempt_id=$3 FOR SHARE",
+        )
+        .bind(record.permit_id)
+        .bind(auth.id())
+        .bind(request.binding.attempt_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(db)?;
+        if bound != Some(record.permit_id)
+            || record.binding.attempt_id != request.binding.attempt_id
+            || live != Some(true)
+        {
+            return Err(refused());
+        }
+    }
     let selected: Value = sqlx::query_scalar(
         "SELECT selection FROM intelligence_attempt_selections WHERE attempt_id=$1",
     )

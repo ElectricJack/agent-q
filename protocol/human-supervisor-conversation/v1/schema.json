@@ -31,7 +31,11 @@
         },
         "attachments": {
           "type": "array",
-          "maxItems": 0
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/AttachmentRef"
+          },
+          "description": "Staged uploads pinned by id and content digest; ids are unique within a message."
         }
       },
       "required": [
@@ -86,7 +90,7 @@
               "const": 16
             },
             "attachments": {
-              "const": 0
+              "const": 4
             },
             "history_page": {
               "const": 16
@@ -281,7 +285,8 @@
             {
               "enum": [
                 "conversation_revision_changed",
-                "message_id_conflict"
+                "message_id_conflict",
+                "attachment_unavailable"
               ]
             },
             {
@@ -340,7 +345,8 @@
               "reason": {
                 "enum": [
                   "conversation_revision_changed",
-                  "message_id_conflict"
+                  "message_id_conflict",
+                  "attachment_unavailable"
                 ]
               }
             }
@@ -420,6 +426,15 @@
             "$ref": "#/$defs/ContextRef"
           },
           "description": "Omitted when the message has no context refs."
+        },
+        "attachments": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4,
+          "items": {
+            "$ref": "#/$defs/AttachmentDescriptor"
+          },
+          "description": "Owner files bound to this message, in Create order. Omitted when the message has none."
         }
       },
       "required": [
@@ -1093,6 +1108,191 @@
       ],
       "additionalProperties": false,
       "description": "Moves the marker forward to cursor; an earlier cursor is a no-op and a cursor past latest_cursor is refused."
+    },
+    "AttachmentRef": {
+      "type": "object",
+      "description": "A reference from Create.attachments to a staged upload of the same owner and conversation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "id",
+        "digest"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentDescriptor": {
+      "type": "object",
+      "description": "Metadata of one stored owner file. digest is sha256 over the exact stored bytes.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "x-utf8-maxBytes": 255,
+          "description": "One path segment: no control characters, slashes, backslashes, or leading/trailing whitespace; not . or .."
+        },
+        "media_type": {
+          "enum": [
+            "text/plain",
+            "text/markdown",
+            "text/csv",
+            "application/json",
+            "application/pdf",
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "image/webp"
+          ]
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "media_type",
+        "size_bytes",
+        "digest"
+      ],
+      "additionalProperties": false
+    },
+    "AttachmentUpload": {
+      "type": "object",
+      "description": "Response to PUT .../attachments/{id}. A staged upload expires at expires_at_ms unless a Create binds it; an attached one lives as long as its message.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "x-utf8-maxBytes": 255,
+          "description": "One path segment: no control characters, slashes, backslashes, or leading/trailing whitespace; not . or .."
+        },
+        "media_type": {
+          "enum": [
+            "text/plain",
+            "text/markdown",
+            "text/csv",
+            "application/json",
+            "application/pdf",
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "image/webp"
+          ]
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "conversation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "created_at_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "state": {
+          "enum": [
+            "staged",
+            "attached"
+          ]
+        },
+        "message_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expires_at_ms": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "media_type",
+        "size_bytes",
+        "digest",
+        "conversation_id",
+        "created_at_ms",
+        "state",
+        "message_id",
+        "expires_at_ms"
+      ],
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "staged"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "message_id": {
+                "type": "null"
+              },
+              "expires_at_ms": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "message_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "expires_at_ms": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
     }
   },
   "oneOf": [
@@ -1107,6 +1307,9 @@
     },
     {
       "$ref": "#/$defs/ReadMarker"
+    },
+    {
+      "$ref": "#/$defs/AttachmentUpload"
     }
   ]
 }

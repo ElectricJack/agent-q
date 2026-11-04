@@ -185,6 +185,7 @@ pub fn project(
             currency: None,
             require_hard_cost_enforcement: false,
         },
+        publication: None,
     })
 }
 #[derive(Clone, Serialize)]
