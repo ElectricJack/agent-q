@@ -18,4 +18,4 @@ CREATE TABLE global_supervisor_attachments (
  UNIQUE(message_id, ordinal)
 );
 CREATE INDEX global_supervisor_attachments_staged ON global_supervisor_attachments(conversation_id, created_at_ms) WHERE message_id IS NULL;
-UPDATE meta SET value='73' WHERE key='state_format_version';
+UPDATE meta SET value='75' WHERE key='state_format_version';
