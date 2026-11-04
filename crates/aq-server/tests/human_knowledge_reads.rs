@@ -401,7 +401,11 @@ async fn knowledge_revisions_list_history_without_bodies() {
         json!({"id":link["id"],"edge_type":"produces","source":task,"target":doc})
     );
     assert_eq!(items[1]["revision"], Value::Null);
-    let text = first.to_string();
+    let cursor = first["data"]["next_cursor"].as_str().unwrap();
+    // The sealed token is random base64url, so it may contain any substring by
+    // chance; check it is not the raw upstream cursor, then scan the rest.
+    assert_ne!(cursor, "o2", "upstream cursor must not escape");
+    let text = first.to_string().replace(cursor, "<cursor>");
     assert!(!text.contains("secret-body-text"), "{text}");
     assert!(!text.contains("example:weight"), "{text}");
     assert!(
@@ -409,7 +413,6 @@ async fn knowledge_revisions_list_history_without_bodies() {
         "upstream cursor must not escape: {text}"
     );
 
-    let cursor = first["data"]["next_cursor"].as_str().unwrap();
     let (_, second) = f
         .read(&format!(
             "/knowledge/{doc}/revisions?limit=2&cursor={cursor}"
