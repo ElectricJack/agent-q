@@ -622,3 +622,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Closed #66 (superseded by #72).
   - Dashboard #43, #46 and #55 still fail their own specs; the steward `quick-flare-90` is on them.
   - Claude usage: 89%.
+- **21:35 check.**
+  - B7 (`noble-summit-37.10`) completed. C5b and C5a2 are running, and so is F3 in aq-worker.
+  - **C6a (`calm-delta-18.9`) was held** (`slot_reset_failed` five times: "branch holder reservation is not clean and taskless").
+  - **Cause:** aq-worker slot-2 (`ws-frosty-gate`) was still checked out on `aq/calm-delta-18.9`. That branch has no origin copy and is 0 commits ahead of main, so `_slot_branch_matches_origin` could never pass.
+  - **Fix:** detached slot-2 (no work lost) and released the hold with an operator retry. C6a is READY again.
