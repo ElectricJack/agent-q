@@ -866,20 +866,31 @@ impl Service {
                 plan
             }
             Stage::Fresh => {
-                // Dispatch only by server-owned handle; never a caller route.
-                let attempt = if let Some(raw) = handle.strip_prefix(ATTEMPT_REF) {
-                    match Uuid::parse_str(raw) {
-                        Ok(attempt) => {
-                            let project: Option<Uuid> = sqlx::query_scalar("SELECT o.project_id FROM execution_attempts a JOIN profiled_launches l USING(attempt_id) JOIN admission_source_observations o ON o.observation_id=l.source_observation_id WHERE a.attempt_id=$1 AND a.kind='profiled_v1'")
+                // A catalog 2.0.0 check operation handle (judgments are not
+                // cancellable and fall through to refused).
+                if self.profile == CatalogProfile::Host7
+                    && let Some((check, subject)) = self.check_target(&handle).await?
+                {
+                    let plan = json!({"check": check, "subject": subject});
+                    self.record(&mut tx, id, revision, intent, &identity, PENDING, &plan)
+                        .await?;
+                    self.commit_fresh(tx, id, intent).await?;
+                    plan
+                } else {
+                    // Dispatch only by server-owned handle; never a caller route.
+                    let attempt = if let Some(raw) = handle.strip_prefix(ATTEMPT_REF) {
+                        match Uuid::parse_str(raw) {
+                            Ok(attempt) => {
+                                let project: Option<Uuid> = sqlx::query_scalar("SELECT o.project_id FROM execution_attempts a JOIN profiled_launches l USING(attempt_id) JOIN admission_source_observations o ON o.observation_id=l.source_observation_id WHERE a.attempt_id=$1 AND a.kind='profiled_v1'")
                                 .bind(attempt)
                                 .fetch_optional(&mut *tx)
                                 .await?;
-                            (project == Some(self.namespace.project_id)).then_some(attempt)
+                                (project == Some(self.namespace.project_id)).then_some(attempt)
+                            }
+                            Err(_) => None,
                         }
-                        Err(_) => None,
-                    }
-                } else if let Some(raw) = handle.strip_prefix(WORK_REF) {
-                    match Uuid::parse_str(raw) {
+                    } else if let Some(raw) = handle.strip_prefix(WORK_REF) {
+                        match Uuid::parse_str(raw) {
                         Ok(task) if self.namespace_work(&mut tx, task).await? => {
                             sqlx::query_scalar::<_, Uuid>("SELECT attempt_id FROM execution_attempts WHERE task_id=$1 AND holds_task AND kind='profiled_v1'")
                                 .bind(task)
@@ -888,21 +899,38 @@ impl Service {
                         }
                         _ => None,
                     }
-                } else {
-                    None
-                };
-                let Some(attempt) = attempt else {
-                    return self
-                        .settle_fresh(tx, id, revision, intent, &identity, refused(0))
-                        .await;
-                };
-                let plan = json!({"attempt": attempt, "operation": self.operation(intent)?});
-                self.record(&mut tx, id, revision, intent, &identity, PENDING, &plan)
-                    .await?;
-                self.commit_fresh(tx, id, intent).await?;
-                plan
+                    } else {
+                        None
+                    };
+                    let Some(attempt) = attempt else {
+                        return self
+                            .settle_fresh(tx, id, revision, intent, &identity, refused(0))
+                            .await;
+                    };
+                    let plan = json!({"attempt": attempt, "operation": self.operation(intent)?});
+                    self.record(&mut tx, id, revision, intent, &identity, PENDING, &plan)
+                        .await?;
+                    self.commit_fresh(tx, id, intent).await?;
+                    plan
+                }
             }
         };
+        if !plan["check"].is_null() {
+            // The executor stop alone completes the check; an ambiguous
+            // executor cancel leaves the plan pending for a resumed dispatch.
+            let check: Uuid = serde_json::from_value(plan["check"].clone())?;
+            let outcome = self.cancel_check(check).await?;
+            return self
+                .finish(
+                    intent,
+                    &identity,
+                    HostResult {
+                        outcome: outcome.into(),
+                        output: json!({"reference": handle, "subject": plan["subject"]}),
+                    },
+                )
+                .await;
+        }
         let attempt: Uuid = serde_json::from_value(plan["attempt"].clone())?;
         let operation: Uuid = serde_json::from_value(plan["operation"].clone())?;
         use crate::profiled_execution::cancellation::{Disposition, cancel};
