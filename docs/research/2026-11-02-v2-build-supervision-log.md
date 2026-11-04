@@ -629,3 +629,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Fix:** detached slot-2 (no work lost) and released the hold with an operator retry. C6a is READY again.
 - **21:50 check.** Completed: D1b (`crisp-meadow-36.2`), C5a2 (`calm-delta-18.13`) and F3 (`steady-harbor-87.4`). C6a is running after the slot fix; D7, H3, D2, C5b and H4 are also running. aq-server main CI is green again (atomicity redesign #72). F3 left aq-worker main failing `cargo fmt --check` (module order in `native/runner/sandbox.rs`); pushed the one-line rustfmt fix `be49d32`. Claude usage: 92%.
 - **22:00 owner: run I4a in parallel.** Removed I4a's (`azure-horizon-22.2`) blocks on C6a and C6b; C2 and B5a are done. Its description now says to qualify Claude Code on the real docker-local backend now (env-token auth, unattended edit/check/publish as non-root, wipe, digest and CLI version recorded); run through the runner's confinement and credential lease only if C6a/C6b land first; no children. Priority 4; claimable now (fleet 7 of 8 busy).
+- **22:15 check.**
+  - I4a is running in parallel with C6a.
+  - **Dashboard steward `quick-flare-90`** was held (`max_retries`). It had rebased/fixed 11 PR branches locally, but a worker can only push its own claim branch (`out of scope: branch mismatch`). Pushed all 11 as fast-forwards from the shared ref store: #43, #44, #46, #47, #48, #49, #50, #52, #53, #55, #57. Waiting on CI to merge.
+  - #60, #61, #63 and #64 still conflict and weren't handled.
+  - **aq-server #74 (C5a2)** collided on migration 0076 with main (#73 and others added 0075–0077). Renumbered to 0078 with `renumber.py` (`0713c32`).
+  - **W61 follow-up:** after #74 merges, check MS1 (`stark-zenith-16.2`), whose `blocks` edge on C5a2 now points at a PR head that is an operator merge commit.
