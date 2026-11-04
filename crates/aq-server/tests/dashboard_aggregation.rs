@@ -362,3 +362,277 @@ async fn overview_uncertain_operations_are_principal_and_scope_bound() {
     .await;
     assert!(!excluded.to_string().contains(&own.to_string()));
 }
+
+fn capacity_fixture(value: &Value) {
+    if std::env::var_os("AQ_DASHBOARD_WRITE_FIXTURES").is_some() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../protocol/dashboard-read/v1/fixtures/capacity.json");
+        std::fs::write(
+            path,
+            format!("{}\n", serde_json::to_string_pretty(value).unwrap()),
+        )
+        .unwrap();
+    }
+}
+
+/// X1/X2/X3: slot load, per-node eligibility with placement's own refusal
+/// reasons, provider availability from unexpired node credential reports,
+/// and storage on the worker inventory.
+#[tokio::test]
+async fn capacity_reports_slots_eligibility_availability_and_storage() {
+    use aq_selection::{ArtifactRef, AuthorizedCredential, Text};
+    use aq_server::intelligence::config::{CredentialConfig, IntelligenceConfig};
+    use serde_json::json;
+    use std::sync::Arc;
+    let now = common::profiled::NOW;
+    let mut f = common::profiled::fixture().await;
+    let credential = |profile: &str, account: &str, enabled: bool| AuthorizedCredential {
+        allowed_backends: aq_selection::default_allowed_backends(),
+        profile: ArtifactRef {
+            id: Text::new(profile).unwrap(),
+            version: Text::new("1").unwrap(),
+            digest: aq_admission::Digest::of(profile.as_bytes()),
+        },
+        provider: "openai".into(),
+        account_reference: account.into(),
+        endpoint_reference: "private-capacity-canary".into(),
+        revision: 1,
+        enabled,
+        provisionable: false,
+        material_owner: None,
+    };
+    let reported = credential("reported", "acct-reported", true);
+    let credentials = [
+        reported.clone(),
+        credential("disabled", "acct-disabled", false),
+        credential("silent", "acct-silent", true),
+    ];
+    let mut config = (*f.state.config).clone();
+    config.intelligence = Some(Arc::new(
+        IntelligenceConfig {
+            revision: 1,
+            credentials: credentials
+                .into_iter()
+                .map(|credential| CredentialConfig {
+                    kind: aq_selection::CredentialKind::ApiKey,
+                    allowed_backends: aq_selection::default_allowed_backends(),
+                    credential,
+                    allowed_node_ids: vec![],
+                    secret_file: None,
+                    delivery_mode: None,
+                })
+                .collect(),
+            ..Default::default()
+        }
+        .load()
+        .unwrap(),
+    ));
+    f.state.config = Arc::new(config);
+    let pool = f.db.pool().await;
+    // The fixture node is host-native: online, but advertises no slot total.
+    sqlx::query(
+        "UPDATE nodes SET last_seen_at=to_timestamp($2::double precision/1000) WHERE id=$1",
+    )
+    .bind(f.node.node_id)
+    .bind(now as i64)
+    .execute(&pool)
+    .await
+    .unwrap();
+    let boat = uuid::Uuid::new_v4();
+    sqlx::query("INSERT INTO nodes(id,name,credential_hash,worker_version,protocol_version,enrolled_at,last_seen_at) VALUES($1,'boat-1',$2,'t',1,now(),to_timestamp($3::double precision/1000))")
+        .bind(boat).bind(boat.to_string()).bind(now as i64).execute(&pool).await.unwrap();
+    let registration = json!({"backend":{"kind":"boat","capabilities":["vm-isolation"],"max_concurrent_sandboxes":2,"spend_ceiling":null,"templates":[]}});
+    sqlx::query("INSERT INTO delegated_node_boots(node_id,boot_id,registration) VALUES($1,$2,$3)")
+        .bind(boat)
+        .bind(uuid::Uuid::new_v4())
+        .bind(registration)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let snapshot = json!({"observed_at_ms": now - 5, "expires_at_ms": now + 30_000, "credential_bindings": [
+        {"credential_revision": 1, "credential_profile": reported.profile, "available": true, "observed_at_ms": now - 5, "expires_at_ms": now + 30_000}
+    ]});
+    sqlx::query("INSERT INTO intelligence_node_snapshots(node_id,boot_id,sequence,revision,snapshot) VALUES($1,$2,1,1,$3)")
+        .bind(boat).bind(uuid::Uuid::new_v4()).bind(snapshot).execute(&pool).await.unwrap();
+    let disk = |used: u64| {
+        let pool = pool.clone();
+        async move {
+            let report = aq_server::node_storage::StorageReport {
+                disk_total_bytes: 100,
+                disk_used_bytes: used,
+                disk_free_bytes: 100 - used,
+                preserved_count: 3,
+                preserved_bytes: 7,
+                ..Default::default()
+            };
+            let mut conn = pool.acquire().await.unwrap();
+            aq_server::node_storage::record(
+                &mut conn,
+                &boat.to_string(),
+                Some(boat),
+                &report,
+                now - 1,
+            )
+            .await
+            .unwrap();
+        }
+    };
+    disk(50).await;
+    let app = aq_server::build_admin_router(f.state.clone());
+
+    sqlx::query("INSERT INTO users(id,email,role,issuer,subject,created_at) VALUES($1,'capacity-viewer@localhost','viewer','dev','capacity-viewer@localhost',now())")
+        .bind(uuid::Uuid::new_v4()).execute(&pool).await.unwrap();
+    let viewer = app
+        .clone()
+        .oneshot(
+            Request::get("/api/v1/capacity")
+                .header("x-aq-dev-email", "capacity-viewer@localhost")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(viewer.status(), StatusCode::FORBIDDEN);
+
+    let (status, body) = read(&app, "/api/v1/capacity").await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let data = &body["data"];
+    // Host-native online worker: slot total and idle are unknown, not zero.
+    assert_eq!(
+        data["slots"]["total"],
+        json!({"value": null, "accuracy": "unknown"})
+    );
+    assert_eq!(
+        data["slots"]["idle"],
+        json!({"value": null, "accuracy": "unknown"})
+    );
+    assert_eq!(
+        data["slots"]["occupied"],
+        json!({"value": 0, "accuracy": "exact"})
+    );
+    assert_eq!(data["slots"]["coverage"]["state"], "partial");
+    assert_eq!(body["coverage"]["state"], "partial");
+    let node = |id: uuid::Uuid, body: &Value| {
+        body["data"]["nodes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|n| n["node"]["id"] == json!(id))
+            .cloned()
+            .unwrap()
+    };
+    let native = node(f.node.node_id, &body);
+    assert_eq!(native["health"], "online");
+    assert!(native["slots"]["total"].is_null() && native["slots"]["idle"].is_null());
+    assert!(native["backend_kind"].is_null());
+    let b = node(boat, &body);
+    assert_eq!(b["backend_kind"], "boat");
+    assert_eq!(b["slots"], json!({"total": 2, "occupied": 0, "idle": 2}));
+    assert_eq!(
+        b["eligibility"],
+        json!({"state": "eligible", "reasons": []})
+    );
+    assert_eq!(b["capability_observed_at"], "1970-01-01T00:16:39.995Z");
+    assert_eq!(b["capability_fresh_until"], "1970-01-01T00:17:10.000Z");
+    assert_eq!(b["storage"]["used_bps"], 5000);
+    assert_eq!(b["storage"]["preserved_count"], 3);
+    assert_eq!(b["storage"]["observed_at"], "1970-01-01T00:16:39.999Z");
+    let providers = data["providers"].as_array().unwrap();
+    let account = |name: &str| {
+        providers
+            .iter()
+            .find(|p| p["account_ref"] == name)
+            .cloned()
+            .unwrap()
+    };
+    let available = account("acct-reported");
+    assert_eq!(available["state"], "available");
+    assert!(available["reason"].is_null());
+    assert_eq!(available["available_nodes"], 1);
+    assert_eq!(available["observed_at"], "1970-01-01T00:16:39.995Z");
+    assert_eq!(account("acct-disabled")["state"], "unavailable");
+    assert_eq!(account("acct-disabled")["reason"], "account_disabled");
+    assert_eq!(account("acct-silent")["state"], "unknown");
+    assert_eq!(account("acct-silent")["reason"], "no_fresh_node_report");
+    assert!(account("acct-silent")["observed_at"].is_null());
+    assert!(!body.to_string().contains("private-capacity-canary"));
+    capacity_fixture(&body);
+
+    // Placement's own refusal: above 85% used is node_disk_pressure. Revoking
+    // the host-native worker makes the slot totals exact.
+    disk(90).await;
+    sqlx::query("UPDATE nodes SET revoked_at=now() WHERE id=$1")
+        .bind(f.node.node_id)
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (_, body) = read(&app, "/api/v1/capacity").await;
+    let b = node(boat, &body);
+    assert_eq!(
+        b["eligibility"],
+        json!({"state": "ineligible", "reasons": ["node_disk_pressure"]})
+    );
+    assert_eq!(node(f.node.node_id, &body)["health"], "revoked");
+    assert!(
+        node(f.node.node_id, &body)["eligibility"]["reasons"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("worker_revoked"))
+    );
+    assert_eq!(
+        body["data"]["slots"]["total"],
+        json!({"value": 2, "accuracy": "exact"})
+    );
+    assert_eq!(
+        body["data"]["slots"]["idle"],
+        json!({"value": 2, "accuracy": "exact"})
+    );
+    assert_eq!(body["coverage"]["state"], "complete");
+    // An expired capability report leaves availability unknown.
+    f.time
+        .store((now + 60_000) as i64, std::sync::atomic::Ordering::SeqCst);
+    let (_, body) = read(&app, "/api/v1/capacity").await;
+    let b = node(boat, &body);
+    assert!(
+        b["eligibility"]["reasons"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("capability_expired"))
+    );
+    assert_eq!(
+        body["data"]["providers"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|p| p["account_ref"] == "acct-reported")
+            .unwrap()["state"],
+        "unknown"
+    );
+
+    let (_, bootstrap) = read(&app, "/api/v1/bootstrap").await;
+    assert!(
+        bootstrap["data"]["capabilities"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|v| v["name"] == "capacity.read" && v["enabled"] == true)
+    );
+
+    // X3: the worker inventory carries flattened storage, absent when unreported.
+    let (status, workers) = read(&app, "/api/workers").await;
+    assert_eq!(status, StatusCode::OK, "{workers}");
+    let rows = workers.as_array().unwrap();
+    let row = rows.iter().find(|w| w["id"] == json!(boat)).unwrap();
+    assert_eq!(row["disk_total_bytes"], 100);
+    assert_eq!(row["disk_used_bytes"], 90);
+    assert_eq!(row["disk_free_bytes"], 10);
+    assert_eq!(row["preserved_bytes"], 7);
+    assert_eq!(row["storage_used_bps"], 9000);
+    assert!(row["storage_observed_at"].is_string());
+    let native = rows
+        .iter()
+        .find(|w| w["id"] == json!(f.node.node_id))
+        .unwrap();
+    assert!(native.get("disk_total_bytes").is_none());
+    assert!(native.get("storage_observed_at").is_none());
+}
