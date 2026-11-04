@@ -584,3 +584,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Filed one steward task in aq-dashboard (priority 15) to land them in order on their existing branches. #57 and #59 are still in CI.
   - aq-platform pool starts are still blocked by the 30 s reconcile timeout; waiting on the owner's OK for the v1 fix.
 - **18:20 check.** Merged aq-dashboard #59 (PB-E) and #62 (AG-A), and aq-server #68 (agile-nexus-13, duplicate 0072 migrations renumbered; only the known atomicity failure). Updated #69, #70 and #71 onto main: #70 and #71 failed every job, consistent with the duplicate-migration break #68 fixes. #69 also fails `knowledge_revisions_list_history_without_bodies`. Added #57 to the dashboard steward task `quick-flare-90`. MS1 head C5a1 is still blocked by v1 pool reconcile timeouts, waiting on the owner's OK.
+- **18:50 owner-approved v1 fix: agent-queue PR #2203** ("the delivery check should run periodically but not be tied to sizing the pools").
+  - Pool sizing now always reads cached delivery evidence. The scheduler's admission pass keeps refreshing the cache, a cold `delivery-of` cache still withholds, and claims keep their fresh checks under locks.
+  - Added a regression test (fails without the fix); pool-reconciler and size-budget suites green; pools.py line count unchanged.
+  - Merged as admin, fast-forwarded the live checkout to `ff9ab871f`, `aq restart --no-dashboard` (sessions kept). Watching for C5a1 to be claimed and the 30 s reconcile timeouts to stop.
