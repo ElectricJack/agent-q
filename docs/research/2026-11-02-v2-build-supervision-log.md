@@ -654,3 +654,4 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - aq-git `sound-impact-48`: named credential profiles for central bindings, from D2.
   Dashboard main-CI fix `keen-harbor-66` and round-2 steward `prime-beacon-85` are running.
 - **23:55 check.** Merged aq-dashboard #66 (keen-harbor-66: ports WK-E/WK-F Work behaviour into WorkWorkspace; fixes the red main). The router is routing again now that Claude usage is low; the four cross-repo follow-ups were routed automatically, and aq-git `fair-current-80` is running. Round-2 steward `prime-beacon-85` is still on #46, #53, #55, #60, #61, #63 and #64.
+- **00:10 check.** Merged aq-git #6 (fair-current-80: prefix-scoped publication targets with lease guard) and #7 (sound-impact-48: operator credential profiles). aq-server #75 (bright-lantern-83, updater ETXTBSY stub fix) is in CI. All seven aq-worker READY tasks are dependency-blocked; nothing is stuck. Claude usage: 4%.
