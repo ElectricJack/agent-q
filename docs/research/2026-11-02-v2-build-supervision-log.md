@@ -538,3 +538,13 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Fix:** filed fresh re-apply tasks that start from main and cherry-pick the old branch: keen-pinnacle-80, sharp-glacier-37, solid-willow-70, fresh-ridge-68. Closed the old tasks `--obsolete` and closed PRs #15, #16, #18 and #21 as superseded. The branches are kept.
   - **Merged #12 (OV-A).**
   - **SHR-L (#24):** units pass, but `supervisor-launcher.spec.ts` "launcher never covers content on /results" now fails because the new Results fixtures fill the page. Reopened at priority 5 on standard-medium.
+- **18:40 check.**
+  - **calm-current-41 pushed back, correctly.** The atomicity test also fails on main. Main CI never reached that binary because cargo stopped at `native_accepted_preparation`. Root cause: `f0253a76` (offer TTL 2 s to 30 s) makes the scenario unreachable. I chose option (a): merge #56 as-is once clippy passes on `55a451fe`, and filed `brisk-quest-74` (priority 10) to redesign that test and run the other masked binaries with `--no-fail-fast`. My earlier reopen was wrong: I compared against main's failure list without accounting for cargo stopping at the first failing binary.
+  - **crisp-meadow-36.7.2** was held again (`child_preparation_conflict`, last recovery budget). The only conflict was `docs/implementation/D6.md`. Resolved it by hand: kept main's newer item 1 and marked check cancellation as shipped. Pushed to `aq/crisp-meadow-36.7.2`, which updates PR #59.
+  - Claude usage: 78%. The auto-pause triggers at 80%.
+- **19:05 check.**
+  - **Merged aq-dashboard** #26 (OV-C re-apply), #25 (DC-J), #24 (SHR-L fixtures, which unblocks the Agents and Results gap tasks), #28 (SV-H re-apply) and #29 (ST-A). Remaining failures were only the flaky ResultMediaUpload, SessionUsage and SupervisorConversation tests; fresh-zenith-62 is fixing those.
+  - **#27 (OV-D) and #30 (WK-B) conflicted again.** Rather than another reopen (claim preparation would refuse it), I resolved them on their branches:
+    - #27: kept both the OV-C and OV-D CSS blocks;
+    - #30: SHR-L's `bootstrap` variable plus the `projects.read` grant, and both scenario names.
+    - Verified with `tsc --noEmit` and the overview, mocks and knowledge unit tests (26 + 31 passed). Waiting on CI.
