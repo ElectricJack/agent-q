@@ -635,3 +635,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - #60, #61, #63 and #64 still conflict and weren't handled.
   - **aq-server #74 (C5a2)** collided on migration 0076 with main (#73 and others added 0075–0077). Renumbered to 0078 with `renumber.py` (`0713c32`).
   - **W61 follow-up:** after #74 merges, check MS1 (`stark-zenith-16.2`), whose `blocks` edge on C5a2 now points at a PR head that is an operator merge commit.
+- **22:35 check.**
+  - **Merged aq-dashboard round 1:** #43 (SH-J), #44 (WK-D), #47 (WK-E), #48 (AG-D), #49 (WK-F), #50 (DC-K), #52 (AG-B) and #57 (RS-H). All were green after the operator push.
+  - #46, #53 and #55 conflicted after their neighbours merged; #60, #61, #63 and #64 were already conflicting. Six of the seven have 50–250-line UI conflicts.
+  - Closed the round-1 steward `quick-flare-90` `--done` (its recovery retry budget was exhausted by the worker push-scope refusal). Filed a round-2 steward that commits locally and reports branch heads for the operator to push.
+  - **Claude weekly usage reset to 1%.** Re-armed the 80% auto-pause guard by removing its marker. The provider override expires on its own at about 22:30Z.
+  - aq-server #74 (C5a2, renumbered to 0078) is in CI.
