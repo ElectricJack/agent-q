@@ -83,7 +83,9 @@ The envelope has no `repository_id` or binding generation. An operator runs it. 
 
 ### Schema
 
-Migration `0076_delivery_reconciliation.sql` widens the `delivery_intents.operation` check to allow `operation.reconcile` and `operation.resolve`.
+Migration `0077_delivery_reconciliation.sql` widens the `delivery_intents.operation` check to allow `operation.reconcile` and `operation.resolve`.
+
+Main had two `0075` files after #70 and #73 merged, so the migration catalog failed to build. This branch moves the later-merged `0075_supervisor_owner_attachments.sql` (#73) to `0076`, with meta `76`. `0075_result_media_clips.sql` (#70, merged first) keeps `0075`.
 
 ## Acceptance evidence
 

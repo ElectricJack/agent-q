@@ -70,7 +70,8 @@ warning: output filename collision at /home/jkern/dev/aq-platform-agents/aq-serv
   = note: this may become a hard error in the future; see <https://github.com/rust-lang/cargo/issues/6313>
   = help: consider changing their names to be unique or compiling them separately
    Compiling aq-server v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-3/crates/aq-server)
-    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.82s
+   Compiling aq-supervisor-host v0.1.0 (/home/jkern/dev/aq-platform-agents/aq-server/.aq/worktrees/slot-3/crates/aq-supervisor-host)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 10m 02s
      Running unittests src/lib.rs (target/debug/deps/aq_accounting-8b3477318da7ff9b)
 
 running 0 tests
@@ -541,7 +542,7 @@ test delivery::policy::tests::policy_validation_and_round_trip ... ok
 test project_bindings::external::tests::publication_target_must_be_an_allowed_target ... ok
 test store::tests::state_format_is_the_latest_migration ... ok
 
-test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 231 filtered out; finished in 0.00s
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 233 filtered out; finished in 0.00s
 
      Running unittests src/main.rs (target/debug/deps/aq_server-9d6ec3d9a8e37057)
 
@@ -1233,7 +1234,7 @@ running 2 tests
 test publication::ambiguous_push_reconciles_without_double_publish ... ok
 test publication::publication_conflict_reports_typed_refusal ... ok
 
-test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 1.03s
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 23 filtered out; finished in 1.92s
 
      Running tests/stopped_dispositions.rs (target/debug/deps/stopped_dispositions-1649ce6356d48b0f)
 
@@ -1257,7 +1258,7 @@ test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; fini
 
 running 0 tests
 
-test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 10 filtered out; finished in 0.00s
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
 
      Running tests/terminal_output_poll.rs (target/debug/deps/terminal_output_poll-64176c2c8f127b5a)
 

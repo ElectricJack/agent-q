@@ -3,4 +3,4 @@
 ALTER TABLE delivery_intents DROP CONSTRAINT delivery_intents_operation_check;
 ALTER TABLE delivery_intents ADD CONSTRAINT delivery_intents_operation_check
  CHECK (operation IN ('candidate.create','candidate.show','publish','operation.show','operation.reconcile','operation.resolve'));
-UPDATE meta SET value='76' WHERE key='state_format_version';
+UPDATE meta SET value='77' WHERE key='state_format_version';
