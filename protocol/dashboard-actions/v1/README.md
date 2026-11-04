@@ -148,6 +148,21 @@ same key and its ID is the actual project, decision or conversation UUID.
   `context` and `attachments` arrays. Confirmed means durable mailbox enqueue;
   native receipts still say host delivery `not_attempted`, with no agent receipt.
 
+- `session.message.send` durably enqueues an owner message into one session's
+  scoped mailbox. The subject is `{type:"session",id:<session UUID>}`; the
+  payload carries `operation_id`, `project_id`, a separate `message_id`, optional
+  `thread_id` (defaults to `message_id`), `expected_generation` (the decimal
+  `session_identity.assignment_generation`, also the subject revision and the
+  single `session` expected version) and a nonempty body of at most 16384 UTF-8
+  bytes. The recipient is derived from the session's unrevoked launch binding,
+  never from client scope; a missing, revoked or other-project binding is a
+  neutral 404. A stale generation is a `conflict` with `current_versions`
+  `{session:<live>}`. Confirmed means queued only: the receipt names the
+  `mailbox_operation` and the affected `message` at its mailbox cursor. Runner
+  delivery and harness input are not attempted here. Owner bootstrap advertises
+  `session.message.enqueue@1`; session detail lists `session.message.send` in
+  `permissions` when the slot is usable.
+
 ## Typed task and knowledge kinds
 
 Each typed payload carries `operation_id` (equal to the outer ID), `project_id`
@@ -209,3 +224,4 @@ Named acceptance tests:
 - `cargo test --locked -p aq-server --test dashboard_task_knowledge task_retry_creates_replacement_attempt`
 
 - `cargo test --locked --workspace supervisor_creates_graph_with_dependencies_idempotently`
+- `cargo test --locked -p aq-server --test dashboard_actions session_message_send_enqueues_to_bound_session_mailbox`

@@ -934,6 +934,63 @@
         {
           "properties": {
             "kind": {
+              "const": "session.message.send"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:session.message.send:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "body": {
+                  "maxLength": 16384,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "expected_generation": {
+                  "description": "The session's assignment generation, as projected in `session_identity`.",
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "message_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "thread_id": {
+                  "description": "Mailbox thread; a new thread named by `message_id` when omitted.",
+                  "format": "uuid",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "message_id",
+                "expected_generation",
+                "body"
+              ],
+              "title": "SessionMessage",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
               "const": "supervisor.message.send"
             },
             "payload": {

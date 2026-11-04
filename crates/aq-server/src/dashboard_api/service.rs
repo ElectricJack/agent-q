@@ -156,6 +156,37 @@ pub(super) fn envelope<T>(
         },
     })
 }
+/// X4: the mounted conversation and whether an active central session serves it.
+async fn global_supervisor(pool: &sqlx::PgPool) -> Supervisor {
+    let id: Option<Uuid> = sqlx::query_scalar(
+        "SELECT conversation_id FROM global_supervisor_conversation WHERE singleton AND revision=1",
+    )
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten()
+    .filter(|id: &Uuid| !id.is_nil());
+    let Some(id) = id else {
+        return Supervisor {
+            status: "unconfigured".into(),
+            conversation_id: None,
+            reason: "The global supervisor conversation is not provisioned".into(),
+        };
+    };
+    let bound = crate::agent_access::supervisor_conversation::dispatch::binding(pool, Some(id))
+        .await
+        .is_some();
+    Supervisor {
+        status: if bound { "available" } else { "unavailable" }.into(),
+        conversation_id: Some(id),
+        reason: if bound {
+            "central_session_active"
+        } else {
+            "central_runtime_not_connected"
+        }
+        .into(),
+    }
+}
 pub(super) async fn bootstrap(
     state: &AppState,
     runtime: &Runtime,
@@ -168,9 +199,16 @@ pub(super) async fn bootstrap(
     let graph_mutation = graph && crate::agent_access::human::task_create_available(state);
     let reviews = a.owner && mounted.reviews;
     let playbooks = a.owner && mounted.playbook_owner == Some(a.actor);
-    let conversation = mounted.supervisor_conversation
-        && a.owner
-        && crate::agent_access::supervisor_conversation::dispatch::live(&state.store.pool).await;
+    let global = if mounted.supervisor_conversation && a.owner {
+        global_supervisor(&state.store.pool).await
+    } else {
+        Supervisor {
+            status: "unconfigured".into(),
+            conversation_id: None,
+            reason: "The global supervisor is not connected yet".into(),
+        }
+    };
+    let conversation = global.status == "available";
     let caps = vec![
         capability("dashboard.overview", true, ""),
         capability(
@@ -326,6 +364,11 @@ pub(super) async fn bootstrap(
             "Global supervisor enqueue requires an owner account and mounted conversation owner",
         ),
         capability(
+            "session.message.enqueue",
+            a.owner,
+            "Session messages require an owner account",
+        ),
+        capability(
             "supervisor.conversation",
             conversation,
             "The global supervisor is not connected yet",
@@ -430,11 +473,7 @@ pub(super) async fn bootstrap(
             snapshot_ttl_ms: runtime::TTL as u32,
         },
         default_scope: Scope::AllAuthorized,
-        global_supervisor: Supervisor {
-            status: "unconfigured".into(),
-            conversation_id: None,
-            reason: "The global supervisor is not connected yet".into(),
-        },
+        global_supervisor: global,
     };
     let mut tx = tx(runtime).await?;
     let mut pending: Vec<Uuid> = if a.owner {
@@ -696,6 +735,18 @@ pub(super) async fn session(
             }
         }
     }
+    let mut permissions = vec!["session.inspect".to_string()];
+    if access.owner {
+        // The Message slot needs a live scoped mailbox: an unrevoked launch binding.
+        let mailbox: Option<bool> =
+            sqlx::query_scalar("SELECT NOT revoked FROM agent_launch_bindings WHERE attempt_id=$1")
+                .bind(attempt)
+                .fetch_optional(&mut *tx)
+                .await?;
+        if mailbox == Some(true) && !view.revoked {
+            permissions.push(crate::agent_access::messaging::session_action::KIND.into());
+        }
+    }
     let now = stamp(state)?;
     if now < access.checked_at_ms || now >= access.valid_until_ms {
         return Err(Error::AuthorizationChanged);
@@ -751,12 +802,13 @@ pub(super) async fn session(
             "profiled_v1"
         }
         .into(),
+        last_output_at: last_activity.clone(),
     };
     tx.commit().await?;
     Ok(SessionDetail {
         summary,
         profile_revisions: revisions,
-        permissions: vec!["session.inspect".into()],
+        permissions,
         last_activity_at: last_activity,
         observation_binding,
     })
@@ -792,11 +844,11 @@ pub(super) async fn sessions(
     let limit = query.limit()?;
     let end = (offset + usize::from(limit)).min(snapshot.ids.len());
     let mut items = vec![];
-
+    let mut skipped = false;
     for id in &snapshot.ids[offset..end] {
         match session(state, runtime, user, *id, &snapshot.scope).await {
             Ok(value) => items.push(value.summary),
-            Err(Error::Api(AppError::Forbidden(_) | AppError::NotFound(_))) => {}
+            Err(Error::Api(AppError::Forbidden(_) | AppError::NotFound(_))) => skipped = true,
             Err(error) => return Err(error),
         }
     }
@@ -811,7 +863,20 @@ pub(super) async fn sessions(
         next_cursor: next.clone(),
         has_more: next.is_some(),
         snapshot_id: snapshot.id,
-        total: Total::unknown(),
+        // The authorized snapshot membership, so the Sessions selector can show
+        // a count. A truncated snapshot is unknown; a member that vanished or
+        // lost inspection while paging makes the count an estimate.
+        total: match (snapshot.truncated, skipped) {
+            (true, _) => Total::unknown(),
+            (false, skipped) => Total {
+                value: Some(snapshot.ids.len() as u32),
+                accuracy: if skipped {
+                    Accuracy::Estimated
+                } else {
+                    Accuracy::Exact
+                },
+            },
+        },
     };
     envelope(
         state,

@@ -12,7 +12,7 @@
   },
   "limits": {
     "body_bytes": 16384,
-    "context_refs": 0,
+    "context_refs": 16,
     "attachments": 0,
     "history_page": 16
   }

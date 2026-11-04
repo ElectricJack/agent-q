@@ -744,6 +744,22 @@ async fn inspection_discovers_actual_admissions_runs_and_public_timeline() {
     assert_eq!(detail["run"]["id"], run);
     assert_eq!(detail["run"]["artifact"], binding["artifact"]);
     assert_eq!(detail["observation_is_atomic"], false);
+    // G11 X30/X31: definition name, AQ install ordinal and active comparison.
+    let definition = &detail["run"]["definition"];
+    assert_eq!(definition["version"], "1", "{definition}");
+    assert!(definition["name"].as_str().is_some_and(|n| !n.is_empty()));
+    assert_eq!(definition["pinned_is_active"], true);
+    assert_eq!(definition["active"]["binding"], "mail");
+    assert_eq!(definition["active"]["artifact"], binding["artifact"]);
+    assert_eq!(definition["active"]["version"], "1");
+    assert_eq!(page["items"][0]["definition"], *definition);
+    // X32: ordered step graph from the run's entry.
+    assert_eq!(detail["steps"]["entry"], "main");
+    let steps = detail["steps"]["steps"].as_array().unwrap();
+    assert_eq!(steps[0]["id"], detail["steps"]["start"]);
+    assert!(steps.iter().any(|step| step["id"] == "send"), "{steps:?}");
+    // X33: no human decision is pending in this fixture.
+    assert!(detail["run"]["waiting"].is_null());
     let parallel_detail_path = format!("/api/playbooks/inspection/runs/{run}?limit=1");
     let (parallel_list, parallel_detail) = tokio::join!(
         get(&base, "/api/playbooks/inspection/runs?limit=1"),
@@ -765,8 +781,37 @@ async fn inspection_discovers_actual_admissions_runs_and_public_timeline() {
     .await;
     assert_eq!(second["items"].as_array().unwrap().len(), 1);
     assert_ne!(second["items"][0]["id"], json!(run));
+    // X34: admission time range filter over the same runs.
+    let admitted = page["items"][0]["admitted_at_ms"].as_i64().unwrap();
+    let within = get(
+        &base,
+        &format!(
+            "/api/playbooks/inspection/runs?since_ms={admitted}&until_ms={}",
+            admitted + 1
+        ),
+    )
+    .await;
+    assert!(
+        within["items"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|item| item["id"] == run && item["admitted_at_ms"] == admitted)
+    );
+    let future = get(
+        &base,
+        &format!(
+            "/api/playbooks/inspection/runs?since_ms={}",
+            admitted + 86_400_000
+        ),
+    )
+    .await;
+    assert_eq!(future["items"], json!([]));
+    assert!(future["next_cursor"].is_null());
     for path in [
         "/api/playbooks/inspection/runs?limit=26".to_string(),
+        "/api/playbooks/inspection/runs?since_ms=10&until_ms=10".to_string(),
+        "/api/playbooks/inspection/runs?since_ms=-1".to_string(),
         format!(
             "/api/playbooks/inspection/runs?project_id={}",
             Uuid::new_v4()
