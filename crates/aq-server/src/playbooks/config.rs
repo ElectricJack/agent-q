@@ -37,6 +37,10 @@ struct Configuration {
     protection: ProtectionConfig,
     drive_interval_ms: u64,
     deployments: Vec<DeploymentInput>,
+    /// Optional server-side judgment profile (`host_v7` only). Absent keeps
+    /// judgment.request refusing `no_permitted_profile`.
+    #[serde(default)]
+    judgment: Option<super::judgment_provider::JudgmentInput>,
 }
 #[derive(Deserialize)]
 enum Profile {
@@ -79,12 +83,14 @@ pub struct Loaded {
     pub(crate) interval: Duration,
     pub(crate) deployments: Vec<Deployment>,
     pub(crate) profile: CatalogProfile,
+    pub(crate) judgment: Option<Arc<super::judgment_provider::ResponsesJudgmentProvider>>,
 }
 impl std::fmt::Debug for Loaded {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PlaybookOwnerConfig")
             .field("namespace", &self.namespace)
             .field("deployments", &self.deployments.len())
+            .field("judgment", &self.judgment)
             .finish_non_exhaustive()
     }
 }
@@ -275,6 +281,13 @@ impl Configuration {
                 expires_at_ms: d.expires_at_ms,
             });
         }
+        let judgment = match self.judgment {
+            None => None,
+            Some(_) if profile != CatalogProfile::Host7 => {
+                return Err("judgment profile requires host_v7");
+            }
+            Some(j) => Some(Arc::new(j.load()?)),
+        };
         let loaded = Loaded {
             namespace: self.namespace,
             keys,
@@ -287,6 +300,7 @@ impl Configuration {
             interval: Duration::from_millis(self.drive_interval_ms),
             deployments,
             profile,
+            judgment,
         };
         loaded.check_socket()?;
         Ok(loaded)
