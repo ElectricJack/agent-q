@@ -846,3 +846,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - It adds the owner question read API, `GET /api/questions/decisions[/{id}]`, and the `questions.read`/`questions.answer` bootstrap capabilities. It also regenerates the stale `bootstrap.json` fixture.
   - Dispatched the dashboard follow-up: vendor the live dashboard-read schema (sha256:c3cbd5c1…), show `task_title`, and mark expired questions (the server keeps them `pending`).
   - Main CI after #88 failed once on `playbook_host_requests::check_request_cancel_completes_from_executor_stop` (host_dispatch returned `Unknown`). It passed on #88's own CI; watching the next main run for a recurrence.
+- **12:35:** merged aq-dashboard #69 (live question-inbox contract, task titles, expiry) as 42830ec8, with all 4 checks green.
+  - Rebuilt `aq-v2-local` from aq-server main 620a1b83 and dashboard 42830ec8; healthy.
+  - Browser check: the Decisions page now calls `/api/questions/decisions?state=open` (capability detected), and the server returns `question-inbox-1` with no items, since no agent has asked yet.
+  - Main CI is green at 458f682d, so the post-#88 `playbook_host_requests` failure was a one-off flake.
