@@ -693,3 +693,4 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Told D9 to take the next free number when it merges (about 0086).
   - G9 is blocked on D9 not being integrated; replied to its agent and routed its action-union adapter follow-up to D9.
   - aq-worker main is red after H5 (`sandbox_runner::runner_needs_no_node_credential`); filed a fix task (priority 9).
+- **02:05 owner: run C6b in parallel with C5b.** Removed C6b's (`calm-delta-18.10`) `blocks` edge on C5b. Told it to build against C5b's published CAS contract (`base_version`, `RefreshOutcome`) with fixtures, plus one real round-trip if C5b lands first. Priority 3; claimable (fleet 5 of 8 busy). MS1 still waits on both. Open question for the owner: E5 holds the single operator-standard-high-claude slot that MS1 needs.
