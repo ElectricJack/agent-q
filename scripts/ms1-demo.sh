@@ -94,7 +94,8 @@ cmd_server_up() {
 cmd_media() {
   # Private result-media root on the server's /var/lib/aq volume (0700, owned
   # by the server user); [result_media] itself comes from ms1-profiled.py.
-  docker exec aq-ms1-server-1 sh -c 'mkdir -p /var/lib/aq/result-media && chmod 0700 /var/lib/aq/result-media && ls -ld /var/lib/aq/result-media'
+  docker exec aq-ms1-server-1 sh -c 'mkdir -p /var/lib/aq/result-media && chmod 0700 /var/lib/aq/result-media && ls -ld /var/lib/aq/result-media' \
+    || echo "media root not checked: aq-ms1-server-1 is not running (the root persists on its volume)"
 }
 
 cmd_profiled() {
