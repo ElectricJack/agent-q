@@ -426,6 +426,7 @@ impl Service {
         identity: &str,
         result: HostResult,
     ) -> Result<HostResult> {
+        let (result, work) = self.work_accepted(intent, result)?;
         self.validated(intent, &result.outcome, &result.output)?;
         let mut tx = self.tx().await?;
         self.namespace_locked(&mut tx).await?;
@@ -456,10 +457,8 @@ impl Service {
             .bind(&result.output)
             .execute(&mut *tx)
             .await?;
-        if matches!(result.outcome.as_str(), "ensured" | "changed") {
-            self.work_event(&mut tx, intent, &result.outcome, &result.output)
-                .await?;
-        }
+        self.effect_event(&mut tx, intent, &result, work.as_ref())
+            .await?;
         tx.commit().await?;
         Ok(result)
     }
@@ -476,6 +475,7 @@ impl Service {
         identity: &str,
         result: HostResult,
     ) -> Result<HostResult> {
+        let (result, work) = self.work_accepted(intent, result)?;
         self.record(
             &mut tx,
             id,
@@ -486,12 +486,52 @@ impl Service {
             &result.output,
         )
         .await?;
-        if matches!(result.outcome.as_str(), "ensured" | "changed") {
-            self.work_event(&mut tx, intent, &result.outcome, &result.output)
-                .await?;
-        }
+        self.effect_event(&mut tx, intent, &result, work.as_ref())
+            .await?;
         self.commit_fresh(tx, id, intent).await?;
         Ok(result)
+    }
+
+    /// Catalog profile 7 work.ensure is asynchronous: an ensured node is
+    /// returned as `accepted` with the durable operation handle, and the
+    /// ensured work output is carried separately to be tracked. Every other
+    /// profile and outcome is unchanged.
+    fn work_accepted(
+        &self,
+        intent: &Intent,
+        result: HostResult,
+    ) -> Result<(HostResult, Option<Value>)> {
+        if self.profile != CatalogProfile::Host7
+            || intent.command.name != "work.ensure"
+            || result.outcome != "ensured"
+        {
+            return Ok((result, None));
+        }
+        let accepted = HostResult {
+            outcome: "accepted".into(),
+            output: json!({"handle": self.operation(intent)?.to_string()}),
+        };
+        Ok((accepted, Some(result.output)))
+    }
+
+    /// The outbox event (and, for accepted Host7 work, the running operation
+    /// row) that commits with a final effect row.
+    async fn effect_event(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        intent: &Intent,
+        result: &HostResult,
+        work: Option<&Value>,
+    ) -> Result<()> {
+        if let Some(work) = work {
+            self.track_work(tx, intent, work).await?;
+            return self.work_event(tx, intent, "ensured", work).await;
+        }
+        if matches!(result.outcome.as_str(), "ensured" | "changed") {
+            self.work_event(tx, intent, &result.outcome, &result.output)
+                .await?;
+        }
+        Ok(())
     }
 
     async fn namespace_work(&self, tx: &mut Transaction<'_, Postgres>, task: Uuid) -> Result<bool> {
