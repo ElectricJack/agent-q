@@ -709,3 +709,11 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - #82 (`crisp-ember-25`) now conflicts in `lib.rs`; messaged its in-progress agent to merge main and renumber to 0088.
   - Closed C5b's lease-cap child `calm-delta-18.8.2` as obsolete (covered by parked `steady-orbit-52`) so it doesn't block C5b's close.
   - Surfaced three owner decisions: I1 (Claude API-key test and enrollment), I2 (Gemini credential), I3 (OpenCode credential; suggested local Ollama).
+- **04:10 check.**
+  - **C6b (`calm-delta-18.10`) completed.** MS1 now waits only on C5b.
+  - C5b's paused device-auth child `calm-delta-18.8.1` would have blocked C5b's close (W52). `close --obsolete` was refused (slot termination unproved), so I reparented it to the root; it stays paused, part of parked `steady-orbit-52`.
+  - **Filed follow-ups:**
+    - aq-platform `azure-journey-96` (priority 20): dashboard-actions-1 playbook union kinds that G9 needs (D9 shipped direct routes only);
+    - aq-playbooks `nimble-harbor-36` (priority 40): host catalog bump for the candidate check source;
+    - aq-platform `crisp-crest-28` (priority 120): docs, Claude Code harness rows in 0005 §8.3.
+  - `crisp-meadow-36.10.4` and `fair-impact-57` are held but already superseded by supervisor replacement tasks.
