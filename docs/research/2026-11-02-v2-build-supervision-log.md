@@ -698,3 +698,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - C6b is running in parallel with C5b. Routed C6b's need (issued login version delivered with the leased material) to C5b by comment and message.
   - Holding aq-server merges until main CI on `053a738` (the 0084 renumber) is green. #80's broad failures and #79's `state_format_is_the_latest_migration` failure ran against the earlier duplicate-0083 main.
   - **Merge order to keep migrations contiguous:** #79 (0085_hibernation); then #82 (crisp-ember-25, 0085_lifecycle_artifacts) renumbered to 0086; then D9 next free; then #81 (prime-falcon-77) checked.
+- **03:20 check.**
+  - D9 integrated on main (`68e6bb8`, migration `0085_playbook_activations`). Released G9's (`steady-cascade-45.10`) `session_close_hard_failure` hold with a retry; told it to render any still-missing action adapters honestly.
+  - #79 is now at 0086. #82 (`0085_lifecycle_artifacts`) collides with D9 and will go to 0087 after #79.
+  - Main CI runs keep getting cancelled by new pushes; still waiting for a finished green run before merging the migration PRs.
