@@ -496,6 +496,7 @@ pub async fn derive(
         preferred_peer: preferred_peer(backend.kind, &preference, &peers)
             .map(convert)
             .transpose()?,
+        backend: Some(convert(backend.kind)?),
     }))
 }
 
