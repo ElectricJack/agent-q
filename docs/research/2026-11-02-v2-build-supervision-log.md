@@ -1015,3 +1015,16 @@ Each entry records what was observed, the action taken, and anything waiting on 
 - **20:50:** merged aq-server #93 (`build/test-groups`) as 7c37748a, with all 9 checks green. aq-server's integration tests now build as 8 domain binaries instead of 204.
   - CI: tests 14m27s, update lifecycle 16m04s. Before #91 these were ~30m and 29m.
   - Waiting on the subagent's trial merges of `ms1/retry` and `ms1/d1` onto the new layout, and its measurements. MS1 resumes next.
+- **21:00: test consolidation results (#93).**
+  - The workspace test-binary count went from 204 to 81: aq-server now has 8 domain binaries (`it_profiled`, `it_native`, `it_phase`, `it_schema`, `it_playbook`, `it_dashboard`, `it_access`, `it_server`). The build-budget check fails if a stray `tests/*.rs` file is never built.
+  - Locally:
+
+    | Measure | Before | After |
+    |---|---|---|
+    | edit lib → rebuild all tests | 162s | 53s |
+    | test binaries on disk | 20.8 GB | 2.2 GB |
+    | target dir | 29.9 GB | 7.7 GB |
+
+  - CI tests went from 1292s to 867s. That is still over the 10-minute budget, as update lifecycle (964s) is over its 15-minute one.
+  - Trial merges onto the new main: `ms1/retry` and `ms1/d1` merge with no conflicts. One fix is still needed: the `include_str!` in `it_profiled/profiled_results/auto_settlement56.rs` needs one more `../`.
+  - **Resuming MS1** in two parallel tracks: `ms1/retry` (B4 live completion, B5b stuck nodes) and `ms1/d1` (A→B publication live). Then converge, run a final independent review, and merge.
