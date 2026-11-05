@@ -664,3 +664,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **#76 (bold-stone-51) collided on 0082 too.** `renumber.py` moved it to 0083 but only *reported* the code gate in `store/central37.rs` (`include_str!` of the migration file plus `version >= 82`), so the branch would no longer compile. Patched both to 0083 in an op worktree; compile check running before push.
   - Updated #77 (no migration). Neither PR has dependents (W61-safe).
   - Filed the H5 server-side hibernation follow-up as `azure-orbit-61`.
+- **00:55 owner: everything on standard except J4.**
+  - J4 (`fleet-glacier-27.2`) moved to `deep-high-claude`. That pool was disabled with max 0; I enabled it at max 1.
+  - MS4 moved to `operator-standard-high-claude`.
+  - The D10 spec (`sound-rapids-80.1`) was paused and still claimed by a stopped Codex session. I committed and pushed its 328-line partial draft (`be4785e` on `aq/sound-rapids-80.1`), force-released `ws-stone-camp`, resumed it, and routed it to `standard-high-claude`.
+  - All other deep-hinted work was already on standard.
+  - #76's migration renumber also needed its code gate fixed (`76aa35a`, compile-checked).
