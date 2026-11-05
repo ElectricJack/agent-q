@@ -26,8 +26,8 @@ use uuid::Uuid;
 pub(crate) use writes::action::SendMessage;
 type Result<T> = std::result::Result<T, AppError>;
 const CONTRACT: &str = "human-supervisor-conversation-1";
-const MAX_OPERATIONS: i64 = 4096;
-const MAX_BYTES: i64 = 64 * 1024 * 1024;
+pub(super) const MAX_OPERATIONS: i64 = 4096;
+pub(super) const MAX_BYTES: i64 = 64 * 1024 * 1024;
 const PAGE_BYTES: usize = 262144;
 fn invalid() -> AppError {
     AppError::BadRequest("invalid bounded supervisor conversation request".into())
