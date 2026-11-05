@@ -984,3 +984,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
     | update lifecycle | 29m | 35m22s |
 
   - The update-lifecycle job didn't speed up as expected. Asked the subagent to find out why and fix it in a follow-up.
+- **19:00:** dispatched the test-binary consolidation, owner-approved item 6.
+  - About 131 `tests/*.rs` binaries move into 6–10 domain binaries via `git mv` and `[[test]]` entries, so rename detection lets the paused MS1 branches merge.
+  - It also updates the nextest filters, the build-budget ratchet and the AGENTS.md subset-run commands, then measures before and after.
+  - It trial-merges `ms1/retry` and `ms1/d1` and reports the conflicts.
+  - The quick-wins subagent is still looking into why update-lifecycle didn't speed up.
