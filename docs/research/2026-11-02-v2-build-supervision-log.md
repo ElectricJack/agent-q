@@ -810,3 +810,12 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - stuck granted attempts hold the task and node;
     - B doesn't build on A, because the D1 publish isn't on this path.
   - Asked the wiring subagent to continue in that order. Dispatched an independent read-only reviewer on the aq-server `ms1/demo` diff before it goes to main.
+- **08:30: independent review of aq-server `ms1/demo` found a blocker.** Not mergeable as-is.
+  - **B1 (blocking):** a failed Claude run can complete its task automatically. Three changes combine: the D3 policy actor is named as reviewer while offers carry no required checks, D3 now accepts `Unknown`, and the worker maps `Failure` to `Unknown`. So an expired token or a crash would mark the task complete and unblock its dependents.
+  - **Decision (delegated reviewer):** the worker maps Failure to Failed and reports Success only for a natural exit 0 with an explicit success claim; D3 goes back to accepting Success only. A DB-backed `auto_settlement56` test must cover the production-shaped offer.
+  - **Should-fix:**
+    - `require_container` bypasses backend placement facts;
+    - the Claude long-phase rule doesn't check confinement, and aq-admission's version isn't bumped;
+    - the Claude recipe digest isn't pinned;
+    - naming the policy actor removes the human fallback.
+  - All sent back to the wiring subagent ahead of cancel and retry.
