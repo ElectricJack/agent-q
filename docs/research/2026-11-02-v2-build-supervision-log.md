@@ -781,3 +781,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - #81, #82, #83 and #85 are being refreshed on main by the PR subagent.
   - The wiring subagent is rebuilding the aq-ms1 images.
   - Disk is at 89% (115 G free), largely from per-agent cargo target dirs, which each agent deletes when it finishes.
+- **07:05–07:10:**
+  - Merged #81 (`prime-falcon-77`, G10 owner session operations read) as 473bbe2b; all 9 checks were green.
+  - Merged #82 (`crisp-ember-25`, H5 lifecycle artifact retention, migration 0089) as badab765. All its checks were green against main with #80, and the PR subagent had verified the #80+#81+#82 stack with a private target dir.
+  - Merged main into #83 and resolved the expected `dashboard-read/v1/fixtures/bootstrap.json` dashboard-actions digest conflict by keeping #83's regenerated value. The three protocol `check.py` scripts pass and the catalog is at 90. Pushed 2768d887 and waiting on CI.
+  - #85 (0091) is next.
