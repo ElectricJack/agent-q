@@ -900,3 +900,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Split D1 publication (B builds on A's published commit) off to a new subagent on `ms1/d1` branches, running its own `aq-ms1d` stack on ports 38080/38081/38741 so its live runs don't collide with the `aq-ms1` drills.
   - The `ms1/retry` subagent keeps B4 retry and B5b stuck-attempt settlement. Its review fixes (B1 driver guard, recovery container stop) are committed in aq-worker and pushing now.
   - Opened draft PRs aq-server #90 and aq-worker #38 for `ms1/demo`, so CI surfaces integration failures early. They are not for merge yet.
+- **14:45:**
+  - `ms1/retry` has the re-review fixes pushed (aq-server 2bb34afb, aq-worker 0ee3b25): the B1 driver success guard and reconcile-native stopping the Claude container.
+  - Draft aq-worker #38 (`ms1/demo`) fails `templates::template_cli_build_and_scan_use_embedded_tools`. The sandbox template's credential scanner correctly flags a token-shaped fake fixture (`sk-ant-oat01-abcdef…`) in the new `parse_token` tests. Sent it to the `ms1/retry` subagent: build the fixture so no token-shaped literal exists, and remove the committed `.pyc` files (8 still on `ms1/retry`). Draft aq-server #90 is still running.
+  - The paused stale-PR subagent finished cleanly: aq-worker #32 (e626fd7, green) and aq-dashboard #55 (da3d04e; the phone header stays non-sticky per G11, and a tap-swallowing bug in its bottom bar is fixed). Both are held unmerged until MS1 lands, so they don't conflict with the MS1 merge.
