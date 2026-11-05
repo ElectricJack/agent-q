@@ -4,6 +4,43 @@ Task `stark-zenith-16.2`. Run on 2026-11-05, 05:00–05:35 UTC, on the owner's
 desktop (WSL2). Owner decision of 2026-11-04: the agent is **Claude Code**
 signed in with the owner's Claude subscription login (no API key), not Codex.
 
+## Update 2026-11-05 (late): final-review fixes on `ms1/retry`
+
+The independent review of the converged head asked for these on
+`ms1/retry` (the publication items are on `ms1/d1`):
+
+- **B1, build budget.** `long_phase_manifest` is now a module of the
+  aq-admission `preparation_v2` binary. `ms1_live` and `sandbox_driver_live`
+  are modules of aq-worker's `claude_live` binary, still `#[ignore]`d, and
+  `ms1-demo.sh` runs them there. The test binary counts are back at budget
+  (81 and 105). The lib line ratchets are raised, each in its own commit with
+  its reason: aq-server to the measured value, aq-worker to 71,448.
+- **S2, duplicate effects.** The host's stop proof covers only its own
+  process tree, and the host kills the driver within its 1 s grace, while a
+  container stop takes about 10 s. The Claude executor now stops every
+  sandbox of the attempt, and confirms the stop, before the host stop and
+  before Stopped is reported. If the stop is not confirmed, Stopped is
+  withheld: the attempt is stop-uncertain, no replacement facts are
+  recorded, and the task stays held. `reconcile-native` replays Stopped only
+  after it has confirmed the sandbox stop.
+- **S3, credentials.** The driver reads and unlinks the token before anything
+  that can fail. After the host stops, the executor and `reconcile-native`
+  remove any leftover `driver-*/token`. If the token's exact bytes appear in
+  a copied-back file, path or link, in the transcript, or in a pane line, the
+  driver refuses both the copy-back and success, and reports Failed with a
+  fixed reason. The pane line is withheld, and `claude.jsonl` is kept, in the
+  private driver directory, only when it is token-free.
+- **S5.** The closure tests now cover the "host stopped, no process ran"
+  variant, a host stop whose root ran, and the held cases (execution history,
+  effects). A missing, unreadable or malformed `exit.json` maps to Unknown.
+- **Nits.** Copy-back refuses an entry below a symlinked parent and a link
+  whose target is absolute or uses `..`. The paneless closure rule's comment
+  and unit test are corrected.
+
+The aq-ms1 stack still runs the driver from before these changes. Deploying
+them needs `rebuild-worker.sh --driver`, a revision bump, `profiled`, and
+then `rebuild-server`.
+
 ## Update 2026-11-05 (21:20–21:46 UTC): B4 retry and B5b closure settlement live
 
 Server image from `ms1/retry` (merged with `main` and `ms1/d1`); D1 stays
