@@ -4,6 +4,150 @@ Task `stark-zenith-16.2`. Run on 2026-11-05, 05:00–05:35 UTC, on the owner's
 desktop (WSL2). Owner decision of 2026-11-04: the agent is **Claude Code**
 signed in with the owner's Claude subscription login (no API key), not Codex.
 
+## Update 2026-11-05 (06:00–08:00 UTC): execution wiring, steps 1–2 through the stack
+
+Plan: [2026-11-05-ms1-execution-wiring.md](../superpowers/plans/2026-11-05-ms1-execution-wiring.md).
+Evidence: [MS1-evidence/wiring/](MS1-evidence/wiring/). This supersedes the
+"not met end to end" verdict below for steps 1 and 2; the older text is kept as
+history.
+
+**What now works live on `aq-ms1`:** a ready graph task is selected by aq-server
+(profiled path), offered to the desktop node, accepted and granted; the node
+leases the Claude login from the server vault; the session host starts the
+node-side sandbox driver, which runs **Claude Code 2.1.318 in a docker-local
+sandbox** (C2 fixed launch policy, rootless Podman) with
+`CLAUDE_CODE_OAUTH_TOKEN` in the `claude` process environment only; the edited
+worktree is copied back into the node's aq-git worktree, retained in **central
+aq-git** as a checkpoint commit, the result is reported, **D3 completes the task
+automatically**, and the dependent task becomes ready and runs the same way.
+
+| | Task A3 (step 1) | Task B3 (step 2) |
+| --- | --- | --- |
+| Graph task | `e0a20000-0000-4000-8000-000000000031` → `completed` v3 | `e0a20000-0000-4000-8000-000000000032` (blocked by A3) → `completed` v3 |
+| Attempt | `55b3ef7e-16d3-5b44-9799-e126ed4d46be` | `e80ed3b4-9813-5dfd-bbb0-3ced1ac55cff` |
+| Grant | `45475232-0985-42ad-8d81-0aa7191eaf76` | `9d8fce12-ef44-4f04-9047-9140e242c0f9` |
+| Node / boot | `10112d04-0e99-4597-9b20-c305d2bc219e` / `07989d35-a6aa-4152-89b5-26393d723f50` | same node / `3a8ef267-db97-44e6-9d9b-aaec5935509f` |
+| Sandbox | `aq-10112d040e9945979b20c305d2bc219e-55b3ef7e16d35b449799e126ed4d46be` | `aq-10112d040e9945979b20c305d2bc219e-e80ed3b498135dfdbbb03ced1ac55cff` |
+| Template | `sha256:194e11f54fbe104734166ec219f5ac13b2e54055fae01f6c3ce264a915f172a4` (I4a claude-rust-1, unadmitted) | same |
+| Claude session | `4b1afcf7-910f-49d2-87a4-2e4d9c99946b`, 3 turns, 8.7 s, $0.027 list | `f5dce251-ed15-4036-9820-89ce2304b529`, 3 turns, 14.9 s, $0.025 list |
+| Work | `Cargo.toml`, `src/lib.rs` (`hello()` + unit test), `.gitignore`; `cargo test --offline` passed in the sandbox | one README line documenting `hello()` |
+| Retained commit (central aq-git) | `6d9c318922250127c723364e098ffe0684ca565c` (parent `2e32645b`) | `e41b1a002b9bf1bdacdc5f10f719be8edf2d07f0` (parent `2e32645b`) |
+| Result report | `b2bb230b-08c6-43b1-9ef0-900a2fe9e06a` | `b8eb4dd2-4d14-4564-85d0-a783de237ea0` |
+| D3 settlement | `confirmed`, graph operation `43dc1373-9bd3-493b-a5aa-19cf0644c232`, hold released | `confirmed`, graph operation `f3d79d8d-a61e-413a-933e-fb2a4654f6e1`, hold released |
+
+Wall time per `run-native` invocation: 39 s (A3) and 45 s (B3). After each run
+the sandbox was stopped and destroyed (no sandboxes left on the daemon) and the
+leased login material on the node was wiped. A token grep (pattern from a pipe)
+over the evidence, the server logs, the node state and both branches' recent
+history finds it only in the node's own 0600 material store while an attempt
+runs; the demo now wipes it after each run.
+
+**Tasks A/B renumbered.** The original A (`…0011`) and two debug tasks are
+wedged by attempts that were granted while the executor was still failing (see
+finding 3); A3/B3 have the same titles and bodies (A3 adds an explicit
+`.gitignore` hint). The E0 seed task `…0004` was parked behind B with a
+`blocks` edge so it is not selected first.
+
+### How it is wired (the minimal path)
+
+The proven MS0 profiled pipeline (`aq-worker run-native`) is unchanged on the
+server side of the wire; only the harness host changed. The node still holds
+the grant and talks to the server; the sandbox holds no node credential and no
+permit, only the attempt's leased token.
+
+- **aq-worker** (`ms1/demo`): new executor kind
+  `claude-2.1.318-docker-local-result-local-v1` (`native/runner/claude_docker.rs`,
+  `native/launch/claude_docker.rs`): the private session host runs the pinned
+  `aq-worker sandbox-harness` driver (`sandbox_driver.rs`) as its pane program.
+  The driver creates the sandbox through `DockerLocalBackend`, uploads the
+  worktree (no `.git`) and the C6a recipe/settings, delivers the token as
+  private material, starts the fixed runner (reads the token, deletes the file,
+  exports it to `claude` only, `IS_SANDBOX=1`, `bypassPermissions` in container
+  confinement), streams Claude's events to the pane, copies `/aq/work` back
+  (hard links supported), stops and destroys, then submits the AQ result claim
+  from Claude's final message (also on failure).
+- **aq-server** (`ms1/demo`): configuration via `scripts/ms1-profiled.py`
+  (`[intelligence]` + `[profiled_execution]`, catalog/binding, owner
+  availability observation, central base retention) and these code changes,
+  each needed by a real refusal on the path:
+  1. **D3 never applied to a real offer**: the producer hard-coded
+     `ReviewRequirement::HumanOwner`. Offers now name the policy actor when the
+     validation policy is the default completion policy.
+  2. **D3 refused every native report**: the native result pipeline reports
+     `ProcessOutcome::Unknown` by design (the claim carries the work); D3 now
+     accepts Success or Unknown and still refuses failed/expired/cancelled.
+  3. The long (schema 3) phase contract and the result-startup opt-in admitted
+     only interactive Codex; they now also admit the Claude docker-local adapter
+     (`aq-admission` 0.1.11 mirrored in aq-worker's vendored copy).
+  4. Container confinement was derivable only from B1 placement facts, which a
+     `run-native` node never registers; execution profiles may now set
+     `confinement.require_container` (implies `permit_container`).
+  5. C5b finding 2: `import-login` trims trailing CR/LF from Claude tokens and
+     refuses other shapes.
+  6. Diagnostics: every opaque profiled refusal logs its source location
+     (target `aq_refusal`); a failed profiled policy install names its cause.
+- Dev tooling: `AQ_DEV_REPLACE_OPERATOR_SECTION=1` replaces only the appended
+  operator section of a retained dev vault (and the settlement config), so the
+  stack keeps its seed, nodes and imported login. No migrations.
+
+### Steps 3–5 through the stack
+
+- **Step 3, cancel (B3): partial.** Owner cancel of attempt
+  `a038d83a-19a1-5e3c-8582-b43688e6f2e2` (task `…00c1`) at 07:41:57Z was
+  recorded (cancellation `953c42f7-0b8d-4f56-8b47-976d7965655a`), but the native
+  executor never observed it: its drive loop neither renews the grant nor polls
+  cancellations, so Claude ran to completion (156 s, 41 tool calls). D3 then
+  refused the result (`rework_required`, `not_accepted`) and the task was not
+  completed. Owner: B3/B5b (cancellation observation in the native executor).
+- **Step 4, fail → retry (B4): not shown.** After that rework the next poll
+  made no replacement offer (`NoOffer`); B4 replacement needs a proven-failed
+  attempt, which a D3 rework is not. Owner: B4/D3.
+- **Step 5, worker/server restart mid-attempt: not run** through the stack in
+  this window.
+
+### Findings (with owners)
+
+1. **No worker closure for a granted attempt that never starts.** A launch
+   that fails before Started leaves the attempt `granted`/stop `unknown`
+   holding its task, and the node cannot re-register a new boot ("prior
+   execution claims remain held"); `reconcile-native` needs a genuine Running.
+   The server's `/v1/worker/profiled-v2/launch-closure` has no worker consumer.
+   This wedged nodes `c7caa999…` (ms1-desktop) and `f051a29d…`; runs moved to
+   freshly enrolled nodes. Owner: B5b / AQ-08 closure.
+2. **A stopped attempt with no recorded claim** also holds its task forever
+   (task `…0021`). The driver now always submits a claim. Owner: B4/D3.
+3. **Each B depends on retained, unpublished A work.** The project source
+   policy pins the immutable base `2e32645b`, and D1 publication is not in
+   this path (`delivery = not_required`), so B3 started from the base without
+   A3's `hello()` (Claude noted it). Making B build on A needs D1 publication
+   to the remote (or a central branch) and a ref-following source policy.
+   Owner: D1a/D1b.
+4. **Non-interactive host permits are capped at 120 s** (session host
+   `MAX_PERMIT_MS`); the Claude executor renews the local guardian permit
+   (bounded by the grant) and the native journal accepts a local permit
+   deadline at or below the grant deadline. Owner: B6a1.
+5. Still open from the first run: delegated permits and the in-sandbox
+   `sandbox-run` runner (B2/B5a/B6a–c) are not on this path; `aq-worker run`
+   stays fenced. C5b finding 1 (first import needs the base file) is
+   unchanged: provisionability requires a configured base fingerprint, which
+   is a C5b design point, not a one-line fix. Template admission (C3c) and the
+   single-UID daemon (I4a) are unchanged.
+
+### Rerun
+
+From `wt/ms1-server` with the stack up and the login imported:
+
+```sh
+~/.local/share/aq-ms1/rebuild-worker.sh --driver      # build aq-worker; install the pinned driver
+echo $((REV+1)) > ~/.local/share/aq-ms1/revision     # only after a pinned program changed
+AQ_DEV_REPLACE_OPERATOR_SECTION=1 scripts/ms1-demo.sh profiled   # config, server recreate, catalog/binding
+AQ_MS1_CREDENTIAL=owner-claude-subscription@2 scripts/ms1-demo.sh import-login   # once per credential version
+python3 scripts/ms1-task.py ID TITLE BODY [--blocks OTHER]   # new tasks
+scripts/ms1-demo.sh run      # one attempt: owner availability observation, aq-git, run-native
+scripts/ms1-demo.sh run      # the next ready task
+scripts/ms1-demo.sh node-enroll NAME   # replace a wedged node (see finding 1)
+```
+
 ## Verdict
 
 **MS1 is not met end to end.** A real Claude Code agent does run in a

@@ -80,3 +80,12 @@ Keep the proven pipeline and replace only the harness host:
 - Server: `scripts/test-dev-stack.py` gains a case for `[profiled_execution]`;
   `import-login` unit tests for first import and newline trimming.
 - Live: `scripts/ms1-demo.sh run` drives A then B on aq-ms1.
+
+## Outcome (2026-11-05 08:00 UTC)
+
+Done live: tasks A3 → B3 through the stack (MS1.md, "Update 2026-11-05").
+Deviation from "server: config, not code": real refusals required six small
+server changes (D3 review requirement and outcome gate, Claude adapter in the
+long-phase contract and result opt-in, `require_container` confinement, the
+Claude token newline, refusal diagnostics). No migrations. Cancel reached the
+server but not the executor; B4 replacement and restarts were not shown.
