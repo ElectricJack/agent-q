@@ -92,6 +92,15 @@ FEATURES = ["artifact_transfer_v1", "server_material_v1", "durable_host_journal_
 # D3: the default completion policy; delivery to the GitHub remote (D1) is not
 # required for MS1, retention of the attempt's commit in central aq-git is.
 POLICY_BODY = {"schema_version": 1, "kind": "aq.default-completion.v1", "delivery": "not_required"}
+# AQ_MS1_D1=1 (MS1 D1): D3 requires delivery; the project publishes by
+# fast-forwarding main on its remote and its source follows main (the head AQ
+# published), so a dependent task starts from its predecessor's commit.
+D1 = os.environ.get("AQ_MS1_D1") == "1"
+TARGET = "refs/heads/main"
+PUBLICATION = {"mode": "fast_forward", "target": TARGET}
+if D1:
+    POLICY_BODY = dict(POLICY_BODY, delivery="required")
+STACK = os.environ.get("COMPOSE_PROJECT_NAME", "aq-ms1")
 
 
 def canonical(value):
@@ -167,7 +176,7 @@ def git_request(operation, params=None, mutation=None, generation=1):
                    expected_binding_generation=generation)
     if mutation:
         request["operation_id"] = mutation
-    raw = subprocess.run(["docker", "exec", "-i", "aq-ms1-aq-git-1", "aq-git", "--socket",
+    raw = subprocess.run(["docker", "exec", "-i", f"{STACK}-aq-git-1", "aq-git", "--socket",
                           "/run/aq-git/central.sock", "--input", "-", "--json", "request"],
                          input=json.dumps(request) + "\n", capture_output=True, text=True, timeout=120).stdout
     response = json.loads(raw)
@@ -409,7 +418,8 @@ def build():
                                         "capabilities": CAPABILITIES, "features": FEATURES,
                                         "material_delivery": {"adapter": material, "version": 1}}],
                 "projects": [{"project_id": PROJECT, "enabled": True, "priority": 0,
-                              "source": {"kind": "immutable",
+                              "source": {"kind": "named_ref", "reference": TARGET} if D1 else
+                                        {"kind": "immutable",
                                          "object": {"format": src["base"]["algorithm"], "hex": src["base"]["hex"]}},
                               "retention_handle": src["retention_handle"]}],
                 "context_qualifications": [fact], "definition_bodies": definitions}
@@ -530,7 +540,8 @@ def binding_rev(built, catalog_digest, current):
                 context=[], ceilings=dict(permissions=built["permissions"], context_bytes=CONTEXT_BYTES,
                                           wall_time_ms=EXECUTION_MS, memory_bytes=MEMORY_BYTES, cpu_millis=CPU_MILLIS,
                                           process_limit=PROCESS_LIMIT, cost_limit_microunits=None, currency=None,
-                                          require_hard_cost_enforcement=False))
+                                          require_hard_cost_enforcement=False),
+                **({"publication": PUBLICATION} if D1 else {}))
 
 
 def configure():
@@ -601,8 +612,29 @@ def observe():
         state="available", ttl_ms=3600000, cooldown_ms=0))
 
 
+def sync():
+    """D1: central fetch of the project's remote main (a fresh observation)."""
+    synced = git_request("repo.sync", dict(refs=[TARGET]), mutation=str(uuid.uuid4()))
+    return {k: synced.get(k) for k in ("observation_id", "refs", "completed_at_ms")}
+
+
+def publication():
+    """D1: delivery evidence and source heads (server DB) and the remote's main."""
+    query = ("SELECT json_agg(json_build_object('attempt_id',attempt_id,'source_operation_id',source_operation_id,"
+             "'state',state,'recorded_at_ms',recorded_at_ms,'evidence',evidence) ORDER BY recorded_at_ms) "
+             "FROM profiled_delivery_evidence")
+    raw = subprocess.run(["docker", "exec", "-i", f"{STACK}-postgres-1", "sh", "-ec",
+                          'PGPASSWORD="$(cat /run/secrets/postgres_password)" psql -h 127.0.0.1 -U agent_q -d agent_q -tAc "$0"',
+                          query], capture_output=True, text=True, timeout=30).stdout.strip()
+    remote = subprocess.run(["docker", "exec", f"{STACK}-aq-git-1", "git", "--git-dir",
+                             "/var/lib/aq/remotes/aq-scratch.git", "log", "--format=%H %P %s", "-5", "main"],
+                            capture_output=True, text=True, timeout=30).stdout.splitlines()
+    return dict(delivery_evidence=json.loads(raw) if raw else [], remote_main=remote)
+
+
 if __name__ == "__main__":
     command = sys.argv[1] if len(sys.argv) > 1 else ""
-    commands = dict(source=source, configure=configure, apply=apply, observe=observe)
+    commands = dict(source=source, configure=configure, apply=apply, observe=observe, sync=sync,
+                    publication=publication)
     require(command in commands, f"usage: ms1-profiled.py {'|'.join(commands)}")
     print(json.dumps(commands[command](), indent=1, sort_keys=True))

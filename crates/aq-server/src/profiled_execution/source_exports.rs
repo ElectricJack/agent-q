@@ -275,8 +275,27 @@ pub async fn reserve(
     .await
     .map_err(database)?
     .ok_or_else(unavailable)?;
+    // D1: a named-ref policy may hydrate from the recorded source head's
+    // candidate handle, and then only for exactly that published commit.
+    let head_handle = match &configured.source {
+        aq_admission::SourceSelection::NamedRef { reference } => {
+            crate::profiled_execution::settlement::publication::current_head(
+                &mut *tx,
+                request.project_id,
+                request.repository_id,
+                request.binding_generation,
+                reference.as_str(),
+            )
+            .await
+            .map_err(|_| unavailable())?
+            .filter(|head| head.oid == request.base.hex)
+            .map(|head| head.retention_handle)
+        }
+        aq_admission::SourceSelection::Immutable { .. } => None,
+    };
     if !configured.enabled
-        || configured.retention_handle != request.source_retention_handle
+        || (configured.retention_handle != request.source_retention_handle
+            && head_handle != Some(request.source_retention_handle))
         || canonical(&configured)? != canonical(&installed)?
     {
         return Err(unavailable());

@@ -26,6 +26,8 @@
 #   run             one graph attempt through the stack: worker-side aq-git, then
 #                   `aq-worker run-native` with the Claude docker-local executor
 #                   (scripts/ms1-node-run.py); repeat for the next ready task
+#   remote | sync   (AQ_MS1_D1) local bare remote in the aq-git volume; central fetch
+#   publication    (AQ_MS1_D1) delivery evidence, source head and the remote's main
 #   status | down | node-stop
 #   all             up, seed, node, import-login, live, server-restart, gaps
 #
@@ -37,14 +39,28 @@ set -euo pipefail
 SRV=$(cd "$(dirname "$0")/.." && pwd)
 WORKER_SRC=${AQ_MS1_WORKER_SRC:-/home/jkern/dev/aq-platform/wt/ms1-worker}
 DASH=${AQ_MS1_DASHBOARD:-/home/jkern/dev/aq-platform/aq-dashboard}
-BASE=${AQ_MS1_HOME:-$HOME/.local/share/aq-ms1}
+# One stack per Compose project: AQ_MS1_PROJECT (default aq-ms1) names the
+# project, its state dir (~/.local/share/$AQ_MS1_PROJECT) and its server image
+# tag; AQ_MS1_ADMIN_PORT/AQ_MS1_WORKER_PORT/AQ_MS1_GRAPH_PORT its ports.
+# Example (the D1 stack): AQ_MS1_PROJECT=aq-ms1d AQ_MS1_ADMIN_PORT=38080
+#   AQ_MS1_WORKER_PORT=38081 AQ_MS1_GRAPH_PORT=38741 AQ_MS1_D1=1 scripts/ms1-demo.sh up
+STACK=${AQ_MS1_PROJECT:-aq-ms1}
+ADMIN_PORT=${AQ_MS1_ADMIN_PORT:-28080} WORKER_PORT=${AQ_MS1_WORKER_PORT:-28081} GRAPH_PORT=${AQ_MS1_GRAPH_PORT:-28741}
+BASE=${AQ_MS1_HOME:-$HOME/.local/share/$STACK}
+export AQ_MS1_HOME=$BASE
 EVID=$BASE/evidence
 W=$BASE/worker
-export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/home/jkern/dev/aq-platform/target-ms1}
-export COMPOSE_PROJECT_NAME=aq-ms1
-export AQ_DEV_ADMIN_PORT=28080 AQ_DEV_WORKER_PORT=28081 AQ_DEV_GRAPH_PORT=28741
-export AQ_DEV_SERVER_URL=http://127.0.0.1:28080 AQ_DEV_WORKER_URL=http://127.0.0.1:28081
-export AQ_DEV_GRAPH_URL=http://127.0.0.1:28741
+export CARGO_TARGET_DIR=${CARGO_TARGET_DIR:-/home/jkern/dev/aq-platform/target-$STACK}
+export COMPOSE_PROJECT_NAME=$STACK
+export AQ_DEV_ADMIN_PORT=$ADMIN_PORT AQ_DEV_WORKER_PORT=$WORKER_PORT AQ_DEV_GRAPH_PORT=$GRAPH_PORT
+export AQ_DEV_SERVER_URL=http://127.0.0.1:$ADMIN_PORT AQ_DEV_WORKER_URL=http://127.0.0.1:$WORKER_PORT
+export AQ_DEV_GRAPH_URL=http://127.0.0.1:$GRAPH_PORT
+export AQ_MS1_NODE_PIDFILE=$BASE/worker/controller.pid
+# AQ_MS1_D1=1: D1 publication. The scratch project uses a local bare remote
+# (cloned from ElectricJack/aq-scratch into the aq-git volume), a named-ref
+# source on main, delivery required by D3 and a fast-forward publication policy.
+D1=${AQ_MS1_D1:-}
+LOCAL_REMOTE=/var/lib/aq/remotes/aq-scratch.git
 export AQ_DEV_STATE_DIR=$BASE/state AQ_SECRETS_DIR=$BASE/secrets
 # Opt-in [intelligence] tables (the Claude subscription-login credential and
 # its material store). Must be present from the stack's first `up`: the dev
@@ -54,7 +70,7 @@ INTELLIGENCE=${AQ_DEV_INTELLIGENCE_FILE:-$BASE/intelligence.toml}
 CREDENTIAL=${AQ_MS1_CREDENTIAL:-owner-claude-subscription@1}
 CREDENTIAL_REVISION=${AQ_MS1_CREDENTIAL_REVISION:-1}
 # Own image tag: never retag agent-q-server:dev, which aq-v2-local runs.
-export AQ_SERVER_IMAGE=${AQ_SERVER_IMAGE:-agent-q-server:ms1}
+export AQ_SERVER_IMAGE=${AQ_SERVER_IMAGE:-agent-q-server:${STACK#aq-}}
 SANDBOX_SOCKET=${AQ_DOCKER_LOCAL_SOCKET:-/run/user/$(id -u)/aq-sandbox/podman.sock}
 # I4a's claude-rust image: C3c rust-1 plus Claude Code 2.1.318 (unadmitted).
 TEMPLATE_DIGEST=${AQ_MS1_TEMPLATE_DIGEST:-sha256:194e11f54fbe104734166ec219f5ac13b2e54055fae01f6c3ce264a915f172a4}
@@ -107,20 +123,43 @@ cmd_run() {
   say "one attempt through the stack (node $(sed -n 's/^node_id = "\(.*\)"/\1/p' "$W/worker.toml"))"
   # Owner availability attestation for the subscription (selection max age 30 s).
   (cd "$SRV" && python3 scripts/ms1-profiled.py observe) > "$EVID/observe-last.json"
+  [ -z "$D1" ] || cmd_sync > "$EVID/sync-last.json"
   (cd "$SRV" && python3 scripts/ms1-node-run.py "$@") 2>&1 | tee -a "$EVID/node-run.log"
 }
 
 cmd_up() {
-  say "build and start aq-ms1 (server source $(git -C "$SRV" rev-parse --short HEAD))"
+  say "build and start $STACK (server source $(git -C "$SRV" rev-parse --short HEAD))"
   compose up -d --build --wait --wait-timeout 300
   curl -fsS "$AQ_DEV_SERVER_URL/healthz"; echo
 }
 
+cmd_remote() {
+  # D1: a writable local bare remote inside the aq-git volume, cloned once from
+  # the public scratch repository. aq-git pushes to it with file transport.
+  compose exec -T aq-git sh -ec "test -d $LOCAL_REMOTE || { mkdir -p ${LOCAL_REMOTE%/*}; \
+    git clone --quiet --bare https://github.com/ElectricJack/aq-scratch.git $LOCAL_REMOTE; }; \
+    git --git-dir=$LOCAL_REMOTE log --oneline -3 main"
+}
+
+cmd_sync() {
+  # Central fetch of the project's remote (0005 section 4): a named-ref source
+  # with no recorded publication head needs an observation under 30 s old.
+  (cd "$SRV" && python3 scripts/ms1-profiled.py sync)
+}
+
 cmd_seed() {
+  if [ -n "$D1" ]; then
+    cmd_remote
+    say "E0 seed: local bare remote $LOCAL_REMOTE (from ElectricJack/aq-scratch), main"
+    (cd "$SRV" && DEV_SCRATCH_REPO_URL=$LOCAL_REMOTE DEV_SCRATCH_LOCAL_REMOTE=1 \
+       DEV_SCRATCH_BASE_BRANCH=main DEV_SCRATCH_CREDENTIAL_REF=none \
+       python3 scripts/dev-stack.py seed) | tee "$EVID/e0-seed.json"
+  else
   say "E0 seed: ElectricJack/aq-scratch main, public (credential none)"
   (cd "$SRV" && DEV_SCRATCH_REPO_URL=https://github.com/ElectricJack/aq-scratch.git \
      DEV_SCRATCH_BASE_BRANCH=main DEV_SCRATCH_CREDENTIAL_REF=none \
      python3 scripts/dev-stack.py seed) | tee "$EVID/e0-seed.json"
+  fi
   # The seed's settlement step recreates the server without the dashboard overlay.
   compose up -d --no-build --wait --wait-timeout 300 server
   say "two dependent graph tasks (A blocks B)"
@@ -254,7 +293,7 @@ cmd_drill() {
      | grep --line-buffered -E "^drill:|suspend-drill.json|test result" || true
   kill $stats 2>/dev/null || true
   sed 's/\x1b\[[0-9;]*m//g' "$W/controller.log" > "$run/controller.log" 2>/dev/null || true
-  docker logs --since 30m aq-ms1-server-1 > "$run/server.log" 2>&1 || true
+  docker logs --since 30m $STACK-server-1 > "$run/server.log" 2>&1 || true
   echo "evidence: $run"
 }
 
@@ -313,7 +352,7 @@ cmd_gaps() {
 }
 
 cmd_status() {
-  docker ps --filter label=com.docker.compose.project=aq-ms1 --format '{{.Names}}\t{{.Status}}\t{{.Ports}}'
+  docker ps --filter label=com.docker.compose.project=$STACK --format '{{.Names}}\t{{.Status}}\t{{.Ports}}'
   curl -fsS "$AQ_DEV_SERVER_URL/api/workers" | python3 -c 'import json,sys
 for w in json.load(sys.stdin): print("worker", w["name"], w["id"], w["status"], w.get("last_seen_at"))'
   echo "sandboxes on $SANDBOX_SOCKET: $(docker -H "unix://$SANDBOX_SOCKET" ps -aq | wc -l)"
@@ -371,7 +410,10 @@ case ${1:-} in
   run) shift; cmd_run "$@" ;;
   node-enroll) cmd_node_enroll "${2:-}" ;;
   stats-summary) cmd_stats_summary "${2:?prefix}" ;;
+  remote) cmd_remote ;;
+  sync) cmd_sync ;;
+  publication) (cd "$SRV" && python3 scripts/ms1-profiled.py publication) ;;
   down) cmd_node_stop; compose down ;;
   all) cmd_up; cmd_seed; cmd_node; cmd_import_login; cmd_live; cmd_server_restart; cmd_gaps ;;
-  *) sed -n '2,32p' "$0"; exit 2 ;;
+  *) sed -n '2,34p' "$0"; exit 2 ;;
 esac

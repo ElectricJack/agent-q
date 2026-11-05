@@ -10,6 +10,7 @@ mod automatic;
 mod completion;
 mod default_policy;
 mod owner;
+pub mod publication;
 pub use automatic::{AutoDisposition, AutoSettlement, settle_after_record};
 
 /// The review requirement an offer must name for this validation policy body:

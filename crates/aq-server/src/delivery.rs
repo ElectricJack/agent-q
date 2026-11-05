@@ -215,6 +215,17 @@ impl DeliveryService {
             params,
         })
     }
+    /// The caller inputs frozen with an operation's first intent, if any. A
+    /// policy owner replays these exact inputs, so a retry under the same
+    /// operation ID can never change a possibly dispatched payload.
+    pub async fn frozen_inputs(&self, operation_id: Uuid) -> Result<Option<Value>> {
+        Ok(
+            sqlx::query_scalar("SELECT inputs FROM delivery_intents WHERE operation_id=$1")
+                .bind(operation_id)
+                .fetch_optional(&self.pool)
+                .await?,
+        )
+    }
     /// Create from active, non-historical server-owned retained source records.
     /// Acceptance and delivery policy are the caller's responsibility.
     pub async fn create_candidate(&self, r: CandidateRequest) -> Result<Receipt<CandidateResult>> {
