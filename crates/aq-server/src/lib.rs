@@ -425,7 +425,7 @@ async fn run_with_listeners_and_dashboard(
 ) -> anyhow::Result<()> {
     profiled_execution::policies::install(&state)
         .await
-        .map_err(|_| anyhow::anyhow!("profiled policy installation failed"))?;
+        .map_err(|error| anyhow::anyhow!("profiled policy installation failed: {error}"))?;
     if state.config.terminals.is_some() {
         terminal::persistence::install(&state)
             .await

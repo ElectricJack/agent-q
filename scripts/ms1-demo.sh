@@ -92,6 +92,17 @@ cmd_profiled() {
   (cd "$SRV" && python3 scripts/ms1-profiled.py apply) | tee "$EVID/profiled-apply.json"
 }
 
+cmd_node_enroll() {
+  # A fresh node identity for the run-native path (a wedged attempt on the old
+  # node blocks its re-registration; see MS1.md). The old enrollment is kept.
+  local name=${1:?name} cfg=$BASE/node/config/worker.toml
+  [ -s "$cfg" ] && mv "$cfg" "$cfg.$(date -u +%Y%m%dT%H%M%SZ)"
+  code=$(curl -fsS -X POST -H 'Content-Type: application/json' -H 'X-AQ-Request: 1' -d '{}' \
+    "$AQ_DEV_SERVER_URL/api/enrollments" | python3 -c 'import json,sys; print(json.load(sys.stdin)["code"])')
+  printf '%s\n' "$code" | "$BASE/runtime/aq-worker" --config "$cfg" enroll --server "$AQ_DEV_WORKER_URL" --name "$name"
+  chmod 600 "$cfg"
+}
+
 cmd_run() {
   say "one attempt through the stack (node $(sed -n 's/^node_id = "\(.*\)"/\1/p' "$W/worker.toml"))"
   # Owner availability attestation for the subscription (selection max age 30 s).
@@ -358,6 +369,7 @@ case ${1:-} in
   rebuild-server) cmd_rebuild_server ;;
   profiled) cmd_profiled ;;
   run) shift; cmd_run "$@" ;;
+  node-enroll) cmd_node_enroll "${2:-}" ;;
   stats-summary) cmd_stats_summary "${2:?prefix}" ;;
   down) cmd_node_stop; compose down ;;
   all) cmd_up; cmd_seed; cmd_node; cmd_import_login; cmd_live; cmd_server_restart; cmd_gaps ;;

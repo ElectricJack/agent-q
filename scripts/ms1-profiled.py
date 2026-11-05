@@ -35,12 +35,13 @@ PROJECT = "e0000000-0000-4000-8000-000000000002"
 REPOSITORY = "e0000000-0000-4000-8000-000000000003"
 WORKSPACE = "e0000000-0000-4000-8000-000000000001"
 ENVIRONMENT = "aq-ms1-docker-local-claude"
-AGENT = "ms1-implementer@1"
+AGENT = "ms1-implementer@2"
 MODULE = "ms1-bounded-edit@1"
 INTELLIGENCE = "ms1-claude-sonnet@1"
-EXECUTION = "ms1-docker-local-15m@1"
+EXECUTION = "ms1-docker-local-15m@2"
 CREDENTIAL = "owner-claude-subscription"
 CREDENTIAL_REVISION = 1
+CREDENTIAL_VERSION = "2"
 ACCOUNT = "owner-claude-subscription"
 ENDPOINT = "claude-code"
 HARNESS = "claude"
@@ -68,7 +69,8 @@ QUALIFICATION_TTL_MS = 86400000
 # Bump on every content change: the server refuses changed bodies at a version.
 # AQ_MS1_REVISION (default 1) bumps all three together after any pinned change
 # (for example a rebuilt aq-worker) once an offer has retained the bodies.
-_REV = int(os.environ.get("AQ_MS1_REVISION", "1"))
+_REV_FILE = BASE / "revision"
+_REV = int(os.environ.get("AQ_MS1_REVISION") or (_REV_FILE.read_text().strip() if _REV_FILE.exists() else "1"))
 PROFILED_REVISION = _REV
 INTELLIGENCE_REVISION = _REV + 1
 DEFINITION_VERSION = str(_REV)
@@ -248,7 +250,7 @@ def build():
     seed = json.loads((STATE / "seed.json").read_text())
     src = json.loads((STATE / "ms1-source.json").read_text())
     worker = json.loads((BASE / "worker" / "node.json").read_text())
-    node_id = (BASE / "worker" / "worker.toml").read_text().split('node_id = "')[1].split('"')[0]
+    node_id = (NODE / "config" / "worker.toml").read_text().split('node_id = "')[1].split('"')[0]
     worker_defs = json.loads(subprocess.run([str(RUNTIME / "aq-worker"), "ms1-definitions"], check=True,
                                             capture_output=True, text=True).stdout)
     template = worker["docker_local"]["templates"][0]
@@ -306,12 +308,14 @@ def build():
         "environment": environment, "driver": aq_worker, "host": host, "tmux": tmux, "scope": scope,
         "max_output_tokens": MAX_OUTPUT_TOKENS,
         "max_output_tokens_basis": "AQ planning reservation only; not a Claude Code setting"}, DEFINITION_VERSION)
+    # Stable body: a credential identity/version can never change its definition.
     credential = b.add(CREDENTIAL, {
         "schema_version": 1, "provider": PROVIDER, "account_reference": ACCOUNT, "endpoint_reference": ENDPOINT,
-        "scope": "desktop docker-local node only; " + scope,
+        "scope": "aq-ms1 desktop docker-local nodes only (allowed_node_ids in [intelligence])",
         "attestation": "owner decision 2026-11-04: Claude Code on the owner's Claude subscription (setup-token), "
                        "no API key",
-        "secret": "long-lived setup-token delivered by the server material owner, env-only in the sandbox"})
+        "secret": "long-lived setup-token delivered by the server material owner, env-only in the sandbox"},
+        CREDENTIAL_VERSION)
     rows, capacity, observed = measured()
     rendering = "utf8_double_newline_v1"
     counting = b.add("aq.ms1-counting", {
@@ -481,9 +485,9 @@ def catalog_rev2(built):
     catalog["execution"].append({
         "id": exec_id, "version": int(exec_version), "harnesses": [HARNESS], "environments": [ENVIRONMENT],
         "context_limit_bytes": CONTEXT_BYTES, "permissions": built["permissions"],
-        "credential_profile_references": [f"{CREDENTIAL}@1"],
+        "credential_profile_references": [f"{CREDENTIAL}@{CREDENTIAL_VERSION}"],
         # The harness always runs inside the docker-local sandbox (C6a container mode).
-        "confinement": {"permit_container": True, "require_container": True}})
+        "confinement": {"permit_container": True, "require_native": False, "require_container": True}})
     artifact["identities"] = identities(catalog, artifact["instructions"])
     return canonical(artifact)
 

@@ -24,7 +24,7 @@ STATE = NODE / "state"
 RUNS = NODE / "runs"
 RUNTIME = BASE / "runtime"
 REPOSITORY = "e0000000-0000-4000-8000-000000000003"
-IDENTITY = "ms1-scratch"
+IDENTITY = "e0-development"  # must equal the central binding identity
 GENERATION = 1
 
 
