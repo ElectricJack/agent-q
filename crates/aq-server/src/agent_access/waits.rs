@@ -88,6 +88,29 @@ impl Caller {
         &self.fence.binding
     }
 }
+/// The lifecycle Binding of an attempt: its graph workspace fixes the lineage.
+/// Shared by waits, hibernation and lifecycle artifact retention so every
+/// surface derives the same binding digest for one attempt.
+pub(crate) fn binding_for(
+    view: &crate::execution::authority::AuthorityView,
+) -> Result<wire::Binding> {
+    let graph = view.graph.as_ref().ok_or(WaitError("scope_denied"))?;
+    let binding = wire::Binding {
+        project_id: view.project_id,
+        task_id: view.task_id,
+        lineage_id: aq_admission::transport::task_lineage_id(
+            view.project_id,
+            graph.workspace_id,
+            view.task_id,
+        )
+        .map_err(|_| WaitError("scope_denied"))?,
+        attempt_id: view.attempt.attempt_id,
+        attempt_generation: view.attempt.generation,
+        session: view.session.clone(),
+    };
+    binding.validate().map_err(|_| WaitError("scope_denied"))?;
+    Ok(binding)
+}
 pub(crate) async fn load_caller(
     state: &AppState,
     tx: &mut Transaction<'_, Postgres>,
@@ -105,20 +128,7 @@ pub(crate) async fn load_caller(
             _ => WaitError("internal"),
         })?;
     let graph = view.graph.as_ref().ok_or(WaitError("scope_denied"))?;
-    let binding = wire::Binding {
-        project_id: view.project_id,
-        task_id: view.task_id,
-        lineage_id: aq_admission::transport::task_lineage_id(
-            view.project_id,
-            graph.workspace_id,
-            view.task_id,
-        )
-        .map_err(|_| WaitError("scope_denied"))?,
-        attempt_id: view.attempt.attempt_id,
-        attempt_generation: view.attempt.generation,
-        session: view.session.clone(),
-    };
-    binding.validate().map_err(|_| WaitError("scope_denied"))?;
+    let binding = binding_for(&view)?;
     let scope = wire::Scope {
         project_id: view.project_id,
         workspace_id: graph.workspace_id,

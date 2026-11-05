@@ -1,5 +1,7 @@
 #[path = "lifecycle.rs"]
 mod lifecycle;
+#[path = "operations.rs"]
+mod operations;
 use super::{
     runtime::{self, Resource, Snapshot},
     *,
@@ -11,6 +13,7 @@ use crate::{
 };
 use aq_session_protocol::{ProfiledOffer, SessionIdentity as OwnerSession, Validate};
 use chrono::{DateTime, SecondsFormat, Utc};
+pub(super) use operations::operations;
 use serde_json::{Value, json};
 use sha2::{Digest as _, Sha256};
 use sqlx::{Postgres, Row, Transaction};
@@ -369,6 +372,21 @@ pub(super) async fn bootstrap(
             "Session messages require an owner account",
         ),
         capability(
+            "session.nudge",
+            a.owner,
+            "Session nudges require an owner account",
+        ),
+        capability(
+            "session.operations.read",
+            mounted.session_operations && a.owner && a.visibility_complete,
+            "Session operations require an owner account",
+        ),
+        capability(
+            "waits.read",
+            mounted.waits && a.owner,
+            "Wait inspection requires an owner account",
+        ),
+        capability(
             "supervisor.conversation",
             conversation,
             "The global supervisor is not connected yet",
@@ -437,6 +455,26 @@ pub(super) async fn bootstrap(
                     .as_ref()
                     .is_some_and(|support| support.available()),
             "Current catalog inspection requires the mounted component query and namespace owner",
+        ),
+        capability(
+            "playbooks.runs.start",
+            playbooks,
+            "Starting runs requires the mounted runtime namespace owner",
+        ),
+        capability(
+            "playbooks.runs.cancel",
+            playbooks,
+            "Cancelling runs requires the mounted runtime namespace owner",
+        ),
+        capability(
+            "playbooks.activations.activate",
+            playbooks,
+            "Activating definitions requires the mounted runtime namespace owner",
+        ),
+        capability(
+            "playbooks.activations.rollback",
+            playbooks,
+            "Rolling back definitions requires the mounted runtime namespace owner",
         ),
     ];
     let bytes = contract::schema_bytes();

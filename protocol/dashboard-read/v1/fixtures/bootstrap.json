@@ -261,6 +261,30 @@
         "name": "playbooks.catalog.read",
         "reason": "Current catalog inspection requires the mounted component query and namespace owner",
         "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "playbooks.runs.start",
+        "reason": "Starting runs requires the mounted runtime namespace owner",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "playbooks.runs.cancel",
+        "reason": "Cancelling runs requires the mounted runtime namespace owner",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "playbooks.activations.activate",
+        "reason": "Activating definitions requires the mounted runtime namespace owner",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "playbooks.activations.rollback",
+        "reason": "Rolling back definitions requires the mounted runtime namespace owner",
+        "version": "1"
       }
     ],
     "contracts": [
@@ -270,7 +294,7 @@
         "version": "dashboard-read-1"
       },
       {
-        "digest": "sha256:34c5b6d6e5ba09fe3e19180011b6164a42c37ac0880caad8f035fc2ddda326c1",
+        "digest": "sha256:0e613001a16fe9474db5ac04d18192f3f3d6a3023f78ef025e989652910b03ad",
         "name": "dashboard-actions",
         "version": "dashboard-actions-1"
       }
