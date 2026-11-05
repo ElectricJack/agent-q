@@ -896,3 +896,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Paused the stale-PR refresh subagents (aq-server #53/#3/#9/#60/#64/#63, aq-worker #32, aq-dashboard #55). Each stops at a clean point and reports.
   - The task-view parity spec (aq-dashboard `docs/specs/0004-task-view-parity.md`, with the owner's list-row and no-full-page additions) is parked until MS1 is signed off.
   - The only active work is MS1: the re-review's B1 driver guard and recovery container stop, then retry, stuck-attempt settlement and D1, then merging the MS1 wiring to main.
+- **14:35: owner: "run any additional MS1 work that you can in parallel."**
+  - Split D1 publication (B builds on A's published commit) off to a new subagent on `ms1/d1` branches, running its own `aq-ms1d` stack on ports 38080/38081/38741 so its live runs don't collide with the `aq-ms1` drills.
+  - The `ms1/retry` subagent keeps B4 retry and B5b stuck-attempt settlement. Its review fixes (B1 driver guard, recovery container stop) are committed in aq-worker and pushing now.
+  - Opened draft PRs aq-server #90 and aq-worker #38 for `ms1/demo`, so CI surfaces integration failures early. They are not for merge yet.
