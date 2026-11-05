@@ -717,3 +717,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - aq-playbooks `nimble-harbor-36` (priority 40): host catalog bump for the candidate check source;
     - aq-platform `crisp-crest-28` (priority 120): docs, Claude Code harness rows in 0005 §8.3.
   - `crisp-meadow-36.10.4` and `fair-impact-57` are held but already superseded by supervisor replacement tasks.
+- **04:20 owner decisions: skip Codex for now, skip Gemini, test Claude Code and OpenCode.**
+  - I1 (`azure-horizon-22.4`): subscription only, live API-key case unmet; the saved setup-token is the enrollment.
+  - I3 (`azure-horizon-22.6`): live run on local Ollama, ChatGPT and API-key routes deferred.
+  - I2 (`azure-horizon-22.5`): offline only, live case deferred.
+  - Noted on MS4 that Codex and Gemini become owner-approved deferrals in its four-harness demo. `noble-meadow-73` (Codex qualification) stays paused.
