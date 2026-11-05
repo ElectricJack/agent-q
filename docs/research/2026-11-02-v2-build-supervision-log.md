@@ -868,3 +868,12 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - The MS1 server advertises `results.media.read`/`results.media.upload` as `enabled:false` because no media store is configured. The dashboard bundle lists both as required capabilities, so the whole dashboard is blocked.
   - Asked the MS1 subagent to configure result media on `aq-ms1` the way `dev-stack.py` does.
   - Dispatched a dashboard fix: make the media capabilities optional and gate the media UI at runtime.
+- **14:20: stale PR triage (owner asked).** There were 14 open PRs across the repos, 13 of them older (Nov 2–4) and left open after operator integrations.
+  - Content triage: 6 superseded or duplicate, 8 still needed. Every one of their v1 tasks shows COMPLETED, yet main was missing the work, including:
+    - D6 check-attempt execution (#63, the production check executor D11 found missing);
+    - the playbook judgment provider (#64);
+    - G11 knowledge relationships/revisions (#60);
+    - per-project replacement budgets (#53).
+  - Closed aq-server #5 (landed in 3244f225), #7 (duplicate of #3) and #69 (to be replaced by #60 and #64 separately), and aq-git #4 (landed in 8cb1ce4; CI already runs the checker's tests).
+  - Dispatched subagents to bring the still-needed ones current: aq-server #53, #3, #9 (example half), #60, #64, #63 (migration renumbered to 0096), then aq-worker #32 and aq-dashboard #55.
+  - Dashboard #70 (optional media) fails `supervisor-launcher.spec.ts`: "Post comment" ends up under the launcher, a real regression. Sent it back.
