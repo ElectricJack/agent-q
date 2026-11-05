@@ -72,7 +72,7 @@ compose() {
    eval "$(python3 scripts/dev-stack.py prepare | python3 -c 'import json,sys
 for k,v in json.loads(sys.stdin.read()).items(): print(f"export {k}={v!r}")')"
    AQ_DASHBOARD_BUNDLE=$DASH/dist docker compose -f compose.yaml -f compose.dev.yaml \
-     -f compose.dashboard.yaml "$@")
+     -f compose.dashboard.yaml ${AQ_MS1_COMPOSE_EXTRA:+-f "$AQ_MS1_COMPOSE_EXTRA"} "$@")
 }
 mkdir -p "$BASE" "$EVID" && chmod 700 "$BASE"
 
@@ -82,6 +82,13 @@ cmd_rebuild_server() {
   compose build server
   compose up -d --no-build --force-recreate --wait --wait-timeout 300 server
   curl -fsS "$AQ_DEV_SERVER_URL/healthz"; echo
+}
+
+cmd_server_up() {
+  # Recreate only aq-server on the current image (AQ_MS1_COMPOSE_EXTRA may add
+  # an override, e.g. RUST_LOG=info,aq_refusal=debug).
+  export AQ_DEV_REPLACE_OPERATOR_SECTION=1
+  compose up -d --no-build --force-recreate --wait --wait-timeout 300 server
 }
 
 cmd_media() {
@@ -377,6 +384,7 @@ case ${1:-} in
   rebuild-server) cmd_rebuild_server ;;
   profiled) cmd_profiled ;;
   media) cmd_media ;;
+  server-up) cmd_server_up ;;
   run) shift; cmd_run "$@" ;;
   node-enroll) cmd_node_enroll "${2:-}" ;;
   stats-summary) cmd_stats_summary "${2:?prefix}" ;;
