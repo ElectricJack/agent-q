@@ -40,7 +40,9 @@ MODULE = "ms1-bounded-edit@1"
 INTELLIGENCE = "ms1-claude-sonnet@1"
 EXECUTION = "ms1-docker-local-15m@2"
 CREDENTIAL = "owner-claude-subscription"
-CREDENTIAL_REVISION = 1
+# Bump (AQ_MS1_CREDENTIAL_REVISION) when the credential state changes, e.g. the
+# base file staged by import-login after the registry was first installed.
+CREDENTIAL_REVISION = int(os.environ.get("AQ_MS1_CREDENTIAL_REVISION", "1"))
 CREDENTIAL_VERSION = "2"
 ACCOUNT = "owner-claude-subscription"
 ENDPOINT = "claude-code"
