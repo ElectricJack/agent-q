@@ -42,4 +42,4 @@ CREATE FUNCTION hibernation_immutable_receipt() RETURNS trigger LANGUAGE plpgsql
 BEGIN RAISE EXCEPTION 'immutable hibernation receipt'; END $$;
 CREATE TRIGGER hibernation_receipts_immutable BEFORE UPDATE OR DELETE ON hibernation_receipts
  FOR EACH ROW EXECUTE FUNCTION hibernation_immutable_receipt();
-UPDATE meta SET value='83' WHERE key='state_format_version';
+UPDATE meta SET value='85' WHERE key='state_format_version';
