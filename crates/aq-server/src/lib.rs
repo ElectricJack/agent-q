@@ -99,6 +99,13 @@ pub struct AppState {
 }
 
 impl AppState {
+    /// The D1 delivery service over the configured aq-git socket, if source
+    /// retention (which owns that socket) is configured.
+    pub fn delivery(&self) -> Option<delivery::DeliveryService> {
+        self.source_retention
+            .as_ref()
+            .map(|r| delivery::DeliveryService::new(self.store.pool.clone(), &r.config))
+    }
     pub(crate) fn terminal_read_view(&self) -> Self {
         Self {
             store: self.store.terminal_read_view(),
