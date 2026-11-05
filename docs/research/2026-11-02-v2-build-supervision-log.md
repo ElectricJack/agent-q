@@ -892,3 +892,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - All sent to the MS1 subagent ahead of retry/D1.
     - Pre-existing flake on main: `native_cancellation::native_cancel_owner_validation_attempt_replay_and_concurrency`, which failed 7/7 under load in the reviewer's runs.
   - Task-view parity inventory is committed (`2026-11-05-task-view-parity-inventory.md`); waiting on the owner's scope choice.
+- **14:25: owner direction.** "I don't want to do too much at the same time, I'd really like to wrap up MS1 before we kick off new work."
+  - Paused the stale-PR refresh subagents (aq-server #53/#3/#9/#60/#64/#63, aq-worker #32, aq-dashboard #55). Each stops at a clean point and reports.
+  - The task-view parity spec (aq-dashboard `docs/specs/0004-task-view-parity.md`, with the owner's list-row and no-full-page additions) is parked until MS1 is signed off.
+  - The only active work is MS1: the re-review's B1 driver guard and recovery container stop, then retry, stuck-attempt settlement and D1, then merging the MS1 wiring to main.
