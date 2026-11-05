@@ -265,6 +265,8 @@ pub fn precheck(counts: &super::no_grant::AttemptCounts) -> Option<Assessment> {
     }
     (counts.started == 0).then_some(Assessment::Fresh)
 }
+/// First store format carrying `profiled_auto_settlements` (migration 59, D3).
+pub const AUTO_SETTLEMENT_FORMAT: u32 = 59;
 /// First store format carrying `stall_quarantines` (migration 81, H3).
 pub const STALL_QUARANTINE_FORMAT: u32 = 81;
 
@@ -307,11 +309,24 @@ pub async fn assess_task(state: &AppState, task: Uuid, now: u64) -> Result<Asses
     // refused because its publication was definitively not applied (moved
     // target, conflicted candidate) would recur. Such a lineage needs a new
     // source admission (a new task attempt from the current source head).
-    let unpublished: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM profiled_auto_settlements s JOIN execution_attempts a USING(attempt_id) WHERE a.task_id=$1 AND s.disposition='rework_required' AND s.reason='delivery_unpublished')")
-        .bind(task)
-        .fetch_one(&state.store.pool)
-        .await
-        .map_err(|_| AppError::Internal)?;
+    // A store held at an earlier migration prefix has no automatic settlement
+    // table and so records no unpublished delivery (as for quarantines).
+    let format: String =
+        sqlx::query_scalar("SELECT value FROM meta WHERE key='state_format_version'")
+            .fetch_one(&state.store.pool)
+            .await
+            .map_err(|_| AppError::Internal)?;
+    let unpublished: bool = if format.parse::<u32>().map_err(|_| AppError::Internal)?
+        >= AUTO_SETTLEMENT_FORMAT
+    {
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM profiled_auto_settlements s JOIN execution_attempts a USING(attempt_id) WHERE a.task_id=$1 AND s.disposition='rework_required' AND s.reason='delivery_unpublished')")
+            .bind(task)
+            .fetch_one(&state.store.pool)
+            .await
+            .map_err(|_| AppError::Internal)?
+    } else {
+        false
+    };
     if unpublished {
         return Ok(Assessment::Blocked(
             "replacement_after_unpublished_delivery_needs_new_source",
