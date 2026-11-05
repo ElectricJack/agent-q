@@ -810,3 +810,22 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - stuck granted attempts hold the task and node;
     - B doesn't build on A, because the D1 publish isn't on this path.
   - Asked the wiring subagent to continue in that order. Dispatched an independent read-only reviewer on the aq-server `ms1/demo` diff before it goes to main.
+- **08:30: independent review of aq-server `ms1/demo` found a blocker.** Not mergeable as-is.
+  - **B1 (blocking):** a failed Claude run can complete its task automatically. Three changes combine: the D3 policy actor is named as reviewer while offers carry no required checks, D3 now accepts `Unknown`, and the worker maps `Failure` to `Unknown`. So an expired token or a crash would mark the task complete and unblock its dependents.
+  - **Decision (delegated reviewer):** the worker maps Failure to Failed and reports Success only for a natural exit 0 with an explicit success claim; D3 goes back to accepting Success only. A DB-backed `auto_settlement56` test must cover the production-shaped offer.
+  - **Should-fix:**
+    - `require_container` bypasses backend placement facts;
+    - the Claude long-phase rule doesn't check confinement, and aq-admission's version isn't bumped;
+    - the Claude recipe digest isn't pinned;
+    - naming the policy actor removes the human fallback.
+  - All sent back to the wiring subagent ahead of cancel and retry.
+- **08:35:** main CI is green again at #81 (473bbe2b) and #82 (badab765); #83 is still running.
+  - #85's `tests` job failed `playbook_activation::inspection_discovers_actual_admissions_runs_and_public_timeline`, with `definition.active` null in the list item. Locally it passed 3/3 on #85 and also on main (disposable Postgres), so it's flaky.
+  - The first rerun died on a GitHub runner `No space left on device` before any test ran; rerunning again.
+  - F5 is up as #87.
+- **09:10:** main CI is green through #83 (2c770ab3).
+  - #85 failed `playbook_activation::inspection_discovers…` twice in CI, with the run definition's `pinned_is_active`/`active` null, but passed every time locally (alone and as the full binary).
+  - **Cause:** `current_activations()` read each activation page with a 500 ms budget and silently returned None on timeout. #85's 2.1.0 catalog made the read slow enough on CI runners to time out.
+  - Pushed 97aaef30 to #85 with a 2 s per-page budget; the binary passes 19/19 locally and clippy is clean. Waiting on CI. Then #87 (F5) and #88 (D11).
+- **09:45:** merged #85 (`azure-delta-64`, host catalog 2.1.0 as CatalogProfile::Host8, migration 0091) as f9b448de, with all 9 checks green after the activation read budget fix.
+  - Refreshed #87 (F5) on main: clean merge, catalog at 92, protocol checks pass, pushed 1e15dee6. Waiting on CI. #88 (D11, 0093) is next.

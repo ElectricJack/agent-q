@@ -400,7 +400,7 @@ pub async fn register(
     tx.commit().await?;
     Ok(response)
 }
-async fn register_locked(
+pub(crate) async fn register_locked(
     state: &AppState,
     tx: &mut Transaction<'_, Postgres>,
     caller: &Caller,

@@ -1860,6 +1860,8 @@ mod media_http;
 mod auto_settlement56;
 #[path = "profiled_results/operations.rs"]
 mod operations;
+#[path = "profiled_results/questions.rs"]
+mod questions;
 #[path = "profiled_results/settlement_owner39.rs"]
 mod settlement_owner39;
 #[path = "profiled_results/waits.rs"]

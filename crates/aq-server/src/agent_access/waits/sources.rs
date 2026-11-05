@@ -132,7 +132,8 @@ async fn decision(
         .fetch_optional(&mut **tx)
         .await?
     else {
-        return Ok(None);
+        return question_decision(tx, request, now, decision_id, subject_id, subject_revision, question)
+            .await;
     };
     let subject: String = row.get("subject_digest");
     let asked: String = row.get("request_digest");
@@ -167,6 +168,63 @@ async fn decision(
     Ok(Some(Observed {
         snapshot: snapshot(
             format!("human-decision-{decision_id}"),
+            &json!({"decision_id":decision_id,"revision":revision,"state":decision_state,"receipt":receipt}),
+        )?,
+        revision: revision.to_string(),
+        state,
+        result,
+    }))
+}
+/// F5 agent questions: a typed `question` decision owned by `question_decisions`.
+/// The subject is the asking task; the subject revision names the asking
+/// attempt generation. Same state mapping as code-review decisions.
+async fn question_decision(
+    tx: &mut Transaction<'_, Postgres>,
+    request: &SourceRequest,
+    now: u64,
+    decision_id: Uuid,
+    subject_id: Uuid,
+    subject_revision: &wire::Text,
+    question: &wire::Digest,
+) -> Result<Option<Observed>> {
+    let Some(row) = sqlx::query("SELECT task_id,project_id,workspace_id,subject_revision,question_digest,decision_revision,state,expires_at_ms,receipt_digest FROM question_decisions WHERE decision_id=$1")
+        .bind(decision_id)
+        .fetch_optional(&mut **tx)
+        .await?
+    else {
+        return Ok(None);
+    };
+    if row.get::<Uuid, _>("task_id") != subject_id
+        || row.get::<String, _>("subject_revision") != subject_revision.as_str()
+        || row.get::<String, _>("question_digest") != question.as_str()
+        || row.get::<Uuid, _>("project_id") != request.scope.project_id
+        || row.get::<Uuid, _>("workspace_id") != request.scope.workspace_id
+    {
+        return Ok(None);
+    }
+    let revision: i64 = row.get("decision_revision");
+    let decision_state: String = row.get("state");
+    let receipt: Option<String> = row.get("receipt_digest");
+    let expired = row.get::<i64, _>("expires_at_ms") as u64 <= now;
+    let state = match (decision_state.as_str(), &receipt) {
+        ("answered", Some(_)) => wire::MemberState::Satisfied,
+        ("answered", None) => return Ok(None),
+        ("pending", _) if !expired => wire::MemberState::Pending,
+        _ => wire::MemberState::SourceFailed,
+    };
+    let result = match state {
+        wire::MemberState::Pending => None,
+        _ => Some(artifact(
+            format!("question-decision-receipt-{decision_id}"),
+            match &receipt {
+                Some(digest) => serde_json::from_value(json!(digest))?,
+                None => value_digest(&json!({"decision_id":decision_id,"state":decision_state}))?,
+            },
+        )),
+    };
+    Ok(Some(Observed {
+        snapshot: snapshot(
+            format!("question-decision-{decision_id}"),
             &json!({"decision_id":decision_id,"revision":revision,"state":decision_state,"receipt":receipt}),
         )?,
         revision: revision.to_string(),
