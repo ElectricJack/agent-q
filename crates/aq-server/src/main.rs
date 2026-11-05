@@ -52,6 +52,22 @@ enum Command {
         #[arg(long)]
         request: PathBuf,
     },
+    /// Import or replace a subscription login (C5b): stores the file as the
+    /// newest version of a configured subscription-login credential. An
+    /// operator upload always wins over node write-backs. Prints the version.
+    ImportLogin {
+        #[arg(long, env = "AQ_VAULT_DIR")]
+        vault: PathBuf,
+        /// Credential profile as `id@version`.
+        #[arg(long)]
+        credential: String,
+        /// Registry credential revision.
+        #[arg(long)]
+        revision: u64,
+        /// Login file: Codex `auth.json` or a Claude long-lived token file.
+        #[arg(long)]
+        source: PathBuf,
+    },
     /// Print this binary's canonical release manifest (the bytes that get signed).
     Manifest {
         #[arg(long)]
@@ -89,6 +105,12 @@ async fn main() {
             owner_email,
             request,
         } => onboard_repository(vault, &owner_email, &request).await,
+        Command::ImportLogin {
+            vault,
+            credential,
+            revision,
+            source,
+        } => import_login(vault, &credential, revision, &source).await,
         Command::Manifest {
             server_image,
             worker_image,
@@ -149,6 +171,29 @@ async fn onboard_repository(
     } else {
         std::process::exit(1)
     }
+}
+
+async fn import_login(
+    vault: PathBuf,
+    credential: &str,
+    revision: u64,
+    source: &std::path::Path,
+) -> anyhow::Result<()> {
+    let (config, store) = connect(&vault).await?;
+    let Some(loaded) = config.intelligence.clone() else {
+        bail!("[intelligence] is not configured");
+    };
+    let version = aq_server::intelligence::login_import::import(
+        &store,
+        &loaded,
+        credential,
+        revision,
+        source,
+        chrono::Utc::now().timestamp_millis(),
+    )
+    .await?;
+    println!("{version}");
+    Ok(())
 }
 
 async fn connect(vault: &std::path::Path) -> anyhow::Result<(aq_server::config::Config, Store)> {
