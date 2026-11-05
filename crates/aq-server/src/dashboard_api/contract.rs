@@ -580,6 +580,140 @@ pub struct Search {
     pub sources: Vec<SourceObservation>,
     pub snapshot_id: Uuid,
 }
+/// H3 rung-5 quarantine: scoped to one session and its task lineage, never the worker.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct StallQuarantine {
+    pub scope: String,
+    pub lineage_id: Uuid,
+    pub reason: String,
+    pub escalation: String,
+    pub at: Timestamp,
+}
+/// H3 stall-ladder episode for one attempt, with the evidence it last judged.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct StallState {
+    pub rung: String,
+    /// Episode compare-and-set revision; zero for a freshly opened episode.
+    pub revision: u64,
+    pub rung_since: Timestamp,
+    pub updated_at: Timestamp,
+    /// Evidence the ladder has explained away (for example an open tool or a wait).
+    pub explanation: Option<String>,
+    /// Evidence the ladder has observed up to.
+    pub observed_through: Option<Timestamp>,
+    pub nudges: u32,
+    pub deferrals: u32,
+    pub notified: bool,
+    pub incidents: u32,
+    pub quarantine: Option<StallQuarantine>,
+}
+/// Latest semantic progress (turn, tool, question or assistant text), never terminal output.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ProgressObservation {
+    pub observed_at: Timestamp,
+}
+/// H4 wait for this attempt; `observed_at` is the newest member check.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct WaitObservation {
+    pub id: Uuid,
+    pub phase: String,
+    pub revision: u64,
+    pub observed_at: Option<Timestamp>,
+    pub next_due: Option<Timestamp>,
+    pub deadline: Option<Timestamp>,
+    pub hold_reason: Option<String>,
+}
+/// H3 nudge (ladder or owner) and its F3 mailbox delivery.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct NudgeObservation {
+    pub message_id: Uuid,
+    /// `stall_ladder` or `owner`.
+    pub source: String,
+    pub created_at: Timestamp,
+    pub inbox_only: bool,
+    /// `delivered`, `unknown`, `inbox_only` or `queued`.
+    pub delivery: String,
+    pub delivered_at: Option<Timestamp>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct RateCardRef {
+    pub provider: String,
+    pub model: String,
+    pub revision: u64,
+}
+/// H2 task-lineage ledger totals; spend is a known lower bound unless complete.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct LineageUsage {
+    pub lineage_id: Uuid,
+    pub ledger_revision: u64,
+    pub spent_microunits: Option<u64>,
+    pub currency: Option<String>,
+    pub complete: bool,
+    /// Current configured rate-card revision for this session's provider and model.
+    pub rate_card: Option<RateCardRef>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ArtifactSource {
+    pub id: String,
+    pub version: String,
+    pub digest: Digest,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct ContextSource {
+    pub artifact: ArtifactSource,
+    pub provenance: String,
+    pub delivery: String,
+    pub required: bool,
+}
+/// Where the launch instructions came from; credentials are never projected.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct InstructionProvenance {
+    pub catalog: ArtifactSource,
+    pub agent_profile: ArtifactSource,
+    pub modules: Vec<ArtifactSource>,
+    pub context: Vec<ContextSource>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct PermissionScope {
+    pub operation: String,
+    pub resource: String,
+}
+/// H7 terminal replay key: `GET /api/v1/terminals/{terminal_id}/output` serves the
+/// snapshot and replay for exactly this terminal identity and epoch.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct TerminalReplayRef {
+    pub terminal_id: Uuid,
+    pub epoch: u64,
+    pub last_output_at: Option<Timestamp>,
+}
+/// Owner-only operations facts for one session (G10 Agents views).
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct SessionOperations {
+    pub session_id: Uuid,
+    pub attempt_id: Uuid,
+    pub stall: Option<StallState>,
+    pub semantic_progress: Option<ProgressObservation>,
+    pub wait: Option<WaitObservation>,
+    pub nudges: Vec<NudgeObservation>,
+    pub lineage_usage: Option<LineageUsage>,
+    pub instructions: Option<InstructionProvenance>,
+    pub requested_permissions: Option<Vec<PermissionScope>>,
+    pub effective_permissions: Option<Vec<PermissionScope>>,
+    pub terminal: Option<TerminalReplayRef>,
+}
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum Response {
@@ -590,6 +724,7 @@ pub enum Response {
     Capacity(Envelope<Capacity>),
     Sessions(Envelope<Page<SessionSummary>>),
     Session(Box<Envelope<SessionDetail>>),
+    SessionOperations(Box<Envelope<SessionOperations>>),
     Projects(Envelope<Page<ProjectRef>>),
 }
 pub fn schema() -> serde_json::Value {
