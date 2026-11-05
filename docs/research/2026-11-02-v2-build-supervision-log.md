@@ -1045,3 +1045,16 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - On the MS1 stacks, the demo runs `run-native` one-shot per task, so nodes show "Worker offline" between runs. The persistent `aq-worker run` controller is still built with `UnavailableProvider`.
   - Agents shows "Remote session <id>", "State unknown", "Controller unknown" and "No worker lifecycle reports", because sandboxed sessions report no lifecycle or terminal stream back to the server.
   - Offered the owner: add an always-on worker to MS1, and put live session reporting and terminal in the Agents parity section. Awaiting their answer.
+- **21:55: MS1 B4 and B5b LIVE on `aq-ms1`.**
+  - **B4, task `…0103`:**
+    - Claude was SIGKILLed in the first attempt (`452394d1…`), which reported failed. D3 sent it to rework, and the writer recorded source-retained and effects-settled.
+    - A replacement was admitted with budget accounting (`attempts_started=1`, `sandbox_ms_charged=910683`).
+    - The replacement `3440bb36…` ran in a new sandbox, succeeded with commit `b162f4be…`, and D3 confirmed it (`a080377a…`).
+    - Budget enforcement was also shown: drill `…0102` exceeded its 1 h lineage budget and was refused.
+  - **B5b, task `…0104`:**
+    - A granted attempt never started (`4b19839c…`), and the node's registration was refused.
+    - `reconcile-native` sent a closure, the server sweep settled it, and the task was released through B4 (`7aed79ba`, release-on-settle).
+    - The same node re-registered without re-enrolling and ran the replacement `a9b73699…`, which completed.
+  - The "host started, harness never ran" variant is settled only when the host's stop proof shows no process ran.
+  - The old wedged nodes `c7caa999…` and `f051a29d…` cannot be closed: their attempts carry an older runtime qualification that is no longer installed. They stay retired (follow-up B5b).
+  - The converged heads are aq-server `ms1/retry` e810e65f and aq-worker 88c98f7. Every MS1 step is now live except the owner's suspend drill and sign-off. Dispatched the final independent review before merging.
