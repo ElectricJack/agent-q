@@ -1,5 +1,5 @@
-//! D7 host adapters candidate.prepare / candidate.publish (catalog profile 7)
-//! on disposable PostgreSQL through the production service owners. The D1
+//! D7 host adapters candidate.prepare / candidate.publish (catalog profiles 7
+//! and 8) on disposable PostgreSQL through the production service owners. The D1
 //! delivery service and the D6 sandbox executor are in-memory fakes of the
 //! injected ports; every evidence item is resolved in its owning store.
 mod common;
@@ -174,11 +174,20 @@ struct Host {
     grant: Uuid,
     scope: GrantScope,
     now: i64,
+    profile: CatalogProfile,
 }
 async fn host(
     f: &common::profiled::Fixture,
     checks: Arc<FakeChecks>,
     integration: Arc<FakeIntegration>,
+) -> Host {
+    host_with(f, checks, integration, CatalogProfile::Host7).await
+}
+async fn host_with(
+    f: &common::profiled::Fixture,
+    checks: Arc<FakeChecks>,
+    integration: Arc<FakeIntegration>,
+    profile: CatalogProfile,
 ) -> Host {
     let l = &f.selection.lineage;
     let directory = tempfile::tempdir().unwrap();
@@ -193,23 +202,46 @@ async fn host(
         }],
     })
     .unwrap();
-    let service = Service::new_host7_integration(
-        &f.state,
-        Namespace {
-            namespace_id: Uuid::new_v4(),
-            generation: 1,
-            name: format!("fixture-{}", Uuid::new_v4()),
-            workspace_id: l.workspace_id,
-            project_id: l.project_id,
-            owner_user_id: f.actor,
-        },
+    let namespace = Namespace {
+        namespace_id: Uuid::new_v4(),
+        generation: 1,
+        name: format!("fixture-{}", Uuid::new_v4()),
+        workspace_id: l.workspace_id,
+        project_id: l.project_id,
+        owner_user_id: f.actor,
+    };
+    let (keys, graph, checks, integration) = (
         Arc::new(keys),
         Arc::new(FakeGraph),
-        Some(checks),
-        None,
-        Some(integration),
-    )
-    .await
+        Some(checks as Arc<dyn CheckExecutor>),
+        Some(integration as Arc<dyn Integration>),
+    );
+    let service = match profile {
+        CatalogProfile::Host8 => {
+            Service::new_host8_integration(
+                &f.state,
+                namespace,
+                keys,
+                graph,
+                checks,
+                None,
+                integration,
+            )
+            .await
+        }
+        _ => {
+            Service::new_host7_integration(
+                &f.state,
+                namespace,
+                keys,
+                graph,
+                checks,
+                None,
+                integration,
+            )
+            .await
+        }
+    }
     .unwrap();
     service.initialize(f.actor).await.unwrap();
     let now = (f.state.clock)().timestamp_millis();
@@ -231,6 +263,7 @@ async fn host(
         grant,
         scope,
         now,
+        profile,
     }
 }
 impl Host {
@@ -241,12 +274,10 @@ impl Host {
             step: name.replace('.', "-"),
             invocation: 1,
             deadline_at_ms: self.now + 5000,
-            command: CatalogProfile::Host7.registry().commands[name].clone(),
+            command: self.profile.registry().commands[name].clone(),
             input_digest: digest(&input).unwrap(),
             input,
-            authority: CatalogProfile::Host7
-                .authority(self.grant, 1, &self.scope)
-                .unwrap(),
+            authority: self.profile.authority(self.grant, 1, &self.scope).unwrap(),
             status: IntentStatus::Dispatched,
             cancel_requested: false,
             cancel_dispatched: false,
@@ -284,6 +315,11 @@ impl Host {
             )
             .await;
         assert_eq!(r.outcome, "prepared", "{r:?}");
+        // Only catalog 2.1.0 (Host8) declares `source` on `prepared`.
+        assert_eq!(
+            r.output.get("source").is_some(),
+            self.profile == CatalogProfile::Host8
+        );
         let reference = r.output["reference"].as_str().unwrap().to_string();
         assert_eq!(r.output["subject"], json!({"id": reference, "revision": 1}));
         reference
@@ -531,6 +567,45 @@ async fn candidate_check_binds_prepared_source() {
         .await;
     assert_eq!(r.outcome, "refused", "{r:?}");
     assert_eq!(r.output["reason"], "stale_subject");
+}
+
+/// Host8 (catalog 2.1.0): prepare emits the candidate's catalog OID as
+/// `source`, and a candidate check whose input.source differs is refused
+/// instead of silently substituted.
+#[tokio::test]
+async fn host8_prepare_emits_source_and_check_requires_it() {
+    let f = common::profiled::fixture().await;
+    common::profiled::insert(&f).await;
+    let checks = checks();
+    let port = fake(&["unit"], false);
+    let h = host_with(&f, checks.clone(), port.clone(), CatalogProfile::Host8).await;
+    let source = |c: char| json!({"format": "sha1", "hex": c.to_string().repeat(40)});
+    let r = h
+        .run(
+            "prep-1",
+            "candidate.prepare",
+            json!({"base": {"id": format!("refs/heads/main@sha1:{}", "a".repeat(40)), "revision": 0},
+                "sources": [{"id": format!("aq.source/{}", Uuid::from_u128(7)), "revision": 1}]}),
+        )
+        .await;
+    assert_eq!(r.outcome, "prepared", "{r:?}");
+    assert_eq!(r.output["source"], source('c'));
+    let candidate = r.output["reference"].as_str().unwrap().to_string();
+    pin(&checks, &candidate);
+    let request = |c: char| {
+        json!({"check": {"id": "unit", "validator": validator()}, "source": source(c),
+            "subject": {"id": candidate, "revision": 1}})
+    };
+
+    let r = h.run("c-bad", "check.request", request('d')).await;
+    assert_eq!(r.outcome, "refused", "{r:?}");
+    assert_eq!(r.output["reason"], "invalid_request");
+
+    let r = h.run("c-ok", "check.request", request('c')).await;
+    assert_eq!(r.outcome, "accepted", "{r:?}");
+    let done = h.get(r.output["handle"].as_str().unwrap()).await;
+    assert_eq!(done.outcome, "completed", "{done:?}");
+    assert_eq!(done.output["output"]["source"], source('c'));
 }
 
 #[tokio::test]

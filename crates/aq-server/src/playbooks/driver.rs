@@ -214,9 +214,7 @@ impl Host for MailHost {
         let Ok((id, revision)) = grant_actor(&intent.authority) else {
             return CancellationResult::Refused;
         };
-        if self.service.profile == super::review_domain::CatalogProfile::Host7
-            && intent.command.name == "check.request"
-        {
+        if self.service.profile.is_host2() && intent.command.name == "check.request" {
             // Catalog 2.0.0 check.request is cancellable: confirmed only by an
             // executor-reported cancelled stop, never by the request alone.
             return self
@@ -252,7 +250,7 @@ impl MailHost {
     fn host_command(&self, intent: &Intent) -> bool {
         let name = intent.command.name.as_str();
         super::host_adapters::HOST5_COMMANDS.contains(&name)
-            || (self.service.profile == super::review_domain::CatalogProfile::Host7
+            || (self.service.profile.is_host2()
                 && super::host_adapters::HOST7_COMMANDS.contains(&name))
     }
 }

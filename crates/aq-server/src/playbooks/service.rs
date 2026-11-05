@@ -132,7 +132,57 @@ impl Service {
         judgments: Option<Arc<dyn super::host_adapters::JudgmentProvider>>,
         integration: Option<Arc<dyn super::host_adapters::Integration>>,
     ) -> Result<Self> {
-        let mut service = Self::with_profile(state, namespace, keys, CatalogProfile::Host7).await?;
+        Self::new_host2(
+            state,
+            namespace,
+            keys,
+            CatalogProfile::Host7,
+            graph,
+            checks,
+            judgments,
+            integration,
+        )
+        .await
+    }
+    /// Host catalog 2.1.0 (profile 8) with the D7 integration port: the Host7
+    /// adapters, with candidate.prepare emitting the prepared source OID.
+    pub async fn new_host8_integration(
+        state: &crate::AppState,
+        namespace: Namespace,
+        keys: Arc<Keyring>,
+        graph: Arc<dyn super::host_adapters::WorkGraph>,
+        checks: Option<Arc<dyn super::host_adapters::CheckExecutor>>,
+        judgments: Option<Arc<dyn super::host_adapters::JudgmentProvider>>,
+        integration: Option<Arc<dyn super::host_adapters::Integration>>,
+    ) -> Result<Self> {
+        Self::new_host2(
+            state,
+            namespace,
+            keys,
+            CatalogProfile::Host8,
+            graph,
+            checks,
+            judgments,
+            integration,
+        )
+        .await
+    }
+    /// A catalog 2.x host profile (Host7 or Host8) with its ports.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) async fn new_host2(
+        state: &crate::AppState,
+        namespace: Namespace,
+        keys: Arc<Keyring>,
+        profile: CatalogProfile,
+        graph: Arc<dyn super::host_adapters::WorkGraph>,
+        checks: Option<Arc<dyn super::host_adapters::CheckExecutor>>,
+        judgments: Option<Arc<dyn super::host_adapters::JudgmentProvider>>,
+        integration: Option<Arc<dyn super::host_adapters::Integration>>,
+    ) -> Result<Self> {
+        if !profile.is_host2() {
+            return Err(Error::Invalid);
+        }
+        let mut service = Self::with_profile(state, namespace, keys, profile).await?;
         service.host = Some(Arc::new(super::host_adapters::HostPorts {
             state: state.clone(),
             graph,
