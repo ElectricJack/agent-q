@@ -10,7 +10,10 @@ mod automatic;
 mod completion;
 mod default_policy;
 mod owner;
-pub use automatic::{AutoDisposition, AutoSettlement, settle_after_record};
+pub use automatic::{
+    AutoDisposition, AutoSettlement, ReplacementFacts, record_replacement_facts,
+    reworked_without_facts, settle_after_record,
+};
 
 /// The review requirement an offer must name for this validation policy body:
 /// D3's default completion policy is settled by the policy actor, every other

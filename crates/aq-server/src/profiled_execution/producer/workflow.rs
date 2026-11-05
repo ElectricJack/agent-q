@@ -421,6 +421,16 @@ async fn offers(
     };
     let replacement = assessment.replacement().cloned();
     if let Some(replacement) = &replacement {
+        tracing::info!(
+            task_id = %task.task_id,
+            predecessor = %replacement.predecessor,
+            attempts_started = replacement.attempts_started,
+            lineage_elapsed_ms = replacement.elapsed_ms,
+            sandbox_ms_charged = replacement.sandbox_ms,
+            max_attempts = replacement::MAX_ATTEMPTS,
+            max_sandbox_ms = replacement::MAX_SANDBOX_MS,
+            "replacement attempt admitted within the lineage budget"
+        );
         // The failed predecessor's claim is released under its locks before
         // the successor's generation; a later refusal retries idempotently.
         on_heap(|| replacement::release(state, task.task_id, replacement)).await?;
