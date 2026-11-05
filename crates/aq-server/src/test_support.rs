@@ -53,6 +53,53 @@ pub struct TestDb {
     clone_gate: tokio::sync::Mutex<()>,
 }
 
+/// One migration transaction at a time per process, and per PostgreSQL server
+/// across processes. A fresh full migration holds ~2.5k locks until commit, and
+/// PostgreSQL's shared lock table is only `max_locks_per_transaction` (64) x
+/// backends (~8k slots), so a few concurrent fresh test databases overflow it
+/// (53200 out of shared memory). nextest runs every test in its own process, so
+/// the in-process semaphore alone no longer bounds concurrency: the slot also
+/// holds a session advisory lock in the `DATABASE_URL` database, which every
+/// test process shares. Release builds never compile this.
+static MIGRATION_SLOT: tokio::sync::Semaphore = tokio::sync::Semaphore::const_new(1);
+/// Advisory lock key (in the shared admin database) for `migration_slot`.
+const MIGRATION_LOCK: i64 = 0x6171_7465_7374_6d67; // "aqtestmg"
+/// Advisory lock key serializing template builds (see `template`).
+const TEMPLATE_LOCK: i64 = 0x6171_7465_7374_7470; // "aqtesttp"
+
+pub(crate) struct MigrationSlot {
+    _permit: tokio::sync::SemaphorePermit<'static>,
+    // Dropping the session releases its advisory lock.
+    _lock: Option<PgConnection>,
+}
+
+pub(crate) async fn migration_slot() -> MigrationSlot {
+    let permit = MIGRATION_SLOT
+        .acquire()
+        .await
+        .expect("test migration semaphore is never closed");
+    let lock = match std::env::var("DATABASE_URL") {
+        Ok(url) => advisory_lock(&url, MIGRATION_LOCK).await,
+        Err(_) => None,
+    };
+    MigrationSlot {
+        _permit: permit,
+        _lock: lock,
+    }
+}
+
+/// A session holding advisory lock `key` in the `url` database; `None` (and
+/// in-process serialization only) when that database is unreachable.
+async fn advisory_lock(url: &str, key: i64) -> Option<PgConnection> {
+    let mut conn = PgConnection::connect(url).await.ok()?;
+    sqlx::query("SELECT pg_advisory_lock($1)")
+        .bind(key)
+        .execute(&mut conn)
+        .await
+        .ok()?;
+    Some(conn)
+}
+
 /// Migrated template databases built by this process, by schema version.
 static TEMPLATES: tokio::sync::Mutex<Option<HashMap<u32, String>>> =
     tokio::sync::Mutex::const_new(None);
@@ -83,12 +130,23 @@ async fn template(admin_url: &str, version: u32) -> Result<String, String> {
     let mut admin = PgConnection::connect(admin_url)
         .await
         .map_err(|e| fail("connect", &e))?;
-    let exists: bool =
-        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname=$1)")
+    let lookup = "SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname=$1)";
+    let mut exists: bool = sqlx::query_scalar(lookup)
+        .bind(&name)
+        .fetch_one(&mut admin)
+        .await
+        .map_err(|e| fail("lookup", &e))?;
+    // Test processes starting together would otherwise each build the same
+    // template: one builds it while the others wait, then reuse it.
+    let mut _building = None;
+    if !exists {
+        _building = advisory_lock(admin_url, TEMPLATE_LOCK).await;
+        exists = sqlx::query_scalar(lookup)
             .bind(&name)
             .fetch_one(&mut admin)
             .await
             .map_err(|e| fail("lookup", &e))?;
+    }
     if !exists {
         // Build under a private name; only a completely migrated database is
         // ever renamed to the shared template name.

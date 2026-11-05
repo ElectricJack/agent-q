@@ -113,6 +113,11 @@ pub type ActualProfileChoice = actual::ActualProfileChoice;
 // Actual and historical fixtures share the existing test-only serialization
 // gate. Neither constructor creates a second admission driver.
 //
+// The gate serializes fixtures inside one test process (`cargo test`). nextest
+// runs each test in its own process, so there the `selection-fixture` test
+// group in .config/nextest.toml (max-threads = 1) serializes them instead, and
+// the gate refuses to run a fixture test that is outside that group.
+//
 // The gate is not re-entrant: a test that builds a second fixture while its
 // first is still alive (including one merely shadowed by `let c = ...` again)
 // would wait on itself forever. That is refused at once instead of hanging.
@@ -126,6 +131,15 @@ impl Drop for FixtureGate {
 }
 async fn fixture_gate() -> FixtureGate {
     static GATE: std::sync::OnceLock<Arc<tokio::sync::Mutex<()>>> = std::sync::OnceLock::new();
+    if let Ok(group) = std::env::var("NEXTEST_TEST_GROUP") {
+        assert_eq!(
+            group,
+            "selection-fixture",
+            "{} builds a selection fixture but is not in the selection-fixture test group: \
+             add it to that group's filter in .config/nextest.toml",
+            std::env::var("NEXTEST_TEST_NAME").unwrap_or_default()
+        );
+    }
     let me = std::thread::current().id();
     assert_ne!(
         *GATE_HOLDER.lock().unwrap_or_else(|p| p.into_inner()),
