@@ -1001,3 +1001,14 @@ Each entry records what was observed, the action taken, and anything waiting on 
     | real daemon | 14m | **10m14s** |
     | recovery matrix | 19m | **10m8s** |
     | tests | 30m | 19m34s (16m20s on #91; runner variance) |
+- **19:58: build quick wins complete.** Merged aq-worker #40 (eaedd595) and aq-graph #5 (83ac59c5), the matching CI-image follow-ups.
+  - aq-worker CI went from 7m23s to 4m41s.
+  - The local edit-plus-one-test loop is 25–30s, against 127s before.
+  - **nextest:** the 233 selection-fixture tests run in a group of 2, and a fixture test outside the group panics. Cross-process migration and template builds are serialized with a DB lock, because PG lock-table overflow (53200) hit when processes migrated concurrently.
+  - Key generation for tests is 0.07–0.28s, down from 1.4–3.9s.
+  - **Ratchets** in `build-budget.toml`:
+    - aq-server: 204 test binaries, lib ≤109,000 lines;
+    - aq-worker: 105 test binaries, lib ≤68,081 lines;
+    - aq-git: 14 test binaries;
+    - aq-graph: 16 test binaries.
+  - The CI time budgets are written in AGENTS.md but not enforced yet. The `selection-fixture` group is now the long pole of the tests job.
