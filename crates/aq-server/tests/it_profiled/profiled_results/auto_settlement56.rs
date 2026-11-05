@@ -463,6 +463,213 @@ async fn failed_or_unknown_report_never_completes_a_task_without_required_checks
     );
 }
 
+/// Synthetic central aq-git peer: answers `candidate.create` and `publish`
+/// in order, after checking the intent was committed before the socket call.
+async fn git_peer(
+    pool: sqlx::PgPool,
+    socket: std::path::PathBuf,
+    replies: Vec<Value>,
+) -> tokio::task::JoinHandle<Vec<Value>> {
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+    let listener = tokio::net::UnixListener::bind(socket).unwrap();
+    tokio::spawn(async move {
+        let mut seen = Vec::new();
+        for mut reply in replies {
+            let (stream, _) = listener.accept().await.unwrap();
+            let mut reader = BufReader::new(stream);
+            let mut line = String::new();
+            reader.read_line(&mut line).await.unwrap();
+            let req: Value = serde_json::from_str(&line).unwrap();
+            let id = Uuid::parse_str(req["operation_id"].as_str().unwrap()).unwrap();
+            let stored: Vec<u8> =
+                sqlx::query_scalar("SELECT request FROM delivery_intents WHERE operation_id=$1")
+                    .bind(id)
+                    .fetch_one(&pool)
+                    .await
+                    .unwrap();
+            assert_eq!(stored, line.as_bytes(), "intent committed before the call");
+            if reply["result"]["candidate_id"] == "OP" {
+                reply["result"]["candidate_id"] = req["operation_id"].clone();
+                reply["result"]["retention_handle"] = req["operation_id"].clone();
+            }
+            reply["protocol_version"] = json!(1);
+            reply["request_id"] = req["request_id"].clone();
+            reply["operation_id"] = req["operation_id"].clone();
+            reader
+                .get_mut()
+                .write_all(format!("{reply}\n").as_bytes())
+                .await
+                .unwrap();
+            seen.push(req);
+        }
+        seen
+    })
+}
+
+struct PublishEnv {
+    env: AutoEnv,
+    delivery: aq_server::delivery::DeliveryService,
+    socket: std::path::PathBuf,
+    _git: tempfile::TempDir,
+}
+async fn publish_env() -> PublishEnv {
+    let env = auto_env("required", axum::http::StatusCode::OK).await;
+    let (checkpoint, validator) = (env.checkpoint.clone(), env.validator.clone());
+    env.check(env.source, &checkpoint, &validator, "passed")
+        .await;
+    let s = env.settle().await;
+    env.assert_not_completed(&s, AutoDisposition::Held, "delivery_evidence_missing")
+        .await;
+    let pool = env.f.db.pool().await;
+    let project = admitted(&env).await.project_id;
+    sqlx::query("UPDATE project_execution_bindings SET binding=jsonb_set(binding,'{publication}',$2) WHERE project_id=$1")
+        .bind(project)
+        .bind(json!({"mode":"fast_forward","target":"refs/heads/main"}))
+        .execute(&pool)
+        .await
+        .unwrap();
+    let git = tempfile::tempdir().unwrap();
+    let socket = git.path().join("git.sock");
+    let config = aq_server::source_retention::SourceRetentionConfig {
+        keep_per_task: 2,
+        max_age: 30 * 86400,
+        staging_root: git.path().join("staging"),
+        git_root: git.path().join("git"),
+        git_socket: socket.clone(),
+        max_staging_bytes: 2097152,
+        max_bundle_bytes: 4096,
+        bulk_concurrency: 2,
+        incomplete_ttl_secs: 60,
+    };
+    PublishEnv {
+        delivery: aq_server::delivery::DeliveryService::new(pool, &config),
+        env,
+        socket,
+        _git: git,
+    }
+}
+async fn admitted(env: &AutoEnv) -> aq_admission::SourceAdmission {
+    let pool = env.f.db.pool().await;
+    let mut tx = pool.begin().await.unwrap();
+    let r = results::load_locked(&env.f.state, &mut tx, env.report.report_id)
+        .await
+        .unwrap();
+    tx.rollback().await.unwrap();
+    r.spec.source
+}
+fn ready_candidate(candidate: &str) -> Value {
+    json!({"ok":true,"result":{"candidate_id":"OP","state":"ready","candidate":{"algorithm":"sha1","hex":candidate},
+        "clean_prefix":{"algorithm":"sha1","hex":candidate},"retention_handle":"OP","conflict_step":null,
+        "conflicting_paths":[],"conflict_path_count":0,"conflict_paths_truncated":false}})
+}
+
+#[tokio::test]
+async fn retained_result_publishes_then_completes_and_advances_source() {
+    use aq_server::profiled_execution::settlement::publication;
+    let p = publish_env().await;
+    let env = &p.env;
+    let pool = env.f.db.pool().await;
+    let base = admitted(env).await.resolved_object.hex;
+    let candidate = "c".repeat(40);
+    let peer = git_peer(
+        pool.clone(),
+        p.socket.clone(),
+        vec![
+            ready_candidate(&candidate),
+            json!({"ok":true,"operation_state":"complete","result":{"outcome":"applied","target":"refs/heads/main",
+                "old":{"algorithm":"sha1","hex":base},"new":{"algorithm":"sha1","hex":candidate},
+                "acknowledged_at":"2026-11-05T00:00:00Z"}}),
+        ],
+    )
+    .await;
+    let s = publication::deliver_then_settle(&env.f.state, &p.delivery, env.report.report_id)
+        .await
+        .unwrap()
+        .unwrap();
+    let sent = peer.await.unwrap();
+    assert_eq!(s.disposition, AutoDisposition::Confirmed, "{s:?}");
+    assert_eq!(s.evidence["delivery"]["state"], "published", "{s:?}");
+    assert_eq!(env.writes.load(Ordering::SeqCst), 1, "one Graph completion");
+    assert!(
+        !env.holds_task().await,
+        "dependents released only after publication"
+    );
+    // Server-owned inputs only: the retained receipt, the admitted base and the policy target.
+    assert_eq!(sent[0]["operation"], "candidate.create");
+    assert_eq!(sent[0]["params"]["base"]["hex"], json!(base));
+    assert_eq!(
+        sent[0]["params"]["sources"][0]["oid"]["hex"],
+        json!(env.checkpoint)
+    );
+    assert_eq!(sent[1]["operation"], "publish");
+    assert_eq!(sent[1]["params"]["target"], "refs/heads/main");
+    assert_eq!(sent[1]["params"]["expected_old"]["hex"], json!(base));
+    assert_eq!(sent[1]["params"]["candidate_id"], sent[0]["operation_id"]);
+    // The project's source head advanced to the published commit, retained by
+    // the candidate handle.
+    let source = &admitted(env).await;
+    let head = publication::current_head(
+        &pool,
+        source.project_id,
+        source.repository_id,
+        source.repository_binding_generation,
+        "refs/heads/main",
+    )
+    .await
+    .unwrap()
+    .expect("source head");
+    assert_eq!(head.oid, candidate);
+    assert_eq!(head.previous, base);
+    assert_eq!(head.sequence, 1);
+    assert_eq!(json!(head.retention_handle), sent[0]["operation_id"]);
+    // Replay is idempotent and does no aq-git I/O (no socket listens now).
+    std::fs::remove_file(&p.socket).unwrap();
+    let again = publication::deliver_then_settle(&env.f.state, &p.delivery, env.report.report_id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(again.disposition, AutoDisposition::Confirmed);
+    assert_eq!(env.writes.load(Ordering::SeqCst), 1);
+}
+
+#[tokio::test]
+async fn moved_target_is_unpublished_rework_and_never_advances_source() {
+    use aq_server::profiled_execution::settlement::publication;
+    let p = publish_env().await;
+    let env = &p.env;
+    let pool = env.f.db.pool().await;
+    let peer = git_peer(
+        pool.clone(),
+        p.socket.clone(),
+        vec![
+            ready_candidate(&"c".repeat(40)),
+            json!({"ok":true,"operation_state":"complete","result":{"outcome":"rejected","reason":"target_moved",
+                "observed_target":{"algorithm":"sha1","hex":"d".repeat(40)},"observed_at":"2026-11-05T00:00:00Z"}}),
+        ],
+    )
+    .await;
+    let s = publication::deliver_then_settle(&env.f.state, &p.delivery, env.report.report_id)
+        .await
+        .unwrap()
+        .unwrap();
+    peer.await.unwrap();
+    env.assert_not_completed(&s, AutoDisposition::ReworkRequired, "delivery_unpublished")
+        .await;
+    let source = &admitted(env).await;
+    assert!(
+        publication::current_head(
+            &pool,
+            source.project_id,
+            source.repository_id,
+            source.repository_binding_generation,
+            "refs/heads/main",
+        )
+        .await
+        .unwrap()
+        .is_none()
+    );
+}
+
 /// MS1 retry (B4): after a final rework, the D3 policy actor records the
 /// replacement facts that only owning domains prove (the central retention
 /// receipt pinned by the report; a settled read-only AQ effect ledger), so the

@@ -251,7 +251,11 @@ def designation(local_fixture=False):
     if parsed.username or parsed.password or parsed.query or parsed.fragment or any(c.isspace() for c in url):
         raise ValueError("DEV_SCRATCH_REPO_URL must not contain credentials, query, fragment or whitespace")
     if not (parsed.scheme == "https" and parsed.hostname == "github.com" and len(parsed.path.strip("/").split("/")) == 2):
-        if not (local_fixture and url.startswith("/fixture/") and not parsed.scheme):
+        # MS1 D1: a writable local bare remote inside the aq-git volume.
+        local_remote = os.environ.get("DEV_SCRATCH_LOCAL_REMOTE") == "1" and url.startswith("/var/lib/aq/remotes/")
+        if local_remote and not parsed.scheme and ".." not in url:
+            local_fixture = True
+        elif not (local_fixture and url.startswith("/fixture/") and not parsed.scheme):
             raise ValueError("DEV_SCRATCH_REPO_URL must designate an HTTPS GitHub repository")
     if subprocess.run(["git", "check-ref-format", "refs/heads/" + branch], capture_output=True).returncode:
         raise ValueError("invalid DEV_SCRATCH_BASE_BRANCH")
@@ -303,7 +307,7 @@ def seed(local_fixture=False):
     state, _, _ = paths()
     with (state / "seed.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        return seed_locked(choice, local_fixture)
+        return seed_locked(choice, choice["local_fixture"])
 
 
 def verify_worker_credential(record, node_id, worker_url):

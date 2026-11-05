@@ -4,6 +4,127 @@ Task `stark-zenith-16.2`. Run on 2026-11-05, 05:00–05:35 UTC, on the owner's
 desktop (WSL2). Owner decision of 2026-11-04: the agent is **Claude Code**
 signed in with the owner's Claude subscription login (no API key), not Codex.
 
+## Update 2026-11-05 (21:00–21:30 UTC): D1 publication live, B builds on A
+
+Branch `ms1/d1`. Plan:
+[2026-11-05-ms1-d1-publication.md](../superpowers/plans/2026-11-05-ms1-d1-publication.md).
+Stack `aq-ms1d` (ports 38080/38081/38741, state `~/.local/share/aq-ms1d`), a
+separate instance; `aq-ms1` and `aq-v2-local` were not touched.
+
+**Closes finding 3.** D3's default completion policy now runs with
+`delivery = required`. When D3 has accepted a result and is waiting only for
+delivery evidence, the new D1 delivery owner publishes the retained commit
+through the project's D1b policy (`fast_forward`, `refs/heads/main`),
+records the publication evidence, and only then does D3 complete the task. The
+project source is a named ref on `main`, which resolves to the head AQ
+published, so the dependent task starts from its predecessor's commit.
+
+The remote is a **local bare repository** in the aq-git volume
+(`/var/lib/aq/remotes/aq-scratch.git`, cloned from `ElectricJack/aq-scratch`,
+`allow_file_transport`). aq-git pushes to it with the same lease-guarded push it
+would use for GitHub. Pushing to GitHub needs D0 credential profiles in the pinned
+aq-git (A3b) and central credentials (D2).
+
+| | Task A2 | Task B2 (blocked by A2) |
+| --- | --- | --- |
+| Graph task | `e0a20000-0000-4000-8000-0000000000d1` → `completed` v3 | `e0a20000-0000-4000-8000-0000000000d2` → `completed` v3 |
+| Attempt / node | `4f71c639-3a11-596f-809e-af4e20073355` / `51834301-b318-4e42-8ba5-26dddacb2cc5` | `a2e66fd3-ad98-5c8c-9df2-5ec92f2239fe` / same node |
+| Source admission | named ref `refs/heads/main` → `2e32645b` (fresh central sync; base retention handle `e59c3eb1…`) | named ref `refs/heads/main` → **`7b3bad0c`** (publication head evidence; candidate retention handle `1d61d805…`) |
+| Worker-side base (transfer manifest) | `2e32645b` | **`7b3bad0c`** (A's commit) |
+| Claude session | `da621257-733c-465c-be91-8b2fd32f8e15`, 4 turns, 11.0 s, $0.032 list | `149d115d-373f-4734-b2ec-8acd51e21d8a`, 4 turns, 8.9 s, $0.029 list |
+| Work | `Cargo.toml`, `Cargo.lock`, `src/lib.rs` (`hello()` + test), `.gitignore` | one README line; Claude reported "step 1's `hello()`, its unit test and `.gitignore` were already present and left unchanged", `cargo test` passed |
+| Retained checkpoint (import op) | `7b3bad0c279659c5443914ecc0aae0a12344d534` (`dfbe0de1-a7d8-41b7-ab5b-c934636d3f16`), parent `2e32645b` | `d4138d2b015fb3a73979f5debd16cc6a0042f293` (`636df314-f301-4d8c-8885-bc8f2298da79`), **parent `7b3bad0c`** |
+| Result report | `947eb9ad-feba-437a-a37a-42204b858996` | `e49bd48f-76ec-4b24-99a3-11a053992c4a` |
+| Candidate (`candidate.create` op = aq-git candidate id) | `1d61d805-79e2-594d-ac9f-c9d0991ca252` → `7b3bad0c` (source descends from the base, so the candidate is the checkpoint itself) | `7a87cb9b-edfa-5817-b23e-ed3e77d251aa` → `d4138d2b` |
+| Publication (`publish` op) | `da61f20b-8466-588e-9158-d40e4f7a3452`: **`applied`**, `main` `2e32645b` → `7b3bad0c`, acknowledged 21:24:24.751Z | `ad069841-f152-5d8a-8c65-e38a4d088c9d`: **`applied`**, `main` `7b3bad0c` → `d4138d2b` |
+| Delivery evidence / source head | `published`, recorded 21:24:24.819Z; source head sequence 1 = `7b3bad0c` | `published`; source head sequence 2 = `d4138d2b` (previous `7b3bad0c`) |
+| D3 settlement | `confirmed` 21:24:24.893Z (after the evidence), graph operation `02388878-06fe-4acf-91be-dade0812ed18` | `confirmed`, graph operation `77995948-b98d-4f97-8073-5a17d7e81e45` |
+
+The remote's `main` after both runs is `d4138d2b` → `7b3bad0c` → `2e32645b`: two
+fast-forwards, no merge commit, no re-push. B2 became ready only after A2's
+publication was recorded and D3 had confirmed it. All three runs ended with the
+sandbox stopped and destroyed, and the leased login wiped. A token grep (pattern
+fed from the file on stdin) over the evidence, the node runs, these docs and the
+server log finds nothing.
+
+**Code** (aq-server `ms1/d1`; aq-worker and aq-git unchanged; no migration):
+
+- `settlement/publication.rs`: the delivery owner. It runs detached from
+  the result request (`results::record` spawns it when D3 holds on
+  `delivery_evidence_missing`), so a dropped client cannot cancel a push
+  mid-dispatch.
+  - Sources: only the report's server-confirmed retained receipt.
+  - Candidate base = `expected_old` = the recorded source head, or before the
+    first publication the commit the attempt was admitted on.
+  - Operation IDs derive from the report, and a retry replays the D1a frozen
+    inputs.
+  - Outcomes: `applied`/`already_present` → `published`;
+    `target_moved`/`rejected`/conflict → `unpublished` (D3 rework); a lost or
+    invalid reply after dispatch → `indeterminate` (D3 holds; reconcile only).
+  - Transport errors, a blocked destination, `recovery_blocked` and
+    pull-request mode write nothing and stay held.
+- The source head is stored in the `published` delivery evidence with a
+  sequence. It advances by compare-and-swap from the `expected_old` it
+  published over, under a per-target advisory lock. A migration-free choice:
+  0096 is reserved, and migrations must be numbered without gaps.
+- `source.rs` / `source/ownership.rs` / `source_exports.rs`: a named-ref
+  source resolves to the recorded head and hydrates from its candidate
+  retention handle, accepted only for exactly that commit.
+- `producer/build.rs`: the offer builder admitted only immutable sources (live
+  refusal at `build.rs:236`). It now admits a named ref at the exact commit it
+  resolved to, which is frozen into the export key and re-checked against the
+  export base.
+- Scripts: `ms1-demo.sh` takes `AQ_MS1_PROJECT` and the ports as parameters;
+  `AQ_MS1_D1=1` selects the local remote, the named-ref source,
+  `delivery=required` and the publication policy; `remote`, `sync` and
+  `publication` commands were added. `ms1-profiled.py` gains
+  `AQ_MS1_CREDENTIAL_REVISION`.
+
+**Tests.** `it_profiled profiled_results::auto_settlement56` 10/10, including:
+
+- `retained_result_publishes_then_completes_and_advances_source`: fake
+  aq-git peer, evidence published, head advanced, D3 confirmed, replay does no
+  aq-git I/O;
+- `moved_target_is_unpublished_rework_and_never_advances_source`.
+
+Lib tests `source::`, `settlement::publication`, `producer::` 20/20 (including
+`named_ref_follows_publication_head_only_for_its_exact_commit_and_handle`).
+`fmt --check` and `clippy -D warnings --all-targets` are clean.
+
+**Findings (with owners):**
+
+1. **Transient host bootstrap failure wedged a node.** The first A attempt
+   (task `…0011`, attempt `59c31201-20a5-5c72-adc5-487e95c6a17e`, node
+   `3d19e214…`) was granted. The session host then stopped with "observed gate
+   failed closed; post-grant exec evidence may be unknown", and the worker
+   reported "native host bootstrap refused: reader closed or malformed packet".
+   The host writes no diagnostics. An `aq-ms1` launch started in the same
+   second; the same binaries then worked on a fresh node.
+   - `reconcile-native` refuses ("runner genuine Running absent") because the
+     guardian had started, so the node cannot re-register ("prior execution
+     claims remain held") and task `…0011` (and B `…0012` behind it) stays held.
+   - Owner: B5b/AQ-08 closure (a started guardian that never reached
+     Running) and B6a (host diagnostics).
+2. **Following external pushes** to `main` is not implemented: the head is
+   AQ's last publication. An external push makes the next publication
+   `target_moved` (rework), never an overwrite. Owner: D2 (central sync owner
+   that retains the observed head).
+3. **No replay** of a result held across a server restart (D3/D1b), and no
+   automatic reconcile of an indeterminate publication (D1b). PR mode stays
+   refused (D1b/D2).
+4. A dedicated source-head table belongs at the next free migration; the
+   evidence-row lookup is unindexed (D1b).
+
+**Rerun** (`~/.local/share/aq-ms1d/up.sh` sets the project, ports, `AQ_MS1_D1=1`
+and credential revision 2):
+
+```sh
+~/.local/share/aq-ms1d/up.sh status
+python3 scripts/ms1-task.py ID TITLE BODY [--blocks OTHER]   # AQ_MS1_HOME / AQ_DEV_GRAPH_URL for aq-ms1d
+~/.local/share/aq-ms1d/up.sh run           # owner observation, central sync, one attempt
+~/.local/share/aq-ms1d/up.sh publication   # delivery evidence, source head, remote main
+```
+
 ## Update 2026-11-05 (15:30 UTC): B4 retry and B5b closure settlement (paused)
 
 Work paused by the owner (Rust build optimisation) before the replacement

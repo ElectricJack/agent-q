@@ -10,6 +10,7 @@ mod automatic;
 mod completion;
 mod default_policy;
 mod owner;
+pub mod publication;
 pub use automatic::{
     AutoDisposition, AutoSettlement, ReplacementFacts, record_replacement_facts,
     reworked_without_facts, settle_after_record,
