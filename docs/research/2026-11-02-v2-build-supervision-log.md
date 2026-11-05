@@ -958,3 +958,16 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - aq-worker CI has no cache.
   - **Docker:** the per-build `cargo clean` fix still misses vendored path crates, and `Dockerfile.supervisor-host` has no clean at all.
   - Recommendations ranked for the owner's approval: incremental for interactive work; nextest in CI; a no-LTO image profile for CI images; a touch-based Docker cache fix; aq-worker CI cache and narrowed clippy. Bigger: consolidate integration tests into ~6–10 binaries, then split the aq-server lib.
+- **16:40: owner approved** quick wins 1–5, test-binary consolidation and the aq-server lib split, plus saved build requirements: "so that we do not build ourselves into this position again… update agents.md or whatever is most likely to keep us in a good situation going forward".
+  - Dispatched the quick-wins subagent:
+    - incremental for interactive work, CI explicitly non-incremental;
+    - nextest with a selection test group, plus doctests;
+    - a no-LTO `ci-image` profile for CI images;
+    - a touch-based Docker cache fix, including `Dockerfile.supervisor-host`;
+    - a narrowed recovery clippy pass, CI caches for aq-worker/aq-git, and optimised crypto deps for tests.
+  - It also adds guardrails: a "Build health" section in each Rust repo's AGENTS.md, and a CI-enforced ratchet (`build-budget` script and file) on the integration-test binary count and the aq-server lib size.
+  - **Sequencing (my call):**
+    1. Quick wins and guardrails first.
+    2. Test consolidation next; it touches the same Cargo.toml/CI.
+    3. Resume MS1 on the faster loops.
+    4. The lib split only after the `ms1/retry` / `ms1/d1` branches and the held stale PRs merge. A 109k-line split would otherwise conflict with every open branch.
