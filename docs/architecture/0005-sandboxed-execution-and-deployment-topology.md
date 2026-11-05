@@ -2,7 +2,7 @@
 
 **Status:** Required design. Nothing in this document is implemented yet.
 
-**Date:** 2026-11-02. **Amended:** 2026-11-03 with the storage budget and continuous cleanup (review `rev-steady-rapids`; §§4, 5.1, 5.2, 9.2, 10, 11, 14 and 15). **Amended:** 2026-11-04 with the owner rescope of subscription-login refresh to a versioned login with compare-and-swap write-back (C5b; §§7, 8.3, 10, 11 and 15).
+**Date:** 2026-11-02. **Amended:** 2026-11-03 with the storage budget and continuous cleanup (review `rev-steady-rapids`; §§4, 5.1, 5.2, 9.2, 10, 11, 14 and 15). **Amended:** 2026-11-04 with the owner rescope of subscription-login refresh to a versioned login with compare-and-swap write-back (C5b; §§7, 8.3, 10, 11 and 15). **Amended:** 2026-11-04 with the Claude Code 2.1.318 and OpenCode 1.18.35 harness rows and the Claude `native` fail-closed rule (§8.3).
 
 This is the canonical cross-component design for:
 
@@ -421,7 +421,72 @@ Each harness adapter documents how it maps the vendor's headless/container guida
 
   Codex requires a Git repository, and the attempt workspace is always an aq-git worktree, so `--skip-git-repo-check` is never needed.
 
-**Claude Code, Gemini CLI, OpenCode:** the same table must be filled in from each vendor's current headless documentation during WRK-11/12/13. That covers:
+**Claude Code 2.1.318,** checked on 2026-11-04 against Anthropic's [CLI reference](https://code.claude.com/docs/en/cli-reference), [headless mode](https://code.claude.com/docs/en/headless), [permission modes](https://code.claude.com/docs/en/permission-modes), [`.claude` directory](https://code.claude.com/docs/en/claude-directory), [sessions](https://code.claude.com/docs/en/sessions), [settings reference](https://code.claude.com/docs/en/settings-reference), [authentication](https://code.claude.com/docs/en/authentication), [environment variables](https://code.claude.com/docs/en/env-vars), [LLM gateway protocol](https://code.claude.com/docs/en/llm-gateway-protocol), [network configuration](https://code.claude.com/docs/en/network-config), [sandboxing](https://code.claude.com/docs/en/sandboxing) and [changelog](https://code.claude.com/docs/en/changelog) documentation. "Witnessed" means observed on the pinned CLI in the live qualification run, not stated in the docs. Adapter evidence: aq-worker `docs/implementation/I1.md` (task `azure-horizon-22.4`).
+
+- **Headless invocation.** `claude -p` (print mode) with `--output-format stream-json --verbose` and `--input-format text`. The prompt goes on stdin, never in argv. Exit 0 means success and non-zero means failure. AQ adds:
+  - `--setting-sources user --settings <home>/settings.json`, so workspace project and local settings are ignored;
+  - `--strict-mcp-config`, so project MCP servers are off;
+  - `--session-id <uuid>`, so the transcript path is known in advance;
+  - `--disable-slash-commands`.
+- **Non-interactive permissions.** `--permission-mode` accepts `default`, `acceptEdits`, `plan`, `auto`, `dontAsk` and `bypassPermissions`. AQ uses `acceptEdits` in `native` mode and `bypassPermissions` in `container` mode.
+  - Claude refuses `bypassPermissions` as root or under sudo "unless inside a recognized sandbox". The recognition variable, `IS_SANDBOX=1`, is **undocumented** (witnessed).
+  - The production agent is the non-root `agent` user (SBX7), so the recipe never sets `IS_SANDBOX`. Only the single-UID docker-local test runner, which runs as in-container uid 0, exports it.
+- **Config directory.** `CLAUDE_CONFIG_DIR` moves every `~/.claude` path, including `settings.json`, `.claude.json`, `projects/` and `.credentials.json`. AQ sets both `HOME` and `CLAUDE_CONFIG_DIR` to the attempt's private home.
+- **Transcripts and retention.** The session is JSONL at `projects/<project>/<session-id>.jsonl` under the config directory.
+  - The `<project>` slug rule is **undocumented** (witnessed): every non-alphanumeric character becomes `-`, and slugs longer than 200 bytes are hash-shortened. A missing transcript is therefore an observation gap, not silence.
+  - `cleanupPeriodDays` defaults to 30 with a minimum of 1. AQ sets 1, and the home is wiped with the sandbox anyway.
+- **Credential file and refresh.**
+  - On Linux, `/login` writes `~/.claude/.credentials.json` with mode 0600.
+  - `claude setup-token` prints a long-lived token without saving it, for use as `CLAUDE_CODE_OAUTH_TOKEN`. The refresh mechanism is undocumented, and Claude Code cannot refresh an expired token.
+  - AQ leases the setup token env-only (section 7), so it needs no write-back. With only the env token, Claude writes no `.credentials.json` (witnessed). This is the one exception to the "credentials are stored as files" rule: the token is still stored and versioned in the vault, but it reaches the agent as a spawned-environment variable.
+  - Enrollment is operator import only: the owner runs `claude setup-token` on a trusted desktop and the operator imports the token as the newest login version (section 7). In-sandbox enrollment capture is parked.
+- **Credential precedence.** Claude Code picks the first credential present, in this order:
+  1. cloud-provider variables;
+  2. `ANTHROPIC_AUTH_TOKEN`;
+  3. `ANTHROPIC_API_KEY`;
+  4. `apiKeyHelper`;
+  5. `CLAUDE_CODE_OAUTH_TOKEN`;
+  6. the `/login` OAuth credentials.
+
+  Bare mode (`--bare` or `CLAUDE_CODE_SIMPLE`) never reads OAuth. AQ forbids every non-subscription variable in the agent environment and sets `forceLoginMethod: "claudeai"`, so a stray key can't silently take precedence over the leased login.
+- **API keys: not supported (owner decision, 2026-11-04).** AQ runs Claude Code on the subscription login only. A Claude credential profile therefore cannot use an API key, and that limitation is recorded here. If the route is built, the documented gateway shape is its specification:
+  - `ANTHROPIC_BASE_URL` points at the runner's loopback proxy;
+  - the proxy serves `POST /v1/messages` (`/v1/messages/count_tokens` is optional) and `GET /v1/models?limit=1000` for model discovery;
+  - it forwards `anthropic-version` and `anthropic-beta` verbatim;
+  - redirects fail by design, so the proxy must answer directly;
+  - the agent authenticates with a per-attempt dummy bearer (`ANTHROPIC_AUTH_TOKEN` or `apiKeyHelper`), and the proxy injects the real `x-api-key` upstream.
+- **Network and telemetry.** The recipe sets `DISABLE_AUTOUPDATER`, `DISABLE_TELEMETRY`, `DISABLE_ERROR_REPORTING` and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`; any non-empty value turns each one on. The documented hosts include `api.anthropic.com`, `claude.ai` and `platform.claude.com`.
+- **Native sandbox on Linux.** Claude Code uses bubblewrap plus socat, with seccomp to block Unix sockets.
+  - It confines **shell commands only**. The file tools, MCP servers and hooks run outside it, so `native` mode for Claude is narrower than for Codex.
+  - It is **fail-open by default**: if the sandbox can't start, commands run unconfined. **Rule: AQ's `native` mode for Claude must set `sandbox.failIfUnavailable: true`**, so an unavailable sandbox fails startup instead (SBX13, SBX19). The adapter's `native` settings don't set it yet (follow-up `azure-horizon-22.4.1`).
+  - The kernel minimum is **undocumented**, and Ubuntu's AppArmor user-namespace restriction can block it.
+  - On docker-local, C2's UID-map `EPERM` applies just as it does to Codex, so confinement stays `container`. `native` is not qualified on any backend yet.
+
+**OpenCode 1.18.35** (npm `opencode-ai@1.18.35`, binary package `opencode-linux-x64@1.18.35`), checked on 2026-11-04 against the [CLI](https://opencode.ai/docs/cli/), [providers](https://opencode.ai/docs/providers/) and [permissions](https://opencode.ai/docs/permissions/) documentation and against the pinned binary's behaviour. Adapter evidence: aq-worker `docs/implementation/I3.md` (task `azure-horizon-22.6`).
+
+- **Headless invocation.** `opencode run --format json --pure --model <provider>/<model>`.
+  - The prompt goes on stdin, which OpenCode reads when stdin is not a TTY.
+  - Events (`step_start`, `tool_use`, `text`, `step_finish`) arrive as JSON lines on stdout.
+  - `--pure` disables external plugins.
+  - `opencode export <session>` writes the session as JSON, and that export is the transcript reader's input.
+- **Config directory.** The adapter sets only `OPENCODE_CONFIG`, which names the config file inside the private home. It refuses `OPENCODE_CONFIG_DIR` and `OPENCODE_CONFIG_CONTENT`, which the docs also list.
+  - It sets the documented `OPENCODE_DISABLE_PROJECT_CONFIG=1` and `OPENCODE_DISABLE_AUTOUPDATE=1`.
+  - It also sets these, which the binary reads: `OPENCODE_DISABLE_MODELS_FETCH`, `_LSP_DOWNLOAD`, `_SHARE`, `_CLAUDE_CODE` and `_EXTERNAL_SKILLS`, plus `_DEFAULT_PLUGINS` on the proxy route.
+  - `HOME` and every `XDG_*` directory sit inside the private 0700 home.
+- **Credential file and refresh.** `opencode auth login` writes `$XDG_DATA_HOME/opencode/auth.json` (by default `~/.local/share/opencode/auth.json`).
+  - Entries are either `{type:"oauth", refresh, access, expires, accountId?}` or `{type:"api", key}`.
+  - The OpenAI "ChatGPT Pro/Plus (headless)" method is a device-code login.
+  - OpenCode refreshes OAuth entries in place in `auth.json`. The C6b write-back (section 7) triggers when `openai.expires` advances.
+- **API-key routing through a loopback proxy.** OpenCode documents `provider.<id>.options.baseURL` "for proxies or custom endpoints". The proxy route points `openai` at `http://127.0.0.1:<port>/v1`, the runner's `aq-responses-transport` proxy.
+  - `auth.json` then holds only the proxy's attempt-local capability, as an `api` entry. The real key stays with the runner.
+  - The proxy admits OpenCode's typeless "easy input messages" (`{role, content}`) as `message` items, and nothing else in that shape.
+- **Native sandbox: none.** The docs describe only approval rules (`allow`/`ask`/`deny`), with no OS isolation. Only `container` confinement is qualified, and `native` is refused.
+  - The adapter allows every tool without prompting, except `external_directory`, `question`, `webfetch` and `websearch`, which are `deny`.
+- **Qualification status (owner deferral).** The owner deferred both credentialed routes:
+  - The live qualification ran on a local Ollama provider, which needs no credential.
+  - The ChatGPT subscription route and the API-key proxy route (B6b) are built and unit-tested, but neither has been qualified live.
+
+**Gemini CLI:** the same rows must be filled in from Google's current headless documentation during WRK-12. That covers:
 
 - headless invocation;
 - config directory variable;
