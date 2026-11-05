@@ -322,6 +322,14 @@ pub async fn poll(
             _ => Ok(page),
         };
     }
+    // A zero-capacity poll is a cancellation query (MS1 B3): it asks for no
+    // offer, so it never depends on a fresh inventory snapshot. Answering it
+    // here keeps "no pending cancellation" distinct from a refused poll for a
+    // node whose inventory has aged past its TTL during a long attempt.
+    if request.available.slots == 0 {
+        page.validate_for(request).map_err(|_| refused())?;
+        return Ok(page);
+    }
     // Offer assembly has a large future. Keep this shared scheduling boundary
     // on the heap instead of embedding it in every control/fixture caller.
     on_heap(|| offers(state, auth, request, page)).await
