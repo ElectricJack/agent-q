@@ -37,7 +37,7 @@ struct Configuration {
     protection: ProtectionConfig,
     drive_interval_ms: u64,
     deployments: Vec<DeploymentInput>,
-    /// D7 integration policy (Host7 only). Absent leaves the D1 port unbound.
+    /// D7 integration policy (Host7/Host8 only). Absent leaves the D1 port unbound.
     #[serde(default)]
     integration: Option<IntegrationInput>,
 }
@@ -101,6 +101,8 @@ enum Profile {
     Monitoring6,
     #[serde(rename = "host_v7")]
     Host7,
+    #[serde(rename = "host_v8")]
+    Host8,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -194,9 +196,10 @@ impl Configuration {
             Profile::SettlementEvents4 => CatalogProfile::SettlementEvents4,
             Profile::Monitoring6 => CatalogProfile::Monitoring6,
             Profile::Host7 => CatalogProfile::Host7,
+            Profile::Host8 => CatalogProfile::Host8,
         };
-        if self.integration.is_some() && profile != CatalogProfile::Host7 {
-            return Err("playbook integration requires the host_v7 profile");
+        if self.integration.is_some() && !profile.is_host2() {
+            return Err("playbook integration requires the host_v7 or host_v8 profile");
         }
         let integration = self.integration.map(IntegrationInput::load).transpose()?;
         let n = &self.namespace;

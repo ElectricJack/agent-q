@@ -795,3 +795,60 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Refreshed #85 on main (clean merge, catalog at 91, protocol checks pass; 59eb2ea0) and am waiting on CI.
   - A trial merge of main into F5 conflicts with #83 in `dashboard_api/actions/existing.rs`, `tests/profiled_results.rs` and `protocol/dashboard-actions/v1/schema.json`. Both PRs add dashboard action kinds, and the generated schema needs regenerating.
   - Dispatched an integration subagent to bring F5, then D11, current on top of #85, verify each stack with a private target dir, and open their PRs.
+- **08:10: MS1 steps 1–2 LIVE through the stack.** aq-server assigned task A to a node. A real Claude Code agent ran it in a docker-local sandbox (`cargo test` passed). The result went to central aq-git as commit `6d9c3189`, and D3 completed A automatically. That made B ready, and B ran the same way (`e41b1a00`). Evidence IDs are in `ms1/demo` MS1.md, "Update 2026-11-05".
+  - **Wiring:** kept the MS0 `run-native` profiled path. The node's session host starts a pinned `aq-worker sandbox-harness` driver, which creates the sandbox, copies the worktree in and out, and passes the leased token in as private material; the runner moves it into `CLAUDE_CODE_OAUTH_TOKEN` for `claude` only.
+  - **Server fixes on the path:**
+    - D3's review requirement was hard-coded to the human owner;
+    - D3 refused the native `Unknown` outcome;
+    - the long-phase/result opt-in only allowed Codex;
+    - new `require_container` confinement option;
+    - C5b trailing newline.
+  - **Not done:**
+    - cancel is recorded but doesn't reach the native executor;
+    - retry: no replacement attempt is offered;
+    - restart drills not run;
+    - stuck granted attempts hold the task and node;
+    - B doesn't build on A, because the D1 publish isn't on this path.
+  - Asked the wiring subagent to continue in that order. Dispatched an independent read-only reviewer on the aq-server `ms1/demo` diff before it goes to main.
+- **08:30: independent review of aq-server `ms1/demo` found a blocker.** Not mergeable as-is.
+  - **B1 (blocking):** a failed Claude run can complete its task automatically. Three changes combine: the D3 policy actor is named as reviewer while offers carry no required checks, D3 now accepts `Unknown`, and the worker maps `Failure` to `Unknown`. So an expired token or a crash would mark the task complete and unblock its dependents.
+  - **Decision (delegated reviewer):** the worker maps Failure to Failed and reports Success only for a natural exit 0 with an explicit success claim; D3 goes back to accepting Success only. A DB-backed `auto_settlement56` test must cover the production-shaped offer.
+  - **Should-fix:**
+    - `require_container` bypasses backend placement facts;
+    - the Claude long-phase rule doesn't check confinement, and aq-admission's version isn't bumped;
+    - the Claude recipe digest isn't pinned;
+    - naming the policy actor removes the human fallback.
+  - All sent back to the wiring subagent ahead of cancel and retry.
+- **08:35:** main CI is green again at #81 (473bbe2b) and #82 (badab765); #83 is still running.
+  - #85's `tests` job failed `playbook_activation::inspection_discovers_actual_admissions_runs_and_public_timeline`, with `definition.active` null in the list item. Locally it passed 3/3 on #85 and also on main (disposable Postgres), so it's flaky.
+  - The first rerun died on a GitHub runner `No space left on device` before any test ran; rerunning again.
+  - F5 is up as #87.
+- **09:10:** main CI is green through #83 (2c770ab3).
+  - #85 failed `playbook_activation::inspection_discovers…` twice in CI, with the run definition's `pinned_is_active`/`active` null, but passed every time locally (alone and as the full binary).
+  - **Cause:** `current_activations()` read each activation page with a 500 ms budget and silently returned None on timeout. #85's 2.1.0 catalog made the read slow enough on CI runners to time out.
+  - Pushed 97aaef30 to #85 with a 2 s per-page budget; the binary passes 19/19 locally and clippy is clean. Waiting on CI. Then #87 (F5) and #88 (D11).
+- **09:45:** merged #85 (`azure-delta-64`, host catalog 2.1.0 as CatalogProfile::Host8, migration 0091) as f9b448de, with all 9 checks green after the activation read budget fix.
+  - Refreshed #87 (F5) on main: clean merge, catalog at 92, protocol checks pass, pushed 1e15dee6. Waiting on CI. #88 (D11, 0093) is next.
+- **10:20:** merged #87 (F5, agent questions to the owner, migration 0092) as fe4987a8, with all 9 checks green.
+  - Refreshed #88 (D11) on main: clean merge, catalog at 93, protocol checks pass, pushed c05381a7. Waiting on CI.
+- **10:50:** merged #88 (D11, routing/watcher/reporting pilots on the real Host7/Host8 adapters, migration 0093), with all 9 checks green. The PR merge queue is empty.
+  - Open server work: aq-server/aq-worker `ms1/demo`. The wiring subagent is applying the review's B1 fix and should-fixes, then cancel, stuck attempts, retry, restart drills and D1.
+- **10:55: local stack rebuilt.** The `aq-v2-local` stack (http://127.0.0.1:18080) now runs from aq-server main through #88 (migrations to 0093) and aq-dashboard main 41f5150; healthy.
+  - The first rebuild failed to compile, calling `admit_confinement` with `ms1/demo`'s three-argument signature. The BuildKit target cache is shared by every build of the Dockerfile on the host, and the build only cleaned 4 packages, so cargo reused the aq-selection that the `aq-ms1` image had built from `ms1/demo` (W67 again, inside Docker).
+  - Fixed in 458f682d: clean every workspace crate before building; dependencies stay cached.
+- **11:15: dashboard question inbox.** aq-dashboard PR #67 (`feat/question-answers`, 5389ce6) adds "Agent questions" in the decision inbox, a question detail page with the `question.answer` composer, and a deep link `/decisions/{id}?kind=question`.
+  - It is gated on new server capabilities `questions.read`/`questions.answer`, so it is inert until the server serves them.
+  - aq-server main has no human read of question decisions, so dispatched a subagent to build `GET /api/questions/decisions[/{id}]` and the capabilities to the dashboard's proposed contract.
+  - #67's browser CI fails only `settings-panels.spec.ts`, which fails the same way on main.
+- **11:35:** merged aq-dashboard #67 (question inbox, inert until the server advertises `questions.read`). Its only red check was `settings-panels.spec.ts`, which had been red on dashboard main since 41f5150.
+  - Merged #68, the fix for that spec, with all 4 checks green. The test was stale against the intended G11 Display panel (new subtitle and desktop pairing); the product was unchanged. Dashboard main should be green again.
+- **12:10:** merged aq-server #89 (`feat/question-inbox-read`, migration 0094) as 620a1b83, with all 9 checks green.
+  - It adds the owner question read API, `GET /api/questions/decisions[/{id}]`, and the `questions.read`/`questions.answer` bootstrap capabilities. It also regenerates the stale `bootstrap.json` fixture.
+  - Dispatched the dashboard follow-up: vendor the live dashboard-read schema (sha256:c3cbd5c1…), show `task_title`, and mark expired questions (the server keeps them `pending`).
+  - Main CI after #88 failed once on `playbook_host_requests::check_request_cancel_completes_from_executor_stop` (host_dispatch returned `Unknown`). It passed on #88's own CI; watching the next main run for a recurrence.
+- **12:35:** merged aq-dashboard #69 (live question-inbox contract, task titles, expiry) as 42830ec8, with all 4 checks green.
+  - Rebuilt `aq-v2-local` from aq-server main 620a1b83 and dashboard 42830ec8; healthy.
+  - Browser check: the Decisions page now calls `/api/questions/decisions?state=open` (capability detected), and the server returns `question-inbox-1` with no items, since no agent has asked yet.
+  - Main CI is green at 458f682d, so the post-#88 `playbook_host_requests` failure was a one-off flake.
+- **13:20: the MS1 wiring subagent had stalled.** Its review fixes were pushed (B1 Failure→Failed plus D3 Success-only, with a DB test on a production-shaped offer; should-fix 1, 2 and 4; nits), but there had been no commits and no live processes for hours after a "waiting for the server rebuild" message. Same pattern as W64: idle and waiting on background work that had already ended.
+  - Resumed it with a status request, asked it to continue with cancel, then stuck attempts, retry, restart drills and D1, and to merge main (now at 0094) early.

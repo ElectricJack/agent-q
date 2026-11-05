@@ -29,6 +29,7 @@ pub(crate) fn registry(
     crate::agent_access::human::graph_actions::register(state, &mut registry);
     crate::agent_access::human::task_execution::register(state, &mut registry);
     crate::agent_access::messaging::session_action::register(&mut registry);
+    crate::agent_access::questions::action::register(&mut registry);
     // Unknown kinds are refused when no playbook runtime is mounted.
     if let Some(driver) = playbooks {
         crate::playbooks::actions::register(driver, &mut registry);
@@ -51,6 +52,7 @@ pub(crate) fn schemas() -> Registry {
     crate::agent_access::human::graph_actions::schemas(&mut registry);
     crate::agent_access::human::task_execution::schemas(&mut registry);
     crate::agent_access::messaging::session_action::schemas(&mut registry);
+    crate::agent_access::questions::action::schemas(&mut registry);
     crate::playbooks::actions::schemas(&mut registry);
     registry
 }

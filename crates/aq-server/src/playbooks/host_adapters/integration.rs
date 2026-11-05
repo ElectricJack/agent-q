@@ -249,6 +249,39 @@ impl Service {
         Ok(CheckSource::Candidate(catalog_oid(&candidate)))
     }
 
+    /// The retained source receipt a candidate source names: an explicit
+    /// `aq.source/<receipt>`, or (D11) a completed work item of this
+    /// namespace whose task lifecycle recorded `aq:source_receipt` on the
+    /// node. Anything else is `None` (refused `invalid_request`).
+    async fn source_receipt(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        ports: &HostPorts,
+        item: &Value,
+    ) -> Result<Option<Uuid>> {
+        let Some(id) = item["id"].as_str() else {
+            return Ok(None);
+        };
+        if let Some(receipt) = handle(id, SOURCE_REF) {
+            return Ok(Some(receipt));
+        }
+        let Ok(task) = Uuid::parse_str(id) else {
+            return Ok(None);
+        };
+        if !self.namespace_work(tx, task).await? {
+            return Ok(None);
+        }
+        let Some(node) = ports.graph.node(self.namespace.workspace_id, task).await? else {
+            return Ok(None);
+        };
+        if node["task_state"] != "completed" {
+            return Ok(None);
+        }
+        Ok(node["metadata"]["aq:source_receipt"]
+            .as_str()
+            .and_then(|r| Uuid::parse_str(r).ok()))
+    }
+
     async fn insert_receipt(
         &self,
         tx: &mut Transaction<'_, Postgres>,
@@ -447,12 +480,14 @@ impl Service {
                 };
                 let input = &intent.input;
                 let base = text(&input["base"], "id").ok().and_then(base_oid);
-                let sources: Option<Vec<Uuid>> = input["sources"].as_array().and_then(|items| {
-                    items
-                        .iter()
-                        .map(|s| s["id"].as_str().and_then(|s| handle(s, SOURCE_REF)))
-                        .collect()
-                });
+                let mut sources = Some(vec![]);
+                for item in input["sources"].as_array().into_iter().flatten() {
+                    let receipt = self.source_receipt(&mut tx, ports, item).await?;
+                    match (receipt, sources.as_mut()) {
+                        (Some(r), Some(list)) => list.push(r),
+                        _ => sources = None,
+                    }
+                }
                 let (Some(base), Some(sources)) = (base, sources) else {
                     return refuse(tx, Some(&binding), "invalid_request").await;
                 };
@@ -521,6 +556,16 @@ impl Service {
                 Some(token(&reason, "prepare_failed")),
                 Value::Null,
             ),
+        };
+        // Catalog 2.1.0 (Host8): `prepared` carries the prepared candidate's
+        // OID, which policies bind check.request `source` to. 2.0.0 has none.
+        let output = match &detail["candidate"] {
+            candidate if outcome == "prepared" && self.profile == CatalogProfile::Host8 => {
+                let candidate: ObjectId =
+                    serde_json::from_value(candidate.clone()).map_err(|_| Error::Unknown)?;
+                merged(&output, json!({"source": catalog_oid(&candidate)}))
+            }
+            _ => output,
         };
         let result = HostResult {
             outcome: outcome.into(),
@@ -850,6 +895,35 @@ impl Service {
                     return Ok(Err("evidence_failed"));
                 }
                 judged = true;
+            } else if id.starts_with(WORK_REF) {
+                // D11: Host7 review work. Its disposition came from the review
+                // recorded on the task (`aq:review_disposition`), never inferred.
+                let row = sqlx::query("SELECT status,request,output FROM playbook_host_operations WHERE namespace_id=$1 AND generation=$2 AND command_name='work.ensure' AND request->>'reference'=$3")
+                    .bind(self.namespace.namespace_id)
+                    .bind(self.namespace.generation)
+                    .bind(id)
+                    .fetch_optional(&mut **tx)
+                    .await?;
+                let Some(row) = row else {
+                    return Ok(Err("evidence_unknown"));
+                };
+                let (status, request, output): (String, Value, Option<Value>) =
+                    (row.get("status"), row.get("request"), row.get("output"));
+                if !matches!(request["kind"].as_str(), Some("review" | "fidelity_review")) {
+                    return Ok(Err("evidence_unauthorized"));
+                }
+                if status == "running" {
+                    return Ok(Err("evidence_pending"));
+                }
+                if !same_subject(&request["motivation"], candidate, 1) {
+                    return Ok(Err("evidence_stale"));
+                }
+                if status != "completed"
+                    || output.as_ref().map(|o| &o["disposition"]) != Some(&json!("accepted"))
+                {
+                    return Ok(Err("evidence_failed"));
+                }
+                reviewed = true;
             } else if let Some(decision) = handle(id, REVIEW_EVIDENCE) {
                 let Some(review) = port.review(workspace, project, decision).await? else {
                     return Ok(Err("evidence_unknown"));

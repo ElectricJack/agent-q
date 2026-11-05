@@ -201,6 +201,7 @@ pub(super) async fn bootstrap(
     let graph = mounted.graph && a.owner && state.agent_access.is_some();
     let graph_mutation = graph && crate::agent_access::human::task_create_available(state);
     let reviews = a.owner && mounted.reviews;
+    let actions = a.owner;
     let playbooks = a.owner && mounted.playbook_owner == Some(a.actor);
     let global = if mounted.supervisor_conversation && a.owner {
         global_supervisor(&state.store.pool).await
@@ -342,6 +343,17 @@ pub(super) async fn bootstrap(
             "Decision resolution requires an owner account and a mounted review owner",
         ),
         capability(
+            "questions.read",
+            mounted.questions && a.owner,
+            "Agent question inspection requires an owner account",
+        ),
+        capability(
+            "questions.answer",
+            // `question.answer` is a dashboard-actions-1 kind, gated with `dashboard.actions`.
+            mounted.questions && a.owner && actions,
+            "Answering agent questions requires an owner account and dashboard actions",
+        ),
+        capability(
             "providers.configured.read",
             a.owner,
             "Configured provider inspection requires an owner account",
@@ -403,7 +415,7 @@ pub(super) async fn bootstrap(
         ),
         capability(
             "dashboard.actions",
-            a.owner,
+            actions,
             "Dashboard actions require an owner account",
         ),
         capability(

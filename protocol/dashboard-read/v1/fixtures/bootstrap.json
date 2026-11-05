@@ -166,12 +166,27 @@
       },
       {
         "enabled": true,
+        "name": "questions.read",
+        "version": "1"
+      },
+      {
+        "enabled": true,
+        "name": "questions.answer",
+        "version": "1"
+      },
+      {
+        "enabled": true,
         "name": "providers.configured.read",
         "version": "1"
       },
       {
         "enabled": true,
         "name": "provider.quota",
+        "version": "1"
+      },
+      {
+        "enabled": true,
+        "name": "capacity.read",
         "version": "1"
       },
       {
@@ -187,6 +202,21 @@
       {
         "enabled": true,
         "name": "session.message.enqueue",
+        "version": "1"
+      },
+      {
+        "enabled": true,
+        "name": "session.nudge",
+        "version": "1"
+      },
+      {
+        "enabled": true,
+        "name": "session.operations.read",
+        "version": "1"
+      },
+      {
+        "enabled": true,
+        "name": "waits.read",
         "version": "1"
       },
       {
@@ -289,12 +319,12 @@
     ],
     "contracts": [
       {
-        "digest": "sha256:1d651086816613e2a8fa5728241fda39e993930ef154c3748a1c27f4b61db985",
+        "digest": "sha256:c3cbd5c140cbf5f0a29905a877070d267db55f63d96a2277e9a3ca6707c03cde",
         "name": "dashboard-read",
         "version": "dashboard-read-1"
       },
       {
-        "digest": "sha256:fcbbbdffc64fe08ee435c8de96b9943441f87d14d7f4b795d3e807ce56c17555",
+        "digest": "sha256:0e613001a16fe9474db5ac04d18192f3f3d6a3023f78ef025e989652910b03ad",
         "name": "dashboard-actions",
         "version": "dashboard-actions-1"
       }
@@ -303,9 +333,9 @@
       "kind": "all_authorized"
     },
     "global_supervisor": {
-      "conversation_id": null,
-      "reason": "The global supervisor is not connected yet",
-      "status": "unconfigured"
+      "conversation_id": "a33c8113-1ed6-4b41-9ce0-92db642836b3",
+      "reason": "central_runtime_not_connected",
+      "status": "unavailable"
     },
     "limits": {
       "max_page_size": 100,
@@ -314,9 +344,9 @@
       "snapshot_ttl_ms": 30000
     },
     "principal": {
-      "authorization_revision": "226525575435949422614085788678179289998",
+      "authorization_revision": "13131410709884850142909046810912779964",
       "display_name": "owner@localhost",
-      "id": "fbf81a21-de16-41a6-a875-f03327f87dab"
+      "id": "90e2dae7-f8f5-4b7e-b67f-c7f582883b90"
     },
     "product": {
       "dashboard_digest": null,
@@ -331,7 +361,7 @@
     "source": "aq_dashboard_read"
   },
   "pending_operations": [],
-  "request_id": "2921ee29-b868-4ff9-a00d-72a64a95bd02",
+  "request_id": "dbb3e449-09a6-4dc1-8da3-b5c29ce48ade",
   "scope": {
     "kind": "all_authorized"
   },

@@ -20,6 +20,7 @@ use uuid::Uuid;
 
 mod delivery_port;
 mod integration;
+mod messages;
 mod requests;
 pub use delivery_port::*;
 pub use integration::*;
@@ -96,8 +97,9 @@ pub const HOST5_COMMANDS: [&str; 5] = [
     "operation.cancel",
     "findings.reconcile",
 ];
-/// Catalog 2.0.0 adds asynchronous judgments/checks and operation.get.
-pub const HOST7_COMMANDS: [&str; 9] = [
+/// Catalog 2.0.0 adds asynchronous judgments/checks and operation.get. D11
+/// registers every catalog command: exactly the registry's twelve.
+pub const HOST7_COMMANDS: [&str; 12] = [
     "context.read",
     "work.ensure",
     "work.change",
@@ -107,6 +109,9 @@ pub const HOST7_COMMANDS: [&str; 9] = [
     "operation.get",
     "candidate.prepare",
     "candidate.publish",
+    "findings.reconcile",
+    "message.send",
+    "decision.request",
 ];
 const WORK_REF: &str = "aq.playbook.work/";
 const ATTEMPT_REF: &str = "aq.execution.attempt/";
@@ -138,7 +143,10 @@ impl Service {
     fn ports(&self) -> Result<&HostPorts> {
         if !matches!(
             self.profile,
-            CatalogProfile::Host5 | CatalogProfile::Monitoring6 | CatalogProfile::Host7
+            CatalogProfile::Host5
+                | CatalogProfile::Monitoring6
+                | CatalogProfile::Host7
+                | CatalogProfile::Host8
         ) {
             return Err(Error::Forbidden);
         }
@@ -165,6 +173,11 @@ impl Service {
             "operation.get" => self.host_operation_get(owner, id, revision, intent).await,
             "candidate.prepare" => self.candidate_prepare(owner, id, revision, intent).await,
             "candidate.publish" => self.candidate_publish(owner, id, revision, intent).await,
+            "message.send" => self.host_message_send(owner, id, revision, intent).await,
+            "decision.request" => {
+                self.host_decision_request(owner, id, revision, intent)
+                    .await
+            }
             _ => Err(Error::Invalid),
         }
     }
@@ -196,7 +209,7 @@ impl Service {
         intent: &Intent,
     ) -> Result<(Transaction<'_, Postgres>, Option<Stage>, String)> {
         self.ports()?;
-        let commands: &[&str] = if self.profile == CatalogProfile::Host7 {
+        let commands: &[&str] = if self.profile.is_host2() {
             &HOST7_COMMANDS
         } else {
             &HOST5_COMMANDS
@@ -501,7 +514,7 @@ impl Service {
         intent: &Intent,
         result: HostResult,
     ) -> Result<(HostResult, Option<Value>)> {
-        if self.profile != CatalogProfile::Host7
+        if !self.profile.is_host2()
             || intent.command.name != "work.ensure"
             || result.outcome != "ensured"
         {
@@ -918,7 +931,7 @@ impl Service {
             Stage::Fresh => {
                 // A catalog 2.0.0 check operation handle (judgments are not
                 // cancellable and fall through to refused).
-                if self.profile == CatalogProfile::Host7
+                if self.profile.is_host2()
                     && let Some((check, subject)) = self.check_target(&handle).await?
                 {
                     let plan = json!({"check": check, "subject": subject});
@@ -1104,7 +1117,12 @@ impl Service {
                     None => ("incomplete", subject_id.clone(), 0, String::new(), false),
                 }
             }
-            "health_observations" if self.profile == CatalogProfile::Monitoring6 => {
+            "health_observations"
+                if matches!(
+                    self.profile,
+                    CatalogProfile::Monitoring6 | CatalogProfile::Host7 | CatalogProfile::Host8
+                ) =>
+            {
                 if input["page"].as_u64() != Some(0) {
                     ("incomplete", subject_id.clone(), 0, String::new(), false)
                 } else {

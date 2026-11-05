@@ -40,6 +40,8 @@ struct MailHost {
     mode: HostMode,
     #[cfg(feature = "test-support")]
     lose_decision_reply: Arc<std::sync::atomic::AtomicBool>,
+    #[cfg(feature = "test-support")]
+    lose_host_reply: Arc<Mutex<Option<String>>>,
 }
 impl DomainHost for MailHost {
     fn set_mode(&mut self, mode: HostMode) {
@@ -69,12 +71,25 @@ impl Host for MailHost {
                     reason: "grant binding refused".into(),
                 };
             };
-            return match self.handle.block_on(self.service.host_dispatch(
+            let result = self.handle.block_on(self.service.host_dispatch(
                 &self.runtime,
                 id,
                 revision,
                 intent,
-            )) {
+            ));
+            // D11 GATE-05 fixture: the AQ effect and its final row committed,
+            // then the reply is lost before the runner records it.
+            #[cfg(feature = "test-support")]
+            if result.is_ok()
+                && let Ok(mut armed) = self.lose_host_reply.lock()
+                && armed.as_deref() == Some(intent.command.name.as_str())
+            {
+                *armed = None;
+                return DispatchResult::Unknown {
+                    reason: "synthetic lost host reply after owner commit".into(),
+                };
+            }
+            return match result {
                 Ok(result) => host_result(result),
                 Err(Error::Unknown) => DispatchResult::Unknown {
                     reason: "host effect outcome unknown; retained lookup required".into(),
@@ -214,9 +229,7 @@ impl Host for MailHost {
         let Ok((id, revision)) = grant_actor(&intent.authority) else {
             return CancellationResult::Refused;
         };
-        if self.service.profile == super::review_domain::CatalogProfile::Host7
-            && intent.command.name == "check.request"
-        {
+        if self.service.profile.is_host2() && intent.command.name == "check.request" {
             // Catalog 2.0.0 check.request is cancellable: confirmed only by an
             // executor-reported cancelled stop, never by the request alone.
             return self
@@ -252,7 +265,7 @@ impl MailHost {
     fn host_command(&self, intent: &Intent) -> bool {
         let name = intent.command.name.as_str();
         super::host_adapters::HOST5_COMMANDS.contains(&name)
-            || (self.service.profile == super::review_domain::CatalogProfile::Host7
+            || (self.service.profile.is_host2()
                 && super::host_adapters::HOST7_COMMANDS.contains(&name))
     }
 }
@@ -302,8 +315,15 @@ pub struct Driver {
     graph_consumer: std::sync::atomic::AtomicBool,
     settlement_consumer: std::sync::atomic::AtomicBool,
     schedule_consumer: std::sync::atomic::AtomicBool,
+    /// Host7 (D11): event contracts (name, fingerprint) some installed
+    /// artifact declares. The engine refuses any other contract, so a Host7
+    /// bridge event nothing consumes (aq.work.changed after an accepted
+    /// work.ensure, aq.integration.changed, ...) would wedge the outbox page.
+    declared_events: Mutex<std::collections::BTreeSet<(String, String)>>,
     #[cfg(feature = "test-support")]
     lose_decision_reply: Arc<std::sync::atomic::AtomicBool>,
+    #[cfg(feature = "test-support")]
+    lose_host_reply: Arc<Mutex<Option<String>>>,
 }
 impl Driver {
     pub async fn start<S, F>(service: Service, limits: Limits, factory: F) -> Result<Self>
@@ -315,6 +335,10 @@ impl Driver {
         let lose_decision_reply = Arc::new(std::sync::atomic::AtomicBool::new(false));
         #[cfg(feature = "test-support")]
         let host_reply_fault = lose_decision_reply.clone();
+        #[cfg(feature = "test-support")]
+        let lose_host_reply: Arc<Mutex<Option<String>>> = Arc::default();
+        #[cfg(feature = "test-support")]
+        let host_command_fault = lose_host_reply.clone();
         let expected = service.runtime_revision().await?;
         let handle = tokio::runtime::Handle::current();
         let host_service = service.clone();
@@ -355,6 +379,8 @@ impl Driver {
                     mode: HostMode::Dispatch,
                     #[cfg(feature = "test-support")]
                     lose_decision_reply: host_reply_fault,
+                    #[cfg(feature = "test-support")]
+                    lose_host_reply: host_command_fault,
                 })
             },
         )
@@ -376,8 +402,11 @@ impl Driver {
             graph_consumer: std::sync::atomic::AtomicBool::new(false),
             settlement_consumer: std::sync::atomic::AtomicBool::new(false),
             schedule_consumer: std::sync::atomic::AtomicBool::new(false),
+            declared_events: Mutex::default(),
             #[cfg(feature = "test-support")]
             lose_decision_reply,
+            #[cfg(feature = "test-support")]
+            lose_host_reply,
         })
     }
     pub(crate) fn set_automatic_state(&self, state: u8) {
@@ -409,6 +438,13 @@ impl Driver {
                     .events
                     .get("aq.signal.reported");
         let registered = artifact.clone();
+        let declared: Vec<(String, String)> = artifact
+            .content
+            .registry
+            .events
+            .values()
+            .filter_map(|e| Some((e.name.clone(), e.fingerprint().ok()?)))
+            .collect();
         self.owner
             .call(
                 Request::Install {
@@ -425,6 +461,10 @@ impl Driver {
                 "playbook definition registry write failed; definition view unavailable"
             );
         }
+        self.declared_events
+            .lock()
+            .map_err(|_| Error::Unknown)?
+            .extend(declared);
         if schedule_consumer {
             self.schedule_consumer
                 .store(true, std::sync::atomic::Ordering::SeqCst);
@@ -638,6 +678,30 @@ impl Driver {
             *cursor = 0;
         }
         for (sequence, id, event) in &page {
+            if self.service.profile.is_host2()
+                && !self
+                    .declared_events
+                    .lock()
+                    .map_err(|_| Error::Unknown)?
+                    .contains(&(
+                        event.contract.name.clone(),
+                        event.contract.fingerprint.clone(),
+                    ))
+            {
+                // No installed artifact consumes this contract: retire it
+                // with zero destinations instead of wedging the page.
+                let key = digest(&(&event.producer, 0_u64, id.to_string()))?;
+                let receipt = EventDisposition {
+                    key,
+                    duplicate: false,
+                    destinations: 0,
+                };
+                self.service
+                    .acknowledge_event(&self.runtime, *id, receipt, true)
+                    .await?;
+                *cursor = *sequence;
+                continue;
+            }
             let delivery: Result<()> = async {
                 let result = self
                     .owner
@@ -707,7 +771,12 @@ impl Driver {
             )
             .await
             .map_err(host_error)?;
-        if self.service.profile == super::review_domain::CatalogProfile::Monitoring6 {
+        if matches!(
+            self.service.profile,
+            super::review_domain::CatalogProfile::Monitoring6
+                | super::review_domain::CatalogProfile::Host7
+                | super::review_domain::CatalogProfile::Host8
+        ) {
             defer_capacity(
                 self.service
                     .flush_finding_notifications(&self.runtime, 2)
@@ -848,6 +917,14 @@ impl Driver {
 
 #[cfg(feature = "test-support")]
 impl Driver {
+    /// D11 GATE-05: the next `command` host-adapter dispatch commits its AQ
+    /// effect and final row, then its reply is lost before the runner
+    /// records it. Never compiled into ordinary release builds.
+    pub fn test_lose_next_host_reply(&self, command: &str) {
+        if let Ok(mut armed) = self.lose_host_reply.lock() {
+            *armed = Some(command.to_string());
+        }
+    }
     /// Component-only lost callback response after the actual question SQL
     /// transaction. Never compiled into ordinary release builds or HTTP routes.
     pub fn test_lose_next_decision_reply(&self) {

@@ -100,7 +100,7 @@ impl Runtime {
                 Arc::new(super::host_adapters::GatewayGraph(graph)),
             )
             .await
-        } else if config.profile == super::review_domain::CatalogProfile::Host7 {
+        } else if config.profile.is_host2() {
             let graph = state.agent_access.clone().ok_or_else(refused)?;
             // No production sandbox check executor (server->node check-attempt
             // execution with profiled check evidence) or judgment provider
@@ -125,10 +125,11 @@ impl Runtime {
                 (Some(_), None) => return Err(refused()),
                 (None, _) => None,
             };
-            Service::new_host7_integration(
+            Service::new_host2(
                 state,
                 config.namespace.clone(),
                 config.keys.clone(),
+                config.profile,
                 Arc::new(super::host_adapters::GatewayGraph(graph)),
                 None,
                 None,
