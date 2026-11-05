@@ -1076,3 +1076,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - raise the lib line ratchets with a stated reason, since the aq-server lib split is next.
   - Split the fixes: the `ms1/d1` subagent takes publication (S1, S4, the publication nits and tests); the `ms1/retry` subagent takes B1, S2, S3, the closure/worker tests and the sync_tree hardening.
 - **23:05: owner rule:** "Make sure any re-review only judges the fixes." After this round, the re-review gets only the finding list and the fix commits (from aq-server e810e65f / aq-worker 88c98f7 to the new heads). It judges whether each finding is fixed and whether the fix regresses anything. Anything else becomes a non-blocking follow-up. Saved as a standing rule.
+- **23:15: publication review fixes pushed** (aq-server `ms1/d1` c3266468).
+  - **S1:** the acceptance gate re-runs under the cancellation and abandonment locks immediately before deliver, and writes a durable `publishing` fence. A cancel arriving during publishing returns `already_publishing` and records no cancellation; a cancel that wins means nothing reaches aq-git.
+  - **S4:** B4 refuses to replace after a `delivery_unpublished` rework (`replacement_after_unpublished_delivery_needs_new_source`).
+  - **Nits:** foreign `already_present` and a failed head CAS are now recorded `indeterminate` (held).
+  - **S5:** 4 new refusal tests; `auto_settlement56` passes 14/14 and `it_profiled` 201 passed.
+  - **Build budget:** the aq-admission test was moved into an existing binary, so the count is back to 81. The aq-server lib is at 110,934 lines vs the 109,000 ratchet; it will be raised as decided, since the lib split is next.
+  - Waiting on the `ms1/retry` fixes (B1, S2, S3, closure/worker tests), then convergence, then a re-review scoped to the fix commits only.
