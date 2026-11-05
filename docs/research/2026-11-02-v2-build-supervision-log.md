@@ -682,3 +682,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **W61 recurred, caused by me.** `swift-stone-62` (#55 rework) sat READY with an idle dashboard worker. Its `blocks` edge on `bold-vault-41` pointed at PR #43, whose head is the steward rebase I pushed in round 1 (completion `f14ff5f`, head `684e3b0`). Verified `f14ff5f` is on main and removed the edge. A rescan of all completed PR sources with open dependents found no other mismatch.
   - **F5 (`steady-harbor-87.6`)** had renamed `0081_stall_ladder` to 0082 on its branch, colliding with #78's `0082_agent_waits`; left it instructions.
   - H6 completed. #76 and #79 fail only the known `native_accepted` regression (`swift-harbor-15` fixing); waiting for lifecycle CI, then merge.
+- **02:20 check.**
+  - Merged aq-server #76 (only the known `native_accepted` failure). **That broke main:** H6 (`e5449d8`) had landed `0083_agent_wait_wakes` after I renumbered #76 to 0083, so main had two 0083s. I didn't re-check main's highest migration at merge time.
+  - **Fixed on main** in `053a738`: `agent_supervisor_mail` moved to 0084, with the central37 `include_str!` and version gate updated. `cargo check -p aq-server --tests` and the migration catalog (84) pass.
+  - **D9 (`crisp-meadow-36.10`)** closed COMPLETED, but commit `68e6bb8` was never integrated to main, and its 0084 migration now collides. Reopened it (priority 6) to merge main, renumber to 0085 and integrate (agent-owned, so no W61).
+  - Routed C5b's aq-worker CAS contract follow-up to C6b instead of filing a duplicate.
