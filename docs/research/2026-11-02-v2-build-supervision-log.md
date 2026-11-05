@@ -1094,3 +1094,14 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Nits:** `sync_tree` symlink hardening; the closure comment is corrected.
   - **Merge regression caught and fixed:** D1's unpublished-delivery check queried a migration-59 table on older-schema stores, giving 500s in 6 `it_phase` tests. It now gates on the state format (339cf6de).
   - Dispatched the re-review scoped to the fix commits only (e810e65f..97a50166, 88c98f7..67ad996), per the owner's rule.
+- **00:00 (11-06):** the scoped re-review returned **MERGEABLE**. Every finding is fixed, and none of the fixes regressed anything.
+  - **Non-blocking follow-ups:**
+    1. `release_fence` should be owner-scoped across multiple server processes.
+    2. The sandbox-uncertain early return skips StopUnknown reconciliation and result retention.
+    3. The S4 block has no clearing action.
+    4. Add a CAS-failure integration test.
+    5. **Security, check:** the token delivered as private material into the sandbox may survive on a preserved sandbox disk.
+  - **CI on the final PRs** (aq-server #94, aq-worker #41, replacing drafts #90/#38) found what the targeted runs missed:
+    - aq-server `it_profiled` `result_source_owner_requires_a_real_retained_transfer…` overflows its stack (SIGABRT) at opt-level 0;
+    - aq-worker `sandbox_runner` `login::completion_wipes_login_before_retention` returns Preserved("launch failed") instead of Finished.
+  - Sent both to the `ms1/retry` subagent, asking for the full suites to run before pushing.
