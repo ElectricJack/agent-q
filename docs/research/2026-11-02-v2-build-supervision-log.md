@@ -702,3 +702,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - D9 integrated on main (`68e6bb8`, migration `0085_playbook_activations`). Released G9's (`steady-cascade-45.10`) `session_close_hard_failure` hold with a retry; told it to render any still-missing action adapters honestly.
   - #79 is now at 0086. #82 (`0085_lifecycle_artifacts`) collides with D9 and will go to 0087 after #79.
   - Main CI runs keep getting cancelled by new pushes; still waiting for a finished green run before merging the migration PRs.
+- **03:50 check.**
+  - Current main passes `state_format_is_the_latest_migration` locally (85 migrations at the time, contiguous); the main CI failure on `45804b2` came from an intermediate commit.
+  - **Migration race again:** a D9 follow-up integrated `0086_playbook_work_completion` straight to main, colliding with #79's 0086. Changed approach: renumber, verify locally (catalog plus `cargo check -p aq-server --tests`), merge immediately rather than waiting another 30 min of CI that would lose the race again.
+  - Renumbered #79 (`azure-orbit-61`) to 0087 and merged it (admin; the only CI failure was the known `native_accepted` regression). W61: its commit `1d87c06` is on main, so I removed `clear-crest-61.5.1`'s `blocks` edge.
+  - #82 (`crisp-ember-25`) now conflicts in `lib.rs`; messaged its in-progress agent to merge main and renumber to 0088.
+  - Closed C5b's lease-cap child `calm-delta-18.8.2` as obsolete (covered by parked `steady-orbit-52`) so it doesn't block C5b's close.
+  - Surfaced three owner decisions: I1 (Claude API-key test and enrollment), I2 (Gemini credential), I3 (OpenCode credential; suggested local Ollama).
