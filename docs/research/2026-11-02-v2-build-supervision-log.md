@@ -772,3 +772,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Measured memory:** stack 173 MiB, node controller 27 MiB, sandbox 143–200 MiB with Claude alone and 531 MiB with `cargo test`.
   - Evidence is on aq-server/aq-worker `ms1/demo` (`docs/implementation/MS1.md`, `scripts/ms1-demo.sh`). The `aq-ms1` stack is running on 28080.
   - Dispatched a wiring subagent to connect server → node controller → sandbox launch → aq-git publish → D3 completion, and prove A→B live.
+- **06:35: F5 done (subagent).** Branch `aq/f5-questions` at 1e06db95 is built on the old `aq/steady-harbor-87.6` work.
+  - Covers the agent asking, then reading the answer; the owner's `question.answer` dashboard action; waking the live attempt; and routing to task mail once the attempt has ended. Both acceptance tests pass.
+  - Its migration is provisionally 0092 and goes after #82/#83/#85 (0089–0091). It is held for merge in that order.
+  - Follow-ups: the aq-worker `aq-agent question ask/show` client; dashboard inbox support for `question` decisions; a profile capability check on the question and wait routes.
+  - **Tooling hazard:** aq-server worktrees sharing `target-shared` get identical artifact hashes, so cargo can link another worktree's freshly built aq-server library (freshness is by mtime). F5 saw stale builds twice. Told the PR and D11 subagents to use private target dirs and re-verify.
