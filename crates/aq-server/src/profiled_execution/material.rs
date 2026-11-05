@@ -140,6 +140,18 @@ fn read_configured(
     if aq_admission::Digest::of(&bytes).as_str() != expected {
         return Err(MaterialError::Changed);
     }
+    // A Claude login (version 0 here) is delivered exactly like an imported
+    // one: trailing CR/LF trimmed, any other shape refused. The fingerprint
+    // above stays over the configured file's bytes (rotation check).
+    if registry
+        .credentials
+        .get(index)
+        .is_some_and(|c| c.provider.as_str() == "anthropic")
+    {
+        let bytes = crate::intelligence::login_import::normalize_claude_token(bytes)
+            .map_err(|_| MaterialError::Unavailable)?;
+        return Ok(ProtectedMaterial(bytes));
+    }
     Ok(ProtectedMaterial(bytes))
 }
 /// Trusted daemon facts only. Call outside SQL locks, then fence the exact

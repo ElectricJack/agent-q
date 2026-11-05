@@ -105,7 +105,7 @@ pub async fn load_original_offer_locked(
 
 #[track_caller]
 fn refused() -> AppError {
-    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("original native offer unavailable or inconsistent".into())
 }
 fn canonical(value: &impl serde::Serialize) -> Result<Vec<u8>, AppError> {

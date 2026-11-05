@@ -26,7 +26,7 @@ pub const OFFSET_HEADER: &str = "aq-artifact-offset";
 pub const MAX_REQUEST_BYTES: usize = 16 * 1024;
 #[track_caller]
 fn refused() -> AppError {
-    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("artifact is not currently available to this assignment".into())
 }
 fn db(_: sqlx::Error) -> AppError {

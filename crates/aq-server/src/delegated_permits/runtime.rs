@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 #[track_caller]
 pub(crate) fn refused() -> AppError {
-    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Forbidden("delegated permit scope or authority unavailable; stop and preserve".into())
 }
 pub(crate) fn db(_: sqlx::Error) -> AppError {

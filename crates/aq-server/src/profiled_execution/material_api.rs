@@ -35,7 +35,7 @@ pub const MAX_REQUEST_BYTES: usize = 16 * 1024;
 
 #[track_caller]
 fn refused() -> AppError {
-    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("private material delivery is not currently authorized".into())
 }
 fn db(_: sqlx::Error) -> AppError {

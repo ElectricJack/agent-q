@@ -1,7 +1,6 @@
 //! Actual profiled owner, separate from fixture execution wire and providers.
 //! Runtime preparation never turns a pure proposal or qualification reference
 //! into authority without the locked project/selection/source/material fences.
-#![allow(clippy::redundant_closure)]
 pub mod api;
 pub mod artifact_api;
 pub mod artifacts;

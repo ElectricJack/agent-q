@@ -37,7 +37,14 @@ async fn runtime(
     state: &AppState,
     auth: &AuthenticatedNode,
     request: &Poll,
-) -> Result<(registration::RegisteredRuntime, CapabilitySnapshot), AppError> {
+) -> Result<
+    (
+        registration::RegisteredRuntime,
+        CapabilitySnapshot,
+        Vec<&'static str>,
+    ),
+    AppError,
+> {
     let mut tx = state.store.pool.begin().await.map_err(db)?;
     crate::worker_api::lock_current_node(&mut tx, auth).await?;
     if auth.id() != request.identity.node_id {
@@ -94,10 +101,16 @@ async fn runtime(
         }
     }
     // The frozen manifest carries exactly one confinement mode (native or
-    // container); the node must qualify at least one of them.
-    if !has(aq_selection::ConfinementMode::Native.capability())
-        && !has(aq_selection::ConfinementMode::Container.capability())
-    {
+    // container); the node must qualify at least one of them here, and the
+    // exact mode the built manifest requires is checked after assembly.
+    let modes: Vec<&'static str> = [
+        aq_selection::ConfinementMode::Native.capability(),
+        aq_selection::ConfinementMode::Container.capability(),
+    ]
+    .into_iter()
+    .filter(|cap| has(cap))
+    .collect();
+    if modes.is_empty() {
         return Err(refused());
     }
     let row=sqlx::query("SELECT boot_id,sequence,snapshot FROM intelligence_node_snapshots WHERE node_id=$1 FOR SHARE").bind(auth.id()).fetch_optional(&mut *tx).await.map_err(db)?.ok_or_else(|| refused())?;
@@ -115,7 +128,7 @@ async fn runtime(
         return Err(refused());
     }
     tx.commit().await.map_err(db)?;
-    Ok((runtime, snapshot))
+    Ok((runtime, snapshot, modes))
 }
 async fn reservation(
     state: &AppState,
@@ -324,7 +337,7 @@ async fn offers(
         .get_or_init(|| Semaphore::new(4))
         .try_acquire()
         .map_err(|_| refused())?;
-    let (runtime, snapshot) = on_heap(|| runtime(state, auth, request)).await?;
+    let (runtime, snapshot, modes) = on_heap(|| runtime(state, auth, request)).await?;
     if request.available.slots == 0 {
         return Ok(page);
     }
@@ -556,6 +569,20 @@ async fn offers(
         })
     })
     .await?;
+    // The node's authenticated registration must qualify the exact
+    // confinement mode this manifest requires (MS1 review should-fix 1).
+    if !built
+        .native
+        .offered
+        .offer
+        .manifest
+        .harness
+        .required_capabilities
+        .iter()
+        .any(|c| c.version == 1 && modes.contains(&c.id.as_str()))
+    {
+        return Err(refused());
+    }
     let limits = &built.native.offered.offer.manifest.resources;
     if limits.memory_bytes > request.available.memory_bytes
         || limits.cpu_millis > request.available.cpu_millis

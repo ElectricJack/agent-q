@@ -33,7 +33,7 @@ pub(super) fn enabled(state: &AppState) -> bool {
 
 #[track_caller]
 fn refused() -> AppError {
-    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("registry refresh preparation is not currently available".into())
 }
 

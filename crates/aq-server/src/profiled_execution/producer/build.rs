@@ -181,6 +181,7 @@ fn confinement_mode(
     compiled: &Compiled,
     composition: &aq_profiles::FrozenComposition,
     decision: &Decision,
+    harness: &aq_selection::InstalledHarness,
 ) -> Result<aq_selection::ConfinementMode, AppError> {
     let key = composition
         .execution_profile
@@ -195,8 +196,12 @@ fn confinement_mode(
         .iter()
         .find(|e| aq_profiles::key(&e.id, e.version) == key)
         .ok_or_else(|| refused())?;
-    aq_selection::admit_confinement(decision.inputs.placement.as_ref(), &execution.confinement)
-        .map_err(|_| refused())
+    aq_selection::admit_confinement(
+        decision.inputs.placement.as_ref(),
+        &execution.confinement,
+        harness,
+    )
+    .map_err(|_| refused())
 }
 pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
     let Assembly {
@@ -553,7 +558,7 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         .iter()
         .map(scope)
         .collect::<Result<Vec<_>, _>>()?;
-    let mode = confinement_mode(&compiled, &composition, &decision)?;
+    let mode = confinement_mode(&compiled, &composition, &decision, harness)?;
     let required_caps = capabilities(mode)?;
     let spending_budget = project
         .ceilings

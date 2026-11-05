@@ -9,7 +9,7 @@ use sqlx::{Postgres, Row, Transaction};
 pub(crate) type PinnedPolicy = (SelectionPolicy, u64);
 #[track_caller]
 fn refused() -> AppError {
-    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("pinned native policy budget unavailable or exhausted".into())
 }
 pub(crate) fn remaining(

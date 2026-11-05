@@ -60,7 +60,10 @@ async fn auto_env_with(
     results::record(&f.state, &auth, &report).await.unwrap();
     // The record hook evaluated already: nothing is retained yet, so it holds.
     let first = settlement_row(&f, report.report_id).await;
-    if matches!(report.outcome, aq_admission::transport::ProcessOutcome::Success) {
+    if matches!(
+        report.outcome,
+        aq_admission::transport::ProcessOutcome::Success
+    ) {
         assert_eq!(first.0, "held");
         assert_eq!(first.1.as_deref(), Some("source_not_retained"));
     } else {
@@ -118,7 +121,12 @@ async fn auto_env_with(
         .outcome
         .required_checks
         .first()
-        .map(|check| (check.id.as_str().to_owned(), check.validator.digest.as_str().to_owned()))
+        .map(|check| {
+            (
+                check.id.as_str().to_owned(),
+                check.validator.digest.as_str().to_owned(),
+            )
+        })
         .unwrap_or_default();
     let expected_version = recorded.spec.task.version;
 
@@ -411,8 +419,13 @@ async fn parked_suspension_holds_as_suspended_until_successor_ack() {
 async fn failed_or_unknown_report_never_completes_a_task_without_required_checks() {
     use aq_admission::transport::ProcessOutcome;
     for outcome in [ProcessOutcome::Failed, ProcessOutcome::Unknown] {
-        let env = auto_env_with("not_required", axum::http::StatusCode::OK, false, Some(outcome))
-            .await;
+        let env = auto_env_with(
+            "not_required",
+            axum::http::StatusCode::OK,
+            false,
+            Some(outcome),
+        )
+        .await;
         let s = env.settle().await;
         env.assert_not_completed(&s, AutoDisposition::ReworkRequired, "not_accepted")
             .await;
@@ -427,5 +440,8 @@ async fn failed_or_unknown_report_never_completes_a_task_without_required_checks
     let s = env.settle().await;
     assert_eq!(s.disposition, AutoDisposition::Confirmed, "{s:?}");
     assert_eq!(env.writes.load(Ordering::SeqCst), 1);
-    assert!(!env.holds_task().await, "confirmed receipt releases the claim");
+    assert!(
+        !env.holds_task().await,
+        "confirmed receipt releases the claim"
+    );
 }

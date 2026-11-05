@@ -12,7 +12,7 @@ pub(super) enum Profile {
 
 #[track_caller]
 fn refused() -> AppError {
-    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("unsupported exact preparation profile".into())
 }
 fn malformed() -> AppError {

@@ -280,16 +280,16 @@ cmd_import_login() {
     || { echo "token file must be a 0600 regular file" >&2; return 1; }
   base=/var/lib/aq/credentials/owner-claude-subscription
   staged=/var/lib/aq/.ms1-login-import
-  # The token travels on stdin only, never argv. The trailing newline is
-  # dropped: the runner's install accepts only ASCII-graphic Claude tokens (C6b).
+  # The token travels on stdin only, never argv. The raw file is piped as is:
+  # the server trims a Claude token's trailing CR/LF (import and version 0).
   if ! compose exec -T server test -s "$base"; then
     echo "C5b needs a configured base file (version 0): staging it, then restarting the server"
-    tr -d '\r\n' < "$TOKEN_FILE" | compose exec -T server sh -ec \
-      "umask 077; mkdir -p ${base%/*}; cat > $base.tmp; mv $base.tmp $base"
+    compose exec -T server sh -ec \
+      "umask 077; mkdir -p ${base%/*}; cat > $base.tmp; mv $base.tmp $base" < "$TOKEN_FILE"
     compose up -d --no-build --force-recreate --wait --wait-timeout 300 server
   fi
   [ "${1:-}" = --replace ] || [ "$(stored_versions)" = 0 ] || { echo "a stored version exists; pass --replace to rotate (never mid-attempt: running attempts get 409 at renewal)"; return 0; }
-  tr -d '\r\n' < "$TOKEN_FILE" | compose exec -T server sh -ec "umask 077; cat > $staged"
+  compose exec -T server sh -ec "umask 077; cat > $staged" < "$TOKEN_FILE"
   compose exec -T server sh -ec "trap 'rm -f $staged' EXIT
     export PGPASSWORD=\"\$(cat /run/secrets/postgres_password)\" DATABASE_URL=postgres://agent_q@postgres:5432/agent_q
     vault=/vault; if test -f /vault/settlement/config.toml; then vault=/vault/settlement; fi

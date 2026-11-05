@@ -69,7 +69,7 @@ impl AqEffectsSnapshot {
 
 #[track_caller]
 fn refused() -> AppError {
-    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::UpdatesUnavailable("complete stopped-attempt effect ledger unavailable".into())
 }
 fn canonical(value: &Value) -> Result<Vec<u8>, AppError> {
