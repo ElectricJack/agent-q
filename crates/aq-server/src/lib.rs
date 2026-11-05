@@ -9,6 +9,7 @@ pub mod delegated_permits;
 pub mod delivery;
 pub mod error;
 pub mod execution;
+pub mod hibernation;
 pub mod identity;
 pub mod intelligence;
 pub mod node_storage;
@@ -292,6 +293,7 @@ pub fn build_admin_router_with_optional_owners(
         .merge(repository_onboarding::admin_routes())
         .merge(intelligence::admin_routes())
         .merge(agent_access::admin_routes(state.clone()))
+        .merge(hibernation::admin_routes())
         .merge(source_retention::admin_routes())
         .merge(execution::api::admin_routes(state.clone()))
         .route("/healthz", get(healthz))
@@ -370,6 +372,7 @@ fn build_worker_router_inner(
         .merge(observations::api::transport_routes(state.clone()))
         .merge(intelligence::worker_routes())
         .merge(agent_access::machine_routes(state.clone()))
+        .merge(hibernation::routes(state.clone()))
         .merge(agent_access::supervisor_conversation::supervisor_routes(
             &state,
         ))
