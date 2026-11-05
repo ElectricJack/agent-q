@@ -678,7 +678,7 @@ impl Driver {
             *cursor = 0;
         }
         for (sequence, id, event) in &page {
-            if self.service.profile == super::review_domain::CatalogProfile::Host7
+            if self.service.profile.is_host2()
                 && !self
                     .declared_events
                     .lock()
@@ -775,6 +775,7 @@ impl Driver {
             self.service.profile,
             super::review_domain::CatalogProfile::Monitoring6
                 | super::review_domain::CatalogProfile::Host7
+                | super::review_domain::CatalogProfile::Host8
         ) {
             defer_capacity(
                 self.service

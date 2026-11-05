@@ -1156,7 +1156,7 @@ impl Service {
         .map(Some)
     }
 
-    /// Trusted human answer to a running Host7 decision: `actor` must be a
+    /// Trusted human answer to a running Host7/Host8 decision: `actor` must be a
     /// listed responder (`user:<id>`) and `choice` one of the offered
     /// choices. Completes exactly once; a later answer returns the retained
     /// completion. Not a worker route.
@@ -1166,7 +1166,7 @@ impl Service {
         handle: Uuid,
         choice: &str,
     ) -> Result<HostResult> {
-        if self.profile != CatalogProfile::Host7 {
+        if !self.profile.is_host2() {
             return Err(Error::Forbidden);
         }
         let op = self.load_operation(handle).await?.ok_or(Error::Forbidden)?;

@@ -8,12 +8,12 @@ fn bounded(value: &str) -> bool {
     !value.is_empty() && value.len() <= 512 && !value.contains('\0')
 }
 impl Service {
-    /// D8 findings run on Monitoring6 and, since D11, on Host7 (catalog
-    /// 2.0.0 findings.reconcile is byte-identical to 1.0.0).
+    /// D8 findings run on Monitoring6 and, since D11, on Host7/Host8 (catalog
+    /// 2.0.0/2.1.0 findings.reconcile is byte-identical to 1.0.0).
     fn findings_profile(&self) -> Result<()> {
         if !matches!(
             self.profile,
-            CatalogProfile::Monitoring6 | CatalogProfile::Host7
+            CatalogProfile::Monitoring6 | CatalogProfile::Host7 | CatalogProfile::Host8
         ) {
             return Err(Error::Forbidden);
         }

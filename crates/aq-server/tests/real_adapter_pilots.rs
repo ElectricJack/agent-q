@@ -1,7 +1,7 @@
 //! D11 / GATE-05: the routing, watcher and report pilots and D9's coding
 //! policy run end to end in the embedded host (pinned runner, protected
-//! PostgreSQL storage) against the production Host7 adapters on disposable
-//! PostgreSQL.
+//! PostgreSQL storage) against the production catalog 2.1.0 (Host8) adapters on
+//! disposable PostgreSQL.
 //!
 //! Designated fake external peers: a deterministic model provider
 //! (judgments; authoring completes through the work lifecycle), a fake
@@ -20,7 +20,7 @@ use aq_server::{
         domain::*,
         driver::Driver,
         host_adapters::*,
-        review_domain::{CatalogProfile, HOST7_CAPABILITIES, HOST7_FINGERPRINT, HOST7_VERSION},
+        review_domain::{CatalogProfile, HOST7_CAPABILITIES, HOST8_FINGERPRINT, HOST8_VERSION},
         service::*,
     },
     protected_storage::{KeyFile, Keyring, ProtectionConfig},
@@ -538,7 +538,7 @@ impl Pilot {
         let mut config = (*state.config).clone();
         config.server.public_origin = "https://aq.example".into();
         state.config = Arc::new(config);
-        let service = Service::new_host7_integration(
+        let service = Service::new_host8_integration(
             &state,
             Namespace {
                 namespace_id: Uuid::new_v4(),
@@ -894,8 +894,9 @@ async fn pilots_end_to_end() {
     let mut p = Pilot::new().await;
     let grant = p.grant;
 
-    // Exactly twelve production commands, equal to the pinned registry.
-    let registry = CatalogProfile::Host7.registry();
+    // Exactly twelve production commands, equal to the pinned registry the
+    // service runs on (catalog 2.1.0, Host8; same command set as 2.0.0).
+    let registry = CatalogProfile::Host8.registry();
     let registered: BTreeSet<&str> = HOST7_COMMANDS.iter().copied().collect();
     let pinned: BTreeSet<&str> = registry.commands.keys().map(String::as_str).collect();
     assert_eq!(HOST7_COMMANDS.len(), 12);
@@ -1340,7 +1341,7 @@ async fn pilots_end_to_end() {
     let (actor, grant) = (p.f.actor, p.grant);
     let recipient = format!("user:{actor}");
 
-    // --------------------------------------------- decision.request (Host7)
+    // --------------------------------------------- decision.request (Host8)
     let decision_policy = CodingPolicy {
         human_decision: Some(HumanDecision {
             question: "Ship it?".into(),
@@ -1435,7 +1436,7 @@ async fn pilots_end_to_end() {
     let evidence = json!({
         "aq_server": env!("CARGO_PKG_VERSION"),
         "aq_playbook_host": source["source_revision"],
-        "catalog": {"version": HOST7_VERSION, "fingerprint": HOST7_FINGERPRINT},
+        "catalog": {"version": HOST8_VERSION, "fingerprint": HOST8_FINGERPRINT},
         "registered_commands": HOST7_COMMANDS,
         "artifacts": artifacts,
     });

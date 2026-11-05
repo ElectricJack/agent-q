@@ -1120,7 +1120,7 @@ impl Service {
             "health_observations"
                 if matches!(
                     self.profile,
-                    CatalogProfile::Monitoring6 | CatalogProfile::Host7
+                    CatalogProfile::Monitoring6 | CatalogProfile::Host7 | CatalogProfile::Host8
                 ) =>
             {
                 if input["page"].as_u64() != Some(0) {

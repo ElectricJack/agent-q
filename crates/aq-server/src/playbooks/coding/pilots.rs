@@ -1,6 +1,6 @@
-//! D11 routing, watcher and report pilots, sealed from the pinned Host7
-//! (catalog 2.0.0) contracts with the D9 builder. They run on the production
-//! Host7 adapters; nothing here talks to a host.
+//! D11 routing, watcher and report pilots, sealed from the pinned Host8
+//! (catalog 2.1.0) contracts with the D9 builder. They run on the production
+//! catalog 2.x (Host7/Host8) adapters; nothing here talks to a host.
 //!
 //! - [`routing`] (`aq.pilot.routing`): read the attempt's permitted execution
 //!   options (`context.read view=execution_options`). Complete facts pin the
