@@ -678,3 +678,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **C6b (`calm-delta-18.10`)** is now: fetch the newest version before an attempt (Codex `CODEX_HOME`, Claude env token), CAS-upload after if `last_refresh` changed, fetch and retry once on a 401, wipe on teardown.
   - **Dropped and parked** as `steady-orbit-52`: tmux node login, Codex device-auth capture, `max_concurrent_leases`, boat sync.
   - MS1 keeps its C5b/C6b dependency; both are now small.
+- **02:00 check.**
+  - **W61 recurred, caused by me.** `swift-stone-62` (#55 rework) sat READY with an idle dashboard worker. Its `blocks` edge on `bold-vault-41` pointed at PR #43, whose head is the steward rebase I pushed in round 1 (completion `f14ff5f`, head `684e3b0`). Verified `f14ff5f` is on main and removed the edge. A rescan of all completed PR sources with open dependents found no other mismatch.
+  - **F5 (`steady-harbor-87.6`)** had renamed `0081_stall_ladder` to 0082 on its branch, colliding with #78's `0082_agent_waits`; left it instructions.
+  - H6 completed. #76 and #79 fail only the known `native_accepted` regression (`swift-harbor-15` fixing); waiting for lifecycle CI, then merge.
