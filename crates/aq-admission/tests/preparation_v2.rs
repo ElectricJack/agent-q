@@ -1,3 +1,5 @@
+#[path = "preparation_v2/long_phase_manifest.rs"]
+mod long_phase_manifest;
 mod preparation_v2_common;
 use aq_admission::preparation_v2::decode;
 use aq_admission::{control::DeliveryStamp, preparation_v2::*, transport::DeliveryClock, *};

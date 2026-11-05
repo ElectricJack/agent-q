@@ -5,7 +5,7 @@ use aq_session_protocol::{Capability, LaunchManifest, Text};
 
 fn manifest() -> LaunchManifest {
     let fixture: serde_json::Value =
-        serde_json::from_str(include_str!("../artifacts/preparation-v2.fixture.json")).unwrap();
+        serde_json::from_str(include_str!("../../artifacts/preparation-v2.fixture.json")).unwrap();
     serde_json::from_value(fixture["proposal"]["original"]["offered"]["offer"]["manifest"].clone())
         .unwrap()
 }
