@@ -40,7 +40,7 @@ for family in ('frozen', 'refresh'):
     stat = os.statvfs('/tmp')
     free = stat.f_bavail * stat.f_frsize
     assert free >= pins['minimum_free_bytes'], 'default free-space floor refuses actual case'
-    case = family + '::actual_phase_stopped_checkpoint_http_import_and_current_retention_are_not_legacy_gated'
+    case = 'phase_source_retention::' + family + '::actual_phase_stopped_checkpoint_http_import_and_current_retention_are_not_legacy_gated'
     log = args.evidence / (family + '.log')
     started = time.monotonic()
     with log.open('xb') as output:

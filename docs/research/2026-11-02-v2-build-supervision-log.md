@@ -852,3 +852,179 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Main CI is green at 458f682d, so the post-#88 `playbook_host_requests` failure was a one-off flake.
 - **13:20: the MS1 wiring subagent had stalled.** Its review fixes were pushed (B1 Failure→Failed plus D3 Success-only, with a DB test on a production-shaped offer; should-fix 1, 2 and 4; nits), but there had been no commits and no live processes for hours after a "waiting for the server rebuild" message. Same pattern as W64: idle and waiting on background work that had already ended.
   - Resumed it with a status request, asked it to continue with cancel, then stuck attempts, retry, restart drills and D1, and to merge main (now at 0094) early.
+- **13:40: MS1 progress (wiring subagent report).** This corrects the 13:20 entry: the subagent had not stalled. Its commits were made earlier and it reported late.
+  - All review fixes are in: B1, should-fix 1–4, nits.
+  - **Live through the aq-ms1 stack:**
+    - Cancel (B3): cancel `6c42e9be…` reached the executor, the sandbox was stopped and kept, and the attempt was recorded cancelled with stop proof.
+    - Node killed mid-attempt: `reconcile-native` recovered the stop from the sealed intent with no relaunch or duplicate. The node re-registered without re-enrolling and ran the next attempt.
+    - aq-server restarted mid-attempt: the attempt continued with exactly one report, confirmed by D3.
+  - **Not done:**
+    - retry: no production writer of source-retained/effects-settled facts, so B4 never replaces an attempt;
+    - stuck attempts: closed-awaiting-settlement is never settled;
+    - D1 publication.
+  - Branch heads: aq-server `ms1/demo` 87012926, aq-worker `ms1/demo` 2d43cf2c, both with main merged.
+  - Dispatched an independent re-review of both diffs before merging to main, and a fresh subagent for retry, stuck-attempt settlement and D1 on new `ms1/retry` branches.
+- **13:50: the owner hit "Dashboard update required" on Results.** It was on the `aq-ms1` stack (28080), not `aq-v2-local` (18080, where Results loads with an empty list).
+  - The MS1 server advertises `results.media.read`/`results.media.upload` as `enabled:false` because no media store is configured. The dashboard bundle lists both as required capabilities, so the whole dashboard is blocked.
+  - Asked the MS1 subagent to configure result media on `aq-ms1` the way `dev-stack.py` does.
+  - Dispatched a dashboard fix: make the media capabilities optional and gate the media UI at runtime.
+- **14:20: stale PR triage (owner asked).** There were 14 open PRs across the repos, 13 of them older (Nov 2–4) and left open after operator integrations.
+  - Content triage: 6 superseded or duplicate, 8 still needed. Every one of their v1 tasks shows COMPLETED, yet main was missing the work, including:
+    - D6 check-attempt execution (#63, the production check executor D11 found missing);
+    - the playbook judgment provider (#64);
+    - G11 knowledge relationships/revisions (#60);
+    - per-project replacement budgets (#53).
+  - Closed aq-server #5 (landed in 3244f225), #7 (duplicate of #3) and #69 (to be replaced by #60 and #64 separately), and aq-git #4 (landed in 8cb1ce4; CI already runs the checker's tests).
+  - Dispatched subagents to bring the still-needed ones current: aq-server #53, #3, #9 (example half), #60, #64, #63 (migration renumbered to 0096), then aq-worker #32 and aq-dashboard #55.
+  - Dashboard #70 (optional media) fails `supervisor-launcher.spec.ts`: "Post comment" ends up under the launcher, a real regression. Sent it back.
+- **14:30: owner feedback on the v2 dashboard.** "The new dashboard is nice looking but the v2 system is missing a lot that felt very critical in v1… the task view in v1 showed more information… I don't see comments, or task ids, or ways to copy task ids."
+  - Confirmed: the v2 task inspector shows only title, description, acceptance criteria, dependencies and revision. It has no copyable ID, no comments (v2 has no task-comment model at all), no execution state or why-not-running, no agent/session link, no branch/PR and no route.
+  - **Owner decision:** do a v1→v2 parity pass, task view first. The owner verifies each dashboard section and wants it completed before moving to the next.
+  - Started a read-only inventory comparing the v1 and v2 task views and the v2 server data behind each field.
+- **14:55:**
+  - Merged aq-dashboard #70 (result media capabilities optional) as e0c3b5f6. Its first CI run caught a real regression: the disabled attach button wrapped the composer and clipped "Post comment". Rebuilt `dist` and restarted the `aq-v2-local` server, which caches index.html and so keeps serving the old bundle until restarted. Asked the MS1 subagent to restart `aq-ms1-server-1` at a safe point.
+  - **Re-review of `ms1/demo`:** not mergeable yet.
+    - B1 is partly fixed. Failed/Unknown no longer complete a task, but a Claude exit 0 without real work (a clarifying question, refusal, or "couldn't find X") still reports Success and D3 auto-completes it.
+      - **Decision:** add a driver guard. Success requires rc 0, a stream-json result with `subtype=success` and `is_error=false`, the agent's own `Changes:` line, and a non-empty change set.
+    - Should-fix 1–4 and the nits are verified fixed.
+    - **New should-fix:** node recovery leaves the Claude container running with the token in its env.
+    - **Nits:** the cancel poll uses inventory_sequence 1; `.pyc` files are committed; token trimming applies to every anthropic credential.
+    - All sent to the MS1 subagent ahead of retry/D1.
+    - Pre-existing flake on main: `native_cancellation::native_cancel_owner_validation_attempt_replay_and_concurrency`, which failed 7/7 under load in the reviewer's runs.
+  - Task-view parity inventory is committed (`2026-11-05-task-view-parity-inventory.md`); waiting on the owner's scope choice.
+- **14:25: owner direction.** "I don't want to do too much at the same time, I'd really like to wrap up MS1 before we kick off new work."
+  - Paused the stale-PR refresh subagents (aq-server #53/#3/#9/#60/#64/#63, aq-worker #32, aq-dashboard #55). Each stops at a clean point and reports.
+  - The task-view parity spec (aq-dashboard `docs/specs/0004-task-view-parity.md`, with the owner's list-row and no-full-page additions) is parked until MS1 is signed off.
+  - The only active work is MS1: the re-review's B1 driver guard and recovery container stop, then retry, stuck-attempt settlement and D1, then merging the MS1 wiring to main.
+- **14:35: owner: "run any additional MS1 work that you can in parallel."**
+  - Split D1 publication (B builds on A's published commit) off to a new subagent on `ms1/d1` branches, running its own `aq-ms1d` stack on ports 38080/38081/38741 so its live runs don't collide with the `aq-ms1` drills.
+  - The `ms1/retry` subagent keeps B4 retry and B5b stuck-attempt settlement. Its review fixes (B1 driver guard, recovery container stop) are committed in aq-worker and pushing now.
+  - Opened draft PRs aq-server #90 and aq-worker #38 for `ms1/demo`, so CI surfaces integration failures early. They are not for merge yet.
+- **14:45:**
+  - `ms1/retry` has the re-review fixes pushed (aq-server 2bb34afb, aq-worker 0ee3b25): the B1 driver success guard and reconcile-native stopping the Claude container.
+  - Draft aq-worker #38 (`ms1/demo`) fails `templates::template_cli_build_and_scan_use_embedded_tools`. The sandbox template's credential scanner correctly flags a token-shaped fake fixture (`sk-ant-oat01-abcdef…`) in the new `parse_token` tests. Sent it to the `ms1/retry` subagent: build the fixture so no token-shaped literal exists, and remove the committed `.pyc` files (8 still on `ms1/retry`). Draft aq-server #90 is still running.
+  - The paused stale-PR subagent finished cleanly: aq-worker #32 (e626fd7, green) and aq-dashboard #55 (da3d04e; the phone header stays non-sticky per G11, and a tap-swallowing bug in its bottom bar is fixed). Both are held unmerged until MS1 lands, so they don't conflict with the MS1 merge.
+- **14:55:** the stale aq-server PR subagent paused cleanly.
+  - #53 (per-project replacement budgets, fe309a38) is verified on the merged tree.
+  - #3 (CI fmt check plus docs, b6bed765) is pushed and current.
+  - #9, #60 and #64 are merged locally but not compiled or pushed. The branch refs are kept, and they need full verification on resume.
+  - The #63 merge was aborted. It still needs the 0096 renumber, and it can't build until 0095 lands.
+  - All of these are held until MS1 merges. #53 edits `replacement.rs`, which `ms1/retry` is changing for B4.
+- **15:05:** draft aq-server #90 (`ms1/demo`) fails `native_registration::startup_installs_policy_anchor_and_refuses_stale_configuration`. Commit 379c37eb added the Debug cause to the startup error, but the test still asserts the bare message. Sent to the `ms1/retry` subagent: keep the detail and update the assertion. The aq-worker template-scan fix is pushed (94d4b56).
+- **15:25: owner: pause MS1 for build optimisation.**
+  - The owner asked whether to optimise builds. Every MS1 loop waits on 5–10 min Rust rebuilds, so I started a read-only build audit (10 items: timings, linker, debuginfo, dev dep opt, duplicates, features, crate split and test binaries, llvm-lines, release profile, CI caching) at low priority.
+  - The owner then said "Pause MS1 for this improvement". Both MS1 subagents (`ms1/retry`, `ms1/d1`) are stopping at a clean point: pushing working states, leaving the `aq-ms1`/`aq-ms1d` stacks idle, and reporting how to resume.
+  - Once they're quiet, the audit takes real, uncontended timings. Nothing is changed until the owner approves.
+- **15:40: D1 subagent paused cleanly.** aq-server `ms1/d1` is at 69cee1b5.
+  - **Built and tested, not yet proven live:**
+    - a delivery owner in `settlement/publication.rs` publishes an accepted result's retained source through D1a/D1b `deliver` (fast-forward; PR mode is held explicitly) before D3 completes;
+    - the published head advances a named-ref project source, so B hydrates from A's commit;
+    - the scripts are parametrised for the `aq-ms1d` stack;
+    - `auto_settlement56` passes 10/10, including publish→complete→advance and moved-target→rework.
+  - **Left:** rerun config apply at credential revision 2, then run A→B live and record the evidence.
+  - **Follow-ups:**
+    - push to GitHub needs the aq-git credential profiles (A3b/D2);
+    - PR mode (D1b/D2);
+    - indeterminate-publish reconcile (D1b);
+    - a dedicated source-head table.
+  - The resume commands are in its report and the plan `docs/superpowers/plans/2026-11-05-ms1-d1-publication.md` on `ms1/d1`.
+- **15:45: `ms1/retry` subagent paused cleanly.** Heads: aq-server dd263e99, aq-worker 6ac8477. Migration 0095_replacement_source_after_never_granted.
+  - **Re-review fixes all in:**
+    - the B1 driver guard;
+    - recovery stops the container;
+    - the real inventory sequence;
+    - `.pyc` removed;
+    - token trimming only for Claude logins;
+    - the template scan. Its real cause was the RUNNER's `credentials=` line, renamed to `login_file`, so the recipe digest is re-pinned to b30030fb…
+  - **B4 retry, partly live:** a killed Claude run reported failed, D3 sent it to rework, and the new D3 writer recorded source-retained and effects-settled. A replacement was then admitted with budget accounting (`attempts_started=1`, sandbox_ms charged). It found and fixed 5 real B4 bugs:
+    - a never-granted successor blocked all later ones;
+    - a project-revision change failed the whole node poll;
+    - lineage elapsed time had to be 0;
+    - exactly one started attempt was required;
+    - cancel polls failed once inventory aged out.
+  - **B5b:** closure settlement plus the 15 s sweep, and worker closure reporting, are in code; kept sandboxes are released via the new `release-native-sandbox`. The live replacement completion and the stuck-node closure are not run yet.
+  - **Found:** the dashboard pinned results-feedback schema rejects the server's newer result fields (`feedback_read_version`, `follow_up_submission`, `directly_following`). Any stack with results shows "Dashboard update required"; it needs a re-pin in aq-dashboard, parked under the MS1-first rule.
+  - Both MS1 subagents are now idle. The build audit has the machine.
+- **15:35:** the disk guard hit 85% and cleaned the target dirs of 10 idle v1 slot worktrees (aq-server slots 1, 2 and 4; aq-worker slots 0, 1, 3, 4 and 5; aq-git slot 0; aq-playbooks slot 0). All v2 projects are paused, so the slots were idle. Disk is now at 62% (325 G free). The build audit is running its uncontended timing builds.
+- **16:30: build audit report (read-only; nothing changed).** Machine: 24 cores, 31 GB.
+  - **aq-server:**
+    - a clean build takes 3m06s, and the 109k-line lib is 134s of 180s as one serial unit;
+    - a full test build (`test --no-run`) takes 7m09s: the self dev-dep `test-support` builds a second lib, 141 test/example binaries take 130s wall, and the lib-test unit is always scheduled last;
+    - the edit plus one-test loop takes 127s with `incremental=false`, and **17s with incremental on**, which is the biggest single lever;
+    - the linker is already rust-lld and debuginfo is already line-tables-only.
+  - **CI:**
+    - `cargo test` runs 269 binaries serially (16.5 of 21.7 min);
+    - update-lifecycle (35.6 min) is the critical path, building images three times with ThinLTO;
+    - aq-worker CI has no cache.
+  - **Docker:** the per-build `cargo clean` fix still misses vendored path crates, and `Dockerfile.supervisor-host` has no clean at all.
+  - Recommendations ranked for the owner's approval: incremental for interactive work; nextest in CI; a no-LTO image profile for CI images; a touch-based Docker cache fix; aq-worker CI cache and narrowed clippy. Bigger: consolidate integration tests into ~6–10 binaries, then split the aq-server lib.
+- **16:40: owner approved** quick wins 1–5, test-binary consolidation and the aq-server lib split, plus saved build requirements: "so that we do not build ourselves into this position again… update agents.md or whatever is most likely to keep us in a good situation going forward".
+  - Dispatched the quick-wins subagent:
+    - incremental for interactive work, CI explicitly non-incremental;
+    - nextest with a selection test group, plus doctests;
+    - a no-LTO `ci-image` profile for CI images;
+    - a touch-based Docker cache fix, including `Dockerfile.supervisor-host`;
+    - a narrowed recovery clippy pass, CI caches for aq-worker/aq-git, and optimised crypto deps for tests.
+  - It also adds guardrails: a "Build health" section in each Rust repo's AGENTS.md, and a CI-enforced ratchet (`build-budget` script and file) on the integration-test binary count and the aq-server lib size.
+  - **Sequencing (my call):**
+    1. Quick wins and guardrails first.
+    2. Test consolidation next; it touches the same Cargo.toml/CI.
+    3. Resume MS1 on the faster loops.
+    4. The lib split only after the `ms1/retry` / `ms1/d1` branches and the held stale PRs merge. A 109k-line split would otherwise conflict with every open branch.
+- **17:55:** merged the build quick-win PRs aq-worker #39 (bae51626), aq-git #8 (180e6145) and aq-graph #4 (d3958410), all green: CI caches, incremental dev builds and AGENTS.md "Build health" guidance. The aq-server quick-wins PR (nextest, `ci-image` profile, Docker cache fix, build-budget ratchet) is still being verified locally.
+- **18:50:** merged aq-server #91 (build quick wins and the build-budget ratchet) as 9e10f770, with all 9 checks green.
+  - CI vs the last green main:
+
+    | Job | main | #91 |
+    |---|---|---|
+    | tests | 30m | 16m20s |
+    | recovery matrix | 19m | 14m |
+    | smoke | 17m | 15m29s |
+    | real daemon | 14m | 18m20s |
+    | update lifecycle | 29m | 35m22s |
+
+  - The update-lifecycle job didn't speed up as expected. Asked the subagent to find out why and fix it in a follow-up.
+- **19:00:** dispatched the test-binary consolidation, owner-approved item 6.
+  - About 131 `tests/*.rs` binaries move into 6–10 domain binaries via `git mv` and `[[test]]` entries, so rename detection lets the paused MS1 branches merge.
+  - It also updates the nextest filters, the build-budget ratchet and the AGENTS.md subset-run commands, then measures before and after.
+  - It trial-merges `ms1/retry` and `ms1/d1` and reports the conflicts.
+  - The quick-wins subagent is still looking into why update-lifecycle didn't speed up.
+- **19:50:** merged aq-server #92 (`build/lifecycle-speed`), with all 9 checks green.
+  - **Cause:** on GitHub's 4-vCPU runners, dropping ThinLTO alone saves nothing (796s vs 793s cold), because codegen work is the same. The audit's 93s serial LTO step was a 24-core artifact.
+  - **Fix:** the `ci-image` profile builds workspace crates at opt-level 0 and dependencies at opt-level 1, with no LTO: a cold build takes 445s, a path-crate rebuild 196s. AGENTS.md now says to measure build changes on 4 cores.
+  - CI job times, main before #91 → #92:
+
+    | Job | Before | #92 |
+    |---|---|---|
+    | update lifecycle | 29m | **18m19s** |
+    | smoke | 17m | **10m15s** |
+    | real daemon | 14m | **10m14s** |
+    | recovery matrix | 19m | **10m8s** |
+    | tests | 30m | 19m34s (16m20s on #91; runner variance) |
+- **19:58: build quick wins complete.** Merged aq-worker #40 (eaedd595) and aq-graph #5 (83ac59c5), the matching CI-image follow-ups.
+  - aq-worker CI went from 7m23s to 4m41s.
+  - The local edit-plus-one-test loop is 25–30s, against 127s before.
+  - **nextest:** the 233 selection-fixture tests run in a group of 2, and a fixture test outside the group panics. Cross-process migration and template builds are serialized with a DB lock, because PG lock-table overflow (53200) hit when processes migrated concurrently.
+  - Key generation for tests is 0.07–0.28s, down from 1.4–3.9s.
+  - **Ratchets** in `build-budget.toml`:
+    - aq-server: 204 test binaries, lib ≤109,000 lines;
+    - aq-worker: 105 test binaries, lib ≤68,081 lines;
+    - aq-git: 14 test binaries;
+    - aq-graph: 16 test binaries.
+  - The CI time budgets are written in AGENTS.md but not enforced yet. The `selection-fixture` group is now the long pole of the tests job.
+- **20:50:** merged aq-server #93 (`build/test-groups`) as 7c37748a, with all 9 checks green. aq-server's integration tests now build as 8 domain binaries instead of 204.
+  - CI: tests 14m27s, update lifecycle 16m04s. Before #91 these were ~30m and 29m.
+  - Waiting on the subagent's trial merges of `ms1/retry` and `ms1/d1` onto the new layout, and its measurements. MS1 resumes next.
+- **21:00: test consolidation results (#93).**
+  - The workspace test-binary count went from 204 to 81: aq-server now has 8 domain binaries (`it_profiled`, `it_native`, `it_phase`, `it_schema`, `it_playbook`, `it_dashboard`, `it_access`, `it_server`). The build-budget check fails if a stray `tests/*.rs` file is never built.
+  - Locally:
+
+    | Measure | Before | After |
+    |---|---|---|
+    | edit lib → rebuild all tests | 162s | 53s |
+    | test binaries on disk | 20.8 GB | 2.2 GB |
+    | target dir | 29.9 GB | 7.7 GB |
+
+  - CI tests went from 1292s to 867s. That is still over the 10-minute budget, as update lifecycle (964s) is over its 15-minute one.
+  - Trial merges onto the new main: `ms1/retry` and `ms1/d1` merge with no conflicts. One fix is still needed: the `include_str!` in `it_profiled/profiled_results/auto_settlement56.rs` needs one more `../`.
+  - **Resuming MS1** in two parallel tracks: `ms1/retry` (B4 live completion, B5b stuck nodes) and `ms1/d1` (A→B publication live). Then converge, run a final independent review, and merge.

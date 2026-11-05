@@ -16,8 +16,8 @@ replacement = '''            writer_file = Path(temp) / 'ordinary-writer-token'
             writer_file.chmod(0o600)
             env = dict(os.environ, CARGO_INCREMENTAL='0', AQ_AGENT_GRAPH_TEST_URL=base,
                        AQ_AGENT_GRAPH_TEST_TOKEN_FILE=str(writer_file))
-            subprocess.run(['cargo', 'test', '-p', 'aq-server', '--test', 'agent_access',
-                            '--', '--nocapture'], cwd=ROOT.parents[2], env=env, check=True)'''
+            subprocess.run(['cargo', 'test', '-p', 'aq-server', '--test', 'it_access',
+                            'agent_access::', '--', '--nocapture'], cwd=ROOT.parents[2], env=env, check=True)'''
 if source.count(original) != 1:
     raise SystemExit('fixture harness changed; review AQ-06 wrapper before running')
 namespace = {'__file__': str(fixture), '__name__': 'aq06_qualified_fixture'}

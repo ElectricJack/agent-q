@@ -32,6 +32,9 @@ workers_spec = importlib.util.spec_from_file_location("compose_workers_smoke", R
 workers_smoke = importlib.util.module_from_spec(workers_spec)
 workers_spec.loader.exec_module(workers_smoke)
 CONTROLLER_CONFIG = "/etc/aq-worker/controller.json"
+# Locally built smoke images are never released: build them with the CI image
+# profile (no ThinLTO, low optimization; Cargo.toml [profile.ci-image]).
+IMAGE_PROFILE = os.environ.get("AQ_IMAGE_CARGO_PROFILE", "ci-image")
 SANDBOX_SOCKET = "/run/aq-sandbox/podman.sock"
 
 
@@ -187,7 +190,8 @@ class Fixture:
         state = str(migration_state_format(snapshot))
         worker_args = ["--build-arg", "AQ_SOURCE_REVISION=" + candidate["source_revision"],
                        "--build-arg", "AQ_WORKER_ARCHIVE_SHA256=" + candidate["archive_sha256"],
-                       "--build-arg", "AQ_VERSION=" + candidate["version"], "--build-arg", "AQ_STATE_FORMAT=" + state]
+                       "--build-arg", "AQ_VERSION=" + candidate["version"], "--build-arg", "AQ_STATE_FORMAT=" + state,
+                       "--build-arg", "CARGO_PROFILE=" + IMAGE_PROFILE]
         if not fixture:
             fixture = self.project + "-fixture:candidate"
             self.images.append(fixture)
@@ -199,8 +203,10 @@ class Fixture:
             self.images += [server, worker]
             revision = "dev-" + self.record["source_tree_sha256"][:24]
             self.say("build server and pinned standalone worker from a frozen source snapshot")
+            self.record["image_cargo_profile"] = IMAGE_PROFILE
             self.run(["docker", "build", "--target", "server", "--build-arg", "AQ_SOURCE_REVISION=" + revision,
-                      "--build-arg", "AQ_STATE_FORMAT=" + state, "-t", server, str(snapshot)], name="build-server", timeout=1800)
+                      "--build-arg", "AQ_STATE_FORMAT=" + state, "--build-arg", "CARGO_PROFILE=" + IMAGE_PROFILE,
+                      "-t", server, str(snapshot)], name="build-server", timeout=1800)
             self.run(["docker", "build", "-f", str(snapshot / "Dockerfile.worker"), "--target", "worker",
                       *worker_args, "-t", worker, str(snapshot)], name="build-worker", timeout=1800)
         else:

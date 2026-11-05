@@ -16,10 +16,10 @@ def test_monthly_vm_budget():
         ["cargo", "test", "--locked", "-p", "aq-accounting"],
         ["cargo", "test", "--locked", "-p", "aq-server", "--lib", "observations::vm_time"],
         ["cargo", "test", "--locked", "-p", "aq-server", "--lib", "profiled_execution::placement"],
-        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "observations", "monthly_vm_budget"],
-        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "observations", "accounting::"],
-        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "image_labels"],
-        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "store"],
+        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "it_access", "observations::monthly_vm_budget"],
+        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "it_access", "observations::accounting::"],
+        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "it_access", "image_labels::"],
+        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "it_schema", "store::"],
     ]
     for command in commands:
         print("COMMAND", " ".join(command), flush=True)

@@ -19,8 +19,10 @@ def test_i0_settlement_regressions():
     commands = [
         ["cargo", "test", "--locked", "--offline", "-p", "aq-server", "--lib", "definition_identity_conflict_has_named_native_diagnostic"],
         ["cargo", "test", "--locked", "--offline", "-p", "aq-server", "--lib", "terminal::runtime::"],
-        ["cargo", "test", "--locked", "--offline", "-p", "aq-server", "--test", "config", "--test", "profiled_artifacts", "--test", "terminal_output_poll", "--test", "terminal_store"],
-        ["cargo", "test", "--locked", "--offline", "-p", "aq-server", "--test", "profiled_results", "settlement_http"],
+        ["cargo", "test", "--locked", "--offline", "-p", "aq-server", "--test", "it_server", "config::"],
+        ["cargo", "test", "--locked", "--offline", "-p", "aq-server", "--test", "it_profiled", "profiled_artifacts::"],
+        ["cargo", "test", "--locked", "--offline", "-p", "aq-server", "--test", "it_dashboard", "--", "terminal_output_poll::", "terminal_store::"],
+        ["cargo", "test", "--locked", "--offline", "-p", "aq-server", "--test", "it_profiled", "profiled_results::settlement_owner39::settlement_http::"],
     ]
     for index, command in enumerate(commands):
         log = evidence / f"{index:02d}.log"

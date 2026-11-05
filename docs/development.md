@@ -211,10 +211,25 @@ mistake. `compose.dev.yaml` overrides it to `development`.
 
 ```sh
 eval "$(scripts/test-db)"   # disposable PostgreSQL on 127.0.0.1:55432
-cargo test --workspace
+# One test binary, or one module of it, while iterating (incremental rebuilds
+# take seconds; AGENTS.md "Running a subset" lists the binaries and filters):
+timeout 900 cargo nextest run -p aq-server --test it_dashboard
+timeout 900 cargo nextest run -p aq-server --test it_dashboard -E 'test(/^dashboard_actions::/)'
+# The whole suite, as CI runs it (nextest: one process per test, in parallel):
+timeout 2400 cargo nextest run --workspace --locked --no-fail-fast
+timeout 900 cargo test --workspace --locked --doc   # nextest skips doctests
 cargo clippy --workspace --all-targets -- -D warnings
 cargo fmt --check
+python3 scripts/build-budget.py
 ```
+
+Install nextest once with `cargo install --locked cargo-nextest` (or the
+prebuilt binary from <https://nexte.st>). `cargo test` still works; it runs the
+test binaries one after another, so a full run is much slower. Test groups
+(tests that must not run concurrently) and per-test timeouts live in
+`.config/nextest.toml`. The build rules (incremental builds, a private target
+directory per worktree, where new tests go, size and CI-time budgets) are in
+the "Build health" section of [`AGENTS.md`](../AGENTS.md).
 
 ## Database migrations
 

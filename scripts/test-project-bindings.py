@@ -60,8 +60,8 @@ replacement = '''            import socket
                            AQ_AGENT_GRAPH_TEST_TOKEN_FILE=str(writer_file),
                            AQ_PROJECT_GIT_SOCKET=str(git_socket), AQ_PROJECT_REPOSITORY_ID=repository,
                            AQ_PROJECT_WORKSPACE_ID=workspace)
-                subprocess.run(['cargo', 'test', '--locked', '-p', 'aq-server', '--test', 'project_bindings',
-                                'selected_real_public_repository_and_graph_workspace_bind', '--', '--ignored', '--nocapture'],
+                subprocess.run(['cargo', 'test', '--locked', '-p', 'aq-server', '--test', 'it_playbook',
+                                'project_bindings::selected_real_public_repository_and_graph_workspace_bind', '--', '--ignored', '--nocapture'],
                                cwd=ROOT.parents[2], env=env, check=True)
                 print(json.dumps({'qualification': 'AQ-19', 'aq_git_image_id': GIT_IMAGE_ID,
                                   'aq_graph_image_id': IMAGE_ID, 'repository_binding_generation': 1,

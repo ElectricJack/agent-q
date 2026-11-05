@@ -14,10 +14,10 @@ def test_source_retention_gc(tmp_path):
     assert env.get("DATABASE_URL"), "set DATABASE_URL via scripts/test-db"
     commands = [
         ["cargo", "test", "--locked", "-p", "aq-server", "--lib", "source_retention::gc::tests"],
-        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "profiled_results",
-         "settlement_owner39::source_retention_gc::source_retention_gc_acceptance_and_max_age"],
-        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "source_retention"],
-        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "store", "migrations_are_idempotent"],
+        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "it_profiled",
+         "profiled_results::settlement_owner39::source_retention_gc::source_retention_gc_acceptance_and_max_age"],
+        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "it_profiled", "source_retention::"],
+        ["cargo", "test", "--locked", "-p", "aq-server", "--test", "it_schema", "store::migrations_are_idempotent"],
     ]
     evidence = Path(env.get("AQ_SOURCE_RETENTION_EVIDENCE", str(tmp_path)))
     evidence.mkdir(parents=True, exist_ok=True)

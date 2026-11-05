@@ -252,8 +252,8 @@ Named acceptance tests:
 - `cargo test --locked --workspace unknown_effect_operation_is_recoverable_by_lookup`
 - `cargo test --locked --workspace action_union_rejects_unknown_kind_with_envelope`
 - `cargo test --locked --workspace bootstrap_lists_pending_operations`
-- `cargo test --locked -p aq-server --test dashboard_task_knowledge knowledge_correct_with_stale_version_conflicts`
-- `cargo test --locked -p aq-server --test dashboard_task_knowledge task_retry_creates_replacement_attempt`
+- `cargo test --locked -p aq-server --test it_dashboard dashboard_task_knowledge::knowledge_correct_with_stale_version_conflicts`
+- `cargo test --locked -p aq-server --test it_dashboard dashboard_task_knowledge::task_retry_creates_replacement_attempt`
 
 - `cargo test --locked --workspace supervisor_creates_graph_with_dependencies_idempotently`
-- `cargo test --locked -p aq-server --test dashboard_actions session_message_send_enqueues_to_bound_session_mailbox`
+- `cargo test --locked -p aq-server --test it_dashboard dashboard_actions::session_message_send_enqueues_to_bound_session_mailbox`
