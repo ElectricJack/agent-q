@@ -1075,3 +1075,4 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - move the new tests into existing binaries;
     - raise the lib line ratchets with a stated reason, since the aq-server lib split is next.
   - Split the fixes: the `ms1/d1` subagent takes publication (S1, S4, the publication nits and tests); the `ms1/retry` subagent takes B1, S2, S3, the closure/worker tests and the sync_tree hardening.
+- **23:05: owner rule:** "Make sure any re-review only judges the fixes." After this round, the re-review gets only the finding list and the fix commits (from aq-server e810e65f / aq-worker 88c98f7 to the new heads). It judges whether each finding is fixed and whether the fix regresses anything. Anything else becomes a non-blocking follow-up. Saved as a standing rule.
