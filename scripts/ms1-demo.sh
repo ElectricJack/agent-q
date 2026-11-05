@@ -289,10 +289,10 @@ cmd_live() {
   docker -H "unix://$SANDBOX_SOCKET" image inspect "$TEMPLATE_IMAGE" --format '{{.Id}}' > "$run/template-image-id.txt"
   say "step 1 (node level): real Claude edit, check and publish in a docker-local sandbox"
   (cd "$WORKER_SRC" && AQ_CLAUDE_LIVE_EVIDENCE_DIR=$run/step1 timeout 1500 cargo test --locked -p aq-worker \
-     --test claude_live live -- --ignored --nocapture) 2>&1 | tee "$run/step1.log" | grep -E "runner exit|test result"
+     --test claude_live live -- --ignored --nocapture --skip ms1_live:: --skip sandbox_driver_live::) 2>&1 | tee "$run/step1.log" | grep -E "runner exit|test result"
   say "steps 3 and 5 (node level): cancel mid-run, node-controller restart mid-run"
   (cd "$WORKER_SRC" && AQ_CLAUDE_LIVE_EVIDENCE_DIR=$run/node timeout 1500 cargo test --locked -p aq-worker \
-     --test ms1_live ms1_ -- --ignored --nocapture --test-threads=1) 2>&1 | tee "$run/node.log" \
+     --test claude_live ms1_live::ms1_ -- --ignored --nocapture --test-threads=1) 2>&1 | tee "$run/node.log" \
      | grep -E "^(cancel|node-restart).json|test result"
   sleep 6
   cmd_stats_summary "$run/stats"
@@ -305,7 +305,7 @@ cmd_drill() {
   "$SRV/scripts/ms1-stats.sh" "$run/stats" & stats=$!
   say "step 6 helper: suspend Windows (Start > Power > Sleep) after the prompt, resume after >= 60 s"
   (cd "$WORKER_SRC" && AQ_CLAUDE_LIVE_EVIDENCE_DIR=$run timeout 2400 cargo test --locked -p aq-worker \
-     --test ms1_live ms1_suspend_drill -- --ignored --nocapture) 2>&1 | tee "$run/drill.log" \
+     --test claude_live ms1_live::ms1_suspend_drill -- --ignored --nocapture) 2>&1 | tee "$run/drill.log" \
      | grep --line-buffered -E "^drill:|suspend-drill.json|test result" || true
   kill $stats 2>/dev/null || true
   sed 's/\x1b\[[0-9;]*m//g' "$W/controller.log" > "$run/controller.log" 2>/dev/null || true
