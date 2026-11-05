@@ -143,7 +143,7 @@ pub async fn abandon(
         return Ok(receipt);
     }
     let hot: Value = row.get("state");
-    let unsettled: bool = sqlx::query_scalar("SELECT NOT EXISTS(SELECT 1 FROM profiled_settlement_evaluations WHERE attempt_id=$1 AND disposition='accepted') AND NOT EXISTS(SELECT 1 FROM profiled_task_completions WHERE attempt_id=$1) AND NOT EXISTS(SELECT 1 FROM profiled_auto_settlements WHERE attempt_id=$1 AND disposition IN ('prepared','possible','confirmed'))")
+    let unsettled: bool = sqlx::query_scalar("SELECT NOT EXISTS(SELECT 1 FROM profiled_settlement_evaluations WHERE attempt_id=$1 AND disposition='accepted') AND NOT EXISTS(SELECT 1 FROM profiled_task_completions WHERE attempt_id=$1) AND NOT EXISTS(SELECT 1 FROM profiled_auto_settlements WHERE attempt_id=$1 AND disposition IN ('prepared','possible','confirmed')) AND NOT EXISTS(SELECT 1 FROM profiled_delivery_evidence WHERE attempt_id=$1 AND state IN ('indeterminate','published'))")
         .bind(attempt).fetch_one(&mut *tx).await.map_err(db)?;
     let stop: Option<String> = sqlx::query_scalar("SELECT encode(sha256(receipt_bytes),'hex') FROM profiled_stopped_receipts WHERE attempt_id=$1")
         .bind(attempt).fetch_optional(&mut *tx).await.map_err(db)?;

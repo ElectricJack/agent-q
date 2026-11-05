@@ -303,6 +303,20 @@ pub async fn assess_task(state: &AppState, task: Uuid, now: u64) -> Result<Asses
     if quarantined {
         return Ok(Assessment::Blocked("stall_quarantined"));
     }
+    // D1: a successor reuses the predecessor's immutable export, so a result
+    // refused because its publication was definitively not applied (moved
+    // target, conflicted candidate) would recur. Such a lineage needs a new
+    // source admission (a new task attempt from the current source head).
+    let unpublished: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM profiled_auto_settlements s JOIN execution_attempts a USING(attempt_id) WHERE a.task_id=$1 AND s.disposition='rework_required' AND s.reason='delivery_unpublished')")
+        .bind(task)
+        .fetch_one(&state.store.pool)
+        .await
+        .map_err(|_| AppError::Internal)?;
+    if unpublished {
+        return Ok(Assessment::Blocked(
+            "replacement_after_unpublished_delivery_needs_new_source",
+        ));
+    }
     let counts = super::no_grant::attempt_counts(&state.store.pool, task).await?;
     if let Some(decided) = precheck(&counts) {
         return Ok(decided);
