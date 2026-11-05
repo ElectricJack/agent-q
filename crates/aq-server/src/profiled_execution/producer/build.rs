@@ -17,7 +17,7 @@ use crate::{
 use aq_admission::{
     ArtifactKind, ArtifactRef, Digest, SourceSelection, TaskRevision, Text,
     execution_spec::ProfiledExecutionSpec,
-    outcome::{Criterion, ExpectedOutcomeDefinition, OutcomeKind, ReviewRequirement, SourceAnchor},
+    outcome::{Criterion, ExpectedOutcomeDefinition, OutcomeKind, SourceAnchor},
     startup::NativeOffer,
     transport::{DeliveryClock, Feature, OfferedLaunch},
 };
@@ -300,6 +300,13 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
             return Err(refused());
         }
     }
+    // D3: the default completion policy is settled by the policy actor.
+    let review = configuration
+        .definition_bodies
+        .iter()
+        .find(|d| d.artifact() == &validation)
+        .map(|d| crate::profiled_execution::settlement::review_requirement(d.body()))
+        .ok_or_else(refused)?;
     // Check every required actual body before writing any retained artifact.
     let definitions = unique
         .iter()
@@ -486,7 +493,7 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         inputs: vec![compiled.projection.artifact.clone()],
         acceptance_criteria: criteria(&compiled.projection.context, task.task_id)?,
         validation_policy: validation,
-        review: ReviewRequirement::HumanOwner,
+        review,
         required_checks: vec![],
     };
     outcome.validate().map_err(|_| refused())?;

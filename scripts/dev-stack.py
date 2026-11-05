@@ -66,14 +66,15 @@ def intelligence_section():
     path = Path(name)
     try:
         metadata = path.lstat()
-        if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > 65536:
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > 2 * 1024 * 1024:
             raise ValueError()
         text = path.read_text()
         tables = tomllib.loads(text)
     except (OSError, ValueError, UnicodeDecodeError):
         raise ValueError("AQ_DEV_INTELLIGENCE_FILE must be a small regular TOML file with only [intelligence] tables") from None
-    if set(tables) != {"intelligence"}:
-        raise ValueError("AQ_DEV_INTELLIGENCE_FILE must contain only [intelligence] tables")
+    # MS1: optionally also the matching [profiled_execution] tables.
+    if "intelligence" not in tables or not set(tables) <= {"intelligence", "profiled_execution"}:
+        raise ValueError("AQ_DEV_INTELLIGENCE_FILE must contain only [intelligence] (and [profiled_execution]) tables")
     return "\n" + text if text.endswith("\n") else "\n" + text + "\n"
 
 
@@ -117,10 +118,16 @@ active_key_id = "dev-terminal-1"
 id = "dev-terminal-1"
 file = "/run/aq-dev/terminal_protection_key"
 '''
+    generated = config
     config += intelligence_section()
     target = vault / "config.toml"
     if target.exists() and target.read_text() != config:
-        raise ValueError("development vault differs from generated configuration; preserve it and use a new AQ_DEV_STATE_DIR")
+        # MS1: an operator may replace only the appended operator section of an
+        # existing vault (revisioned [intelligence]/[profiled_execution]); every
+        # generated table must be byte-identical.
+        if not (os.environ.get("AQ_DEV_REPLACE_OPERATOR_SECTION") == "1"
+                and target.read_text().startswith(generated)):
+            raise ValueError("development vault differs from generated configuration; preserve it and use a new AQ_DEV_STATE_DIR")
     target.write_text(config)
     return dict(AQ_STATE_FORMAT=str(state_format(ROOT)), AQ_DEV_STATE_DIR=str(state),
                 AQ_VAULT_DIR=str(vault), AQ_SECRETS_DIR=str(secret),

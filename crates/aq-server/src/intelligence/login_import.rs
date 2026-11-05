@@ -28,6 +28,23 @@ pub fn read_source(source: &Path) -> anyhow::Result<Zeroizing<Vec<u8>>> {
     Ok(bytes)
 }
 
+/// A Claude login is the long-lived `claude setup-token` value, delivered
+/// env-only. `claude setup-token > file` leaves a trailing newline that the
+/// runner's install (ASCII-graphic only) would refuse later, so trailing CR/LF
+/// is trimmed here and any other shape is refused before storage (C5b/MS1).
+pub fn normalize_claude_token(
+    bytes: Zeroizing<Vec<u8>>,
+) -> anyhow::Result<Zeroizing<Vec<u8>>> {
+    let mut end = bytes.len();
+    while end > 0 && matches!(bytes[end - 1], b'\n' | b'\r') {
+        end -= 1;
+    }
+    if end == 0 || !bytes[..end].iter().all(u8::is_ascii_graphic) {
+        bail!("a Claude login must be one line of printable ASCII (the setup-token value)");
+    }
+    Ok(Zeroizing::new(bytes[..end].to_vec()))
+}
+
 /// Stores `source` as the newest version of the configured subscription login
 /// `credential` (`id@version`) at `revision`; returns that version.
 pub async fn import(
@@ -38,13 +55,18 @@ pub async fn import(
     source: &Path,
     now_ms: i64,
 ) -> anyhow::Result<i64> {
-    let bytes = Arc::new(read_source(source)?);
-    let profile = loaded
+    let configured = loaded
         .credentials
         .iter()
         .find(|c| c.revision == revision && login_refresh::identity(&c.profile) == credential)
-        .map(|c| c.profile.clone())
         .with_context(|| format!("no configured credential {credential} at revision {revision}"))?;
+    let profile = configured.profile.clone();
+    let bytes = read_source(source)?;
+    let bytes = Arc::new(if configured.provider.as_str() == "anthropic" {
+        normalize_claude_token(bytes)?
+    } else {
+        bytes
+    });
     Ok(
         login_refresh::operator_replace(&store.pool, loaded, &profile, revision, bytes, now_ms)
             .await?,
@@ -69,5 +91,14 @@ mod tests {
         let big = read_source(&token).unwrap_err();
         assert!(!format!("{big:#}").contains("xxx"));
         assert!(read_source(root.path()).is_err());
+    }
+    #[test]
+    fn claude_token_trailing_newline_is_trimmed_and_other_shapes_refused() {
+        let ok = normalize_claude_token(Zeroizing::new(b"sk-ant-oat01-SECRET\r\n".to_vec())).unwrap();
+        assert_eq!(&**ok, b"sk-ant-oat01-SECRET");
+        for bad in [&b"\n"[..], b"sk-ant two\n", b"line1\nline2\n"] {
+            let error = normalize_claude_token(Zeroizing::new(bad.to_vec())).unwrap_err();
+            assert!(!format!("{error:#}").contains("sk-ant"));
+        }
     }
 }

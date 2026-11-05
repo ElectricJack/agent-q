@@ -146,6 +146,22 @@ mod tests {
         assert_eq!(evaluate(&g), Verdict::Complete);
     }
     #[test]
+    fn default_policy_offers_name_the_policy_actor() {
+        use aq_admission::outcome::ReviewRequirement;
+        assert_eq!(
+            super::super::review_requirement(
+                r#"{"schema_version":1,"kind":"aq.default-completion.v1","delivery":"not_required"}"#
+            ),
+            ReviewRequirement::PolicyActor
+        );
+        assert_eq!(
+            super::super::review_requirement(
+                r#"{"schema_version":1,"kind":"source_change_reviewed_human_owner_no_checks_v1"}"#
+            ),
+            ReviewRequirement::HumanOwner
+        );
+    }
+    #[test]
     fn default_policy_body_is_exact() {
         assert_eq!(
             parse(
