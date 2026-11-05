@@ -252,6 +252,8 @@ pub fn build_admin_router_with_optional_owners(
         notifications: true,
         supervisor_conversation: true,
         reviews: reviews.is_some(),
+        waits: true,
+        session_operations: true,
         playbook_loaded_definitions: playbooks
             .as_ref()
             .is_some_and(|driver| driver.loaded_definitions_available()),
