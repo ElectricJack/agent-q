@@ -1028,3 +1028,15 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - CI tests went from 1292s to 867s. That is still over the 10-minute budget, as update lifecycle (964s) is over its 15-minute one.
   - Trial merges onto the new main: `ms1/retry` and `ms1/d1` merge with no conflicts. One fix is still needed: the `include_str!` in `it_profiled/profiled_results/auto_settlement56.rs` needs one more `../`.
   - **Resuming MS1** in two parallel tracks: `ms1/retry` (B4 live completion, B5b stuck nodes) and `ms1/d1` (A→B publication live). Then converge, run a final independent review, and merge.
+- **21:30: MS1 D1 publication LIVE on `aq-ms1d`.**
+  - **Task A2** (`…00d1`, attempt `4f71c639…`):
+    - a real Claude Code agent added `hello()` and a test;
+    - commit `7b3bad0c` was published by fast-forward (operation `da61f20b…`, `main` 2e32645b → 7b3bad0c);
+    - the source head advanced to sequence 1, then D3 completed the task (graph operation `02388878…`), with publication recorded before completion.
+  - **Task B2** (`…00d2`, attempt `a2e66fd3…`):
+    - it started from `main` = 7b3bad0c; Claude saw `hello()` already present and `cargo test` passed;
+    - its commit `d4138d2b` (parent 7b3bad0c) was published (`ad069841…`, 7b3bad0c → d4138d2b) and completed (`77995948…`).
+  - The remote is a local bare clone inside the aq-git volume. Pushing to GitHub needs the A3b/D2 credential profiles.
+  - `ms1/d1` (aq-server 58019826) has converged with main and `ms1/retry`. `auto_settlement56` passes 10/10.
+  - **New B5b variant:** an attempt was granted and its session host started, but Claude never ran ("observed gate failed closed", no diagnostics). `reconcile-native` won't close it, so the node is wedged. Sent to the `ms1/retry` subagent.
+  - Remaining for MS1: B4 replacement live completion, B5b stuck nodes, the final independent review, then merging to main.
