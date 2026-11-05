@@ -831,3 +831,5 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Refreshed #87 (F5) on main: clean merge, catalog at 92, protocol checks pass, pushed 1e15dee6. Waiting on CI. #88 (D11, 0093) is next.
 - **10:20:** merged #87 (F5, agent questions to the owner, migration 0092) as fe4987a8, with all 9 checks green.
   - Refreshed #88 (D11) on main: clean merge, catalog at 93, protocol checks pass, pushed c05381a7. Waiting on CI.
+- **10:50:** merged #88 (D11, routing/watcher/reporting pilots on the real Host7/Host8 adapters, migration 0093), with all 9 checks green. The PR merge queue is empty.
+  - Open server work: aq-server/aq-worker `ms1/demo`. The wiring subagent is applying the review's B1 fix and should-fixes, then cancel, stuck attempts, retry, restart drills and D1.
