@@ -904,3 +904,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - `ms1/retry` has the re-review fixes pushed (aq-server 2bb34afb, aq-worker 0ee3b25): the B1 driver success guard and reconcile-native stopping the Claude container.
   - Draft aq-worker #38 (`ms1/demo`) fails `templates::template_cli_build_and_scan_use_embedded_tools`. The sandbox template's credential scanner correctly flags a token-shaped fake fixture (`sk-ant-oat01-abcdef…`) in the new `parse_token` tests. Sent it to the `ms1/retry` subagent: build the fixture so no token-shaped literal exists, and remove the committed `.pyc` files (8 still on `ms1/retry`). Draft aq-server #90 is still running.
   - The paused stale-PR subagent finished cleanly: aq-worker #32 (e626fd7, green) and aq-dashboard #55 (da3d04e; the phone header stays non-sticky per G11, and a tap-swallowing bug in its bottom bar is fixed). Both are held unmerged until MS1 lands, so they don't conflict with the MS1 merge.
+- **14:55:** the stale aq-server PR subagent paused cleanly.
+  - #53 (per-project replacement budgets, fe309a38) is verified on the merged tree.
+  - #3 (CI fmt check plus docs, b6bed765) is pushed and current.
+  - #9, #60 and #64 are merged locally but not compiled or pushed. The branch refs are kept, and they need full verification on resume.
+  - The #63 merge was aborted. It still needs the 0096 renumber, and it can't build until 0095 lands.
+  - All of these are held until MS1 merges. #53 edits `replacement.rs`, which `ms1/retry` is changing for B4.
