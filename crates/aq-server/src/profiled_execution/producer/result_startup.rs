@@ -16,6 +16,9 @@ const ADAPTER_ID: &str = "aq.codex-result-local-adapter";
 /// the long (schema 3) phase without terminal input.
 const CLAUDE_ADAPTER_ID: &str = "aq.claude-result-local-adapter";
 const CLAUDE_PROFILE: &str = "claude-2.1.318-docker-local-result-local-v1";
+/// aq-worker `docker_local_recipe_artifact()` (`aq-worker ms1-definitions`).
+const CLAUDE_RECIPE_DIGEST: &str =
+    "b3d428f777eecc9e65946662c66aff81e6558725c927886ba488f27b033026d0";
 fn result_adapter(id: &str) -> bool {
     id == ADAPTER_ID || id == CLAUDE_ADAPTER_ID
 }
@@ -80,8 +83,11 @@ pub(super) fn from_definitions(
         }
         CLAUDE_PROFILE => {
             adapter.id.as_str() == CLAUDE_ADAPTER_ID
-                && opt.recipe.id.as_str() == "aq.claude-docker-local-result-local-recipe"
-                && opt.recipe.version.as_str() == "1"
+                && opt.recipe
+                    == public_reference(
+                        "aq.claude-docker-local-result-local-recipe",
+                        CLAUDE_RECIPE_DIGEST,
+                    )?
         }
         _ => false,
     };
@@ -245,7 +251,13 @@ mod tests {
     fn claude_docker_local_profile_runs_the_long_phase_without_terminal_input() {
         let mut value = body();
         value["profile"] = json!(CLAUDE_PROFILE);
-        value["recipe"] = json!(reference("aq.claude-docker-local-result-local-recipe"));
+        value["recipe"] = json!(
+            public_reference(
+                "aq.claude-docker-local-result-local-recipe",
+                CLAUDE_RECIPE_DIGEST
+            )
+            .unwrap()
+        );
         let bytes = serde_json::to_string(&value).unwrap();
         let mut adapter = reference(CLAUDE_ADAPTER_ID);
         adapter.digest = Digest::of(bytes.as_bytes());
@@ -255,6 +267,16 @@ mod tests {
         let reporting = from_definitions(&adapter, &defs).unwrap().unwrap();
         assert!(!reporting.interactive && reporting.long_phase);
         assert!(interactive_runtime(&reference("runtime-code"), &defs).unwrap());
+        // Another recipe body under the Claude profile is refused.
+        let mut wrong = value.clone();
+        wrong["recipe"] = json!(reference("aq.claude-docker-local-result-local-recipe"));
+        let wrong_bytes = serde_json::to_string(&wrong).unwrap();
+        let mut wrong_adapter = reference(CLAUDE_ADAPTER_ID);
+        wrong_adapter.digest = Digest::of(wrong_bytes.as_bytes());
+        let mut wrong_defs = defs.clone();
+        wrong_defs[0] =
+            Definition::new(wrong_adapter.clone(), ArtifactKind::Definition, wrong_bytes).unwrap();
+        assert!(from_definitions(&wrong_adapter, &wrong_defs).is_err());
         // The Claude profile under the Codex adapter identity is refused.
         let mut codex = reference(ADAPTER_ID);
         codex.digest = Digest::of(bytes.as_bytes());

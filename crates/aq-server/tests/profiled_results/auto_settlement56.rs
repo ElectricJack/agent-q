@@ -33,22 +33,42 @@ struct AutoEnv {
 }
 
 async fn auto_env(delivery: &str, graph_status: axum::http::StatusCode) -> AutoEnv {
-    let (mut f, _, mut report) = Box::pin(prepare_with_policy(
+    auto_env_with(delivery, graph_status, true, None).await
+}
+
+async fn auto_env_with(
+    delivery: &str,
+    graph_status: axum::http::StatusCode,
+    keep_checks: bool,
+    process_outcome: Option<aq_admission::transport::ProcessOutcome>,
+) -> AutoEnv {
+    let (mut f, _, mut report) = Box::pin(prepare_with_policy_checks(
         true,
         true,
         None,
         false,
         Some(default_policy(delivery)),
+        keep_checks,
     ))
     .await;
+    if let Some(outcome) = process_outcome {
+        report.outcome = outcome;
+    }
     let source = Uuid::new_v4();
     report.source_receipt_ids.push(source);
     let auth = context(&f).await;
     results::record(&f.state, &auth, &report).await.unwrap();
     // The record hook evaluated already: nothing is retained yet, so it holds.
     let first = settlement_row(&f, report.report_id).await;
-    assert_eq!(first.0, "held");
-    assert_eq!(first.1.as_deref(), Some("source_not_retained"));
+    if matches!(report.outcome, aq_admission::transport::ProcessOutcome::Success) {
+        assert_eq!(first.0, "held");
+        assert_eq!(first.1.as_deref(), Some("source_not_retained"));
+    } else {
+        // Acceptance precedes every evidence gate: a non-Success report is
+        // refused at once, retained source or not.
+        assert_eq!(first.0, "rework_required");
+        assert_eq!(first.1.as_deref(), Some("not_accepted"));
+    }
 
     // Synthetic retained-source owner row (validation only, not real Git).
     let pool = &f.db.pool().await;
@@ -94,9 +114,12 @@ async fn auto_env(delivery: &str, graph_status: axum::http::StatusCode) -> AutoE
         .await
         .unwrap();
     tx.rollback().await.unwrap();
-    let check = recorded.outcome.required_checks.first().unwrap();
-    let check_id = check.id.as_str().to_owned();
-    let validator = check.validator.digest.as_str().to_owned();
+    let (check_id, validator) = recorded
+        .outcome
+        .required_checks
+        .first()
+        .map(|check| (check.id.as_str().to_owned(), check.validator.digest.as_str().to_owned()))
+        .unwrap_or_default();
     let expected_version = recorded.spec.task.version;
 
     // Synthetic Graph peer: counts mutation writes and keeps each body.
@@ -379,4 +402,30 @@ async fn parked_suspension_holds_as_suspended_until_successor_ack() {
     let s = env.settle().await;
     env.assert_not_completed(&s, AutoDisposition::Held, "continued_by_successor")
         .await;
+}
+
+/// MS1 review B1: a production-shaped offer (policy actor, no required checks,
+/// delivery not required) completes only on a Success report. A failed or an
+/// unproven (Unknown) run never completes the task or releases dependents.
+#[tokio::test]
+async fn failed_or_unknown_report_never_completes_a_task_without_required_checks() {
+    use aq_admission::transport::ProcessOutcome;
+    for outcome in [ProcessOutcome::Failed, ProcessOutcome::Unknown] {
+        let env = auto_env_with("not_required", axum::http::StatusCode::OK, false, Some(outcome))
+            .await;
+        let s = env.settle().await;
+        env.assert_not_completed(&s, AutoDisposition::ReworkRequired, "not_accepted")
+            .await;
+    }
+    let env = auto_env_with(
+        "not_required",
+        axum::http::StatusCode::OK,
+        false,
+        Some(ProcessOutcome::Success),
+    )
+    .await;
+    let s = env.settle().await;
+    assert_eq!(s.disposition, AutoDisposition::Confirmed, "{s:?}");
+    assert_eq!(env.writes.load(Ordering::SeqCst), 1);
+    assert!(!env.holds_task().await, "confirmed receipt releases the claim");
 }

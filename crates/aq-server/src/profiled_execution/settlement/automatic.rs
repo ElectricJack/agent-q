@@ -81,16 +81,11 @@ async fn lock_row(
         .await
         .map_err(db)
 }
-/// The worker's process outcome is not evidence (the gates below are). A native
-/// result-local report carries `Unknown`: the tmux host proves no harness exit
-/// code and the explicit agent claim carries the work. Only a refused outcome
-/// (failed, expired, cancelled) sends the result to rework.
+/// Only a Success report is acceptable (MS1 review B1). A native worker reports
+/// Success only for a harness exit it proved (exit 0 plus an explicit claim);
+/// Unknown, Failed, Expired and Cancelled go to rework, never to completion.
 fn outcome_acceptable(outcome: aq_admission::transport::ProcessOutcome) -> bool {
-    matches!(
-        outcome,
-        aq_admission::transport::ProcessOutcome::Success
-            | aq_admission::transport::ProcessOutcome::Unknown
-    )
+    matches!(outcome, aq_admission::transport::ProcessOutcome::Success)
 }
 /// The retained default-completion policy, or None (no rows are written).
 fn applicable(state: &AppState, r: &results::RecordedResult) -> Option<Delivery> {
@@ -362,10 +357,10 @@ async fn dispatch(
 mod outcome_tests {
     use aq_admission::transport::ProcessOutcome;
     #[test]
-    fn result_local_unknown_outcome_is_acceptable_but_failures_are_not() {
+    fn only_a_success_outcome_is_acceptable() {
         assert!(super::outcome_acceptable(ProcessOutcome::Success));
-        assert!(super::outcome_acceptable(ProcessOutcome::Unknown));
         for refused in [
+            ProcessOutcome::Unknown,
             ProcessOutcome::Failed,
             ProcessOutcome::Expired,
             ProcessOutcome::Cancelled,
