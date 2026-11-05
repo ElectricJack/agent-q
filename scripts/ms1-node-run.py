@@ -51,10 +51,22 @@ def stop(child):
             child.wait(timeout=5)
 
 
+def wipe_materials(state):
+    """Teardown deletes leased login material (0005 section 7). The native
+    pipeline retains its journal for reconciliation; the login bytes are not
+    needed for that, so a finished run keeps only the record."""
+    wiped = 0
+    for material in state.glob("materials/*/material.bin"):
+        material.unlink()
+        wiped += 1
+    return wiped
+
+
 def fresh_state(stamp):
     RUNS.mkdir(mode=0o700, exist_ok=True)
     if STATE.exists() and any(STATE.iterdir()):
         if (STATE / "journal").exists():
+            wipe_materials(STATE)
             shutil.move(str(STATE), str(RUNS / f"state-{stamp}"))
         else:
             shutil.rmtree(STATE)
@@ -97,9 +109,10 @@ def main():
                                       stdin=subprocess.DEVNULL, stdout=out, stderr=subprocess.STDOUT,
                                       close_fds=True, env=env)
             code = worker.wait()
+        wiped = wipe_materials(STATE)
         tail = log.read_text().splitlines()[-12:]
         print("\n".join(tail), flush=True)
-        print(json.dumps({"event": "run_native_exit", "exit_code": code, "log": str(log),
+        print(json.dumps({"event": "run_native_exit", "exit_code": code, "log": str(log), "materials_wiped": wiped,
                           "wall_seconds": round(time.time() - started, 1)}), flush=True)
         return code
     finally:
