@@ -745,6 +745,7 @@ pub(super) async fn session(
                 .await?;
         if mailbox == Some(true) && !view.revoked {
             permissions.push(crate::agent_access::messaging::session_action::KIND.into());
+            permissions.push(crate::agent_access::messaging::session_action::NUDGE_KIND.into());
         }
     }
     let now = stamp(state)?;

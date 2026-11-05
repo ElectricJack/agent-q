@@ -991,16 +991,123 @@
         {
           "properties": {
             "kind": {
+              "const": "session.nudge"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:session.nudge:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "description": "H3 owner nudge: the same safe-boundary path as the stall ladder. Input that\nis unknown, or a pane a human controls, keeps it inbox-only.",
+              "properties": {
+                "body": {
+                  "maxLength": 16384,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "expected_generation": {
+                  "description": "The session's assignment generation, as projected in `session_identity`.",
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_generation",
+                "body"
+              ],
+              "title": "SessionNudge",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
               "const": "supervisor.message.send"
             },
             "payload": {
+              "$defs": {
+                "AttachmentRef": {
+                  "additionalProperties": false,
+                  "description": "A pinned reference from `Create.attachments` to a staged upload.",
+                  "properties": {
+                    "digest": {
+                      "pattern": "^sha256:[0-9a-f]{64}$",
+                      "type": "string"
+                    },
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "digest"
+                  ],
+                  "type": "object"
+                },
+                "ContextKind": {
+                  "enum": [
+                    "project",
+                    "task",
+                    "result",
+                    "review",
+                    "knowledge",
+                    "session",
+                    "playbook_run"
+                  ],
+                  "type": "string"
+                },
+                "ContextRef": {
+                  "additionalProperties": false,
+                  "description": "X5: a pinned reference to an AQ entity the owner attached to a message.\nThe server checks shape only; the supervisor resolves refs under its own\nauthority.",
+                  "properties": {
+                    "id": {
+                      "format": "uuid",
+                      "type": "string"
+                    },
+                    "revision": {
+                      "description": "Required, nullable: an absent field is refused like the schema does.",
+                      "pattern": "^[1-9][0-9]{0,18}$",
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "type": {
+                      "$ref": "#/$defs/ContextKind"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              },
               "$id": "urn:aq:dashboard-actions:1:supervisor.message.send:payload",
               "$schema": "https://json-schema.org/draft/2020-12/schema",
               "additionalProperties": false,
               "properties": {
                 "attachments": {
-                  "items": true,
-                  "maxItems": 0,
+                  "description": "agile-vault-27: staged uploads pinned by id and content digest.",
+                  "items": {
+                    "$ref": "#/$defs/AttachmentRef"
+                  },
+                  "maxItems": 4,
                   "type": "array"
                 },
                 "body": {
@@ -1009,8 +1116,10 @@
                   "type": "string"
                 },
                 "context": {
-                  "items": true,
-                  "maxItems": 0,
+                  "items": {
+                    "$ref": "#/$defs/ContextRef"
+                  },
+                  "maxItems": 16,
                   "type": "array"
                 },
                 "expected_conversation_revision": {

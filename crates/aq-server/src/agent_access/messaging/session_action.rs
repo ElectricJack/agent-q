@@ -34,13 +34,34 @@ pub(crate) struct SessionMessage {
 
 pub(crate) struct SendSessionMessage;
 
+pub(crate) const NUDGE_KIND: &str = "session.nudge";
+
+/// H3 owner nudge: the same safe-boundary path as the stall ladder. Input that
+/// is unknown, or a pane a human controls, keeps it inbox-only.
+#[derive(Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct SessionNudge {
+    pub operation_id: Uuid,
+    pub project_id: Uuid,
+    /// The session's assignment generation, as projected in `session_identity`.
+    #[schemars(regex(pattern = "^[1-9][0-9]{0,18}$"))]
+    pub expected_generation: String,
+    #[schemars(length(min = 1, max = 16384))]
+    pub body: String,
+}
+
+pub(crate) struct NudgeSession;
+
 pub(crate) fn register(r: &mut Registry) {
     r.register(SendSessionMessage)
         .expect("session message adapter");
+    r.register(NudgeSession).expect("session nudge adapter");
 }
 pub(crate) fn schemas(r: &mut Registry) {
     r.register_schema::<SendSessionMessage>()
         .expect("session message schema");
+    r.register_schema::<NudgeSession>()
+        .expect("session nudge schema");
 }
 
 fn owner_sender(user: &User) -> Value {
@@ -217,6 +238,122 @@ impl ActionKind for SendSessionMessage {
         .await;
         match sent {
             Ok(response) if tx.commit().await.is_ok() => result(&response),
+            Ok(_) => Outcome::unknown(),
+            Err(OwnerSendError::Invalid | OwnerSendError::NotFound) => {
+                existing::disposition(Disposition::Rejected)
+            }
+            Err(OwnerSendError::Conflict) => existing::disposition(Disposition::Conflict),
+            Err(OwnerSendError::Unknown) => Outcome::unknown(),
+        }
+    }
+}
+
+fn nudge_session_id(
+    request: &ActionRequest,
+    p: &SessionNudge,
+) -> std::result::Result<Uuid, ApiError> {
+    let id = existing::subject(request, "session", "session", &p.expected_generation)?;
+    if request.operation_id != p.operation_id
+        || p.project_id.is_nil()
+        || p.body.trim().is_empty()
+        || p.body.len() > 16384
+        || generation(&p.expected_generation).is_none()
+    {
+        return Err(ApiError::invalid());
+    }
+    Ok(id)
+}
+
+#[async_trait]
+impl ActionKind for NudgeSession {
+    type Payload = SessionNudge;
+    const KIND: &'static str = NUDGE_KIND;
+    async fn authorize(
+        &self,
+        state: &AppState,
+        user: &User,
+        request: &ActionRequest,
+        p: &SessionNudge,
+    ) -> std::result::Result<Scope, ApiError> {
+        let session = nudge_session_id(request, p)?;
+        existing::owner(state, user).await?;
+        recipient(state, session, p.project_id, 1).await?;
+        Ok(Scope::Project {
+            project_id: p.project_id,
+        })
+    }
+    async fn authorize_lookup(
+        &self,
+        state: &AppState,
+        user: &User,
+        scope: &Scope,
+        operation: Option<&actions::Operation>,
+    ) -> std::result::Result<(), ApiError> {
+        SendSessionMessage
+            .authorize_lookup(state, user, scope, operation)
+            .await
+    }
+    async fn reconcile(
+        &self,
+        state: &AppState,
+        user: &User,
+        operation: &actions::Operation,
+    ) -> std::result::Result<Option<Outcome>, ApiError> {
+        SendSessionMessage.reconcile(state, user, operation).await
+    }
+    async fn execute(
+        &self,
+        state: &AppState,
+        user: &User,
+        request: &ActionRequest,
+        p: SessionNudge,
+    ) -> Outcome {
+        let (Ok(session), Some(expected)) = (
+            nudge_session_id(request, &p),
+            generation(&p.expected_generation),
+        ) else {
+            return Outcome::unknown();
+        };
+        let target = match recipient(state, session, p.project_id, expected).await {
+            Ok(Live::Current(Recipient::Session {
+                workspace_id,
+                project_id,
+                task_id,
+                session_id,
+                attempt_id,
+                generation,
+            })) => crate::stall::engine::Target {
+                attempt_id,
+                session_id,
+                task_id,
+                project_id,
+                workspace_id,
+                generation,
+            },
+            Ok(Live::Stale(live)) => {
+                return Outcome::conflict([("session".to_string(), live.to_string())].into());
+            }
+            Ok(Live::Current(_)) => return Outcome::unknown(),
+            Err(e) if e.status() == StatusCode::NOT_FOUND => {
+                return existing::disposition(Disposition::Rejected);
+            }
+            Err(_) => return Outcome::unknown(),
+        };
+        let Ok(mut tx) = state.store.pool.begin().await else {
+            return Outcome::unknown();
+        };
+        let sent = crate::stall::ports::nudge_as(
+            &mut tx,
+            &target,
+            p.operation_id,
+            &p.body,
+            false,
+            Some(user.id),
+            now(state),
+        )
+        .await;
+        match sent {
+            Ok((_, response)) if tx.commit().await.is_ok() => result(&response),
             Ok(_) => Outcome::unknown(),
             Err(OwnerSendError::Invalid | OwnerSendError::NotFound) => {
                 existing::disposition(Disposition::Rejected)

@@ -28,6 +28,7 @@ pub mod reviews;
 pub mod row_retention;
 pub mod session_access;
 pub mod source_retention;
+pub mod stall;
 pub mod store;
 pub mod templates;
 pub mod terminal;
@@ -463,6 +464,7 @@ async fn run_with_listeners_and_dashboard(
     let waits_task = tokio::spawn(agent_access::waits::run(state.clone(), rx.clone()));
     let expiry_task = tokio::spawn(profiled_execution::expiry::run(state.clone(), rx.clone()));
     let source_gc_task = tokio::spawn(source_retention::gc::run(state.clone(), rx.clone()));
+    let stall_task = tokio::spawn(stall::runtime::run(state.clone(), rx.clone()));
     tokio::spawn(async move {
         shutdown.await;
         let _ = tx.send(true);
@@ -508,6 +510,8 @@ async fn run_with_listeners_and_dashboard(
     let _ = source_gc_task.await;
     expiry_task.abort();
     let _ = expiry_task.await;
+    stall_task.abort();
+    let _ = stall_task.await;
     let policy_shutdown = match policy_runtime {
         Some(runtime) => runtime.shutdown().await,
         None => Ok(()),

@@ -277,6 +277,16 @@ pub async fn assess_task(state: &AppState, task: Uuid, now: u64) -> Result<Asses
     if disposed {
         return Ok(Assessment::Blocked("task_terminally_disposed"));
     }
+    // H3 rung 5: a quarantined lineage is never replaced until an owner acts.
+    let quarantined: bool =
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM stall_quarantines WHERE lineage_id=$1)")
+            .bind(task)
+            .fetch_one(&state.store.pool)
+            .await
+            .map_err(|_| AppError::Internal)?;
+    if quarantined {
+        return Ok(Assessment::Blocked("stall_quarantined"));
+    }
     let counts = super::no_grant::attempt_counts(&state.store.pool, task).await?;
     if let Some(decided) = precheck(&counts) {
         return Ok(decided);
