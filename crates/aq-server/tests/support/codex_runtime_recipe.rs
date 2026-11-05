@@ -185,6 +185,7 @@ pub fn project(
             currency: None,
             require_hard_cost_enforcement: false,
         },
+        publication: None,
     })
 }
 #[derive(Clone, Serialize)]
@@ -726,6 +727,7 @@ impl Prepared {
         );
         let registry = IntelligenceConfig {
             accounting: Default::default(),
+            material_store: None,
             revision: 1,
             credentials: vec![CredentialConfig {
                 kind: Default::default(),

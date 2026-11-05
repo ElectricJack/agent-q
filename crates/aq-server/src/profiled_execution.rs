@@ -10,6 +10,7 @@ pub mod context_budget;
 pub mod context_projection;
 pub mod expiry;
 pub mod journal;
+pub mod login_refresh;
 pub mod material;
 pub mod material_api;
 pub mod no_grant;
@@ -22,6 +23,7 @@ pub mod registration;
 pub mod source;
 pub mod started;
 
+pub mod disposition;
 pub mod stopped;
 
 pub mod human_results;

@@ -537,7 +537,8 @@ async fn intelligence_decision_is_immutable_and_final_fence_rechecks_scoped_fact
         observed,
         "fence must be observed waiting on the retained node lock"
     );
-    env.time.store((time + 2001) as i64, Ordering::SeqCst);
+    let expires = decision.outcome.resolved.as_ref().unwrap().expires_at_ms;
+    env.time.store(expires as i64, Ordering::SeqCst);
     held.rollback().await.unwrap();
     let error = waiting.await.unwrap().unwrap_err();
     assert!(format!("{error:?}").contains("expired"));
@@ -756,7 +757,8 @@ async fn project_policy_decisions_have_no_human_actor_and_recheck_installed_poli
         "policy fence must actually wait for the locked policy"
     );
     let current_time = env.time.load(Ordering::SeqCst);
-    env.time.store(current_time + 2001, Ordering::SeqCst);
+    let expires = decision.outcome.resolved.as_ref().unwrap().expires_at_ms;
+    env.time.store(expires as i64, Ordering::SeqCst);
     held.rollback().await.unwrap();
     assert!(format!("{:?}", waiting.await.unwrap().unwrap_err()).contains("expired"));
     env.time.store(current_time, Ordering::SeqCst);

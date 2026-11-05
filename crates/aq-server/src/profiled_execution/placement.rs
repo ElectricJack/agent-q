@@ -68,21 +68,32 @@ pub fn accounted(summary: &aq_accounting::pricing::Summary, limit: &Money) -> Op
     })
 }
 
-/// Accounted spend for each node whose advertisement has a spend ceiling. A
-/// ledger read failure leaves that node unaccounted, so it refuses.
+/// Accounted spend for nodes with ceilings: current-month VM time for Boat,
+/// lifetime provider calls otherwise. A read failure leaves the node
+/// unaccounted, so it refuses.
 async fn spends(
+    conn: &mut PgConnection,
     ledger: &Ledger<'_>,
     nodes: &[(Uuid, &BackendAdvertisement)],
+    now_ms: u64,
+    exclude_attempt: Option<Uuid>,
 ) -> Vec<(Uuid, Option<Money>)> {
     let mut out = Vec::new();
     for (node, adv) in nodes {
         let Some(limit) = adv.spend_ceiling.as_ref() else {
             continue;
         };
-        let spent = crate::observations::budget::node(ledger.pool, ledger.book, *node)
-            .await
-            .ok()
-            .and_then(|summary| accounted(&summary, limit));
+        let spent = if crate::observations::vm_time::is_monthly_backend(adv.kind) {
+            crate::observations::vm_time::node(conn, *node, limit, now_ms, exclude_attempt)
+                .await
+                .ok()
+                .flatten()
+        } else {
+            crate::observations::budget::node(ledger.pool, ledger.book, *node)
+                .await
+                .ok()
+                .and_then(|summary| accounted(&summary, limit))
+        };
         out.push((*node, spent));
     }
     out
@@ -195,6 +206,62 @@ struct Registered {
     backend: BackendAdvertisement,
 }
 
+/// One node's slot load for the capacity read model: the advertised slot total
+/// (None for a host-native node), task-holding attempts, and the node ceiling
+/// placement would apply now.
+#[derive(Debug, Clone)]
+pub struct Load {
+    pub node_id: Uuid,
+    pub backend: Option<BackendKind>,
+    pub total: Option<u32>,
+    pub occupied: u32,
+    pub ceiling: Option<aq_selection::NodeCeiling>,
+}
+
+/// Loads for `nodes`, read on `conn` with the same ceiling as [`derive`]. A
+/// malformed registration is reported as host-native rather than failing.
+pub async fn loads(
+    conn: &mut PgConnection,
+    ledger: &Ledger<'_>,
+    nodes: &[Uuid],
+    now_ms: u64,
+) -> Result<Vec<Load>, AppError> {
+    let rows: Vec<(Uuid, serde_json::Value)> = sqlx::query_as(
+        "SELECT node_id, registration FROM delegated_node_boots WHERE node_id = ANY($1)",
+    )
+    .bind(nodes)
+    .fetch_all(&mut *conn)
+    .await
+    .map_err(db)?;
+    let registered: Vec<(Uuid, Registered)> = rows
+        .into_iter()
+        .filter_map(|(node, reg)| Some((node, serde_json::from_value(reg).ok()?)))
+        .collect();
+    let active = active(&mut *conn, nodes, None).await?;
+    let advertised: Vec<(Uuid, &BackendAdvertisement)> =
+        registered.iter().map(|(n, r)| (*n, &r.backend)).collect();
+    let spends = spends(conn, ledger, &advertised, now_ms, None).await;
+    let pressured = crate::node_storage::pressured(&mut *conn, nodes).await?;
+    Ok(nodes
+        .iter()
+        .map(|&node| {
+            let adv = advertised.iter().find(|(n, _)| *n == node).map(|(_, a)| *a);
+            let occupied = count(&active, node);
+            Load {
+                node_id: node,
+                backend: adv.map(|a| a.kind),
+                total: adv.map(|a| a.max_concurrent_sandboxes),
+                occupied,
+                ceiling: adv.and_then(|a| {
+                    ceiling(a, occupied, spent(&spends, node)).or(pressured
+                        .contains(&node)
+                        .then_some(aq_selection::NodeCeiling::DiskPressure))
+                }),
+            }
+        })
+        .collect())
+}
+
 /// Placement facts for selection on `node_id`, or None for a host-native node.
 pub async fn facts(
     state: &AppState,
@@ -260,6 +327,23 @@ impl Derivation {
     };
 }
 
+/// First store format carrying every table `derive` reads: `delegated_node_boots`
+/// (migration 50), `profile_catalog_environment_templates` (55) and
+/// `node_storage_reports` (67).
+pub const PLACEMENT_FORMAT: u32 = 67;
+
+/// Whether this store carries placement facts. A store held at an earlier
+/// migration prefix has no sandbox registrations, so placement is absent (as
+/// for an unregistered node) instead of failing the whole poll or fence.
+async fn placement_recorded(conn: &mut PgConnection) -> Result<bool, AppError> {
+    let version: String =
+        sqlx::query_scalar("SELECT value FROM meta WHERE key='state_format_version'")
+            .fetch_one(&mut *conn)
+            .await
+            .map_err(db)?;
+    Ok(version.parse::<u32>().map_err(|_| AppError::Internal)? >= PLACEMENT_FORMAT)
+}
+
 /// Placement facts read on `conn`, so an admission fence reads them inside its
 /// SERIALIZABLE transaction.
 #[allow(clippy::too_many_arguments)]
@@ -273,6 +357,9 @@ pub async fn derive(
     now_ms: u64,
     derivation: Derivation,
 ) -> Result<Option<aq_selection::Placement>, AppError> {
+    if !placement_recorded(&mut *conn).await? {
+        return Ok(None);
+    }
     let own: Option<serde_json::Value> =
         sqlx::query_scalar("SELECT registration FROM delegated_node_boots WHERE node_id=$1")
             .bind(node_id)
@@ -335,9 +422,23 @@ pub async fn derive(
     let mut advertised: Vec<(Uuid, &BackendAdvertisement)> =
         peers.iter().map(|(n, r)| (*n, &r.backend)).collect();
     advertised.push((node_id, &own.backend));
-    let spends = spends(ledger, &advertised).await;
+    let spends = spends(
+        conn,
+        ledger,
+        &advertised,
+        now_ms,
+        derivation.exclude_attempt,
+    )
+    .await;
+    // SBX25: a node above the disk refusal line is in the ceiling family.
+    let pressured = crate::node_storage::pressured(&mut *conn, &nodes).await?;
+    let limit = |adv: &BackendAdvertisement, node: Uuid| {
+        ceiling(adv, count(&active, node), spent(&spends, node)).or(pressured
+            .contains(&node)
+            .then_some(aq_selection::NodeCeiling::DiskPressure))
+    };
     let eligible = |adv: &BackendAdvertisement, node: Uuid| {
-        ceiling(adv, count(&active, node), spent(&spends, node)).is_none()
+        limit(adv, node).is_none()
             && policy
                 .required_capabilities
                 .iter()
@@ -391,10 +492,11 @@ pub async fn derive(
                 })
             })
             .collect::<Result<_, AppError>>()?,
-        ceiling: ceiling(backend, count(&active, node_id), spent(&spends, node_id)),
+        ceiling: limit(backend, node_id),
         preferred_peer: preferred_peer(backend.kind, &preference, &peers)
             .map(convert)
             .transpose()?,
+        backend: Some(convert(backend.kind)?),
     }))
 }
 
@@ -748,6 +850,33 @@ mod tests {
                 .unwrap()
                 .preferred_peer
                 .is_none()
+        );
+        // SBX25: a node above 85% used refuses with node_disk_pressure, and
+        // a pressured peer is no reason to hold work for it.
+        let disk = |id: Uuid, used: u64| {
+            let pool = pool.clone();
+            async move {
+                let report = crate::node_storage::StorageReport {
+                    disk_total_bytes: 100,
+                    disk_used_bytes: used,
+                    disk_free_bytes: 100 - used,
+                    ..Default::default()
+                };
+                let mut conn = pool.acquire().await.unwrap();
+                crate::node_storage::record(&mut conn, &id.to_string(), Some(id), &report, 1)
+                    .await
+                    .unwrap();
+            }
+        };
+        disk(boat, 85).await;
+        assert_eq!(facts(boat, 1_000).await.unwrap().unwrap().ceiling, None);
+        disk(boat, 86).await;
+        let pressured = facts(boat, 1_000).await.unwrap().unwrap();
+        assert_eq!(pressured.ceiling, Some(NodeCeiling::DiskPressure));
+        assert_eq!(NodeCeiling::DiskPressure.reason(), "node_disk_pressure");
+        assert_eq!(
+            facts(cloud, 1_000).await.unwrap().unwrap().preferred_peer,
+            None
         );
         // Host-native nodes carry no placement facts.
         assert_eq!(facts(Uuid::new_v4(), 1_000).await.unwrap(), None);

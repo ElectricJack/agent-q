@@ -56,6 +56,23 @@ impl Limits {
     }
 }
 
+/// The configured replacement budget for `project`, or the server defaults
+/// when profiled execution or the project policy is absent.
+pub fn project_limits(state: &AppState, project: Uuid) -> Limits {
+    state
+        .config
+        .profiled_execution
+        .as_ref()
+        .and_then(|config| {
+            config
+                .projects
+                .iter()
+                .find(|policy| policy.project_id == project)
+        })
+        .map(|policy| policy.replacement_limits())
+        .unwrap_or_default()
+}
+
 /// Owner facts for one started (not never-granted) attempt of a task.
 #[derive(Debug, Clone)]
 pub struct Prior {
@@ -284,12 +301,49 @@ pub fn precheck(counts: &super::no_grant::AttemptCounts) -> Option<Assessment> {
     }
     (counts.started == 0).then_some(Assessment::Fresh)
 }
+/// First store format carrying `stall_quarantines` (migration 81, H3).
+pub const STALL_QUARANTINE_FORMAT: u32 = 81;
+
+/// Whether the H3 stall ladder quarantined this lineage. A store held at an
+/// earlier migration prefix has no quarantine table and so records no
+/// quarantine, instead of failing every poll and replacement assessment.
+async fn lineage_quarantined(conn: &mut sqlx::PgConnection, task: Uuid) -> Result<bool, AppError> {
+    let version: String =
+        sqlx::query_scalar("SELECT value FROM meta WHERE key='state_format_version'")
+            .fetch_one(&mut *conn)
+            .await
+            .map_err(|_| AppError::Internal)?;
+    if version.parse::<u32>().map_err(|_| AppError::Internal)? < STALL_QUARANTINE_FORMAT {
+        return Ok(false);
+    }
+    sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM stall_quarantines WHERE lineage_id=$1)")
+        .bind(task)
+        .fetch_one(&mut *conn)
+        .await
+        .map_err(|_| AppError::Internal)
+}
 pub async fn assess_task(
     state: &AppState,
     task: Uuid,
     limits: &Limits,
     now: u64,
 ) -> Result<Assessment, AppError> {
+    let mut conn = state
+        .store
+        .pool
+        .acquire()
+        .await
+        .map_err(|_| AppError::Internal)?;
+    let disposed = super::disposition::task_disposed(&mut conn, task).await?;
+    if disposed {
+        return Ok(Assessment::Blocked("task_terminally_disposed"));
+    }
+    // H3 rung 5: a quarantined lineage is never replaced until an owner acts.
+    let quarantined = lineage_quarantined(&mut conn, task).await?;
+    drop(conn);
+    if quarantined {
+        return Ok(Assessment::Blocked("stall_quarantined"));
+    }
     let counts = super::no_grant::attempt_counts(&state.store.pool, task).await?;
     if let Some(decided) = precheck(&counts) {
         return Ok(decided);

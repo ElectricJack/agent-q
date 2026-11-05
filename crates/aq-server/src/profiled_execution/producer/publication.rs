@@ -73,7 +73,8 @@ pub async fn publish(
     .bind(built.spec.task.task_id)
     .fetch_one(&mut *tx)
     .await
-    .map_err(db)?;
+    .map_err(db)?
+        || super::super::disposition::task_disposed(&mut tx, built.spec.task.task_id).await?;
     if node_busy || task_held {
         return Err(refused());
     }

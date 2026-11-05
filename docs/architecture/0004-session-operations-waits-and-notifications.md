@@ -371,6 +371,7 @@ widened in place, so new contracts need a new profile number.
 | 1 | — (not selectable in config) | Mail1: the `message.send` command and the `aq.operation.updated` v1 event (producer `aq.host.bridge@1`) |
 | 2 | `human_review_v2` | Mail1 plus the `decision.request` and `operation.get` commands and the `aq.decision.completed` v1 event (producer `aq.human.decisions@1`) |
 | 3 | `graph_events_v3` | HumanReview2 plus the `aq.graph.operation.confirmed` v1 event contract (D3) |
+| 4 | `settlement_events_v4` | GraphEvents3 plus the `task.completed` v1 event contract for confirmed reviewed-task settlement |
 
 The `aq.graph.operation.confirmed` v1 contract
 (`playbooks/review_domain.rs::graph_operation_event`) has:
@@ -380,7 +381,7 @@ The `aq.graph.operation.confirmed` v1 contract
 - correlation field `operation`;
 - payload `{operation_id, task_id, attempt_id}`, each a UUID string.
 
-Profiles 2 and 3 accept the same grant capabilities: `message.send`,
+Profiles 2, 3 and 4 accept the same grant capabilities: `message.send`,
 `decision.request` and `operation.get`.
 
 **Graph-event collection (profile 3).** Each driver quantum seals at most two
@@ -410,6 +411,90 @@ Two limits apply:
   behaviour.
 
 See the [D3 implementation notes](../implementation/D3.md).
+
+**Settlement-event collection (profile 4).** A namespace configured with
+`profile: "settlement_events_v4"` collects at most two confirmed reviewed-task
+completion events per quantum after an artifact declaring the exact
+`task.completed` contract is installed. Existing namespaces keep their catalog
+identity; use a new namespace for profile 4. The producer is
+`aq.task.settlement@1`, with project scope and `operation` correlation. The
+completion operation ID is the stable event ID. Its payload retains the attempt,
+evaluation, report artifact, verified release and confirmed Graph receipt.
+
+Collection requires the launch's project and workspace to match the namespace.
+Prepared or uncertain completions remain pending. The source completion's
+`outbox_acknowledged` flag changes only in the transaction recording engine
+acceptance. The sealed event survives a restart, and replay after an omitted AQ
+ACK returns the engine's existing acceptance. Delivery is per event, as for graph
+events above; it is not broadcast to every namespace.
+
+### 5.2 Owner artifact install and binding activation (as implemented, D9)
+
+The namespace owner installs sealed playbook artifacts and chooses which
+artifact a binding runs through five routes (`playbooks/api.rs`, implemented in
+`playbooks/artifacts.rs`). There is no generic command route and no route that
+registers a synthetic host. The CLI is separate work (F7).
+
+| Route | Body | Effect |
+| --- | --- | --- |
+| `POST /api/playbooks/artifacts/validate` | `{artifact}` | Validates only and returns `{digest, binding, commands, events, dependencies}`. Writes nothing. |
+| `POST /api/playbooks/artifacts` | `{op_id, artifact}` | Validates and installs the artifact. Needs no grant. |
+| `POST /api/playbooks/bindings/{binding}/activate` | `{op_id, artifact, grant_id, grant_revision}` | Makes the artifact digest the binding's active artifact. |
+| `POST /api/playbooks/bindings/{binding}/rollback` | `{op_id, grant_id, grant_revision}` | Re-activates the artifact that was active before the binding's latest activation. |
+| `POST /api/playbooks/coding/default` | `{op_id, policy, grant_id, grant_revision}` | Builds the `aq.coding` artifacts from `policy`, installs them and activates `aq.coding` (see [spec 0002 §7.1](../specs/0002-execution-and-agent-access.md#71-default-coding-binding-aqcoding-as-implemented-d9)). |
+
+**Access and bounds.** Every route is owner-only: the caller must be the
+namespace's `owner_user_id`, and any other user gets `404`. Bodies are capped at
+2 MiB and reject unknown fields. Operation ids and binding names are 1–128
+characters with no control characters. For `coding/default` the `op_id` limit
+is 112, because the route derives sub-operation ids from it. Errors map to
+`400` (invalid), `409` (conflict) and `503` (engine unavailable).
+
+**Validation.** The artifact arrives as JSON. The route re-encodes it
+canonically and decodes it with `Artifact::from_canonical_bytes`, which checks
+canonical form, structure and digest. The encoded artifact must be at most
+1 MiB. Every command and event contract the artifact declares must exactly equal
+the contract of the same name in the namespace's pinned catalog profile (§5.1).
+A contract that is missing from the catalog, or differs from it, is refused.
+Install is content-addressed, so installing identical bytes again changes nothing.
+
+**Operation-id idempotency.** Each install, activate and rollback carries a
+caller `op_id`. The ledger records each `op_id` once per namespace, and the
+first writer wins. Responses are `{op_id, kind, binding, artifact, previous,
+duplicate}`.
+
+- Replaying an `op_id` with the same request (same kind and binding, and the
+  same artifact for install and activate) returns the recorded result with
+  `duplicate: true`. It does not touch the engine again.
+- Reusing an `op_id` for a different request returns `409`.
+- A crash after the engine commit and before the ledger write is safe to
+  replay. On replay, the previous artifact is read from the ledger first, so
+  the replay records the same `previous`.
+
+`coding/default` derives `{op_id}/install/{i}` for each artifact and
+`{op_id}/activate` for the activation, so replaying it is idempotent at every
+step.
+
+**Activation stack and authority.** Activation and rollback run under an active
+grant. `grant_id` and `grant_revision` must name a current, unexpired grant
+(`Service::active_authority`), and the engine activates with that authority.
+Activate pushes onto the binding's activation stack. Rollback pops the stack
+and re-activates the entry below. The bottom of the stack is the artifact that
+was active before the first ledgered activation, read through
+`Driver::binding_artifact`. Rollback with nothing below the current entry
+refuses with `409`. It never falls back to an empty binding.
+
+**Activation is pinned per run at admission.** The engine fixes each run's
+artifact when it admits the run. Activation and rollback change only which
+artifact *new* runs admit. A run already admitted finishes on the artifact it
+was admitted with (`activation_switches_future_runs_only`).
+
+**Ledger.** `PgLedger` stores records in `playbook_activations`
+(`migrations/0085_playbook_activations.sql`), keyed by `(namespace_id, op_id)`
+and ordered by `seq`. Install rows are informational, because install is
+content-addressed in the engine. The ledger does not serialize concurrent
+activations of one binding. Only the engine orders those; hardening is a filed
+follow-up. See the [D9 implementation notes](../implementation/D9.md).
 
 ## 6. Bounds and verification
 

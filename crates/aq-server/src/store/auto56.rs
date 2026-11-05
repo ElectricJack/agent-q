@@ -13,15 +13,36 @@ pub(super) fn function_body(name: &str) -> Result<&'static str> {
         .map(|(body, _)| body)
         .ok_or_else(corrupt)
 }
-/// The claim guards format 55 replaces again (over format 52's bodies).
-pub(super) fn guard_overrides() -> Result<Vec<(&'static str, &'static str)>> {
-    [
+/// Later formats replace these guards without changing earlier attestations.
+pub(super) fn guard_overrides(supported: u32) -> Result<Vec<(&'static str, &'static str)>> {
+    let mut guards = [
         "profiled_historical_snapshot_guard",
         "settlement_claim_guard",
     ]
     .into_iter()
-    .map(|name| function_body(name).map(|body| (name, body)))
-    .collect()
+    .map(|name| {
+        if supported >= 65 && name == "profiled_historical_snapshot_guard" {
+            completion65_body(name).map(|body| (name, body))
+        } else {
+            function_body(name).map(|body| (name, body))
+        }
+    })
+    .collect::<Result<Vec<_>>>()?;
+    if supported >= 65 {
+        guards.push((
+            "settlement_completion_guard",
+            completion65_body("settlement_completion_guard")?,
+        ));
+    }
+    Ok(guards)
+}
+fn completion65_body(name: &str) -> Result<&'static str> {
+    include_str!("../../migrations/0065_settlement_completion_projection.sql")
+        .split_once(&format!("FUNCTION {name}("))
+        .and_then(|(_, tail)| tail.split_once("AS $$"))
+        .and_then(|(_, tail)| tail.split_once("$$;"))
+        .map(|(body, _)| body)
+        .ok_or_else(corrupt)
 }
 pub(super) async fn validate(tx: &mut Transaction<'_, Postgres>) -> Result<()> {
     let actual: Option<String> = sqlx::query_scalar("SELECT p.prosrc FROM pg_proc p JOIN pg_language l ON l.oid=p.prolang WHERE p.oid=to_regprocedure('profiled_auto_settlement_owner()') AND NOT p.prosecdef AND p.proconfig IS NULL AND l.lanname='plpgsql' AND p.prorettype=to_regtype('trigger')")

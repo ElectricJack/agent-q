@@ -45,15 +45,25 @@ pub enum Kind {
     MilestoneGateReady,
     /// Subject = worker/node ID from worker presence.
     WorkerOffline,
+    /// SBX25: subject = node ID or `central`; opens at 80% used, resolves
+    /// below 75%.
+    StoragePressure,
+    /// SBX22(a): subject = attempt ID of a sandbox preserved on its node.
+    SandboxPreserved,
+    /// H3 stall ladder rung 3: subject = attempt ID; opened once per episode.
+    SessionStalled,
 }
 impl Kind {
-    pub const ALL: [Kind; 6] = [
+    pub const ALL: [Kind; 9] = [
         Kind::TaskFailedOrBlocked,
         Kind::DecisionNeeded,
         Kind::QuestionAsked,
         Kind::CredentialInvalid,
         Kind::MilestoneGateReady,
         Kind::WorkerOffline,
+        Kind::StoragePressure,
+        Kind::SandboxPreserved,
+        Kind::SessionStalled,
     ];
     pub fn as_str(self) -> &'static str {
         match self {
@@ -63,6 +73,9 @@ impl Kind {
             Kind::CredentialInvalid => "credential.invalid",
             Kind::MilestoneGateReady => "milestone.gate_ready",
             Kind::WorkerOffline => "worker.offline",
+            Kind::StoragePressure => "storage.pressure",
+            Kind::SandboxPreserved => "sandbox.preserved",
+            Kind::SessionStalled => "session.stalled",
         }
     }
     fn label(self) -> &'static str {
@@ -73,6 +86,9 @@ impl Kind {
             Kind::CredentialInvalid => "Credential invalid",
             Kind::MilestoneGateReady => "Milestone gate ready",
             Kind::WorkerOffline => "Worker offline",
+            Kind::StoragePressure => "Storage pressure",
+            Kind::SandboxPreserved => "Sandbox preserved",
+            Kind::SessionStalled => "Session stalled",
         }
     }
     /// Maps an attempt failure reason to the episode kind it opens, if any.

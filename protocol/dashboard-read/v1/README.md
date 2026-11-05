@@ -17,7 +17,14 @@ revision is a decimal cache partition derived from current role and a bounded
 visibility set, not a database revision. A changed partition refuses cursor
 reuse. Snapshot membership expires after 30 seconds and never grants inspection:
 each page reloads current rows and ACLs, then checks the current partition again.
-Sessions totals remain unknown across pages. At most 256 members, 100 items per
+The sessions `total` counts the snapshot's authorized members: `exact` when every
+member projected, `estimated` when some were skipped as no longer visible, and
+`unknown` when membership was truncated. Each summary carries optional
+`last_output_at`, the last terminal output the relay recorded. Output is not
+progress: repaints and heartbeats also advance it, and last-progress time is not
+projected yet. Session detail `permissions` lists `session.inspect` and, for an
+owner of a session with an unrevoked launch binding, `session.message.send` (see
+`dashboard-actions-1`). At most 256 members, 100 items per
 page, 64 cached snapshots, four per principal and four concurrent reads are
 admitted. Each SQL statement and lock wait is bounded; common authority locks
 are released per item. Responses are bounded to 1 MiB. The separate `dashboard-actions-1` contract
@@ -81,3 +88,33 @@ responses. Expired overview observations and search cursors are refused, so no
 stale aggregate/search success fixture is asserted. The retained search cursor is
 an opaque shape example, not reusable across processes; replay and restart are
 verified by the owning integration test. Prior five read fixtures remain checked.
+
+`capacity.read@1` advertises owner-only GET `/api/v1/capacity` (`capacity.json`).
+`slots` totals and idle count online workers only and are `unknown`, with partial
+coverage, when an online worker advertises no slot total (host-native) or the
+inventory exceeds 256 workers; `occupied` is the exact count of task-holding
+attempts. Each node's `eligibility.reasons` are the worker state, capability
+report freshness and the placement owner's own ceiling refusal
+(`node_concurrency_ceiling_reached`, `node_spend_ceiling_reached`,
+`node_spend_unaccounted`, `node_disk_pressure`). Provider availability comes from
+unexpired node credential bindings for the account's profiles: `unknown` with
+`no_fresh_node_report` when no live node reports one. Nothing here grants placement.
+`/api/workers` rows carry the latest storage report flattened (`disk_*_bytes`,
+`preserved_*`, `storage_used_bps`, `storage_observed_at`), absent when unreported.
+
+`questions.read@1` advertises the owner-only F5 question inbox (`question-inbox-1`,
+also covered by this schema): GET `/api/questions/decisions?state=open|closed&limit=1..50[&project_id=uuid][&cursor=opaque]`
+and GET `/api/questions/decisions/{decision_id}`. `state=open` lists pending
+questions oldest asked first; `state=closed` lists answered ones most recently
+answered first. The cursor is the shared opaque format, bound to the owner's
+current identity, state, project and limit for five minutes; any change returns
+410 `cursor_restart_required`. Items carry the decision ID and the decimal
+`decision_revision` the answer must target, project/workspace/task IDs, the
+graph `task_title` (null when the graph is unavailable to the read), the exact
+question, `asked_at_ms` and `expires_at_ms`. `answer`, `answered_at_ms` and
+`delivery` are null while pending and all set once answered; `delivery` is
+`{kind: wait}` when the answer woke the waiting attempt, or
+`{kind: task_mail, message_id}` when it was queued for the continuation.
+`questions.answer@1` is enabled with `dashboard.actions` and names the
+dashboard-actions-1 kind `question.answer`. Fixtures:
+`question-inbox-{open,closed}.json` and `question-detail.json`.

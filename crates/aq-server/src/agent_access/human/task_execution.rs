@@ -202,18 +202,7 @@ impl ActionKind for TaskRetry {
                 .ok_or(AppError::Internal)?;
             // B4 alone decides admissibility; an unsettled or exhausted
             // predecessor is a rejection, never a forced replacement.
-            let limits = state
-                .config
-                .profiled_execution
-                .as_ref()
-                .and_then(|config| {
-                    config
-                        .projects
-                        .iter()
-                        .find(|policy| policy.project_id == p.project_id)
-                })
-                .map(|policy| policy.replacement_limits())
-                .unwrap_or_default();
+            let limits = replacement::project_limits(state, p.project_id);
             let assessment = replacement::assess_task(state, task, &limits, now).await?;
             let Some(r) = assessment.replacement() else {
                 return Ok(rejected());
