@@ -30,7 +30,7 @@ WORKDIR /build
 ARG AQ_STATE_FORMAT
 ARG AQ_SOURCE_REVISION=unknown
 # Cargo profile: release images use `release` (ThinLTO). CI-only images pass
-# --build-arg CARGO_PROFILE=ci-image (release without LTO; see Cargo.toml).
+# --build-arg CARGO_PROFILE=ci-image (no LTO, low optimization; Cargo.toml).
 ARG CARGO_PROFILE=release
 ENV AQ_SOURCE_REVISION=${AQ_SOURCE_REVISION}
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
