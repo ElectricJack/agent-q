@@ -672,3 +672,18 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - #76's migration renumber also needed its code gate fixed (`76aa35a`, compile-checked).
 - **01:10 check.** G10 completed; filed its cross-repo follow-up for the server reads behind the Agents operations views (stall ladder, semaphores and so on) at priority 45. `native_accepted_preparation` fails on unrelated PRs #77 and #78 again after #56's fix, so it's likely regressed on main; filed a bisect/fix task (priority 9). D10 spec is now running on Claude standard. Owner asked why MS4 needs Codex: only its four-harness demo line does (scope choice: keep, since Codex resets about Nov 8, or defer).
 - **01:25 check.** Merged aq-server #77 (bright-summit-37 confinement permission; only the known `native_accepted` regression). Pushed a rustfmt fix to #76 (bold-stone-51; marker.rs and tests). The D10 implementation spec (`sound-rapids-80.1`) and its parent completed on Claude, continuing from the preserved Codex draft. #55 (`swift-stone-62`) is queued for its decision-action fix. Claude usage: 8%.
+- **01:45 owner decision: simple subscription-login design (rescopes C5b and C6b).**
+  - **Research:** OpenAI's Codex CI/CD guide says ChatGPT logins refresh about every 8 days (or on a 401), rotation is real ("do not share the same file across concurrent jobs or multiple machines"), and the pattern is persist plus write back the refreshed file. The owner doesn't want a login per node.
+  - **C5b (`calm-delta-18.8`)** is now: one stored login per credential with a version; an operator import/replace that always wins; a compare-and-swap write-back (accept N+1 only if the server is still at N, else return the current version); renewal compares credential identity, not bytes; the next attempt fetches the newest version. Messaged the live session.
+  - **C6b (`calm-delta-18.10`)** is now: fetch the newest version before an attempt (Codex `CODEX_HOME`, Claude env token), CAS-upload after if `last_refresh` changed, fetch and retry once on a 401, wipe on teardown.
+  - **Dropped and parked** as `steady-orbit-52`: tmux node login, Codex device-auth capture, `max_concurrent_leases`, boat sync.
+  - MS1 keeps its C5b/C6b dependency; both are now small.
+- **02:00 check.**
+  - **W61 recurred, caused by me.** `swift-stone-62` (#55 rework) sat READY with an idle dashboard worker. Its `blocks` edge on `bold-vault-41` pointed at PR #43, whose head is the steward rebase I pushed in round 1 (completion `f14ff5f`, head `684e3b0`). Verified `f14ff5f` is on main and removed the edge. A rescan of all completed PR sources with open dependents found no other mismatch.
+  - **F5 (`steady-harbor-87.6`)** had renamed `0081_stall_ladder` to 0082 on its branch, colliding with #78's `0082_agent_waits`; left it instructions.
+  - H6 completed. #76 and #79 fail only the known `native_accepted` regression (`swift-harbor-15` fixing); waiting for lifecycle CI, then merge.
+- **02:20 check.**
+  - Merged aq-server #76 (only the known `native_accepted` failure). **That broke main:** H6 (`e5449d8`) had landed `0083_agent_wait_wakes` after I renumbered #76 to 0083, so main had two 0083s. I didn't re-check main's highest migration at merge time.
+  - **Fixed on main** in `053a738`: `agent_supervisor_mail` moved to 0084, with the central37 `include_str!` and version gate updated. `cargo check -p aq-server --tests` and the migration catalog (84) pass.
+  - **D9 (`crisp-meadow-36.10`)** closed COMPLETED, but commit `68e6bb8` was never integrated to main, and its 0084 migration now collides. Reopened it (priority 6) to merge main, renumber to 0085 and integrate (agent-owned, so no W61).
+  - Routed C5b's aq-worker CAS contract follow-up to C6b instead of filing a duplicate.

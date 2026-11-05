@@ -235,14 +235,16 @@ pub(super) async fn history(
         (None, Some(b)) => b,
         (None, None) => (i64::MAX, i64::MAX),
     };
+    // Owner mail only: agent-sent supervisor mail (bold-stone-51) is not yet
+    // rendered to humans; it reaches the supervisor through dispatch.
     let (human_sql, reply_sql) = if forward {
         (
-            "SELECT m.*,c.refs AS context_refs,{descriptors} AS attachment_items FROM mailbox_messages m LEFT JOIN global_supervisor_message_context c ON c.message_id=m.message_id WHERE m.mailbox_key=$1 AND (m.cursor,0::bigint)>($2,$3) AND m.cursor<=$4 ORDER BY m.cursor LIMIT $5",
+            "SELECT m.*,c.refs AS context_refs,{descriptors} AS attachment_items FROM mailbox_messages m LEFT JOIN global_supervisor_message_context c ON c.message_id=m.message_id WHERE m.mailbox_key=$1 AND m.sender->>'kind'='owner' AND (m.cursor,0::bigint)>($2,$3) AND m.cursor<=$4 ORDER BY m.cursor LIMIT $5",
             "SELECT * FROM (SELECT r.dispatch_id,r.attachments,d.host_operation_id,d.batch_digest,d.actor_id,d.generation,d.session_id,m.*,(SELECT max(mm.cursor) FROM central_supervisor_mail_members mm WHERE mm.actor_id=d.actor_id AND mm.reservation_id=d.reservation_id) AS anchor FROM central_supervisor_replies r JOIN central_supervisor_dispatches d ON d.dispatch_id=r.dispatch_id JOIN mailbox_messages m ON m.message_id=r.reply_message_id WHERE m.mailbox_key=$1) x WHERE (x.anchor,x.cursor)>($2,$3) AND x.anchor<=$4 ORDER BY x.anchor,x.cursor LIMIT $5",
         )
     } else {
         (
-            "SELECT m.*,c.refs AS context_refs,{descriptors} AS attachment_items FROM mailbox_messages m LEFT JOIN global_supervisor_message_context c ON c.message_id=m.message_id WHERE m.mailbox_key=$1 AND (m.cursor,0::bigint)<($2,$3) AND m.cursor<=$4 ORDER BY m.cursor DESC LIMIT $5",
+            "SELECT m.*,c.refs AS context_refs,{descriptors} AS attachment_items FROM mailbox_messages m LEFT JOIN global_supervisor_message_context c ON c.message_id=m.message_id WHERE m.mailbox_key=$1 AND m.sender->>'kind'='owner' AND (m.cursor,0::bigint)<($2,$3) AND m.cursor<=$4 ORDER BY m.cursor DESC LIMIT $5",
             "SELECT * FROM (SELECT r.dispatch_id,r.attachments,d.host_operation_id,d.batch_digest,d.actor_id,d.generation,d.session_id,m.*,(SELECT max(mm.cursor) FROM central_supervisor_mail_members mm WHERE mm.actor_id=d.actor_id AND mm.reservation_id=d.reservation_id) AS anchor FROM central_supervisor_replies r JOIN central_supervisor_dispatches d ON d.dispatch_id=r.dispatch_id JOIN mailbox_messages m ON m.message_id=r.reply_message_id WHERE m.mailbox_key=$1) x WHERE (x.anchor,x.cursor)<($2,$3) AND x.anchor<=$4 ORDER BY x.anchor DESC,x.cursor DESC LIMIT $5",
         )
     };

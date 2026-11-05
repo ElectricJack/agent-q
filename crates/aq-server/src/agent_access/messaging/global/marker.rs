@@ -28,12 +28,13 @@ pub(super) struct Update {
 }
 
 async fn latest(tx: &mut Transaction<'_, Postgres>, id: Uuid) -> Result<Option<Position>> {
-    let human: Option<i64> =
-        sqlx::query_scalar("SELECT max(cursor) FROM mailbox_messages WHERE mailbox_key=$1")
-            .bind(key(id)?)
-            .fetch_one(&mut **tx)
-            .await
-            .map_err(db)?;
+    let human: Option<i64> = sqlx::query_scalar(
+        "SELECT max(cursor) FROM mailbox_messages WHERE mailbox_key=$1 AND sender->>'kind'='owner'",
+    )
+    .bind(key(id)?)
+    .fetch_one(&mut **tx)
+    .await
+    .map_err(db)?;
     let reply: Option<(i64, i64)> = sqlx::query_as(&format!(
         "{REPLIES} ORDER BY x.anchor DESC,x.cursor DESC LIMIT 1"
     ))
@@ -54,7 +55,7 @@ async fn view(tx: &mut Transaction<'_, Postgres>, user: &User, id: Uuid) -> Resu
     .await
     .map_err(db)?;
     let (anchor, at) = read.unwrap_or((0, 0));
-    let humans: i64 = sqlx::query_scalar("SELECT count(*) FROM (SELECT 1 FROM mailbox_messages WHERE mailbox_key=$1 AND (cursor,0::bigint)>($2,$3) AND sender<>$4 LIMIT $5) t")
+    let humans: i64 = sqlx::query_scalar("SELECT count(*) FROM (SELECT 1 FROM mailbox_messages WHERE mailbox_key=$1 AND (cursor,0::bigint)>($2,$3) AND sender<>$4 AND sender->>'kind'='owner' LIMIT $5) t")
         .bind(key(id)?)
         .bind(anchor)
         .bind(at)
