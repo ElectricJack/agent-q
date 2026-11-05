@@ -6,4 +6,4 @@ ALTER TABLE playbook_host_operations DROP CONSTRAINT playbook_host_operations_co
 ALTER TABLE playbook_host_operations ADD CHECK (command_name IN ('judgment.request','check.request','work.ensure','decision.request'));
 ALTER TABLE playbook_host_operations DROP CONSTRAINT playbook_host_operations_status_check;
 ALTER TABLE playbook_host_operations ADD CHECK (status IN ('running','assessed','failed','refused','passed','infrastructure_failure','completed','approved','rejected','expired'));
-UPDATE meta SET value='89' WHERE key='state_format_version';
+UPDATE meta SET value='93' WHERE key='state_format_version';
