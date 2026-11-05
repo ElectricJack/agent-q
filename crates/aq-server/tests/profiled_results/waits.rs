@@ -4,20 +4,24 @@ use super::*;
 use aq_server::agent_access::waits;
 use aq_wait_engine::wire;
 
-struct WaitEnv {
-    env: ReviewEnv,
-    decision_id: Uuid,
-    scope: wire::Scope,
-    binding: wire::Binding,
+pub(super) struct WaitEnv {
+    pub(super) env: ReviewEnv,
+    pub(super) decision_id: Uuid,
+    pub(super) scope: wire::Scope,
+    pub(super) binding: wire::Binding,
 }
 impl WaitEnv {
-    fn node(&self) -> Uuid {
+    pub(super) fn node(&self) -> Uuid {
         self.env.f.node.node_id
     }
-    fn attempt(&self) -> Uuid {
+    pub(super) fn attempt(&self) -> Uuid {
         self.env.report.binding.attempt_id
     }
-    fn registration(&self, wait_id: Uuid, condition: wire::Condition) -> wire::WaitRegistration {
+    pub(super) fn registration(
+        &self,
+        wait_id: Uuid,
+        condition: wire::Condition,
+    ) -> wire::WaitRegistration {
         let predicate = wire::Predicate::Single {
             member: wire::Member {
                 member_id: Uuid::new_v4(),
@@ -36,7 +40,7 @@ impl WaitEnv {
             preference: wire::WaitPreference::Economical,
         }
     }
-    async fn condition(&self) -> wire::Condition {
+    pub(super) async fn condition(&self) -> wire::Condition {
         let row = sqlx::query("SELECT d.subject_digest,d.request_digest,s.report_id FROM human_decision_requests d JOIN review_subjects s USING(subject_digest) WHERE d.decision_id=$1")
             .bind(self.decision_id)
             .fetch_one(&self.env.f.db.pool().await)
@@ -51,14 +55,14 @@ impl WaitEnv {
             question_digest: serde_json::from_value(json!(asked)).unwrap(),
         }
     }
-    async fn register(&self, request: &wire::Request) -> wire::Response {
+    pub(super) async fn register(&self, request: &wire::Request) -> wire::Response {
         waits::register(&self.env.f.state, self.node(), self.attempt(), request)
             .await
             .unwrap()
     }
 }
 
-async fn wait_env() -> WaitEnv {
+pub(super) async fn wait_env() -> WaitEnv {
     let env = review_env(1).await;
     let f = &env.f;
     let request = aq_review_protocol::DecisionRequest {
@@ -92,7 +96,7 @@ fn refusal(response: &wire::Response) -> Option<wire::RefusalCode> {
         _ => None,
     }
 }
-fn registered(response: &wire::Response) -> wire::RegisteredWait {
+pub(super) fn registered(response: &wire::Response) -> wire::RegisteredWait {
     match &response.body {
         wire::ResponseBody::WaitRegistered(wait) => (**wait).clone(),
         other => panic!("expected registration, got {other:?}"),
