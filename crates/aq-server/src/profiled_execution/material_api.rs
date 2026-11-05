@@ -27,6 +27,9 @@ use sqlx::Row;
 use std::sync::{Arc, OnceLock};
 
 pub const METADATA_HEADER: &str = "aq-material-delivery";
+/// C5b: the subscription-login version these bytes are (decimal). Echoed as
+/// `MaterialRefresh.base_version` on write-back. Absent for other credentials.
+pub const VERSION_HEADER: &str = "aq-material-version";
 pub const MAX_METADATA_HEADER_BYTES: usize = 4096;
 pub const MAX_REQUEST_BYTES: usize = 16 * 1024;
 
@@ -44,6 +47,8 @@ fn same(a: &impl serde::Serialize, b: &impl serde::Serialize) -> Result<bool, Ap
 /// Kept opaque to avoid accidental logging/serialization of secret bytes.
 pub struct Delivery {
     pub metadata: MaterialDelivery,
+    /// Login version of the delivered bytes, for subscription logins.
+    pub version: Option<i64>,
     material: material::ProtectedMaterial,
 }
 impl Delivery {
@@ -90,11 +95,13 @@ pub async fn fetch(
         .map_err(|_| refused())?;
     let read_lease = lease.clone();
     let node_id = auth.id();
+    let (source, version) =
+        super::login_refresh::lease_versioned(&state.store.pool, &registry, &lease).await?;
     let bytes = tokio::time::timeout(
         std::time::Duration::from_secs(2),
         tokio::task::spawn_blocking(move || {
             let _permit = permit;
-            material::read_for_lease(&registry, &read_lease, node_id)
+            material::read_for_lease_from(&registry, &read_lease, node_id, source.as_ref())
         }),
     )
     .await
@@ -264,6 +271,7 @@ pub async fn fetch(
     tx.commit().await.map_err(db)?;
     Ok(Delivery {
         metadata,
+        version,
         material: bytes,
     })
 }
@@ -309,6 +317,11 @@ async fn report(
     response
         .headers_mut()
         .insert(METADATA_HEADER, metadata_header(&delivery.metadata)?);
+    if let Some(version) = delivery.version {
+        response
+            .headers_mut()
+            .insert(VERSION_HEADER, HeaderValue::from(version));
+    }
     Ok(response)
 }
 
