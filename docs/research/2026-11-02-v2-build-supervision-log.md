@@ -910,3 +910,4 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - #9, #60 and #64 are merged locally but not compiled or pushed. The branch refs are kept, and they need full verification on resume.
   - The #63 merge was aborted. It still needs the 0096 renumber, and it can't build until 0095 lands.
   - All of these are held until MS1 merges. #53 edits `replacement.rs`, which `ms1/retry` is changing for B4.
+- **15:05:** draft aq-server #90 (`ms1/demo`) fails `native_registration::startup_installs_policy_anchor_and_refuses_stale_configuration`. Commit 379c37eb added the Debug cause to the startup error, but the test still asserts the bare message. Sent to the `ms1/retry` subagent: keep the detail and update the assertion. The aq-worker template-scan fix is pushed (94d4b56).
