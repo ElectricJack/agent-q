@@ -758,3 +758,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
 - **05:00:** merged #84 (`crisp-crest-28`, the 0005 §8.3 Claude Code 2.1.318 / OpenCode 1.18.35 harness rows). It is docs only. Its one CI failure, `reservations::tests::count_utf8_body_budget…` with IdentityUnavailable, is unrelated to the PR.
   - #83 and #85 both add migration 0088, which is a W62 collision; renumbering is handed to the PR subagent.
   - Main CI on aq-server is red only on the native_accepted regression, which #80 fixes.
+- **05:30: C5b done.** The subagent found the 3 h hang. It was not the clock step: the old single test held two live fixtures, the second waiting on the process-wide selection lock that the first still held (shadowed, not dropped). A second live fixture now panics immediately, and a regression test covers it. History squashed to 34c75d04.
+  - Merged as #86 with migration 0088_subscription_refresh_lineage.
+  - Told the PR subagent to shift to #82=0089, #83=0090, #85=0091, and the F5/D11 subagents to take 0092/0093 provisionally.
+  - v1 refuses to record it complete: `set-status COMPLETED` needs completion provenance, and `task close` needs a running claim. The task is left BLOCKED with an operator comment; v1 bookkeeping is no longer on the critical path.
+  - The aq-worker node side of write-back is still a cross-repo follow-up. Claude doesn't need it (its token is an env-only lease).
