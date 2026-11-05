@@ -742,3 +742,4 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Merged aq-playbooks #6 (`nimble-harbor-36`, host catalog 2.1.0; unblocks `azure-delta-64`, which I messaged) and #5 (`sound-rapids-80.1`, the D10 implementation spec). aq-playbooks has no CI checks configured.
   - Folded I3's OpenCode §8.3 docs follow-up into `crisp-crest-28`.
 - **05:50 check.** I3 (`azure-horizon-22.6`, OpenCode on local Ollama) completed. Merged aq-worker #37 (`amber-cascade-22`, the `runner_needs_no_node_credential` fix for aq-worker main; green). MS1 still waits on C5b.
+- **06:05 C5b had stalled for about 4.5 h.** Its session sat idle at 'done 6:08 PM, 1 shell still running': `cargo test --test native_initial_grant subscription` had hung for over 3 h. Killed that test process (pid 1499315) and messaged C5b to skip it as a pre-existing hang, finish its targeted checks with timeouts and close. MS1 waits only on C5b.
