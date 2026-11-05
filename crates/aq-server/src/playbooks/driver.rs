@@ -792,6 +792,17 @@ impl Driver {
             Err(_) => Err(Error::Unknown),
         }
     }
+    /// D9: the binding's active artifact digest; `None` if never activated.
+    pub(crate) async fn binding_artifact(&self, binding: String) -> Result<Option<String>> {
+        match self.owner.call(Request::Binding { binding }, CALL).await {
+            Ok(value) => {
+                let a: aq_playbook_host::runner::Activation = serde_json::from_value(value)?;
+                Ok(Some(a.artifact))
+            }
+            Err(aq_playbook_host::Error::Invalid) => Ok(None),
+            Err(_) => Err(Error::Unknown),
+        }
+    }
     /// Internal shutdown only: closing retained ownership needs no fresh user
     /// business grant. Stop is attempted even if central fencing is uncertain.
     pub(crate) async fn shutdown(&self) -> Result<()> {
