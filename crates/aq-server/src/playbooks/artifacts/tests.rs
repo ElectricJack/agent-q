@@ -149,3 +149,5 @@ fn validate_refuses_tampered_bytes() {
         Err(Error::Invalid)
     );
 }
+
+mod pg;
