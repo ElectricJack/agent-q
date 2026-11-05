@@ -34,7 +34,9 @@ jobs:
           python3 scripts/migration_catalog.py
           python3 scripts/test-migration-catalog.py
       - name: cargo fmt
-        run: cargo fmt --all --check
+        # The virtual root selects every workspace member. --all also traverses
+        # pinned vendor packages, whose metadata can resolve an outer workspace.
+        run: cargo fmt --check
       - name: Verify the pinned standalone worker and public contracts
         run: python3 scripts/check-worker-candidate.py --official
       - name: Verify the pinned independent session contract
