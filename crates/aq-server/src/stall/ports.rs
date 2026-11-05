@@ -281,16 +281,19 @@ impl Ports for DbPorts {
                     .await?;
                 Ok(Outcome::Done)
             }
-            Intent::Replace => match replacement::assess_task(state, target.task_id, now).await? {
-                Assessment::Replace(r) => {
-                    replacement::release(state, target.task_id, &r).await?;
-                    Ok(Outcome::Replaced { replacement: None })
+            Intent::Replace => {
+                let limits = replacement::project_limits(state, target.project_id);
+                match replacement::assess_task(state, target.task_id, &limits, now).await? {
+                    Assessment::Replace(r) => {
+                        replacement::release(state, target.task_id, &limits, &r).await?;
+                        Ok(Outcome::Replaced { replacement: None })
+                    }
+                    Assessment::Fresh => Ok(Outcome::Replaced { replacement: None }),
+                    Assessment::Blocked(reason) => Ok(Outcome::Blocked {
+                        reason: reason.into(),
+                    }),
                 }
-                Assessment::Fresh => Ok(Outcome::Replaced { replacement: None }),
-                Assessment::Blocked(reason) => Ok(Outcome::Blocked {
-                    reason: reason.into(),
-                }),
-            },
+            }
             Intent::Quarantine { reason } => {
                 let held = json!({"task_id":target.task_id,"attempt_id":target.attempt_id,"session_id":target.session_id,"generation":target.generation,"claim":"task","worktree":"retained"});
                 sqlx::query("INSERT INTO stall_quarantines(attempt_id,lineage_id,reason,escalation,held,action_id,created_at_ms) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(attempt_id) DO NOTHING")

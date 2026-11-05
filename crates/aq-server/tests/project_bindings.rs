@@ -646,6 +646,7 @@ async fn project_policy_decisions_have_no_human_actor_and_recheck_installed_poli
                 },
             },
             retention_handle: Uuid::new_v4(),
+            replacement_budget: None,
             placement: None,
         }],
     };
@@ -840,6 +841,7 @@ async fn policy_install_is_atomic_retains_tombstones_and_refuses_configuration_r
                 priority: 0,
                 source: source.clone(),
                 retention_handle: Uuid::new_v4(),
+                replacement_budget: None,
                 placement: None,
             },
             ProjectPolicy {
@@ -848,6 +850,7 @@ async fn policy_install_is_atomic_retains_tombstones_and_refuses_configuration_r
                 priority: 0,
                 source,
                 retention_handle: Uuid::new_v4(),
+                replacement_budget: None,
                 placement: None,
             },
         ],
@@ -971,6 +974,7 @@ async fn committed_binding_installs_pending_policy_and_historical_ack_survives_r
                 },
             },
             retention_handle: Uuid::new_v4(),
+            replacement_budget: None,
             placement: None,
         }],
     };

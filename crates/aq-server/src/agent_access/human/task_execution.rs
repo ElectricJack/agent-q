@@ -202,11 +202,12 @@ impl ActionKind for TaskRetry {
                 .ok_or(AppError::Internal)?;
             // B4 alone decides admissibility; an unsettled or exhausted
             // predecessor is a rejection, never a forced replacement.
-            let assessment = replacement::assess_task(state, task, now).await?;
+            let limits = replacement::project_limits(state, p.project_id);
+            let assessment = replacement::assess_task(state, task, &limits, now).await?;
             let Some(r) = assessment.replacement() else {
                 return Ok(rejected());
             };
-            replacement::release(state, task, r).await?;
+            replacement::release(state, task, &limits, r).await?;
             Ok::<_, AppError>(Outcome::confirmed(
                 vec![existing::entity("replacement_release", r.predecessor, None)],
                 vec![existing::entity("execution_attempt", r.predecessor, None)],

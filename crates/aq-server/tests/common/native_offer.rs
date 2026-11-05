@@ -259,6 +259,7 @@ pub async fn setup() -> Case {
                 },
             },
             retention_handle: handle,
+            replacement_budget: None,
             placement: None,
         }],
         context_qualifications: vec![fact],

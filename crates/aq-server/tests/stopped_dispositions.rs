@@ -91,9 +91,14 @@ async fn owner_disposes_stopped_unsettled_attempt_and_preserves_unresolved_evide
     );
     let task: Uuid = serde_json::from_value(receipt["task_id"].clone()).unwrap();
     assert_eq!(
-        replacement::assess_task(&f.state, task, common::profiled::NOW)
-            .await
-            .unwrap(),
+        replacement::assess_task(
+            &f.state,
+            task,
+            &replacement::Limits::default(),
+            common::profiled::NOW,
+        )
+        .await
+        .unwrap(),
         replacement::Assessment::Blocked("task_terminally_disposed")
     );
     assert_eq!(

@@ -9,7 +9,7 @@ use aq_server::{
         authority::hot::{HotState, LaunchOwner},
         profiled::{Effects, Retention, Status, Stop},
     },
-    profiled_execution::replacement::{self, Assessment, Replacement},
+    profiled_execution::replacement::{self, Assessment, Limits, Replacement},
 };
 use aq_session_protocol::ProfiledGrant;
 use common::profiled::{Fixture, NOW, artifact, fixture, insert_offered};
@@ -129,7 +129,11 @@ async fn failed_profiled_attempt_is_released_once_and_its_claim_stays_released()
     fail(&pool, attempt, &mut hot).await;
     assert!(holds_task(&pool, attempt).await);
 
-    let assessed = replacement_of(replacement::assess_task(&f.state, task, NOW).await.unwrap());
+    let assessed = replacement_of(
+        replacement::assess_task(&f.state, task, &Limits::default(), NOW)
+            .await
+            .unwrap(),
+    );
     assert_eq!(assessed.predecessor, attempt);
     assert_eq!(assessed.attempts_started, 1);
     assert!(assessed.needs_release);
@@ -153,7 +157,7 @@ async fn failed_profiled_attempt_is_released_once_and_its_claim_stays_released()
             .is_err()
     );
 
-    replacement::release(&f.state, task, &assessed)
+    replacement::release(&f.state, task, &Limits::default(), &assessed)
         .await
         .unwrap();
     assert!(!holds_task(&pool, attempt).await, "holds_task flips");
@@ -171,14 +175,20 @@ async fn failed_profiled_attempt_is_released_once_and_its_claim_stays_released()
     );
 
     // The released predecessor is still the lineage head but needs no release.
-    let after = replacement_of(replacement::assess_task(&f.state, task, NOW).await.unwrap());
+    let after = replacement_of(
+        replacement::assess_task(&f.state, task, &Limits::default(), NOW)
+            .await
+            .unwrap(),
+    );
     assert_eq!(after.predecessor, attempt);
     assert!(!after.needs_release);
     // Replaying the stale assessment is idempotent.
-    replacement::release(&f.state, task, &assessed)
+    replacement::release(&f.state, task, &Limits::default(), &assessed)
         .await
         .unwrap();
-    replacement::release(&f.state, task, &after).await.unwrap();
+    replacement::release(&f.state, task, &Limits::default(), &after)
+        .await
+        .unwrap();
     assert_eq!(releases(&pool, attempt).await, 1);
 
     // The released claim cannot be reacquired and the release is immutable.
@@ -204,7 +214,9 @@ async fn uncertain_predecessor_is_never_released() {
     let task = f.selection.lineage.task_id;
     let (attempt, pool, _) = granted(&f).await;
     assert_eq!(
-        replacement::assess_task(&f.state, task, NOW).await.unwrap(),
+        replacement::assess_task(&f.state, task, &Limits::default(), NOW)
+            .await
+            .unwrap(),
         Assessment::Blocked("replacement_prior_execution_uncertain")
     );
     // Even a forged replacement is re-assessed under the locks and refused.
@@ -222,7 +234,7 @@ async fn uncertain_predecessor_is_never_released() {
         needs_release: true,
     };
     assert!(matches!(
-        replacement::release(&f.state, task, &forged).await,
+        replacement::release(&f.state, task, &Limits::default(), &forged).await,
         Err(AppError::Conflict(_))
     ));
     assert!(direct_release(&pool, attempt, task).await.is_err());
@@ -244,7 +256,11 @@ async fn accepted_predecessor_is_never_released() {
     let task = f.selection.lineage.task_id;
     let (attempt, pool, mut hot) = granted(&f).await;
     fail(&pool, attempt, &mut hot).await;
-    let assessed = replacement_of(replacement::assess_task(&f.state, task, NOW).await.unwrap());
+    let assessed = replacement_of(
+        replacement::assess_task(&f.state, task, &Limits::default(), NOW)
+            .await
+            .unwrap(),
+    );
 
     // Acceptance lands after assessment. Deliberate synthetic evaluation in a
     // disposable test database: replica role skips the settlement owner's
@@ -261,11 +277,13 @@ async fn accepted_predecessor_is_never_released() {
     tx.commit().await.unwrap();
 
     assert_eq!(
-        replacement::assess_task(&f.state, task, NOW).await.unwrap(),
+        replacement::assess_task(&f.state, task, &Limits::default(), NOW)
+            .await
+            .unwrap(),
         Assessment::Blocked("task_already_settled_accepted")
     );
     assert!(matches!(
-        replacement::release(&f.state, task, &assessed).await,
+        replacement::release(&f.state, task, &Limits::default(), &assessed).await,
         Err(AppError::Conflict(_))
     ));
     let refused = direct_release(&pool, attempt, task).await.unwrap_err();
@@ -277,4 +295,63 @@ async fn accepted_predecessor_is_never_released() {
     );
     assert!(holds_task(&pool, attempt).await);
     assert_eq!(releases(&pool, attempt).await, 0);
+}
+
+#[tokio::test]
+async fn project_limits_fence_assessment_and_locked_release() {
+    let f = fixture().await;
+    let task = f.selection.lineage.task_id;
+    let (attempt, pool, mut hot) = granted(&f).await;
+    fail(&pool, attempt, &mut hot).await;
+    let assessed = replacement_of(
+        replacement::assess_task(&f.state, task, &Limits::default(), NOW + 10)
+            .await
+            .unwrap(),
+    );
+    for (budget, reason) in [
+        (json!({"max_attempts": 1}), "lineage_retry_budget_exhausted"),
+        (
+            json!({"max_lineage_elapsed_ms": 10}),
+            "lineage_time_budget_exhausted",
+        ),
+        (
+            json!({"max_sandbox_ms": 60_000}),
+            "task_sandbox_minutes_budget_exhausted",
+        ),
+    ] {
+        let policy: aq_server::profiled_execution::config::ProjectPolicy = serde_json::from_value(json!({
+            "project_id": f.selection.lineage.project_id,
+            "enabled": true, "priority": 0,
+            "source": {"kind": "immutable", "object": {"format": "sha1", "hex": "a".repeat(40)}},
+            "retention_handle": Uuid::new_v4(), "replacement_budget": budget,
+        })).unwrap();
+        let limits = policy.replacement_limits();
+        limits.validate().unwrap();
+        assert_eq!(
+            replacement::assess_task(&f.state, task, &limits, NOW + 10)
+                .await
+                .unwrap(),
+            Assessment::Blocked(reason)
+        );
+        f.time
+            .store((NOW + 10) as i64, std::sync::atomic::Ordering::SeqCst);
+        assert!(
+            matches!(
+                replacement::release(&f.state, task, &limits, &assessed).await,
+                Err(AppError::Conflict(_))
+            ),
+            "{reason}"
+        );
+        assert!(holds_task(&pool, attempt).await);
+        assert_eq!(releases(&pool, attempt).await, 0);
+    }
+    let configured = Limits {
+        max_attempts: 5,
+        ..Limits::default()
+    };
+    replacement::release(&f.state, task, &configured, &assessed)
+        .await
+        .unwrap();
+    assert!(!holds_task(&pool, attempt).await);
+    assert_eq!(releases(&pool, attempt).await, 1);
 }

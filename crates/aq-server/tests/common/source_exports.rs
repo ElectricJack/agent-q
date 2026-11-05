@@ -46,6 +46,7 @@ pub async fn setup() -> (Fixture, Request, tempfile::TempDir) {
                 },
             },
             retention_handle: handle,
+            replacement_budget: None,
             placement: None,
         }],
     };
