@@ -877,3 +877,30 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Closed aq-server #5 (landed in 3244f225), #7 (duplicate of #3) and #69 (to be replaced by #60 and #64 separately), and aq-git #4 (landed in 8cb1ce4; CI already runs the checker's tests).
   - Dispatched subagents to bring the still-needed ones current: aq-server #53, #3, #9 (example half), #60, #64, #63 (migration renumbered to 0096), then aq-worker #32 and aq-dashboard #55.
   - Dashboard #70 (optional media) fails `supervisor-launcher.spec.ts`: "Post comment" ends up under the launcher, a real regression. Sent it back.
+- **14:30: owner feedback on the v2 dashboard.** "The new dashboard is nice looking but the v2 system is missing a lot that felt very critical in v1… the task view in v1 showed more information… I don't see comments, or task ids, or ways to copy task ids."
+  - Confirmed: the v2 task inspector shows only title, description, acceptance criteria, dependencies and revision. It has no copyable ID, no comments (v2 has no task-comment model at all), no execution state or why-not-running, no agent/session link, no branch/PR and no route.
+  - **Owner decision:** do a v1→v2 parity pass, task view first. The owner verifies each dashboard section and wants it completed before moving to the next.
+  - Started a read-only inventory comparing the v1 and v2 task views and the v2 server data behind each field.
+- **14:55:**
+  - Merged aq-dashboard #70 (result media capabilities optional) as e0c3b5f6. Its first CI run caught a real regression: the disabled attach button wrapped the composer and clipped "Post comment". Rebuilt `dist` and restarted the `aq-v2-local` server, which caches index.html and so keeps serving the old bundle until restarted. Asked the MS1 subagent to restart `aq-ms1-server-1` at a safe point.
+  - **Re-review of `ms1/demo`:** not mergeable yet.
+    - B1 is partly fixed. Failed/Unknown no longer complete a task, but a Claude exit 0 without real work (a clarifying question, refusal, or "couldn't find X") still reports Success and D3 auto-completes it.
+      - **Decision:** add a driver guard. Success requires rc 0, a stream-json result with `subtype=success` and `is_error=false`, the agent's own `Changes:` line, and a non-empty change set.
+    - Should-fix 1–4 and the nits are verified fixed.
+    - **New should-fix:** node recovery leaves the Claude container running with the token in its env.
+    - **Nits:** the cancel poll uses inventory_sequence 1; `.pyc` files are committed; token trimming applies to every anthropic credential.
+    - All sent to the MS1 subagent ahead of retry/D1.
+    - Pre-existing flake on main: `native_cancellation::native_cancel_owner_validation_attempt_replay_and_concurrency`, which failed 7/7 under load in the reviewer's runs.
+  - Task-view parity inventory is committed (`2026-11-05-task-view-parity-inventory.md`); waiting on the owner's scope choice.
+- **14:25: owner direction.** "I don't want to do too much at the same time, I'd really like to wrap up MS1 before we kick off new work."
+  - Paused the stale-PR refresh subagents (aq-server #53/#3/#9/#60/#64/#63, aq-worker #32, aq-dashboard #55). Each stops at a clean point and reports.
+  - The task-view parity spec (aq-dashboard `docs/specs/0004-task-view-parity.md`, with the owner's list-row and no-full-page additions) is parked until MS1 is signed off.
+  - The only active work is MS1: the re-review's B1 driver guard and recovery container stop, then retry, stuck-attempt settlement and D1, then merging the MS1 wiring to main.
+- **14:35: owner: "run any additional MS1 work that you can in parallel."**
+  - Split D1 publication (B builds on A's published commit) off to a new subagent on `ms1/d1` branches, running its own `aq-ms1d` stack on ports 38080/38081/38741 so its live runs don't collide with the `aq-ms1` drills.
+  - The `ms1/retry` subagent keeps B4 retry and B5b stuck-attempt settlement. Its review fixes (B1 driver guard, recovery container stop) are committed in aq-worker and pushing now.
+  - Opened draft PRs aq-server #90 and aq-worker #38 for `ms1/demo`, so CI surfaces integration failures early. They are not for merge yet.
+- **14:45:**
+  - `ms1/retry` has the re-review fixes pushed (aq-server 2bb34afb, aq-worker 0ee3b25): the B1 driver success guard and reconcile-native stopping the Claude container.
+  - Draft aq-worker #38 (`ms1/demo`) fails `templates::template_cli_build_and_scan_use_embedded_tools`. The sandbox template's credential scanner correctly flags a token-shaped fake fixture (`sk-ant-oat01-abcdef…`) in the new `parse_token` tests. Sent it to the `ms1/retry` subagent: build the fixture so no token-shaped literal exists, and remove the committed `.pyc` files (8 still on `ms1/retry`). Draft aq-server #90 is still running.
+  - The paused stale-PR subagent finished cleanly: aq-worker #32 (e626fd7, green) and aq-dashboard #55 (da3d04e; the phone header stays non-sticky per G11, and a tap-swallowing bug in its bottom bar is fixed). Both are held unmerged until MS1 lands, so they don't conflict with the MS1 merge.
