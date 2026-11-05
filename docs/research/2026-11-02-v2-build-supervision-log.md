@@ -722,3 +722,13 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - I3 (`azure-horizon-22.6`): live run on local Ollama, ChatGPT and API-key routes deferred.
   - I2 (`azure-horizon-22.5`): offline only, live case deferred.
   - Noted on MS4 that Codex and Gemini become owner-approved deferrals in its four-harness demo. `noble-meadow-73` (Codex qualification) stays paused.
+- **04:40 owner: 'do whatever you need to get this across the line, then stand up a build with the latest dashboard'.**
+  - Paused E5 (`smart-falcon-16.7`) to free the single `operator-standard-high-claude` slot for MS1. A scan of MS1's dependencies shows only C5b open, with no W61 mismatches. C5b's tests pass and the version header is in; it's finishing.
+  - Tore down four stale E0 qualification stacks (`aq-e0-qual`, `aq-e0-final`, `aq-e0-designated`, `aq-e0-designated-uid10001`) and their volumes. Kept `aq-c3c-registry` (I4a image) and `aq-worker-local`.
+  - Built the aq-dashboard production bundle from main `3685c0d` (includes G9; no mock code).
+  - Starting the real local v2 stack: Compose project `aq-v2-local` on ports 18080/18081/18741 (v1 owns 8081), fresh state/secrets in `~/.local/share/aq-v2-local`, dev auth `owner@localhost`, dashboard via `compose.dashboard.yaml`. Relaunch with `~/.local/share/aq-v2-local/up.sh` (`--rebuild-dashboard` / `down` / `logs`).
+- **05:00 local v2 stack is up** (`aq-v2-local`, aq-server main plus dashboard main `3685c0d`).
+  - All services are healthy at http://127.0.0.1:18080 (dev auth `owner@localhost`, 46 capabilities).
+  - Seeded with the MS0-designated scratch repo `ElectricJack/aq-scratch` (public, `main`, credential none): a project, a repository, one graph task, an offline dev worker identity and the human settlement owner.
+  - Browser check: the Overview renders live data (1 ready task, project 'Local scratch development', 1 worker node). Provider accounts and capacity show 'not reported', as expected with no running worker.
+  - Filed `azure-delta-64` (adopt host catalog 2.1.0); parked the Gemini and OpenCode-ChatGPT login-kind follow-ups on `steady-orbit-52`.
