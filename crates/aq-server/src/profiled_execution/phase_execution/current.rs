@@ -121,7 +121,7 @@ fn availability_ceiling(
                 .then_some(end)
         })
         .min()
-        .ok_or_else(refused)
+        .ok_or_else(|| refused())
 }
 pub(super) async fn fence_locked(
     state: &AppState,
@@ -152,7 +152,7 @@ pub(super) async fn fence_locked(
                 .outcome
                 .resolved
                 .as_ref()
-                .ok_or_else(refused)?,
+                .ok_or_else(|| refused())?,
         )
         .map_err(|_| refused())?
             != p.choice.selection_digest
@@ -186,13 +186,13 @@ pub(super) async fn fence_locked(
         return Err(refused());
     }
     super::validate_registry_current(input, &registry)?;
-    let loaded = state.config.intelligence.as_ref().ok_or_else(refused)?;
+    let loaded = state.config.intelligence.as_ref().ok_or_else(|| refused())?;
     let (index, credential) = loaded
         .credentials
         .iter()
         .enumerate()
         .find(|(_, a)| a.profile == c.credential_profile && a.revision == s.credential_revision)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     if !credential.enabled
         || !credential.provisionable
         || credential.material_owner.is_none()
@@ -203,7 +203,7 @@ pub(super) async fn fence_locked(
             .config
             .credentials
             .get(index)
-            .ok_or_else(refused)?
+            .ok_or_else(|| refused())?
             .allowed_node_ids
             .contains(&node)
     {
@@ -216,7 +216,7 @@ pub(super) async fn fence_locked(
     {
         return Err(refused());
     }
-    let row = sqlx::query("SELECT boot_id,revision,snapshot FROM intelligence_node_snapshots WHERE node_id=$1 FOR SHARE").bind(node).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(refused)?;
+    let row = sqlx::query("SELECT boot_id,revision,snapshot FROM intelligence_node_snapshots WHERE node_id=$1 FOR SHARE").bind(node).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(|| refused())?;
     let inventory: CapabilitySnapshot =
         serde_json::from_value(row.get("snapshot")).map_err(|_| refused())?;
     let revision = u64::try_from(row.get::<i64, _>("revision")).map_err(|_| refused())?;
@@ -259,7 +259,7 @@ pub(super) async fn fence_locked(
         return Err(refused());
     }
     let binding = bindings[0];
-    let provision = binding.preparation.as_ref().ok_or_else(refused)?;
+    let provision = binding.preparation.as_ref().ok_or_else(|| refused())?;
     let Some(CredentialDelivery::ServerLease {
         owner,
         adapter,

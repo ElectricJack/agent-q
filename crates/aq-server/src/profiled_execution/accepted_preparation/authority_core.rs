@@ -19,7 +19,7 @@ pub(super) async fn proposal_locked(
         .fetch_optional(&mut **tx)
         .await
         .map_err(db)?
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let p: Proposal = serde_json::from_value(row.get("proposal")).map_err(|_| refused())?;
     p.validate().map_err(|_| refused())?;
     if (row.get::<i64, _>("published_at_ms") as u64) < p.original.offered.clock.server_time_ms
@@ -67,7 +67,7 @@ pub(super) async fn current_policy_locked(
         .config
         .profiled_execution
         .as_ref()
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     super::super::policies::fence_configuration_locked(tx, config).await?;
     Ok(())
 }
@@ -155,7 +155,7 @@ pub(super) async fn live_locked(
     .fetch_optional(&mut **tx)
     .await
     .map_err(db)?
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     let binding: crate::project_bindings::domain::ProjectBinding =
         serde_json::from_value(project.get("binding")).map_err(|_| refused())?;
     if !binding.enabled
@@ -189,7 +189,7 @@ pub(super) async fn material_locked(
     q: &AcceptRequest,
     a: &AcceptedReceipt,
 ) -> Result<(), AppError> {
-    let actual=sqlx::query("SELECT m.* FROM admission_material_leases m JOIN profiled_launch_materials l ON l.lease_id=m.lease_id AND l.attempt_id=$2 WHERE m.lease_id=$1 FOR SHARE OF m,l").bind(a.lease.materials[0].lease_id).bind(a.lease.binding.attempt_id).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(refused)?;
+    let actual=sqlx::query("SELECT m.* FROM admission_material_leases m JOIN profiled_launch_materials l ON l.lease_id=m.lease_id AND l.attempt_id=$2 WHERE m.lease_id=$1 FOR SHARE OF m,l").bind(a.lease.materials[0].lease_id).bind(a.lease.binding.attempt_id).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(|| refused())?;
     let m = &a.lease.materials[0];
     if actual.get::<uuid::Uuid, _>("prospective_attempt_id") != a.lease.binding.attempt_id
         || actual.get::<uuid::Uuid, _>("offer_id") != a.lease.binding.offer_id

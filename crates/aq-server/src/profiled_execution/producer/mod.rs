@@ -19,10 +19,12 @@ fn now(state: &AppState) -> Result<u64, AppError> {
     u64::try_from((state.clock)().timestamp_millis())
         .ok()
         .filter(|n| *n > 0)
-        .ok_or_else(refused)
+        .ok_or_else(|| refused())
 }
 use super::on_heap;
+#[track_caller]
 fn refused() -> AppError {
+    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("native offer admission requirements unavailable".into())
 }
 

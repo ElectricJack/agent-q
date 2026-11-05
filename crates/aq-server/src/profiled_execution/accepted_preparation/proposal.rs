@@ -102,7 +102,7 @@ pub(super) async fn build_locked(
     )
     .map_err(|_| refused())?;
     resolver::fence_for_preparation(state, tx, &decision, &request.binding).await?;
-    let selected = decision.outcome.resolved.as_ref().ok_or_else(refused)?;
+    let selected = decision.outcome.resolved.as_ref().ok_or_else(|| refused())?;
     let reg = sqlx::query(
         "SELECT revision,config_digest FROM intelligence_registry WHERE singleton FOR SHARE",
     )

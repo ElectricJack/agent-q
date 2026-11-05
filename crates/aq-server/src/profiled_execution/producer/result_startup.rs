@@ -61,7 +61,7 @@ pub(super) fn from_definitions(
     let selected = definitions
         .iter()
         .find(|d| d.artifact() == adapter)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     if Digest::of(selected.body().as_bytes()) != adapter.digest {
         return Err(refused());
     }
@@ -99,7 +99,7 @@ pub(super) fn from_definitions(
     let instruction = definitions
         .iter()
         .find(|d| d.artifact() == &artifact)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     if instruction.body().len() != 1929
         || Digest::of(instruction.body().as_bytes()) != artifact.digest
     {
@@ -144,7 +144,7 @@ pub(super) fn for_adapter(
         .config
         .profiled_execution
         .as_ref()
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     from_definitions(adapter, &config.definition_bodies)
 }
 impl ReportingInstruction {

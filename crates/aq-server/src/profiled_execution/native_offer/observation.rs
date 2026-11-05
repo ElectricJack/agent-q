@@ -34,7 +34,7 @@ impl ReadProvenance {
             .items
             .iter()
             .find(|v| &v.revision == task)
-            .ok_or_else(refused)?;
+            .ok_or_else(|| refused())?;
         if &context.revision != task
             || ready.workspace_id != task.workspace_id
             || canonical(&selected.node)? != canonical(&context.context["node"])?

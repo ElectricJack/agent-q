@@ -23,12 +23,12 @@ async fn load(
     q: &RunnerRenewalRequest,
 ) -> Result<(pinned::Pinned, Option<Retained>), AppError> {
     crate::worker_api::lock_current_node(tx, auth).await?;
-    let installed = &auth.delegated().ok_or_else(refused)?.current;
+    let installed = &auth.delegated().ok_or_else(|| refused())?.current;
     if q.permit.permit_id != installed.record.permit_id
         || q.permit.binding != installed.record.binding
         || !same(
             &q.authority,
-            &installed.authority.as_ref().ok_or_else(refused)?,
+            &installed.authority.as_ref().ok_or_else(|| refused())?,
         )?
     {
         return Err(refused());
@@ -60,7 +60,7 @@ async fn load(
         q.authority.grant.grant_id,
     )
     .await?
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     let authority = match q.authority.profile {
         PhaseProfile::PhaseV2 => PhaseExecutionAuthority::from_phase_v2(&runtime::parse(
             runtime::json(&origin.receipt)?,
@@ -137,8 +137,8 @@ pub async fn renew_delegated(
         },
     )
     .await?;
-    let old = &auth.delegated().ok_or_else(refused)?.current;
-    let previous_expiry = after.hot.grant.as_ref().ok_or_else(refused)?.expires_at_ms;
+    let old = &auth.delegated().ok_or_else(|| refused())?.current;
+    let previous_expiry = after.hot.grant.as_ref().ok_or_else(|| refused())?.expires_at_ms;
     if previous_expiry != old.record.expires_at_ms {
         return Err(refused());
     }
@@ -160,7 +160,7 @@ pub async fn renew_delegated(
                     .maximum_execution_lease_ms
                     .min(120_000),
             )
-            .ok_or_else(refused)?
+            .ok_or_else(|| refused())?
             .min(q.authority.hard_deadline_ms);
         if time >= previous_expiry || expiry <= previous_expiry {
             return Err(refused());
@@ -168,8 +168,8 @@ pub async fn renew_delegated(
         let mut next = old.clone();
         next.record.issued_at_ms = time;
         next.record.expires_at_ms = expiry;
-        next.revision = next.revision.checked_add(1).ok_or_else(refused)?;
-        after.hot.grant.as_mut().ok_or_else(refused)?.expires_at_ms = expiry;
+        next.revision = next.revision.checked_add(1).ok_or_else(|| refused())?;
+        after.hot.grant.as_mut().ok_or_else(|| refused())?.expires_at_ms = expiry;
         after
             .hot
             .validate_against(&q.authority.grant.binding)

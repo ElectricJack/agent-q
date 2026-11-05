@@ -75,7 +75,9 @@ pub struct Retained {
     pub receipt: Vec<u8>,
     pub bytes: Vec<u8>,
 }
+#[track_caller]
 fn refused() -> AppError {
+    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("inline artifact owner unavailable or inconsistent".into())
 }
 fn db(_: sqlx::Error) -> AppError {
@@ -101,10 +103,10 @@ fn decode(row: sqlx::postgres::PgRow) -> Result<Retained, AppError> {
     let descriptor: RetainedArtifact =
         serde_json::from_value(row.get("descriptor")).map_err(|_| refused())?;
     descriptor.validate().map_err(|_| refused())?;
-    let bytes: Vec<u8> = row.get::<Option<Vec<u8>>, _>("body").ok_or_else(refused)?;
+    let bytes: Vec<u8> = row.get::<Option<Vec<u8>>, _>("body").ok_or_else(|| refused())?;
     let receipt: Vec<u8> = row
         .get::<Option<Vec<u8>>, _>("receipt_bytes")
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let proof: Receipt = serde_json::from_slice(&receipt).map_err(|_| refused())?;
     if proof.schema_version != 1
         || proof.artifact_id != id
@@ -148,7 +150,7 @@ pub async fn load_locked(
     id: Uuid,
 ) -> Result<Retained, AppError> {
     let row=sqlx::query("SELECT a.*,r.receipt_bytes FROM admission_artifacts a LEFT JOIN admission_inline_receipts r USING(artifact_id) WHERE a.artifact_id=$1 FOR SHARE OF a")
-        .bind(id).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(refused)?;
+        .bind(id).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(|| refused())?;
     decode(row)
 }
 /// Independent transaction. No external I/O, eviction or fabricated source

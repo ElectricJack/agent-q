@@ -7,7 +7,9 @@ use aq_selection::BudgetSnapshot;
 use serde_json::Value;
 use sqlx::{Postgres, Row, Transaction};
 pub(crate) type PinnedPolicy = (SelectionPolicy, u64);
+#[track_caller]
 fn refused() -> AppError {
+    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("pinned native policy budget unavailable or exhausted".into())
 }
 pub(crate) fn remaining(
@@ -17,9 +19,9 @@ pub(crate) fn remaining(
     policy.validate().map_err(|_| refused())?;
     policy
         .max_lineage_elapsed_ms
-        .checked_sub(budget.elapsed_ms.ok_or_else(refused)?)
+        .checked_sub(budget.elapsed_ms.ok_or_else(|| refused())?)
         .filter(|n| *n > 0)
-        .ok_or_else(refused)
+        .ok_or_else(|| refused())
 }
 fn decode(
     reference: ArtifactRef,
@@ -42,7 +44,7 @@ fn decode(
     {
         return Err(refused());
     }
-    let policy = definition.selection_policy.ok_or_else(refused)?;
+    let policy = definition.selection_policy.ok_or_else(|| refused())?;
     let remaining_lineage_ms = remaining(&policy, &budget)?;
     Ok((policy, remaining_lineage_ms))
 }
@@ -50,7 +52,7 @@ pub(crate) async fn load_locked(
     tx: &mut Transaction<'_, Postgres>,
     binding: &LaunchBinding,
 ) -> Result<PinnedPolicy, AppError> {
-    let row=sqlx::query("SELECT l.launch_binding,l.launch_manifest->'intelligence_profile' AS policy_ref,l.launch_manifest#>>'{bindings,project_id}' AS project,l.launch_manifest#>>'{bindings,graph_id}' AS workspace,l.launch_manifest#>>'{bindings,task_id}' AS task,d.decision#>'{inputs,budget}' AS budget FROM profiled_launches l JOIN intelligence_decisions d ON d.decision_id=l.decision_id WHERE l.attempt_id=$1 FOR SHARE OF l,d").bind(binding.attempt_id).fetch_optional(&mut **tx).await.map_err(|_|AppError::Internal)?.ok_or_else(refused)?;
+    let row=sqlx::query("SELECT l.launch_binding,l.launch_manifest->'intelligence_profile' AS policy_ref,l.launch_manifest#>>'{bindings,project_id}' AS project,l.launch_manifest#>>'{bindings,graph_id}' AS workspace,l.launch_manifest#>>'{bindings,task_id}' AS task,d.decision#>'{inputs,budget}' AS budget FROM profiled_launches l JOIN intelligence_decisions d ON d.decision_id=l.decision_id WHERE l.attempt_id=$1 FOR SHARE OF l,d").bind(binding.attempt_id).fetch_optional(&mut **tx).await.map_err(|_|AppError::Internal)?.ok_or_else(|| refused())?;
     if row.get::<Value, _>("launch_binding")
         != serde_json::to_value(binding).map_err(|_| AppError::Internal)?
     {
@@ -74,7 +76,7 @@ pub(crate) async fn load_locked(
         serde_json::from_value(rows[0].get("descriptor")).map_err(|_| refused())?;
     let body: Vec<u8> = rows[0]
         .get::<Option<Vec<u8>>, _>("body")
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     if descriptor.artifact != reference {
         return Err(refused());
     }

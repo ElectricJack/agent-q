@@ -41,7 +41,7 @@ pub(super) fn confirmation(
                     == format!("aq.source-{name}/{}", p.input.source.manifest().transfer_id)
             })
             .cloned()
-            .ok_or_else(refused)
+            .ok_or_else(|| refused())
     };
     let values = vec![
         (
@@ -96,7 +96,7 @@ pub(super) fn confirmation(
                 .iter()
                 .map(|x| x.revision)
                 .max()
-                .ok_or_else(refused)?,
+                .ok_or_else(|| refused())?,
             c.checked_at_ms,
             c.availability_expires_at_ms,
             FactValue::Availability {
@@ -153,7 +153,7 @@ pub(super) fn confirmation(
         (
             p.input.material.credential_revision,
             o.file_started_at_ms,
-            o.file_started_at_ms.checked_add(2000).ok_or_else(refused)?,
+            o.file_started_at_ms.checked_add(2000).ok_or_else(|| refused())?,
             FactValue::PrivateMaterialBacking {
                 lease_id: p.input.material.lease_id,
                 backing_digest: o.file.digest.clone(),
@@ -168,7 +168,7 @@ pub(super) fn confirmation(
             .owners
             .iter()
             .find(|x| x.kind == kind)
-            .ok_or_else(refused)?
+            .ok_or_else(|| refused())?
             .authority
             .clone();
         let body = FactBody {
@@ -179,7 +179,7 @@ pub(super) fn confirmation(
             observed_at_ms: observed,
             expires_at_ms: observed
                 .checked_add(proposal.policy.maximum_observation_ms)
-                .ok_or_else(refused)?
+                .ok_or_else(|| refused())?
                 .min(ceiling),
             value,
         };

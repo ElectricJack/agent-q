@@ -60,7 +60,7 @@ async fn runtime(
         .config
         .profiled_execution
         .as_ref()
-        .ok_or_else(refused)?
+        .ok_or_else(|| refused())?
         .qualified(&admitted.request)
         .map_err(|_| refused())?;
     for feature in [
@@ -100,7 +100,7 @@ async fn runtime(
     {
         return Err(refused());
     }
-    let row=sqlx::query("SELECT boot_id,sequence,snapshot FROM intelligence_node_snapshots WHERE node_id=$1 FOR SHARE").bind(auth.id()).fetch_optional(&mut *tx).await.map_err(db)?.ok_or_else(refused)?;
+    let row=sqlx::query("SELECT boot_id,sequence,snapshot FROM intelligence_node_snapshots WHERE node_id=$1 FOR SHARE").bind(auth.id()).fetch_optional(&mut *tx).await.map_err(db)?.ok_or_else(|| refused())?;
     let snapshot: CapabilitySnapshot =
         serde_json::from_value(row.get("snapshot")).map_err(|_| refused())?;
     if row.get::<Uuid, _>("boot_id") != request.identity.boot_id
@@ -133,7 +133,7 @@ async fn reservation(
         project,
         now(state)?
             .checked_add(7 * 86_400_000)
-            .ok_or_else(refused)?,
+            .ok_or_else(|| refused())?,
     );
     proposals
         .retain(
@@ -347,7 +347,7 @@ async fn offers(
         .config
         .profiled_execution
         .as_ref()
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let candidates = config
         .projects
         .iter()
@@ -357,7 +357,7 @@ async fn offers(
             priority: p.priority,
         })
         .collect::<Vec<_>>();
-    let graph = state.agent_access.as_ref().ok_or_else(refused)?;
+    let graph = state.agent_access.as_ref().ok_or_else(|| refused())?;
     let polled_at = now(state)?;
     let recorded = on_heap(|| fairness::recorded(&state.store.pool)).await?;
     let served = if recorded {
@@ -377,7 +377,7 @@ async fn offers(
             .projects
             .iter()
             .find(|p| p.project_id == candidate.project_id)
-            .ok_or_else(refused)?;
+            .ok_or_else(|| refused())?;
         if recorded {
             on_heap(|| fairness::record(&state.store.pool, policy.project_id, polled_at)).await?;
         }
@@ -433,16 +433,16 @@ async fn offers(
             .items
             .iter()
             .find(|r| r.revision == task)
-            .ok_or_else(refused)?
+            .ok_or_else(|| refused())?
             .node,
     )?;
     let decision = on_heap(|| selection(state, &task, &compiled, replacement.as_ref())).await?;
-    let selected = decision.outcome.resolved.as_ref().ok_or_else(refused)?;
+    let selected = decision.outcome.resolved.as_ref().ok_or_else(|| refused())?;
     let composition = compiled
         .candidates
         .iter()
         .find(|c| c.digest == selected.choice.composition_digest)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     // Qualification and exact startup counting precede expensive source export.
     context_budget::evaluate(
         &config.context_qualifications,
@@ -510,7 +510,7 @@ async fn offers(
             .items
             .iter()
             .find(|r| r.revision == task)
-            .ok_or_else(refused)?
+            .ok_or_else(|| refused())?
             .node,
     )? != original_ready_node
     {

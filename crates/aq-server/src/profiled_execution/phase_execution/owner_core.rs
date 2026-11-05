@@ -2,7 +2,9 @@ use crate::{AppState, error::AppError, profiled_execution::on_heap};
 use aq_admission::{ArtifactRef, Digest};
 use serde::Serialize;
 use sqlx::{Postgres, Transaction};
+#[track_caller]
 fn refused() -> AppError {
+    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("phase execution authority is not currently available".into())
 }
 fn db(_: sqlx::Error) -> AppError {
@@ -25,7 +27,7 @@ fn now(state: &AppState) -> Result<u64, AppError> {
     u64::try_from((state.clock)().timestamp_millis())
         .ok()
         .filter(|n| *n > 0)
-        .ok_or_else(refused)
+        .ok_or_else(|| refused())
 }
 fn canonical(v: &impl Serialize) -> Result<Vec<u8>, AppError> {
     let mut v = serde_json::to_value(v).map_err(|_| AppError::Internal)?;
@@ -221,10 +223,10 @@ async fn prepare_inner(
                 .min(after.policy.max_lineage_elapsed_ms),
         )
         .filter(|d| *d <= i64::MAX as u64)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let expiry = issued
         .checked_add(after.history.proposal.policy.maximum_execution_lease_ms)
-        .ok_or_else(refused)?
+        .ok_or_else(|| refused())?
         .min(deadline);
     let grant = aq_session_protocol::ProfiledGrant {
         binding: request.original.binding.clone(),
@@ -256,7 +258,7 @@ async fn prepare_inner(
     super::journal::record_prepared(
         &mut tx,
         &request.original.binding,
-        after.hot.owner.as_ref().ok_or_else(refused)?,
+        after.hot.owner.as_ref().ok_or_else(|| refused())?,
         grant.grant_id,
         request.original.journal_revision,
         &request.original.journal_digest,
@@ -433,7 +435,7 @@ async fn replay_locked(
         history::load_optional_locked(tx, auth.id(), &q.original.binding, rows[0].get("grant_id"))
     })
     .await?
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     if !same(&original.request, q)? || !same(&original.installation, &q.original.materials[0])? {
         return Err(refused());
     }
@@ -512,7 +514,7 @@ async fn replay_locked(
         || view.cancellation_id.is_some()
         || hot.status != Status::Granted
         || !same(
-            hot.grant.as_ref().ok_or_else(refused)?,
+            hot.grant.as_ref().ok_or_else(|| refused())?,
             &original.receipt.grant,
         )?
         || hot.execution_deadline_ms != Some(original.receipt.execution_deadline_ms)
@@ -582,8 +584,8 @@ async fn finish_replay(
     require_schema(&mut tx).await?;
     let current_replay = replay_locked(state, &mut tx, auth, request, nonce)
         .await?
-        .ok_or_else(refused)?;
-    let after = current_replay.preflight.as_ref().ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
+    let after = current_replay.preflight.as_ref().ok_or_else(|| refused())?;
     if !same(&original.history.receipt, &current_replay.history.receipt)?
         || !same(
             &original.history.provenance,

@@ -33,7 +33,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{Postgres, Row, Transaction};
 use uuid::Uuid;
+#[track_caller]
 fn refused() -> AppError {
+    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("native initial grant is not currently available".into())
 }
 fn db(_: sqlx::Error) -> AppError {
@@ -43,7 +45,7 @@ fn now(state: &AppState) -> Result<u64, AppError> {
     u64::try_from((state.clock)().timestamp_millis())
         .ok()
         .filter(|t| *t > 0)
-        .ok_or_else(refused)
+        .ok_or_else(|| refused())
 }
 fn same(a: &impl Serialize, b: &impl Serialize) -> Result<bool, AppError> {
     Ok(serde_json::to_value(a).map_err(|_| AppError::Internal)?
@@ -172,7 +174,7 @@ async fn locked(
                 .iter()
                 .find(|r| r.runtime == runtime.runtime && r.qualification == runtime.qualification)
         })
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     if registered.request.identity != request.identity
         || qualified.material_delivery.is_none()
         || [
@@ -234,9 +236,9 @@ async fn locked(
     let hot: HotState = serde_json::from_value(hot).map_err(|_| refused())?;
     hot.validate_against(&request.binding)
         .map_err(|_| refused())?;
-    let operation = hot.preparation_operation_id.ok_or_else(refused)?;
-    let owner = hot.owner.as_ref().ok_or_else(refused)?;
-    let row=sqlx::query("SELECT request_digest,response FROM profiled_execution_receipts WHERE node_id=$1 AND operation_id=$2 AND kind='accept' FOR SHARE").bind(auth.id()).bind(operation).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(refused)?;
+    let operation = hot.preparation_operation_id.ok_or_else(|| refused())?;
+    let owner = hot.owner.as_ref().ok_or_else(|| refused())?;
+    let row=sqlx::query("SELECT request_digest,response FROM profiled_execution_receipts WHERE node_id=$1 AND operation_id=$2 AND kind='accept' FOR SHARE").bind(auth.id()).bind(operation).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(|| refused())?;
     let accept_digest: String = row.get("request_digest");
     let doc: TransportDocument =
         serde_json::from_value(row.get("response")).map_err(|_| refused())?;
@@ -286,12 +288,12 @@ async fn locked(
         }
         resolver::fence_for_preparation(state, tx, &decision, &request.binding).await?;
     }
-    let selected = decision.outcome.resolved.as_ref().ok_or_else(refused)?;
+    let selected = decision.outcome.resolved.as_ref().ok_or_else(|| refused())?;
     if selected.lineage.project_id != view.project_id || selected.lineage.task_id != view.task_id {
         return Err(refused());
     }
     let lease = &plan.materials[0];
-    let row=sqlx::query("SELECT m.* FROM admission_material_leases m JOIN profiled_launch_materials l ON l.lease_id=m.lease_id AND l.attempt_id=$2 WHERE m.lease_id=$1 FOR UPDATE OF m").bind(lease.lease_id).bind(request.binding.attempt_id).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(refused)?;
+    let row=sqlx::query("SELECT m.* FROM admission_material_leases m JOIN profiled_launch_materials l ON l.lease_id=m.lease_id AND l.attempt_id=$2 WHERE m.lease_id=$1 FOR UPDATE OF m").bind(lease.lease_id).bind(request.binding.attempt_id).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(|| refused())?;
     if row.get::<String, _>("state") != "admitted"
         || row.get::<Uuid, _>("node_id") != auth.id()
         || row.get::<Uuid, _>("boot_id") != request.identity.boot_id
@@ -340,7 +342,7 @@ async fn locked(
     }
     let source = source_exports::load_linked_locked(tx, request.binding.attempt_id).await?;
     if source.manifest().attempt != view.attempt
-        || source.manifest().source != view.source.ok_or_else(refused)?
+        || source.manifest().source != view.source.ok_or_else(|| refused())?
         || source.manifest().resolved_spec_digest != view.execution_spec_digest
         || source.token().request().project_id != view.project_id
         || source.token().request().project_revision != selected.project_revision
@@ -399,7 +401,7 @@ async fn locked(
                 .manifest()
                 .bundle_digest
                 .as_deref()
-                .ok_or_else(refused)?,
+                .ok_or_else(|| refused())?,
             source.manifest().bundle_bytes,
         ),
     ] {
@@ -436,7 +438,7 @@ async fn locked(
     Ok(Locked {
         material: lease.clone(),
         offer,
-        graph: graph::Input::new(graph_spec, graph_context.ok_or_else(refused)?)?,
+        graph: graph::Input::new(graph_spec, graph_context.ok_or_else(|| refused())?)?,
         plan,
         hot,
         source,
@@ -472,7 +474,7 @@ pub async fn prepare(
         before.source.fact(),
     )
     .await?;
-    let registry = state.config.intelligence.clone().ok_or_else(refused)?;
+    let registry = state.config.intelligence.clone().ok_or_else(|| refused())?;
     let lease = before.material.clone();
     let node = auth.id();
     let source = super::login_refresh::lease_source(&state.store.pool, &registry, &lease).await?;
@@ -539,7 +541,7 @@ pub async fn prepare(
                     .min(after.remaining_lineage_ms),
             )
             .filter(|v| *v <= i64::MAX as u64)
-            .ok_or_else(refused)?;
+            .ok_or_else(|| refused())?;
         let expiry = after.ceiling.min(deadline);
         let grant = GrantedLaunch {
             schema_version: 1,
@@ -571,7 +573,7 @@ pub async fn prepare(
         journal::record_prepared(
             &mut tx,
             &request.binding,
-            after.hot.owner.as_ref().ok_or_else(refused)?,
+            after.hot.owner.as_ref().ok_or_else(|| refused())?,
             grant.grant.grant_id,
             request.journal_revision,
             &request.journal_digest,

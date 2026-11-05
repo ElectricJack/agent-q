@@ -37,7 +37,7 @@ pub async fn compile(
     context: &TaskContext,
 ) -> Result<Compiled, AppError> {
     let (revision, digest) = crate::project_bindings::active_catalog(state).await?;
-    let digest = digest.ok_or_else(refused)?;
+    let digest = digest.ok_or_else(|| refused())?;
     if digest != record.binding.catalog_digest || record.binding.allowed_agent_profiles.len() != 1 {
         return Err(refused());
     }
@@ -61,7 +61,7 @@ pub async fn compile(
         .agents
         .iter()
         .find(|a| aq_profiles::key(&a.id, a.version) == agent_name)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     if !record
         .binding
         .allowed_intelligence_profiles
@@ -79,13 +79,13 @@ pub async fn compile(
         .execution
         .iter()
         .find(|e| aq_profiles::key(&e.id, e.version) == agent.execution)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let environment = execution
         .environments
         .iter()
         .filter(|e| record.binding.allowed_environments.contains(e))
         .min()
-        .ok_or_else(refused)?
+        .ok_or_else(|| refused())?
         .clone();
     let eligibility = crate::project_bindings::check_eligibility(
         state,
@@ -104,7 +104,7 @@ pub async fn compile(
     let frozen = eligibility
         .frozen_binding
         .filter(|_| eligibility.eligible)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let permissions = record
         .binding
         .ceilings
@@ -134,12 +134,12 @@ pub async fn compile(
         .config
         .profiled_execution
         .as_ref()
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let project_body = config
         .definition_bodies
         .iter()
         .find(|d| d.artifact() == &project_ref)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let project_text = format!(
         "Project policy (exact owner definition follows):\n{}",
         project_body.body()
@@ -255,7 +255,7 @@ pub async fn compile(
         }
         let sealed = draft
             .composition
-            .ok_or_else(refused)?
+            .ok_or_else(|| refused())?
             .seal(projection.scope.clone(), &projection.context)
             .map_err(|_| refused())?;
         if sealed

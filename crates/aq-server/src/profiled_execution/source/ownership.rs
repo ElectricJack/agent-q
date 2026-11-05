@@ -61,7 +61,7 @@ pub fn validate_body(bytes: &[u8], project: Uuid, now: u64) -> Result<SourceAdmi
                 .evidence
                 .reference_observation
                 .as_ref()
-                .ok_or_else(refused)?;
+                .ok_or_else(|| refused())?;
             if resolve_ref(
                 record,
                 reference.as_str(),
@@ -91,7 +91,7 @@ pub fn validate_stored_body(bytes: &[u8], project: Uuid) -> Result<SourceAdmissi
         .admission
         .expires_at_ms
         .checked_sub(1)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     validate_body(bytes, project, as_of)
 }
 pub async fn retain_admission(

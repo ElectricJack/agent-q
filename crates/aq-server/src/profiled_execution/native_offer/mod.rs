@@ -11,7 +11,7 @@ pub async fn load_original_offer_locked(
     tx: &mut Transaction<'_, Postgres>,
     attempt: Uuid,
 ) -> Result<NativeOffer, AppError> {
-    let row=sqlx::query("SELECT launch_binding,launch_manifest,execution_spec,execution_spec_digest,manifest_digest,graph_task_observation,offer_expires_at_ms FROM profiled_launches WHERE attempt_id=$1 FOR SHARE").bind(attempt).fetch_optional(&mut **tx).await.map_err(|_|AppError::Internal)?.ok_or_else(refused)?;
+    let row=sqlx::query("SELECT launch_binding,launch_manifest,execution_spec,execution_spec_digest,manifest_digest,graph_task_observation,offer_expires_at_ms FROM profiled_launches WHERE attempt_id=$1 FOR SHARE").bind(attempt).fetch_optional(&mut **tx).await.map_err(|_|AppError::Internal)?.ok_or_else(|| refused())?;
     let stored: StoredOffer =
         serde_json::from_value(row.get("graph_task_observation")).map_err(|_| refused())?;
     stored.value()?;
@@ -84,7 +84,7 @@ pub async fn load_original_offer_locked(
             .position(|v| {
                 serde_json::to_value(v).ok() == serde_json::to_value(&retained.descriptor).ok()
             })
-            .ok_or_else(refused)?;
+            .ok_or_else(|| refused())?;
         retained
             .descriptor
             .verify(&retained.bytes, published)
@@ -103,7 +103,9 @@ pub async fn load_original_offer_locked(
     Ok(native)
 }
 
+#[track_caller]
 fn refused() -> AppError {
+    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("original native offer unavailable or inconsistent".into())
 }
 fn canonical(value: &impl serde::Serialize) -> Result<Vec<u8>, AppError> {

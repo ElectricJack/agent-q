@@ -13,7 +13,9 @@ use tokio::{
 };
 use uuid::Uuid;
 const MAX_FRAME: usize = 262_144;
+#[track_caller]
 fn refused() -> AppError {
+    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("configured source observation unavailable or inconsistent".into())
 }
 pub struct Observation {
@@ -29,7 +31,7 @@ async fn read(
     operation: &str,
     params: Value,
 ) -> Result<Value, AppError> {
-    let runtime = state.source_retention.as_ref().ok_or_else(refused)?;
+    let runtime = state.source_retention.as_ref().ok_or_else(|| refused())?;
     let id = format!("profiled-source-{}", Uuid::new_v4());
     let request = json!({"protocol_version":1,"request_id":id,"operation":operation,"repository_id":repository,"expected_binding_generation":generation,"params":params,"deadline_ms":5000});
     let exchange = async {
@@ -56,7 +58,7 @@ async fn read(
         {
             return Err(refused());
         }
-        value.get("result").cloned().ok_or_else(refused)
+        value.get("result").cloned().ok_or_else(|| refused())
     };
     tokio::time::timeout(Duration::from_secs(5), exchange)
         .await
@@ -108,7 +110,7 @@ async fn observe_source(
         .config
         .profiled_execution
         .as_deref()
-        .ok_or_else(refused)?
+        .ok_or_else(|| refused())?
         .project_policy_record(project.project.binding.project_id)
         .map_err(|_| refused())?;
     if !policy.enabled
@@ -165,7 +167,7 @@ async fn observe_source(
                 binding.repository_binding_generation,
                 received,
             )?;
-            observed = observed.min(response["started_at_ms"].as_u64().ok_or_else(refused)?);
+            observed = observed.min(response["started_at_ms"].as_u64().ok_or_else(|| refused())?);
             evidence.insert("reference_observation", response);
             object
         }
@@ -206,7 +208,7 @@ async fn observe_source(
     )?;
     evidence.insert("retention_inspection", retained);
     let now = u64::try_from((state.clock)().timestamp_millis()).map_err(|_| refused())?;
-    if now < observed || now >= observed.checked_add(30000).ok_or_else(refused)? {
+    if now < observed || now >= observed.checked_add(30000).ok_or_else(|| refused())? {
         return Err(refused());
     }
     let admission = SourceAdmission {
@@ -253,7 +255,7 @@ pub(crate) async fn repository_identity(
     generation: u64,
 ) -> Result<String, AppError> {
     let value = read(state, repository, generation, "repo.show", json!({})).await?;
-    let identity = value["identity"].as_str().ok_or_else(refused)?;
+    let identity = value["identity"].as_str().ok_or_else(|| refused())?;
     if value["repository_id"] != repository.to_string()
         || value["binding_generation"] != generation
         || value["mode"] != "central"
@@ -278,8 +280,8 @@ fn resolve_ref(
     generation: u64,
     now: u64,
 ) -> Result<ObjectId, AppError> {
-    let completed = value["completed_at_ms"].as_u64().ok_or_else(refused)?;
-    let started = value["started_at_ms"].as_u64().ok_or_else(refused)?;
+    let completed = value["completed_at_ms"].as_u64().ok_or_else(|| refused())?;
+    let started = value["started_at_ms"].as_u64().ok_or_else(|| refused())?;
     if started == 0
         || completed < started
         || completed > now
@@ -296,7 +298,7 @@ fn resolve_ref(
     {
         return Err(refused());
     }
-    let hex = value["refs"][reference].as_str().ok_or_else(refused)?;
+    let hex = value["refs"][reference].as_str().ok_or_else(|| refused())?;
     if !hex40(hex) {
         return Err(refused());
     }
@@ -312,7 +314,7 @@ fn verify_retention(
     generation: u64,
     object: &ObjectId,
 ) -> Result<(), AppError> {
-    let refs = value["refs"].as_array().ok_or_else(refused)?;
+    let refs = value["refs"].as_array().ok_or_else(|| refused())?;
     let mut names = std::collections::BTreeSet::new();
     if refs.iter().any(|r| {
         r["name"]

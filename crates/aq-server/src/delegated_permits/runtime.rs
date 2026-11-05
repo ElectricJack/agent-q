@@ -10,7 +10,9 @@ use sqlx::{Postgres, Row, Transaction};
 use std::result::Result;
 use uuid::Uuid;
 
+#[track_caller]
 pub(crate) fn refused() -> AppError {
+    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Forbidden("delegated permit scope or authority unavailable; stop and preserve".into())
 }
 pub(crate) fn db(_: sqlx::Error) -> AppError {
@@ -66,7 +68,7 @@ pub(crate) async fn load(
     id: Uuid,
 ) -> Result<Current, AppError> {
     let row=sqlx::query("SELECT c.state,p.revoked FROM delegated_permit_current c JOIN delegated_permits p USING(permit_id) WHERE c.permit_id=$1 FOR UPDATE OF c")
-        .bind(id).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(refused)?;
+        .bind(id).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(|| refused())?;
     if row.get::<bool, _>("revoked") {
         return Err(refused());
     }
@@ -139,14 +141,14 @@ pub(crate) async fn context(
         .fetch_optional(&mut **tx)
         .await
         .map_err(db)?
-        .ok_or_else(refused)?,
+        .ok_or_else(|| refused())?,
     )?;
     if hot.revoked || hot.cancellation_id.is_some() {
         return Err(refused());
     }
     let (phase, expiry, hard) = match p.scope {
         PermitScope::Preparation => {
-            let origin = current.preparation.as_ref().ok_or_else(refused)?;
+            let origin = current.preparation.as_ref().ok_or_else(|| refused())?;
             if hot.status != Status::Preparing
                 || origin.binding.attempt_id != p.binding.attempt_id
                 || origin.binding.assignment_generation != p.binding.grant_generation
@@ -160,8 +162,8 @@ pub(crate) async fn context(
             )
         }
         PermitScope::Execution => {
-            let origin = current.authority.as_ref().ok_or_else(refused)?;
-            let grant = hot.grant.as_ref().ok_or_else(refused)?;
+            let origin = current.authority.as_ref().ok_or_else(|| refused())?;
+            let grant = hot.grant.as_ref().ok_or_else(|| refused())?;
             if !matches!(hot.status, Status::Granted | Status::Finished)
                 || (hot.status == Status::Finished && !hot.stop.known_stopped())
                 || (hot.status == Status::Granted && hot.stop.known_stopped())
@@ -238,14 +240,14 @@ pub async fn authenticate_runner(
     };
     let verifier: [u8; 32] = Sha256::digest(token.as_bytes()).into();
     let raw:serde_json::Value=sqlx::query_scalar("SELECT c.state FROM delegated_permit_current c JOIN delegated_permits p USING(permit_id) WHERE c.state#>'{record,verifier}'=$1 AND NOT p.revoked")
-        .bind(json(&verifier)?).fetch_optional(&state.store.pool).await.map_err(db)?.ok_or_else(refused)?;
+        .bind(json(&verifier)?).fetch_optional(&state.store.pool).await.map_err(db)?.ok_or_else(|| refused())?;
     let current: Current = parse(raw)?;
     current
         .record
         .verify_credential(token)
         .map_err(|_| refused())?;
     let channel: RunnerChannelIdentity =
-        super::handoff::header(headers, "aq-runner-channel")?.ok_or_else(refused)?;
+        super::handoff::header(headers, "aq-runner-channel")?.ok_or_else(|| refused())?;
     if channel != current.record.binding || attempt.is_some_and(|a| a != channel.attempt_id) {
         return Err(refused());
     }
@@ -263,7 +265,7 @@ pub async fn authenticate_runner(
         && current.record.scope == PermitScope::Execution
     {
         let q: PermitUpgradeRequest =
-            super::handoff::header(headers, "aq-permit-upgrade")?.ok_or_else(refused)?;
+            super::handoff::header(headers, "aq-permit-upgrade")?.ok_or_else(|| refused())?;
         if q.permit_id != current.record.permit_id || q.binding != current.record.binding {
             return Err(refused());
         }
@@ -297,7 +299,7 @@ pub async fn authenticate_runner(
         .store
         .find_node_by_id(channel.node.node_id)
         .await?
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     Ok(AuthenticatedNode::from_delegated(node, evidence))
 }
 
@@ -389,8 +391,8 @@ pub(crate) async fn verify_extended_grant_locked(
     if rows.len() != 1 {
         return Err(refused());
     }
-    let current: Current = parse(rows.into_iter().next().ok_or_else(refused)?)?;
-    let origin = current.authority.ok_or_else(refused)?;
+    let current: Current = parse(rows.into_iter().next().ok_or_else(|| refused())?)?;
+    let origin = current.authority.ok_or_else(|| refused())?;
     if origin.grant != *original
         || origin.receipt_digest.as_str() != receipt_digest.as_str()
         || origin.hard_deadline_ms != hard_deadline_ms

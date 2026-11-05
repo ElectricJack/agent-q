@@ -67,7 +67,9 @@ impl AqEffectsSnapshot {
     }
 }
 
+#[track_caller]
 fn refused() -> AppError {
+    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::UpdatesUnavailable("complete stopped-attempt effect ledger unavailable".into())
 }
 fn canonical(value: &Value) -> Result<Vec<u8>, AppError> {
@@ -104,7 +106,7 @@ fn byte_budget(count: usize, sizes: impl IntoIterator<Item = i64>) -> Result<u64
         let n = u64::try_from(size).map_err(|_| refused())?;
         sum.checked_add(n)
             .filter(|n| *n <= MAX_INSPECTION_BYTES)
-            .ok_or_else(refused)
+            .ok_or_else(|| refused())
     })
 }
 
@@ -125,7 +127,7 @@ fn settled(row: &Value, binding: &Value) -> Result<bool, AppError> {
         || status["payload_digest"] != row["payload_digest"]
         || row["mapped"]["service"]["workspace_id"] != binding["workspace_id"]
         || row["mapped"]["payload"]["idempotency_key"]
-            != json!(format!("aq-agent-v1:{}", op.as_str().ok_or_else(refused)?))
+            != json!(format!("aq-agent-v1:{}", op.as_str().ok_or_else(|| refused())?))
         || row["dispatch_count"].as_u64().is_none_or(|n| n > 8)
     {
         return Err(refused());
@@ -197,7 +199,7 @@ pub async fn inspect_aq_effects_locked(
     .fetch_optional(&mut **tx)
     .await
     .map_err(|_| refused())?
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     let binding: Value = launch.get("binding");
     let profile: Value = launch.get("profile");
     let expected = &current.report.binding;

@@ -72,7 +72,9 @@ impl IntoResponse for Error {
         response
     }
 }
+#[track_caller]
 fn refused() -> AppError {
+    tracing::info!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("native source is not currently available to this assignment".into())
 }
 fn db(_: sqlx::Error) -> AppError {
@@ -144,7 +146,7 @@ async fn locked(
         .config
         .profiled_execution
         .as_deref()
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     if config
         .qualified_runtimes
         .iter()
@@ -172,7 +174,7 @@ async fn locked(
     .fetch_optional(&mut **tx)
     .await
     .map_err(db)?
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     let hot: HotState = serde_json::from_value(hot).map_err(|_| refused())?;
     hot.validate_against(binding).map_err(|_| refused())?;
     let launch=sqlx::query("SELECT launch_binding,offer_expires_at_ms,execution_spec FROM profiled_launches WHERE attempt_id=$1").bind(binding.attempt_id).fetch_one(&mut **tx).await.map_err(db)?;
@@ -191,7 +193,7 @@ async fn locked(
     .fetch_optional(&mut **tx)
     .await
     .map_err(db)?
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     let project_binding: crate::project_bindings::domain::ProjectBinding =
         serde_json::from_value(project.get("binding")).map_err(|_| refused())?;
     if !project_binding.enabled
@@ -220,16 +222,16 @@ async fn locked(
             0,
             hot.grant
                 .as_ref()
-                .ok_or_else(refused)?
+                .ok_or_else(|| refused())?
                 .expires_at_ms
-                .min(hot.execution_deadline_ms.ok_or_else(refused)?),
+                .min(hot.execution_deadline_ms.ok_or_else(|| refused())?),
         ),
         _ => return Err(refused()),
     };
     let linked = source_exports::load_linked_locked(tx, binding.attempt_id).await?;
     if linked.token().request().project_id != view.project_id
         || linked.token().request().project_revision != spec.project_revision
-        || linked.manifest().source != view.source.ok_or_else(refused)?
+        || linked.manifest().source != view.source.ok_or_else(|| refused())?
         || linked.manifest().attempt != view.attempt
         || linked.manifest().resolved_spec_digest != view.execution_spec_digest
     {

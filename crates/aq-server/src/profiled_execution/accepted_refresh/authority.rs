@@ -37,17 +37,17 @@ pub(crate) async fn load_preparing_locked(
     if hot.status != Status::Preparing || hot.grant.is_some() {
         return Err(refused());
     }
-    let operation = hot.preparation_operation_id.ok_or_else(refused)?;
+    let operation = hot.preparation_operation_id.ok_or_else(|| refused())?;
     if !super::policy::enabled(state) {
         return Err(refused());
     }
     let proposal = proposal_locked(tx, binding).await?;
     let raw: serde_json::Value = sqlx::query_scalar("SELECT request FROM profiled_v2_accepts WHERE attempt_id=$1 AND node_id=$2 AND operation_id=$3 FOR SHARE")
-        .bind(binding.attempt_id).bind(auth.id()).bind(operation).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(refused)?;
+        .bind(binding.attempt_id).bind(auth.id()).bind(operation).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(|| refused())?;
     let request: AcceptRequest = serde_json::from_value(raw).map_err(|_| refused())?;
     let receipt = accepted_locked(tx, &proposal, &request)
         .await?
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     live_locked(state, tx, auth, &proposal, &request, &receipt).await?;
     let receipt_digest = receipt.digest().map_err(|_| refused())?;
     Ok(PreparationAuthority {
