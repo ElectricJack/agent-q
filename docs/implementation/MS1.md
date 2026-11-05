@@ -4,6 +4,130 @@ Task `stark-zenith-16.2`. Run on 2026-11-05, 05:00–05:35 UTC, on the owner's
 desktop (WSL2). Owner decision of 2026-11-04: the agent is **Claude Code**
 signed in with the owner's Claude subscription login (no API key), not Codex.
 
+## Update 2026-11-05 (08:00–13:30 UTC): review fixes, cancel, restart drills
+
+Evidence: [MS1-evidence/wiring/drills.jsonl](MS1-evidence/wiring/drills.jsonl)
+and the `run-*.log` files beside it.
+
+### Review fixes (aq-server review of `ms1/demo`)
+
+- **B1 (blocking): a failed run could complete its task.** Fixed both sides.
+  aq-worker `e657e5f`: `ResultStopCause::Failure` reports `Failed`; the Claude
+  driver writes `exit.json` (runner exit 0 observed by the backend, workspace
+  copied back) *before* submitting its claim, and the executor reports
+  `Success` only from that record; an unproven end stays `Unknown`. aq-server
+  `98761e38`: D3 accepts `Success` only again (the earlier `Unknown`
+  acceptance, `9ea067ad`, is reverted). New DB test
+  `failed_or_unknown_report_never_completes_a_task_without_required_checks`
+  (production-shaped policy-actor offer, no required checks): Failed and
+  Unknown go to `rework_required`/`not_accepted` with no Graph write and the
+  hold kept; Success confirms. Live: task `…00f1`, attempt
+  `6e442551-d6a3-5812-808e-b800f47649d0` reported `success`, D3 confirmed
+  (operation `f456b096-3be6-44ed-8122-9fc162a7713e`).
+- **Should-fix 1** (`3ba235ed`): `require_container` is admitted only for
+  `aq.claude-result-local-adapter` and only when the node's capability
+  snapshot advertises `aq.harness.container-confinement`; contradictory
+  profiles are refused; the poll workflow checks that the node's authenticated
+  registration qualifies the exact confinement mode of the built manifest.
+- **Should-fix 2** (`98761e38`, `cdb2a271`; aq-worker `e657e5f`, `2d43cf2`): the
+  long-phase Claude rule also requires the container-confinement capability
+  (and not native); aq-admission bumped to 0.1.12 in both repos (the long
+  contract publication id stays `aq-admission/0.1.11`, so its pinned digest is
+  unchanged). Test `long_phase_claude_manifest_requires_container_confinement`.
+- **Should-fix 3** (`98761e38`): `CLAUDE_RECIPE_DIGEST`
+  (`b3d428f7…026d0`) is pinned in `producer/result_startup.rs`; another recipe
+  body under the Claude profile is refused (test).
+- **Should-fix 4**: naming the policy actor for default-policy offers removes
+  the human review fallback for those tasks. Recorded here and in the
+  `review_requirement` comment; a follow-up, no code change.
+- **Nits** (`3ba235ed`, `fd671591`): refusal-location logging is `debug`; the
+  module-wide clippy allow is gone; version-0 Claude material is normalised
+  like an import and `ms1-demo.sh` pipes the raw token file;
+  `protocol/central-profile/v1/compilation.example.json` regenerated.
+
+Tests: aq-server `profiled_results` 91 passed (1 ignored), `native_offers`,
+`native_result_startup`, `native_accepted_preparation`,
+`native_proposal_scope`, `native_cancellation` all passed against a disposable
+Postgres (`aq-ms1-test-db`); aq-selection, aq-profiles, aq-admission and
+aq-phase-terminal-protocol passed; clippy `-D warnings` and fmt clean.
+aq-worker: 221 lib tests (`test-support`) passed; clippy and fmt clean.
+
+### Step 3, cancel (B3): done
+
+The Claude executor now polls the node's own poll at zero capacity every 5 s
+(aq-worker `6ab152e`); the server answers pending cancellations first.
+
+- Task `…00c2`, attempt `785d8c76-5261-59d3-9b11-811ab17ff2ac`. Owner cancel at
+  08:05:37Z (`POST /api/execution/attempts/{id}/cancel`), cancellation
+  `6c42e9be-f765-4203-83e7-fb1da4118c0e`, disposition `requested`.
+- The executor observed it at 08:05:37.94Z and stopped the session host; the
+  driver stopped its sandbox, which is **preserved** (`Exited (137)`, volume
+  kept), not destroyed. `run-native` ended at 08:05:41Z.
+- Server: attempt `finished`, stop `stopped`, cancelled settlement recorded
+  (stop receipt digest `e2af7bb9…`). No result report, so it was **not**
+  reworked and not completed.
+- Limit: the task stays held: B4 replacement needs retained source, which a
+  cancelled attempt never produced (see Step 4).
+
+### Step 4, fail → retry (B4): not shown (server gap)
+
+`replacement::assess` admits a replacement only when the predecessor's hot
+state has `retention = retained` and `effects = quiescent`. No production
+owner writes those for native attempts: every native attempt here, including
+the completed ones, keeps `retention: pending` / `effects: unknown`. So a
+failed, reworked or cancelled native attempt is never replaced; its task stays
+held. The fix is a server-side writer (on a confirmed source retention receipt
+and an empty `pending_effect_ids`), owned by B4/D3; not attempted here.
+
+### Step 5, restart drills: done
+
+- **Worker node killed mid-attempt.** Task `…00e1`, attempt
+  `4e2f1083-510a-551c-b480-0a984a341031`. `run-native` got SIGKILL at
+  08:08:55Z. The session host and driver kept running; Claude finished in the
+  sandbox (exit 0 at 08:10:34Z); the guardian then stopped the harness at its
+  local permit deadline (no renewer). Restart: `reconcile-native` could not
+  recover a stop the journal never saw, so aq-worker `447984d` makes it recover
+  the host owner from its sealed intent, retain the kernel stopped proof and
+  replay Stopped. Result at 08:14:07Z:
+  `StopReported`; server `finished`/`stopped`. **No relaunch, no second
+  sandbox, no duplicate effect.** The node then re-registered with a new boot
+  and ran task `…00e2` (attempt `214e5691-be59-56de-9402-3e4e2cc7da17`, D3
+  confirmed, operation `f16f1cc3-1423-4823-b47b-40f4d0c4934c`). Limits: the
+  killed attempt's edits were not retained (its sandbox is preserved,
+  `Exited (0)`), and its task stays held (Step 4 gap). This is
+  stop-and-preserve, not re-adoption: the native path has no re-adoption.
+- **aq-server restarted mid-attempt.** Task `…00e3`, attempt
+  `8730d7f5-e90e-5495-a06c-9f5b96a2a87b`. `docker restart aq-ms1-server-1` at
+  08:15:50Z, healthy at 08:15:52Z. The attempt kept running (the node holds a
+  15-minute grant and needs no renewal), its Started/Stopped/result reports
+  landed after the restart, and D3 confirmed (operation
+  `d3996f1f-4b4d-4743-9b0f-6c03acaebc6a`, checkpoint `816d5ab7…`). Exactly one
+  result report exists. While the server was restarting, the cancellation
+  polls answered 409 (logged; they never count as "not cancelled").
+
+### Stuck attempts (close consumer): not done (server gap)
+
+The server's `/v1/worker/profiled-v2/launch-closure` records a no-Started
+closure as `LaunchClosedAwaitingSettlement`: it revokes authority and sets the
+attempt `cancelling`, but deliberately retains the task, source and effect
+holds, and no owner settles a closure afterwards. `compute::busy_locked`
+still counts such an attempt as busy, so a worker-side closure client alone
+would not let the node re-register. Granted-but-never-started attempts
+therefore still wedge their node (nodes `c7caa999…` and `f051a29d…` here).
+What does now unwedge a node: a Started attempt whose node died is recovered
+by `reconcile-native` (above). Owner: B5b/AQ-08 closure settlement (a release
+owner for launch closures plus the worker closure client).
+
+### D1 publication (B builds on A): not done
+
+Out of time in this window; finding 3 above still applies.
+
+### Preserved sandboxes left on the daemon (operator release)
+
+`aq-10112d04…-785d8c76…` (cancel drill, `Exited (137)`) and
+`aq-10112d04…-4e2f1083…` (node-kill drill, `Exited (0)`), kept as
+stop-and-preserve evidence.
+
 ## Update 2026-11-05 (06:00–08:00 UTC): execution wiring, steps 1–2 through the stack
 
 Plan: [2026-11-05-ms1-execution-wiring.md](../superpowers/plans/2026-11-05-ms1-execution-wiring.md).
@@ -73,9 +197,10 @@ permit, only the attempt's leased token.
   1. **D3 never applied to a real offer**: the producer hard-coded
      `ReviewRequirement::HumanOwner`. Offers now name the policy actor when the
      validation policy is the default completion policy.
-  2. **D3 refused every native report**: the native result pipeline reports
-     `ProcessOutcome::Unknown` by design (the claim carries the work); D3 now
-     accepts Success or Unknown and still refuses failed/expired/cancelled.
+  2. **D3 refused every native report**: the native result pipeline reported
+     `ProcessOutcome::Unknown` by design. *Superseded by review B1 (see the
+     newer update): D3 accepts Success only, and the worker now reports Success
+     only for a proven harness exit 0 with its claim.*
   3. The long (schema 3) phase contract and the result-startup opt-in admitted
      only interactive Codex; they now also admit the Claude docker-local adapter
      (`aq-admission` 0.1.11 mirrored in aq-worker's vendored copy).
