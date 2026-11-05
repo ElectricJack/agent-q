@@ -542,6 +542,31 @@ pub(crate) mod tests {
     }
 
     #[test]
+    fn closed_unstarted_attempt_is_replaceable() {
+        // B5b/AQ-08: a settled launch closure (not started, its own export
+        // retained, no effects) is a failed predecessor like any other.
+        let now = 1_000_000;
+        let mut closed = failed_prior(900_000);
+        closed.rejected = false;
+        closed.stop = Stop::NotStarted {
+            receipt: receipt("closure"),
+        };
+        let Assessment::Replace(r) = assess(std::slice::from_ref(&closed), &Limits::default(), now)
+        else {
+            panic!("settled closure must be replaceable");
+        };
+        assert_eq!(r.stop_receipt, receipt("closure"));
+        assert!(r.needs_release);
+        // An unsettled closure (stop still unknown) blocks.
+        closed.stop = Stop::Unknown;
+        closed.status = Status::Cancelling;
+        assert_eq!(
+            assess(&[closed], &Limits::default(), now),
+            Assessment::Blocked("replacement_prior_execution_uncertain")
+        );
+    }
+
+    #[test]
     fn retry_budget_exhaustion_blocks_task() {
         let now = 1_000_000;
         let limits = Limits {

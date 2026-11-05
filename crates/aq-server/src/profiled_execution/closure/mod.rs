@@ -4,6 +4,7 @@ mod context;
 pub(crate) mod history;
 pub mod policy;
 pub mod service;
+pub mod settlement;
 use crate::error::AppError;
 use aq_admission::LaunchBinding;
 use serde::Serialize;
