@@ -1,6 +1,6 @@
 //! D6 asynchronous host adapters for catalog profile 6 (AQ host catalog
-//! 2.0.0): judgment.request, check.request and their operation.get
-//! reconciliation.
+//! 2.0.0): judgment.request, check.request, work.ensure completion and their
+//! operation.get reconciliation.
 //!
 //! Both commands record one durable intent (`playbook_effects` row `accepted`
 //! plus one `playbook_host_operations` row `running`) before any provider
@@ -223,6 +223,43 @@ struct JudgmentJob {
     request: JudgmentRequest,
 }
 
+/// Terminal completion of one tracked work node, or `None` while it is open.
+/// A completed task is `completed`: review work carries its disposition in
+/// `aq:review_disposition` (`accepted` / `changes_requested`) and acceptance is
+/// never inferred, so a missing or unknown disposition is `failed`; other
+/// kinds are `accepted`. A canceled, retired, deleted or missing task is
+/// `refused` / `failed`.
+pub(crate) fn work_completion(request: &Value, node: Option<&Value>) -> Result<Option<HostResult>> {
+    let (outcome, disposition, revision) = match node {
+        None => ("refused", "failed", revision_of(&request["subject"])?),
+        Some(node) => {
+            let revision = node_version(node)?;
+            if node["deleted"] == json!(true)
+                || node["retired"] == json!(true)
+                || node["task_state"] == "canceled"
+            {
+                ("refused", "failed", revision)
+            } else if node["task_state"] == "completed" {
+                let disposition = match request["kind"].as_str() {
+                    Some("review" | "fidelity_review") => node["metadata"]["aq:review_disposition"]
+                        .as_str()
+                        .filter(|d| matches!(*d, "accepted" | "changes_requested"))
+                        .unwrap_or("failed"),
+                    _ => "accepted",
+                };
+                ("completed", disposition, revision)
+            } else {
+                return Ok(None);
+            }
+        }
+    };
+    Ok(Some(HostResult {
+        outcome: outcome.into(),
+        output: json!({"disposition": disposition, "reference": request["reference"],
+            "subject": {"id": request["subject"]["id"], "revision": revision}}),
+    }))
+}
+
 /// Completed outcome and output of one retained host operation.
 struct Operation {
     command: String,
@@ -237,6 +274,7 @@ impl Service {
         Ok(match command {
             "judgment.request" => (json!("judgment"), "aq.judgment.completed"),
             "check.request" => (json!("check"), "aq.check.receipted"),
+            "work.ensure" => (json!("work"), "aq.operation.updated"),
             _ => return Err(Error::Invalid),
         })
     }
@@ -393,6 +431,104 @@ impl Service {
         Ok(result)
     }
 
+    // ------------------------------------------------------- work completion
+
+    /// Tracks one catalog profile 7 ensured work node as a running operation,
+    /// in the tx of its accepted effect row. It completes exactly once, by
+    /// aq.operation.updated, when the graph task reaches a terminal state.
+    pub(super) async fn track_work(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        intent: &Intent,
+        work: &Value,
+    ) -> Result<()> {
+        let subject = &work["subject"];
+        let request = json!({"kind": text(&intent.input, "kind")?,
+            "reference": work["reference"], "subject": subject});
+        sqlx::query("INSERT INTO playbook_host_operations(operation_id,namespace_id,generation,intent_id,command_name,subject_id,subject_revision,check_id,request,status,created_at_ms) VALUES($1,$2,$3,$4,'work.ensure',$5,$6,NULL,$7,'running',$8)")
+            .bind(self.operation(intent)?)
+            .bind(self.namespace.namespace_id)
+            .bind(self.namespace.generation)
+            .bind(&intent.id)
+            .bind(text(subject, "id")?)
+            .bind(revision_of(subject)?)
+            .bind(request)
+            .bind(self.now()?)
+            .execute(&mut **tx)
+            .await?;
+        Ok(())
+    }
+
+    /// Reads the tracked work node and, once terminal, completes the
+    /// operation (exactly once; a lost race returns the retained completion).
+    /// `None` while the work is still open.
+    pub(super) async fn observe_work(&self, operation: Uuid) -> Result<Option<HostResult>> {
+        let Some(op) = self.load_operation(operation).await? else {
+            return Ok(None);
+        };
+        if op.command != "work.ensure" {
+            return Err(Error::Invalid);
+        }
+        if op.status != "running" {
+            return Ok(Some(HostResult {
+                outcome: op.status,
+                output: op.output.ok_or(Error::Unknown)?,
+            }));
+        }
+        let task =
+            Uuid::parse_str(text(&op.request["subject"], "id")?).map_err(|_| Error::Unknown)?;
+        let node = self
+            .ports()?
+            .graph
+            .node(self.namespace.workspace_id, task)
+            .await?;
+        let Some(result) = work_completion(&op.request, node.as_ref())? else {
+            return Ok(None);
+        };
+        self.complete_operation(operation, &op.command, &op.intent_id, result)
+            .await
+            .map(Some)
+    }
+
+    /// Bounded round-robin over running catalog profile 7 work operations:
+    /// each pass observes the least recently observed ones and completes those
+    /// whose graph task is terminal. Returns the number completed. A graph
+    /// read failure leaves that operation running for a later pass.
+    pub async fn collect_work_completions(
+        &self,
+        owner: &RuntimeOwner,
+        limit: u32,
+    ) -> Result<usize> {
+        if self.profile != CatalogProfile::Host7 || self.host.is_none() {
+            return Ok(0);
+        }
+        if !(1..=2).contains(&limit) {
+            return Err(Error::Invalid);
+        }
+        let mut tx = self.tx().await?;
+        let ns = self.namespace_locked(&mut tx).await?;
+        self.runtime(&ns, owner)?;
+        let now = self.now()?;
+        let operations: Vec<Uuid> = sqlx::query_scalar("UPDATE playbook_host_operations SET observed_at_ms=$4 WHERE operation_id IN (SELECT operation_id FROM playbook_host_operations WHERE namespace_id=$1 AND generation=$2 AND command_name='work.ensure' AND status='running' ORDER BY COALESCE(observed_at_ms,created_at_ms),operation_id LIMIT $3) RETURNING operation_id")
+            .bind(self.namespace.namespace_id)
+            .bind(self.namespace.generation)
+            .bind(limit as i64)
+            .bind(now)
+            .fetch_all(&mut *tx)
+            .await?;
+        tx.commit().await?;
+        let mut completed = 0;
+        for operation in operations {
+            match self.observe_work(operation).await {
+                Ok(Some(_)) => completed += 1,
+                Ok(None) => {}
+                Err(Error::Overloaded) => return Err(Error::Overloaded),
+                Err(_) => {}
+            }
+        }
+        Ok(completed)
+    }
+
     // ------------------------------------------------------------- check.request
 
     pub(super) async fn check_request(
@@ -436,15 +572,34 @@ impl Service {
         let subject = &input["subject"];
         let check = &input["check"];
         let check_id = text(check, "id")?;
+        let workspace = self.namespace.workspace_id;
+        let project = self.namespace.project_id;
+        // Candidate subjects run on the prepared candidate's OID, never the
+        // caller's input.source (see `check_source`).
+        let source = if check_id.is_empty() || !source_valid(&input["source"]) {
+            None
+        } else {
+            Some(
+                match self.check_source(&mut tx, text(subject, "id")?).await? {
+                    CheckSource::Input => Some(input["source"].clone()),
+                    CheckSource::Candidate(oid) => Some(oid),
+                    CheckSource::NotPrepared => None,
+                },
+            )
+        };
+        let echoed = match &source {
+            Some(Some(bound)) => bound,
+            _ => &input["source"],
+        };
         let refusal = |disposition: Value, reason: &str| HostResult {
             outcome: "refused".into(),
             output: json!({"check": check, "disposition": disposition, "reason": reason,
-                "reference": format!("check:{operation}"), "source": input["source"], "subject": subject}),
+                "reference": format!("check:{operation}"), "source": echoed, "subject": subject}),
         };
-        let workspace = self.namespace.workspace_id;
-        let project = self.namespace.project_id;
-        let refused = if check_id.is_empty() || !source_valid(&input["source"]) {
+        let refused = if source.is_none() {
             Some(refusal(Value::Null, "invalid_request"))
+        } else if source == Some(None) {
+            Some(refusal(json!("stale"), "stale_subject"))
         } else if let Some(checks) = &ports.checks {
             let validator = pin(&check["validator"])?;
             match checks
@@ -482,7 +637,8 @@ impl Service {
                 .await;
         }
         let checks = ports.checks.as_ref().ok_or(Error::Unknown)?;
-        let request = json!({"check": check, "source": input["source"], "subject": subject,
+        let source = source.flatten().ok_or(Error::Unknown)?;
+        let request = json!({"check": check, "source": source, "subject": subject,
             "deadline_at_ms": intent.deadline_at_ms, "execution_profile": CHECK_EXECUTION_PROFILE});
         let accepted = self
             .record_operation(
@@ -503,8 +659,8 @@ impl Service {
             subject_revision: revision_of(subject)?,
             check_id: check_id.into(),
             validator: pin(&check["validator"])?,
-            source_format: text(&input["source"], "format")?.into(),
-            source_hex: text(&input["source"], "hex")?.into(),
+            source_format: text(&source, "format")?.into(),
+            source_hex: text(&source, "hex")?.into(),
             execution_profile: CHECK_EXECUTION_PROFILE,
         };
         // An ambiguous start leaves the operation running; reconciliation
@@ -934,6 +1090,8 @@ impl Service {
             })
         } else if op.command == "check.request" {
             self.observe_check(operation).await?
+        } else if op.command == "work.ensure" {
+            self.observe_work(operation).await?
         } else if self.now()?
             >= op.request["deadline_at_ms"]
                 .as_i64()

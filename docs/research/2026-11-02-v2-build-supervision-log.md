@@ -693,3 +693,68 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Told D9 to take the next free number when it merges (about 0086).
   - G9 is blocked on D9 not being integrated; replied to its agent and routed its action-union adapter follow-up to D9.
   - aq-worker main is red after H5 (`sandbox_runner::runner_needs_no_node_credential`); filed a fix task (priority 9).
+- **02:05 owner: run C6b in parallel with C5b.** Removed C6b's (`calm-delta-18.10`) `blocks` edge on C5b. Told it to build against C5b's published CAS contract (`base_version`, `RefreshOutcome`) with fixtures, plus one real round-trip if C5b lands first. Priority 3; claimable (fleet 5 of 8 busy). MS1 still waits on both. Open question for the owner: E5 holds the single operator-standard-high-claude slot that MS1 needs.
+- **02:55 check.**
+  - C6b is running in parallel with C5b. Routed C6b's need (issued login version delivered with the leased material) to C5b by comment and message.
+  - Holding aq-server merges until main CI on `053a738` (the 0084 renumber) is green. #80's broad failures and #79's `state_format_is_the_latest_migration` failure ran against the earlier duplicate-0083 main.
+  - **Merge order to keep migrations contiguous:** #79 (0085_hibernation); then #82 (crisp-ember-25, 0085_lifecycle_artifacts) renumbered to 0086; then D9 next free; then #81 (prime-falcon-77) checked.
+- **03:20 check.**
+  - D9 integrated on main (`68e6bb8`, migration `0085_playbook_activations`). Released G9's (`steady-cascade-45.10`) `session_close_hard_failure` hold with a retry; told it to render any still-missing action adapters honestly.
+  - #79 is now at 0086. #82 (`0085_lifecycle_artifacts`) collides with D9 and will go to 0087 after #79.
+  - Main CI runs keep getting cancelled by new pushes; still waiting for a finished green run before merging the migration PRs.
+- **03:50 check.**
+  - Current main passes `state_format_is_the_latest_migration` locally (85 migrations at the time, contiguous); the main CI failure on `45804b2` came from an intermediate commit.
+  - **Migration race again:** a D9 follow-up integrated `0086_playbook_work_completion` straight to main, colliding with #79's 0086. Changed approach: renumber, verify locally (catalog plus `cargo check -p aq-server --tests`), merge immediately rather than waiting another 30 min of CI that would lose the race again.
+  - Renumbered #79 (`azure-orbit-61`) to 0087 and merged it (admin; the only CI failure was the known `native_accepted` regression). W61: its commit `1d87c06` is on main, so I removed `clear-crest-61.5.1`'s `blocks` edge.
+  - #82 (`crisp-ember-25`) now conflicts in `lib.rs`; messaged its in-progress agent to merge main and renumber to 0088.
+  - Closed C5b's lease-cap child `calm-delta-18.8.2` as obsolete (covered by parked `steady-orbit-52`) so it doesn't block C5b's close.
+  - Surfaced three owner decisions: I1 (Claude API-key test and enrollment), I2 (Gemini credential), I3 (OpenCode credential; suggested local Ollama).
+- **04:10 check.**
+  - **C6b (`calm-delta-18.10`) completed.** MS1 now waits only on C5b.
+  - C5b's paused device-auth child `calm-delta-18.8.1` would have blocked C5b's close (W52). `close --obsolete` was refused (slot termination unproved), so I reparented it to the root; it stays paused, part of parked `steady-orbit-52`.
+  - **Filed follow-ups:**
+    - aq-platform `azure-journey-96` (priority 20): dashboard-actions-1 playbook union kinds that G9 needs (D9 shipped direct routes only);
+    - aq-playbooks `nimble-harbor-36` (priority 40): host catalog bump for the candidate check source;
+    - aq-platform `crisp-crest-28` (priority 120): docs, Claude Code harness rows in 0005 §8.3.
+  - `crisp-meadow-36.10.4` and `fair-impact-57` are held but already superseded by supervisor replacement tasks.
+- **04:20 owner decisions: skip Codex for now, skip Gemini, test Claude Code and OpenCode.**
+  - I1 (`azure-horizon-22.4`): subscription only, live API-key case unmet; the saved setup-token is the enrollment.
+  - I3 (`azure-horizon-22.6`): live run on local Ollama, ChatGPT and API-key routes deferred.
+  - I2 (`azure-horizon-22.5`): offline only, live case deferred.
+  - Noted on MS4 that Codex and Gemini become owner-approved deferrals in its four-harness demo. `noble-meadow-73` (Codex qualification) stays paused.
+- **04:40 owner: 'do whatever you need to get this across the line, then stand up a build with the latest dashboard'.**
+  - Paused E5 (`smart-falcon-16.7`) to free the single `operator-standard-high-claude` slot for MS1. A scan of MS1's dependencies shows only C5b open, with no W61 mismatches. C5b's tests pass and the version header is in; it's finishing.
+  - Tore down four stale E0 qualification stacks (`aq-e0-qual`, `aq-e0-final`, `aq-e0-designated`, `aq-e0-designated-uid10001`) and their volumes. Kept `aq-c3c-registry` (I4a image) and `aq-worker-local`.
+  - Built the aq-dashboard production bundle from main `3685c0d` (includes G9; no mock code).
+  - Starting the real local v2 stack: Compose project `aq-v2-local` on ports 18080/18081/18741 (v1 owns 8081), fresh state/secrets in `~/.local/share/aq-v2-local`, dev auth `owner@localhost`, dashboard via `compose.dashboard.yaml`. Relaunch with `~/.local/share/aq-v2-local/up.sh` (`--rebuild-dashboard` / `down` / `logs`).
+- **05:00 local v2 stack is up** (`aq-v2-local`, aq-server main plus dashboard main `3685c0d`).
+  - All services are healthy at http://127.0.0.1:18080 (dev auth `owner@localhost`, 46 capabilities).
+  - Seeded with the MS0-designated scratch repo `ElectricJack/aq-scratch` (public, `main`, credential none): a project, a repository, one graph task, an offline dev worker identity and the human settlement owner.
+  - Browser check: the Overview renders live data (1 ready task, project 'Local scratch development', 1 worker node). Provider accounts and capacity show 'not reported', as expected with no running worker.
+  - Filed `azure-delta-64` (adopt host catalog 2.1.0); parked the Gemini and OpenCode-ChatGPT login-kind follow-ups on `steady-orbit-52`.
+- **05:15 check.**
+  - I2 couldn't close because of its child `azure-horizon-22.5.2` (W52); reparented the child to the root and told I2 to close pass.
+  - I1 had closed fail deliberately over owner-decision items; recorded the owner's decisions (subscription only, setup-token enrollment) and released its hold with a retry, so it can close pass with owner-approved `--deliverable-unmet`.
+  - G11 (visual acceptance) started; I3 is running; C5b is still finishing.
+  - #80, #81 and #82 still fail (#82 also needs its renumber); no merges this round.
+- **05:35 check.**
+  - I1 (`azure-horizon-22.4`) and I2 (`azure-horizon-22.5`) completed.
+  - Merged aq-playbooks #6 (`nimble-harbor-36`, host catalog 2.1.0; unblocks `azure-delta-64`, which I messaged) and #5 (`sound-rapids-80.1`, the D10 implementation spec). aq-playbooks has no CI checks configured.
+  - Folded I3's OpenCode §8.3 docs follow-up into `crisp-crest-28`.
+- **05:50 check.** I3 (`azure-horizon-22.6`, OpenCode on local Ollama) completed. Merged aq-worker #37 (`amber-cascade-22`, the `runner_needs_no_node_credential` fix for aq-worker main; green). MS1 still waits on C5b.
+- **06:05 C5b had stalled for about 4.5 h.** Its session sat idle at 'done 6:08 PM, 1 shell still running': `cargo test --test native_initial_grant subscription` had hung for over 3 h. Killed that test process (pid 1499315) and messaged C5b to skip it as a pre-existing hang, finish its targeted checks with timeouts and close. MS1 waits only on C5b.
+
+## 2026-11-05 (UTC; earlier entries labelled 05:15–06:05 were about an hour ahead of real UTC)
+
+- **~04:50 owner instruction:** "Just stop the tasks in agent queue and finish the work yourself with subagents."
+  - Paused all six v2 projects in v1. Snapshotted the WIP of C5b (`aq/calm-delta-18.8` at 107d164a), D11 (`aq/crisp-meadow-36.12` at 192bfcc4) and `sharp-grove-60` (`aq/sharp-grove-60` at 7a6fb756), pushed it, and stopped those sessions.
+  - Dispatched operator subagents, each working in its own worktree under `aq-platform/wt/` and pushing branches only; I integrate:
+    - C5b: CAS write-back, the hung renewal test;
+    - D11: the pilots;
+    - F5: agent questions, on branch `aq/f5-questions`;
+    - PRs #80, #81, #82, #83, #85: merge order in that sequence, migrations renumbered contiguously after 0087;
+    - MS1: a real Claude Code agent in docker-local, on its own `aq-ms1` stack on ports 28080 and up.
+  - MS1 no longer waits on C5b: Claude takes the setup-token as env only, so it needs no write-back.
+- **05:00:** merged #84 (`crisp-crest-28`, the 0005 §8.3 Claude Code 2.1.318 / OpenCode 1.18.35 harness rows). It is docs only. Its one CI failure, `reservations::tests::count_utf8_body_budget…` with IdentityUnavailable, is unrelated to the PR.
+  - #83 and #85 both add migration 0088, which is a W62 collision; renumbering is handed to the PR subagent.
+  - Main CI on aq-server is red only on the native_accepted regression, which #80 fixes.

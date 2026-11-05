@@ -616,6 +616,13 @@ impl Driver {
                 &mut overloaded,
             )?;
         }
+        // Catalog profile 7 work.ensure completion (aq.operation.updated).
+        defer_capacity(
+            self.service
+                .collect_work_completions(&self.runtime, 2)
+                .await,
+            &mut overloaded,
+        )?;
         if self.service.profile == super::review_domain::CatalogProfile::Monitoring6
             && self
                 .schedule_consumer
@@ -792,6 +799,17 @@ impl Driver {
             Err(_) => Err(Error::Unknown),
         }
     }
+    /// D9: the binding's active artifact digest; `None` if never activated.
+    pub(crate) async fn binding_artifact(&self, binding: String) -> Result<Option<String>> {
+        match self.owner.call(Request::Binding { binding }, CALL).await {
+            Ok(value) => {
+                let a: aq_playbook_host::runner::Activation = serde_json::from_value(value)?;
+                Ok(Some(a.artifact))
+            }
+            Err(aq_playbook_host::Error::Invalid) => Ok(None),
+            Err(_) => Err(Error::Unknown),
+        }
+    }
     /// Internal shutdown only: closing retained ownership needs no fresh user
     /// business grant. Stop is attempted even if central fencing is uncertain.
     pub(crate) async fn shutdown(&self) -> Result<()> {
@@ -827,6 +845,11 @@ impl Driver {
     }
     pub async fn test_collect_graph_events(&self) -> Result<usize> {
         self.service.collect_graph_events(&self.runtime, 2).await
+    }
+    pub async fn test_collect_work_completions(&self) -> Result<usize> {
+        self.service
+            .collect_work_completions(&self.runtime, 2)
+            .await
     }
     pub async fn test_collect_settlement_events(&self) -> Result<usize> {
         self.service
