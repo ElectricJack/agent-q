@@ -668,6 +668,7 @@ async fn moved_target_is_unpublished_rework_and_never_advances_source() {
         .unwrap()
         .is_none()
     );
+}
 
 /// MS1 retry (B4): after a final rework, the D3 policy actor records the
 /// replacement facts that only owning domains prove (the central retention
