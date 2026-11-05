@@ -795,3 +795,35 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Refreshed #85 on main (clean merge, catalog at 91, protocol checks pass; 59eb2ea0) and am waiting on CI.
   - A trial merge of main into F5 conflicts with #83 in `dashboard_api/actions/existing.rs`, `tests/profiled_results.rs` and `protocol/dashboard-actions/v1/schema.json`. Both PRs add dashboard action kinds, and the generated schema needs regenerating.
   - Dispatched an integration subagent to bring F5, then D11, current on top of #85, verify each stack with a private target dir, and open their PRs.
+- **08:10: MS1 steps 1–2 LIVE through the stack.** aq-server assigned task A to a node. A real Claude Code agent ran it in a docker-local sandbox (`cargo test` passed). The result went to central aq-git as commit `6d9c3189`, and D3 completed A automatically. That made B ready, and B ran the same way (`e41b1a00`). Evidence IDs are in `ms1/demo` MS1.md, "Update 2026-11-05".
+  - **Wiring:** kept the MS0 `run-native` profiled path. The node's session host starts a pinned `aq-worker sandbox-harness` driver, which creates the sandbox, copies the worktree in and out, and passes the leased token in as private material; the runner moves it into `CLAUDE_CODE_OAUTH_TOKEN` for `claude` only.
+  - **Server fixes on the path:**
+    - D3's review requirement was hard-coded to the human owner;
+    - D3 refused the native `Unknown` outcome;
+    - the long-phase/result opt-in only allowed Codex;
+    - new `require_container` confinement option;
+    - C5b trailing newline.
+  - **Not done:**
+    - cancel is recorded but doesn't reach the native executor;
+    - retry: no replacement attempt is offered;
+    - restart drills not run;
+    - stuck granted attempts hold the task and node;
+    - B doesn't build on A, because the D1 publish isn't on this path.
+  - Asked the wiring subagent to continue in that order. Dispatched an independent read-only reviewer on the aq-server `ms1/demo` diff before it goes to main.
+- **08:30: independent review of aq-server `ms1/demo` found a blocker.** Not mergeable as-is.
+  - **B1 (blocking):** a failed Claude run can complete its task automatically. Three changes combine: the D3 policy actor is named as reviewer while offers carry no required checks, D3 now accepts `Unknown`, and the worker maps `Failure` to `Unknown`. So an expired token or a crash would mark the task complete and unblock its dependents.
+  - **Decision (delegated reviewer):** the worker maps Failure to Failed and reports Success only for a natural exit 0 with an explicit success claim; D3 goes back to accepting Success only. A DB-backed `auto_settlement56` test must cover the production-shaped offer.
+  - **Should-fix:**
+    - `require_container` bypasses backend placement facts;
+    - the Claude long-phase rule doesn't check confinement, and aq-admission's version isn't bumped;
+    - the Claude recipe digest isn't pinned;
+    - naming the policy actor removes the human fallback.
+  - All sent back to the wiring subagent ahead of cancel and retry.
+- **08:35:** main CI is green again at #81 (473bbe2b) and #82 (badab765); #83 is still running.
+  - #85's `tests` job failed `playbook_activation::inspection_discovers_actual_admissions_runs_and_public_timeline`, with `definition.active` null in the list item. Locally it passed 3/3 on #85 and also on main (disposable Postgres), so it's flaky.
+  - The first rerun died on a GitHub runner `No space left on device` before any test ran; rerunning again.
+  - F5 is up as #87.
+- **09:10:** main CI is green through #83 (2c770ab3).
+  - #85 failed `playbook_activation::inspection_discovers…` twice in CI, with the run definition's `pinned_is_active`/`active` null, but passed every time locally (alone and as the full binary).
+  - **Cause:** `current_activations()` read each activation page with a 500 ms budget and silently returned None on timeout. #85's 2.1.0 catalog made the read slow enough on CI runners to time out.
+  - Pushed 97aaef30 to #85 with a 2 s per-page budget; the binary passes 19/19 locally and clippy is clean. Waiting on CI. Then #87 (F5) and #88 (D11).
