@@ -13,11 +13,11 @@ def test_settlement_completion():
     evidence = root / ".aq/tmp/settlement-completion-tests"
     evidence.mkdir(parents=True, exist_ok=True)
     checks = [
-        ("profiled_results", "settlement39_actual_owners_accept_one_combined_decision_hold_until_exact_graph_receipt"),
-        ("profiled_results", "settlement_completion_outbox_replays_engine_acceptance_before_ack"),
-        ("profiled_results", "settlement_http"),
-        ("playbook_bridge", "outbox_replay_delivers_each_event_once"),
-        ("store", "migrations_are_idempotent"),
+        ("it_profiled", "profiled_results::settlement_owner39::settlement39_actual_owners_accept_one_combined_decision_hold_until_exact_graph_receipt"),
+        ("it_profiled", "profiled_results::settlement_owner39::completion_outbox::settlement_completion_outbox_replays_engine_acceptance_before_ack"),
+        ("it_profiled", "profiled_results::settlement_owner39::settlement_http::"),
+        ("it_playbook", "playbook_bridge::outbox_replay_delivers_each_event_once"),
+        ("it_schema", "store::migrations_are_idempotent"),
     ]
     for index, (target, name) in enumerate(checks):
         command = ["cargo", "test", "--locked", "--offline", "-p", "aq-server",

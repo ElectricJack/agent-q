@@ -3,6 +3,10 @@ name = "aq-server"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+# Integration tests are a few domain binaries, each tests/<group>/main.rs with
+# the former per-file binaries as modules: every test binary links the whole
+# library, so new tests join an existing group (AGENTS.md "Build health").
+autotests = false
 
 [dependencies]
 hmac = "=0.12.1"
@@ -75,3 +79,35 @@ http-body-util.workspace = true
 rsa.workspace = true
 tempfile.workspace = true
 tower.workspace = true
+
+[[test]]
+name = "it_profiled"
+path = "tests/it_profiled/main.rs"
+
+[[test]]
+name = "it_native"
+path = "tests/it_native/main.rs"
+
+[[test]]
+name = "it_phase"
+path = "tests/it_phase/main.rs"
+
+[[test]]
+name = "it_schema"
+path = "tests/it_schema/main.rs"
+
+[[test]]
+name = "it_playbook"
+path = "tests/it_playbook/main.rs"
+
+[[test]]
+name = "it_dashboard"
+path = "tests/it_dashboard/main.rs"
+
+[[test]]
+name = "it_access"
+path = "tests/it_access/main.rs"
+
+[[test]]
+name = "it_server"
+path = "tests/it_server/main.rs"

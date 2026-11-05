@@ -36,10 +36,10 @@ again. Follow them in interactive sessions and in AQ task sessions.
   each a full build of the largest crate. Iterate with `cargo nextest run` or
   `cargo test` for the test binary you are working on. Run `cargo build` only
   when you need the server binary itself, and `cargo clippy` once at the end.
-- **Test one binary at a time while iterating:**
-  `timeout 900 cargo nextest run -p aq-server --test <binary> [filter]`.
-  Run the full suite (`cargo nextest run --workspace --locked --no-fail-fast`)
-  only when the task needs it. See [`docs/development.md`](docs/development.md#tests).
+- **Test one binary, or one module of it, while iterating** (see "Running a
+  subset" below). Run the full suite
+  (`cargo nextest run --workspace --locked --no-fail-fast`) only when the task
+  needs it. See [`docs/development.md`](docs/development.md#tests).
 - **Every `cargo test` or `cargo nextest` in an agent session runs under a
   timeout**, for example `timeout 900 cargo nextest run ...`, so a hung test
   ends the command instead of the session. nextest also stops any single test
@@ -47,13 +47,32 @@ again. Follow them in interactive sessions and in AQ task sessions.
 
 ### Tests
 
-- **New integration tests go into an existing test binary.** Add a module or
-  a test function to the existing `tests/*.rs` binary for that area. Do not add
-  a new `tests/*.rs` file: each one is another executable that links the whole
-  aq-server library and all its dependencies. CI rejects an increase in the
-  number of test binaries (see the budgets below). A follow-up PR consolidates
-  the existing binaries into a few groups; until then, pick the closest
-  existing binary.
+- **aq-server integration tests are eight domain binaries.** Each is
+  `crates/aq-server/tests/<group>/main.rs` (declared in `Cargo.toml`, which
+  sets `autotests = false`), and each module in it was its own test binary
+  before 2026-11-05, so a test is named `<module>::<test>`:
+
+  | Binary | Modules |
+  | --- | --- |
+  | `it_profiled` | `profiled_*`, `profile_*`, `replacement_*`, `source_retention`, `stopped_dispositions`, `lifecycle_artifacts` |
+  | `it_native` | `native_*`, `never_granted`, `granted_closure`, `delegated_permit*`, `permit_fixture_conformance`, `scoped_presence_inventory`, `subscription_refresh` |
+  | `it_phase` | `phase_*`, `terminal_tail` |
+  | `it_schema` | `schema*`, `store`, `migration_catalog`, `*_migration`, `row_retention` |
+  | `it_playbook` | `playbook_*`, `project_bindings`, `repository_onboarding`, `real_*`, `actual_*`, `codex_*` |
+  | `it_dashboard` | `dashboard_*`, `human_*`, `supervisor_*`, `central_sessions`, `session_inspection`, `terminal_output_poll`, `terminal_store`, `notification_*` |
+  | `it_access` | `agent_access`, `messaging`, `graph_mutations`, `intelligence`, `scheduling_reads`, `worker_*`, `observation*`, `stall_ladder`, `image_labels` |
+  | `it_server` | `authz`, `cli`, `config`, `enrollment`, `execution`, `health`, `identity`, `readiness`, `updates` |
+
+  `tests/common` is compiled once per binary (`main.rs` declares it; modules
+  write `use crate::common;`). A module's own submodules live in a directory
+  next to it, for example `tests/it_profiled/profiled_results/`.
+- **New integration tests go into an existing test binary.** Add a test
+  function to the closest module, or a new module file listed in that
+  binary's `main.rs`. Do not add a test target: each one is another executable
+  that links the whole aq-server library and all its dependencies. CI rejects
+  an increase in the number of test binaries (see the budgets below), and
+  `scripts/build-budget.py` also rejects a `tests/*.rs` file that no target
+  builds (with `autotests = false` it would silently never run).
 - **Process-wide serialization needs a nextest test group.** CI runs each test
   in its own process, so a `static` mutex in `tests/common` serializes nothing
   across tests. If tests must not run concurrently, add them to a test group in
@@ -66,6 +85,34 @@ again. Follow them in interactive sessions and in AQ task sessions.
   (`test_support::migration_slot`), because concurrent fresh migrations
   overflow PostgreSQL's shared lock table (error 53200).
 - **Doctests** are not run by nextest. CI runs `cargo test --workspace --doc`.
+- **Process-wide state is shared by a whole group under `cargo test`.** The
+  modules of one binary run as threads of one process, so a `static`, an
+  environment variable or a process-wide limit in the library is shared by
+  every module of the binary, not just one file's tests. Do not set
+  environment variables from a test.
+
+### Running a subset
+
+Prefix filters with the module (the former binary). With nextest:
+
+```sh
+timeout 900 cargo nextest run -p aq-server --test it_profiled                 # one binary
+timeout 900 cargo nextest run -p aq-server --test it_profiled -E 'test(/^profiled_results::/)'   # one module
+timeout 900 cargo nextest run -p aq-server -E 'binary(it_profiled) & test(/^profiled_results::settlement_owner39::/)'
+timeout 900 cargo nextest run -p aq-server --test it_dashboard dashboard_actions::session_message_send   # substring filter
+```
+
+With `cargo test` (libtest filters are substrings of `<module>::<test>`; add
+`--exact` for one full name):
+
+```sh
+timeout 900 cargo test -p aq-server --test it_profiled -- profiled_results::
+timeout 900 cargo test -p aq-server --test it_schema -- store::migrations_are_idempotent --exact
+```
+
+A substring such as `config::` also matches `profiled_config::...` in another
+module, so anchor module filters with nextest's `test(/^module::/)` when that
+matters.
 
 ### Budgets
 
@@ -74,7 +121,7 @@ fails when a number goes above its recorded value:
 
 | Budget | Recorded 2026-11-05 | Rule |
 | --- | --- | --- |
-| Integration test binaries in the workspace | 204 | May only go down. |
+| Integration test binaries in the workspace | 81 (204 before aq-server's tests were grouped) | May only go down. |
 | Lines in one crate's lib (`src/`, minus bin targets) | target 40,000 | No crate lib may grow past the target. |
 | aq-server lib lines | 109,000 (ratchet) | Over the target while it is split into crates. May only go down. |
 

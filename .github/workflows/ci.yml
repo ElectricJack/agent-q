@@ -59,10 +59,11 @@ jobs:
       - name: cargo clippy (aq-updater with test-verifier)
         run: cargo clippy -p aq-updater --all-targets --locked --features test-verifier -- -D warnings
       # The feature only changes src/execution.rs, src/execution/api.rs,
-      # src/store.rs and tests/execution.rs; lint those targets (and readiness,
-      # which the test job runs with the feature), not every test binary again.
+      # src/store.rs and tests/it_server/execution.rs; lint the lib and the
+      # it_server test binary (execution and readiness, which the test job runs
+      # with the feature), not every test binary again.
       - name: cargo clippy (recovery fixture)
-        run: cargo clippy -p aq-server --locked --features recovery-test-support --lib --test execution --test readiness -- -D warnings
+        run: cargo clippy -p aq-server --locked --features recovery-test-support --lib --test it_server -- -D warnings
 
   agent-contract:
     name: scoped agent contract conformance
@@ -128,7 +129,7 @@ jobs:
       - name: cargo nextest run -p aq-updater --features test-verifier
         run: cargo nextest run -p aq-updater --locked --no-fail-fast --profile ci --features test-verifier
       - name: Recovery authority and reserved control capacity regressions
-        run: cargo nextest run -p aq-server --locked --no-fail-fast --profile ci --features recovery-test-support --test execution --test readiness
+        run: cargo nextest run -p aq-server --locked --no-fail-fast --profile ci --features recovery-test-support --test it_server -E 'test(/^execution::/) | test(/^readiness::/)'
 
   # The static updater that release.yml ships, built the same way, so musl
   # breakage shows up here rather than at tag time.
