@@ -143,6 +143,11 @@ pub struct RunView {
     pub definition: Option<playbook_view::DefinitionView>,
     /// X33: set while the pending effect is a human decision request.
     pub waiting: Option<playbook_view::WaitingView>,
+    /// Binding the run was admitted on; null for runs not started through a
+    /// retained admission (children, event starts) or admitted before it was kept.
+    pub binding: Option<String>,
+    /// Activation revision the run was admitted at; null when not known.
+    pub activation_revision: Option<String>,
     /// Effect intents the run waits on (a pending effect or join members);
     /// private join keys for X33, never serialized.
     #[serde(skip)]
@@ -234,6 +239,8 @@ fn run(v: Value) -> Result<RunView> {
         admitted_at_ms: v["admitted_at_ms"].as_i64().ok_or(Error::Unknown)?,
         definition: None,
         waiting: None,
+        binding: None,
+        activation_revision: None,
         pending_intents: pending_intents(&v["pending"])?,
     })
 }

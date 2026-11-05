@@ -365,7 +365,7 @@ async fn submit<P: adapters::Payload + Serialize>(
     id: Uuid,
     p: P,
 ) -> Result<(StatusCode, Json<actions::OperationResponse>)> {
-    let registry = actions::existing::registry(state, None);
+    let registry = actions::existing::registry(state, None, None);
     let op = actions::submit_legacy(state, &registry, user, adapters::request(id, p)).await?;
     Ok((
         actions::operation_status(&op),

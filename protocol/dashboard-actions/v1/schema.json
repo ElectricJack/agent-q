@@ -680,6 +680,228 @@
         {
           "properties": {
             "kind": {
+              "const": "playbook.activation.activate"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:playbook.activation.activate:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "artifact": {
+                  "description": "Activate: the artifact to make active. Rollback: the active artifact.",
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "binding": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "expected_version": {
+                  "description": "The binding's activation revision, as shown in the catalog.",
+                  "pattern": "^[1-9][0-9]{0,19}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version",
+                "binding",
+                "artifact"
+              ],
+              "title": "BindingChange",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "playbook.activation.rollback"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:playbook.activation.rollback:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "artifact": {
+                  "description": "Activate: the artifact to make active. Rollback: the active artifact.",
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "binding": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "expected_version": {
+                  "description": "The binding's activation revision, as shown in the catalog.",
+                  "pattern": "^[1-9][0-9]{0,19}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version",
+                "binding",
+                "artifact"
+              ],
+              "title": "BindingChange",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "playbook.run.cancel"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:playbook.run.cancel:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "run_id": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "run_id"
+              ],
+              "title": "RunCancel",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "playbook.run.start"
+            },
+            "payload": {
+              "$defs": {
+                "Input": {
+                  "anyOf": [
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "maxLength": 4096,
+                      "type": "string"
+                    }
+                  ],
+                  "description": "One scalar run input."
+                }
+              },
+              "$id": "urn:aq:dashboard-actions:1:playbook.run.start:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "properties": {
+                "artifact": {
+                  "description": "The binding's currently active artifact digest.",
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "binding": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "entry": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "expected_version": {
+                  "description": "The binding's activation revision, as shown in the catalog.",
+                  "pattern": "^[1-9][0-9]{0,19}$",
+                  "type": "string"
+                },
+                "inputs": {
+                  "additionalProperties": {
+                    "$ref": "#/$defs/Input"
+                  },
+                  "default": {},
+                  "maxProperties": 32,
+                  "type": "object"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_version",
+                "binding",
+                "artifact",
+                "entry"
+              ],
+              "title": "RunStart",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
               "const": "result.comment"
             },
             "payload": {
