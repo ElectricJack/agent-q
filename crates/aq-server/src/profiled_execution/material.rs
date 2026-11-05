@@ -140,13 +140,15 @@ fn read_configured(
     if aq_admission::Digest::of(&bytes).as_str() != expected {
         return Err(MaterialError::Changed);
     }
-    // A Claude login (version 0 here) is delivered exactly like an imported
-    // one: trailing CR/LF trimmed, any other shape refused. The fingerprint
+    // A Claude subscription login (version 0 here) is delivered exactly like
+    // an imported one: trailing CR/LF trimmed, any other shape refused. Other
+    // credentials (API keys included) stay byte-exact. The fingerprint
     // above stays over the configured file's bytes (rotation check).
     if registry
+        .config
         .credentials
         .get(index)
-        .is_some_and(|c| c.provider.as_str() == "anthropic")
+        .is_some_and(crate::intelligence::login_import::is_claude_setup_token)
     {
         let bytes = crate::intelligence::login_import::normalize_claude_token(bytes)
             .map_err(|_| MaterialError::Unavailable)?;

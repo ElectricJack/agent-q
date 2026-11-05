@@ -28,6 +28,14 @@ pub fn read_source(source: &Path) -> anyhow::Result<Zeroizing<Vec<u8>>> {
     Ok(bytes)
 }
 
+/// Whether a configured credential is a Claude subscription login (the
+/// `claude setup-token` value), the only shape whose CR/LF is trimmed. API
+/// keys and other providers are delivered byte-exact (MS1 review nit).
+pub fn is_claude_setup_token(c: &super::config::CredentialConfig) -> bool {
+    c.kind == aq_selection::CredentialKind::SubscriptionLogin
+        && c.credential.provider.as_str() == "anthropic"
+}
+
 /// A Claude login is the long-lived `claude setup-token` value, delivered
 /// env-only. `claude setup-token > file` leaves a trailing newline that the
 /// runner's install (ASCII-graphic only) would refuse later, so trailing CR/LF
@@ -53,14 +61,20 @@ pub async fn import(
     source: &Path,
     now_ms: i64,
 ) -> anyhow::Result<i64> {
-    let configured = loaded
+    let index = loaded
         .credentials
         .iter()
-        .find(|c| c.revision == revision && login_refresh::identity(&c.profile) == credential)
+        .position(|c| c.revision == revision && login_refresh::identity(&c.profile) == credential)
         .with_context(|| format!("no configured credential {credential} at revision {revision}"))?;
+    let configured = &loaded.credentials[index];
     let profile = configured.profile.clone();
     let bytes = read_source(source)?;
-    let bytes = Arc::new(if configured.provider.as_str() == "anthropic" {
+    let setup_token = loaded
+        .config
+        .credentials
+        .get(index)
+        .is_some_and(is_claude_setup_token);
+    let bytes = Arc::new(if setup_token {
         normalize_claude_token(bytes)?
     } else {
         bytes
@@ -89,6 +103,27 @@ mod tests {
         let big = read_source(&token).unwrap_err();
         assert!(!format!("{big:#}").contains("xxx"));
         assert!(read_source(root.path()).is_err());
+    }
+    #[test]
+    fn only_claude_subscription_logins_are_trimmed() {
+        let config = |kind: &str, provider: &str| -> super::super::config::CredentialConfig {
+            serde_json::from_value(serde_json::json!({
+                "kind": kind,
+                "credential": {"profile": {"id": "p", "version": "1", "digest": "a".repeat(64)},
+                    "provider": provider, "account_reference": "a", "endpoint_reference": "e",
+                    "revision": 1, "enabled": true, "provisionable": false},
+                "allowed_node_ids": [], "secret_file": null}))
+            .unwrap()
+        };
+        assert!(is_claude_setup_token(&config(
+            "subscription-login",
+            "anthropic"
+        )));
+        assert!(!is_claude_setup_token(&config("api-key", "anthropic")));
+        assert!(!is_claude_setup_token(&config(
+            "subscription-login",
+            "openai"
+        )));
     }
     #[test]
     fn claude_token_trailing_newline_is_trimmed_and_other_shapes_refused() {
