@@ -777,3 +777,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Its migration is provisionally 0092 and goes after #82/#83/#85 (0089–0091). It is held for merge in that order.
   - Follow-ups: the aq-worker `aq-agent question ask/show` client; dashboard inbox support for `question` decisions; a profile capability check on the question and wait routes.
   - **Tooling hazard:** aq-server worktrees sharing `target-shared` get identical artifact hashes, so cargo can link another worktree's freshly built aq-server library (freshness is by mtime). F5 saw stale builds twice. Told the PR and D11 subagents to use private target dirs and re-verify.
+- **06:33:** merged #80 (`swift-harbor-15`, the native_accepted_preparation regression fix) as a3e3d515, once all 9 checks were green. That should turn main CI green again.
+  - #81, #82, #83 and #85 are being refreshed on main by the PR subagent.
+  - The wiring subagent is rebuilding the aq-ms1 images.
+  - Disk is at 89% (115 G free), largely from per-agent cargo target dirs, which each agent deletes when it finishes.
