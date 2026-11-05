@@ -971,3 +971,4 @@ Each entry records what was observed, the action taken, and anything waiting on 
     2. Test consolidation next; it touches the same Cargo.toml/CI.
     3. Resume MS1 on the faster loops.
     4. The lib split only after the `ms1/retry` / `ms1/d1` branches and the held stale PRs merge. A 109k-line split would otherwise conflict with every open branch.
+- **17:55:** merged the build quick-win PRs aq-worker #39 (bae51626), aq-git #8 (180e6145) and aq-graph #4 (d3958410), all green: CI caches, incremental dev builds and AGENTS.md "Build health" guidance. The aq-server quick-wins PR (nextest, `ci-image` profile, Docker cache fix, build-budget ratchet) is still being verified locally.
