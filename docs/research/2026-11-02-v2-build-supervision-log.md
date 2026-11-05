@@ -823,3 +823,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - #85's `tests` job failed `playbook_activation::inspection_discovers_actual_admissions_runs_and_public_timeline`, with `definition.active` null in the list item. Locally it passed 3/3 on #85 and also on main (disposable Postgres), so it's flaky.
   - The first rerun died on a GitHub runner `No space left on device` before any test ran; rerunning again.
   - F5 is up as #87.
+- **09:10:** main CI is green through #83 (2c770ab3).
+  - #85 failed `playbook_activation::inspection_discovers…` twice in CI, with the run definition's `pinned_is_active`/`active` null, but passed every time locally (alone and as the full binary).
+  - **Cause:** `current_activations()` read each activation page with a 500 ms budget and silently returned None on timeout. #85's 2.1.0 catalog made the read slow enough on CI runners to time out.
+  - Pushed 97aaef30 to #85 with a 2 s per-page budget; the binary passes 19/19 locally and clippy is clean. Waiting on CI. Then #87 (F5) and #88 (D11).
