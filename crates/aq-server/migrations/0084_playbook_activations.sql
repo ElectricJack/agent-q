@@ -13,4 +13,4 @@ CREATE TABLE playbook_activations (
  PRIMARY KEY(namespace_id,op_id)
 );
 CREATE INDEX playbook_activations_binding ON playbook_activations(namespace_id,binding,seq);
-UPDATE meta SET value='83' WHERE key='state_format_version';
+UPDATE meta SET value='84' WHERE key='state_format_version';
