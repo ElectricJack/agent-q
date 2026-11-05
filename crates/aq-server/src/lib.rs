@@ -9,8 +9,10 @@ pub mod delegated_permits;
 pub mod delivery;
 pub mod error;
 pub mod execution;
+pub mod execution_permits;
 pub mod identity;
 pub mod intelligence;
+pub mod lifecycle_artifacts;
 pub mod node_storage;
 pub mod notifications;
 pub mod observations;
@@ -382,6 +384,8 @@ fn build_worker_router_inner(
         ))
         .merge(agent_access::human::enqueue::supervisor::routes())
         .merge(source_retention::machine_routes(state.clone()))
+        .merge(lifecycle_artifacts::routes(state.clone()))
+        .merge(execution_permits::routes(state.clone()))
         .merge(execution::api::worker_routes(state.clone()))
         .merge(terminal::api::worker_routes(state.clone()))
         .route("/healthz", get(healthz))
