@@ -836,3 +836,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
 - **10:55: local stack rebuilt.** The `aq-v2-local` stack (http://127.0.0.1:18080) now runs from aq-server main through #88 (migrations to 0093) and aq-dashboard main 41f5150; healthy.
   - The first rebuild failed to compile, calling `admit_confinement` with `ms1/demo`'s three-argument signature. The BuildKit target cache is shared by every build of the Dockerfile on the host, and the build only cleaned 4 packages, so cargo reused the aq-selection that the `aq-ms1` image had built from `ms1/demo` (W67 again, inside Docker).
   - Fixed in 458f682d: clean every workspace crate before building; dependencies stay cached.
+- **11:15: dashboard question inbox.** aq-dashboard PR #67 (`feat/question-answers`, 5389ce6) adds "Agent questions" in the decision inbox, a question detail page with the `question.answer` composer, and a deep link `/decisions/{id}?kind=question`.
+  - It is gated on new server capabilities `questions.read`/`questions.answer`, so it is inert until the server serves them.
+  - aq-server main has no human read of question decisions, so dispatched a subagent to build `GET /api/questions/decisions[/{id}]` and the capabilities to the dashboard's proposed contract.
+  - #67's browser CI fails only `settings-panels.spec.ts`, which fails the same way on main.
