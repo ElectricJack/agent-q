@@ -138,7 +138,12 @@ pub async fn renew_delegated(
     )
     .await?;
     let old = &auth.delegated().ok_or_else(|| refused())?.current;
-    let previous_expiry = after.hot.grant.as_ref().ok_or_else(|| refused())?.expires_at_ms;
+    let previous_expiry = after
+        .hot
+        .grant
+        .as_ref()
+        .ok_or_else(|| refused())?
+        .expires_at_ms;
     if previous_expiry != old.record.expires_at_ms {
         return Err(refused());
     }
@@ -169,7 +174,12 @@ pub async fn renew_delegated(
         next.record.issued_at_ms = time;
         next.record.expires_at_ms = expiry;
         next.revision = next.revision.checked_add(1).ok_or_else(|| refused())?;
-        after.hot.grant.as_mut().ok_or_else(|| refused())?.expires_at_ms = expiry;
+        after
+            .hot
+            .grant
+            .as_mut()
+            .ok_or_else(|| refused())?
+            .expires_at_ms = expiry;
         after
             .hot
             .validate_against(&q.authority.grant.binding)

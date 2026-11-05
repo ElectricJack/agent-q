@@ -111,7 +111,9 @@ pub(crate) async fn load_preparing_locked(
     let p = proposal_locked(tx, b).await?;
     let raw:serde_json::Value=sqlx::query_scalar("SELECT request FROM profiled_v2_accepts WHERE attempt_id=$1 AND node_id=$2 AND operation_id=$3 FOR SHARE").bind(b.attempt_id).bind(auth.id()).bind(operation).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(|| refused())?;
     let q: AcceptRequest = serde_json::from_value(raw).map_err(|_| refused())?;
-    let a = accepted_locked(tx, &p, &q).await?.ok_or_else(|| refused())?;
+    let a = accepted_locked(tx, &p, &q)
+        .await?
+        .ok_or_else(|| refused())?;
     live_locked(state, tx, auth, &p, &q, &a).await?;
     let digest = a.digest().map_err(|_| refused())?;
     Ok(PreparationAuthority {

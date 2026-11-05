@@ -965,7 +965,10 @@ fn container_only_backend_admits_only_permitted_container_confinement() {
         require_native: false,
         require_container: true,
     };
-    assert_eq!(admit_confinement(None, &always), Ok(ConfinementMode::Container));
+    assert_eq!(
+        admit_confinement(None, &always),
+        Ok(ConfinementMode::Container)
+    );
     assert_eq!(
         admit_confinement(None, &ExecutionConfinement::default()),
         Ok(ConfinementMode::Native)

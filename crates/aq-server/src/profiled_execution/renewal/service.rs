@@ -58,7 +58,12 @@ pub async fn renew(
     {
         return Err(refused());
     }
-    let previous_expiry = after.hot.grant.as_ref().ok_or_else(|| refused())?.expires_at_ms;
+    let previous_expiry = after
+        .hot
+        .grant
+        .as_ref()
+        .ok_or_else(|| refused())?
+        .expires_at_ms;
     let hard = after.original.execution_deadline_ms;
     let lineage = after
         .original
@@ -102,11 +107,19 @@ pub async fn renew(
         }
         let issued = now(state)?;
         observed.fresh_at(issued)?;
-        let expiry = issued.checked_add(10_000).ok_or_else(|| refused())?.min(ceiling);
+        let expiry = issued
+            .checked_add(10_000)
+            .ok_or_else(|| refused())?
+            .min(ceiling);
         if issued >= previous_expiry || expiry <= previous_expiry {
             return Err(refused());
         }
-        after.hot.grant.as_mut().ok_or_else(|| refused())?.expires_at_ms = expiry;
+        after
+            .hot
+            .grant
+            .as_mut()
+            .ok_or_else(|| refused())?
+            .expires_at_ms = expiry;
         after
             .hot
             .validate_against(&request.binding)

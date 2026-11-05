@@ -127,7 +127,10 @@ fn settled(row: &Value, binding: &Value) -> Result<bool, AppError> {
         || status["payload_digest"] != row["payload_digest"]
         || row["mapped"]["service"]["workspace_id"] != binding["workspace_id"]
         || row["mapped"]["payload"]["idempotency_key"]
-            != json!(format!("aq-agent-v1:{}", op.as_str().ok_or_else(|| refused())?))
+            != json!(format!(
+                "aq-agent-v1:{}",
+                op.as_str().ok_or_else(|| refused())?
+            ))
         || row["dispatch_count"].as_u64().is_none_or(|n| n > 8)
     {
         return Err(refused());

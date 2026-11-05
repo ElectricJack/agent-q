@@ -76,7 +76,9 @@ fn criteria(context: &Value, task: Uuid) -> Result<Vec<Criterion>, AppError> {
         .as_array()
         .and_then(|a| a.iter().find(|n| n["id"] == task.to_string()))
         .ok_or_else(|| refused())?;
-    let acceptance = root["acceptance_criteria"].as_str().ok_or_else(|| refused())?;
+    let acceptance = root["acceptance_criteria"]
+        .as_str()
+        .ok_or_else(|| refused())?;
     let body = if acceptance.trim().is_empty() {
         root["body"].as_str().ok_or_else(|| refused())?
     } else {
@@ -210,7 +212,11 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         logical_identity,
         generation,
     } = input;
-    let selected: &ResolvedSelection = decision.outcome.resolved.as_ref().ok_or_else(|| refused())?;
+    let selected: &ResolvedSelection = decision
+        .outcome
+        .resolved
+        .as_ref()
+        .ok_or_else(|| refused())?;
     if (decision.inputs.budget.attempts_started != 0 && decision.inputs.replacement.is_none())
         || decision
             .inputs
@@ -554,8 +560,14 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         .cost_limit_microunits
         .map(|limit| {
             Ok::<_, AppError>(wire::SpendingBudget {
-                currency: Text::new(project.ceilings.currency.as_ref().ok_or_else(|| refused())?)
-                    .map_err(|_| refused())?,
+                currency: Text::new(
+                    project
+                        .ceilings
+                        .currency
+                        .as_ref()
+                        .ok_or_else(|| refused())?,
+                )
+                .map_err(|_| refused())?,
                 basis: wire::BudgetBasis::TaskCumulativeEstimatedCost,
                 limit_microunits: limit,
             })
@@ -685,8 +697,14 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
     };
     let graph = aq_worker_protocol::GraphBinding {
         workspace_id: task.workspace_id,
-        profile_id: profile["profile_id"].as_str().ok_or_else(|| refused())?.into(),
-        profile_revision: profile["revision"].as_str().ok_or_else(|| refused())?.into(),
+        profile_id: profile["profile_id"]
+            .as_str()
+            .ok_or_else(|| refused())?
+            .into(),
+        profile_revision: profile["revision"]
+            .as_str()
+            .ok_or_else(|| refused())?
+            .into(),
         profile_digest: profile_ref.digest.as_str().into(),
         context_digest: compiled.projection.artifact.digest.as_str().into(),
     };

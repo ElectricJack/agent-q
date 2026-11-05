@@ -365,7 +365,11 @@ mod outcome_tests {
     fn result_local_unknown_outcome_is_acceptable_but_failures_are_not() {
         assert!(super::outcome_acceptable(ProcessOutcome::Success));
         assert!(super::outcome_acceptable(ProcessOutcome::Unknown));
-        for refused in [ProcessOutcome::Failed, ProcessOutcome::Expired, ProcessOutcome::Cancelled] {
+        for refused in [
+            ProcessOutcome::Failed,
+            ProcessOutcome::Expired,
+            ProcessOutcome::Cancelled,
+        ] {
             assert!(!super::outcome_acceptable(refused));
         }
     }

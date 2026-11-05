@@ -126,7 +126,9 @@ pub(super) fn interactive_runtime(
             continue;
         }
         let pin: RuntimePin = serde_json::from_str(definition.body()).map_err(|_| refused())?;
-        if pin.runtime == *runtime && (pin.profile == INTERACTIVE_PROFILE || pin.profile == CLAUDE_PROFILE) {
+        if pin.runtime == *runtime
+            && (pin.profile == INTERACTIVE_PROFILE || pin.profile == CLAUDE_PROFILE)
+        {
             return Ok(from_definitions(definition.artifact(), definitions)?
                 .is_some_and(|value| value.long_phase));
         }
@@ -248,7 +250,8 @@ mod tests {
         let mut adapter = reference(CLAUDE_ADAPTER_ID);
         adapter.digest = Digest::of(bytes.as_bytes());
         let (_, mut defs) = definitions(body());
-        defs[0] = Definition::new(adapter.clone(), ArtifactKind::Definition, bytes.clone()).unwrap();
+        defs[0] =
+            Definition::new(adapter.clone(), ArtifactKind::Definition, bytes.clone()).unwrap();
         let reporting = from_definitions(&adapter, &defs).unwrap().unwrap();
         assert!(!reporting.interactive && reporting.long_phase);
         assert!(interactive_runtime(&reference("runtime-code"), &defs).unwrap());

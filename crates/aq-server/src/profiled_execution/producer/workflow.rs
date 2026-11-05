@@ -437,7 +437,11 @@ async fn offers(
             .node,
     )?;
     let decision = on_heap(|| selection(state, &task, &compiled, replacement.as_ref())).await?;
-    let selected = decision.outcome.resolved.as_ref().ok_or_else(|| refused())?;
+    let selected = decision
+        .outcome
+        .resolved
+        .as_ref()
+        .ok_or_else(|| refused())?;
     let composition = compiled
         .candidates
         .iter()

@@ -103,7 +103,9 @@ fn decode(row: sqlx::postgres::PgRow) -> Result<Retained, AppError> {
     let descriptor: RetainedArtifact =
         serde_json::from_value(row.get("descriptor")).map_err(|_| refused())?;
     descriptor.validate().map_err(|_| refused())?;
-    let bytes: Vec<u8> = row.get::<Option<Vec<u8>>, _>("body").ok_or_else(|| refused())?;
+    let bytes: Vec<u8> = row
+        .get::<Option<Vec<u8>>, _>("body")
+        .ok_or_else(|| refused())?;
     let receipt: Vec<u8> = row
         .get::<Option<Vec<u8>>, _>("receipt_bytes")
         .ok_or_else(|| refused())?;

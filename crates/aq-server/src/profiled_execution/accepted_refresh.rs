@@ -42,7 +42,11 @@ fn validate_registry_at_proposal(
     registry: &ArtifactRef,
 ) -> Result<(), AppError> {
     let current = phase::registry_revision(registry).map_err(|_| refused())?;
-    let selected = decision.outcome.resolved.as_ref().ok_or_else(|| refused())?;
+    let selected = decision
+        .outcome
+        .resolved
+        .as_ref()
+        .ok_or_else(|| refused())?;
     if decision.inputs.registry_revision == 0
         || selected.registry_revision == 0
         || current < decision.inputs.registry_revision

@@ -167,7 +167,11 @@ async fn observe_source(
                 binding.repository_binding_generation,
                 received,
             )?;
-            observed = observed.min(response["started_at_ms"].as_u64().ok_or_else(|| refused())?);
+            observed = observed.min(
+                response["started_at_ms"]
+                    .as_u64()
+                    .ok_or_else(|| refused())?,
+            );
             evidence.insert("reference_observation", response);
             object
         }

@@ -186,7 +186,11 @@ pub(super) async fn fence_locked(
         return Err(refused());
     }
     super::validate_registry_current(input, &registry)?;
-    let loaded = state.config.intelligence.as_ref().ok_or_else(|| refused())?;
+    let loaded = state
+        .config
+        .intelligence
+        .as_ref()
+        .ok_or_else(|| refused())?;
     let (index, credential) = loaded
         .credentials
         .iter()

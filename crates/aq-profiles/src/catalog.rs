@@ -116,6 +116,18 @@ pub struct ExecutionConfinement {
     pub require_container: bool,
 }
 impl ExecutionConfinement {
+    /// Container permission and native requirement exclude each other;
+    /// requiring container confinement needs its permission.
+    pub fn consistent(&self) -> bool {
+        !matches!(
+            (
+                self.permit_container,
+                self.require_native,
+                self.require_container
+            ),
+            (true, true, _) | (false, _, true)
+        )
+    }
     pub fn is_default(&self) -> bool {
         *self == Self::default()
     }
@@ -433,9 +445,7 @@ pub fn validate(
             "execution bounds",
         )?;
         ensure(
-            !(e.confinement.permit_container && e.confinement.require_native)
-                && !(e.confinement.require_container
-                    && (e.confinement.require_native || !e.confinement.permit_container)),
+            e.confinement.consistent(),
             "execution confinement contradictory",
         )?;
         insert(

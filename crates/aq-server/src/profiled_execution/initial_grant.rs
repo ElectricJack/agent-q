@@ -288,7 +288,11 @@ async fn locked(
         }
         resolver::fence_for_preparation(state, tx, &decision, &request.binding).await?;
     }
-    let selected = decision.outcome.resolved.as_ref().ok_or_else(|| refused())?;
+    let selected = decision
+        .outcome
+        .resolved
+        .as_ref()
+        .ok_or_else(|| refused())?;
     if selected.lineage.project_id != view.project_id || selected.lineage.task_id != view.task_id {
         return Err(refused());
     }

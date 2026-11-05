@@ -32,9 +32,7 @@ pub fn read_source(source: &Path) -> anyhow::Result<Zeroizing<Vec<u8>>> {
 /// env-only. `claude setup-token > file` leaves a trailing newline that the
 /// runner's install (ASCII-graphic only) would refuse later, so trailing CR/LF
 /// is trimmed here and any other shape is refused before storage (C5b/MS1).
-pub fn normalize_claude_token(
-    bytes: Zeroizing<Vec<u8>>,
-) -> anyhow::Result<Zeroizing<Vec<u8>>> {
+pub fn normalize_claude_token(bytes: Zeroizing<Vec<u8>>) -> anyhow::Result<Zeroizing<Vec<u8>>> {
     let mut end = bytes.len();
     while end > 0 && matches!(bytes[end - 1], b'\n' | b'\r') {
         end -= 1;
@@ -94,7 +92,8 @@ mod tests {
     }
     #[test]
     fn claude_token_trailing_newline_is_trimmed_and_other_shapes_refused() {
-        let ok = normalize_claude_token(Zeroizing::new(b"sk-ant-oat01-SECRET\r\n".to_vec())).unwrap();
+        let ok =
+            normalize_claude_token(Zeroizing::new(b"sk-ant-oat01-SECRET\r\n".to_vec())).unwrap();
         assert_eq!(&**ok, b"sk-ant-oat01-SECRET");
         for bad in [&b"\n"[..], b"sk-ant two\n", b"line1\nline2\n"] {
             let error = normalize_claude_token(Zeroizing::new(bad.to_vec())).unwrap_err();

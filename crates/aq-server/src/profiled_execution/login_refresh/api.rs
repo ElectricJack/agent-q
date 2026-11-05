@@ -131,7 +131,11 @@ pub async fn write_back(
         return Err(refused());
     }
     let registry = state.config.intelligence.clone().ok_or_else(|| refused())?;
-    let dir = registry.config.material_store.clone().ok_or_else(|| refused())?;
+    let dir = registry
+        .config
+        .material_store
+        .clone()
+        .ok_or_else(|| refused())?;
     let mut tx = state.store.pool.begin().await.map_err(db)?;
     sqlx::query("SET LOCAL lock_timeout='2s'")
         .execute(&mut *tx)
