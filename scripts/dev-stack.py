@@ -72,9 +72,10 @@ def intelligence_section():
         tables = tomllib.loads(text)
     except (OSError, ValueError, UnicodeDecodeError):
         raise ValueError("AQ_DEV_INTELLIGENCE_FILE must be a small regular TOML file with only [intelligence] tables") from None
-    # MS1: optionally also the matching [profiled_execution] tables.
-    if "intelligence" not in tables or not set(tables) <= {"intelligence", "profiled_execution"}:
-        raise ValueError("AQ_DEV_INTELLIGENCE_FILE must contain only [intelligence] (and [profiled_execution]) tables")
+    # MS1: optionally also the matching [profiled_execution] tables and the
+    # private result-media store the dashboard's Results view requires.
+    if "intelligence" not in tables or not set(tables) <= {"intelligence", "profiled_execution", "result_media"}:
+        raise ValueError("AQ_DEV_INTELLIGENCE_FILE must contain only [intelligence] (and [profiled_execution], [result_media]) tables")
     return "\n" + text if text.endswith("\n") else "\n" + text + "\n"
 
 

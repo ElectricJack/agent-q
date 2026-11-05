@@ -542,9 +542,19 @@ def configure():
         for key, value in built[table].items():
             if value is not None:
                 toml += f"{key} = {toml_value(value)}\n"
+    # Private result-media store (dashboard Results view: results.media.read
+    # and results.media.upload). The root lives on the server's /var/lib/aq
+    # volume (created 0700 by `ms1-demo.sh media`); the storage id is stable.
+    media_id = BASE / "state" / "result-media-storage-id"
+    if not media_id.exists():
+        private_write(media_id, str(uuid.uuid4()) + "\n")
+    toml += "[result_media]\n"
+    toml += 'root = "/var/lib/aq/result-media"\n'
+    toml += f'storage_id = "{media_id.read_text().strip()}"\n'
+    toml += "uploads_enabled = true\n"
     import tomllib
     parsed = tomllib.loads(toml)
-    require(set(parsed) == {"intelligence", "profiled_execution"}, "TOML shape")
+    require(set(parsed) == {"intelligence", "profiled_execution", "result_media"}, "TOML shape")
     target = Path(os.environ.get("AQ_DEV_INTELLIGENCE_FILE", BASE / "intelligence.toml"))
     private_write(target, toml)
     for name, text in built["files"].items():

@@ -20,6 +20,7 @@
 #   graph           print the two MS1 tasks, their versions and readiness
 #   stats-summary PREFIX   peak memory/CPU from ms1-stats.sh CSVs
 #   rebuild-server  build agent-q-server:ms1 from this checkout and recreate the server
+#   media           create the private result-media root (dashboard Results view)
 #   profiled        MS1 wiring: retain the base centrally, generate [intelligence] +
 #                   [profiled_execution] (scripts/ms1-profiled.py), recreate the
 #                   server on it, activate catalog/binding revision 2
@@ -83,8 +84,15 @@ cmd_rebuild_server() {
   curl -fsS "$AQ_DEV_SERVER_URL/healthz"; echo
 }
 
+cmd_media() {
+  # Private result-media root on the server's /var/lib/aq volume (0700, owned
+  # by the server user); [result_media] itself comes from ms1-profiled.py.
+  docker exec aq-ms1-server-1 sh -c 'mkdir -p /var/lib/aq/result-media && chmod 0700 /var/lib/aq/result-media && ls -ld /var/lib/aq/result-media'
+}
+
 cmd_profiled() {
   say "MS1 profiled execution: central base, config, catalog/binding revision 2"
+  cmd_media
   (cd "$SRV" && python3 scripts/ms1-profiled.py source && python3 scripts/ms1-profiled.py configure) \
     > "$EVID/profiled-configure.json"
   export AQ_DEV_REPLACE_OPERATOR_SECTION=1
@@ -368,6 +376,7 @@ case ${1:-} in
   status) cmd_status ;;
   rebuild-server) cmd_rebuild_server ;;
   profiled) cmd_profiled ;;
+  media) cmd_media ;;
   run) shift; cmd_run "$@" ;;
   node-enroll) cmd_node_enroll "${2:-}" ;;
   stats-summary) cmd_stats_summary "${2:?prefix}" ;;
