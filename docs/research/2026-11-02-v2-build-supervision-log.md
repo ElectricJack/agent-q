@@ -840,3 +840,5 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - It is gated on new server capabilities `questions.read`/`questions.answer`, so it is inert until the server serves them.
   - aq-server main has no human read of question decisions, so dispatched a subagent to build `GET /api/questions/decisions[/{id}]` and the capabilities to the dashboard's proposed contract.
   - #67's browser CI fails only `settings-panels.spec.ts`, which fails the same way on main.
+- **11:35:** merged aq-dashboard #67 (question inbox, inert until the server advertises `questions.read`). Its only red check was `settings-panels.spec.ts`, which had been red on dashboard main since 41f5150.
+  - Merged #68, the fix for that spec, with all 4 checks green. The test was stale against the intended G11 Display panel (new subtitle and desktop pairing); the product was unchanged. Dashboard main should be green again.
