@@ -659,3 +659,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Round-2 steward `prime-beacon-85` completed and listed seven resolved local branches. I pushed them as fast-forwards to their PR branches (SHAs verified) and merged in stack order: #46 (WK-C), #53 (AG-E), #64 (AG-F), #60 (PB-B), #61 (PB-F), #63 (PB-D).
   - #55 (SH-K) fails `decision-action.spec.ts`; reopened `swift-stone-62` (branch mergeable, so no claim trap).
   - Merged aq-server #75 (bright-lantern-83: updater fake-docker stubs immune to ETXTBSY; all 9 checks green), so aq-server main should go green.
+- **00:30 check (2026-11-05).**
+  - **aq-server main had two 0081 migrations** (H4 `agent_waits` and the stall ladder). Main CI couldn't build and #76 and #77 inherited the failure. Merged #78 (fair-meadow-37, which renumbers `agent_waits` to 0082). Its only failure was `native_accepted_preparation`, which #78 doesn't touch; watching main.
+  - **#76 (bold-stone-51) collided on 0082 too.** `renumber.py` moved it to 0083 but only *reported* the code gate in `store/central37.rs` (`include_str!` of the migration file plus `version >= 82`), so the branch would no longer compile. Patched both to 0083 in an op worktree; compile check running before push.
+  - Updated #77 (no migration). Neither PR has dependents (W61-safe).
+  - Filed the H5 server-side hibernation follow-up as `azure-orbit-61`.
