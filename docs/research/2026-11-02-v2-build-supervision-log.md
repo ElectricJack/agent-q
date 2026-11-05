@@ -946,3 +946,15 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Found:** the dashboard pinned results-feedback schema rejects the server's newer result fields (`feedback_read_version`, `follow_up_submission`, `directly_following`). Any stack with results shows "Dashboard update required"; it needs a re-pin in aq-dashboard, parked under the MS1-first rule.
   - Both MS1 subagents are now idle. The build audit has the machine.
 - **15:35:** the disk guard hit 85% and cleaned the target dirs of 10 idle v1 slot worktrees (aq-server slots 1, 2 and 4; aq-worker slots 0, 1, 3, 4 and 5; aq-git slot 0; aq-playbooks slot 0). All v2 projects are paused, so the slots were idle. Disk is now at 62% (325 G free). The build audit is running its uncontended timing builds.
+- **16:30: build audit report (read-only; nothing changed).** Machine: 24 cores, 31 GB.
+  - **aq-server:**
+    - a clean build takes 3m06s, and the 109k-line lib is 134s of 180s as one serial unit;
+    - a full test build (`test --no-run`) takes 7m09s: the self dev-dep `test-support` builds a second lib, 141 test/example binaries take 130s wall, and the lib-test unit is always scheduled last;
+    - the edit plus one-test loop takes 127s with `incremental=false`, and **17s with incremental on**, which is the biggest single lever;
+    - the linker is already rust-lld and debuginfo is already line-tables-only.
+  - **CI:**
+    - `cargo test` runs 269 binaries serially (16.5 of 21.7 min);
+    - update-lifecycle (35.6 min) is the critical path, building images three times with ThinLTO;
+    - aq-worker CI has no cache.
+  - **Docker:** the per-build `cargo clean` fix still misses vendored path crates, and `Dockerfile.supervisor-host` has no clean at all.
+  - Recommendations ranked for the owner's approval: incremental for interactive work; nextest in CI; a no-LTO image profile for CI images; a touch-based Docker cache fix; aq-worker CI cache and narrowed clippy. Bigger: consolidate integration tests into ~6–10 binaries, then split the aq-server lib.
