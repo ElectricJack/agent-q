@@ -54,4 +54,4 @@ CREATE TABLE execution_permits (
  issued_at_ms BIGINT NOT NULL,
  UNIQUE(attempt_id,sequence)
 );
-UPDATE meta SET value='88' WHERE key='state_format_version';
+UPDATE meta SET value='89' WHERE key='state_format_version';
