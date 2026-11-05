@@ -407,7 +407,7 @@ async fn offers(
         .map_err(|_| refused())?;
         if let Some((task, assessment)) = on_heap(|| {
             first_eligible_task(&ready, |task| {
-                replacement::assess_task(state, task, polled_at)
+                replacement::assess_task_for_revision(state, task, polled_at, record.revision)
             })
         })
         .await?

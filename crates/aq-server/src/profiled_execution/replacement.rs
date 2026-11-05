@@ -313,6 +313,44 @@ pub async fn assess_task(state: &AppState, task: Uuid, now: u64) -> Result<Asses
     })
 }
 
+/// Scheduling assessment against the current project binding revision. A
+/// successor reuses the predecessor's export, whose request pins the project
+/// revision it was offered under; source observation refuses any other
+/// revision. Such a lineage is reported blocked here, so one unreplaceable
+/// task cannot fail the whole poll and starve the project's other tasks.
+pub async fn assess_task_for_revision(
+    state: &AppState,
+    task: Uuid,
+    now: u64,
+    project_revision: u64,
+) -> Result<Assessment, AppError> {
+    let assessment = assess_task(state, task, now).await?;
+    let Some(replacement) = assessment.replacement() else {
+        return Ok(assessment);
+    };
+    let pinned = predecessor_project_revision(&state.store.pool, replacement.predecessor).await?;
+    Ok(if pinned == Some(project_revision) {
+        assessment
+    } else {
+        Assessment::Blocked("replacement_project_revision_changed")
+    })
+}
+
+/// The project revision pinned by an attempt's linked source export request.
+pub async fn predecessor_project_revision(
+    pool: &sqlx::PgPool,
+    attempt: Uuid,
+) -> Result<Option<u64>, AppError> {
+    let pinned: Option<Option<i64>> = sqlx::query_scalar(
+        "SELECT (convert_from(e.request_bytes,'UTF8')::jsonb->>'project_revision')::BIGINT FROM profiled_launch_source_exports x JOIN profiled_source_exports e USING(operation_id) WHERE x.attempt_id=$1",
+    )
+    .bind(attempt)
+    .fetch_optional(pool)
+    .await
+    .map_err(|_| AppError::Internal)?;
+    Ok(pinned.flatten().and_then(|r| u64::try_from(r).ok()))
+}
+
 /// Releases the failed predecessor's task claim under the common node →
 /// attempt/hot locks, after re-assessing the locked history. Idempotent.
 pub async fn release(

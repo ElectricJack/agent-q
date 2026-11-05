@@ -53,6 +53,19 @@ async fn successor_reuses_predecessor_export_only_with_exact_release_receipt() {
     tx.commit().await.unwrap();
 
     let predecessor = f.profiled.offer.binding.attempt_id;
+    // The successor's revision check reads the revision this export pins.
+    assert_eq!(
+        replacement::predecessor_project_revision(&pool, predecessor)
+            .await
+            .unwrap(),
+        Some(request.project_revision)
+    );
+    assert_eq!(
+        replacement::predecessor_project_revision(&pool, Uuid::new_v4())
+            .await
+            .unwrap(),
+        None
+    );
     let mut hot = HotState::from_compat(&f.profiled).unwrap();
     sqlx::query("INSERT INTO profiled_authority_hot(attempt_id,state,record_revision,authority_revision,grant_revision) VALUES($1,$2,1,1,0)").bind(predecessor).bind(json!(hot)).execute(&pool).await.unwrap();
     hot.status = Status::Finished;
