@@ -655,3 +655,20 @@ Each entry records what was observed, the action taken, and anything waiting on 
   Dashboard main-CI fix `keen-harbor-66` and round-2 steward `prime-beacon-85` are running.
 - **23:55 check.** Merged aq-dashboard #66 (keen-harbor-66: ports WK-E/WK-F Work behaviour into WorkWorkspace; fixes the red main). The router is routing again now that Claude usage is low; the four cross-repo follow-ups were routed automatically, and aq-git `fair-current-80` is running. Round-2 steward `prime-beacon-85` is still on #46, #53, #55, #60, #61, #63 and #64.
 - **00:10 check.** Merged aq-git #6 (fair-current-80: prefix-scoped publication targets with lease guard) and #7 (sound-impact-48: operator credential profiles). aq-server #75 (bright-lantern-83, updater ETXTBSY stub fix) is in CI. All seven aq-worker READY tasks are dependency-blocked; nothing is stuck. Claude usage: 4%.
+- **00:40 check.**
+  - Round-2 steward `prime-beacon-85` completed and listed seven resolved local branches. I pushed them as fast-forwards to their PR branches (SHAs verified) and merged in stack order: #46 (WK-C), #53 (AG-E), #64 (AG-F), #60 (PB-B), #61 (PB-F), #63 (PB-D).
+  - #55 (SH-K) fails `decision-action.spec.ts`; reopened `swift-stone-62` (branch mergeable, so no claim trap).
+  - Merged aq-server #75 (bright-lantern-83: updater fake-docker stubs immune to ETXTBSY; all 9 checks green), so aq-server main should go green.
+- **00:30 check (2026-11-05).**
+  - **aq-server main had two 0081 migrations** (H4 `agent_waits` and the stall ladder). Main CI couldn't build and #76 and #77 inherited the failure. Merged #78 (fair-meadow-37, which renumbers `agent_waits` to 0082). Its only failure was `native_accepted_preparation`, which #78 doesn't touch; watching main.
+  - **#76 (bold-stone-51) collided on 0082 too.** `renumber.py` moved it to 0083 but only *reported* the code gate in `store/central37.rs` (`include_str!` of the migration file plus `version >= 82`), so the branch would no longer compile. Patched both to 0083 in an op worktree; compile check running before push.
+  - Updated #77 (no migration). Neither PR has dependents (W61-safe).
+  - Filed the H5 server-side hibernation follow-up as `azure-orbit-61`.
+- **00:55 owner: everything on standard except J4.**
+  - J4 (`fleet-glacier-27.2`) moved to `deep-high-claude`. That pool was disabled with max 0; I enabled it at max 1.
+  - MS4 moved to `operator-standard-high-claude`.
+  - The D10 spec (`sound-rapids-80.1`) was paused and still claimed by a stopped Codex session. I committed and pushed its 328-line partial draft (`be4785e` on `aq/sound-rapids-80.1`), force-released `ws-stone-camp`, resumed it, and routed it to `standard-high-claude`.
+  - All other deep-hinted work was already on standard.
+  - #76's migration renumber also needed its code gate fixed (`76aa35a`, compile-checked).
+- **01:10 check.** G10 completed; filed its cross-repo follow-up for the server reads behind the Agents operations views (stall ladder, semaphores and so on) at priority 45. `native_accepted_preparation` fails on unrelated PRs #77 and #78 again after #56's fix, so it's likely regressed on main; filed a bisect/fix task (priority 9). D10 spec is now running on Claude standard. Owner asked why MS4 needs Codex: only its four-harness demo line does (scope choice: keep, since Codex resets about Nov 8, or defer).
+- **01:25 check.** Merged aq-server #77 (bright-summit-37 confinement permission; only the known `native_accepted` regression). Pushed a rustfmt fix to #76 (bold-stone-51; marker.rs and tests). The D10 implementation spec (`sound-rapids-80.1`) and its parent completed on Claude, continuing from the preserved Codex draft. #55 (`swift-stone-62`) is queued for its decision-action fix. Claude usage: 8%.

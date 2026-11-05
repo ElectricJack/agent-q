@@ -62,4 +62,4 @@ CREATE TABLE stall_quarantines (
 CREATE INDEX stall_quarantines_lineage ON stall_quarantines(lineage_id);
 ALTER TABLE notification_episodes DROP CONSTRAINT notification_episodes_kind_check;
 ALTER TABLE notification_episodes ADD CONSTRAINT notification_episodes_kind_check CHECK(kind IN ('task.failed_or_blocked','decision.needed','question.asked','credential.invalid','milestone.gate_ready','worker.offline','storage.pressure','sandbox.preserved','session.stalled'));
-UPDATE meta SET value='82' WHERE key='state_format_version';
+UPDATE meta SET value='81' WHERE key='state_format_version';
