@@ -1,14 +1,14 @@
 //! Actual schema32 accepted/issued authority; synthetic Graph/Git/worker evidence.
 //! Manual draft33 migration tests do not qualify terminal producer or activation.
-mod common;
+use crate::common;
 #[allow(dead_code)] // Shared actual-owner fixture also serves its full14-case target.
-#[path = "common/phase_execution.rs"]
+#[path = "../common/phase_execution.rs"]
 mod fixture;
 use aq_server::profiled_execution::phase_execution;
 use fixture::{Prepared, auth, prepared};
 use sqlx::{Connection, Row};
 use uuid::Uuid;
-const SQL: &str = include_str!("../migrations/0033_phase_terminal.sql");
+const SQL: &str = include_str!("../../migrations/0033_phase_terminal.sql");
 async fn issue(f: &Prepared) {
     phase_execution::prepare(
         &f.c.env.env.state,

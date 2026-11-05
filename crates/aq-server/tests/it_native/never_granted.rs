@@ -1,5 +1,5 @@
 //! Actual SQL absence-of-authorization owner; never physical guardian stop proof.
-mod common;
+use crate::common;
 use aq_server::{
     execution::{
         authority::hot::HotState,

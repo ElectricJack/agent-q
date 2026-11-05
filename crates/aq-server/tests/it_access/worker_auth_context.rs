@@ -1,6 +1,6 @@
 //! Actual PostgreSQL authentication-window fences, with synthetic enrolled nodes.
 //! The fixture is Offered only; this file grants no execution/terminal authority.
-mod common;
+use crate::common;
 use aq_server::{
     error::AppError,
     worker_api::{authenticate_context, lock_current_node},

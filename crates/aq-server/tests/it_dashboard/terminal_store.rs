@@ -1,5 +1,5 @@
 //! Synthetic SQL/relay qualification; no tmux, provider or input injection claim.
-mod common;
+use crate::common;
 use aq_server::{
     execution::profiled::{Status, Stop},
     terminal::{

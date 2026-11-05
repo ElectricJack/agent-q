@@ -105,7 +105,7 @@ fn compile_input(registry: Registry) -> aq_playbooks_compiler::CompileInput {
 #[test]
 fn catalog1_bytes_and_capabilities_do_not_silently_gain_human_decision_authority() {
     let frozen: Value = serde_json::from_str(include_str!(
-        "../../../protocol/playbook-host/v1/registry.json"
+        "../../../../protocol/playbook-host/v1/registry.json"
     ))
     .unwrap();
     assert_eq!(json!(CatalogProfile::Mail1.registry()), frozen["registry"]);
@@ -179,7 +179,7 @@ fn decision_input_refuses_authority_fields_duplicate_owners_and_mismatched_subje
 #[test]
 fn catalog2_snapshot_is_generated_and_operation_lookup_has_no_generic_service_or_url() {
     let snapshot: Value = serde_json::from_str(include_str!(
-        "../../../protocol/playbook-host/v2/registry.json"
+        "../../../../protocol/playbook-host/v2/registry.json"
     ))
     .unwrap();
     assert_eq!(

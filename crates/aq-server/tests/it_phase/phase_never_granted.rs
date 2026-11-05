@@ -1,9 +1,7 @@
 //! Actual SQL/nominal refresh owners; synthetic installation, no physical stop claim.
-mod common;
+use crate::common;
 // This shared fixture also builds Started/Stopped requests for terminal tests.
-#[path = "common/phase_refresh_terminal.rs"]
-#[allow(dead_code)] // This target intentionally uses only part of the shared fixture.
-mod terminal;
+use crate::common_phase_refresh_terminal as terminal;
 use aq_server::profiled_execution::no_grant;
 use sqlx::Row;
 use std::sync::Arc;

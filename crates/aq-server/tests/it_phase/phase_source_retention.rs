@@ -2,15 +2,10 @@
 //! material installation and Graph observations remain explicit synthetic facts.
 #[path = "phase_source_retention/git.rs"]
 mod actual_git;
-#[path = "support/actual_git_owner.rs"]
+#[path = "../support/actual_git_owner.rs"]
 mod actual_git_owner;
-mod common;
-#[allow(dead_code)]
-#[path = "common/phase_terminal.rs"]
-mod frozen_fixture;
-#[allow(dead_code)]
-#[path = "common/phase_refresh_terminal.rs"]
-mod refresh_fixture;
+use crate::common_phase_refresh_terminal as refresh_fixture;
+use crate::common_phase_terminal as frozen_fixture;
 mod frozen {
     const PROFILE: aq_admission_sandbox::sandbox::PhaseProfile =
         aq_admission_sandbox::sandbox::PhaseProfile::PhaseV2;

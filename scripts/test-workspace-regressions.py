@@ -16,6 +16,22 @@ from urllib.parse import urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 BASELINE = ROOT / "docs/implementation/A3b-checks/persistent-failure-comparison.json"
+# The recorded `<target>::<test>` names are module paths inside these grouped
+# test binaries (crates/aq-server/tests/<binary>/main.rs).
+BINARY = {
+    "dashboard_aggregation": "it_dashboard",
+    "native_accepted_preparation": "it_native",
+    "native_cancellation": "it_native",
+    "native_expiry": "it_native",
+    "phase_execution_transport": "it_phase",
+    "phase_never_granted": "it_phase",
+    "phase_terminal_closure": "it_phase",
+    "profiled_hot": "it_profiled",
+    "schema30_preparation": "it_schema",
+    "schema32_phase_execution": "it_schema",
+    "schema33_phase_terminal": "it_schema",
+    "schema43_cancellation": "it_schema",
+}
 
 
 def test_workspace_regressions():
@@ -42,20 +58,21 @@ def test_workspace_regressions():
     commands = []
     if scope == "exact":
         build = ["cargo", "test", "--locked", "-p", "aq-server", "--no-run"]
-        for target in targets:
-            build += ["--test", target]
+        for binary in sorted({BINARY[target] for target in targets}):
+            build += ["--test", binary]
         commands.append(("compile", build))
         for case in baseline:
-            target, name = case["test"].split("::", 1)
+            target = case["test"].split("::", 1)[0]
             commands.append((case["test"], [
-                "cargo", "test", "--locked", "-p", "aq-server", "--test", target,
-                name, "--", "--exact", "--test-threads=1", "--nocapture",
+                "cargo", "test", "--locked", "-p", "aq-server", "--test", BINARY[target],
+                case["test"], "--", "--exact", "--test-threads=1", "--nocapture",
             ]))
     elif scope == "area":
         command = ["cargo", "test", "--locked", "-p", "aq-server", "--no-fail-fast"]
-        for target in sorted(set(targets) | {"dashboard_aggregation", "native_cancellation", "phase_never_granted", "native_expiry"}):
-            command += ["--test", target]
-        commands.append(("area", command + ["--", "--test-threads=1"]))
+        area = sorted(set(targets) | {"dashboard_aggregation", "native_cancellation", "phase_never_granted", "native_expiry"})
+        for binary in sorted({BINARY[target] for target in area}):
+            command += ["--test", binary]
+        commands.append(("area", command + ["--", "--test-threads=1"] + [f"{target}::" for target in area]))
     elif scope == "workspace":
         commands.append(("workspace", [
             "cargo", "test", "--locked", "--workspace", "--no-fail-fast",
@@ -89,14 +106,14 @@ def test_workspace_regressions():
             completed = subprocess.run(command, cwd=ROOT, env=environment, stdout=output, stderr=subprocess.STDOUT)
         body = log.read_text()
         outcomes = {}
-        target = name.split("::", 1)[0] if "::" in name else None
+        grouped = "::" in name
         for line in body.splitlines():
-            heading = re.search(r"Running tests/(\w+)\.rs ", line)
+            heading = re.search(r"Running tests/(\w+)/main\.rs ", line)
             if heading:
-                target = heading[1]
+                grouped = heading[1] in BINARY.values()
             result = re.fullmatch(r"test (\S+) \.\.\. (ok|FAILED|ignored)", line)
-            if result and target:
-                case = f"{target}::{result[1]}"
+            if result and grouped:
+                case = result[1]
                 if case in expected:
                     outcomes[case] = result[2]
         required = [name] if name in expected else expected if scope in {"area", "workspace"} else []

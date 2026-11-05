@@ -1,5 +1,5 @@
 use aq_server::test_support::migrate_profile;
-#[path = "support/retained_archive.rs"]
+#[path = "../support/retained_archive.rs"]
 mod retained_archive;
 use retained_archive::{archive_snapshot, write_archive_evidence};
 // Explicit retained-fixture qualification only. The archive is restored by the

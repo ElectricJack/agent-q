@@ -1,5 +1,5 @@
 //! Explicit admitted-metadata fixtures; no real runtime/host is qualified here.
-mod common;
+use crate::common;
 use aq_admission::transport::{Feature, Register, WorkerIdentity};
 use aq_server::profiled_execution::{
     config::{ProfiledConfig, QualifiedRuntime},

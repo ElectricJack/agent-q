@@ -1,4 +1,4 @@
-#[path = "../migration_catalog.rs"]
+#[path = "../../migration_catalog.rs"]
 mod catalog;
 
 use std::path::PathBuf;

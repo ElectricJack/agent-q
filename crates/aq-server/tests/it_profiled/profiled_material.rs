@@ -1,5 +1,5 @@
 //! Real SQL/router fences with explicitly synthetic provider material and runtime.
-mod common;
+use crate::common;
 use aq_admission::{Digest, Label, MaterialLease, transport::*};
 use aq_selection::{AuthorizedCredential, DeliveryCapability};
 use aq_server::{

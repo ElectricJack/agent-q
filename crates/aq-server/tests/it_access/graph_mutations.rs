@@ -92,7 +92,7 @@ async fn setup_scoped(structural: bool) -> Env {
         .unwrap()
         .unwrap();
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../protocol/agent-access/v1/fixtures/base.json"
+        "../../../../protocol/agent-access/v1/fixtures/base.json"
     ))
     .unwrap();
     let mut profile = fixture["context"]["profile"].clone();
@@ -237,7 +237,7 @@ struct FakeGraph {
 impl FakeGraph {
     fn new() -> Self {
         let fixture: Value = serde_json::from_str(include_str!(
-            "../../../protocol/agent-access/v1/fixtures/qualified-graph.json"
+            "../../../../protocol/agent-access/v1/fixtures/qualified-graph.json"
         ))
         .unwrap();
         Self {
@@ -292,7 +292,7 @@ async fn graph_http(State(fake): State<Arc<FakeGraph>>, request: AxumRequest) ->
         }
         if parts.len() == 7 && parts[6] == "context" {
             let fixture: Value = serde_json::from_str(include_str!(
-                "../../../protocol/agent-access/v1/fixtures/qualified-graph.json"
+                "../../../../protocol/agent-access/v1/fixtures/qualified-graph.json"
             ))
             .unwrap();
             let mut c = fixture["context"].clone();

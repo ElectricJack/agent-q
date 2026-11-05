@@ -1,5 +1,5 @@
 //! HTTP search behavior against disposable SQL and a strict Graph protocol stub.
-mod common;
+use crate::common;
 use axum::{
     Json, Router,
     body::Body,
@@ -50,7 +50,7 @@ async fn graph(
     if q["q"] == "example" || q["q"] == "private-search-canary" {
         for n in 1..=3 {
             let mut item: Value = serde_json::from_str(include_str!(
-                "../../../protocol/human-graph/v1/examples/task.json"
+                "../../../../protocol/human-graph/v1/examples/task.json"
             ))
             .unwrap();
             item = item["data"].take();

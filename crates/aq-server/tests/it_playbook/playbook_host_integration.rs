@@ -2,7 +2,7 @@
 //! and 8) on disposable PostgreSQL through the production service owners. The D1
 //! delivery service and the D6 sandbox executor are in-memory fakes of the
 //! injected ports; every evidence item is resolved in its owning store.
-mod common;
+use crate::common;
 use aq_playbook_host::runner::{Intent, IntentStatus};
 use aq_server::{
     delivery::{PublicationMode, PublicationPolicy},

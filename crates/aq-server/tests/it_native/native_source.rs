@@ -1,6 +1,6 @@
 //! Actual SQL/router/file reads with synthetic public Git peers/facts. No real
 //! provider or complete native producer qualification is claimed by this file.
-mod common;
+use crate::common;
 use aq_admission::{
     ArtifactKind,
     control::{ControlReply, decode_reply},

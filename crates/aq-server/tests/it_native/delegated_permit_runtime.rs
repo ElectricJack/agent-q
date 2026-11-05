@@ -1,5 +1,5 @@
 //! Durable delegated authority, exercised with the injected server clock.
-mod common;
+use crate::common;
 #[path = "delegated_permit_runtime/restart.rs"]
 mod restart;
 #[path = "delegated_permit_runtime/routes.rs"]
@@ -156,7 +156,7 @@ async fn delegated_typed_attempt_checks_reject_foreign_and_mixed_bindings() {
 }
 
 #[allow(dead_code)]
-#[path = "common/phase_refresh_terminal.rs"]
+#[path = "../common/phase_refresh_terminal.rs"]
 mod phase_refresh_fixture;
 
 async fn request(

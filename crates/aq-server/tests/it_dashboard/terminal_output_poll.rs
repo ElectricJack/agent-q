@@ -1,6 +1,6 @@
 //! Actual protected relay owners over synthetic running execution metadata.
 //! No input injection, native process or physical terminal qualification.
-mod common;
+use crate::common;
 use aq_server::{
     execution::profiled::{Status, Stop},
     terminal::{

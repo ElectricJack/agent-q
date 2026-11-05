@@ -1,4 +1,4 @@
-mod common;
+use crate::common;
 use aq_observation_admission::{Operation, Phase, Reply, Request, VERSION};
 use aq_server::observations::transport;
 use common::profiled::{Fixture, fixture};

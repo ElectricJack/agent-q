@@ -3,7 +3,7 @@
 //! executor and the judgment provider are in-memory fakes of the injected
 //! ports (no real sandbox, provider or network); every receipt disposition
 //! comes from an executor-reported stop, never from the host.
-mod common;
+use crate::common;
 use aq_playbook_host::runner::{CancellationResult, Intent, IntentStatus};
 use aq_server::{
     playbooks::{

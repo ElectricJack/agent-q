@@ -1,6 +1,6 @@
 //! Real SQL/router ownership checks with explicitly synthetic host/runtime data.
 //! Actual kernel/tmux journal production is qualified separately in aq-worker.
-mod common;
+use crate::common;
 use aq_admission::Digest;
 use aq_server::{
     execution::{

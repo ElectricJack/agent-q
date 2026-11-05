@@ -1,6 +1,6 @@
 //! Migration012/shared inspection only. Offered synthetic native fixtures never
 //! grant terminal execution or qualify a provider. Runtime remains separate.
-mod common;
+use crate::common;
 use aq_server::{
     error::AppError,
     execution::authority::{self, Policy},

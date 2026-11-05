@@ -1,7 +1,7 @@
 //! Actual daemon listeners and durable execution control while the independent
 //! playbook owner is held inside its synchronous backend initializer. This does
 //! not register a playbook host in production or qualify native harness launch.
-mod common;
+use crate::common;
 use aq_playbook_host::{Limits, MemoryStorage, Owner};
 use aq_server::{build_admin_router, build_worker_router};
 use aq_worker_protocol::*;

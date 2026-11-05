@@ -1,8 +1,5 @@
 //! Actual phase SQL owners; proof DTOs are explicitly synthetic, not kernel evidence.
-mod common;
-#[allow(dead_code)]
-#[path = "common/phase_terminal.rs"]
-mod terminal;
+use crate::common_phase_terminal as terminal;
 use aq_server::profiled_execution::phase_terminal::{started, stopped};
 use serde_json::{Value, json};
 use sqlx::Row;

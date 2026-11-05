@@ -1,5 +1,5 @@
 //! G11 Work-view contracts (X8-X13) on human-graph-1 over a fake Graph API.
-mod common;
+use crate::common;
 use aq_server::agent_access::{AgentAccessConfig, Runtime, human};
 use axum::{
     Router,
@@ -178,9 +178,10 @@ impl Fixture {
         let body: Value =
             serde_json::from_slice(&res.into_body().collect().await.unwrap().to_bytes()).unwrap();
         assert_eq!(status, StatusCode::OK, "{path}: {body}");
-        let schema: Value =
-            serde_json::from_str(include_str!("../../../protocol/human-graph/v1/schema.json"))
-                .unwrap();
+        let schema: Value = serde_json::from_str(include_str!(
+            "../../../../protocol/human-graph/v1/schema.json"
+        ))
+        .unwrap();
         assert!(
             aq_agent_api::check(&schema, &schema, &body),
             "schema {path}: {body}"

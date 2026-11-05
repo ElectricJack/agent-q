@@ -1,5 +1,5 @@
 //! HTTP boundary checks require only real node credentials, not fabricated authority.
-mod common;
+use crate::common;
 use aq_server::{profiled_execution::phase_terminal::routes, store::Store};
 use axum::{
     Router,

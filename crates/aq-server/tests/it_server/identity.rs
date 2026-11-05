@@ -1,4 +1,4 @@
-mod common;
+use crate::common;
 
 use aq_server::identity::{
     CloudflareAccessVerifier, DevIdentity, IdentityError, IdentityVerifier, VerifiedIdentity,

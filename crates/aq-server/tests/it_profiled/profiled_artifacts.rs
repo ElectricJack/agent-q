@@ -1,5 +1,5 @@
 //! Actual inline retention ownership; no source bundles or provider secrets.
-mod common;
+use crate::common;
 use aq_admission::{ArtifactKind, Digest};
 use aq_server::profiled_execution::artifacts::{self, OwnerKind, Retain};
 use common::profiled::{NOW, artifact, fixture, insert};

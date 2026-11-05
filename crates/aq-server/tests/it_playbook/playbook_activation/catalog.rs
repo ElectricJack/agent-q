@@ -68,7 +68,7 @@ async fn actual_current_catalog_tracks_later_install_and_activation_without_rest
     .await;
     assert_eq!(status, 200, "{first}");
     let schema: Value = serde_json::from_str(include_str!(
-        "../../../../protocol/playbooks-current-catalog/v1/schema.json"
+        "../../../../../protocol/playbooks-current-catalog/v1/schema.json"
     ))
     .unwrap();
     assert!(

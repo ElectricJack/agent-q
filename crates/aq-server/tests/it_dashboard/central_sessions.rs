@@ -32,7 +32,7 @@ fn artifact(name: &str) -> ArtifactRef {
 }
 fn plan() -> CentralPlan {
     let examples: serde_json::Value = serde_json::from_str(include_str!(
-        "../../aq-central-authority/artifacts/examples.json"
+        "../../../aq-central-authority/artifacts/examples.json"
     ))
     .unwrap();
     let Document::Plan(mut p) = decode(&serde_json::to_vec(&examples["plan"]).unwrap()).unwrap()

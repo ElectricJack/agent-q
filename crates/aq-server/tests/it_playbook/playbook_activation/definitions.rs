@@ -4,7 +4,7 @@ use axum::{Router, body::Body, http::Request};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 
-#[path = "../../examples/support/development_definition.rs"]
+#[path = "../../../examples/support/development_definition.rs"]
 mod development_definition;
 
 async fn read(app: &Router, email: &str, query: &str) -> (u16, Value) {
@@ -74,7 +74,7 @@ async fn actual_startup_definitions_are_redacted_historical_and_do_not_read_engi
     let (status, page) = read(&app, "owner@localhost", "").await;
     assert_eq!(status, 200, "{page}");
     let schema: Value = serde_json::from_str(include_str!(
-        "../../../../protocol/playbooks-loaded-definitions/v1/schema.json"
+        "../../../../../protocol/playbooks-loaded-definitions/v1/schema.json"
     ))
     .unwrap();
     assert!(

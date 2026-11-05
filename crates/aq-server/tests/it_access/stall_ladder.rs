@@ -2,7 +2,7 @@
 //! climbs nudge, notify, stop and replace with persisted, receipted actions;
 //! the lineage ceiling quarantines the next stall; a crash between intent and
 //! receipt re-runs that effect once with the same action id.
-mod common;
+use crate::common;
 use aq_server::{
     error::AppError,
     stall::{

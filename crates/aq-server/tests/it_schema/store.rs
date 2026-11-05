@@ -298,11 +298,11 @@ async fn exact_schema_two_upgrades_preserving_node_and_result_receipt() {
     let pool = db.pool().await;
     // Start with the actual prior SQL, not a current Store downgraded by metadata.
     let mut prior = pool.begin().await.unwrap();
-    sqlx::raw_sql(include_str!("../migrations/0001_foundation.sql"))
+    sqlx::raw_sql(include_str!("../../migrations/0001_foundation.sql"))
         .execute(&mut *prior)
         .await
         .unwrap();
-    sqlx::raw_sql(include_str!("../migrations/0002_execution.sql"))
+    sqlx::raw_sql(include_str!("../../migrations/0002_execution.sql"))
         .execute(&mut *prior)
         .await
         .unwrap();

@@ -2,7 +2,7 @@
 //! Ordered migrations must create the ledger in the assembled daemon.
 #[path = "profiled_results/cancellation.rs"]
 mod cancellation;
-mod common;
+use crate::common;
 #[path = "profiled_results/notification_sources.rs"]
 mod notification_sources;
 use aq_admission::{
@@ -152,7 +152,7 @@ async fn prepare_with_policy(
         selection_digest,
     };
     let mut outcome: outcome::ExpectedOutcomeDefinition = serde_json::from_str(include_str!(
-        "../../aq-admission/artifacts/outcome.fixture.json"
+        "../../../aq-admission/artifacts/outcome.fixture.json"
     ))
     .unwrap();
     outcome.project_id = spec.lifecycle.project_id;
@@ -1184,7 +1184,7 @@ async fn review_env_for_outcome(
                 .fetch_one(pool)
                 .await
                 .unwrap();
-        let schema = include_str!("../migrations/0026_review_owners.sql").replace(
+        let schema = include_str!("../../migrations/0026_review_owners.sql").replace(
             "UPDATE meta SET value='26' WHERE key='state_format_version';",
             "",
         );

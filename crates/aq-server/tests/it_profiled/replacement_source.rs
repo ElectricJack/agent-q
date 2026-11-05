@@ -1,5 +1,5 @@
 //! Synthetic SQL/Git-owner component coverage; no provider or actual Git export.
-mod common;
+use crate::common;
 use aq_admission::{Label, SourceSelection};
 use aq_server::{
     execution::{

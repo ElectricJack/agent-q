@@ -75,7 +75,7 @@ async fn request(app: &Router, path: &str, body: Option<&str>, email: &str) -> (
 }
 fn schema(v: &Value) {
     let s: Value = serde_json::from_str(include_str!(
-        "../../../protocol/human-supervisor-conversation/v1/schema.json"
+        "../../../../protocol/human-supervisor-conversation/v1/schema.json"
     ))
     .unwrap();
     assert!(aq_agent_api::check(&s, &s, v), "public schema {v}");

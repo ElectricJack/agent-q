@@ -1,5 +1,5 @@
 //! D8: real AQ transactions and the pinned engine; fake graph has no mutations.
-mod common;
+use crate::common;
 use aq_playbook_host::{
     model::*,
     runner::{Engine, Intent, IntentStatus, MemoryStorage},

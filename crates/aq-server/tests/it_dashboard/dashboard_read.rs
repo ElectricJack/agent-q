@@ -1,5 +1,5 @@
 //! Synthetic owned SQL fixtures; no provider process or live graph is claimed.
-mod common;
+use crate::common;
 use axum::{
     Router,
     body::Body,
@@ -306,7 +306,7 @@ async fn session_lifecycle_reports_are_historical_acl_scoped_and_never_live_obse
         warm_ms.push(t.elapsed().as_secs_f64() * 1000.0);
     }
     let query = "SELECT e.state->'offer' AS offer,s.request_bytes AS started_request,s.request_digest AS started_digest,s.receipt_bytes AS started_receipt,z.request_bytes AS stopped_request,z.request_digest AS stopped_digest,z.receipt_bytes AS stopped_receipt FROM execution_attempts e LEFT JOIN profiled_started_receipts s USING(attempt_id) LEFT JOIN profiled_stopped_receipts z USING(attempt_id) WHERE e.attempt_id=$1";
-    assert!(include_str!("../src/dashboard_api/service.rs").contains(query));
+    assert!(include_str!("../../src/dashboard_api/service.rs").contains(query));
     let plan: Value = sqlx::query_scalar(&format!("EXPLAIN (ANALYZE,BUFFERS,FORMAT JSON) {query}"))
         .bind(q.binding.attempt_id)
         .fetch_one(&f.db.pool().await)

@@ -1,6 +1,6 @@
 //! Actual private file observations with a synthetic sealed selection. No lease
 //! persistence or grant authority follows from this component helper.
-mod common;
+use crate::common;
 use aq_server::{
     intelligence::config::{CredentialConfig, IntelligenceConfig, MaterialDeliveryMode},
     profiled_execution::material::{self, MaterialError},

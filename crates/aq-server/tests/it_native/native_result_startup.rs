@@ -1,6 +1,6 @@
 //! Production assembly over synthetic Graph/model fixture data. This proves
 //! exact server compile/count/retention, never actual Codex/provider eligibility.
-mod common;
+use crate::common;
 use aq_admission::{
     ArtifactKind, ArtifactRef, Digest, Text,
     control::{ControlReply, decode_reply},
@@ -9,7 +9,7 @@ use aq_server::profiled_execution::{definitions::Definition, policies};
 use serde_json::{Value, json};
 use sqlx::Row;
 use std::sync::Arc;
-const STARTUP: &str = include_str!("fixtures/agent-result-startup-v1.md");
+const STARTUP: &str = include_str!("../fixtures/agent-result-startup-v1.md");
 fn reference(id: &str, bytes: &[u8]) -> ArtifactRef {
     ArtifactRef {
         id: Text::new(id).unwrap(),

@@ -1,6 +1,6 @@
 //! Existing sealed synthetic authority -> actual preparation owner. This is not
 //! full native offer assembly or physical host/provider qualification.
-mod common;
+use crate::common;
 use aq_server::profiled_execution::preparation;
 use common::native_preparation::{context, setup};
 use uuid::Uuid;

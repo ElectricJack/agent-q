@@ -1,5 +1,5 @@
 //! Actual disposable SQL owners; no physical-stop or runnable-agent evidence.
-mod common;
+use crate::common;
 use aq_server::{
     execution::{
         authority::hot::{HotState, LaunchOwner},

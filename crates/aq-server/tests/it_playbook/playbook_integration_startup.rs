@@ -1,6 +1,6 @@
 //! Assembled startup boundary: ordinary daemon construction never invents a
 //! configured owner, and missing ordered review schema cannot start an engine.
-mod common;
+use crate::common;
 use aq_server::{
     playbooks::{
         driver::Driver,

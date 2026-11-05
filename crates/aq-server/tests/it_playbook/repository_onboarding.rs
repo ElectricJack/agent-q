@@ -1,6 +1,6 @@
 //! D2: one owner operation onboards a GitHub repository into a central aq-git
 //! binding with a retained base, a project binding and a publication policy.
-mod common;
+use crate::common;
 use aq_server::source_retention::{Runtime as GitRuntime, SourceRetentionConfig};
 use axum::{
     Json, Router,

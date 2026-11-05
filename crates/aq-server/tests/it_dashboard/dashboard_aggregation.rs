@@ -1,5 +1,5 @@
 //! Dashboard aggregate HTTP behavior with disposable owner fixtures.
-mod common;
+use crate::common;
 use axum::{
     Router,
     body::Body,
@@ -168,7 +168,7 @@ async fn overview_ready_owner_preserves_samples_failures_and_binding_fence() {
     let release = Arc::new(tokio::sync::Notify::new());
     let workspace = f.profiled.graph.workspace_id;
     let mut node: Value = serde_json::from_str::<Value>(include_str!(
-        "../../../protocol/human-graph/v1/examples/task.json"
+        "../../../../protocol/human-graph/v1/examples/task.json"
     ))
     .unwrap()["data"]
         .clone();

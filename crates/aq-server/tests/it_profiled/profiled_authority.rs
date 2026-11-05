@@ -1,5 +1,5 @@
 //! Actual sealed profiled fixture qualification; no production grant seeding.
-mod common;
+use crate::common;
 use aq_server::execution::{
     authority::{self, AuthorityError, Kind, Policy},
     profiled::{Status, Stop},
@@ -479,7 +479,7 @@ async fn actual_profiled_graph_adapter_issues_exact_api01_binding_and_revokes_on
     use tower::ServiceExt;
     let mut f = fixture().await;
     let api: Value = serde_json::from_str(include_str!(
-        "../../../protocol/agent-access/v1/fixtures/base.json"
+        "../../../../protocol/agent-access/v1/fixtures/base.json"
     ))
     .unwrap();
     let profile = api["context"]["profile"].clone();

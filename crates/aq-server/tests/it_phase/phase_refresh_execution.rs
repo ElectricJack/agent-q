@@ -1,7 +1,7 @@
 //! Actual disposable SQL owners, bounded synthetic Graph/Git and private bytes.
 //! This qualifies profile joining, not providers, physical hosts or runtime eligibility.
-mod common;
-#[path = "common/phase_refresh_execution.rs"]
+use crate::common;
+#[path = "../common/phase_refresh_execution.rs"]
 mod fixture;
 use aq_admission::preparation_refresh_v1 as phase;
 use aq_server::profiled_execution::phase_refresh_execution as owner;

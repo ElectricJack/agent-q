@@ -24,7 +24,7 @@ async fn fresh_process(
     let mut child = tokio::process::Command::new(std::env::current_exe().unwrap())
         .args([
             "--exact",
-            "restart::server_restart_child",
+            "delegated_permit_runtime::restart::server_restart_child",
             "--ignored",
             "--nocapture",
         ])

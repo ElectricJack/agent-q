@@ -1,6 +1,6 @@
 //! Pure test-only configuration validation. This file launches no Graph/Git/AQ
 //! process and makes no runtime/provider/model qualification claim.
-mod common;
+use crate::common;
 use aq_server::{
     agent_access::AgentAccessConfig,
     project_bindings::domain::{ProjectBinding, ProjectCeilings, Reference},

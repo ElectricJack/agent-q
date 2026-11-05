@@ -14,7 +14,7 @@ struct Case {
 }
 async fn setup(message: bool) -> Case {
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../../protocol/agent-access/v1/fixtures/mutation-delivery.json"
+        "../../../../../protocol/agent-access/v1/fixtures/mutation-delivery.json"
     ))
     .unwrap();
     let mut profile = fixture["proposal_profiles"][0]["profile"].clone();
@@ -70,7 +70,7 @@ async fn inspect(
 }
 async fn insert(case: &Case, state: &str) -> Uuid {
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../../protocol/agent-access/v1/fixtures/base.json"
+        "../../../../../protocol/agent-access/v1/fixtures/base.json"
     ))
     .unwrap();
     let op = Uuid::new_v4();

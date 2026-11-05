@@ -5,7 +5,7 @@ use sha2::{Digest, Sha256};
 use std::{collections::BTreeMap, fs, path::Path};
 
 const FIXTURES: &str =
-    include_str!("../../../vendor/aq-admission-0.3.3/artifacts/sandbox-v1.fixtures.json");
+    include_str!("../../../../vendor/aq-admission-0.3.3/artifacts/sandbox-v1.fixtures.json");
 
 #[test]
 fn permit_fixture_conformance() {
@@ -90,7 +90,7 @@ fn permit_fixture_conformance() {
         ])
     );
     let published_schema: serde_json::Value = serde_json::from_str(include_str!(
-        "../../../vendor/aq-admission-0.3.3/artifacts/sandbox-v1.schema.json"
+        "../../../../vendor/aq-admission-0.3.3/artifacts/sandbox-v1.schema.json"
     ))
     .unwrap();
     assert_eq!(sandbox::schema(), published_schema);
@@ -152,7 +152,7 @@ fn permit_fixture_conformance_source_pin() {
         files: BTreeMap<String, String>,
     }
     let pin: Pin =
-        serde_json::from_str(include_str!("../../../vendor/admission-contract.json")).unwrap();
+        serde_json::from_str(include_str!("../../../../vendor/admission-contract.json")).unwrap();
     assert_eq!(pin.source_revision.len(), 40);
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let archive = fs::read(root.join(pin.archive)).unwrap();
@@ -167,7 +167,7 @@ fn permit_fixture_conformance_source_pin() {
 #[test]
 fn permit_fixture_conformance_frozen_transport() {
     let legacy: Vec<serde_json::Value> = serde_json::from_str(include_str!(
-        "../../aq-admission/artifacts/transport.fixtures.json"
+        "../../../aq-admission/artifacts/transport.fixtures.json"
     ))
     .unwrap();
     assert!(!legacy.is_empty());

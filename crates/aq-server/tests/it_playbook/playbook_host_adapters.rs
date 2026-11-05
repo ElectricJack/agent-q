@@ -1,7 +1,7 @@
 //! D5 host adapters on disposable PostgreSQL through the production service
 //! owners. The graph port is an in-memory CAS fake (no real graph network);
 //! operation.cancel reaches the actual B3 native cancellation owner.
-mod common;
+use crate::common;
 use aq_playbook_host::runner::{Intent, IntentStatus};
 use aq_server::{
     playbooks::{
@@ -426,7 +426,7 @@ async fn operation_cancel_reaches_native_attempt() {
 fn host3_registry_runs_vendored_d4_fixtures() {
     let registry = CatalogProfile::Host5.registry();
     let fixtures: Value = serde_json::from_str(include_str!(
-        "../../../vendor/aq-host-catalog-1.0.0/fixtures.json"
+        "../../../../vendor/aq-host-catalog-1.0.0/fixtures.json"
     ))
     .unwrap();
     let cases = fixtures["cases"].as_array().unwrap();

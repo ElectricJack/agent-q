@@ -258,7 +258,7 @@ impl Fixture {
     }
     async fn plan(&self, reservation: Uuid, generation: u64) -> CentralPlan {
         let examples: Value = serde_json::from_str(include_str!(
-            "../../aq-central-authority/artifacts/examples.json"
+            "../../../aq-central-authority/artifacts/examples.json"
         ))
         .unwrap();
         let Document::Plan(mut p) =
@@ -689,7 +689,7 @@ async fn upgrade_consumes_known_failure_and_retains_unknown_delivery() {
 
 fn conversation_schema(v: &Value) {
     let s: Value = serde_json::from_str(include_str!(
-        "../../../protocol/human-supervisor-conversation/v1/schema.json"
+        "../../../../protocol/human-supervisor-conversation/v1/schema.json"
     ))
     .unwrap();
     assert!(aq_agent_api::check(&s, &s, v), "public schema {v}");
@@ -698,15 +698,17 @@ fn conversation_schema(v: &Value) {
 #[test]
 fn attachment_fixtures_match_schema_and_published_digest() {
     use sha2::Digest as _;
-    let schema = include_bytes!("../../../protocol/human-supervisor-conversation/v1/schema.json");
-    let pinned = include_str!("../../../protocol/human-supervisor-conversation/v1/schema.sha256");
+    let schema =
+        include_bytes!("../../../../protocol/human-supervisor-conversation/v1/schema.json");
+    let pinned =
+        include_str!("../../../../protocol/human-supervisor-conversation/v1/schema.sha256");
     assert_eq!(
         format!("sha256:{}", hex::encode(sha2::Sha256::digest(schema))),
         pinned.trim(),
         "update schema.sha256 and README when the schema changes"
     );
     let history: Value = serde_json::from_str(include_str!(
-        "../../../protocol/human-supervisor-conversation/v1/history-attachments.example.json"
+        "../../../../protocol/human-supervisor-conversation/v1/history-attachments.example.json"
     ))
     .unwrap();
     conversation_schema(&history);
@@ -720,7 +722,7 @@ fn attachment_fixtures_match_schema_and_published_digest() {
     );
     let s: Value = serde_json::from_slice(schema).unwrap();
     let request: Value = serde_json::from_str(include_str!(
-        "../../../protocol/human-supervisor-conversation/v1/reply-attachments.example.json"
+        "../../../../protocol/human-supervisor-conversation/v1/reply-attachments.example.json"
     ))
     .unwrap();
     for a in request["attachments"].as_array().unwrap() {

@@ -1,9 +1,6 @@
 //! Actual phase owners with explicit synthetic Graph/runtime/installation facts.
 //! New policy versions change only new admissions; no provider or renewal claim.
-mod common;
-#[allow(dead_code)]
-#[path = "common/phase_execution.rs"]
-mod fixture;
+use crate::common_phase_execution as fixture;
 use aq_admission::{ArtifactKind, ArtifactRef, Digest, Text};
 use aq_server::profiled_execution::{
     accepted_preparation::PolicyDefinition, config::ProfiledConfig, definitions::Definition,

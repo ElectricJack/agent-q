@@ -1,6 +1,6 @@
 //! Initial grant admission. Missing original publication must never be filled in
 //! from an acceptance digest or a synthetic compatibility offer.
-mod common;
+use crate::common;
 use aq_admission::{ArtifactRef, Digest, MaterialReceipt, Text, transport::Prepare};
 use aq_server::profiled_execution::{initial_grant, preparation};
 use common::native_preparation::{context, setup};

@@ -1,8 +1,7 @@
 //! Actual phase issuance SQL/owners; synthetic Graph, Git and worker installation.
 //! No physical host, real provider, or production route qualification.
-mod common;
-#[path = "common/phase_execution.rs"]
-mod fixture;
+use crate::common;
+use crate::common_phase_execution as fixture;
 use aq_admission::{Digest, preparation_v2 as phase};
 use aq_server::profiled_execution::{phase_execution, policies};
 use axum::body::to_bytes;

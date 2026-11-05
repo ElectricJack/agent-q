@@ -1,4 +1,5 @@
-use crate::{actual_git, common};
+use crate::common;
+use crate::phase_source_retention::actual_git;
 use aq_admission::{
     Digest, Label, SessionIdentity, result_record,
     transport::{ProcessOutcome, ResultReport, WorkerIdentity},

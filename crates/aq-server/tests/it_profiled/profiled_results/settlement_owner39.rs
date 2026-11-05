@@ -30,7 +30,7 @@ pub(super) fn policy() -> aq_server::profiled_execution::definitions::Definition
 }
 pub(super) fn graph_context(f: &Fixture) -> Value {
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../../protocol/agent-access/v1/fixtures/qualified-graph.json"
+        "../../../../../protocol/agent-access/v1/fixtures/qualified-graph.json"
     ))
     .unwrap();
     let mut node = fixture["nodes"]
@@ -110,7 +110,7 @@ struct Case {
 }
 async fn setup() -> Case {
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../../protocol/agent-access/v1/fixtures/mutation-delivery.json"
+        "../../../../../protocol/agent-access/v1/fixtures/mutation-delivery.json"
     ))
     .unwrap();
     let mut profile = fixture["proposal_profiles"][0]["profile"].clone();
@@ -120,7 +120,7 @@ async fn setup() -> Case {
     // rather than assigning a digest-shaped pointer in SQL.
     use tower::ServiceExt;
     let selection: Value =
-        serde_json::from_str(include_str!("../fixtures/selection-v2.json")).unwrap();
+        serde_json::from_str(include_str!("../../fixtures/selection-v2.json")).unwrap();
     let response=aq_server::build_admin_router(env.f.state.clone()).oneshot(axum::http::Request::builder().method("POST").uri("/api/profiles/catalogs/activate").header("content-type","application/json").header("X-AQ-Request","1").body(axum::body::Body::from(json!({"operation_id":Uuid::new_v4(),"expected_revision":0,"artifact_json":selection["catalog_artifact_json"]}).to_string())).unwrap()).await.unwrap();
     assert_eq!(response.status(), 200);
     let r = {

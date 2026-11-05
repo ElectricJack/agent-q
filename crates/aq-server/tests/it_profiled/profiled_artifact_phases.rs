@@ -1,6 +1,6 @@
 //! Artifact HTTP phase fences over real accepted-plan/grant SQL records.
 //! Runtime, material and guardian fixtures are synthetic; no process is launched.
-mod common;
+use crate::common;
 use aq_admission::{
     ArtifactKind, Digest, Label, MaterialLease, RetainedArtifact,
     transport::{

@@ -55,7 +55,7 @@ async fn delayed_actual_started_keeps_physical_checkpoint_separate_from_latest_r
     let c = setup().await;
     let initial = grant(&c).await.unwrap();
     let mut physical: aq_admission::started::Request = serde_json::from_str(include_str!(
-        "../../../../../aq-admission/artifacts/started.fixture.json"
+        "../../../../../../aq-admission/artifacts/started.fixture.json"
     ))
     .unwrap();
     physical.operation_id = Uuid::new_v4();

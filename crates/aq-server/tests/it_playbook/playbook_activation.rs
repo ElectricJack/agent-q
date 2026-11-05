@@ -1,6 +1,6 @@
 //! Actual ordered PostgreSQL + daemon HTTP + protected engine. The Unix peer is
 //! a synthetic local forwarding transport, not a new service/provider or native CLI.
-mod common;
+use crate::common;
 use aq_playbook_host::model::*;
 use aq_server::{
     AppState,

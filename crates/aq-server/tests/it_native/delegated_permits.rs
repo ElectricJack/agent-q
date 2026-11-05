@@ -7,7 +7,7 @@ use aq_admission_sandbox::{
 use aq_server::delegated_permits::{CredentialKey, PermitRecord};
 use uuid::Uuid;
 
-mod common;
+use crate::common;
 
 fn issued() -> DelegatedPermit {
     let permit_id = Uuid::from_u128(1);

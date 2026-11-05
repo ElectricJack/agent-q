@@ -1,5 +1,5 @@
 //! Daemon-owned provisionability, never an installed key or provider assertion.
-mod common;
+use crate::common;
 use aq_admission::transport::{Feature, Register, WorkerIdentity};
 use aq_selection::{AuthorizedCredential, DeliveryCapability};
 use aq_server::{

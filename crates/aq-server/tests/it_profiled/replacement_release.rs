@@ -2,7 +2,7 @@
 //! actual profiled attempt row with hot authority, released through
 //! `replacement::release`, and the storage guards that refuse uncertain or
 //! accepted predecessors. Synthetic owner receipts; no guardian or HTTP path.
-mod common;
+use crate::common;
 use aq_server::{
     error::AppError,
     execution::{

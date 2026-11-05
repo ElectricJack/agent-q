@@ -16,7 +16,7 @@ async fn shaped() -> (Case, aq_admission::started::Request) {
         .unwrap();
     let lease = &accepted.receipt.lease;
     let mut request: aq_admission::started::Request = serde_json::from_str(include_str!(
-        "../../../aq-admission/artifacts/started.fixture.json"
+        "../../../../aq-admission/artifacts/started.fixture.json"
     ))
     .unwrap();
     request.operation_id = Uuid::new_v4();

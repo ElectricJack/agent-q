@@ -1,5 +1,5 @@
 //! C5b write-back endpoint: real SQL/router fences with synthetic login bytes.
-mod common;
+use crate::common;
 use aq_admission::{Digest, Label, MaterialLease, transport::*};
 use aq_selection::{AuthorizedCredential, CredentialKind, DeliveryCapability};
 use aq_server::{

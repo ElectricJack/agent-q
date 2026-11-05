@@ -1,7 +1,7 @@
 //! Explicit candidate0023 schema component tests on disposable PostgreSQL.
 //! No normal migration registration, native credential issuance, production
 //! mount or provider qualification is claimed by these synthetic known bindings.
-mod common;
+use crate::common;
 use aq_playbook_host::runner::{CancellationResult, Intent, IntentStatus};
 use aq_server::{
     playbooks::{domain::*, service::*},
@@ -47,7 +47,7 @@ async fn setup_with(graph_events: bool) -> Env {
                 .fetch_one(&pool)
                 .await
                 .unwrap();
-        sqlx::raw_sql(include_str!("../migrations/0023_playbook_bridge.sql"))
+        sqlx::raw_sql(include_str!("../../migrations/0023_playbook_bridge.sql"))
             .execute(&pool)
             .await
             .unwrap();

@@ -10,7 +10,7 @@
 //! integration port). Recorded extra fakes (D11.md "Limits"): the graph
 //! (aq-graph is a separate service) and the sandbox check executor
 //! (unbound in production).
-mod common;
+use crate::common;
 use aq_playbook_host::model::{Artifact, hash_bytes};
 use aq_server::{
     delivery::{PublicationMode, PublicationPolicy},
@@ -1430,7 +1430,7 @@ async fn pilots_end_to_end() {
     .into_iter()
     .collect();
     let source: Value = serde_json::from_str(include_str!(
-        "../../../vendor/aq-playbooks-source-0.1.3.json"
+        "../../../../vendor/aq-playbooks-source-0.1.3.json"
     ))
     .unwrap();
     let evidence = json!({

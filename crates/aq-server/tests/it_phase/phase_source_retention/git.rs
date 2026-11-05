@@ -1,5 +1,6 @@
-pub use crate::actual_git_owner::git;
-use crate::{actual_git_owner::Owner, common::presence};
+use crate::common::presence;
+use crate::phase_source_retention::actual_git_owner::Owner;
+pub use crate::phase_source_retention::actual_git_owner::git;
 use aq_admission::{Digest, ObjectFormat, ObjectId, SourceSelection};
 use serde_json::{Value, json};
 use std::sync::Arc;
@@ -13,7 +14,7 @@ pub struct Actual {
 }
 impl Actual {
     pub async fn prepare(ready: &mut presence::Case) -> Self {
-        crate::actual_git_owner::verify_pins();
+        crate::phase_source_retention::actual_git_owner::verify_pins();
         let c = &mut ready.c;
         // Source is deliberately preserved on ANY unknown/failed process drain.
         // Even successful cases retain this small private state for audit; the

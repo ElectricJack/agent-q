@@ -1,5 +1,5 @@
 //! Actual native cancellation/SQL owners with explicitly fake worker stop evidence.
-mod common;
+use crate::common;
 use aq_server::profiled_execution::{started, stopped};
 use axum::{
     body::{Body, to_bytes},

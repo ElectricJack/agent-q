@@ -76,7 +76,7 @@ async fn issuance_rotation_revocation_and_locked_authority_are_online() {
         .unwrap()
         .unwrap();
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../protocol/agent-access/v1/fixtures/base.json"
+        "../../../../protocol/agent-access/v1/fixtures/base.json"
     ))
     .unwrap();
     let profile = fixture["context"]["profile"].clone();
@@ -122,7 +122,7 @@ enabled=true
     .unwrap();
     let fake = Arc::new(FakeGraph {
         data: serde_json::from_str(include_str!(
-            "../../../protocol/agent-access/v1/fixtures/qualified-graph.json"
+            "../../../../protocol/agent-access/v1/fixtures/qualified-graph.json"
         ))
         .unwrap(),
         hold: std::sync::atomic::AtomicBool::new(false),
@@ -408,7 +408,7 @@ enabled=true
     }
 
     let vectors: Vec<Value> = serde_json::from_str(include_str!(
-        "../../../protocol/agent-access/v1/fixtures/scope-cases.json"
+        "../../../../protocol/agent-access/v1/fixtures/scope-cases.json"
     ))
     .unwrap();
     for vector in vectors.iter().filter(|v| v["action"] == "read") {

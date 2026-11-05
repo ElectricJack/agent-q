@@ -1,5 +1,5 @@
 //! Explicit populated archive qualification; no configured application database.
-#[path = "support/retained_archive.rs"]
+#[path = "../support/retained_archive.rs"]
 mod retained_archive;
 
 use aq_server::test_support::migrate_profile;

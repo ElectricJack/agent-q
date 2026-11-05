@@ -1,25 +1,25 @@
 //! Explicit disposable actual Codex/finite-peer task integration. No external
 //! provider, canonical data, or universal runtime/model qualification.
 #[allow(dead_code)] // Shared Git helper has APIs used by the source-retention fixture.
-#[path = "support/actual_git_owner.rs"]
+#[path = "../support/actual_git_owner.rs"]
 mod actual_git_owner;
-#[path = "support/codex_finite_provider.rs"]
+#[path = "../support/codex_finite_provider.rs"]
 mod codex_finite_provider;
-#[path = "support/codex_operator_assessment.rs"]
+#[path = "../support/codex_operator_assessment.rs"]
 mod codex_operator_assessment;
-#[path = "support/codex_runner_process.rs"]
+#[path = "../support/codex_runner_process.rs"]
 mod codex_runner_process;
-#[path = "support/codex_runtime_recipe.rs"]
+#[path = "../support/codex_runtime_recipe.rs"]
 mod codex_runtime_recipe;
-#[path = "support/codex_terminal_output.rs"]
+#[path = "../support/codex_terminal_output.rs"]
 mod codex_terminal_output;
-mod common;
-#[path = "support/native_result_settlement.rs"]
+use crate::common;
+#[path = "../support/native_result_settlement.rs"]
 mod native_result_settlement;
-#[path = "support/native_runner_transport.rs"]
+#[path = "../support/native_runner_transport.rs"]
 mod native_runner_transport;
 #[allow(dead_code)] // Shared Graph helper also serves its standalone component proof.
-#[path = "support/real_graph.rs"]
+#[path = "../support/real_graph.rs"]
 mod real_graph;
 use anyhow::{Context, Result, ensure};
 use aq_admission::{ArtifactRef, Digest, ObjectFormat, ObjectId, Text};
@@ -150,8 +150,8 @@ impl Pins {
             helper,
             tmux,
             client,
-            result_recipe: include_str!("fixtures/codex-result-local-recipe-v1.json").into(),
-            startup: include_str!("fixtures/agent-result-startup-v1.md").into(),
+            result_recipe: include_str!("../fixtures/codex-result-local-recipe-v1.json").into(),
+            startup: include_str!("../fixtures/agent-result-startup-v1.md").into(),
             contract: std::fs::read_to_string(
                 "/tmp/aq-agent-result-protocol-pin-v1/contract.json",
             )?,
@@ -577,7 +577,7 @@ async fn model_input_evidence(
     offered.startup.verify_payload(&retained.bytes)?;
     tx.commit().await?;
     let text = std::str::from_utf8(&retained.bytes)?;
-    let startup = include_str!("fixtures/agent-result-startup-v1.md");
+    let startup = include_str!("../fixtures/agent-result-startup-v1.md");
     ensure!(
         text.matches(startup).count() == 1,
         "reporting startup must be counted exactly once"
@@ -676,7 +676,7 @@ async fn execute_case(
 ) -> Result<Value> {
     use codex_finite_provider::{FinitePeer, FixtureCli, ToolProgram};
     let tools = root.join("codex_tool_commands.py");
-    let tool_bytes = include_bytes!("support/codex_tool_commands.py");
+    let tool_bytes = include_bytes!("../support/codex_tool_commands.py");
     ensure!(
         Digest::of(tool_bytes).as_str() == TOOL_SHA,
         "frozen tool program changed"

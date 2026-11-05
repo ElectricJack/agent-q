@@ -1,5 +1,5 @@
 //! Bootstrap capabilities track actual mounted owners and current human roles.
-mod common;
+use crate::common;
 use aq_server::{
     agent_access::{AgentAccessConfig, Runtime},
     protected_storage::{KeyFile, Keyring, ProtectionConfig},

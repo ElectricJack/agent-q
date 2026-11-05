@@ -1,9 +1,6 @@
 //! Production Prepare transport over actual owners; Graph/Git/private inputs are
 //! synthetic in these fixtures. The cross-process physical probe is separate.
-mod common;
-#[allow(dead_code)]
-#[path = "common/phase_terminal.rs"]
-mod terminal;
+use crate::common_phase_terminal as terminal;
 use aq_admission::preparation_v2::{self as wire, Document};
 use aq_server::profiled_execution::{phase_execution::transport, policies};
 use axum::{

@@ -1,9 +1,6 @@
 //! Actual phase Grant→Started→terminal HTTP registration and inspection owners.
 //! Graph/runtime/output claims are synthetic here; physical worker tests separate.
-mod common;
-#[allow(dead_code)]
-#[path = "common/phase_terminal.rs"]
-mod phase;
+use crate::common_phase_terminal as phase;
 use aq_server::{
     AppState,
     terminal::{

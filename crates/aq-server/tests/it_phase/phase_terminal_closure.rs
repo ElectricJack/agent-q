@@ -1,9 +1,6 @@
 //! Actual phase issuer and SQL closure owner. Proof templates are explicitly
 //! synthetic: these tests qualify the consumer, not physical worker production.
-mod common;
-#[allow(dead_code)]
-#[path = "common/phase_execution.rs"]
-mod fixture;
+use crate::common_phase_execution as fixture;
 use aq_admission::{
     ArtifactKind, ArtifactRef, Digest, Text, granted_closure as original,
     preparation_v2::ExecutionReceipt,
@@ -20,7 +17,7 @@ use fixture::{Prepared, auth};
 use serde_json::{Value, json};
 use sqlx::Row;
 use uuid::Uuid;
-const SQL: &str = include_str!("../migrations/0033_phase_terminal.sql");
+const SQL: &str = include_str!("../../migrations/0033_phase_terminal.sql");
 
 fn qualify(c: &mut ProfiledConfig) {
     let r = &c.qualified_runtimes[0];

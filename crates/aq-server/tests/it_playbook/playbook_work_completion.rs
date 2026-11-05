@@ -1,7 +1,7 @@
 //! Catalog profile 7 work.ensure completion on disposable PostgreSQL through
 //! the production service owners. The graph port is an in-memory fake; a
 //! test flips the fake task's state the way the task lifecycle would.
-mod common;
+use crate::common;
 use aq_playbook_host::runner::{Intent, IntentStatus};
 use aq_server::{
     playbooks::{

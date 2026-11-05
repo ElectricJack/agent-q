@@ -1,6 +1,6 @@
 //! Actual ordered30 no-launch owner/SQL with synthetic Graph/Git/runtime qualification.
 //! No execution grant, host or provider claim.
-mod common;
+use crate::common;
 use aq_admission::{
     ArtifactKind, ArtifactRef, Digest, Resources, Text,
     control::{ControlReply, decode_reply},

@@ -1,5 +1,4 @@
 //! Actual ordered schema28; no runtime activation or simulated old-version label.
-mod common;
 use aq_server::{
     store::Store,
     test_support::{TestDb, migrate_profile},

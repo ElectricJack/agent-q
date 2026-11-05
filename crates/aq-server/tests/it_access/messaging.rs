@@ -85,7 +85,7 @@ async fn setup() -> Env {
         .unwrap()
         .unwrap();
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../protocol/agent-access/v1/fixtures/base.json"
+        "../../../../protocol/agent-access/v1/fixtures/base.json"
     ))
     .unwrap();
     let mut profile = fixture["context"]["profile"].clone();

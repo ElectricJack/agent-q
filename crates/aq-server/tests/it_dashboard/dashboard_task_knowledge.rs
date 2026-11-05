@@ -1,5 +1,5 @@
 //! G2 typed task and knowledge commands over a fake public Graph API.
-mod common;
+use crate::common;
 use aq_server::agent_access::{AgentAccessConfig, Runtime};
 use axum::{
     Router,
@@ -762,7 +762,7 @@ async fn supervisor_token(x: &Fixture) -> String {
         }
     }
     let examples: Value = serde_json::from_str(include_str!(
-        "../../aq-central-authority/artifacts/examples.json"
+        "../../../aq-central-authority/artifacts/examples.json"
     ))
     .unwrap();
     let Document::Plan(plan) =

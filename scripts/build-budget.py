@@ -5,7 +5,9 @@ Two numbers decide how slow this workspace is to build and test, and both only
 ever grew until they were measured (see AGENTS.md "Build health"):
 
 * integration test binaries: every `tests/*.rs` file (or `[[test]]` target) is
-  a separate executable that links the whole library and its dependencies;
+  a separate executable that links the whole library and its dependencies
+  (aq-server declares a few domain binaries, `tests/<group>/main.rs`, with
+  `autotests = false`);
 * library size: the lines of each crate's lib, which rustc compiles as one unit.
 
 The check fails when either number rises above the value recorded in
@@ -61,12 +63,19 @@ def measure():
     members = set(meta["workspace_members"])
     packages = [p for p in meta["packages"] if p["id"] in members]
     test_binaries = sum(1 for p in packages for t in p["targets"] if "test" in t["kind"])
+    unbuilt = []
+    for package in packages:
+        tests = Path(package["manifest_path"]).parent / "tests"
+        targets = {Path(t["src_path"]).resolve() for t in package["targets"] if "test" in t["kind"]}
+        for path in sorted([*tests.glob("*.rs"), *tests.glob("*/main.rs")]):
+            if path.resolve() not in targets:
+                unbuilt.append(str(path.relative_to(ROOT)))
     lines = {}
     for package in packages:
         count = lib_lines(package)
         if count is not None:
             lines[package["name"]] = count
-    return test_binaries, lines
+    return test_binaries, lines, unbuilt
 
 
 def update(text, test_binaries, ratchets):
@@ -90,7 +99,7 @@ def main():
     test_budget = budget["test_binaries"]["max"]
     line_target = budget["lib_lines"]["target"]
     ratchets = budget["lib_lines"].get("ratchet", {})
-    test_binaries, lines = measure()
+    test_binaries, lines, unbuilt = measure()
 
     if args.update:
         current = {name: lines.get(name, 0) for name in ratchets}
@@ -103,13 +112,18 @@ def main():
     if test_binaries > test_budget:
         errors.append(
             f"{test_binaries} integration test binaries exceed the budget of {test_budget}. "
-            "Add new tests to an existing test binary (a module of an existing tests/*.rs "
-            "file) instead of a new tests/*.rs file.")
+            "Add new tests to an existing test binary (for aq-server, a module of an "
+            "existing tests/<group>/main.rs) instead of a new test target.")
     elif test_binaries < test_budget:
         errors.append(
             f"only {test_binaries} integration test binaries remain; lower test_binaries.max "
             f"from {test_budget} to {test_binaries} in {BUDGET.name} (or run "
             "scripts/build-budget.py --update) so the ratchet keeps the gain.")
+
+    for path in unbuilt:
+        errors.append(
+            f"{path} is not a test target, so it is never built or run (the crate sets "
+            "autotests = false). Make it a module of an existing tests/<group>/main.rs.")
 
     for name, count in sorted(lines.items(), key=lambda item: -item[1]):
         limit = ratchets.get(name, line_target)

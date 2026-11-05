@@ -1,5 +1,5 @@
 //! Real Graph + SQL operation owner. The proxy loses responses after real commits.
-mod common;
+use crate::common;
 use aq_server::{
     agent_access::{AgentAccessConfig, Runtime, human},
     test_support::TestDb,
@@ -46,7 +46,7 @@ fn request(id: Uuid, revision: &str) -> String {
 }
 fn status_schema(body: &Value) {
     let schema: Value = serde_json::from_str(include_str!(
-        "../../../protocol/human-task-create/v1/schema.json"
+        "../../../../protocol/human-task-create/v1/schema.json"
     ))
     .unwrap();
     assert!(

@@ -1,6 +1,6 @@
 //! Real SQL and HTTP stop owner checks; host observations are synthetic here.
 //! Physical proof production is independently qualified against the tmux host.
-mod common;
+use crate::common;
 use aq_server::profiled_execution::{started, stopped};
 use common::{
     native_started::{context, setup, state, stop_request},

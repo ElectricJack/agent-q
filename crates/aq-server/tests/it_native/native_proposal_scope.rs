@@ -1,6 +1,6 @@
 //! Cross-node protocol authorization with two genuinely authenticated registered
 //! nodes. Graph/runtime/source qualification remains synthetic; no process launches.
-mod common;
+use crate::common;
 use aq_admission::{
     ArtifactKind, ArtifactRef, Digest, Text,
     control::{ControlReply, decode_reply},

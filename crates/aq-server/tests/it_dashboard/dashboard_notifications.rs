@@ -1,6 +1,6 @@
 //! Local-development notification owner qualification. Disposable persisted
 //! messages have no endpoint or route, and cannot deliver outside this process.
-mod common;
+use crate::common;
 
 use aq_lifecycle_api::Scope;
 use aq_server::notifications::persistence::SendRequest;

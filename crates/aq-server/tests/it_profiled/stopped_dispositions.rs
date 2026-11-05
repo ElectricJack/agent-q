@@ -1,5 +1,5 @@
 //! Synthetic host proof, real PostgreSQL owners and authenticated HTTP routes.
-mod common;
+use crate::common;
 use aq_server::profiled_execution::{disposition, replacement, started, stopped};
 use axum::{
     body::{Body, to_bytes},

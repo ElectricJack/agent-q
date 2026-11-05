@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 #[test]
 fn registry_and_public_mailbox_dispositions_match_generated_profile() {
     let snapshot: Value = serde_json::from_str(include_str!(
-        "../../../protocol/playbook-host/v1/registry.json"
+        "../../../../protocol/playbook-host/v1/registry.json"
     ))
     .unwrap();
     assert_eq!(snapshot["registry"], json!(registry()));
@@ -13,7 +13,7 @@ fn registry_and_public_mailbox_dispositions_match_generated_profile() {
         "a463e5918f914c8365a04dfe1b6778831cfebb95"
     );
     let input: Value = serde_json::from_str(include_str!(
-        "../../../protocol/playbook-host/v1/fixtures/message-send.json"
+        "../../../../protocol/playbook-host/v1/fixtures/message-send.json"
     ))
     .unwrap();
     message_contract().input.validate(&input).unwrap();
@@ -22,7 +22,7 @@ fn registry_and_public_mailbox_dispositions_match_generated_profile() {
         .validate()
         .unwrap();
     let output: Value = serde_json::from_str(include_str!(
-        "../../../protocol/playbook-host/v1/fixtures/queued.json"
+        "../../../../protocol/playbook-host/v1/fixtures/queued.json"
     ))
     .unwrap();
     message_contract().outcomes["queued"]
@@ -44,7 +44,7 @@ fn registry_and_public_mailbox_dispositions_match_generated_profile() {
 #[test]
 fn graph_read_capability_does_not_authorize_mail_and_exact_session_scope_does_not_retarget() {
     let input: MessageInput = serde_json::from_str(include_str!(
-        "../../../protocol/playbook-host/v1/fixtures/message-send.json"
+        "../../../../protocol/playbook-host/v1/fixtures/message-send.json"
     ))
     .unwrap();
     let (w, p, t) = input.recipient.scope();

@@ -1,8 +1,5 @@
 //! Actual SQL history and current node auth, with synthetic Graph/Git/runtime.
-mod common;
-#[allow(dead_code)]
-#[path = "common/phase_execution.rs"]
-mod fixture;
+use crate::common_phase_execution as fixture;
 use aq_admission::{Digest, SessionIdentity};
 use aq_phase_terminal_protocol::{HistoryRequest, Negotiation};
 use aq_server::{

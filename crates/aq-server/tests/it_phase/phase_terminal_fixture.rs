@@ -1,8 +1,5 @@
 //! Fixture integration only; synthetic runtime proof is explicitly nonphysical.
-mod common;
-#[allow(dead_code)]
-#[path = "common/phase_terminal.rs"]
-mod terminal;
+use crate::common_phase_terminal as terminal;
 #[tokio::test]
 async fn qualified_terminal_fixture_preserves_actual_phase_origin_without_legacy_grant() {
     let f = Box::pin(terminal::prepared_terminal()).await;

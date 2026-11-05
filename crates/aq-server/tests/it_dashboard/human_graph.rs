@@ -1,5 +1,5 @@
 //! Actual independent pinned Graph service + PostgreSQL, never browser mocks.
-mod common;
+use crate::common;
 use aq_server::{
     agent_access::{AgentAccessConfig, Runtime, human},
     test_support::TestDb,
@@ -151,8 +151,10 @@ async fn actual_graph_tasks_dependencies_knowledge_revisions_and_cursor_scope() 
     let (status, page) = read(&app, &format!("{base}/tasks?limit=1"), "owner@localhost").await;
     assert_eq!(status, StatusCode::OK, "{page}");
     assert_eq!(page["contract"], "human-graph-1");
-    let schema: Value =
-        serde_json::from_str(include_str!("../../../protocol/human-graph/v1/schema.json")).unwrap();
+    let schema: Value = serde_json::from_str(include_str!(
+        "../../../../protocol/human-graph/v1/schema.json"
+    ))
+    .unwrap();
     assert!(
         aq_agent_api::check(&schema, &schema, &page),
         "public page schema: {page}"
@@ -216,7 +218,7 @@ async fn actual_graph_tasks_dependencies_knowledge_revisions_and_cursor_scope() 
     assert_eq!(status, StatusCode::OK, "{summary}");
     assert_eq!(summary["contract"], "human-overview-tasks-1");
     let overview_schema: Value = serde_json::from_str(include_str!(
-        "../../../protocol/human-overview-tasks/v1/schema.json"
+        "../../../../protocol/human-overview-tasks/v1/schema.json"
     ))
     .unwrap();
     assert!(

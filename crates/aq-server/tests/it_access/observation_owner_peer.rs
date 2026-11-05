@@ -1,6 +1,6 @@
 //! Explicit cross-repository qualification. The normal server suite does not
 //! require a worker checkout or silently substitute a fake owner client.
-mod common;
+use crate::common;
 use aq_observation_admission::{Operation, Request};
 use common::profiled::{Fixture, fixture};
 use serde_json::{Value, json};

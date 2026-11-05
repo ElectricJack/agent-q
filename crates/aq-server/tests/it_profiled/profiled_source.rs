@@ -1,5 +1,5 @@
 //! Fixed public Git reader with a synthetic Unix peer; no retained source grant.
-mod common;
+use crate::common;
 use aq_admission::{Digest, Label, SourceSelection};
 use aq_server::{
     profiled_execution::{

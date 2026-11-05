@@ -1,9 +1,6 @@
 //! Actual current-store/HTTP owners with explicitly synthetic host proof DTOs.
 //! No physical worker, kernel stop, model/provider or production eligibility claim.
-mod common;
-#[allow(dead_code)]
-#[path = "common/phase_refresh_terminal.rs"]
-mod terminal;
+use crate::common_phase_refresh_terminal as terminal;
 use aq_admission::{Digest, preparation_refresh_v1 as phase};
 use aq_phase_terminal_protocol::refresh_v1 as wire;
 use aq_server::profiled_execution::{phase_refresh_terminal as owner, policies};
@@ -17,7 +14,7 @@ use tower::ServiceExt;
 use uuid::Uuid;
 
 #[allow(dead_code)]
-#[path = "common/phase_frozen_dispatch.rs"]
+#[path = "../common/phase_frozen_dispatch.rs"]
 mod frozen_fixture;
 
 fn refresh_only_terminal_for_frozen_case(
@@ -379,7 +376,7 @@ async fn no_started_refresh_closure_revokes_permission_retains_holds_and_replays
     let f = Box::pin(terminal::prepared_terminal()).await;
     let execution = terminal::issue(&f).await;
     let fixtures: Value = serde_json::from_str(include_str!(
-        "../../aq-phase-terminal-protocol/artifacts/refresh-v1/fixtures.json"
+        "../../../aq-phase-terminal-protocol/artifacts/refresh-v1/fixtures.json"
     ))
     .unwrap();
     let mut q: wire::ClosureRequest =

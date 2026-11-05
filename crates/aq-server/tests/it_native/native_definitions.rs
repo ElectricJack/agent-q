@@ -1,5 +1,5 @@
 //! Public body owner tests. Synthetic definitions never qualify a real runtime.
-mod common;
+use crate::common;
 use aq_admission::{ArtifactKind, ArtifactRef, Digest, Text};
 use aq_server::profiled_execution::{
     config::ProfiledConfig,
@@ -105,7 +105,7 @@ async fn real_receipts_missing_bodies_and_immutable_definition_versions() {
         );
         // Draft027 explicitly applied: not ordered-chain qualification before026.
         sqlx::raw_sql(include_str!(
-            "../migrations/0027_native_definition_identities.sql"
+            "../../migrations/0027_native_definition_identities.sql"
         ))
         .execute(&pool)
         .await
@@ -172,7 +172,7 @@ async fn concurrent_changed_definitions_cannot_claim_same_identity_version() {
     let pool = f.db.pool().await;
     if aq_server::STATE_FORMAT_VERSION < 27 {
         sqlx::raw_sql(include_str!(
-            "../migrations/0027_native_definition_identities.sql"
+            "../../migrations/0027_native_definition_identities.sql"
         ))
         .execute(&pool)
         .await

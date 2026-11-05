@@ -1,5 +1,5 @@
 //! Registered hot-migration qualification; no production grant producer.
-mod common;
+use crate::common;
 use aq_server::execution::authority::hot::HotState;
 use common::profiled::{fixture, insert};
 use serde_json::json;

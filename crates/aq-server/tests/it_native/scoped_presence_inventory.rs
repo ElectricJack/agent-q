@@ -1,5 +1,5 @@
 //! Qualified synthetic definitions, actual private reads/current auth/SQL owners.
-mod common;
+use crate::common;
 use aq_admission::{Digest, scoped_presence::*};
 use aq_server::{
     profiled_execution::{policies, presence::inventory},

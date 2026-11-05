@@ -1,5 +1,5 @@
 //! Exact daemon-owned context facts: synthetic evidence, no model/provider calls.
-mod common;
+use crate::common;
 use aq_server::profiled_execution::{
     config::{ProfiledConfig, QualifiedRuntime},
     context_budget::{CapacityKind, Qualification, Rendering, Subject},

@@ -1,9 +1,6 @@
 //! Actual phase SQL owners; explicit synthetic runtime/Running observation.
 //! No physical producer, provider, result settlement or task release qualification.
-mod common;
-#[allow(dead_code)]
-#[path = "common/phase_terminal.rs"]
-mod terminal;
+use crate::common_phase_terminal as terminal;
 use aq_admission::preparation_v2::ExecutionReceipt;
 use aq_phase_terminal_protocol as wire;
 use aq_server::{

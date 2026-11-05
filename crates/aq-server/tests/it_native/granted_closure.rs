@@ -1,6 +1,6 @@
 //! SQL/HTTP owner qualification with actual publication→Accept→initial Grant.
 //! Synthetic proof policy does not qualify a physical suppression producer.
-mod common;
+use crate::common;
 use aq_admission::{
     Digest,
     granted_closure::{Evidence, JournalCheckpoint, Receipt, Request, SuppressionRecord},
@@ -392,7 +392,7 @@ fn closure_path_is_explicit_reserved_control() {
 }
 fn started(r: &Request, prepared: u64) -> aq_admission::started::Request {
     let mut value: aq_admission::started::Request = serde_json::from_str(include_str!(
-        "../../aq-admission/artifacts/started.fixture.json"
+        "../../../aq-admission/artifacts/started.fixture.json"
     ))
     .unwrap();
     value.operation_id = Uuid::new_v4();

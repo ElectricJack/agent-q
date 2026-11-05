@@ -1,5 +1,5 @@
 //! Mounted bounded recovery reads; no provider or physical host is invoked.
-mod common;
+use crate::common;
 use aq_admission::{
     LaunchBinding, SessionIdentity,
     control::{ControlReply, CurrentPhase, ReconcileEntry},

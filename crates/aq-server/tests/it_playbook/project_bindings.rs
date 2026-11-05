@@ -1,11 +1,11 @@
 //! AQ-19 public-owner routes, fake authoritative peers and explicit real-peer gate.
+use crate::common;
 use aq_server::AppState;
 use axum::http::StatusCode;
+use common::selection::*;
 use serde_json::{Value, json};
 use std::sync::{Arc, atomic::Ordering};
 use uuid::Uuid;
-mod common;
-use common::selection::*;
 
 #[tokio::test]
 async fn missing_intelligence_registry_refuses_new_selection_and_offer_fence_explicitly() {

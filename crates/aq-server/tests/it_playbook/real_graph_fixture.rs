@@ -1,5 +1,5 @@
 //! Opt-in real component fixture. No provider/worker/Git/AQ settlement is implied.
-#[path = "support/real_graph.rs"]
+#[path = "../support/real_graph.rs"]
 mod real_graph;
 use anyhow::{Context, Result, ensure};
 use real_graph::{BinaryPin, EXISTING_GRAPH_SHA256, RealGraphFixture, TaskSeed};

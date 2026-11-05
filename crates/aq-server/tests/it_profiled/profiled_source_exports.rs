@@ -1,5 +1,5 @@
 //! SQL source ownership with explicitly synthetic observation/export facts.
-mod common;
+use crate::common;
 use aq_admission::Digest;
 use aq_server::{
     profiled_execution::{

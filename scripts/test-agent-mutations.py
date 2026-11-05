@@ -15,8 +15,8 @@ replacement = '''            writer_file = Path(temp) / 'ordinary-writer-token'
             writer_file.chmod(0o600)
             env = dict(os.environ, CARGO_INCREMENTAL='0', AQ_MUTATION_GRAPH_URL=base,
                        AQ_MUTATION_GRAPH_TOKEN_FILE=str(writer_file))
-            subprocess.run(['cargo', 'test', '--locked', '--offline', '-p', 'aq-server', '--test', 'graph_mutations',
-                            'actual_qualified_graph_delivery_recovers_lost_receipt_without_duplicate_history',
+            subprocess.run(['cargo', 'test', '--locked', '--offline', '-p', 'aq-server', '--test', 'it_access',
+                            'graph_mutations::actual_qualified_graph_delivery_recovers_lost_receipt_without_duplicate_history',
                             '--', '--ignored', '--nocapture'], cwd=ROOT.parents[2], env=env, check=True)'''
 if source.count(original) != 1:
     raise SystemExit('fixture harness changed; review AQ-07 wrapper before running')

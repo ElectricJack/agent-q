@@ -1,5 +1,5 @@
 //! Actual synthetic-owner native publication and refusal cases. No provider calls.
-mod common;
+use crate::common;
 use aq_admission::{
     Digest,
     control::{ControlReply, decode_reply},

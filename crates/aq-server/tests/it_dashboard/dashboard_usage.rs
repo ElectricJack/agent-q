@@ -1,6 +1,6 @@
 //! Mounted dashboard usage capability and exact authorized persisted snapshots.
 //! Synthetic SQL projections qualify inspection, never a provider invoice.
-mod common;
+use crate::common;
 use aq_accounting::projection::Projection;
 use aq_server::dashboard_api::contract::SessionDetail;
 use axum::{
