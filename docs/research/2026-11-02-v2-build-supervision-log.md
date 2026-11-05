@@ -741,3 +741,4 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - I1 (`azure-horizon-22.4`) and I2 (`azure-horizon-22.5`) completed.
   - Merged aq-playbooks #6 (`nimble-harbor-36`, host catalog 2.1.0; unblocks `azure-delta-64`, which I messaged) and #5 (`sound-rapids-80.1`, the D10 implementation spec). aq-playbooks has no CI checks configured.
   - Folded I3's OpenCode §8.3 docs follow-up into `crisp-crest-28`.
+- **05:50 check.** I3 (`azure-horizon-22.6`, OpenCode on local Ollama) completed. Merged aq-worker #37 (`amber-cascade-22`, the `runner_needs_no_node_credential` fix for aq-worker main; green). MS1 still waits on C5b.
