@@ -808,6 +808,20 @@ impl Driver {
             Err(_) => Err(Error::Unknown),
         }
     }
+    /// The binding's full current activation; `None` if never activated.
+    pub(crate) async fn binding_activation(
+        &self,
+        binding: String,
+    ) -> Result<Option<aq_playbook_host::runner::Activation>> {
+        if binding.is_empty() || binding.len() > 128 || binding.contains('\0') {
+            return Err(Error::Invalid);
+        }
+        match self.owner.call(Request::Binding { binding }, CALL).await {
+            Ok(value) => Ok(Some(serde_json::from_value(value)?)),
+            Err(aq_playbook_host::Error::Invalid) => Ok(None),
+            Err(_) => Err(Error::Unknown),
+        }
+    }
     /// Internal shutdown only: closing retained ownership needs no fresh user
     /// business grant. Stop is attempted even if central fencing is uncertain.
     pub(crate) async fn shutdown(&self) -> Result<()> {

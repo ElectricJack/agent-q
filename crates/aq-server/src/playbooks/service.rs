@@ -863,6 +863,7 @@ impl Service {
         let scope = self
             .grant_locked(&mut tx, request.grant_id, request.grant_revision, false)
             .await?;
+        let binding = request.binding.clone();
         let engine_request = aq_playbook_host::runner::KeyedAdmissionRequest {
             key: key.clone(),
             binding: request.binding,
@@ -890,7 +891,7 @@ impl Service {
             .map_err(|_| Error::Unknown)?;
         self.budget(&mut tx, 1, 0, 0, 0, sealed.ciphertext.len() as i64 + 4096)
             .await?;
-        sqlx::query("INSERT INTO playbook_admissions(namespace_id,generation,request_id,request_digest,engine_key,grant_id,grant_revision,expected_activation_revision,sealed_version,key_id,nonce,ciphertext,created_at_ms,status) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending')").bind(self.namespace.namespace_id).bind(self.namespace.generation).bind(request.request_id).bind(digest).bind(&key).bind(request.grant_id).bind(request.grant_revision).bind(request.expected_activation_revision as i64).bind(sealed.version as i32).bind(sealed.key_id).bind(sealed.nonce).bind(sealed.ciphertext).bind(self.now()?).execute(&mut *tx).await?;
+        sqlx::query("INSERT INTO playbook_admissions(namespace_id,generation,request_id,request_digest,engine_key,grant_id,grant_revision,expected_activation_revision,sealed_version,key_id,nonce,ciphertext,created_at_ms,status,binding) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'pending',$14)").bind(self.namespace.namespace_id).bind(self.namespace.generation).bind(request.request_id).bind(digest).bind(&key).bind(request.grant_id).bind(request.grant_revision).bind(request.expected_activation_revision as i64).bind(sealed.version as i32).bind(sealed.key_id).bind(sealed.nonce).bind(sealed.ciphertext).bind(self.now()?).bind(&binding).execute(&mut *tx).await?;
         self.check_expiry(&mut tx, request.grant_id).await?;
         tx.commit().await?;
         Ok(AdmissionStatus {
