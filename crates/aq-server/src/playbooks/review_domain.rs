@@ -21,12 +21,14 @@ pub enum CatalogProfile {
     /// fingerprint-pinned for a new namespace/generation, numbered 7 after the
     /// main-line D8 profile 6. Adds the
     /// asynchronous judgment.request.v2/check.request.v2 and operation.get.
+    /// D11 registers all twelve catalog commands (adds findings.reconcile,
+    /// message.send and decision.request).
     Host7,
 }
 pub const HOST7_VERSION: &str = "2.0.0";
 pub const HOST7_FINGERPRINT: &str =
     "sha256:e2ce7dc8ff4b37538f8d27f175a4e365ff95cf14508ae7074beea04026b143db";
-pub const HOST7_CAPABILITIES: [&str; 9] = [
+pub const HOST7_CAPABILITIES: [&str; 12] = [
     "context.read",
     "work.ensure",
     "work.change",
@@ -36,6 +38,9 @@ pub const HOST7_CAPABILITIES: [&str; 9] = [
     "check.request.v2",
     "candidate.prepare",
     "candidate.publish",
+    "findings.reconcile",
+    "message.send",
+    "decision.request",
 ];
 fn host7_registry() -> Registry {
     static REGISTRY: std::sync::OnceLock<Registry> = std::sync::OnceLock::new();

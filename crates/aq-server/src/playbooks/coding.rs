@@ -146,8 +146,7 @@ impl CodingPolicy {
     }
 
     /// Builds against the Host7 grant ceiling: every capability a Host7 grant
-    /// can hold. A human decision is refused until that includes
-    /// `decision.request`.
+    /// can hold (since D11 including `decision.request`).
     pub fn build(&self) -> Result<CodingArtifacts, CodingError> {
         let ceiling: BTreeSet<String> = HOST7_CAPABILITIES.iter().map(|c| c.to_string()).collect();
         self.build_for(&ceiling)
@@ -1057,5 +1056,6 @@ impl Builder {
     }
 }
 
+pub mod pilots;
 #[cfg(test)]
 pub(crate) mod tests;

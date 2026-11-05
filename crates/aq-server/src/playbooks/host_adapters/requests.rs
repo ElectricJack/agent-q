@@ -203,6 +203,14 @@ fn pin(value: &Value) -> Result<ArtifactPin> {
     serde_json::from_value(value.clone()).map_err(|_| Error::Invalid)
 }
 
+/// Choices a Host7 decision may offer: the catalog's human verdicts.
+const DECISION_OUTCOMES: [&str; 2] = ["approved", "rejected"];
+
+/// `user:<uuid>`: the only responder form a Host7 decision accepts.
+fn responder(value: &str) -> Option<Uuid> {
+    Uuid::parse_str(value.strip_prefix("user:")?).ok()
+}
+
 fn revision_of(subject: &Value) -> Result<i64> {
     subject["revision"]
         .as_i64()
@@ -275,6 +283,7 @@ impl Service {
             "judgment.request" => (json!("judgment"), "aq.judgment.completed"),
             "check.request" => (json!("check"), "aq.check.receipted"),
             "work.ensure" => (json!("work"), "aq.operation.updated"),
+            "decision.request" => (json!("decision"), "aq.decision.completed"),
             _ => return Err(Error::Invalid),
         })
     }
@@ -443,8 +452,11 @@ impl Service {
         work: &Value,
     ) -> Result<()> {
         let subject = &work["subject"];
+        // `motivation` is the ensure input subject (for review work, the
+        // reviewed candidate); D11 publication evidence binds to it.
         let request = json!({"kind": text(&intent.input, "kind")?,
-            "reference": work["reference"], "subject": subject});
+            "reference": work["reference"], "subject": subject,
+            "motivation": intent.input["subject"]});
         sqlx::query("INSERT INTO playbook_host_operations(operation_id,namespace_id,generation,intent_id,command_name,subject_id,subject_revision,check_id,request,status,created_at_ms) VALUES($1,$2,$3,$4,'work.ensure',$5,$6,NULL,$7,'running',$8)")
             .bind(self.operation(intent)?)
             .bind(self.namespace.namespace_id)
@@ -1052,6 +1064,143 @@ impl Service {
             .await
     }
 
+    // ---------------------------------------------------------- decision.request
+
+    /// D11 Host7 decision.request: one durable question (accepted effect row
+    /// plus one running `playbook_host_operations` row) answered once by a
+    /// listed responder through [`Service::answer_decision`], or expired at
+    /// `expires_at_ms`. The completion seals `aq.decision.completed`. Nothing
+    /// is ever auto-approved.
+    pub(super) async fn host_decision_request(
+        &self,
+        owner: &RuntimeOwner,
+        id: Uuid,
+        revision: i64,
+        intent: &Intent,
+    ) -> Result<HostResult> {
+        let (tx, stage, identity) = self.begin(Some(owner), id, revision, intent).await?;
+        let operation = self.operation(intent)?;
+        match stage.ok_or(Error::Unknown)? {
+            Stage::Retained(result) => {
+                tx.commit().await?;
+                return Ok(result);
+            }
+            Stage::Pending(_) => return Err(Error::Conflict),
+            Stage::Fresh => {}
+        }
+        let input = &intent.input;
+        let subject = &input["subject"];
+        let strings = |field: &str| -> Option<Vec<String>> {
+            serde_json::from_value::<Vec<String>>(input[field].clone()).ok()
+        };
+        let (choices, responders) = (strings("choices"), strings("responders"));
+        let question = text(input, "question")?;
+        let expires = input["expires_at_ms"].as_i64().unwrap_or(0);
+        let distinct = |v: &Vec<String>| {
+            !v.is_empty() && v.iter().collect::<std::collections::BTreeSet<_>>().len() == v.len()
+        };
+        let valid = match (&choices, &responders) {
+            (Some(c), Some(r)) => {
+                distinct(c)
+                    && distinct(r)
+                    && c.iter().all(|c| DECISION_OUTCOMES.contains(&c.as_str()))
+                    && r.iter().all(|r| responder(r).is_some())
+                    && !question.trim().is_empty()
+                    && expires > self.now()?
+            }
+            _ => false,
+        };
+        if !valid {
+            let result = HostResult {
+                outcome: "refused".into(),
+                output: json!({"reference": format!("decision:{operation}"), "subject": subject}),
+            };
+            return self
+                .settle_fresh(tx, id, revision, intent, &identity, result)
+                .await;
+        }
+        let record = json!({"subject": subject, "question": question, "choices": choices,
+            "responders": responders, "expires_at_ms": expires});
+        self.record_operation(tx, id, revision, intent, &identity, None, &record)
+            .await
+    }
+
+    /// Expires a running decision once its expiry has passed.
+    async fn observe_decision(
+        &self,
+        operation: Uuid,
+        op: &Operation,
+    ) -> Result<Option<HostResult>> {
+        let expires = op.request["expires_at_ms"].as_i64().ok_or(Error::Unknown)?;
+        if self.now()? < expires {
+            return Ok(None);
+        }
+        let output =
+            json!({"reference": format!("decision:{operation}"), "subject": op.request["subject"]});
+        self.complete_operation(
+            operation,
+            &op.command,
+            &op.intent_id,
+            HostResult {
+                outcome: "expired".into(),
+                output,
+            },
+        )
+        .await
+        .map(Some)
+    }
+
+    /// Trusted human answer to a running Host7 decision: `actor` must be a
+    /// listed responder (`user:<id>`) and `choice` one of the offered
+    /// choices. Completes exactly once; a later answer returns the retained
+    /// completion. Not a worker route.
+    pub async fn answer_decision(
+        &self,
+        actor: Uuid,
+        handle: Uuid,
+        choice: &str,
+    ) -> Result<HostResult> {
+        if self.profile != CatalogProfile::Host7 {
+            return Err(Error::Forbidden);
+        }
+        let op = self.load_operation(handle).await?.ok_or(Error::Forbidden)?;
+        if op.command != "decision.request" {
+            return Err(Error::Forbidden);
+        }
+        if op.status != "running" {
+            return Ok(HostResult {
+                outcome: op.status,
+                output: op.output.ok_or(Error::Unknown)?,
+            });
+        }
+        if let Some(expired) = self.observe_decision(handle, &op).await? {
+            return Ok(expired);
+        }
+        let listed = |field: &str, wanted: &str| {
+            op.request[field]
+                .as_array()
+                .is_some_and(|v| v.iter().any(|x| x.as_str() == Some(wanted)))
+        };
+        if !listed("responders", &format!("user:{actor}")) {
+            return Err(Error::Forbidden);
+        }
+        if !listed("choices", choice) {
+            return Err(Error::Invalid);
+        }
+        let output =
+            json!({"reference": format!("decision:{handle}"), "subject": op.request["subject"]});
+        self.complete_operation(
+            handle,
+            &op.command,
+            &op.intent_id,
+            HostResult {
+                outcome: choice.into(),
+                output,
+            },
+        )
+        .await
+    }
+
     // ------------------------------------------------------------ operation.get
 
     /// Observation only: reads (and, for a stopped check, completes) the
@@ -1092,6 +1241,8 @@ impl Service {
             self.observe_check(operation).await?
         } else if op.command == "work.ensure" {
             self.observe_work(operation).await?
+        } else if op.command == "decision.request" {
+            self.observe_decision(operation, &op).await?
         } else if self.now()?
             >= op.request["deadline_at_ms"]
                 .as_i64()
