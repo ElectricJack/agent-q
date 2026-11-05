@@ -790,3 +790,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Fixed real gaps: a Host7 outbox wedge on undeclared events, `candidate.prepare` and `candidate.publish` source/review evidence, and the `message.send` and `decision.request` Host7 adapters.
   - Migration 0093_playbook_host_decisions is provisional.
   - **Merge queue:** #83 (0090), #85 (0091), F5 (0092), D11 (0093). Watch #85 vs D11: D11 pins the catalog 2.0.0 registry, while #85 adopts 2.1.0.
+- **07:55:**
+  - Merged #83 (`azure-journey-96`, playbook run/activation action kinds, migration 0090) as 2c770ab3; all 9 checks were green.
+  - Refreshed #85 on main (clean merge, catalog at 91, protocol checks pass; 59eb2ea0) and am waiting on CI.
+  - A trial merge of main into F5 conflicts with #83 in `dashboard_api/actions/existing.rs`, `tests/profiled_results.rs` and `protocol/dashboard-actions/v1/schema.json`. Both PRs add dashboard action kinds, and the generated schema needs regenerating.
+  - Dispatched an integration subagent to bring F5, then D11, current on top of #85, verify each stack with a private target dir, and open their PRs.
