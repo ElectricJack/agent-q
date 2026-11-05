@@ -915,3 +915,16 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - The owner asked whether to optimise builds. Every MS1 loop waits on 5–10 min Rust rebuilds, so I started a read-only build audit (10 items: timings, linker, debuginfo, dev dep opt, duplicates, features, crate split and test binaries, llvm-lines, release profile, CI caching) at low priority.
   - The owner then said "Pause MS1 for this improvement". Both MS1 subagents (`ms1/retry`, `ms1/d1`) are stopping at a clean point: pushing working states, leaving the `aq-ms1`/`aq-ms1d` stacks idle, and reporting how to resume.
   - Once they're quiet, the audit takes real, uncontended timings. Nothing is changed until the owner approves.
+- **15:40: D1 subagent paused cleanly.** aq-server `ms1/d1` is at 69cee1b5.
+  - **Built and tested, not yet proven live:**
+    - a delivery owner in `settlement/publication.rs` publishes an accepted result's retained source through D1a/D1b `deliver` (fast-forward; PR mode is held explicitly) before D3 completes;
+    - the published head advances a named-ref project source, so B hydrates from A's commit;
+    - the scripts are parametrised for the `aq-ms1d` stack;
+    - `auto_settlement56` passes 10/10, including publish→complete→advance and moved-target→rework.
+  - **Left:** rerun config apply at credential revision 2, then run A→B live and record the evidence.
+  - **Follow-ups:**
+    - push to GitHub needs the aq-git credential profiles (A3b/D2);
+    - PR mode (D1b/D2);
+    - indeterminate-publish reconcile (D1b);
+    - a dedicated source-head table.
+  - The resume commands are in its report and the plan `docs/superpowers/plans/2026-11-05-ms1-d1-publication.md` on `ms1/d1`.
