@@ -877,3 +877,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Closed aq-server #5 (landed in 3244f225), #7 (duplicate of #3) and #69 (to be replaced by #60 and #64 separately), and aq-git #4 (landed in 8cb1ce4; CI already runs the checker's tests).
   - Dispatched subagents to bring the still-needed ones current: aq-server #53, #3, #9 (example half), #60, #64, #63 (migration renumbered to 0096), then aq-worker #32 and aq-dashboard #55.
   - Dashboard #70 (optional media) fails `supervisor-launcher.spec.ts`: "Post comment" ends up under the launcher, a real regression. Sent it back.
+- **14:30: owner feedback on the v2 dashboard.** "The new dashboard is nice looking but the v2 system is missing a lot that felt very critical in v1… the task view in v1 showed more information… I don't see comments, or task ids, or ways to copy task ids."
+  - Confirmed: the v2 task inspector shows only title, description, acceptance criteria, dependencies and revision. It has no copyable ID, no comments (v2 has no task-comment model at all), no execution state or why-not-running, no agent/session link, no branch/PR and no route.
+  - **Owner decision:** do a v1→v2 parity pass, task view first. The owner verifies each dashboard section and wants it completed before moving to the next.
+  - Started a read-only inventory comparing the v1 and v2 task views and the v2 server data behind each field.
