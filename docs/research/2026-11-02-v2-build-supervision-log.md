@@ -928,3 +928,20 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - indeterminate-publish reconcile (D1b);
     - a dedicated source-head table.
   - The resume commands are in its report and the plan `docs/superpowers/plans/2026-11-05-ms1-d1-publication.md` on `ms1/d1`.
+- **15:45: `ms1/retry` subagent paused cleanly.** Heads: aq-server dd263e99, aq-worker 6ac8477. Migration 0095_replacement_source_after_never_granted.
+  - **Re-review fixes all in:**
+    - the B1 driver guard;
+    - recovery stops the container;
+    - the real inventory sequence;
+    - `.pyc` removed;
+    - token trimming only for Claude logins;
+    - the template scan. Its real cause was the RUNNER's `credentials=` line, renamed to `login_file`, so the recipe digest is re-pinned to b30030fb…
+  - **B4 retry, partly live:** a killed Claude run reported failed, D3 sent it to rework, and the new D3 writer recorded source-retained and effects-settled. A replacement was then admitted with budget accounting (`attempts_started=1`, sandbox_ms charged). It found and fixed 5 real B4 bugs:
+    - a never-granted successor blocked all later ones;
+    - a project-revision change failed the whole node poll;
+    - lineage elapsed time had to be 0;
+    - exactly one started attempt was required;
+    - cancel polls failed once inventory aged out.
+  - **B5b:** closure settlement plus the 15 s sweep, and worker closure reporting, are in code; kept sandboxes are released via the new `release-native-sandbox`. The live replacement completion and the stuck-node closure are not run yet.
+  - **Found:** the dashboard pinned results-feedback schema rejects the server's newer result fields (`feedback_read_version`, `follow_up_submission`, `directly_following`). Any stack with results shows "Dashboard update required"; it needs a re-pin in aq-dashboard, parked under the MS1-first rule.
+  - Both MS1 subagents are now idle. The build audit has the machine.
