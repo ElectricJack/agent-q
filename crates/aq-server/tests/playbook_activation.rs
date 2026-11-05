@@ -743,6 +743,13 @@ async fn inspection_discovers_actual_admissions_runs_and_public_timeline() {
     .await;
     assert_eq!(detail["run"]["id"], run);
     assert_eq!(detail["run"]["artifact"], binding["artifact"]);
+    // The pin strip reads the binding and activation revision the run was admitted on.
+    assert_eq!(detail["run"]["binding"], "mail");
+    assert_eq!(
+        detail["run"]["activation_revision"],
+        binding["revision"].as_u64().unwrap().to_string()
+    );
+    assert_eq!(page["items"][0]["binding"], "mail");
     assert_eq!(detail["observation_is_atomic"], false);
     // G11 X30/X31: definition name, AQ install ordinal and active comparison.
     let definition = &detail["run"]["definition"];
@@ -825,6 +832,78 @@ async fn inspection_discovers_actual_admissions_runs_and_public_timeline() {
             .unwrap();
         assert!(matches!(response.status().as_u16(), 400 | 404));
     }
+    stop.send(()).unwrap();
+    task.await.unwrap().unwrap();
+}
+
+#[tokio::test]
+async fn dashboard_playbook_actions_start_cancel_and_refuse_stale_activation() {
+    let mut s = setup().await;
+    s.f.state.config = Arc::new(toml::from_str::<Config>(&s.text).unwrap());
+    let (base, stop, task) = launch(s.f.state.clone()).await;
+    ready(&base, &task).await;
+    let project =
+        get(&base, "/api/playbooks/inspection/runs?limit=1").await["namespace"]["project_id"]
+            .clone();
+    let binding = get(&base, "/api/playbooks/bindings/mail").await;
+    let revision = binding["revision"].as_u64().unwrap().to_string();
+    let post = |body: Value| {
+        let base = base.clone();
+        async move {
+            let response = client()
+                .post(format!("{base}/api/v1/actions"))
+                .header("x-aq-dev-email", "owner@localhost")
+                .header("x-aq-request", "1")
+                .json(&body)
+                .send()
+                .await
+                .unwrap();
+            let status = response.status().as_u16();
+            (status, response.json::<Value>().await.unwrap())
+        }
+    };
+    let versioned = |kind: &str, revision: &str, extra: Value| {
+        let id = Uuid::new_v4().to_string();
+        let mut payload = json!({"operation_id":id,"project_id":project,"expected_version":revision,
+            "binding":"mail","artifact":binding["artifact"]});
+        payload
+            .as_object_mut()
+            .unwrap()
+            .extend(extra.as_object().unwrap().clone());
+        json!({"operation_id":id,"kind":kind,
+            "subject":{"type":"playbook_binding","id":"mail","revision":revision},
+            "expected_versions":{"playbook_binding":revision},"payload":payload})
+    };
+    let start = versioned(
+        "playbook.run.start",
+        &revision,
+        json!({"entry":"main","inputs":{}}),
+    );
+    let (status, started) = post(start.clone()).await;
+    assert_eq!(status, 200, "{started}");
+    assert_eq!(started["data"]["disposition"], "confirmed", "{started}");
+    let affected = &started["data"]["affected_entities"][0];
+    assert_eq!(affected["type"], "playbook_run", "{started}");
+    let run = affected["id"].as_str().unwrap().to_string();
+    let (status, replayed) = post(start).await;
+    assert_eq!(status, 200, "{replayed}");
+    assert_eq!(replayed["data"]["disposition"], "confirmed", "{replayed}");
+    let id = Uuid::new_v4().to_string();
+    let (status, cancelled) = post(json!({"operation_id":id,"kind":"playbook.run.cancel",
+        "subject":{"type":"playbook_run","id":run},"expected_versions":{},"reason":"Stop it",
+        "payload":{"operation_id":id,"project_id":project,"run_id":run}}))
+    .await;
+    assert_eq!(status, 200, "{cancelled}");
+    assert_eq!(cancelled["data"]["disposition"], "confirmed", "{cancelled}");
+    let stale = (binding["revision"].as_u64().unwrap() + 1).to_string();
+    let (status, conflict) =
+        post(versioned("playbook.activation.rollback", &stale, json!({}))).await;
+    assert_eq!(status, 200, "{conflict}");
+    assert_eq!(conflict["data"]["disposition"], "conflict", "{conflict}");
+    assert_eq!(
+        conflict["data"]["current_versions"]["playbook_binding"],
+        revision
+    );
     stop.send(()).unwrap();
     task.await.unwrap().unwrap();
 }

@@ -287,7 +287,7 @@ pub fn build_admin_router_with_optional_owners(
         .merge(media_routes)
         .merge(admin_api::admin_routes())
         .merge(
-            dashboard_api::routes_with_reviews(state.clone(), reviews)
+            dashboard_api::routes_with_reviews(state.clone(), reviews, playbooks.clone())
                 .layer(axum::Extension(playbooks)),
         )
         .merge(agent_access::human::routes(&state))
