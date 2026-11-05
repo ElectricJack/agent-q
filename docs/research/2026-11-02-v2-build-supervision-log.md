@@ -687,3 +687,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Fixed on main** in `053a738`: `agent_supervisor_mail` moved to 0084, with the central37 `include_str!` and version gate updated. `cargo check -p aq-server --tests` and the migration catalog (84) pass.
   - **D9 (`crisp-meadow-36.10`)** closed COMPLETED, but commit `68e6bb8` was never integrated to main, and its 0084 migration now collides. Reopened it (priority 6) to merge main, renumber to 0085 and integrate (agent-owned, so no W61).
   - Routed C5b's aq-worker CAS contract follow-up to C6b instead of filing a duplicate.
+- **02:40 check.**
+  - Updated #80 (`swift-harbor-15`, the `native_accepted` fix), which had failed only on the earlier duplicate 0083.
+  - Renumbered #79 (`azure-orbit-61`, H5 server follow-up) from `0083_hibernation` to 0085 (no gates). W61: its dependent `clear-crest-61.5.1` needs its edge cleared after merge.
+  - Told D9 to take the next free number when it merges (about 0086).
+  - G9 is blocked on D9 not being integrated; replied to its agent and routed its action-union adapter follow-up to D9.
+  - aq-worker main is red after H5 (`sandbox_runner::runner_needs_no_node_credential`); filed a fix task (priority 9).
