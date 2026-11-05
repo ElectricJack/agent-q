@@ -26,6 +26,7 @@ use sqlx::{Postgres, Row, Transaction};
 use uuid::Uuid;
 
 pub mod action;
+pub mod inbox;
 
 /// Route → capability. Published in `protocol/agent-questions/v1/routes.json`.
 pub const ROUTES: [(&str, &str); 2] = [

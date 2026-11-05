@@ -322,6 +322,7 @@ pub fn admin_routes(state: AppState) -> Router<AppState> {
         .merge(messaging::admin_routes())
         .merge(mutations::admin_routes())
         .merge(waits::routes::admin_routes())
+        .merge(questions::inbox::admin_routes())
         .route("/api/agent-access/provision", post(provision))
         .with_state(state.clone())
         .merge(
