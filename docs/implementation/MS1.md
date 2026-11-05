@@ -4,6 +4,38 @@ Task `stark-zenith-16.2`. Run on 2026-11-05, 05:00–05:35 UTC, on the owner's
 desktop (WSL2). Owner decision of 2026-11-04: the agent is **Claude Code**
 signed in with the owner's Claude subscription login (no API key), not Codex.
 
+## Update 2026-11-05 (14:30 UTC): re-review fixes on `ms1/retry`
+
+The independent re-review of `ms1/demo` found that B1 was only half closed.
+Fixed on `ms1/retry` (aq-worker), each as its own commit:
+
+- **B1 remainder (required).** Claude can exit 0 without doing the work: it
+  can end its turn with a clarifying question, a refusal or "couldn't find X".
+  Copy-back then succeeded, the executor reported `Success`, and D3 completed
+  the task (no required checks, delivery not required). The driver now writes
+  `exit.json` success only when all of these hold: the runner exited 0; the
+  last stream-json `result` event has `subtype == "success"` and
+  `is_error == false`; the agent's final text has its own `Changes:` line; and
+  the copied-back change set is not empty. Anything else is `Failed`, and D3
+  sends it to rework. `RUNNER` is unchanged, so `CLAUDE_RECIPE_DIGEST` stays
+  valid. A unit test covers each refusal case.
+- **Recommended.** After a node kill, `reconcile-native` stopped the session
+  host but not the docker-local sandbox, so Claude kept running there with the
+  token in its environment. It now also stops (never destroys) the attempt's
+  sandbox through `stop_attempt_sandbox`.
+- **Nits.** The cancellation poll sends the node's real inventory sequence,
+  not 1 (with 1, the server refused every poll that had no pending
+  cancellation). Committed `__pycache__/*.pyc` files are removed and ignored.
+  On the server, only a Claude subscription login (`subscription-login`,
+  provider `anthropic`) has its CR/LF trimmed; API keys stay byte-exact.
+
+**Still agent self-report (follow-up).** With no required checks, D3's
+automatic completion still rests on what the agent did and said: the driver
+guard refuses an obvious non-result, but a wrong change that Claude reports
+as done still completes the task. The real backstop is required checks, which
+the server runs against the retained source (D6). Until D6 lands, projects
+that must not complete on self-report should keep a human review requirement.
+
 ## Update 2026-11-05 (08:00–13:30 UTC): review fixes, cancel, restart drills
 
 Evidence: [MS1-evidence/wiring/drills.jsonl](MS1-evidence/wiring/drills.jsonl)
