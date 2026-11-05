@@ -819,3 +819,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - the Claude recipe digest isn't pinned;
     - naming the policy actor removes the human fallback.
   - All sent back to the wiring subagent ahead of cancel and retry.
+- **08:35:** main CI is green again at #81 (473bbe2b) and #82 (badab765); #83 is still running.
+  - #85's `tests` job failed `playbook_activation::inspection_discovers_actual_admissions_runs_and_public_timeline`, with `definition.active` null in the list item. Locally it passed 3/3 on #85 and also on main (disposable Postgres), so it's flaky.
+  - The first rerun died on a GitHub runner `No space left on device` before any test ran; rerunning again.
+  - F5 is up as #87.
