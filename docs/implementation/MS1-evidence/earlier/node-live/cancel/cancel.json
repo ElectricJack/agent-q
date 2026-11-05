@@ -1,0 +1,16 @@
+{
+  "attempt_id": "d71f7aea-27c7-49f7-a4a2-a53896ccc640",
+  "claude_reached_its_own_exit": false,
+  "destroyed": true,
+  "disk_present_after_stop": true,
+  "first_claude_turn_after_ms": 4651,
+  "material_absent": true,
+  "owned_after_destroy": 0,
+  "phase_after_stop": "Stopped",
+  "runner_exit": "Some(Exited(137))",
+  "sandbox_backend_id": "aq-e9866ecc83614c07a571f2b1e67168d6-d71f7aea27c749f7a4a2a53896ccc640",
+  "stop_confirm_ms": 6429,
+  "stop_proof": "StoppedNoProcesses",
+  "template_digest": "sha256:194e11f54fbe104734166ec219f5ac13b2e54055fae01f6c3ce264a915f172a4",
+  "write_calls_before_stop": 5
+}

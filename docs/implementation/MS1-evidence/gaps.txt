@@ -1,0 +1,13 @@
+
+== production fences that block MS1 steps 1-5 through the stack  [05:42:11Z]
+node controller (aq-worker run):
+2026-11-05T05:41:25.211091Z  WARN aq_worker::controller::service: B2 registration/issuance provider is not installed; admission fenced; foundation heartbeat remains active
+700:                let mut controller = Controller::open(&config.state_dir, worker.node_id, config.node, backend, UnavailableProvider)?;
+in-sandbox runner (aq-worker sandbox-run):
+440:                    "sandbox runner B2 receipt codec is unavailable; permit transport validated, no launch attempted"
+server v2 execution offers:
+270:            "synthetic assignments are development-only",
+
+== ready graph tasks (A stays ready and unclaimed while admission is fenced)  [05:42:11Z]
+{"id": "e0a20000-0000-4000-8000-000000000011", "title": "MS1 step 1: add a hello function to the scratch crate", "task_state": "active", "version": 2, "ready": true}
+{"id": "e0a20000-0000-4000-8000-000000000012", "title": "MS1 step 2: document hello in the README", "task_state": "active", "version": 2, "ready": false}

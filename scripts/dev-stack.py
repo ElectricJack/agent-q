@@ -55,6 +55,28 @@ def paths():
     return state, secret, vault
 
 
+def intelligence_section():
+    """Opt-in operator [intelligence] tables (MS1: a subscription-login
+    credential and its material store). Configuration only, never login bytes:
+    those enter through `aq-server import-login`."""
+    name = os.environ.get("AQ_DEV_INTELLIGENCE_FILE")
+    if not name:
+        return ""
+    import tomllib
+    path = Path(name)
+    try:
+        metadata = path.lstat()
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > 65536:
+            raise ValueError()
+        text = path.read_text()
+        tables = tomllib.loads(text)
+    except (OSError, ValueError, UnicodeDecodeError):
+        raise ValueError("AQ_DEV_INTELLIGENCE_FILE must be a small regular TOML file with only [intelligence] tables") from None
+    if set(tables) != {"intelligence"}:
+        raise ValueError("AQ_DEV_INTELLIGENCE_FILE must contain only [intelligence] tables")
+    return "\n" + text if text.endswith("\n") else "\n" + text + "\n"
+
+
 def prepare():
     state, secret, vault = paths()
     for directory in (state, secret, vault,
@@ -95,6 +117,7 @@ active_key_id = "dev-terminal-1"
 id = "dev-terminal-1"
 file = "/run/aq-dev/terminal_protection_key"
 '''
+    config += intelligence_section()
     target = vault / "config.toml"
     if target.exists() and target.read_text() != config:
         raise ValueError("development vault differs from generated configuration; preserve it and use a new AQ_DEV_STATE_DIR")
