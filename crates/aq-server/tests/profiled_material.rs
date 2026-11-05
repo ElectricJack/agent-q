@@ -69,6 +69,7 @@ async fn setup() -> Case {
     cfg.intelligence = Some(Arc::new(
         IntelligenceConfig {
             accounting: Default::default(),
+            material_store: None,
             revision: 1,
             credentials: vec![CredentialConfig {
                 kind: Default::default(),
