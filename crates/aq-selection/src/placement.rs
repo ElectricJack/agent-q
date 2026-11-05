@@ -57,6 +57,9 @@ pub fn admit_confinement(
     placement: Option<&Placement>,
     profile: &aq_profiles::ExecutionConfinement,
 ) -> Result<ConfinementMode, (CandidateState, &'static str)> {
+    if profile.require_container && profile.permit_container && !profile.require_native {
+        return Ok(ConfinementMode::Container);
+    }
     if !container_only(placement.and_then(|p| p.backend)) {
         return Ok(ConfinementMode::Native);
     }

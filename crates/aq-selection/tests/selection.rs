@@ -929,6 +929,7 @@ fn container_only_backend_admits_only_permitted_container_confinement() {
     let native = ExecutionConfinement {
         permit_container: false,
         require_native: true,
+        require_container: false,
     };
     let required = change_confinement(&catalog, native, &mut input);
     let out = select(&required, &input).unwrap();
@@ -940,6 +941,7 @@ fn container_only_backend_admits_only_permitted_container_confinement() {
     let permit = ExecutionConfinement {
         permit_container: true,
         require_native: false,
+        require_container: false,
     };
     let permitted = change_confinement(&catalog, permit, &mut input);
     assert!(select(&permitted, &input).unwrap().resolved.is_some());
@@ -956,6 +958,14 @@ fn container_only_backend_admits_only_permitted_container_confinement() {
             Ok(ConfinementMode::Native)
         );
     }
+    // MS1: a profile whose harness always runs in a node-owned container is
+    // container-confined even on a node without B1 placement facts.
+    let always = ExecutionConfinement {
+        permit_container: true,
+        require_native: false,
+        require_container: true,
+    };
+    assert_eq!(admit_confinement(None, &always), Ok(ConfinementMode::Container));
     assert_eq!(
         admit_confinement(None, &ExecutionConfinement::default()),
         Ok(ConfinementMode::Native)

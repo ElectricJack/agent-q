@@ -481,7 +481,9 @@ def catalog_rev2(built):
     catalog["execution"].append({
         "id": exec_id, "version": int(exec_version), "harnesses": [HARNESS], "environments": [ENVIRONMENT],
         "context_limit_bytes": CONTEXT_BYTES, "permissions": built["permissions"],
-        "credential_profile_references": [f"{CREDENTIAL}@1"]})
+        "credential_profile_references": [f"{CREDENTIAL}@1"],
+        # The harness always runs inside the docker-local sandbox (C6a container mode).
+        "confinement": {"permit_container": True, "require_container": True}})
     artifact["identities"] = identities(catalog, artifact["instructions"])
     return canonical(artifact)
 

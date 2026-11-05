@@ -109,6 +109,11 @@ pub struct ExecutionConfinement {
     pub permit_container: bool,
     #[serde(default)]
     pub require_native: bool,
+    /// MS1: the profile's harness always runs inside a node-owned sandbox
+    /// container (the docker-local Claude driver), whatever the node's B1
+    /// placement facts say. Implies `permit_container`. Omitted when false.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub require_container: bool,
 }
 impl ExecutionConfinement {
     pub fn is_default(&self) -> bool {
@@ -428,7 +433,9 @@ pub fn validate(
             "execution bounds",
         )?;
         ensure(
-            !(e.confinement.permit_container && e.confinement.require_native),
+            !(e.confinement.permit_container && e.confinement.require_native)
+                && !(e.confinement.require_container
+                    && (e.confinement.require_native || !e.confinement.permit_container)),
             "execution confinement contradictory",
         )?;
         insert(
