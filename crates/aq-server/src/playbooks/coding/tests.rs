@@ -513,10 +513,15 @@ fn decision_grant() -> BTreeSet<String> {
 
 #[test]
 fn human_decision_is_refused_without_the_decision_grant() {
-    // The Host7 grant ceiling lacks decision.request: refuse, never fall back
-    // to a review-only policy.
+    // A grant lacking decision.request: refuse, never fall back to a
+    // review-only policy.
+    let without: BTreeSet<String> = HOST7_CAPABILITIES
+        .iter()
+        .filter(|c| **c != DECISION_CAPABILITY)
+        .map(|c| c.to_string())
+        .collect();
     assert_eq!(
-        decision_policy().build().unwrap_err(),
+        decision_policy().build_for(&without).unwrap_err(),
         CodingError::NotGranted(DECISION_CAPABILITY.into())
     );
     // The default policy needs no decision capability.
