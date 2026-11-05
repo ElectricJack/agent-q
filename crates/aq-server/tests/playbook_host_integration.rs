@@ -397,20 +397,15 @@ async fn publish_refused_without_required_evidence() {
             "{asserted}"
         );
     }
-    // A passing check bound to another subject or another OID is stale.
+    // A passing check bound to another subject is stale.
     let other_subject = h
         .check("c-other-subject", "unit", "work-1", &oid('c'))
         .await;
-    let other_source = h
-        .check("c-other-source", "unit", &candidate, &oid('d'))
-        .await;
-    for (i, stale) in [&other_subject, &other_source].iter().enumerate() {
-        assert_eq!(
-            h.refusal(&format!("p-stale-{i}"), input(&[stale, &review_ref]))
-                .await,
-            "evidence_stale"
-        );
-    }
+    assert_eq!(
+        h.refusal("p-stale-0", input(&[&other_subject, &review_ref]))
+            .await,
+        "evidence_stale"
+    );
     // A failed check never counts, even next to a passing one.
     let unit = h.check("c-unit", "unit", &candidate, &oid('c')).await;
     let lint = h.check("c-lint", "lint", &candidate, &oid('c')).await;
@@ -482,6 +477,60 @@ async fn publish_refused_without_required_evidence() {
         .await;
     assert_eq!(r.outcome, "published", "{r:?}");
     assert_eq!(port.publishes.lock().unwrap().len(), 1);
+}
+
+/// D9 follow-up: a check on a candidate runs on the prepared candidate's OID,
+/// whatever input.source says, so its receipt is never evidence_stale.
+#[tokio::test]
+async fn candidate_check_binds_prepared_source() {
+    let f = common::profiled::fixture().await;
+    common::profiled::insert(&f).await;
+    let checks = checks();
+    let port = fake(&["unit"], false);
+    let h = host(&f, checks.clone(), port.clone()).await;
+    let candidate = h.prepare("prep-1").await;
+    pin(&checks, &candidate);
+    pin(&checks, "work-1");
+    let source = |c: char| json!({"format": "sha1", "hex": c.to_string().repeat(40)});
+    let request = |subject: &str, c: char| {
+        json!({"check": {"id": "unit", "validator": validator()}, "source": source(c),
+            "subject": {"id": subject, "revision": 1}})
+    };
+
+    // input.source 'd' is ignored: the check runs on, and echoes, 'c'.
+    let r = h
+        .run("c-unit", "check.request", request(&candidate, 'd'))
+        .await;
+    assert_eq!(r.outcome, "accepted", "{r:?}");
+    let handle = r.output["handle"].as_str().unwrap().to_string();
+    let done = h.get(&handle).await;
+    assert_eq!(done.outcome, "completed", "{done:?}");
+    assert_eq!(done.output["output"]["source"], source('c'));
+    let r = h
+        .run(
+            "p-ok",
+            "candidate.publish",
+            h.publish_input(&candidate, &[&format!("check-receipt:{handle}")]),
+        )
+        .await;
+    assert_eq!(r.outcome, "published", "{r:?}");
+
+    // A non-candidate subject keeps its input.source.
+    let r = h
+        .run("c-work", "check.request", request("work-1", 'd'))
+        .await;
+    assert_eq!(r.outcome, "accepted", "{r:?}");
+    let done = h.get(r.output["handle"].as_str().unwrap()).await;
+    assert_eq!(done.output["output"]["source"], source('d'));
+
+    // A candidate reference with no prepared candidate has no bytes to check.
+    let unknown = format!("aq.candidate/{}", Uuid::new_v4());
+    pin(&checks, &unknown);
+    let r = h
+        .run("c-unknown", "check.request", request(&unknown, 'c'))
+        .await;
+    assert_eq!(r.outcome, "refused", "{r:?}");
+    assert_eq!(r.output["reason"], "stale_subject");
 }
 
 #[tokio::test]

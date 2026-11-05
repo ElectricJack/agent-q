@@ -41,4 +41,4 @@ CREATE OR REPLACE FUNCTION central_global_mail_source_valid(p_message UUID) RETU
  AND o.response->>'cursor'=m.cursor::text
  AND o.response->>'disposition'='queued')
 $$;
-UPDATE meta SET value='83' WHERE key='state_format_version';
+UPDATE meta SET value='84' WHERE key='state_format_version';
