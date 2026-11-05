@@ -5,4 +5,4 @@ ALTER TABLE playbook_admissions ADD COLUMN binding text
  CHECK (binding IS NULL OR octet_length(binding) BETWEEN 1 AND 512);
 CREATE INDEX playbook_admissions_run ON playbook_admissions(namespace_id,generation,(receipt->>'run_id'))
  WHERE receipt IS NOT NULL;
-UPDATE meta SET value='88' WHERE key='state_format_version';
+UPDATE meta SET value='89' WHERE key='state_format_version';
