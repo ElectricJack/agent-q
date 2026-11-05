@@ -93,15 +93,18 @@ class RecoveryFixture(product.Fixture):
         self.images = [server, worker]
         self.record["recovery_build"] = {"source_inventory": inventory, "source_tree_sha256": tree,
                                           "feature": "recovery-test-support", "candidate": candidate}
+        self.record["recovery_build"]["image_cargo_profile"] = product.IMAGE_PROFILE
         self.run(["docker", "build", "--target", "server", "-f", str(source / "Dockerfile.recovery"),
-                  "--build-arg", "AQ_SOURCE_REVISION=recovery-" + tree[:24], "-t", server, str(source)],
+                  "--build-arg", "AQ_SOURCE_REVISION=recovery-" + tree[:24],
+                  "--build-arg", "CARGO_PROFILE=" + product.IMAGE_PROFILE, "-t", server, str(source)],
                  name="build-fixture-server", timeout=1800)
         # Recovery drives run-execution, which only the CI-only synthetic-runtime target ships.
         self.run(["docker", "build", "--target", "synthetic-runtime", "-f", str(source / "Dockerfile.worker"),
                   "--build-arg", "AQ_SOURCE_REVISION=" + candidate["source_revision"],
                   "--build-arg", "AQ_WORKER_ARCHIVE_SHA256=" + candidate["archive_sha256"],
                   "--build-arg", "AQ_STATE_FORMAT=" + state_format,
-                  "--build-arg", "AQ_VERSION=" + candidate["version"], "-t", worker, str(source)],
+                  "--build-arg", "AQ_VERSION=" + candidate["version"],
+                  "--build-arg", "CARGO_PROFILE=" + product.IMAGE_PROFILE, "-t", worker, str(source)],
                  name="build-fixture-worker", timeout=1800)
         saved = {key: os.environ.get(key) for key in ["AQ_SMOKE_SERVER_IMAGE", "AQ_SMOKE_WORKER_IMAGE", "AQ_SMOKE_FIXTURE_IMAGE"]}
         os.environ.update(AQ_SMOKE_SERVER_IMAGE=server, AQ_SMOKE_WORKER_IMAGE=worker, AQ_SMOKE_FIXTURE_IMAGE=worker)

@@ -51,16 +51,39 @@ tempfile = "3"
 
 # Bound worker test artifacts while retaining workspace backtrace file:line.
 # The test profile inherits these settings from dev.
+#
+# Interactive loops are incremental: an edit -> single-test rebuild of aq-server
+# takes ~16 s incremental against ~127 s without. The cost is disk: the target's
+# incremental/ directory grows to ~2.5 GB for one test binary and ~12 GB for
+# all of them. CI and one-shot qualification builds gain nothing from it and
+# set CARGO_INCREMENTAL=0, which overrides this. See AGENTS.md "Build health".
 [profile.dev]
 debug = "line-tables-only"
-incremental = false
+incremental = true
 
 [profile.dev.package."*"]
 debug = false
 
+# Test fixtures generate RSA-2048 keys (tests/common/mod.rs). Unoptimized,
+# keygen takes 2.5-12 s per test process; optimized, ~0.2 s. Only the
+# big-integer prime search is optimized, so the rest of the build is unchanged.
+[profile.dev.package.rsa]
+opt-level = 3
+
+[profile.dev.package.num-bigint-dig]
+opt-level = 3
+
 [profile.release]
 lto = "thin"
 strip = true
+
+# CI-only images (scripts/update-lifecycle, scripts/product-smoke.py and
+# scripts/recovery-smoke.py): release code generation without the serial
+# ThinLTO link step. Release images (release.yml) keep [profile.release].
+[profile.ci-image]
+inherits = "release"
+lto = false
+codegen-units = 16
 
 # Exact public transitive contract; existing published package bytes are unchanged.
 [patch.crates-io]

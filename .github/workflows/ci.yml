@@ -14,6 +14,9 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
+  # CI builds are one-shot: incremental state only costs time and cache space.
+  # Interactive builds keep Cargo.toml's incremental dev profile.
+  CARGO_INCREMENTAL: 0
 
 jobs:
   lint:
@@ -29,6 +32,8 @@ jobs:
           toolchain=$(sed -n 's/^channel = "\(.*\)"$/\1/p' rust-toolchain.toml)
           rustup toolchain install "$toolchain" --profile minimal --component rustfmt,clippy
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - name: Build budgets (test binaries and lib size ratchets)
+        run: python3 scripts/build-budget.py
       - name: Verify migration numbering and parallel additions
         run: |
           python3 scripts/migration_catalog.py
@@ -53,8 +58,11 @@ jobs:
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: cargo clippy (aq-updater with test-verifier)
         run: cargo clippy -p aq-updater --all-targets --locked --features test-verifier -- -D warnings
+      # The feature only changes src/execution.rs, src/execution/api.rs,
+      # src/store.rs and tests/execution.rs; lint those targets (and readiness,
+      # which the test job runs with the feature), not every test binary again.
       - name: cargo clippy (recovery fixture)
-        run: cargo clippy -p aq-server --all-targets --locked --features recovery-test-support -- -D warnings
+        run: cargo clippy -p aq-server --locked --features recovery-test-support --lib --test execution --test readiness -- -D warnings
 
   agent-contract:
     name: scoped agent contract conformance
@@ -98,6 +106,9 @@ jobs:
           toolchain=$(sed -n 's/^channel = "\(.*\)"$/\1/p' rust-toolchain.toml)
           rustup toolchain install "$toolchain" --profile minimal
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177 # v2.87.30
+        with:
+          tool: cargo-nextest@0.9.148
       # The server's manifest tests pass --source-revision r, which a binary
       # stamped with AQ_SOURCE_REVISION refuses. Tests build unstamped.
       - name: Check the build is unstamped
@@ -106,12 +117,18 @@ jobs:
             echo "::error::AQ_SOURCE_REVISION is set; cargo test must build unstamped"
             exit 1
           fi
-      - name: cargo test --workspace
-        run: cargo test --workspace --locked
-      - name: cargo test -p aq-updater --features test-verifier
-        run: cargo test -p aq-updater --locked --features test-verifier
+      # nextest runs every test in its own process, in parallel across all test
+      # binaries (cargo test runs the binaries one after another). Test groups
+      # and timeouts are in .config/nextest.toml.
+      - name: cargo nextest run --workspace
+        run: cargo nextest run --workspace --locked --no-fail-fast --profile ci
+      # nextest does not run doctests.
+      - name: cargo test --workspace --doc
+        run: cargo test --workspace --locked --doc
+      - name: cargo nextest run -p aq-updater --features test-verifier
+        run: cargo nextest run -p aq-updater --locked --no-fail-fast --profile ci --features test-verifier
       - name: Recovery authority and reserved control capacity regressions
-        run: cargo test -p aq-server --locked --features recovery-test-support --test execution --test readiness
+        run: cargo nextest run -p aq-server --locked --no-fail-fast --profile ci --features recovery-test-support --test execution --test readiness
 
   # The static updater that release.yml ships, built the same way, so musl
   # breakage shows up here rather than at tag time.

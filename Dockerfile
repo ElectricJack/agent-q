@@ -29,26 +29,30 @@ FROM rust:1.96.1-bookworm@sha256:a339861ae23e9abb272cea45dfafde21760d2ce6577a70f
 WORKDIR /build
 ARG AQ_STATE_FORMAT
 ARG AQ_SOURCE_REVISION=unknown
+# Cargo profile: release images use `release` (ThinLTO). CI-only images pass
+# --build-arg CARGO_PROFILE=ci-image (release without LTO; see Cargo.toml).
+ARG CARGO_PROFILE=release
 ENV AQ_SOURCE_REVISION=${AQ_SOURCE_REVISION}
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY crates ./crates
 COPY vendor ./vendor
 COPY protocol ./protocol
 # The registry and target directory are BuildKit cache mounts, so rebuilds
-# (another version or revision) recompile only the workspace crates. The
-# cached target directory is not part of the image: copy the binaries out.
+# (another version or revision) recompile only the path crates. The cached
+# target directory is not part of the image: copy the binaries out.
 # The cache is shared by every build of this Dockerfile on the host (other
-# branches and worktrees), and their workspace crates have identical artifact
-# hashes, so cargo's mtime check can reuse another tree's build. Clean every
-# workspace crate (dependencies stay cached) so the image is built from this
-# context only.
+# branches and worktrees), and their path crates have identical artifact
+# hashes, so cargo's mtime check could reuse another tree's build. Touching
+# every path-crate source (workspace, vendor/ and protocol/) in the same step
+# as the build makes it newer than any cached artifact, so path crates are
+# always rebuilt from this context while registry dependencies stay cached.
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,sharing=locked,target=/build/target \
-    cargo clean --release -p aq-protocol -p aq-worker-protocol \
-        $(for f in crates/*/Cargo.toml; do sed -n 's/^name *= *"\([^"]*\)".*/-p \1/p' "$f" | head -n 1; done) \
-    && AQ_IMAGE_STATE_FORMAT="${AQ_STATE_FORMAT}" cargo build --locked --release --bin aq-server \
+    case "$CARGO_PROFILE" in dev|test|bench) echo "unsupported CARGO_PROFILE=$CARGO_PROFILE" >&2; exit 1;; esac \
+    && find crates vendor protocol -type f -exec touch {} + \
+    && AQ_IMAGE_STATE_FORMAT="${AQ_STATE_FORMAT}" cargo build --locked --profile "$CARGO_PROFILE" --bin aq-server \
     && mkdir -p /out \
-    && cp target/release/aq-server /out/
+    && cp "target/$CARGO_PROFILE/aq-server" /out/
 
 FROM debian:bookworm-slim@sha256:99c0b25c46d0214d5a2091092e7908907dcaecd6a962cde0ac700acee222b6f3 AS runtime
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates libcurl4 libexpat1 libssl3 zlib1g \
