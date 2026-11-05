@@ -416,7 +416,7 @@ async fn migrate_known(pool: &PgPool, migrations: &[(i32, &str)], supported: u32
         replacement52::validate(&mut tx).await?;
     }
     if supported >= 53 {
-        retained_source53::validate(&mut tx).await?;
+        retained_source53::validate(&mut tx, supported).await?;
     }
     if supported >= 59 {
         auto56::validate(&mut tx).await?;
