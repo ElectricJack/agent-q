@@ -408,11 +408,10 @@ async fn closed_launch_settles_only_a_proven_nonstart_and_keeps_the_claim() {
             settlement::settle(state, attempt).await.unwrap(),
             ClosureSettlement::Unchanged
         );
-        assert!(
-            settlement::awaiting(state, None, 8)
-                .await
-                .unwrap()
-                .is_empty()
+        // Still listed until B4 releases its claim (settle_and_release).
+        assert_eq!(
+            settlement::awaiting(state, None, 8).await.unwrap(),
+            vec![attempt]
         );
         assert_eq!(snapshot(&f).await, after);
         // B4 eligibility of these facts is the pure `replacement::assess`

@@ -37,6 +37,8 @@ use uuid::Uuid;
 pub enum ClosureSettlement {
     /// Settled now: not started, source retained, effects quiescent.
     Settled,
+    /// Settled, and its task claim released through B4 (node freed).
+    Released,
     /// Already settled, or no longer a held closed attempt.
     Unchanged,
     /// Kept held: the closure does not prove a never-started harness, or
@@ -62,9 +64,13 @@ pub fn proves_never_started(evidence: &granted_closure::Evidence) -> bool {
         granted_closure::Evidence::HostStopped { proof, .. } => paneless(&proof.observation),
     }
 }
-/// A host that stopped before it ever created the harness pane.
+/// A host whose stopped proof shows no harness process ever ran: no pane root
+/// status and no reaped process (the kernel wait already saw no children). A
+/// pane may exist when the host's observed gate failed closed before it exec'd
+/// the harness; a pane that ran anything (root status or a reaped process)
+/// may have run the harness and stays held for an operator.
 fn paneless(o: &granted_closure::StoppedObservation) -> bool {
-    o.pane.is_none() && o.root_status.is_none() && o.reaped_count == 0
+    o.kernel_wait_echild && o.root_status.is_none() && o.reaped_count == 0
 }
 
 pub async fn settle(state: &AppState, attempt: Uuid) -> Result<ClosureSettlement, AppError> {
@@ -210,6 +216,45 @@ pub async fn settle(state: &AppState, attempt: Uuid) -> Result<ClosureSettlement
     Ok(ClosureSettlement::Settled)
 }
 
+/// Settles a closed launch, then releases its task claim through B4 when B4
+/// admits a replacement: the claim of a never-started attempt is what keeps
+/// its node from re-registering (the incarnation guard only accepts stopped
+/// compute), so it is released at once rather than at a later poll that this
+/// node could never make. If B4 blocks (for example an exhausted budget) the
+/// claim stays held and the reason is returned.
+pub async fn settle_and_release(
+    state: &AppState,
+    attempt: Uuid,
+) -> Result<ClosureSettlement, AppError> {
+    use crate::profiled_execution::replacement::{self, Assessment};
+    let settled = settle(state, attempt).await?;
+    if matches!(settled, ClosureSettlement::Held(_)) {
+        return Ok(settled);
+    }
+    let row: Option<(Uuid, bool, Option<String>)> = sqlx::query_as(
+        "SELECT a.task_id,a.holds_task,h.state#>>'{stop,kind}' FROM execution_attempts a JOIN profiled_authority_hot h USING(attempt_id) JOIN profiled_launch_closures c USING(attempt_id) WHERE a.attempt_id=$1",
+    )
+    .bind(attempt)
+    .fetch_optional(&state.store.pool)
+    .await
+    .map_err(database)?;
+    let Some((task, true, Some(stop))) = row else {
+        return Ok(settled);
+    };
+    if stop != "not_started" {
+        return Ok(settled);
+    }
+    let now = u64::try_from((state.clock)().timestamp_millis()).map_err(|_| AppError::Internal)?;
+    match replacement::assess_task(state, task, now).await? {
+        Assessment::Replace(r) if r.predecessor == attempt => {
+            replacement::release(state, task, &r).await?;
+            Ok(ClosureSettlement::Released)
+        }
+        Assessment::Blocked(reason) => Ok(ClosureSettlement::Held(reason)),
+        _ => Ok(ClosureSettlement::Held("closure_release_not_admitted")),
+    }
+}
+
 /// Held closed attempts with no known stop, after `after`. Bounded cursor.
 pub async fn awaiting(
     state: &AppState,
@@ -219,7 +264,7 @@ pub async fn awaiting(
     sqlx::query_scalar(
         "SELECT c.attempt_id FROM profiled_launch_closures c JOIN execution_attempts a USING(attempt_id) \
          JOIN profiled_authority_hot h USING(attempt_id) WHERE a.kind='profiled_v1' AND a.holds_task \
-         AND h.state#>>'{stop,kind}'='unknown' AND ($1::UUID IS NULL OR c.attempt_id>$1) \
+         AND h.state#>>'{stop,kind}' IN ('unknown','not_started') AND ($1::UUID IS NULL OR c.attempt_id>$1) \
          ORDER BY c.attempt_id LIMIT $2",
     )
     .bind(after)
@@ -253,5 +298,10 @@ mod tests {
         let mut reaped = observation(false);
         reaped.reaped_count = 1;
         assert!(!paneless(&reaped));
+        // A pane whose gate failed closed before exec: nothing ran.
+        let mut gated = observation(true);
+        gated.root_status = None;
+        gated.reaped_count = 0;
+        assert!(paneless(&gated));
     }
 }
