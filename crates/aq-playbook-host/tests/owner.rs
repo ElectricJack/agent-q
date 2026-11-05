@@ -216,7 +216,11 @@ async fn blocked_storage_does_not_block_async_control_and_control_queue_is_reser
     ));
     gate.release();
     blocked.await.unwrap().unwrap();
-    for _ in 0..100 {
+    // The owner thread retires asynchronously; bound the wait by time, not by
+    // a count of yields, so a loaded machine (nextest runs tests in parallel
+    // processes) cannot exhaust it first.
+    let retire_by = std::time::Instant::now() + Duration::from_secs(10);
+    while std::time::Instant::now() < retire_by {
         if matches!(
             owner
                 .call(
@@ -231,7 +235,7 @@ async fn blocked_storage_does_not_block_async_control_and_control_queue_is_reser
         ) {
             return;
         }
-        tokio::task::yield_now().await;
+        tokio::time::sleep(Duration::from_millis(1)).await;
     }
     panic!("queued stop did not retire owner");
 }
