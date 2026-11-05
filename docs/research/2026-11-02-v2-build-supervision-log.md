@@ -1058,3 +1058,20 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - The "host started, harness never ran" variant is settled only when the host's stop proof shows no process ran.
   - The old wedged nodes `c7caa999…` and `f051a29d…` cannot be closed: their attempts carry an older runtime qualification that is no longer installed. They stay retired (follow-up B5b).
   - The converged heads are aq-server `ms1/retry` e810e65f and aq-worker 88c98f7. Every MS1 step is now live except the owner's suspend drill and sign-off. Dispatched the final independent review before merging.
+- **22:45: final MS1 review: mergeable after fixes.**
+  - **Sound:** no path completes or publishes a failed, unproven or ambiguous run; publication is ordered before D3 and idempotent; confinement holds; migration 0095 is contiguous and re-runnable; B4 budget accounting is correct.
+  - **Blocking B1:** the build-budget ratchet fails in both repos.
+    - aq-server: test binaries 82 vs 81 (a new `aq-admission` test) and lib 110,763 vs 109,000 lines.
+    - aq-worker: 107 vs 105 binaries and lib 70,969 vs 68,081 lines.
+    - The guardrail worked on its first real change.
+  - **Should-fix:**
+    - **S1:** a cancel landing mid-publication can still fast-forward main.
+    - **S2:** B4 can release a task while the Claude container still runs. The driver stops the container only after reporting Stopped, and the host kills the driver within 1 s.
+    - **S3:** the token file is left on disk on early driver errors. Nothing checks the copied-back tree, transcript or pane for the token, and D1 now pushes the tree to main.
+    - **S4:** a `delivery_unpublished` rework is retried from the same export.
+    - **S5:** refusal-path tests are missing.
+  - **Decisions as delegated reviewer:**
+    - fix all of these;
+    - move the new tests into existing binaries;
+    - raise the lib line ratchets with a stated reason, since the aq-server lib split is next.
+  - Split the fixes: the `ms1/d1` subagent takes publication (S1, S4, the publication nits and tests); the `ms1/retry` subagent takes B1, S2, S3, the closure/worker tests and the sync_tree hardening.
