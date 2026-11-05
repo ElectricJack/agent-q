@@ -64,11 +64,12 @@ pub fn proves_never_started(evidence: &granted_closure::Evidence) -> bool {
         granted_closure::Evidence::HostStopped { proof, .. } => paneless(&proof.observation),
     }
 }
-/// A host whose stopped proof shows no harness process ever ran: no pane root
-/// status and no reaped process (the kernel wait already saw no children). A
-/// pane may exist when the host's observed gate failed closed before it exec'd
-/// the harness; a pane that ran anything (root status or a reaped process)
-/// may have run the harness and stays held for an operator.
+/// A host whose stopped proof shows that no process ever ran under it: no
+/// pane root status, no reaped process, and a kernel wait that sees no
+/// children. This is the "host started, harness never launched" case (the
+/// guardian stopped before its gate created a pane). A host that created a
+/// pane always reaped at least its tmux processes, so any pane fails this
+/// rule and the attempt stays held for an operator.
 fn paneless(o: &granted_closure::StoppedObservation) -> bool {
     o.kernel_wait_echild && o.root_status.is_none() && o.reaped_count == 0
 }
@@ -298,10 +299,13 @@ mod tests {
         let mut reaped = observation(false);
         reaped.reaped_count = 1;
         assert!(!paneless(&reaped));
-        // A pane whose gate failed closed before exec: nothing ran.
-        let mut gated = observation(true);
-        gated.root_status = None;
-        gated.reaped_count = 0;
-        assert!(paneless(&gated));
+        // A pane that ran and was reaped, even without a root status, holds.
+        let mut paned = observation(true);
+        paned.root_status = None;
+        assert!(!paneless(&paned));
+        // Children still waited on (no ECHILD) is not a stop proof of nothing.
+        let mut waiting = observation(false);
+        waiting.kernel_wait_echild = false;
+        assert!(!paneless(&waiting));
     }
 }

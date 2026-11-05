@@ -352,7 +352,10 @@ async fn failed_closure_insert_rolls_back_permission_revocation_and_retains_retr
 #[tokio::test]
 async fn closed_launch_settles_only_a_proven_nonstart_and_keeps_the_claim() {
     use aq_server::profiled_execution::closure::settlement::{self, ClosureSettlement};
-    for kind in [1usize, 0] {
+    // 1: paned host stop; 2: paneless host stop whose root ran (status 0, 2
+    // reaped); 3: host stopped before any process ran (aq-ms1d variant);
+    // 0: durable suppression.
+    for kind in [1usize, 2, 3, 0] {
         let (f, _, q) = setup(kind).await;
         let ack = closure::record(&f.c.env.env.state, &auth(&f.c).await, &q)
             .await
@@ -365,13 +368,47 @@ async fn closed_launch_settles_only_a_proven_nonstart_and_keeps_the_claim() {
             settlement::awaiting(state, None, 8).await.unwrap(),
             vec![attempt]
         );
+        if kind == 0 {
+            // Held while any execution history or AQ effect exists for it.
+            let pool = &f.c.env.env.pool;
+            let replica = |sql: &'static str| async move {
+                let mut tx = pool.begin().await.unwrap();
+                sqlx::query("SET LOCAL session_replication_role=replica")
+                    .execute(&mut *tx)
+                    .await
+                    .unwrap();
+                sqlx::query(sql)
+                    .bind(attempt)
+                    .execute(&mut *tx)
+                    .await
+                    .unwrap();
+                tx.commit().await.unwrap();
+            };
+            replica("INSERT INTO agent_graph_operations(operation_id,attempt_id,node_id,request,payload_digest,mapped,policy,status,phase,created_at_ms,retained_bytes) SELECT gen_random_uuid(),$1,node_id,'{}','0','{}','{}','{}','queued',1,1 FROM execution_attempts WHERE attempt_id=$1").await;
+            assert_eq!(
+                settlement::settle(state, attempt).await.unwrap(),
+                ClosureSettlement::Held("closure_effects_present")
+            );
+            replica("DELETE FROM agent_graph_operations WHERE attempt_id=$1").await;
+            replica("INSERT INTO source_transfers(transfer_id,attempt_id,node_id,repository_id,artifact_id,import_operation_id,manifest) SELECT gen_random_uuid(),$1,node_id,gen_random_uuid(),gen_random_uuid(),gen_random_uuid(),'{}' FROM execution_attempts WHERE attempt_id=$1").await;
+            assert_eq!(
+                settlement::settle(state, attempt).await.unwrap(),
+                ClosureSettlement::Held("closure_has_execution_history")
+            );
+            replica("DELETE FROM source_transfers WHERE attempt_id=$1").await;
+            assert_eq!(snapshot(&f).await, before, "held cases change nothing");
+        }
         let outcome = settlement::settle(state, attempt).await.unwrap();
-        if kind == 1 {
+        if kind == 1 || kind == 2 {
             assert_eq!(
                 outcome,
                 ClosureSettlement::Held("closure_does_not_prove_nonstart")
             );
-            assert_eq!(snapshot(&f).await, before, "a paned host stays held");
+            assert_eq!(
+                snapshot(&f).await,
+                before,
+                "a host stop whose process ran stays held"
+            );
             continue;
         }
         assert_eq!(outcome, ClosureSettlement::Settled);
