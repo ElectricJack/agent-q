@@ -438,6 +438,26 @@ pub(super) async fn bootstrap(
                     .is_some_and(|support| support.available()),
             "Current catalog inspection requires the mounted component query and namespace owner",
         ),
+        capability(
+            "playbooks.runs.start",
+            playbooks,
+            "Starting runs requires the mounted runtime namespace owner",
+        ),
+        capability(
+            "playbooks.runs.cancel",
+            playbooks,
+            "Cancelling runs requires the mounted runtime namespace owner",
+        ),
+        capability(
+            "playbooks.activations.activate",
+            playbooks,
+            "Activating definitions requires the mounted runtime namespace owner",
+        ),
+        capability(
+            "playbooks.activations.rollback",
+            playbooks,
+            "Rolling back definitions requires the mounted runtime namespace owner",
+        ),
     ];
     let bytes = contract::schema_bytes();
     let data = Bootstrap {

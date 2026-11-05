@@ -80,6 +80,10 @@ const CAPABILITIES: &[&str] = &[
     "playbooks.inspect",
     "playbooks.loaded-definitions.read",
     "playbooks.catalog.read",
+    "playbooks.runs.start",
+    "playbooks.runs.cancel",
+    "playbooks.activations.activate",
+    "playbooks.activations.rollback",
 ];
 
 fn lowercase_hex(value: &str, length: usize) -> bool {
