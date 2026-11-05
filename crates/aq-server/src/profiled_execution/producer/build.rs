@@ -228,10 +228,16 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
             .project
             .ceilings
             .require_hard_cost_enforcement
-        || !matches!(
-            source.admission.selection,
-            SourceSelection::Immutable { .. }
-        )
+    {
+        return Err(refused());
+    }
+    // A named ref is admitted as the exact commit it resolved to at offer time:
+    // that commit is frozen into the export operation key, and the workflow
+    // refuses an admission whose commit differs from the export's base (D1:
+    // a ref-following project source). Anything else stays refused.
+    if let SourceSelection::NamedRef { .. } = &source.admission.selection
+        && (source.admission.resolved_object.format != aq_admission::ObjectFormat::Sha1
+            || decision.inputs.replacement.is_some())
     {
         return Err(refused());
     }

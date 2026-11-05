@@ -683,7 +683,7 @@ async fn reworked_failed_attempt_records_replacement_facts_and_becomes_replaceab
         profiled_execution::replacement::{self, Assessment},
     };
     let fixture: Value = serde_json::from_str(include_str!(
-        "../../../../protocol/agent-access/v1/fixtures/mutation-delivery.json"
+        "../../../../../protocol/agent-access/v1/fixtures/mutation-delivery.json"
     ))
     .unwrap();
     let mut profile = fixture["proposal_profiles"][0]["profile"].clone();
