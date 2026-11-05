@@ -557,6 +557,8 @@ def apply():
         http(SERVER + "/api/profiles/catalogs/activate", dict(
             operation_id=str(uuid.uuid5(uuid.NAMESPACE_URL, f"ms1-catalog-{digest}")),
             expected_revision=active.get("revision"), artifact_json=catalog))
+    # The intelligence registry is installed from the vault by an owner request.
+    http(SERVER + "/api/intelligence/register", {})
     built = build()
     current = http(SERVER + "/api/projects/" + PROJECT)
     require(current is not None, "seed the project first")
@@ -571,8 +573,23 @@ def apply():
                 binding_revision=after.get("revision"))
 
 
+def observe():
+    """Owner availability observation for the Claude subscription candidate
+    (selection refuses stale or unknown availability; max age is 30 s)."""
+    import time
+    registry = http(SERVER + "/api/intelligence/registry")
+    credential = registry["credentials"][0]
+    now = int(time.time() * 1000)
+    return http(SERVER + "/api/intelligence/observations", dict(
+        operation_id=str(uuid.uuid4()), expected_revision=registry["revision"], sequence=now,
+        scope=dict(credential_revision=credential["revision"], provider=PROVIDER,
+                   credential_profile=credential["profile"], account_reference=ACCOUNT,
+                   endpoint_reference=ENDPOINT, model=MODEL, node_id=None),
+        state="available", ttl_ms=3600000, cooldown_ms=0))
+
+
 if __name__ == "__main__":
     command = sys.argv[1] if len(sys.argv) > 1 else ""
-    commands = dict(source=source, configure=configure, apply=apply)
+    commands = dict(source=source, configure=configure, apply=apply, observe=observe)
     require(command in commands, f"usage: ms1-profiled.py {'|'.join(commands)}")
     print(json.dumps(commands[command](), indent=1, sort_keys=True))

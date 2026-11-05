@@ -94,6 +94,8 @@ cmd_profiled() {
 
 cmd_run() {
   say "one attempt through the stack (node $(sed -n 's/^node_id = "\(.*\)"/\1/p' "$W/worker.toml"))"
+  # Owner availability attestation for the subscription (selection max age 30 s).
+  (cd "$SRV" && python3 scripts/ms1-profiled.py observe) > "$EVID/observe-last.json"
   (cd "$SRV" && python3 scripts/ms1-node-run.py "$@") 2>&1 | tee -a "$EVID/node-run.log"
 }
 
