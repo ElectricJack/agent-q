@@ -829,3 +829,5 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Pushed 97aaef30 to #85 with a 2 s per-page budget; the binary passes 19/19 locally and clippy is clean. Waiting on CI. Then #87 (F5) and #88 (D11).
 - **09:45:** merged #85 (`azure-delta-64`, host catalog 2.1.0 as CatalogProfile::Host8, migration 0091) as f9b448de, with all 9 checks green after the activation read budget fix.
   - Refreshed #87 (F5) on main: clean merge, catalog at 92, protocol checks pass, pushed 1e15dee6. Waiting on CI. #88 (D11, 0093) is next.
+- **10:20:** merged #87 (F5, agent questions to the owner, migration 0092) as fe4987a8, with all 9 checks green.
+  - Refreshed #88 (D11) on main: clean merge, catalog at 93, protocol checks pass, pushed c05381a7. Waiting on CI.
