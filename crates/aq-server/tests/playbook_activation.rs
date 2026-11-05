@@ -1039,3 +1039,229 @@ async fn host7_profile_starts_on_gateway_graph_with_unbound_check_and_judgment_p
     assert_eq!(evidence, 0);
     service.retire_runtime(&owner).await.unwrap();
 }
+
+/// One aq-git exchange on `path`: replies `ok` with `result(request)`.
+async fn git_exchange(
+    path: &Path,
+    result: impl FnOnce(&Value) -> Value + Send + 'static,
+) -> JoinHandle<Value> {
+    use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+    let _ = std::fs::remove_file(path);
+    let listener = UnixListener::bind(path).unwrap();
+    tokio::spawn(async move {
+        let (stream, _) = listener.accept().await.unwrap();
+        let mut reader = BufReader::new(stream);
+        let mut line = String::new();
+        reader.read_line(&mut line).await.unwrap();
+        let req: Value = serde_json::from_str(&line).unwrap();
+        let reply = json!({"ok": true, "result": result(&req), "protocol_version": 1,
+            "request_id": req["request_id"], "operation_id": req["operation_id"]});
+        reader
+            .get_mut()
+            .write_all(format!("{reply}\n").as_bytes())
+            .await
+            .unwrap();
+        req
+    })
+}
+
+/// D7 follow-up acceptance: production startup binds the D1 DeliveryService
+/// as Host7's integration port when `[playbooks.integration]` is configured
+/// and source retention (aq-git) is present; candidate.prepare and
+/// candidate.publish then reach a test aq-git peer through D1 unchanged.
+#[tokio::test]
+async fn host7_production_startup_prepares_and_publishes_through_delivery_service() {
+    use aq_playbook_host::runner::{Intent, IntentStatus};
+    use aq_server::playbooks::review_domain::{CatalogProfile, HOST7_CAPABILITIES};
+    use aq_worker_protocol::{ObjectAlgorithm, ObjectId, SourceRole, TransferManifest};
+    let s = setup().await;
+    let (head, _) = s.text.split_once("[[playbooks.deployments]]").unwrap();
+    let text = head.replace(
+        "profile=\"human_review_v2\"",
+        "profile=\"host_v7\"\ndeployments=[]",
+    ) + "[playbooks.integration]\ncommit_name=\"AQ\"\ncommit_email=\"aq@example.test\"\nchecks=[\"unit\"]\n";
+    let config: Config = toml::from_str(&text).unwrap();
+    let mut state = s.f.state.clone();
+    state.config = Arc::new(config);
+    let loaded = state.config.playbooks.clone().unwrap();
+    let token = s._dir.path().join("graph-token");
+    private(&token, "g".repeat(48));
+    state.agent_access = Some(Arc::new(
+        aq_server::agent_access::Runtime::new(&aq_server::agent_access::AgentAccessConfig {
+            graph_url: "http://127.0.0.1:9/".into(),
+            graph_token_file: token,
+            credential_ttl_ms: 10000,
+            mutation_actor_id: None,
+        })
+        .await
+        .unwrap(),
+    ));
+    // A configured integration policy without aq-git refuses startup.
+    assert!(state.source_retention.is_none());
+    assert!(
+        aq_server::playbooks::runtime::Runtime::start(&state, loaded.clone())
+            .await
+            .is_err()
+    );
+    let socket = s._dir.path().join("git.sock");
+    state.source_retention = Some(Arc::new(
+        aq_server::source_retention::Runtime::new(
+            aq_server::source_retention::SourceRetentionConfig {
+                keep_per_task: 2,
+                max_age: 30 * 86400,
+                staging_root: s._dir.path().join("staging"),
+                git_root: s._dir.path().join("git"),
+                git_socket: socket.clone(),
+                max_staging_bytes: 2097152,
+                max_bundle_bytes: 4096,
+                bulk_concurrency: 2,
+                incomplete_ttl_secs: 60,
+            },
+        )
+        .unwrap(),
+    ));
+    let runtime = aq_server::playbooks::runtime::Runtime::start(&state, loaded)
+        .await
+        .unwrap();
+    let service = runtime.driver.service.clone();
+    runtime.shutdown().await.unwrap();
+
+    // D2 publication policy on the project's repository binding, and one
+    // retained checkpoint of that repository (the D1 source receipt).
+    let pool = s.f.db.pool().await;
+    let l = &s.f.selection.lineage;
+    sqlx::query("UPDATE project_execution_bindings SET binding = binding || '{\"publication\":{\"mode\":\"fast_forward\",\"target\":\"refs/heads/main\"}}' WHERE project_id=$1")
+        .bind(l.project_id).execute(&pool).await.unwrap();
+    let source = s.f.profiled.source.clone();
+    let checkpoint = ObjectId {
+        algorithm: ObjectAlgorithm::Sha1,
+        hex: "b".repeat(40),
+    };
+    let binding = &s.f.profiled.offer.binding;
+    let aq_session_protocol::SessionIdentity::Remote { session_id, .. } = binding.session else {
+        unreachable!()
+    };
+    let m = TransferManifest {
+        transfer_id: Uuid::new_v4(),
+        role: SourceRole::Checkpoint,
+        checkpoint: checkpoint.clone(),
+        attempt: aq_worker_protocol::AttemptRef {
+            attempt_id: binding.attempt_id,
+            session_id,
+            generation: 1,
+        },
+        resolved_spec_digest: "c".repeat(64),
+        source: source.clone(),
+        artifact_id: Uuid::new_v4(),
+        manifest_digest: "d".repeat(64),
+        bundle_digest: None,
+        manifest_bytes: 1,
+        bundle_bytes: 0,
+    };
+    let receipt_id = Uuid::new_v4();
+    let receipt = json!({"receipt_id":receipt_id,"transfer_id":m.transfer_id,"repository_id":source.repository_id,"binding_generation":1,"source":checkpoint,"retention_handle":m.artifact_id,"manifest_digest":m.manifest_digest});
+    let ack = json!({"receiver_installation_id":Uuid::new_v4(),"repository_id":source.repository_id,"binding_generation":1,"transfer_id":m.artifact_id,"source":checkpoint,"retention_handle":m.artifact_id,"manifest_digest":m.manifest_digest,"retention_state":"active","historical":false});
+    sqlx::query("INSERT INTO source_transfers(transfer_id,attempt_id,node_id,repository_id,artifact_id,import_operation_id,manifest,state,receipt,central_receipt) VALUES($1,$2,$3,$4,$5,$6,$7,'retained',$8,$9)")
+        .bind(m.transfer_id).bind(binding.attempt_id).bind(s.f.node.node_id).bind(source.repository_id).bind(m.artifact_id).bind(receipt_id).bind(json!(m)).bind(receipt).bind(ack).execute(&pool).await.unwrap();
+
+    let revision: i64 = sqlx::query_scalar(
+        "SELECT runtime_revision FROM playbook_namespaces WHERE namespace_id=$1",
+    )
+    .bind(s.namespace)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    let owner = service
+        .adopt_runtime(Uuid::new_v4(), revision)
+        .await
+        .unwrap();
+    let scope = GrantScope {
+        workspace_id: l.workspace_id,
+        project_id: l.project_id,
+        recipients: vec![],
+        capabilities: BTreeSet::from(HOST7_CAPABILITIES.map(String::from)),
+    };
+    let now = (state.clock)().timestamp_millis();
+    service
+        .grant(s.f.actor, s.grant, scope.clone(), now + 10_000)
+        .await
+        .unwrap();
+    let intent = |id: &str, name: &str, input: Value| Intent {
+        id: id.into(),
+        run: "synthetic-run".into(),
+        step: name.replace('.', "-"),
+        invocation: 1,
+        deadline_at_ms: now + 5000,
+        command: CatalogProfile::Host7.registry().commands[name].clone(),
+        input_digest: aq_server::playbooks::domain::digest(&input).unwrap(),
+        input,
+        authority: CatalogProfile::Host7.authority(s.grant, 1, &scope).unwrap(),
+        status: IntentStatus::Dispatched,
+        cancel_requested: false,
+        cancel_dispatched: false,
+        handle: None,
+        result: None,
+        reason: None,
+        late_results: vec![],
+        completion_event: None,
+    };
+
+    // candidate.prepare -> D1 create_candidate -> aq-git candidate.create.
+    let ready = checkpoint.clone();
+    let peer = git_exchange(&socket, move |req| {
+        json!({"candidate_id":req["operation_id"],"state":"ready","candidate":ready,
+            "clean_prefix":ready,"retention_handle":req["operation_id"],"conflict_step":null,
+            "conflicting_paths":[],"conflict_path_count":0,"conflict_paths_truncated":false})
+    })
+    .await;
+    let base = format!("refs/heads/main@sha1:{}", source.base.hex);
+    let prepare = json!({"base": {"id": base, "revision": 0},
+        "sources": [{"id": format!("aq.source/{receipt_id}"), "revision": 1}]});
+    let r = service
+        .host_dispatch(
+            &owner,
+            s.grant,
+            1,
+            &intent("prepare-1", "candidate.prepare", prepare),
+        )
+        .await
+        .unwrap();
+    assert_eq!(r.outcome, "prepared", "{r:?}");
+    let req = peer.await.unwrap();
+    assert_eq!(req["operation"], "candidate.create", "{req}");
+    let candidate = r.output["reference"].as_str().unwrap().to_string();
+
+    // Passed check evidence for the candidate. Production has no check
+    // executor bound yet, so the evidence row is seeded in its owning store.
+    let check_op = Uuid::new_v4();
+    sqlx::query("INSERT INTO playbook_host_operations(operation_id,namespace_id,generation,intent_id,command_name,subject_id,subject_revision,check_id,request,status,output,created_at_ms,completed_at_ms) VALUES($1,$2,1,'check-1','check.request',$3,1,'unit',$4,'passed','{}',$5,$5)")
+        .bind(check_op).bind(s.namespace).bind(&candidate)
+        .bind(json!({"execution_profile":"aq.check.sandbox/v1","subject":{"id":candidate,"revision":1},
+            "source":{"format":"sha1","hex":checkpoint.hex}}))
+        .bind(now).execute(&pool).await.unwrap();
+
+    // candidate.publish -> D1 deliver (fast-forward policy) -> aq-git publish.
+    let (old, new) = (source.base.clone(), checkpoint.clone());
+    let peer = git_exchange(&socket, move |req| {
+        json!({"outcome":"applied","target":req["params"]["target"],"old":old,"new":new,
+            "acknowledged_at":"2026-11-02T00:00:00Z"})
+    })
+    .await;
+    let publish = json!({"candidate": {"id": candidate, "revision": 1},
+        "destination": {"id": base, "revision": 0},
+        "evidence": [{"id": format!("check-receipt:{check_op}"), "revision": 1}]});
+    let r = service
+        .host_dispatch(
+            &owner,
+            s.grant,
+            1,
+            &intent("publish-1", "candidate.publish", publish),
+        )
+        .await
+        .unwrap();
+    assert_eq!(r.outcome, "published", "{r:?}");
+    let req = peer.await.unwrap();
+    assert_eq!(req["operation"], "publish", "{req}");
+    assert_eq!(req["params"]["target"], "refs/heads/main", "{req}");
+    service.retire_runtime(&owner).await.unwrap();
+}

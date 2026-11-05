@@ -18,8 +18,10 @@ use sqlx::{Postgres, Row, Transaction};
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 use uuid::Uuid;
 
+mod delivery_port;
 mod integration;
 mod requests;
+pub use delivery_port::*;
 pub use integration::*;
 pub use requests::*;
 
