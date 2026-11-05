@@ -372,7 +372,14 @@ async fn load_for_locked(
             .binding
             .ceilings
             .require_hard_cost_enforcement
-        || decision.inputs.budget.elapsed_ms != Some(0)
+        // A first attempt starts its lineage at zero; a B4 replacement carries
+        // the lineage time already used, which must leave time remaining.
+        || decision
+            .inputs
+            .budget
+            .elapsed_ms
+            .is_none_or(|elapsed| elapsed >= policy.max_lineage_elapsed_ms)
+        || (decision.inputs.replacement.is_none() && decision.inputs.budget.elapsed_ms != Some(0))
     {
         return Err(refused());
     }

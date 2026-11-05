@@ -220,7 +220,13 @@ async fn prepare_inner(
                 .manifest
                 .resources
                 .wall_time_ms
-                .min(after.policy.max_lineage_elapsed_ms),
+                .min(
+                    after
+                        .policy
+                        .max_lineage_elapsed_ms
+                        .checked_sub(facts::lineage_elapsed(&after)?)
+                        .ok_or_else(|| refused())?,
+                ),
         )
         .filter(|d| *d <= i64::MAX as u64)
         .ok_or_else(|| refused())?;
