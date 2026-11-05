@@ -743,3 +743,41 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Folded I3's OpenCode §8.3 docs follow-up into `crisp-crest-28`.
 - **05:50 check.** I3 (`azure-horizon-22.6`, OpenCode on local Ollama) completed. Merged aq-worker #37 (`amber-cascade-22`, the `runner_needs_no_node_credential` fix for aq-worker main; green). MS1 still waits on C5b.
 - **06:05 C5b had stalled for about 4.5 h.** Its session sat idle at 'done 6:08 PM, 1 shell still running': `cargo test --test native_initial_grant subscription` had hung for over 3 h. Killed that test process (pid 1499315) and messaged C5b to skip it as a pre-existing hang, finish its targeted checks with timeouts and close. MS1 waits only on C5b.
+
+## 2026-11-05 (UTC; earlier entries labelled 05:15–06:05 were about an hour ahead of real UTC)
+
+- **~04:50 owner instruction:** "Just stop the tasks in agent queue and finish the work yourself with subagents."
+  - Paused all six v2 projects in v1. Snapshotted the WIP of C5b (`aq/calm-delta-18.8` at 107d164a), D11 (`aq/crisp-meadow-36.12` at 192bfcc4) and `sharp-grove-60` (`aq/sharp-grove-60` at 7a6fb756), pushed it, and stopped those sessions.
+  - Dispatched operator subagents, each working in its own worktree under `aq-platform/wt/` and pushing branches only; I integrate:
+    - C5b: CAS write-back, the hung renewal test;
+    - D11: the pilots;
+    - F5: agent questions, on branch `aq/f5-questions`;
+    - PRs #80, #81, #82, #83, #85: merge order in that sequence, migrations renumbered contiguously after 0087;
+    - MS1: a real Claude Code agent in docker-local, on its own `aq-ms1` stack on ports 28080 and up.
+  - MS1 no longer waits on C5b: Claude takes the setup-token as env only, so it needs no write-back.
+- **05:00:** merged #84 (`crisp-crest-28`, the 0005 §8.3 Claude Code 2.1.318 / OpenCode 1.18.35 harness rows). It is docs only. Its one CI failure, `reservations::tests::count_utf8_body_budget…` with IdentityUnavailable, is unrelated to the PR.
+  - #83 and #85 both add migration 0088, which is a W62 collision; renumbering is handed to the PR subagent.
+  - Main CI on aq-server is red only on the native_accepted regression, which #80 fixes.
+- **05:30: C5b done.** The subagent found the 3 h hang. It was not the clock step: the old single test held two live fixtures, the second waiting on the process-wide selection lock that the first still held (shadowed, not dropped). A second live fixture now panics immediately, and a regression test covers it. History squashed to 34c75d04.
+  - Merged as #86 with migration 0088_subscription_refresh_lineage.
+  - Told the PR subagent to shift to #82=0089, #83=0090, #85=0091, and the F5/D11 subagents to take 0092/0093 provisionally.
+  - v1 refuses to record it complete: `set-status COMPLETED` needs completion provenance, and `task close` needs a running claim. The task is left BLOCKED with an operator comment; v1 bookkeeping is no longer on the critical path.
+  - The aq-worker node side of write-back is still a cross-repo follow-up. Claude doesn't need it (its token is an env-only lease).
+- **06:20: MS1 first end-to-end run (subagent).**
+  - **Works:** a real Claude Code 2.1.318 agent runs in a docker-local sandbox on the owner's setup-token (imported through C5b `import-login` as `owner-claude-subscription@1`; the token never appears in logs). It edited code, ran checks and published inside the sandbox. Sandbox-side cancel stopped in 6 s with a stopped-writer proof. A node restart stopped and preserved the sandbox, with no duplicate.
+  - **Not wired, so steps 1, 2 and 4 can't run through the stack:**
+    - `aq-worker run` still uses `UnavailableProvider` (main.rs:700), so the node never registers or gets offers.
+    - `sandbox-run` stops at "B2 receipt codec is unavailable" (main.rs:440).
+    - aq-server's v2 offer route only serves dev fixtures (`execution/api.rs` `fixture`).
+  - **Measured memory:** stack 173 MiB, node controller 27 MiB, sandbox 143–200 MiB with Claude alone and 531 MiB with `cargo test`.
+  - Evidence is on aq-server/aq-worker `ms1/demo` (`docs/implementation/MS1.md`, `scripts/ms1-demo.sh`). The `aq-ms1` stack is running on 28080.
+  - Dispatched a wiring subagent to connect server → node controller → sandbox launch → aq-git publish → D3 completion, and prove A→B live.
+- **06:35: F5 done (subagent).** Branch `aq/f5-questions` at 1e06db95 is built on the old `aq/steady-harbor-87.6` work.
+  - Covers the agent asking, then reading the answer; the owner's `question.answer` dashboard action; waking the live attempt; and routing to task mail once the attempt has ended. Both acceptance tests pass.
+  - Its migration is provisionally 0092 and goes after #82/#83/#85 (0089–0091). It is held for merge in that order.
+  - Follow-ups: the aq-worker `aq-agent question ask/show` client; dashboard inbox support for `question` decisions; a profile capability check on the question and wait routes.
+  - **Tooling hazard:** aq-server worktrees sharing `target-shared` get identical artifact hashes, so cargo can link another worktree's freshly built aq-server library (freshness is by mtime). F5 saw stale builds twice. Told the PR and D11 subagents to use private target dirs and re-verify.
+- **06:33:** merged #80 (`swift-harbor-15`, the native_accepted_preparation regression fix) as a3e3d515, once all 9 checks were green. That should turn main CI green again.
+  - #81, #82, #83 and #85 are being refreshed on main by the PR subagent.
+  - The wiring subagent is rebuilding the aq-ms1 images.
+  - Disk is at 89% (115 G free), largely from per-agent cargo target dirs, which each agent deletes when it finishes.
