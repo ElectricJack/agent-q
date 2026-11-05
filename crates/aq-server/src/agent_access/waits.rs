@@ -662,6 +662,35 @@ pub(crate) async fn load_stored(
         ack_receipt,
     }))
 }
+/// H5: one wait's registered continuation and its recorded outcome, if any.
+pub(crate) struct WaitContinuation {
+    pub binding: wire::Binding,
+    pub node_id: Uuid,
+    pub continuation: wire::ContinuationRef,
+    pub terminal: bool,
+    pub outcome: Option<wire::OutcomeRef>,
+    pub intent_ready: bool,
+}
+pub(crate) async fn continuation_of(
+    tx: &mut Transaction<'_, Postgres>,
+    wait_id: Uuid,
+) -> Result<Option<WaitContinuation>> {
+    let Some(stored) = load_stored(tx, wait_id, false).await? else {
+        return Ok(None);
+    };
+    let row = sqlx::query("SELECT node_id,phase FROM agent_waits WHERE wait_id=$1")
+        .bind(wait_id)
+        .fetch_one(&mut **tx)
+        .await?;
+    Ok(Some(WaitContinuation {
+        binding: stored.registered.binding.clone(),
+        node_id: row.get("node_id"),
+        continuation: stored.registered.continuation.clone(),
+        terminal: row.get::<String, _>("phase") == "terminal",
+        outcome: stored.snapshot.outcome().map(|o| o.outcome.clone()),
+        intent_ready: stored.intent_state.as_deref() == Some("ready"),
+    }))
+}
 fn view(stored: &Stored) -> Result<wire::WaitView> {
     let outcome = stored.snapshot.outcome().cloned();
     let cancelled = matches!(stored.intent_state.as_deref(), Some("retired"))
