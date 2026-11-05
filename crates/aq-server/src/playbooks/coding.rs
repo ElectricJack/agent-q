@@ -91,7 +91,8 @@ pub struct CodingRequest {
     pub context: String,
     pub base: Value,
     pub destination: Value,
-    /// Exact source the checks run on (`{format, hex}`).
+    /// Source passed to check.request (`{format, hex}`). Host7 ignores it for
+    /// candidate subjects and checks the prepared candidate's OID instead.
     pub source: Value,
     pub visibility: String,
     /// Prefix of the per-attempt idempotent logical keys.
