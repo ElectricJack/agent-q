@@ -22,8 +22,40 @@ pub(crate) struct Peer {
     /// Human decision outcomes in order (default `approved`).
     pub decisions: Vec<&'static str>,
     pub registry: Registry,
+    /// When set, work.ensure answers like the real Host7 adapter: `accepted`
+    /// with a handle, its completion queued here as (handle, event payload).
+    pub async_work: Option<Completions>,
 }
+pub(crate) type Completions = Arc<Mutex<Vec<(String, Value)>>>;
 impl Peer {
+    /// The host's completion for this work, from the production mapping of a
+    /// terminal graph task to the aq.operation.updated payload.
+    fn accept_work(&self, queue: &Completions, n: usize, input: &Value) -> DispatchResult {
+        let review = self
+            .log
+            .lock()
+            .unwrap()
+            .iter()
+            .filter(|(c, v)| c == "work.ensure" && v["kind"] == "review")
+            .count();
+        let mut node = json!({"version": 2, "task_state": "completed", "metadata": {}});
+        if input["kind"] == "review" {
+            node["metadata"]["aq:review_disposition"] =
+                json!(self.reviews.get(review - 1).copied().unwrap_or("accepted"));
+        }
+        let task = format!("work-{n}");
+        let request = json!({"kind": input["kind"], "reference": format!("aq.playbook.work/{task}"),
+            "subject": {"id": task, "revision": 1}});
+        let done = crate::playbooks::host_adapters::work_completion(&request, Some(&node))
+            .unwrap()
+            .unwrap();
+        let handle = format!("operation-{n}");
+        queue.lock().unwrap().push((
+            handle.clone(),
+            json!({"outcome": done.outcome, "output": done.output}),
+        ));
+        DispatchResult::Accepted { handle }
+    }
     fn count(&self, name: &str) -> usize {
         self.log
             .lock()
@@ -45,6 +77,9 @@ impl Host for Peer {
         let n = self.count(&name) + 1;
         let input = intent.input.clone();
         self.log.lock().unwrap().push((name.clone(), input.clone()));
+        if let (Some(queue), "work.ensure") = (&self.async_work, name.as_str()) {
+            return self.accept_work(queue, n, &input);
+        }
         let (outcome, output) = match name.as_str() {
             "work.ensure" if input["kind"] == "review" => {
                 let i = self
@@ -162,6 +197,16 @@ pub(crate) async fn owner_with(
     reviews: Vec<&'static str>,
     decisions: Vec<&'static str>,
 ) -> Owner {
+    start(namespace, store, log, reviews, decisions, None).await
+}
+async fn start(
+    namespace: &str,
+    store: MemoryStorage,
+    log: Log,
+    reviews: Vec<&'static str>,
+    decisions: Vec<&'static str>,
+    async_work: Option<Completions>,
+) -> Owner {
     let registry = CatalogProfile::Host7.registry();
     let peer_registry = registry.clone();
     Owner::start_registered(
@@ -175,6 +220,7 @@ pub(crate) async fn owner_with(
                 reviews,
                 decisions,
                 registry: peer_registry,
+                async_work,
             })
         },
     )
@@ -304,6 +350,133 @@ async fn coding_policy_review_rejection_creates_rework_attempt() {
         .collect();
     assert_eq!(evidence, ["check-receipt:2", "aq.review.decision/r2"]);
     assert_eq!(publish[0]["candidate"], checks[1]["subject"]);
+}
+
+/// Delivers one trusted aq.operation.updated event exactly as the driver
+/// does (event, then fanout).
+async fn deliver_completion(owner: &Owner, handle: &str, payload: Value, now: i64) {
+    let registry = CatalogProfile::Host7.registry();
+    let contract = &registry.events["aq.operation.updated"];
+    let event = EventEnvelope {
+        producer: "aq.host.bridge@1".into(),
+        event_id: format!("completion-{handle}"),
+        contract: ContractRef {
+            name: contract.name.clone(),
+            fingerprint: contract.fingerprint().unwrap(),
+        },
+        scope: "project".into(),
+        correlation: BTreeMap::from([("operation".into(), handle.to_string())]),
+        subject: Some(payload["output"]["subject"]["id"].as_str().unwrap().into()),
+        revision: payload["output"]["subject"]["revision"].as_u64(),
+        causation: None,
+        occurred_at_ms: Some(now),
+        observed_at_ms: Some(now),
+        payload,
+    };
+    let receipt = owner
+        .call(
+            Request::Event {
+                authenticated_producer: "aq.host.bridge@1".into(),
+                epoch: 0,
+                event: Box::new(event),
+                now_ms: now,
+            },
+            DEADLINE,
+        )
+        .await
+        .unwrap();
+    owner
+        .call(
+            Request::Fanout {
+                event_key: receipt["key"].as_str().unwrap().into(),
+                limit: 64,
+                now_ms: now,
+            },
+            DEADLINE,
+        )
+        .await
+        .unwrap();
+}
+
+/// The real Host7 work.ensure is asynchronous: aq.coding awaits each work
+/// item's aq.operation.updated completion (payload from the host's terminal
+/// task mapping) and converges, including a review rejection, to publish.
+#[tokio::test]
+async fn coding_policy_consumes_async_work_completion() {
+    let policy = CodingPolicy::project_default(checks());
+    let artifacts = policy.build().unwrap();
+    let store = MemoryStorage::default();
+    let log: Log = Arc::default();
+    let queue: Completions = Arc::default();
+    let owner = start(
+        "coding-async",
+        store.clone(),
+        log.clone(),
+        vec!["changes_requested"],
+        vec![],
+        Some(queue.clone()),
+    )
+    .await;
+    install(&owner, &artifacts).await;
+    owner
+        .call(
+            Request::Activate {
+                binding: ROOT.into(),
+                artifact: artifacts.root.digest.clone(),
+                authority: authority(),
+            },
+            DEADLINE,
+        )
+        .await
+        .unwrap();
+    owner
+        .call(
+            Request::Admit {
+                binding: ROOT.into(),
+                entry: "main".into(),
+                input: policy.input(&request("task-1")),
+                authority: authority(),
+                now_ms: 1,
+            },
+            DEADLINE,
+        )
+        .await
+        .unwrap();
+    let mut roots = None;
+    for now in 10..400 {
+        owner
+            .call(Request::Tick { now_ms: now }, DEADLINE)
+            .await
+            .unwrap();
+        let pending: Vec<_> = queue.lock().unwrap().drain(..).collect();
+        for (handle, payload) in pending {
+            deliver_completion(&owner, &handle, payload, now).await;
+        }
+        let state = store.clone().load("coding-async").unwrap().state;
+        if state.runs.values().all(|r| r.status.terminal()) {
+            roots = Some(
+                state
+                    .runs
+                    .values()
+                    .filter(|r| r.parent.is_none())
+                    .map(|r| (r.artifact.clone(), r.outcome.clone()))
+                    .collect::<Vec<_>>(),
+            );
+            break;
+        }
+    }
+    assert_eq!(
+        roots.expect("coding runs did not settle"),
+        vec![(artifacts.root.digest.clone(), Some("published".into()))]
+    );
+    let kinds: Vec<_> = log
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|(c, _)| c == "work.ensure")
+        .map(|(_, v)| v["kind"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(kinds, ["implementation", "review", "repair", "review"]);
 }
 
 #[test]

@@ -1,6 +1,6 @@
 //! D6 asynchronous host adapters for catalog profile 6 (AQ host catalog
-//! 2.0.0): judgment.request, check.request and their operation.get
-//! reconciliation.
+//! 2.0.0): judgment.request, check.request, work.ensure completion and their
+//! operation.get reconciliation.
 //!
 //! Both commands record one durable intent (`playbook_effects` row `accepted`
 //! plus one `playbook_host_operations` row `running`) before any provider
@@ -223,6 +223,43 @@ struct JudgmentJob {
     request: JudgmentRequest,
 }
 
+/// Terminal completion of one tracked work node, or `None` while it is open.
+/// A completed task is `completed`: review work carries its disposition in
+/// `aq:review_disposition` (`accepted` / `changes_requested`) and acceptance is
+/// never inferred, so a missing or unknown disposition is `failed`; other
+/// kinds are `accepted`. A canceled, retired, deleted or missing task is
+/// `refused` / `failed`.
+pub(crate) fn work_completion(request: &Value, node: Option<&Value>) -> Result<Option<HostResult>> {
+    let (outcome, disposition, revision) = match node {
+        None => ("refused", "failed", revision_of(&request["subject"])?),
+        Some(node) => {
+            let revision = node_version(node)?;
+            if node["deleted"] == json!(true)
+                || node["retired"] == json!(true)
+                || node["task_state"] == "canceled"
+            {
+                ("refused", "failed", revision)
+            } else if node["task_state"] == "completed" {
+                let disposition = match request["kind"].as_str() {
+                    Some("review" | "fidelity_review") => node["metadata"]["aq:review_disposition"]
+                        .as_str()
+                        .filter(|d| matches!(*d, "accepted" | "changes_requested"))
+                        .unwrap_or("failed"),
+                    _ => "accepted",
+                };
+                ("completed", disposition, revision)
+            } else {
+                return Ok(None);
+            }
+        }
+    };
+    Ok(Some(HostResult {
+        outcome: outcome.into(),
+        output: json!({"disposition": disposition, "reference": request["reference"],
+            "subject": {"id": request["subject"]["id"], "revision": revision}}),
+    }))
+}
+
 /// Completed outcome and output of one retained host operation.
 struct Operation {
     command: String,
@@ -237,6 +274,7 @@ impl Service {
         Ok(match command {
             "judgment.request" => (json!("judgment"), "aq.judgment.completed"),
             "check.request" => (json!("check"), "aq.check.receipted"),
+            "work.ensure" => (json!("work"), "aq.operation.updated"),
             _ => return Err(Error::Invalid),
         })
     }
@@ -391,6 +429,104 @@ impl Service {
         .await?;
         tx.commit().await?;
         Ok(result)
+    }
+
+    // ------------------------------------------------------- work completion
+
+    /// Tracks one catalog profile 7 ensured work node as a running operation,
+    /// in the tx of its accepted effect row. It completes exactly once, by
+    /// aq.operation.updated, when the graph task reaches a terminal state.
+    pub(super) async fn track_work(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        intent: &Intent,
+        work: &Value,
+    ) -> Result<()> {
+        let subject = &work["subject"];
+        let request = json!({"kind": text(&intent.input, "kind")?,
+            "reference": work["reference"], "subject": subject});
+        sqlx::query("INSERT INTO playbook_host_operations(operation_id,namespace_id,generation,intent_id,command_name,subject_id,subject_revision,check_id,request,status,created_at_ms) VALUES($1,$2,$3,$4,'work.ensure',$5,$6,NULL,$7,'running',$8)")
+            .bind(self.operation(intent)?)
+            .bind(self.namespace.namespace_id)
+            .bind(self.namespace.generation)
+            .bind(&intent.id)
+            .bind(text(subject, "id")?)
+            .bind(revision_of(subject)?)
+            .bind(request)
+            .bind(self.now()?)
+            .execute(&mut **tx)
+            .await?;
+        Ok(())
+    }
+
+    /// Reads the tracked work node and, once terminal, completes the
+    /// operation (exactly once; a lost race returns the retained completion).
+    /// `None` while the work is still open.
+    pub(super) async fn observe_work(&self, operation: Uuid) -> Result<Option<HostResult>> {
+        let Some(op) = self.load_operation(operation).await? else {
+            return Ok(None);
+        };
+        if op.command != "work.ensure" {
+            return Err(Error::Invalid);
+        }
+        if op.status != "running" {
+            return Ok(Some(HostResult {
+                outcome: op.status,
+                output: op.output.ok_or(Error::Unknown)?,
+            }));
+        }
+        let task =
+            Uuid::parse_str(text(&op.request["subject"], "id")?).map_err(|_| Error::Unknown)?;
+        let node = self
+            .ports()?
+            .graph
+            .node(self.namespace.workspace_id, task)
+            .await?;
+        let Some(result) = work_completion(&op.request, node.as_ref())? else {
+            return Ok(None);
+        };
+        self.complete_operation(operation, &op.command, &op.intent_id, result)
+            .await
+            .map(Some)
+    }
+
+    /// Bounded round-robin over running catalog profile 7 work operations:
+    /// each pass observes the least recently observed ones and completes those
+    /// whose graph task is terminal. Returns the number completed. A graph
+    /// read failure leaves that operation running for a later pass.
+    pub async fn collect_work_completions(
+        &self,
+        owner: &RuntimeOwner,
+        limit: u32,
+    ) -> Result<usize> {
+        if self.profile != CatalogProfile::Host7 || self.host.is_none() {
+            return Ok(0);
+        }
+        if !(1..=2).contains(&limit) {
+            return Err(Error::Invalid);
+        }
+        let mut tx = self.tx().await?;
+        let ns = self.namespace_locked(&mut tx).await?;
+        self.runtime(&ns, owner)?;
+        let now = self.now()?;
+        let operations: Vec<Uuid> = sqlx::query_scalar("UPDATE playbook_host_operations SET observed_at_ms=$4 WHERE operation_id IN (SELECT operation_id FROM playbook_host_operations WHERE namespace_id=$1 AND generation=$2 AND command_name='work.ensure' AND status='running' ORDER BY COALESCE(observed_at_ms,created_at_ms),operation_id LIMIT $3) RETURNING operation_id")
+            .bind(self.namespace.namespace_id)
+            .bind(self.namespace.generation)
+            .bind(limit as i64)
+            .bind(now)
+            .fetch_all(&mut *tx)
+            .await?;
+        tx.commit().await?;
+        let mut completed = 0;
+        for operation in operations {
+            match self.observe_work(operation).await {
+                Ok(Some(_)) => completed += 1,
+                Ok(None) => {}
+                Err(Error::Overloaded) => return Err(Error::Overloaded),
+                Err(_) => {}
+            }
+        }
+        Ok(completed)
     }
 
     // ------------------------------------------------------------- check.request
@@ -954,6 +1090,8 @@ impl Service {
             })
         } else if op.command == "check.request" {
             self.observe_check(operation).await?
+        } else if op.command == "work.ensure" {
+            self.observe_work(operation).await?
         } else if self.now()?
             >= op.request["deadline_at_ms"]
                 .as_i64()

@@ -616,6 +616,13 @@ impl Driver {
                 &mut overloaded,
             )?;
         }
+        // Catalog profile 7 work.ensure completion (aq.operation.updated).
+        defer_capacity(
+            self.service
+                .collect_work_completions(&self.runtime, 2)
+                .await,
+            &mut overloaded,
+        )?;
         if self.service.profile == super::review_domain::CatalogProfile::Monitoring6
             && self
                 .schedule_consumer
@@ -838,6 +845,11 @@ impl Driver {
     }
     pub async fn test_collect_graph_events(&self) -> Result<usize> {
         self.service.collect_graph_events(&self.runtime, 2).await
+    }
+    pub async fn test_collect_work_completions(&self) -> Result<usize> {
+        self.service
+            .collect_work_completions(&self.runtime, 2)
+            .await
     }
     pub async fn test_collect_settlement_events(&self) -> Result<usize> {
         self.service
