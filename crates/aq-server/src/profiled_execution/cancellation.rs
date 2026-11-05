@@ -20,6 +20,10 @@ pub enum Disposition {
     Requested,
     NeverGranted,
     AlreadyAccepted,
+    /// D1: the attempt's retained source is being, or has been, published
+    /// (a publication fence or published evidence exists). The cancel is
+    /// recorded as not applied; the publication's own outcome stands.
+    AlreadyPublishing,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -111,7 +115,13 @@ pub async fn cancel(
         .ok_or(AppError::Internal)?;
     let accepted: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM profiled_settlement_evaluations WHERE attempt_id=$1 AND disposition='accepted')")
         .bind(attempt).fetch_one(&mut *tx).await.map_err(db)?;
-    let disposition = if accepted {
+    // D1: the publication owner fences under these same locks after
+    // re-checking acceptance, so a cancel never silently races a publish.
+    let publishing: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM profiled_delivery_evidence WHERE attempt_id=$1 AND state IN ('indeterminate','published'))")
+        .bind(attempt).fetch_one(&mut *tx).await.map_err(db)?;
+    let disposition = if publishing && hot.cancellation_id.is_none() {
+        Disposition::AlreadyPublishing
+    } else if accepted {
         // Accepted evaluations and their outstanding Graph completion remain
         // immutable even if a later owner asks to cancel this exact attempt.
         Disposition::AlreadyAccepted

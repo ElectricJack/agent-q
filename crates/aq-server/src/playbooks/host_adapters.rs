@@ -1004,7 +1004,7 @@ impl Service {
                 match receipt.disposition {
                     Disposition::Requested => "accepted",
                     Disposition::NeverGranted => "cancelled",
-                    Disposition::AlreadyAccepted => "too_late",
+                    Disposition::AlreadyAccepted | Disposition::AlreadyPublishing => "too_late",
                 },
                 i64::try_from(receipt.authority_revision).map_err(|_| Error::Unknown)?,
             ),

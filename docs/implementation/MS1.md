@@ -233,6 +233,38 @@ Lib tests `source::`, `settlement::publication`, `producer::` 20/20 (including
 `named_ref_follows_publication_head_only_for_its_exact_commit_and_handle`).
 `fmt --check` and `clippy -D warnings --all-targets` are clean.
 
+**Final-review fixes (publication items, after the live run above):**
+
+- **S1, no publication of a cancelled task.** The owner used to check D3's
+  acceptance only once, before it built the candidate. It now re-checks
+  acceptance immediately before `publish`, under the report lock, the D3
+  settlement lock and the node/attempt/hot locks that cancellation and
+  abandonment take: current report head, Success, not revoked, not cancelled,
+  still holds its task, stopped, D3 still holding on missing delivery evidence.
+  - In that same transaction it writes a durable fence: an `indeterminate`
+    evidence row in phase `publishing`. While that row exists, an owner cancel
+    returns the new disposition `already_publishing` and records no
+    cancellation, and abandonment is refused.
+  - A cancel that lands before the fence makes the owner skip the publish, and
+    D3 reworks the result as `not_accepted`.
+  - The final evidence replaces the fence. A refusal proven to come before
+    dispatch removes the fence. A crash or unknown reply leaves the result held.
+- **S4.** B4 now blocks the replacement of a task whose lineage has a
+  `delivery_unpublished` rework, with reason
+  `replacement_after_unpublished_delivery_needs_new_source`; a successor would
+  reuse the same immutable export and hit the same conflict. A blocked ready
+  task now logs its reason (`ready task not offered`, debug).
+- **Nits.** `already_present` with an observed target other than the candidate,
+  and a published head whose compare-and-swap fails, are now recorded
+  `indeterminate` (held), never `published`.
+- **S5 tests** (`it_profiled` `profiled_results::auto_settlement56`):
+  - `non_success_or_cancelled_report_never_reaches_aq_git`;
+  - `cancel_between_candidate_and_publish_is_never_published`;
+  - `cancel_during_publishing_is_recorded_as_already_publishing`;
+  - `ambiguous_or_foreign_presence_stays_held_without_a_source_head`;
+  - the B4 block is asserted in
+    `moved_target_is_unpublished_rework_and_never_advances_source`.
+
 **Findings (with owners):**
 
 1. **Transient host bootstrap failure wedged a node.** The first A attempt

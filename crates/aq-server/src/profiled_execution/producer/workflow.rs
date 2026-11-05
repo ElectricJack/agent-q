@@ -274,7 +274,9 @@ where
         // task, an exhausted retry/time/sandbox budget or an uncertain prior
         // must not starve later tasks on this same bounded page.
         match assess(candidate.revision.task_id).await? {
-            Assessment::Blocked(_) => {}
+            Assessment::Blocked(reason) => {
+                tracing::debug!(task_id = %candidate.revision.task_id, reason, "ready task not offered");
+            }
             admitted => return Ok(Some((candidate.revision.clone(), admitted))),
         }
     }
