@@ -16,7 +16,7 @@
 - Discord reactions/replies are never answers; acknowledging a notification is not answering.
 - F4 notification carries only the decision id, never question text (`observe_question`).
 - Old session-addressed mail is never retargeted; ended-attempt delivery is `Recipient::Task`.
-- Migration must be contiguous: `0088_question_decisions.sql`, `UPDATE meta SET value='88'`.
+- Migration must be contiguous: `0092_question_decisions.sql`, `UPDATE meta SET value='92'`.
 - No slow tests; targeted tests only.
 
 ## Review Focus
@@ -32,7 +32,7 @@
 ### Task 1: Owner table and wait-source fallback
 
 **Files:**
-- Create: `crates/aq-server/migrations/0088_question_decisions.sql`
+- Create: `crates/aq-server/migrations/0092_question_decisions.sql`
 - Modify: `crates/aq-server/src/agent_access/waits/sources.rs` (`decision()`)
 
 **Interfaces:**

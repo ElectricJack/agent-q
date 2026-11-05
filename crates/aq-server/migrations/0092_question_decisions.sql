@@ -32,4 +32,4 @@ CREATE TABLE question_decisions (
 );
 CREATE UNIQUE INDEX question_decisions_answer_operation ON question_decisions(answered_by,answer_operation_id) WHERE answer_operation_id IS NOT NULL;
 CREATE INDEX question_decisions_task ON question_decisions(project_id,task_id);
-UPDATE meta SET value='88' WHERE key='state_format_version';
+UPDATE meta SET value='92' WHERE key='state_format_version';
