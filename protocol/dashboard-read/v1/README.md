@@ -101,3 +101,20 @@ unexpired node credential bindings for the account's profiles: `unknown` with
 `no_fresh_node_report` when no live node reports one. Nothing here grants placement.
 `/api/workers` rows carry the latest storage report flattened (`disk_*_bytes`,
 `preserved_*`, `storage_used_bps`, `storage_observed_at`), absent when unreported.
+
+`questions.read@1` advertises the owner-only F5 question inbox (`question-inbox-1`,
+also covered by this schema): GET `/api/questions/decisions?state=open|closed&limit=1..50[&project_id=uuid][&cursor=opaque]`
+and GET `/api/questions/decisions/{decision_id}`. `state=open` lists pending
+questions oldest asked first; `state=closed` lists answered ones most recently
+answered first. The cursor is the shared opaque format, bound to the owner's
+current identity, state, project and limit for five minutes; any change returns
+410 `cursor_restart_required`. Items carry the decision ID and the decimal
+`decision_revision` the answer must target, project/workspace/task IDs, the
+graph `task_title` (null when the graph is unavailable to the read), the exact
+question, `asked_at_ms` and `expires_at_ms`. `answer`, `answered_at_ms` and
+`delivery` are null while pending and all set once answered; `delivery` is
+`{kind: wait}` when the answer woke the waiting attempt, or
+`{kind: task_mail, message_id}` when it was queued for the continuation.
+`questions.answer@1` is enabled with `dashboard.actions` and names the
+dashboard-actions-1 kind `question.answer`. Fixtures:
+`question-inbox-{open,closed}.json` and `question-detail.json`.

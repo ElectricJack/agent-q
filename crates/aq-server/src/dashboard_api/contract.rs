@@ -714,6 +714,76 @@ pub struct SessionOperations {
     pub effective_permissions: Option<Vec<PermissionScope>>,
     pub terminal: Option<TerminalReplayRef>,
 }
+/// F5 question inbox (`question-inbox-1`): the owner's human read of agent
+/// questions at `GET /api/questions/decisions[/{id}]`. Not a dashboard-read-1
+/// envelope; it shares this schema so one pinned digest covers it.
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+pub enum QuestionInboxVersion {
+    #[serde(rename = "question-inbox-1")]
+    V1,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum QuestionKind {
+    Question,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum QuestionState {
+    Pending,
+    Answered,
+}
+/// How a recorded answer reached the agent: the waiting attempt's H4 wait, or
+/// task-addressed mail for the continuation when the asking attempt had ended.
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
+pub enum QuestionDelivery {
+    Wait,
+    TaskMail { message_id: Uuid },
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema, PartialEq, Eq)]
+#[serde(deny_unknown_fields)]
+pub struct QuestionItem {
+    pub kind: QuestionKind,
+    pub decision_id: Uuid,
+    /// The revision `question.answer` must target while pending.
+    #[schemars(regex(pattern = "^[1-9][0-9]{0,18}$"))]
+    pub decision_revision: String,
+    pub state: QuestionState,
+    pub project_id: Uuid,
+    pub workspace_id: Uuid,
+    pub task_id: Uuid,
+    /// Graph task title; null when the graph is unavailable to this read.
+    #[schemars(length(max = 4096))]
+    pub task_title: Option<String>,
+    /// The agent's exact question text (1..4096 bytes).
+    #[schemars(length(min = 1, max = 4096))]
+    pub question: String,
+    pub asked_at_ms: u64,
+    pub expires_at_ms: u64,
+    /// Null while pending; answer, answered_at_ms and delivery are set together.
+    #[schemars(length(min = 1, max = 16384))]
+    pub answer: Option<String>,
+    pub answered_at_ms: Option<u64>,
+    pub delivery: Option<QuestionDelivery>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct QuestionInboxPage {
+    pub api_version: QuestionInboxVersion,
+    pub server_time_ms: u64,
+    #[schemars(length(max = 50))]
+    pub items: Vec<QuestionItem>,
+    #[schemars(length(min = 1, max = 4096))]
+    pub next_cursor: Option<String>,
+}
+#[derive(Clone, Debug, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct QuestionInboxDetail {
+    pub api_version: QuestionInboxVersion,
+    pub server_time_ms: u64,
+    pub item: QuestionItem,
+}
 #[derive(Serialize, Deserialize, JsonSchema)]
 #[serde(untagged)]
 pub enum Response {
@@ -726,6 +796,8 @@ pub enum Response {
     Session(Box<Envelope<SessionDetail>>),
     SessionOperations(Box<Envelope<SessionOperations>>),
     Projects(Envelope<Page<ProjectRef>>),
+    QuestionInbox(QuestionInboxPage),
+    QuestionDetail(Box<QuestionInboxDetail>),
 }
 pub fn schema() -> serde_json::Value {
     serde_json::to_value(schemars::schema_for!(Response)).expect("static schema")

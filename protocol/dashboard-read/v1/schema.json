@@ -1685,6 +1685,214 @@
       ],
       "type": "string"
     },
+    "QuestionDelivery": {
+      "description": "How a recorded answer reached the agent: the waiting attempt's H4 wait, or\ntask-addressed mail for the continuation when the asking attempt had ended.",
+      "oneOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "wait",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "type": "object"
+        },
+        {
+          "additionalProperties": false,
+          "properties": {
+            "kind": {
+              "const": "task_mail",
+              "type": "string"
+            },
+            "message_id": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          "required": [
+            "kind",
+            "message_id"
+          ],
+          "type": "object"
+        }
+      ]
+    },
+    "QuestionInboxDetail": {
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "$ref": "#/$defs/QuestionInboxVersion"
+        },
+        "item": {
+          "$ref": "#/$defs/QuestionItem"
+        },
+        "server_time_ms": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "api_version",
+        "server_time_ms",
+        "item"
+      ],
+      "type": "object"
+    },
+    "QuestionInboxPage": {
+      "additionalProperties": false,
+      "properties": {
+        "api_version": {
+          "$ref": "#/$defs/QuestionInboxVersion"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/QuestionItem"
+          },
+          "maxItems": 50,
+          "type": "array"
+        },
+        "next_cursor": {
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "server_time_ms": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "api_version",
+        "server_time_ms",
+        "items"
+      ],
+      "type": "object"
+    },
+    "QuestionInboxVersion": {
+      "description": "F5 question inbox (`question-inbox-1`): the owner's human read of agent\nquestions at `GET /api/questions/decisions[/{id}]`. Not a dashboard-read-1\nenvelope; it shares this schema so one pinned digest covers it.",
+      "enum": [
+        "question-inbox-1"
+      ],
+      "type": "string"
+    },
+    "QuestionItem": {
+      "additionalProperties": false,
+      "properties": {
+        "answer": {
+          "description": "Null while pending; answer, answered_at_ms and delivery are set together.",
+          "maxLength": 16384,
+          "minLength": 1,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "answered_at_ms": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "asked_at_ms": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "decision_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "decision_revision": {
+          "description": "The revision `question.answer` must target while pending.",
+          "pattern": "^[1-9][0-9]{0,18}$",
+          "type": "string"
+        },
+        "delivery": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/QuestionDelivery"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "expires_at_ms": {
+          "format": "uint64",
+          "minimum": 0,
+          "type": "integer"
+        },
+        "kind": {
+          "$ref": "#/$defs/QuestionKind"
+        },
+        "project_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "question": {
+          "description": "The agent's exact question text (1..4096 bytes).",
+          "maxLength": 4096,
+          "minLength": 1,
+          "type": "string"
+        },
+        "state": {
+          "$ref": "#/$defs/QuestionState"
+        },
+        "task_id": {
+          "format": "uuid",
+          "type": "string"
+        },
+        "task_title": {
+          "description": "Graph task title; null when the graph is unavailable to this read.",
+          "maxLength": 4096,
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workspace_id": {
+          "format": "uuid",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "decision_id",
+        "decision_revision",
+        "state",
+        "project_id",
+        "workspace_id",
+        "task_id",
+        "question",
+        "asked_at_ms",
+        "expires_at_ms"
+      ],
+      "type": "object"
+    },
+    "QuestionKind": {
+      "enum": [
+        "question"
+      ],
+      "type": "string"
+    },
+    "QuestionState": {
+      "enum": [
+        "pending",
+        "answered"
+      ],
+      "type": "string"
+    },
     "QuotaState": {
       "enum": [
         "known",
@@ -2910,6 +3118,12 @@
     },
     {
       "$ref": "#/$defs/Envelope9"
+    },
+    {
+      "$ref": "#/$defs/QuestionInboxPage"
+    },
+    {
+      "$ref": "#/$defs/QuestionInboxDetail"
     }
   ],
   "title": "Response"
