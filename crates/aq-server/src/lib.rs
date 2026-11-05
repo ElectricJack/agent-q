@@ -374,6 +374,9 @@ fn build_worker_router_inner(
         .merge(profiled_execution::stopped::routes(state.clone()))
         .merge(profiled_execution::results::routes(state.clone()))
         .merge(profiled_execution::material_api::routes(state.clone()))
+        .merge(profiled_execution::login_refresh::api::routes(
+            state.clone(),
+        ))
         .merge(profiled_execution::artifact_api::routes(state.clone()))
         .merge(profiled_execution::source_api::routes(state.clone()))
         .merge(node_storage::routes(state.clone()))
