@@ -743,3 +743,18 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Folded I3's OpenCode §8.3 docs follow-up into `crisp-crest-28`.
 - **05:50 check.** I3 (`azure-horizon-22.6`, OpenCode on local Ollama) completed. Merged aq-worker #37 (`amber-cascade-22`, the `runner_needs_no_node_credential` fix for aq-worker main; green). MS1 still waits on C5b.
 - **06:05 C5b had stalled for about 4.5 h.** Its session sat idle at 'done 6:08 PM, 1 shell still running': `cargo test --test native_initial_grant subscription` had hung for over 3 h. Killed that test process (pid 1499315) and messaged C5b to skip it as a pre-existing hang, finish its targeted checks with timeouts and close. MS1 waits only on C5b.
+
+## 2026-11-05 (UTC; earlier entries labelled 05:15–06:05 were about an hour ahead of real UTC)
+
+- **~04:50 owner instruction:** "Just stop the tasks in agent queue and finish the work yourself with subagents."
+  - Paused all six v2 projects in v1. Snapshotted the WIP of C5b (`aq/calm-delta-18.8` at 107d164a), D11 (`aq/crisp-meadow-36.12` at 192bfcc4) and `sharp-grove-60` (`aq/sharp-grove-60` at 7a6fb756), pushed it, and stopped those sessions.
+  - Dispatched operator subagents, each working in its own worktree under `aq-platform/wt/` and pushing branches only; I integrate:
+    - C5b: CAS write-back, the hung renewal test;
+    - D11: the pilots;
+    - F5: agent questions, on branch `aq/f5-questions`;
+    - PRs #80, #81, #82, #83, #85: merge order in that sequence, migrations renumbered contiguously after 0087;
+    - MS1: a real Claude Code agent in docker-local, on its own `aq-ms1` stack on ports 28080 and up.
+  - MS1 no longer waits on C5b: Claude takes the setup-token as env only, so it needs no write-back.
+- **05:00:** merged #84 (`crisp-crest-28`, the 0005 §8.3 Claude Code 2.1.318 / OpenCode 1.18.35 harness rows). It is docs only. Its one CI failure, `reservations::tests::count_utf8_body_budget…` with IdentityUnavailable, is unrelated to the PR.
+  - #83 and #85 both add migration 0088, which is a W62 collision; renumbering is handed to the PR subagent.
+  - Main CI on aq-server is red only on the native_accepted regression, which #80 fixes.
