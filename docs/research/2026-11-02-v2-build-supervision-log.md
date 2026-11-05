@@ -795,3 +795,18 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Refreshed #85 on main (clean merge, catalog at 91, protocol checks pass; 59eb2ea0) and am waiting on CI.
   - A trial merge of main into F5 conflicts with #83 in `dashboard_api/actions/existing.rs`, `tests/profiled_results.rs` and `protocol/dashboard-actions/v1/schema.json`. Both PRs add dashboard action kinds, and the generated schema needs regenerating.
   - Dispatched an integration subagent to bring F5, then D11, current on top of #85, verify each stack with a private target dir, and open their PRs.
+- **08:10: MS1 steps 1–2 LIVE through the stack.** aq-server assigned task A to a node. A real Claude Code agent ran it in a docker-local sandbox (`cargo test` passed). The result went to central aq-git as commit `6d9c3189`, and D3 completed A automatically. That made B ready, and B ran the same way (`e41b1a00`). Evidence IDs are in `ms1/demo` MS1.md, "Update 2026-11-05".
+  - **Wiring:** kept the MS0 `run-native` profiled path. The node's session host starts a pinned `aq-worker sandbox-harness` driver, which creates the sandbox, copies the worktree in and out, and passes the leased token in as private material; the runner moves it into `CLAUDE_CODE_OAUTH_TOKEN` for `claude` only.
+  - **Server fixes on the path:**
+    - D3's review requirement was hard-coded to the human owner;
+    - D3 refused the native `Unknown` outcome;
+    - the long-phase/result opt-in only allowed Codex;
+    - new `require_container` confinement option;
+    - C5b trailing newline.
+  - **Not done:**
+    - cancel is recorded but doesn't reach the native executor;
+    - retry: no replacement attempt is offered;
+    - restart drills not run;
+    - stuck granted attempts hold the task and node;
+    - B doesn't build on A, because the D1 publish isn't on this path.
+  - Asked the wiring subagent to continue in that order. Dispatched an independent read-only reviewer on the aq-server `ms1/demo` diff before it goes to main.
