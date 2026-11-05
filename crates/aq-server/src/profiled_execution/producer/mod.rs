@@ -38,5 +38,5 @@ pub(super) fn interactive_adapter(
     state: &AppState,
     adapter: &aq_admission::ArtifactRef,
 ) -> Result<bool, AppError> {
-    Ok(result_startup::for_adapter(state, adapter)?.is_some_and(|v| v.interactive))
+    Ok(result_startup::for_adapter(state, adapter)?.is_some_and(|v| v.long_phase))
 }

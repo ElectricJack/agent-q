@@ -31,6 +31,8 @@ services:
     image: ${AQ_SERVER_IMAGE:-agent-q-server:dev}
     user: '0:0'
     entrypoint: [/bin/sh, /dev-init-volumes.sh]
+    environment:
+      AQ_DEV_REPLACE_OPERATOR_SECTION: ${AQ_DEV_REPLACE_OPERATOR_SECTION:-}
     volumes:
       - ./scripts/dev-init-volumes.sh:/dev-init-volumes.sh:ro
       - ${AQ_VAULT_DIR:?run scripts/dev-up}:/dev-vault:ro

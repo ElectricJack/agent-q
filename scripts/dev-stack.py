@@ -125,9 +125,17 @@ file = "/run/aq-dev/terminal_protection_key"
         # MS1: an operator may replace only the appended operator section of an
         # existing vault (revisioned [intelligence]/[profiled_execution]); every
         # generated table must be byte-identical.
+        previous = target.read_text()
         if not (os.environ.get("AQ_DEV_REPLACE_OPERATOR_SECTION") == "1"
-                and target.read_text().startswith(generated)):
+                and previous.startswith(generated)):
             raise ValueError("development vault differs from generated configuration; preserve it and use a new AQ_DEV_STATE_DIR")
+        # The settlement config is config.toml plus [playbooks]: carry it over.
+        playbooks = vault / "playbooks.toml"
+        if playbooks.exists():
+            retained = playbooks.read_text()
+            if not retained.startswith(previous):
+                raise ValueError("retained settlement configuration differs; use a fresh development stack")
+            playbooks.write_text(config + retained[len(previous):])
     target.write_text(config)
     return dict(AQ_STATE_FORMAT=str(state_format(ROOT)), AQ_DEV_STATE_DIR=str(state),
                 AQ_VAULT_DIR=str(vault), AQ_SECRETS_DIR=str(secret),

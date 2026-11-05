@@ -12,6 +12,13 @@ pub(super) const STARTUP_ID: &str = "aq.agent-result-startup";
 const STARTUP_DIGEST: &str = "667d48a537baa35335fb3da1e589846e9d294a2bc24a8df58cf682181b15229a";
 const CONTRACT_DIGEST: &str = "4fe711c405ead85b55a54de2d7446b2c106c4b8809b16bc57497ba2af1d35ef9";
 const ADAPTER_ID: &str = "aq.codex-result-local-adapter";
+/// MS1: Claude Code in a docker-local sandbox, driven from the node. It runs
+/// the long (schema 3) phase without terminal input.
+const CLAUDE_ADAPTER_ID: &str = "aq.claude-result-local-adapter";
+const CLAUDE_PROFILE: &str = "claude-2.1.318-docker-local-result-local-v1";
+fn result_adapter(id: &str) -> bool {
+    id == ADAPTER_ID || id == CLAUDE_ADAPTER_ID
+}
 const PROFILE: &str = "codex-0.166-trusted-node-named-readonly-result-local-v1";
 const INTERACTIVE_PROFILE: &str = "codex-0.166-chatgpt-interactive-result-local-v1";
 const INTERACTIVE_RECIPE_DIGEST: &str =
@@ -30,7 +37,10 @@ struct OptIn {
 pub(super) struct ReportingInstruction {
     pub artifact: ArtifactRef,
     pub text: String,
+    /// Terminal input is enabled for the harness.
     pub interactive: bool,
+    /// The adapter is qualified for the long (schema 3) phase policy.
+    pub long_phase: bool,
 }
 fn public_reference(id: &str, digest: &str) -> Result<ArtifactRef, AppError> {
     Ok(ArtifactRef {
@@ -43,7 +53,7 @@ pub(super) fn from_definitions(
     adapter: &ArtifactRef,
     definitions: &[Definition],
 ) -> Result<Option<ReportingInstruction>, AppError> {
-    if adapter.id.as_str() != ADAPTER_ID {
+    if !result_adapter(adapter.id.as_str()) {
         return Ok(None);
     }
     // Definition revisions advance when whole runtime/environment bytes change.
@@ -68,8 +78,17 @@ pub(super) fn from_definitions(
                     INTERACTIVE_RECIPE_DIGEST,
                 )?
         }
+        CLAUDE_PROFILE => {
+            adapter.id.as_str() == CLAUDE_ADAPTER_ID
+                && opt.recipe.id.as_str() == "aq.claude-docker-local-result-local-recipe"
+                && opt.recipe.version.as_str() == "1"
+        }
         _ => false,
     };
+    let claude = opt.profile == CLAUDE_PROFILE;
+    if claude != (adapter.id.as_str() == CLAUDE_ADAPTER_ID) {
+        return Err(refused());
+    }
     if opt.schema_version != 1
         || !recipe_matches
         || opt.contract != public_reference("aq.agent-result-local", CONTRACT_DIGEST)?
@@ -90,6 +109,7 @@ pub(super) fn from_definitions(
         artifact,
         text: instruction.body().to_owned(),
         interactive: opt.profile == INTERACTIVE_PROFILE,
+        long_phase: opt.profile == INTERACTIVE_PROFILE || claude,
     }))
 }
 pub(super) fn interactive_runtime(
@@ -102,13 +122,13 @@ pub(super) fn interactive_runtime(
         profile: String,
     }
     for definition in definitions {
-        if definition.artifact().id.as_str() != ADAPTER_ID {
+        if !result_adapter(definition.artifact().id.as_str()) {
             continue;
         }
         let pin: RuntimePin = serde_json::from_str(definition.body()).map_err(|_| refused())?;
-        if pin.runtime == *runtime && pin.profile == INTERACTIVE_PROFILE {
+        if pin.runtime == *runtime && (pin.profile == INTERACTIVE_PROFILE || pin.profile == CLAUDE_PROFILE) {
             return Ok(from_definitions(definition.artifact(), definitions)?
-                .is_some_and(|value| value.interactive));
+                .is_some_and(|value| value.long_phase));
         }
     }
     Ok(false)
@@ -117,7 +137,7 @@ pub(super) fn for_adapter(
     state: &AppState,
     adapter: &ArtifactRef,
 ) -> Result<Option<ReportingInstruction>, AppError> {
-    if adapter.id.as_str() != ADAPTER_ID {
+    if !result_adapter(adapter.id.as_str()) {
         return Ok(None);
     }
     let config = state
@@ -218,6 +238,25 @@ mod tests {
         let mut changed = context.source;
         changed.digest = Digest::of(b"changed").as_str().into();
         assert!(!reporting.matches(&changed));
+    }
+    #[test]
+    fn claude_docker_local_profile_runs_the_long_phase_without_terminal_input() {
+        let mut value = body();
+        value["profile"] = json!(CLAUDE_PROFILE);
+        value["recipe"] = json!(reference("aq.claude-docker-local-result-local-recipe"));
+        let bytes = serde_json::to_string(&value).unwrap();
+        let mut adapter = reference(CLAUDE_ADAPTER_ID);
+        adapter.digest = Digest::of(bytes.as_bytes());
+        let (_, mut defs) = definitions(body());
+        defs[0] = Definition::new(adapter.clone(), ArtifactKind::Definition, bytes.clone()).unwrap();
+        let reporting = from_definitions(&adapter, &defs).unwrap().unwrap();
+        assert!(!reporting.interactive && reporting.long_phase);
+        assert!(interactive_runtime(&reference("runtime-code"), &defs).unwrap());
+        // The Claude profile under the Codex adapter identity is refused.
+        let mut codex = reference(ADAPTER_ID);
+        codex.digest = Digest::of(bytes.as_bytes());
+        defs[0] = Definition::new(codex.clone(), ArtifactKind::Definition, bytes).unwrap();
+        assert!(from_definitions(&codex, &defs).is_err());
     }
     #[test]
     fn interactive_profile_requires_its_exact_public_recipe_and_keeps_counted_startup() {
