@@ -126,11 +126,14 @@ for n in sys.argv[1:3]:
 EOF
 }
 
-worker_bin() { echo "$CARGO_TARGET_DIR/debug/aq-worker"; }
+# The controller runs from a private copy, so cleaning the Cargo target dir
+# never removes the binary of a running node.
+worker_bin() { echo "$BASE/bin/aq-worker"; }
 
 cmd_node() {
   say "build aq-worker $(git -C "$WORKER_SRC" rev-parse --short HEAD)"
   (cd "$WORKER_SRC" && cargo build --locked -p aq-worker --bin aq-worker)
+  install -D -m 0755 "$CARGO_TARGET_DIR/debug/aq-worker" "$(worker_bin)"
   mkdir -p "$W" && chmod 700 "$W"
   if [ ! -s "$W/worker.toml" ]; then
     say "enroll node ms1-desktop"

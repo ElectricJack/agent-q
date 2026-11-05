@@ -105,6 +105,12 @@ be in the sandbox daemon (I4a builds and pulls it). `seed` and `node` are
 idempotent: the graph mutation replays by idempotency key, and enrollment
 happens only when `worker.toml` is missing.
 
+The node controller runs from a private copy at `~/.local/share/aq-ms1/bin/aq-worker`
+(log `~/.local/share/aq-ms1/worker/controller.log`, pid in `controller.pid`).
+The Cargo target dir `target-ms1` was deleted after this run, so the next
+`node`, `live` or `drill` first rebuilds aq-worker (a few minutes).
+`~/.local/share/aq-ms1/up.sh [COMMAND]` is a shortcut for the demo script.
+
 Each `live` run costs three short Claude sessions (about $0.03 each at list
 price; subscription usage). `live` fails loudly if any live assertion fails.
 
