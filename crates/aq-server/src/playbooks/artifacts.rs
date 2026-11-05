@@ -81,8 +81,25 @@ pub trait Ledger: Send + Sync {
     fn history(&self, binding: &str) -> impl Future<Output = Result<Vec<Record>>> + Send;
 }
 
+/// A ledger whose bindings can be locked. Activate and rollback run their
+/// replay check, stack read, engine switch and ledger write through the held
+/// lock, so concurrent operations on one binding each see the stack the
+/// previous one committed.
+pub trait LockingLedger: Ledger {
+    type Held<'a>: Held
+    where
+        Self: 'a;
+    fn lock(&self, binding: &str) -> impl Future<Output = Result<Self::Held<'_>>> + Send;
+}
+/// The ledger seen while holding one binding's lock.
+pub trait Held: Ledger {
+    /// Make this hold's writes durable and release the lock. Dropping the
+    /// hold instead (cancellation, error) discards its writes and releases.
+    fn release(self) -> impl Future<Output = Result<()>> + Send;
+}
+
 #[derive(Default)]
-pub struct MemoryLedger(Mutex<Vec<Record>>);
+pub struct MemoryLedger(Mutex<Vec<Record>>, tokio::sync::Mutex<()>);
 impl Ledger for MemoryLedger {
     async fn get(&self, op_id: &str) -> Result<Option<Record>> {
         Ok(self
@@ -112,6 +129,37 @@ impl Ledger for MemoryLedger {
             .collect())
     }
 }
+/// One lock for every binding: coarser than needed, still correct. Writes
+/// through the hold are immediate.
+pub struct MemoryHeld<'a> {
+    ledger: &'a MemoryLedger,
+    _guard: tokio::sync::MutexGuard<'a, ()>,
+}
+impl LockingLedger for MemoryLedger {
+    type Held<'a> = MemoryHeld<'a>;
+    async fn lock(&self, _binding: &str) -> Result<MemoryHeld<'_>> {
+        Ok(MemoryHeld {
+            ledger: self,
+            _guard: self.1.lock().await,
+        })
+    }
+}
+impl Ledger for MemoryHeld<'_> {
+    async fn get(&self, op_id: &str) -> Result<Option<Record>> {
+        self.ledger.get(op_id).await
+    }
+    async fn insert(&self, record: Record) -> Result<Record> {
+        self.ledger.insert(record).await
+    }
+    async fn history(&self, binding: &str) -> Result<Vec<Record>> {
+        self.ledger.history(binding).await
+    }
+}
+impl Held for MemoryHeld<'_> {
+    async fn release(self) -> Result<()> {
+        Ok(())
+    }
+}
 
 /// Durable ledger, one per playbook owner namespace.
 pub struct PgLedger {
@@ -129,46 +177,97 @@ fn row(r: sqlx::postgres::PgRow) -> Result<Record> {
     })
 }
 const COLUMNS: &str = "op_id,kind,binding,artifact,previous";
+async fn pg_get(c: &mut sqlx::PgConnection, ns: Uuid, op_id: &str) -> Result<Option<Record>> {
+    sqlx::query(&format!(
+        "SELECT {COLUMNS} FROM playbook_activations WHERE namespace_id=$1 AND op_id=$2"
+    ))
+    .bind(ns)
+    .bind(op_id)
+    .fetch_optional(&mut *c)
+    .await?
+    .map(row)
+    .transpose()
+}
+async fn pg_insert(c: &mut sqlx::PgConnection, ns: Uuid, r: Record) -> Result<Record> {
+    sqlx::query(
+        "INSERT INTO playbook_activations(namespace_id,op_id,kind,binding,artifact,previous,created_at_ms)
+         VALUES($1,$2,$3,$4,$5,$6,(extract(epoch from clock_timestamp())*1000)::BIGINT)
+         ON CONFLICT(namespace_id,op_id) DO NOTHING",
+    )
+    .bind(ns)
+    .bind(&r.op_id)
+    .bind(r.kind.as_str())
+    .bind(&r.binding)
+    .bind(&r.artifact)
+    .bind(&r.previous)
+    .execute(&mut *c)
+    .await?;
+    pg_get(c, ns, &r.op_id).await?.ok_or(Error::Unknown)
+}
+async fn pg_history(c: &mut sqlx::PgConnection, ns: Uuid, binding: &str) -> Result<Vec<Record>> {
+    sqlx::query(&format!(
+        "SELECT {COLUMNS} FROM playbook_activations
+         WHERE namespace_id=$1 AND binding=$2 AND kind<>'install' ORDER BY seq"
+    ))
+    .bind(ns)
+    .bind(binding)
+    .fetch_all(&mut *c)
+    .await?
+    .into_iter()
+    .map(row)
+    .collect()
+}
 impl Ledger for PgLedger {
     async fn get(&self, op_id: &str) -> Result<Option<Record>> {
-        sqlx::query(&format!(
-            "SELECT {COLUMNS} FROM playbook_activations WHERE namespace_id=$1 AND op_id=$2"
-        ))
-        .bind(self.namespace_id)
-        .bind(op_id)
-        .fetch_optional(&self.pool)
-        .await?
-        .map(row)
-        .transpose()
+        pg_get(&mut *self.pool.acquire().await?, self.namespace_id, op_id).await
     }
     async fn insert(&self, r: Record) -> Result<Record> {
-        sqlx::query(
-            "INSERT INTO playbook_activations(namespace_id,op_id,kind,binding,artifact,previous,created_at_ms)
-             VALUES($1,$2,$3,$4,$5,$6,(extract(epoch from clock_timestamp())*1000)::BIGINT)
-             ON CONFLICT(namespace_id,op_id) DO NOTHING",
-        )
-        .bind(self.namespace_id)
-        .bind(&r.op_id)
-        .bind(r.kind.as_str())
-        .bind(&r.binding)
-        .bind(&r.artifact)
-        .bind(&r.previous)
-        .execute(&self.pool)
-        .await?;
-        self.get(&r.op_id).await?.ok_or(Error::Unknown)
+        pg_insert(&mut *self.pool.acquire().await?, self.namespace_id, r).await
     }
     async fn history(&self, binding: &str) -> Result<Vec<Record>> {
-        sqlx::query(&format!(
-            "SELECT {COLUMNS} FROM playbook_activations
-             WHERE namespace_id=$1 AND binding=$2 AND kind<>'install' ORDER BY seq"
-        ))
-        .bind(self.namespace_id)
-        .bind(binding)
-        .fetch_all(&self.pool)
-        .await?
-        .into_iter()
-        .map(row)
-        .collect()
+        pg_history(&mut *self.pool.acquire().await?, self.namespace_id, binding).await
+    }
+}
+/// One transaction holding a transaction-scoped advisory lock per
+/// (namespace, binding). Every ledger read and write of the hold runs on that
+/// transaction, so a waiter holds one connection and the holder needs no
+/// other. Dropping the hold rolls back (the pool flushes it on release),
+/// which also releases the lock.
+pub struct PgHeld {
+    tx: tokio::sync::Mutex<sqlx::Transaction<'static, sqlx::Postgres>>,
+    namespace_id: Uuid,
+}
+impl LockingLedger for PgLedger {
+    type Held<'a> = PgHeld;
+    async fn lock(&self, binding: &str) -> Result<PgHeld> {
+        let mut tx = self.pool.begin().await?;
+        sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))")
+            .bind(format!(
+                "aq.playbook.activation/{}/{binding}",
+                self.namespace_id
+            ))
+            .execute(&mut *tx)
+            .await?;
+        Ok(PgHeld {
+            tx: tokio::sync::Mutex::new(tx),
+            namespace_id: self.namespace_id,
+        })
+    }
+}
+impl Ledger for PgHeld {
+    async fn get(&self, op_id: &str) -> Result<Option<Record>> {
+        pg_get(&mut **self.tx.lock().await, self.namespace_id, op_id).await
+    }
+    async fn insert(&self, r: Record) -> Result<Record> {
+        pg_insert(&mut **self.tx.lock().await, self.namespace_id, r).await
+    }
+    async fn history(&self, binding: &str) -> Result<Vec<Record>> {
+        pg_history(&mut **self.tx.lock().await, self.namespace_id, binding).await
+    }
+}
+impl Held for PgHeld {
+    async fn release(self) -> Result<()> {
+        Ok(self.tx.into_inner().commit().await?)
     }
 }
 
@@ -271,7 +370,7 @@ fn stack(history: &[Record]) -> Vec<String> {
     s
 }
 
-pub async fn activate<C: Catalog, L: Ledger>(
+pub async fn activate<C: Catalog, L: LockingLedger>(
     catalog: &C,
     ledger: &L,
     op_id: &str,
@@ -287,20 +386,27 @@ pub async fn activate<C: Catalog, L: Ledger>(
         artifact: digest.into(),
         previous: None,
     };
-    if let Some(v) = replay(ledger, &wanted).await? {
+    // Replay, stack read, engine switch and ledger write run under the
+    // binding's lock, so a concurrent activate/rollback (or a concurrent
+    // retry of this op id) cannot read a stale stack.
+    let held = ledger.lock(binding).await?;
+    if let Some(v) = replay(&held, &wanted).await? {
+        held.release().await?;
         return Ok(v);
     }
     // Previous comes from the ledger first: a crash after the engine commit
     // and before the ledger write replays to the same recorded previous.
-    let previous = match stack(&ledger.history(binding).await?).pop() {
+    let previous = match stack(&held.history(binding).await?).pop() {
         Some(top) => Some(top),
         None => catalog.current(binding).await?,
     };
     catalog.activate(binding, digest).await?;
-    commit(ledger, Record { previous, ..wanted }).await
+    let out = commit(&held, Record { previous, ..wanted }).await?;
+    held.release().await?;
+    Ok(out)
 }
 
-pub async fn rollback<C: Catalog, L: Ledger>(
+pub async fn rollback<C: Catalog, L: LockingLedger>(
     catalog: &C,
     ledger: &L,
     op_id: &str,
@@ -315,29 +421,32 @@ pub async fn rollback<C: Catalog, L: Ledger>(
         artifact: String::new(),
         previous: None,
     };
-    if let Some(v) = replay(ledger, &wanted).await? {
+    // Under the binding's lock: two concurrent rollbacks pop two entries,
+    // and a concurrent retry of this op id replays instead of popping again.
+    let held = ledger.lock(binding).await?;
+    if let Some(v) = replay(&held, &wanted).await? {
+        held.release().await?;
         return Ok(v);
     }
-    let s = stack(&ledger.history(binding).await?);
+    let s = stack(&held.history(binding).await?);
     let [.., target, current] = s.as_slice() else {
         // Nothing recorded to roll back to: refuse explicitly.
         return Err(Error::Conflict);
     };
     catalog.activate(binding, target).await?;
-    commit(
-        ledger,
-        Record {
-            artifact: target.clone(),
-            previous: Some(current.clone()),
-            ..wanted
-        },
-    )
-    .await
+    let record = Record {
+        artifact: target.clone(),
+        previous: Some(current.clone()),
+        ..wanted
+    };
+    let out = commit(&held, record).await?;
+    held.release().await?;
+    Ok(out)
 }
 
 /// Make the D9 coding policy the binding default: install its four artifacts
 /// and activate `aq.coding`, each under a derived operation id.
-pub async fn install_coding_default<C: Catalog, L: Ledger>(
+pub async fn install_coding_default<C: Catalog, L: LockingLedger>(
     catalog: &C,
     ledger: &L,
     op_id: &str,
