@@ -188,11 +188,24 @@ async fn prepare_inner(
     .execute(&mut *tx)
     .await
     .map_err(db)?;
-    // A genuinely unissued lineage, not an absent accounting row interpreted as zero.
+    // A genuinely unissued attempt, not an absent accounting row interpreted as
+    // zero: the lineage holds exactly the decision's started attempts plus this
+    // one (1 for a first attempt; a B4 replacement counts its predecessors).
     let counts =
         on_heap(|| super::no_grant::attempt_counts_locked(&mut tx, after.input.spec.task.task_id))
             .await?;
-    if counts.started != 1 || after.hot.grant.is_some() || after.hot.execution_deadline_ms.is_some()
+    let expected = after
+        .input
+        .decision
+        .inputs
+        .budget
+        .attempts_started
+        .checked_add(1)
+        .ok_or_else(|| refused())?;
+    if counts.started != expected
+        || (after.input.decision.inputs.replacement.is_none() && expected != 1)
+        || after.hot.grant.is_some()
+        || after.hot.execution_deadline_ms.is_some()
     {
         return Err(refused());
     }
