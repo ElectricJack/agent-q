@@ -852,3 +852,15 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Main CI is green at 458f682d, so the post-#88 `playbook_host_requests` failure was a one-off flake.
 - **13:20: the MS1 wiring subagent had stalled.** Its review fixes were pushed (B1 Failure→Failed plus D3 Success-only, with a DB test on a production-shaped offer; should-fix 1, 2 and 4; nits), but there had been no commits and no live processes for hours after a "waiting for the server rebuild" message. Same pattern as W64: idle and waiting on background work that had already ended.
   - Resumed it with a status request, asked it to continue with cancel, then stuck attempts, retry, restart drills and D1, and to merge main (now at 0094) early.
+- **13:40: MS1 progress (wiring subagent report).** This corrects the 13:20 entry: the subagent had not stalled. Its commits were made earlier and it reported late.
+  - All review fixes are in: B1, should-fix 1–4, nits.
+  - **Live through the aq-ms1 stack:**
+    - Cancel (B3): cancel `6c42e9be…` reached the executor, the sandbox was stopped and kept, and the attempt was recorded cancelled with stop proof.
+    - Node killed mid-attempt: `reconcile-native` recovered the stop from the sealed intent with no relaunch or duplicate. The node re-registered without re-enrolling and ran the next attempt.
+    - aq-server restarted mid-attempt: the attempt continued with exactly one report, confirmed by D3.
+  - **Not done:**
+    - retry: no production writer of source-retained/effects-settled facts, so B4 never replaces an attempt;
+    - stuck attempts: closed-awaiting-settlement is never settled;
+    - D1 publication.
+  - Branch heads: aq-server `ms1/demo` 87012926, aq-worker `ms1/demo` 2d43cf2c, both with main merged.
+  - Dispatched an independent re-review of both diffs before merging to main, and a fresh subagent for retry, stuck-attempt settlement and D1 on new `ms1/retry` branches.
