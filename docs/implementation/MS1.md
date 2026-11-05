@@ -4,6 +4,79 @@ Task `stark-zenith-16.2`. Run on 2026-11-05, 05:00–05:35 UTC, on the owner's
 desktop (WSL2). Owner decision of 2026-11-04: the agent is **Claude Code**
 signed in with the owner's Claude subscription login (no API key), not Codex.
 
+## Update 2026-11-05 (15:30 UTC): B4 retry and B5b closure settlement (paused)
+
+Work paused by the owner (Rust build optimisation) before the replacement
+attempt ran to completion. D1 moved to another agent (`ms1/d1`). Migration
+**0095** (`replacement_source_after_never_granted`) is on `ms1/retry`.
+
+**Shown live on `aq-ms1`:**
+
+- **A failed attempt gets replacement facts and a replacement offer (B4).**
+  Task `…0102`, attempt `3b46ffaf-0b5a-5732-accf-8d2a3451bf78`: Claude was
+  SIGKILLed in its sandbox at 15:03:16Z (operator-injected harness crash, 2 of
+  10 files written). The driver copied back, the sandbox was destroyed, the
+  report (`f8f16b49-9d07-4aba-981a-f56408f3f234`) is `failed`, D3 recorded
+  `rework_required`/`not_accepted`, and the D3 policy actor then recorded
+  `retention=retained` and `effects=quiescent`. The next poll admitted a
+  replacement: server log "replacement attempt admitted within the lineage
+  budget … attempts_started=1 … sandbox_ms_charged=908199 max_attempts=3
+  max_sandbox_ms=14400000", and the predecessor's claim was released
+  (`profiled_replacement_releases`). The same happened for drill 1 (task
+  `…0101`, attempt `667855dc-74a4-5683-a5e1-65b2c18f46a1`, report
+  `3b9dfd5d-41e6-4cd2-9325-fb3395df891c`).
+- **Backfill.** The sweep recorded the facts for the two attempts reworked
+  before this owner existed (`a038d83a…`, `8181d51e…`).
+- **Preserved sandboxes released by the operator.** `aq-worker
+  release-native-sandbox` destroyed `aq-10112d04…-785d8c76…` (cancel drill) and
+  `aq-10112d04…-4e2f1083…` (node-kill drill) with the operator's reason as
+  destroy evidence; no sandboxes or volumes remain. Their tasks (`…00c2`,
+  `…00e1`) were abandoned through the owner disposition route
+  (`8c980e52…`, `4fe42546…`) and retired in Graph. Tidy-up of other demo
+  tasks: `…0021` (`5ada26d6…`), `…00c1` (`d31a4140…`), `…00d2`
+  (`0bd7f0d0…`) abandoned and retired; `…0101` retired.
+
+**Real defects the live replacement exposed, fixed on `ms1/retry`:**
+
+1. A never-granted successor poisoned the shared export: the 0053 guard
+   refused every later successor (migration 0095).
+2. A replacement across a project binding revision change failed offer
+   assembly and so failed the node's whole poll, starving all other tasks
+   (`assess_task_for_revision` now reports it blocked).
+3. The phase-v2 Prepare refused any lineage elapsed time other than 0, and
+4. required exactly one started attempt, so no replacement could ever be
+   prepared (both generalised; first attempts keep the old rules).
+5. Zero-capacity cancellation polls were refused once the inventory aged
+   out, so the executor saw "unknown" instead of "not cancelled".
+
+**Not yet shown (resume here):** the replacement attempt running in a new
+sandbox and D3 completing task `…0102` (fix 4, commit `7bf5315c`, is
+committed and tested but not yet in the running image); the worker closure
+(`reconcile-native` on nodes `c7caa999…`/`f051a29d…`), server closure
+settlement, and the stuck nodes re-registering and taking work. Grant
+renewal still requires a single started attempt (B4/B6a1 follow-up).
+
+**Resume:** from `wt/ms1r-server` with `wt/ms1r-worker` built:
+`AQ_MS1_COMPOSE_EXTRA=<override with RUST_LOG=info,aq_refusal=debug> scripts/ms1-demo.sh rebuild-server`
+(after any worker rebuild that changes a pinned program, bump
+`~/.local/share/aq-ms1/revision` and run `AQ_DEV_REPLACE_OPERATOR_SECTION=1
+scripts/ms1-demo.sh profiled` *before* the server can start), then
+`scripts/ms1-demo.sh run` twice for `…0102`. For a stuck node: move
+`node/state` aside, move its `runs/state-…` back to `node/state`, run
+`aq-worker --config node/config/worker.toml.<stamp> reconcile-native
+--native-config node/config/native.json --attempt-id <id>`, restore the
+directories; the server sweep then settles the closure and the next poll
+replaces the task, which frees the node.
+
+**Dashboard.** `[result_media]` is configured on `aq-ms1`
+(`ms1-demo.sh media`; the bootstrap now reports `results.media.read`/`upload`
+enabled). `/results` still shows "Dashboard update required" with the
+current bundle: the server's results-feedback items carry
+`feedback_read_version`, `follow_up_submission` and `directly_following`
+(aq-server `4eef26ea`), which the dashboard's pinned closed
+`results-feedback/v1` schema does not allow. Owner: aq-dashboard (re-pin the
+contract). `aq-v2-local` only loads because it has no results yet.
+
 ## Update 2026-11-05 (14:30 UTC): re-review fixes on `ms1/retry`
 
 The independent re-review of `ms1/demo` found that B1 was only half closed.
