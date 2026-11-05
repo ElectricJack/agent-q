@@ -763,3 +763,17 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Told the PR subagent to shift to #82=0089, #83=0090, #85=0091, and the F5/D11 subagents to take 0092/0093 provisionally.
   - v1 refuses to record it complete: `set-status COMPLETED` needs completion provenance, and `task close` needs a running claim. The task is left BLOCKED with an operator comment; v1 bookkeeping is no longer on the critical path.
   - The aq-worker node side of write-back is still a cross-repo follow-up. Claude doesn't need it (its token is an env-only lease).
+- **06:20: MS1 first end-to-end run (subagent).**
+  - **Works:** a real Claude Code 2.1.318 agent runs in a docker-local sandbox on the owner's setup-token (imported through C5b `import-login` as `owner-claude-subscription@1`; the token never appears in logs). It edited code, ran checks and published inside the sandbox. Sandbox-side cancel stopped in 6 s with a stopped-writer proof. A node restart stopped and preserved the sandbox, with no duplicate.
+  - **Not wired, so steps 1, 2 and 4 can't run through the stack:**
+    - `aq-worker run` still uses `UnavailableProvider` (main.rs:700), so the node never registers or gets offers.
+    - `sandbox-run` stops at "B2 receipt codec is unavailable" (main.rs:440).
+    - aq-server's v2 offer route only serves dev fixtures (`execution/api.rs` `fixture`).
+  - **Measured memory:** stack 173 MiB, node controller 27 MiB, sandbox 143–200 MiB with Claude alone and 531 MiB with `cargo test`.
+  - Evidence is on aq-server/aq-worker `ms1/demo` (`docs/implementation/MS1.md`, `scripts/ms1-demo.sh`). The `aq-ms1` stack is running on 28080.
+  - Dispatched a wiring subagent to connect server → node controller → sandbox launch → aq-git publish → D3 completion, and prove A→B live.
+- **06:35: F5 done (subagent).** Branch `aq/f5-questions` at 1e06db95 is built on the old `aq/steady-harbor-87.6` work.
+  - Covers the agent asking, then reading the answer; the owner's `question.answer` dashboard action; waking the live attempt; and routing to task mail once the attempt has ended. Both acceptance tests pass.
+  - Its migration is provisionally 0092 and goes after #82/#83/#85 (0089–0091). It is held for merge in that order.
+  - Follow-ups: the aq-worker `aq-agent question ask/show` client; dashboard inbox support for `question` decisions; a profile capability check on the question and wait routes.
+  - **Tooling hazard:** aq-server worktrees sharing `target-shared` get identical artifact hashes, so cargo can link another worktree's freshly built aq-server library (freshness is by mtime). F5 saw stale builds twice. Told the PR and D11 subagents to use private target dirs and re-verify.
