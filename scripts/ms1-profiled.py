@@ -74,6 +74,9 @@ _REV = int(os.environ.get("AQ_MS1_REVISION") or (_REV_FILE.read_text().strip() i
 PROFILED_REVISION = _REV
 INTELLIGENCE_REVISION = _REV + 1
 DEFINITION_VERSION = str(_REV)
+# Catalog identities are immutable too: version the profiles with the revision.
+AGENT = f"ms1-implementer@{_REV}"
+EXECUTION = f"ms1-docker-local-15m@{_REV}"
 LONG_CONTRACT = {"id": "aq.admission.preparation-registry-refresh-v1-contract.interactive-long-v1", "version": "1",
                  "digest": "bd9abe1d9ef02970beb7946c007418de90a6066a146698ac0c075da1c1f2a28f"}
 TERMINAL_CONTRACT = {"id": "aq.phase-terminal.registry-refresh-v1.contract", "version": "1",
@@ -251,6 +254,10 @@ def build():
     src = json.loads((STATE / "ms1-source.json").read_text())
     worker = json.loads((BASE / "worker" / "node.json").read_text())
     node_id = (NODE / "config" / "worker.toml").read_text().split('node_id = "')[1].split('"')[0]
+    # Spare enrollments (worker-*.toml) are allowed too, so a wedged node can
+    # be swapped without a configuration revision.
+    allowed = sorted({node_id} | {f.read_text().split('node_id = "')[1].split('"')[0]
+                                  for f in (NODE / "config").glob("worker-*.toml")})
     worker_defs = json.loads(subprocess.run([str(RUNTIME / "aq-worker"), "ms1-definitions"], check=True,
                                             capture_output=True, text=True).stdout)
     template = worker["docker_local"]["templates"][0]
@@ -412,7 +419,7 @@ def build():
                         "credential": {"profile": credential, "provider": PROVIDER, "account_reference": ACCOUNT,
                                        "endpoint_reference": ENDPOINT, "revision": CREDENTIAL_REVISION,
                                        "enabled": True, "provisionable": False},
-                        "allowed_node_ids": [node_id],
+                        "allowed_node_ids": allowed,
                         "secret_file": "/var/lib/aq/credentials/owner-claude-subscription",
                         "delivery_mode": "server_material_v1"}],
                     "qualified_harnesses": [harness]}
@@ -443,7 +450,7 @@ def build():
     files = {"native.json": canonical(native), "adapter.json": canonical(placeholder),
              "composite.json": canonical(composite), "inventory.json": canonical(presence)}
     return dict(definitions=definitions, profiled=profiled, intelligence=intelligence, files=files, policy=policy,
-                permissions=permissions, fact=fact, renderer=renderer, node_id=node_id, seed=seed)
+                permissions=permissions, fact=fact, renderer=renderer, node_id=node_id, seed=seed, allowed=allowed)
 
 
 def catalog_rev2(built):
@@ -517,7 +524,7 @@ def binding_rev(built, catalog_digest, current):
                 repository_adapter_reference="aq.git.configured", graph_adapter_reference="aq.graph.configured",
                 graph_workspace_id=seed["workspace_id"], catalog_digest=catalog_digest,
                 allowed_agent_profiles=[AGENT], allowed_intelligence_profiles=[INTELLIGENCE],
-                allowed_execution_profiles=[EXECUTION], allowed_node_ids=[built["node_id"]], allowed_worker_groups=[],
+                allowed_execution_profiles=[EXECUTION], allowed_node_ids=built["allowed"], allowed_worker_groups=[],
                 allowed_environments=[ENVIRONMENT],
                 policy=dict(identity=built["policy"]["id"], revision="1", digest=built["policy"]["digest"]),
                 context=[], ceilings=dict(permissions=built["permissions"], context_bytes=CONTEXT_BYTES,

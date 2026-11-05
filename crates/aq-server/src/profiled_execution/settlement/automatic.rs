@@ -81,6 +81,17 @@ async fn lock_row(
         .await
         .map_err(db)
 }
+/// The worker's process outcome is not evidence (the gates below are). A native
+/// result-local report carries `Unknown`: the tmux host proves no harness exit
+/// code and the explicit agent claim carries the work. Only a refused outcome
+/// (failed, expired, cancelled) sends the result to rework.
+fn outcome_acceptable(outcome: aq_admission::transport::ProcessOutcome) -> bool {
+    matches!(
+        outcome,
+        aq_admission::transport::ProcessOutcome::Success
+            | aq_admission::transport::ProcessOutcome::Unknown
+    )
+}
 /// The retained default-completion policy, or None (no rows are written).
 fn applicable(state: &AppState, r: &results::RecordedResult) -> Option<Delivery> {
     if r.outcome.review != aq_admission::outcome::ReviewRequirement::PolicyActor {
@@ -177,10 +188,7 @@ async fn evaluate_locked(
     )
     .await?;
     let acceptance = if !r.is_current_report_head
-        || !matches!(
-            r.report.outcome,
-            aq_admission::transport::ProcessOutcome::Success
-        )
+        || !outcome_acceptable(r.report.outcome)
         || v.revoked
         || v.cancellation_id.is_some()
         || !v.holds_task
@@ -348,4 +356,17 @@ async fn dispatch(
     let s = status(&row)?;
     tx.commit().await.map_err(db)?;
     Ok(s)
+}
+
+#[cfg(test)]
+mod outcome_tests {
+    use aq_admission::transport::ProcessOutcome;
+    #[test]
+    fn result_local_unknown_outcome_is_acceptable_but_failures_are_not() {
+        assert!(super::outcome_acceptable(ProcessOutcome::Success));
+        assert!(super::outcome_acceptable(ProcessOutcome::Unknown));
+        for refused in [ProcessOutcome::Failed, ProcessOutcome::Expired, ProcessOutcome::Cancelled] {
+            assert!(!super::outcome_acceptable(refused));
+        }
+    }
 }
