@@ -1040,3 +1040,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - `ms1/d1` (aq-server 58019826) has converged with main and `ms1/retry`. `auto_settlement56` passes 10/10.
   - **New B5b variant:** an attempt was granted and its session host started, but Claude never ran ("observed gate failed closed", no diagnostics). `reconcile-native` won't close it, so the node is wedged. Sent to the `ms1/retry` subagent.
   - Remaining for MS1: B4 replacement live completion, B5b stuck nodes, the final independent review, then merging to main.
+- **21:40: owner asked why no workers appear running in the dashboard.**
+  - 18080 (`aq-v2-local`) has no worker connected.
+  - On the MS1 stacks, the demo runs `run-native` one-shot per task, so nodes show "Worker offline" between runs. The persistent `aq-worker run` controller is still built with `UnavailableProvider`.
+  - Agents shows "Remote session <id>", "State unknown", "Controller unknown" and "No worker lifecycle reports", because sandboxed sessions report no lifecycle or terminal stream back to the server.
+  - Offered the owner: add an always-on worker to MS1, and put live session reporting and terminal in the Agents parity section. Awaiting their answer.
