@@ -881,3 +881,14 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Confirmed: the v2 task inspector shows only title, description, acceptance criteria, dependencies and revision. It has no copyable ID, no comments (v2 has no task-comment model at all), no execution state or why-not-running, no agent/session link, no branch/PR and no route.
   - **Owner decision:** do a v1→v2 parity pass, task view first. The owner verifies each dashboard section and wants it completed before moving to the next.
   - Started a read-only inventory comparing the v1 and v2 task views and the v2 server data behind each field.
+- **14:55:**
+  - Merged aq-dashboard #70 (result media capabilities optional) as e0c3b5f6. Its first CI run caught a real regression: the disabled attach button wrapped the composer and clipped "Post comment". Rebuilt `dist` and restarted the `aq-v2-local` server, which caches index.html and so keeps serving the old bundle until restarted. Asked the MS1 subagent to restart `aq-ms1-server-1` at a safe point.
+  - **Re-review of `ms1/demo`:** not mergeable yet.
+    - B1 is partly fixed. Failed/Unknown no longer complete a task, but a Claude exit 0 without real work (a clarifying question, refusal, or "couldn't find X") still reports Success and D3 auto-completes it.
+      - **Decision:** add a driver guard. Success requires rc 0, a stream-json result with `subtype=success` and `is_error=false`, the agent's own `Changes:` line, and a non-empty change set.
+    - Should-fix 1–4 and the nits are verified fixed.
+    - **New should-fix:** node recovery leaves the Claude container running with the token in its env.
+    - **Nits:** the cancel poll uses inventory_sequence 1; `.pyc` files are committed; token trimming applies to every anthropic credential.
+    - All sent to the MS1 subagent ahead of retry/D1.
+    - Pre-existing flake on main: `native_cancellation::native_cancel_owner_validation_attempt_replay_and_concurrency`, which failed 7/7 under load in the reviewer's runs.
+  - Task-view parity inventory is committed (`2026-11-05-task-view-parity-inventory.md`); waiting on the owner's scope choice.
