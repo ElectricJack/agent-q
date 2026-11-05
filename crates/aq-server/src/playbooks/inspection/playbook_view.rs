@@ -232,6 +232,33 @@ impl Service {
             .transpose()
             .map_err(|_| Error::Unknown)
     }
+    /// Binding and activation revision of runs admitted through a retained
+    /// admission. Binding is null for admissions prepared before it was kept.
+    async fn admitted_runs(
+        &self,
+        runs: &[String],
+    ) -> Result<BTreeMap<String, (Option<String>, i64)>> {
+        if runs.is_empty() {
+            return Ok(BTreeMap::new());
+        }
+        let mut tx = self.tx().await?;
+        let rows = sqlx::query("SELECT receipt->>'run_id' AS run_id,binding,expected_activation_revision FROM playbook_admissions WHERE namespace_id=$1 AND generation=$2 AND receipt IS NOT NULL AND receipt->>'run_id'=ANY($3)")
+            .bind(self.namespace.namespace_id)
+            .bind(self.namespace.generation)
+            .bind(runs)
+            .fetch_all(&mut *tx)
+            .await?;
+        tx.commit().await?;
+        Ok(rows
+            .into_iter()
+            .map(|row| {
+                (
+                    row.get("run_id"),
+                    (row.get("binding"), row.get("expected_activation_revision")),
+                )
+            })
+            .collect())
+    }
     async fn pending_decisions(&self, intents: &[String]) -> Result<BTreeMap<String, WaitingView>> {
         if intents.is_empty() {
             return Ok(BTreeMap::new());
@@ -331,7 +358,13 @@ impl Driver {
             .flat_map(|r| r.pending_intents.iter().cloned())
             .collect::<Vec<_>>();
         let waiting = self.service.pending_decisions(&intents).await?;
+        let ids = runs.iter().map(|r| r.id.clone()).collect::<Vec<_>>();
+        let admitted = self.service.admitted_runs(&ids).await?;
         for run in runs.iter_mut() {
+            if let Some((binding, revision)) = admitted.get(&run.id) {
+                run.binding = binding.clone();
+                run.activation_revision = Some(revision.to_string());
+            }
             run.waiting = run
                 .pending_intents
                 .iter()
@@ -365,7 +398,9 @@ fn definition(
     });
     let active = candidates
         .max_by(|(a, av), (b, bv)| {
-            (a.artifact == run.artifact, *av, &b.binding).cmp(&(
+            let own = |x: &catalog::Activation| run.binding.as_ref() == Some(&x.binding);
+            (own(a), a.artifact == run.artifact, *av, &b.binding).cmp(&(
+                own(b),
                 b.artifact == run.artifact,
                 *bv,
                 &a.binding,
@@ -456,6 +491,8 @@ mod tests {
             admitted_at_ms: 1,
             definition: None,
             waiting: None,
+            binding: None,
+            activation_revision: None,
             pending_intents: vec![],
         }
     }

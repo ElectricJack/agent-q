@@ -176,11 +176,6 @@
       },
       {
         "enabled": true,
-        "name": "capacity.read",
-        "version": "1"
-      },
-      {
-        "enabled": true,
         "name": "supervisor.history.read",
         "version": "1"
       },
@@ -192,21 +187,6 @@
       {
         "enabled": true,
         "name": "session.message.enqueue",
-        "version": "1"
-      },
-      {
-        "enabled": true,
-        "name": "session.nudge",
-        "version": "1"
-      },
-      {
-        "enabled": true,
-        "name": "session.operations.read",
-        "version": "1"
-      },
-      {
-        "enabled": true,
-        "name": "waits.read",
         "version": "1"
       },
       {
@@ -281,16 +261,40 @@
         "name": "playbooks.catalog.read",
         "reason": "Current catalog inspection requires the mounted component query and namespace owner",
         "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "playbooks.runs.start",
+        "reason": "Starting runs requires the mounted runtime namespace owner",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "playbooks.runs.cancel",
+        "reason": "Cancelling runs requires the mounted runtime namespace owner",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "playbooks.activations.activate",
+        "reason": "Activating definitions requires the mounted runtime namespace owner",
+        "version": "1"
+      },
+      {
+        "enabled": false,
+        "name": "playbooks.activations.rollback",
+        "reason": "Rolling back definitions requires the mounted runtime namespace owner",
+        "version": "1"
       }
     ],
     "contracts": [
       {
-        "digest": "sha256:061fc35f350dae31aa1616c1592a4e627489eb86d8d6b836b6931689b8710184",
+        "digest": "sha256:1d651086816613e2a8fa5728241fda39e993930ef154c3748a1c27f4b61db985",
         "name": "dashboard-read",
         "version": "dashboard-read-1"
       },
       {
-        "digest": "sha256:335644e8902ab8f1774a42796092a25782c9e4bcb4690f2359ab032c7ec2e2e8",
+        "digest": "sha256:fcbbbdffc64fe08ee435c8de96b9943441f87d14d7f4b795d3e807ce56c17555",
         "name": "dashboard-actions",
         "version": "dashboard-actions-1"
       }
@@ -299,9 +303,9 @@
       "kind": "all_authorized"
     },
     "global_supervisor": {
-      "conversation_id": "c3046860-784c-43f3-a2db-d22cafa8f8c6",
-      "reason": "central_runtime_not_connected",
-      "status": "unavailable"
+      "conversation_id": null,
+      "reason": "The global supervisor is not connected yet",
+      "status": "unconfigured"
     },
     "limits": {
       "max_page_size": 100,
@@ -310,9 +314,9 @@
       "snapshot_ttl_ms": 30000
     },
     "principal": {
-      "authorization_revision": "259649541547292521585085170172285502562",
+      "authorization_revision": "226525575435949422614085788678179289998",
       "display_name": "owner@localhost",
-      "id": "54c89cfe-e0be-44c6-9ff7-245f74aa192d"
+      "id": "fbf81a21-de16-41a6-a875-f03327f87dab"
     },
     "product": {
       "dashboard_digest": null,
@@ -327,7 +331,7 @@
     "source": "aq_dashboard_read"
   },
   "pending_operations": [],
-  "request_id": "4be377d2-cb11-4036-8e9b-733c00e06b58",
+  "request_id": "2921ee29-b868-4ff9-a00d-72a64a95bd02",
   "scope": {
     "kind": "all_authorized"
   },

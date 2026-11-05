@@ -478,12 +478,26 @@
     "RunView": {
       "type": "object",
       "properties": {
+        "activation_revision": {
+          "description": "Activation revision the run was admitted at; null when not known.",
+          "type": [
+            "string",
+            "null"
+          ]
+        },
         "admitted_at_ms": {
           "type": "integer",
           "format": "int64"
         },
         "artifact": {
           "type": "string"
+        },
+        "binding": {
+          "description": "Binding the run was admitted on; null for runs not started through a\nretained admission (children, event starts) or admitted before it was kept.",
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "children": {
           "type": "array",

@@ -33,11 +33,29 @@ def validate_task(task):
         if task.get(field) is not None:
             assert task[field].strip() and len(task[field].encode()) <= 128
             assert not any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in task[field])
+PLAYBOOK = ('playbook.run.start', 'playbook.run.cancel', 'playbook.activation.activate', 'playbook.activation.rollback')
+def validate_playbook(value):
+    payload, subject, kind = value['payload'], value['subject'], value['kind']
+    assert UUID(payload['project_id']).int
+    if kind == 'playbook.run.cancel':
+        assert subject == {'type':'playbook_run', 'id':payload['run_id']} and value['expected_versions'] == {}
+        assert 'expected_version' not in payload
+    else:
+        revision = payload['expected_version']
+        assert subject == {'type':'playbook_binding', 'id':payload['binding'], 'revision':revision}
+        assert value['expected_versions'] == {'playbook_binding':revision} and 0 < int(revision) <= 2**63 - 1
+        assert payload['artifact'].startswith('sha256:') and len(payload['artifact']) == 71
+        if kind == 'playbook.run.start':
+            assert payload['entry'].strip() and len(payload.get('inputs', {})) <= 32
+            assert all(isinstance(v, (bool, int, float, str)) for v in payload.get('inputs', {}).values())
+    assert len(canonical(value)) <= 65536
 def validate_request(value):
     validator.validate(value)
     payload, subject = value['payload'], value['subject']
     assert UUID(value['operation_id']).int and payload['operation_id'] == value['operation_id']
     kind = value['kind']
+    if kind in PLAYBOOK:
+        return validate_playbook(value)
     key = {'task.graph.create':'project', 'task.create':'project', 'decision.resolve':'decision', 'supervisor.message.send':'conversation', 'session.message.send':'session'}.get(kind)
     key = key or ('project' if kind == 'knowledge.author' else kind.split('.')[0])
     field = {'task.create':'expected_project_revision', 'decision.resolve':'expected_decision_revision', 'supervisor.message.send':'expected_conversation_revision', 'knowledge.author':'expected_project_revision', 'session.message.send':'expected_generation'}.get(kind, 'expected_version')
@@ -86,7 +104,7 @@ def validate_request(value):
         assert payload['expected_subject']['version'] == '1'
     assert len(canonical(value)) <= 65536
 
-for name in ('task-create', 'decision-resolve', 'supervisor-message-send', 'session-message-send') + tuple(k.replace('.', '-') for k in TYPED):
+for name in ('task-create', 'decision-resolve', 'supervisor-message-send', 'session-message-send') + tuple(k.replace('.', '-') for k in TYPED + PLAYBOOK):
     validate_request(load('request-' + name))
 conflict = load('operation-conflict-current-versions')
 validator.validate(conflict)
@@ -141,4 +159,4 @@ for contract in compat['read']['data']['contracts']:
 assert len(compat['read']['data']['contracts']) == 2
 assert compat['read']['api_version'] == 'dashboard-read-1'
 validate_request(load('request-task-create-metadata'))
-print('17 requests, 5 dispositions, current-versions conflict, 10 errors, cursor, replay, invalid and compatibility fixtures passed')
+print('21 requests, 5 dispositions, current-versions conflict, 10 errors, cursor, replay, invalid and compatibility fixtures passed')
