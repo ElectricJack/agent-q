@@ -25,6 +25,10 @@
 
 ## Decision gate (escalated 2026-11-04, msg-95f25db2922740b6bf4859a87d84ecef)
 
+**Resolved 2026-11-04 by the operator:** finish D11 to its acceptance (option A for the
+three adapters) with tight scope. Task 0 (the D10 re-vendor) is deferred as a follow-up,
+and PB-04 is not claimed. The outcome is in `docs/implementation/D11.md`.
+
 The following are outside D11's stated scope and await the supervisor's decision:
 
 - Host7 catalog adapters for `message.send` and `decision.request`.

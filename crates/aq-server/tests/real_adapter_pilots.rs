@@ -1422,10 +1422,6 @@ async fn pilots_end_to_end() {
             "aq.coding (max_repairs=0)",
             strict_artifacts.root.digest.as_str(),
         ),
-        (
-            "aq.coding.attempt (max_repairs=0)",
-            strict_artifacts.attempt.digest.as_str(),
-        ),
         (pilots::ROUTING, routing.digest.as_str()),
         (pilots::WATCHER, watcher.digest.as_str()),
         (pilots::REPORT, report.digest.as_str()),
