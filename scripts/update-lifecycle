@@ -171,6 +171,10 @@ WORKER_ARCHIVE_SHA256=$(python3 -c 'import json,sys; print(json.load(open(sys.ar
 [[ "$STATE_FORMAT" =~ ^[0-9]+$ && "$PROTOCOL_MAX" =~ ^[0-9]+$ ]] ||
   fail "cannot read STATE_FORMAT_VERSION or SUPPORTED_WORKER_PROTOCOLS from the source"
 
+# Suite images are never released: build them with the CI image profile
+# (no ThinLTO, low optimization; Cargo.toml [profile.ci-image]).
+IMAGE_PROFILE=${AQ_IMAGE_CARGO_PROFILE:-ci-image}
+
 # build TARGET TAG CONTEXT VERSION: a Dockerfile target, stamped for VERSION.
 build() {
   local dockerfile=$REPO/Dockerfile revision=suite-$4 version=$4
@@ -183,11 +187,26 @@ build() {
     --build-arg "AQ_SOURCE_REVISION=$revision" --build-arg "AQ_VERSION=$version" \
     --build-arg "AQ_WORKER_ARCHIVE_SHA256=$WORKER_ARCHIVE_SHA256" \
     --build-arg "AQ_STATE_FORMAT=$STATE_FORMAT" --build-arg "AQ_PROTOCOL_MAX=$PROTOCOL_MAX" \
+    --build-arg "CARGO_PROFILE=$IMAGE_PROFILE" \
     -t "$2" "$3" >>"$BUILD_LOG" 2>&1 || {
     tail -30 "$BUILD_LOG" >&2
     fail "docker build --target $1 for $4 failed"
   }
   IMAGES+=("$2")
+}
+
+# worker_image TAG CONTEXT VERSION: the worker image. Every release uses the same
+# pinned worker candidate (revision, version and archive), so the image is
+# built once and later releases tag that same image.
+WORKER_IMAGE=
+worker_image() {
+  if [ -z "$WORKER_IMAGE" ]; then
+    build worker "$1" "$2" "$3"
+    WORKER_IMAGE=$1
+  else
+    docker tag "$WORKER_IMAGE" "$1" >>"$BUILD_LOG" 2>&1 || fail "docker tag $WORKER_IMAGE $1 failed"
+    IMAGES+=("$1")
+  fi
 }
 
 # push TAG: prints the pushed image's digest-pinned reference.
@@ -245,7 +264,7 @@ publish_release() {
 release_from() {
   local ctx=$1 version=$2 server worker
   build server "$REGISTRY/agent-q-server:$version" "$ctx" "$version"
-  build worker "$REGISTRY/agent-q-worker:$version" "$ctx" "$version"
+  worker_image "$REGISTRY/agent-q-worker:$version" "$ctx" "$version"
   server=$(push "$REGISTRY/agent-q-server:$version")
   worker=$(push "$REGISTRY/agent-q-worker:$version")
   publish_release "$version" "$REGISTRY/agent-q-server:$version" "$server" "$worker"
@@ -502,7 +521,7 @@ release_from "$B_CTX" 0.1.1
 step "release 0.1.2 (broken image C, built FROM C0)"
 C0_CTX=$(versioned_copy 0.1.2)
 build server "$REGISTRY/agent-q-server:0.1.2-c0" "$C0_CTX" 0.1.2
-build worker "$REGISTRY/agent-q-worker:0.1.2" "$C0_CTX" 0.1.2
+worker_image "$REGISTRY/agent-q-worker:0.1.2" "$C0_CTX" 0.1.2
 # compose.yaml replaces the image's command, so a broken CMD alone would be
 # ignored: C also wraps the binary so that `serve` reads a missing vault.
 # The healthcheck, readiness and manifest subcommands pass through.

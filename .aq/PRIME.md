@@ -4,6 +4,8 @@
 
 > **Migration numbers (operator, 2026-11-03):** migrations are generated from `crates/aq-server/migrations/` and must be contiguous and unique. Immediately before pushing (and again before any direct push to main), run `git fetch origin && git ls-tree --name-only origin/main crates/aq-server/migrations/ | tail -1`. Rename your migration to the next free number, and update its `UPDATE meta SET value='N'` line and any `supported >= N` gates. If main moved after your push, renumber again. Never leave two files with the same number.
 
+> **Build health (owner, 2026-11-05):** follow the "Build health" section of `AGENTS.md`. Build in this worktree's own target directory with incremental builds (do not export `CARGO_INCREMENTAL=0`), run every `cargo test`/`cargo nextest` under `timeout`, put new integration tests in an existing test binary (a module of `crates/aq-server/tests/<group>/main.rs`; run one with `cargo nextest run -p aq-server --test it_<group> -E 'test(/^<module>::/)'`) instead of a new test target, and keep `python3 scripts/build-budget.py` passing.
+
 ## Role
 
 {{role}}
