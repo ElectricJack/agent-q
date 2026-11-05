@@ -19,6 +19,13 @@
 #   gaps            show the production fences that block steps 1-5 end to end
 #   graph           print the two MS1 tasks, their versions and readiness
 #   stats-summary PREFIX   peak memory/CPU from ms1-stats.sh CSVs
+#   rebuild-server  build agent-q-server:ms1 from this checkout and recreate the server
+#   profiled        MS1 wiring: retain the base centrally, generate [intelligence] +
+#                   [profiled_execution] (scripts/ms1-profiled.py), recreate the
+#                   server on it, activate catalog/binding revision 2
+#   run             one graph attempt through the stack: worker-side aq-git, then
+#                   `aq-worker run-native` with the Claude docker-local executor
+#                   (scripts/ms1-node-run.py); repeat for the next ready task
 #   status | down | node-stop
 #   all             up, seed, node, import-login, live, server-restart, gaps
 #
@@ -67,6 +74,28 @@ for k,v in json.loads(sys.stdin.read()).items(): print(f"export {k}={v!r}")')"
      -f compose.dashboard.yaml "$@")
 }
 mkdir -p "$BASE" "$EVID" && chmod 700 "$BASE"
+
+cmd_rebuild_server() {
+  say "build $AQ_SERVER_IMAGE from $(git -C "$SRV" rev-parse --short HEAD) and recreate the server"
+  export AQ_DEV_REPLACE_OPERATOR_SECTION=1
+  compose build server
+  compose up -d --no-build --force-recreate --wait --wait-timeout 300 server
+  curl -fsS "$AQ_DEV_SERVER_URL/healthz"; echo
+}
+
+cmd_profiled() {
+  say "MS1 profiled execution: central base, config, catalog/binding revision 2"
+  (cd "$SRV" && python3 scripts/ms1-profiled.py source && python3 scripts/ms1-profiled.py configure) \
+    > "$EVID/profiled-configure.json"
+  export AQ_DEV_REPLACE_OPERATOR_SECTION=1
+  compose up -d --no-build --force-recreate --wait --wait-timeout 300 server
+  (cd "$SRV" && python3 scripts/ms1-profiled.py apply) | tee "$EVID/profiled-apply.json"
+}
+
+cmd_run() {
+  say "one attempt through the stack (node $(sed -n 's/^node_id = "\(.*\)"/\1/p' "$W/worker.toml"))"
+  (cd "$SRV" && python3 scripts/ms1-node-run.py "$@") 2>&1 | tee -a "$EVID/node-run.log"
+}
 
 cmd_up() {
   say "build and start aq-ms1 (server source $(git -C "$SRV" rev-parse --short HEAD))"
@@ -324,8 +353,11 @@ case ${1:-} in
   gaps) cmd_gaps ;;
   graph) cmd_graph ;;
   status) cmd_status ;;
+  rebuild-server) cmd_rebuild_server ;;
+  profiled) cmd_profiled ;;
+  run) shift; cmd_run "$@" ;;
   stats-summary) cmd_stats_summary "${2:?prefix}" ;;
   down) cmd_node_stop; compose down ;;
   all) cmd_up; cmd_seed; cmd_node; cmd_import_login; cmd_live; cmd_server_restart; cmd_gaps ;;
-  *) sed -n '2,25p' "$0"; exit 2 ;;
+  *) sed -n '2,32p' "$0"; exit 2 ;;
 esac
