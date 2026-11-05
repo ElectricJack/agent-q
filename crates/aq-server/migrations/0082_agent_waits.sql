@@ -59,4 +59,4 @@ CREATE TABLE agent_wait_acks (
 );
 CREATE TRIGGER agent_wait_acks_immutable BEFORE UPDATE OR DELETE ON agent_wait_acks
  FOR EACH ROW EXECUTE FUNCTION agent_wait_immutable_record();
-UPDATE meta SET value='81' WHERE key='state_format_version';
+UPDATE meta SET value='82' WHERE key='state_format_version';
