@@ -455,6 +455,7 @@ dependencies = [
  "aq-selection",
  "aq-server",
  "aq-session-api",
+ "aq-session-host",
  "aq-session-protocol",
  "aq-terminal-relay",
  "aq-terminal-relay-protocol",

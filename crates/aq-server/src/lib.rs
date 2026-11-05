@@ -9,9 +9,11 @@ pub mod delegated_permits;
 pub mod delivery;
 pub mod error;
 pub mod execution;
+pub mod execution_permits;
 pub mod hibernation;
 pub mod identity;
 pub mod intelligence;
+pub mod lifecycle_artifacts;
 pub mod node_storage;
 pub mod notifications;
 pub mod observations;
@@ -252,6 +254,8 @@ pub fn build_admin_router_with_optional_owners(
         notifications: true,
         supervisor_conversation: true,
         reviews: reviews.is_some(),
+        waits: true,
+        session_operations: true,
         playbook_loaded_definitions: playbooks
             .as_ref()
             .is_some_and(|driver| driver.loaded_definitions_available()),
@@ -388,6 +392,8 @@ fn build_worker_router_inner(
         ))
         .merge(agent_access::human::enqueue::supervisor::routes())
         .merge(source_retention::machine_routes(state.clone()))
+        .merge(lifecycle_artifacts::routes(state.clone()))
+        .merge(execution_permits::routes(state.clone()))
         .merge(execution::api::worker_routes(state.clone()))
         .merge(terminal::api::worker_routes(state.clone()))
         .route("/healthz", get(healthz))
