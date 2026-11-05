@@ -1012,3 +1012,6 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - aq-git: 14 test binaries;
     - aq-graph: 16 test binaries.
   - The CI time budgets are written in AGENTS.md but not enforced yet. The `selection-fixture` group is now the long pole of the tests job.
+- **20:50:** merged aq-server #93 (`build/test-groups`) as 7c37748a, with all 9 checks green. aq-server's integration tests now build as 8 domain binaries instead of 204.
+  - CI: tests 14m27s, update lifecycle 16m04s. Before #91 these were ~30m and 29m.
+  - Waiting on the subagent's trial merges of `ms1/retry` and `ms1/d1` onto the new layout, and its measurements. MS1 resumes next.
