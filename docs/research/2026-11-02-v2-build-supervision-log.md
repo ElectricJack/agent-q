@@ -833,3 +833,6 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Refreshed #88 (D11) on main: clean merge, catalog at 93, protocol checks pass, pushed c05381a7. Waiting on CI.
 - **10:50:** merged #88 (D11, routing/watcher/reporting pilots on the real Host7/Host8 adapters, migration 0093), with all 9 checks green. The PR merge queue is empty.
   - Open server work: aq-server/aq-worker `ms1/demo`. The wiring subagent is applying the review's B1 fix and should-fixes, then cancel, stuck attempts, retry, restart drills and D1.
+- **10:55: local stack rebuilt.** The `aq-v2-local` stack (http://127.0.0.1:18080) now runs from aq-server main through #88 (migrations to 0093) and aq-dashboard main 41f5150; healthy.
+  - The first rebuild failed to compile, calling `admit_confinement` with `ms1/demo`'s three-argument signature. The BuildKit target cache is shared by every build of the Dockerfile on the host, and the build only cleaned 4 packages, so cargo reused the aq-selection that the `aq-ms1` image had built from `ms1/demo` (W67 again, inside Docker).
+  - Fixed in 458f682d: clean every workspace crate before building; dependencies stay cached.
