@@ -989,3 +989,15 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - It also updates the nextest filters, the build-budget ratchet and the AGENTS.md subset-run commands, then measures before and after.
   - It trial-merges `ms1/retry` and `ms1/d1` and reports the conflicts.
   - The quick-wins subagent is still looking into why update-lifecycle didn't speed up.
+- **19:50:** merged aq-server #92 (`build/lifecycle-speed`), with all 9 checks green.
+  - **Cause:** on GitHub's 4-vCPU runners, dropping ThinLTO alone saves nothing (796s vs 793s cold), because codegen work is the same. The audit's 93s serial LTO step was a 24-core artifact.
+  - **Fix:** the `ci-image` profile builds workspace crates at opt-level 0 and dependencies at opt-level 1, with no LTO: a cold build takes 445s, a path-crate rebuild 196s. AGENTS.md now says to measure build changes on 4 cores.
+  - CI job times, main before #91 → #92:
+
+    | Job | Before | #92 |
+    |---|---|---|
+    | update lifecycle | 29m | **18m19s** |
+    | smoke | 17m | **10m15s** |
+    | real daemon | 14m | **10m14s** |
+    | recovery matrix | 19m | **10m8s** |
+    | tests | 30m | 19m34s (16m20s on #91; runner variance) |
