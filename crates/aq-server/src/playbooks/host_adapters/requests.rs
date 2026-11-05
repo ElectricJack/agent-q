@@ -436,15 +436,34 @@ impl Service {
         let subject = &input["subject"];
         let check = &input["check"];
         let check_id = text(check, "id")?;
+        let workspace = self.namespace.workspace_id;
+        let project = self.namespace.project_id;
+        // Candidate subjects run on the prepared candidate's OID, never the
+        // caller's input.source (see `check_source`).
+        let source = if check_id.is_empty() || !source_valid(&input["source"]) {
+            None
+        } else {
+            Some(
+                match self.check_source(&mut tx, text(subject, "id")?).await? {
+                    CheckSource::Input => Some(input["source"].clone()),
+                    CheckSource::Candidate(oid) => Some(oid),
+                    CheckSource::NotPrepared => None,
+                },
+            )
+        };
+        let echoed = match &source {
+            Some(Some(bound)) => bound,
+            _ => &input["source"],
+        };
         let refusal = |disposition: Value, reason: &str| HostResult {
             outcome: "refused".into(),
             output: json!({"check": check, "disposition": disposition, "reason": reason,
-                "reference": format!("check:{operation}"), "source": input["source"], "subject": subject}),
+                "reference": format!("check:{operation}"), "source": echoed, "subject": subject}),
         };
-        let workspace = self.namespace.workspace_id;
-        let project = self.namespace.project_id;
-        let refused = if check_id.is_empty() || !source_valid(&input["source"]) {
+        let refused = if source.is_none() {
             Some(refusal(Value::Null, "invalid_request"))
+        } else if source == Some(None) {
+            Some(refusal(json!("stale"), "stale_subject"))
         } else if let Some(checks) = &ports.checks {
             let validator = pin(&check["validator"])?;
             match checks
@@ -482,7 +501,8 @@ impl Service {
                 .await;
         }
         let checks = ports.checks.as_ref().ok_or(Error::Unknown)?;
-        let request = json!({"check": check, "source": input["source"], "subject": subject,
+        let source = source.flatten().ok_or(Error::Unknown)?;
+        let request = json!({"check": check, "source": source, "subject": subject,
             "deadline_at_ms": intent.deadline_at_ms, "execution_profile": CHECK_EXECUTION_PROFILE});
         let accepted = self
             .record_operation(
@@ -503,8 +523,8 @@ impl Service {
             subject_revision: revision_of(subject)?,
             check_id: check_id.into(),
             validator: pin(&check["validator"])?,
-            source_format: text(&input["source"], "format")?.into(),
-            source_hex: text(&input["source"], "hex")?.into(),
+            source_format: text(&source, "format")?.into(),
+            source_hex: text(&source, "hex")?.into(),
             execution_profile: CHECK_EXECUTION_PROFILE,
         };
         // An ambiguous start leaves the operation running; reconciliation
