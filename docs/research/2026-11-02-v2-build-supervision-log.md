@@ -911,3 +911,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - The #63 merge was aborted. It still needs the 0096 renumber, and it can't build until 0095 lands.
   - All of these are held until MS1 merges. #53 edits `replacement.rs`, which `ms1/retry` is changing for B4.
 - **15:05:** draft aq-server #90 (`ms1/demo`) fails `native_registration::startup_installs_policy_anchor_and_refuses_stale_configuration`. Commit 379c37eb added the Debug cause to the startup error, but the test still asserts the bare message. Sent to the `ms1/retry` subagent: keep the detail and update the assertion. The aq-worker template-scan fix is pushed (94d4b56).
+- **15:25: owner: pause MS1 for build optimisation.**
+  - The owner asked whether to optimise builds. Every MS1 loop waits on 5–10 min Rust rebuilds, so I started a read-only build audit (10 items: timings, linker, debuginfo, dev dep opt, duplicates, features, crate split and test binaries, llvm-lines, release profile, CI caching) at low priority.
+  - The owner then said "Pause MS1 for this improvement". Both MS1 subagents (`ms1/retry`, `ms1/d1`) are stopping at a clean point: pushing working states, leaving the `aq-ms1`/`aq-ms1d` stacks idle, and reporting how to resume.
+  - Once they're quiet, the audit takes real, uncontended timings. Nothing is changed until the owner approves.
