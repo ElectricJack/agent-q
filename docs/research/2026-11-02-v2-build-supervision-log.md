@@ -842,3 +842,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - #67's browser CI fails only `settings-panels.spec.ts`, which fails the same way on main.
 - **11:35:** merged aq-dashboard #67 (question inbox, inert until the server advertises `questions.read`). Its only red check was `settings-panels.spec.ts`, which had been red on dashboard main since 41f5150.
   - Merged #68, the fix for that spec, with all 4 checks green. The test was stale against the intended G11 Display panel (new subtitle and desktop pairing); the product was unchanged. Dashboard main should be green again.
+- **12:10:** merged aq-server #89 (`feat/question-inbox-read`, migration 0094) as 620a1b83, with all 9 checks green.
+  - It adds the owner question read API, `GET /api/questions/decisions[/{id}]`, and the `questions.read`/`questions.answer` bootstrap capabilities. It also regenerates the stale `bootstrap.json` fixture.
+  - Dispatched the dashboard follow-up: vendor the live dashboard-read schema (sha256:c3cbd5c1…), show `task_title`, and mark expired questions (the server keeps them `pending`).
+  - Main CI after #88 failed once on `playbook_host_requests::check_request_cancel_completes_from_executor_stop` (host_dispatch returned `Unknown`). It passed on #88's own CI; watching the next main run for a recurrence.
