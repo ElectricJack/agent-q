@@ -864,3 +864,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - D1 publication.
   - Branch heads: aq-server `ms1/demo` 87012926, aq-worker `ms1/demo` 2d43cf2c, both with main merged.
   - Dispatched an independent re-review of both diffs before merging to main, and a fresh subagent for retry, stuck-attempt settlement and D1 on new `ms1/retry` branches.
+- **13:50: the owner hit "Dashboard update required" on Results.** It was on the `aq-ms1` stack (28080), not `aq-v2-local` (18080, where Results loads with an empty list).
+  - The MS1 server advertises `results.media.read`/`results.media.upload` as `enabled:false` because no media store is configured. The dashboard bundle lists both as required capabilities, so the whole dashboard is blocked.
+  - Asked the MS1 subagent to configure result media on `aq-ms1` the way `dev-stack.py` does.
+  - Dispatched a dashboard fix: make the media capabilities optional and gate the media UI at runtime.
