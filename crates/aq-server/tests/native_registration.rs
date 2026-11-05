@@ -51,7 +51,16 @@ async fn startup_installs_policy_anchor_and_refuses_stale_configuration() {
     let error = aq_server::run_with_listeners(stale, admin, worker, async {})
         .await
         .unwrap_err();
-    assert_eq!(error.to_string(), "profiled policy installation failed");
+    // The startup error keeps its stable prefix and names the typed cause.
+    let message = error.to_string();
+    assert!(
+        message.starts_with("profiled policy installation failed: Conflict("),
+        "{message}"
+    );
+    assert!(
+        message.contains("profiled configuration revision is stale or has changed content"),
+        "{message}"
+    );
 }
 
 #[tokio::test]

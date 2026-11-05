@@ -347,3 +347,79 @@ async fn failed_closure_insert_rolls_back_permission_revocation_and_retains_retr
     );
     assert_eq!(snapshot(&f).await, before);
 }
+
+/// B5b/AQ-08 closure settlement: a host stop that had a pane is never settled
+/// as not started; a suppression settles from server-owned facts only (no
+/// Started/Stopped/result/transfer history, no AQ effect, the attempt's own
+/// verified central export) and leaves the claim held for B4 to release.
+#[tokio::test]
+async fn closed_launch_settles_only_a_proven_nonstart_and_keeps_the_claim() {
+    use aq_server::profiled_execution::closure::settlement::{self, ClosureSettlement};
+    for kind in [1usize, 0] {
+        let (f, _, q) = setup(kind).await;
+        let ack = closure::record(&f.c.env.env.state, &auth(&f.c).await, &q)
+            .await
+            .unwrap();
+        assert_closed_held(&f, &q, &ack).await;
+        let before = snapshot(&f).await;
+        let attempt = q.original.binding.attempt_id;
+        let state = &f.c.env.env.state;
+        assert_eq!(
+            settlement::awaiting(state, None, 8).await.unwrap(),
+            vec![attempt]
+        );
+        let outcome = settlement::settle(state, attempt).await.unwrap();
+        if kind == 1 {
+            assert_eq!(
+                outcome,
+                ClosureSettlement::Held("closure_does_not_prove_nonstart")
+            );
+            assert_eq!(snapshot(&f).await, before, "a paned host stays held");
+            continue;
+        }
+        assert_eq!(outcome, ClosureSettlement::Settled);
+        let after = snapshot(&f).await;
+        let hot = &after["hot"]["state"];
+        assert_eq!(hot["status"], "finished");
+        assert_eq!(hot["stop"]["kind"], "not_started");
+        assert_eq!(
+            hot["stop"]["receipt"]["id"],
+            format!("aq.launch-closure/{}", q.original.operation_id)
+        );
+        let receipt_digest: String =
+            sqlx::query_scalar("SELECT receipt_digest FROM profiled_launch_closures")
+                .fetch_one(&f.c.env.env.pool)
+                .await
+                .unwrap();
+        assert_eq!(hot["stop"]["receipt"]["digest"], json!(receipt_digest));
+        assert_eq!(hot["retention"]["kind"], "retained");
+        assert!(
+            hot["retention"]["receipt"]["id"]
+                .as_str()
+                .unwrap()
+                .starts_with("aq.source-export/")
+        );
+        assert_eq!(hot["effects"]["kind"], "quiescent");
+        assert_eq!(
+            after["attempt"]["holds_task"], true,
+            "B4 releases, not this"
+        );
+        assert_eq!(after["leases"], before["leases"]);
+        assert_eq!(after["bindings"], before["bindings"]);
+        // Idempotent, and no longer awaiting settlement.
+        assert_eq!(
+            settlement::settle(state, attempt).await.unwrap(),
+            ClosureSettlement::Unchanged
+        );
+        assert!(
+            settlement::awaiting(state, None, 8)
+                .await
+                .unwrap()
+                .is_empty()
+        );
+        assert_eq!(snapshot(&f).await, after);
+        // B4 eligibility of these facts is the pure `replacement::assess`
+        // (closed_unstarted_attempt_is_replaceable); this schema-32 fixture has
+        // no B4 tables.
+    }
+}

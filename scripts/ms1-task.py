@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """MS1: create graph tasks in the aq-ms1 workspace (optionally A blocks B).
 
-usage: ms1-task.py ID TITLE BODY [--blocks OTHER_ID]
+usage: ms1-task.py ID TITLE BODY [--blocks OTHER_ID] [--priority N]
        ms1-task.py --show ID...
 """
 import json, os, sys, urllib.request
@@ -25,7 +25,10 @@ if sys.argv[1] == "--show":
                           "ready": n in ready}))
     sys.exit(0)
 ident, title, body = sys.argv[1:4]
-ops = [dict(op="create_node", id=ident, kind="task", task_state="active", title=title, body=body)]
+node = dict(op="create_node", id=ident, kind="task", task_state="active", title=title, body=body)
+if "--priority" in sys.argv:  # AQ scheduling priority (Graph metadata aq:priority)
+    node["metadata"] = {"aq:priority": int(sys.argv[sys.argv.index("--priority") + 1])}
+ops = [node]
 if "--blocks" in sys.argv:
     ops.append(dict(op="add_edge", source=ident, target=sys.argv[sys.argv.index("--blocks") + 1], edge_type="blocks"))
 m = call("/mutations", dict(idempotency_key="ms1-task-" + ident, reason="MS1 demo task", operations=ops))

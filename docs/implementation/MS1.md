@@ -17,8 +17,12 @@ Fixed on `ms1/retry` (aq-worker), each as its own commit:
   last stream-json `result` event has `subtype == "success"` and
   `is_error == false`; the agent's final text has its own `Changes:` line; and
   the copied-back change set is not empty. Anything else is `Failed`, and D3
-  sends it to rework. `RUNNER` is unchanged, so `CLAUDE_RECIPE_DIGEST` stays
-  valid. A unit test covers each refusal case.
+  sends it to rework. A unit test covers each refusal case.
+- **Template scan (CI).** The sandbox credential scanner refused the
+  aq-worker binary because `RUNNER` contained a credential-labelled shell
+  assignment (`credentials=false`). The flag is renamed `login_file`, and the
+  `parse_token` fixtures no longer look like Anthropic tokens. `RUNNER`
+  changed, so the pinned `CLAUDE_RECIPE_DIGEST` is now `b30030fb…8765`.
 - **Recommended.** After a node kill, `reconcile-native` stopped the session
   host but not the docker-local sandbox, so Claude kept running there with the
   token in its environment. It now also stops (never destroys) the attempt's

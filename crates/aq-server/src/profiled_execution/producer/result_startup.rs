@@ -18,7 +18,7 @@ const CLAUDE_ADAPTER_ID: &str = "aq.claude-result-local-adapter";
 const CLAUDE_PROFILE: &str = "claude-2.1.318-docker-local-result-local-v1";
 /// aq-worker `docker_local_recipe_artifact()` (`aq-worker ms1-definitions`).
 const CLAUDE_RECIPE_DIGEST: &str =
-    "b3d428f777eecc9e65946662c66aff81e6558725c927886ba488f27b033026d0";
+    "b30030fb9192268da6079f59d650bcbad5dae3b2e34bf28af2b9e96e9fad8765";
 fn result_adapter(id: &str) -> bool {
     id == ADAPTER_ID || id == CLAUDE_ADAPTER_ID
 }
