@@ -732,3 +732,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Seeded with the MS0-designated scratch repo `ElectricJack/aq-scratch` (public, `main`, credential none): a project, a repository, one graph task, an offline dev worker identity and the human settlement owner.
   - Browser check: the Overview renders live data (1 ready task, project 'Local scratch development', 1 worker node). Provider accounts and capacity show 'not reported', as expected with no running worker.
   - Filed `azure-delta-64` (adopt host catalog 2.1.0); parked the Gemini and OpenCode-ChatGPT login-kind follow-ups on `steady-orbit-52`.
+- **05:15 check.**
+  - I2 couldn't close because of its child `azure-horizon-22.5.2` (W52); reparented the child to the root and told I2 to close pass.
+  - I1 had closed fail deliberately over owner-decision items; recorded the owner's decisions (subscription only, setup-token enrollment) and released its hold with a retry, so it can close pass with owner-approved `--deliverable-unmet`.
+  - G11 (visual acceptance) started; I3 is running; C5b is still finishing.
+  - #80, #81 and #82 still fail (#82 also needs its renumber); no merges this round.
