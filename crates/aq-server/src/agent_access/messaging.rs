@@ -353,6 +353,23 @@ pub(crate) async fn system_send_in_tx(
     .await
     .map_err(send_error)
 }
+/// F5 owner answers for an asking attempt that already ended. Sent by the fixed
+/// system component to the task mailbox; the owner's answer operation is the
+/// mailbox operation ID.
+pub(crate) async fn question_send_in_tx(
+    tx: &mut Transaction<'_, Postgres>,
+    request: Send,
+    at: u64,
+) -> std::result::Result<Value, OwnerSendError> {
+    send(
+        tx,
+        request,
+        json!({"kind":"system","component":"question_answer"}),
+        at,
+    )
+    .await
+    .map_err(send_error)
+}
 /// Mail the node may hand to the harness now, oldest first. H3: a stall nudge
 /// stored inbox-only, or any stall nudge while the attempt's terminal input is
 /// unknown or a human controller holds the pane, stays readable in the inbox
