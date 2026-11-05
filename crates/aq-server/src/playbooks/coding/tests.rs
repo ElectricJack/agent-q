@@ -1,4 +1,4 @@
-//! Fake Host7 peer only: synchronous answers in each command's exact contract
+//! Fake Host8 peer only: synchronous answers in each command's exact contract
 //! shape; no daemon, no database, no sleeps.
 use super::*;
 use crate::playbooks::review_domain::HOST7_CAPABILITIES;
@@ -14,7 +14,7 @@ use std::{
 const DEADLINE: Duration = Duration::from_secs(5);
 pub(crate) type Log = Arc<Mutex<Vec<(String, Value)>>>;
 
-/// Answers every Host7 command synchronously. `reviews` are the review
+/// Answers every Host8 command synchronously. `reviews` are the review
 /// dispositions in order; `checks` the check outcomes in order (default pass).
 pub(crate) struct Peer {
     pub log: Log,
@@ -65,6 +65,11 @@ impl Peer {
             .count()
     }
 }
+/// Catalog form of the n-th prepared candidate's OID (distinct from the
+/// request's `source`, so a check bound to `input.source` is visible).
+pub(crate) fn candidate_source(n: usize) -> Value {
+    json!({"format": "sha1", "hex": format!("{n:040x}")})
+}
 fn subject(id: String) -> Value {
     json!({"id": id, "revision": 1})
 }
@@ -105,6 +110,7 @@ impl Host for Peer {
             "candidate.prepare" => (
                 "prepared",
                 json!({"reference": format!("candidate:{n}"),
+                       "source": candidate_source(n),
                        "subject": subject(format!("candidate-{n}"))}),
             ),
             "check.request" => (
@@ -207,7 +213,7 @@ async fn start(
     decisions: Vec<&'static str>,
     async_work: Option<Completions>,
 ) -> Owner {
-    let registry = CatalogProfile::Host7.registry();
+    let registry = CatalogProfile::Host8.registry();
     let peer_registry = registry.clone();
     Owner::start_registered(
         namespace.into(),
@@ -335,6 +341,9 @@ async fn coding_policy_review_rejection_creates_rework_attempt() {
         .collect();
     assert_eq!(checks.len(), 2);
     assert_ne!(checks[0]["subject"], checks[1]["subject"]);
+    // Each check binds the prepared candidate's source, not the request's.
+    assert_eq!(checks[0]["source"], candidate_source(1));
+    assert_eq!(checks[1]["source"], candidate_source(2));
     // Publish only once, with the check receipt and the review as evidence.
     let publish: Vec<_> = log
         .iter()
@@ -355,7 +364,7 @@ async fn coding_policy_review_rejection_creates_rework_attempt() {
 /// Delivers one trusted aq.operation.updated event exactly as the driver
 /// does (event, then fanout).
 async fn deliver_completion(owner: &Owner, handle: &str, payload: Value, now: i64) {
-    let registry = CatalogProfile::Host7.registry();
+    let registry = CatalogProfile::Host8.registry();
     let contract = &registry.events["aq.operation.updated"];
     let event = EventEnvelope {
         producer: "aq.host.bridge@1".into(),

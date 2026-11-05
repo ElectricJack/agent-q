@@ -1,4 +1,4 @@
-//! In-memory owner + fake Host7 peer; no daemon, no database.
+//! In-memory owner + fake Host8 peer; no daemon, no database.
 use super::*;
 use crate::playbooks::coding::{
     CodingArtifacts, CodingPolicy, ROOT,
@@ -16,7 +16,7 @@ const DEADLINE: Duration = Duration::from_secs(5);
 struct OwnerCatalog<'a>(&'a Owner);
 impl Catalog for OwnerCatalog<'_> {
     fn registry(&self) -> Registry {
-        CatalogProfile::Host7.registry()
+        CatalogProfile::Host8.registry()
     }
     async fn install(&self, artifact: Artifact) -> Result<()> {
         let artifact = Box::new(artifact);
@@ -141,11 +141,11 @@ async fn activation_switches_future_runs_only() {
 fn validate_refuses_tampered_bytes() {
     let a = CodingPolicy::project_default(checks()).build().unwrap();
     let bytes = bytes_of(&serde_json::to_value(&a.root).unwrap()).unwrap();
-    assert!(validate(&CatalogProfile::Host7.registry(), &bytes).is_ok());
+    assert!(validate(&CatalogProfile::Host8.registry(), &bytes).is_ok());
     let mut tampered = bytes.clone();
     *tampered.last_mut().unwrap() = b' ';
     assert_eq!(
-        validate(&CatalogProfile::Host7.registry(), &tampered).map(|_| ()),
+        validate(&CatalogProfile::Host8.registry(), &tampered).map(|_| ()),
         Err(Error::Invalid)
     );
 }

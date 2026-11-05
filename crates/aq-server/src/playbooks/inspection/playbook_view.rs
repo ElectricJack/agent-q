@@ -23,6 +23,10 @@ use uuid::Uuid;
 
 const GRAPH_BYTES: usize = 65536;
 const ACTIVATION_PAGES: usize = 4;
+/// Per-page budget for reading current activations. 500 ms was too tight on
+/// loaded CI runners once the 2.1.0 catalog landed: the read timed out and the
+/// run's definition reported `active`/`pinned_is_active` as unknown.
+const ACTIVATION_PAGE_BUDGET: Duration = Duration::from_secs(2);
 
 /// X30/X31. `version` is AQ's per-name install ordinal ("1", "2", ...): the
 /// engine has no definition version.
@@ -316,7 +320,7 @@ impl Driver {
             };
             let raw = self
                 .owner
-                .inspect_catalog(query.clone(), Duration::from_millis(500))
+                .inspect_catalog(query.clone(), ACTIVATION_PAGE_BUDGET)
                 .await
                 .ok()?;
             let page = catalog::public_page(
