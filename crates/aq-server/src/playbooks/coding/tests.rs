@@ -19,6 +19,8 @@ pub(crate) type Log = Arc<Mutex<Vec<(String, Value)>>>;
 pub(crate) struct Peer {
     pub log: Log,
     pub reviews: Vec<&'static str>,
+    /// Human decision outcomes in order (default `approved`).
+    pub decisions: Vec<&'static str>,
     pub registry: Registry,
 }
 impl Peer {
@@ -87,6 +89,11 @@ impl Host for Peer {
                     "subject": input["subject"],
                 }),
             ),
+            "decision.request" => (
+                self.decisions.get(n - 1).copied().unwrap_or("approved"),
+                json!({"reference": format!("aq.decision/d{n}"),
+                       "subject": input["subject"]}),
+            ),
             "candidate.publish" => (
                 "published",
                 json!({"reference": format!("publication:{n}"),
@@ -137,6 +144,7 @@ pub(crate) fn request(key: &str) -> CodingRequest {
         source: json!({"format": "sha1", "hex": "0".repeat(40)}),
         visibility: "project".into(),
         key: key.into(),
+        decision_expires_at_ms: None,
     }
 }
 pub(crate) async fn owner(
@@ -144,6 +152,15 @@ pub(crate) async fn owner(
     store: MemoryStorage,
     log: Log,
     reviews: Vec<&'static str>,
+) -> Owner {
+    owner_with(namespace, store, log, reviews, vec![]).await
+}
+pub(crate) async fn owner_with(
+    namespace: &str,
+    store: MemoryStorage,
+    log: Log,
+    reviews: Vec<&'static str>,
+    decisions: Vec<&'static str>,
 ) -> Owner {
     let registry = CatalogProfile::Host7.registry();
     let peer_registry = registry.clone();
@@ -156,6 +173,7 @@ pub(crate) async fn owner(
             Ok(Peer {
                 log,
                 reviews,
+                decisions,
                 registry: peer_registry,
             })
         },
@@ -293,4 +311,165 @@ fn same_family_review_is_refused() {
     let mut p = CodingPolicy::project_default(checks());
     p.reviewer_family = " Anthropic ".into();
     assert_eq!(p.build().unwrap_err(), CodingError::SameFamily);
+}
+
+fn decision_policy() -> CodingPolicy {
+    let mut p = CodingPolicy::project_default(checks());
+    p.human_decision = Some(HumanDecision {
+        question: "Ship this reviewed change?".into(),
+        responders: vec!["user:owner".into()],
+    });
+    p
+}
+fn decision_grant() -> BTreeSet<String> {
+    HOST7_CAPABILITIES
+        .iter()
+        .map(|c| c.to_string())
+        .chain([DECISION_CAPABILITY.to_string()])
+        .collect()
+}
+
+#[test]
+fn human_decision_is_refused_without_the_decision_grant() {
+    // The Host7 grant ceiling lacks decision.request: refuse, never fall back
+    // to a review-only policy.
+    assert_eq!(
+        decision_policy().build().unwrap_err(),
+        CodingError::NotGranted(DECISION_CAPABILITY.into())
+    );
+    // The default policy needs no decision capability.
+    let default = CodingPolicy::project_default(checks()).build().unwrap();
+    assert!(default.decision.is_none());
+    assert_eq!(default.install_order().len(), 4);
+    assert!(
+        !default
+            .root
+            .content
+            .playbook
+            .required_capabilities
+            .contains(DECISION_CAPABILITY)
+    );
+    let mut blank = decision_policy();
+    blank.human_decision.as_mut().unwrap().responders.clear();
+    assert!(matches!(
+        blank.build_for(&decision_grant()),
+        Err(CodingError::Invalid(_))
+    ));
+}
+
+#[tokio::test]
+async fn coding_policy_human_decision_follows_review_and_gates_publish() {
+    let policy = decision_policy();
+    let artifacts = policy.build_for(&decision_grant()).unwrap();
+    assert_eq!(artifacts.install_order().len(), 5);
+    assert!(
+        artifacts
+            .root
+            .content
+            .playbook
+            .required_capabilities
+            .contains(DECISION_CAPABILITY)
+    );
+    let store = MemoryStorage::default();
+    let log: Log = Arc::default();
+    // Attempt 0: review requests changes (no decision asked). Attempt 1:
+    // review approves, the human rejects. Attempt 2: both approve.
+    let owner = owner_with(
+        "decision",
+        store.clone(),
+        log.clone(),
+        vec!["changes_requested", "accepted", "accepted"],
+        vec!["rejected", "approved"],
+    )
+    .await;
+    install(&owner, &artifacts).await;
+    let authority = Authority {
+        capabilities: decision_grant(),
+        ..authority()
+    };
+    owner
+        .call(
+            Request::Activate {
+                binding: ROOT.into(),
+                artifact: artifacts.root.digest.clone(),
+                authority: authority.clone(),
+            },
+            DEADLINE,
+        )
+        .await
+        .unwrap();
+    let mut req = request("task-2");
+    req.decision_expires_at_ms = Some(86_400_000);
+    owner
+        .call(
+            Request::Admit {
+                binding: ROOT.into(),
+                entry: "main".into(),
+                input: policy.input(&req),
+                authority,
+                now_ms: 1,
+            },
+            DEADLINE,
+        )
+        .await
+        .unwrap();
+    let roots = settle(&owner, &store, "decision").await;
+    assert_eq!(
+        roots,
+        vec![(artifacts.root.digest.clone(), Some("published".into()))]
+    );
+
+    let log = log.lock().unwrap().clone();
+    let steps: Vec<String> = log
+        .iter()
+        .filter(|(c, _)| c != "check.request" && c != "candidate.prepare")
+        .map(|(c, v)| match c.as_str() {
+            "work.ensure" => v["kind"].as_str().unwrap().to_string(),
+            other => other.to_string(),
+        })
+        .collect();
+    assert_eq!(
+        steps,
+        [
+            "implementation",
+            "review",
+            "repair",
+            "review",
+            "decision.request",
+            "repair",
+            "review",
+            "decision.request",
+            "candidate.publish",
+        ]
+    );
+    let of = |name: &str| -> Vec<Value> {
+        log.iter()
+            .filter(|(c, _)| c == name)
+            .map(|(_, v)| v.clone())
+            .collect()
+    };
+    let (decisions, reviews) = (of("decision.request"), of("work.ensure"));
+    // Each decision is on the reviewed candidate, with the policy's question.
+    assert_eq!(decisions[0]["subject"], reviews[3]["subject"]);
+    assert_eq!(decisions[1]["subject"], reviews[5]["subject"]);
+    assert_eq!(decisions[0]["question"], "Ship this reviewed change?");
+    assert_eq!(decisions[0]["responders"], json!(["user:owner"]));
+    assert_eq!(decisions[0]["choices"], json!(["approved", "rejected"]));
+    assert_eq!(decisions[0]["expires_at_ms"], 86_400_000);
+    // The human rejection is the next repair's evidence.
+    assert_eq!(reviews[4]["context"], "aq.decision/d1");
+    // Publish carries the check receipt, the review and the decision.
+    let publish = of("candidate.publish");
+    assert_eq!(publish.len(), 1);
+    let evidence: Vec<_> = publish[0]["evidence"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| e["id"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(
+        evidence,
+        ["check-receipt:3", "aq.review.decision/r3", "aq.decision/d2"]
+    );
+    assert_eq!(publish[0]["candidate"], decisions[1]["subject"]);
 }

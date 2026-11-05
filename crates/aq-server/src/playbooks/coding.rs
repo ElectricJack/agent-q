@@ -16,6 +16,10 @@
 //!   the prepared candidate → cross-family review (`work.ensure kind=review`) →
 //!   `candidate.publish` with the check and review evidence → `published`, or
 //!   `rework{reference}` naming the failing evidence.
+//! - `aq.coding.decision` (only when the policy asks for a human decision):
+//!   one `decision.request` on the reviewed candidate (sync, or `accepted` then
+//!   the `aq.decision.completed` completion) → `approved` / `rejected` /
+//!   `escalated`. It runs after, and in addition to, the review.
 //! - `aq.coding`: the implementation attempt, then up to `max_repairs` repair
 //!   attempts, each handed the previous failing evidence reference as context.
 //!
@@ -23,7 +27,7 @@
 //! (any subject change) runs every check and the review again. Review output
 //! is published as review evidence next to, never instead of, the check
 //! receipts; the host's publication guard verifies each in its owning store.
-use super::review_domain::CatalogProfile;
+use super::review_domain::{CatalogProfile, HOST7_CAPABILITIES};
 use aq_playbook_host::model::*;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -33,11 +37,17 @@ pub const ROOT: &str = "aq.coding";
 pub const ATTEMPT: &str = "aq.coding.attempt";
 pub const WORK: &str = "aq.coding.work";
 pub const CHECK: &str = "aq.coding.check";
+pub const DECISION: &str = "aq.coding.decision";
+/// The grant capability the optional human decision step requires.
+pub const DECISION_CAPABILITY: &str = "decision.request";
 const COMPILER: &str = "aq-server D9 coding policy builder 1";
 /// Bounded rework budget: the root is unrolled, one attempt step per budget.
 pub const MAX_REPAIRS: usize = 8;
 const WORK_WAIT_MS: u64 = 43_200_000;
 const CHECK_WAIT_MS: u64 = 3_600_000;
+/// `aq.decision.completed` retention bounds the wait (24h).
+const DECISION_WAIT_MS: u64 = 86_400_000;
+const DECISION_CHOICES: [&str; 2] = ["approved", "rejected"];
 const TEXT: usize = 4096;
 
 /// One required check, pinned to an exact validator.
@@ -57,6 +67,19 @@ pub struct CodingPolicy {
     pub reviewer_family: String,
     pub checks: Vec<RequiredCheck>,
     pub max_repairs: usize,
+    /// Optional human decision after review, before publish. It needs the
+    /// `decision.request` grant capability; `build` refuses it otherwise and
+    /// never substitutes the review for it.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub human_decision: Option<HumanDecision>,
+}
+
+/// The human decision asked of `responders` on each reviewed candidate.
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct HumanDecision {
+    pub question: String,
+    pub responders: Vec<String>,
 }
 
 /// One coding run's request; `input` turns it into the root entry input.
@@ -73,6 +96,10 @@ pub struct CodingRequest {
     pub visibility: String,
     /// Prefix of the per-attempt idempotent logical keys.
     pub key: String,
+    /// Absolute expiry of each human decision; required (and only used) when
+    /// the policy has a `human_decision`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub decision_expires_at_ms: Option<u64>,
 }
 
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
@@ -81,19 +108,27 @@ pub enum CodingError {
     SameFamily,
     #[error("coding policy invalid: {0}")]
     Invalid(String),
+    #[error("coding policy requires ungranted capability {0}")]
+    NotGranted(String),
 }
 
-/// The four sealed artifacts, in install order (children first).
+/// The sealed artifacts (four, or five with a human decision), in install
+/// order (children first).
 #[derive(Clone, Debug)]
 pub struct CodingArtifacts {
     pub work: Artifact,
     pub check: Artifact,
+    pub decision: Option<Artifact>,
     pub attempt: Artifact,
     pub root: Artifact,
 }
 impl CodingArtifacts {
-    pub fn install_order(&self) -> [&Artifact; 4] {
-        [&self.work, &self.check, &self.attempt, &self.root]
+    pub fn install_order(&self) -> Vec<&Artifact> {
+        [&self.work, &self.check]
+            .into_iter()
+            .chain(self.decision.as_ref())
+            .chain([&self.attempt, &self.root])
+            .collect()
     }
 }
 
@@ -105,10 +140,21 @@ impl CodingPolicy {
             reviewer_family: "openai".into(),
             checks,
             max_repairs: 2,
+            human_decision: None,
         }
     }
 
+    /// Builds against the Host7 grant ceiling: every capability a Host7 grant
+    /// can hold. A human decision is refused until that includes
+    /// `decision.request`.
     pub fn build(&self) -> Result<CodingArtifacts, CodingError> {
+        let ceiling: BTreeSet<String> = HOST7_CAPABILITIES.iter().map(|c| c.to_string()).collect();
+        self.build_for(&ceiling)
+    }
+
+    /// Builds for a grant holding `granted`; refuses a policy whose artifacts
+    /// need a capability outside it.
+    pub fn build_for(&self, granted: &BTreeSet<String>) -> Result<CodingArtifacts, CodingError> {
         let family = |f: &str| f.trim().to_ascii_lowercase();
         if family(&self.implementer_family).is_empty() || family(&self.reviewer_family).is_empty() {
             return Err(CodingError::Invalid("model family required".into()));
@@ -123,14 +169,42 @@ impl CodingPolicy {
         if ids.len() != self.checks.len() {
             return Err(CodingError::Invalid("duplicate check id".into()));
         }
+        if let Some(d) = &self.human_decision {
+            if !granted.contains(DECISION_CAPABILITY) {
+                return Err(CodingError::NotGranted(DECISION_CAPABILITY.into()));
+            }
+            let blank = |s: &str| s.trim().is_empty() || s.len() > TEXT;
+            if blank(&d.question)
+                || d.responders.is_empty()
+                || d.responders.len() > 100
+                || d.responders.iter().any(|r| blank(r))
+                || d.responders.iter().collect::<BTreeSet<_>>().len() != d.responders.len()
+            {
+                return Err(CodingError::Invalid("human decision".into()));
+            }
+        }
         let b = Builder::new();
         let work = b.work()?;
         let check = b.check()?;
-        let attempt = b.attempt(self, &work, &check)?;
+        let decision = match &self.human_decision {
+            Some(_) => Some(b.decision()?),
+            None => None,
+        };
+        let attempt = b.attempt(self, &work, &check, decision.as_ref())?;
         let root = b.root(self, &attempt)?;
+        if let Some(missing) = root
+            .content
+            .playbook
+            .required_capabilities
+            .difference(granted)
+            .next()
+        {
+            return Err(CodingError::NotGranted(missing.clone()));
+        }
         Ok(CodingArtifacts {
             work,
             check,
+            decision,
             attempt,
             root,
         })
@@ -147,9 +221,14 @@ impl CodingPolicy {
                 )
             })
             .collect();
-        json!({"subject": r.subject, "context": r.context, "base": r.base,
+        let mut input = json!({"subject": r.subject, "context": r.context, "base": r.base,
                "destination": r.destination, "source": r.source,
-               "visibility": r.visibility, "keys": keys})
+               "visibility": r.visibility, "keys": keys});
+        if self.human_decision.is_some() {
+            // A missing expiry is null, which admission refuses.
+            input["decision_expires_at_ms"] = json!(r.decision_expires_at_ms);
+        }
+        input
     }
 
     fn review_context(&self) -> String {
@@ -590,8 +669,88 @@ impl Builder {
         )
     }
 
-    fn attempt_input(&self) -> Result<Schema, CodingError> {
-        Ok(Schema::object(BTreeMap::from([
+    fn decision(&self) -> Result<Artifact, CodingError> {
+        let outcomes = BTreeMap::from([
+            ("approved".into(), self.result()?),
+            ("rejected".into(), self.result()?),
+            ("escalated".into(), Self::escalated()),
+        ]);
+        // refused / expired / cancelled are not a human verdict: escalate.
+        let steps = BTreeMap::from([
+            (
+                "request".into(),
+                self.invoke(
+                    "decision.request",
+                    r("input", &[]),
+                    "decision",
+                    &[
+                        ("approved", "approved"),
+                        ("rejected", "rejected"),
+                        ("accepted", "await"),
+                    ],
+                )?,
+            ),
+            (
+                "approved".into(),
+                ret("approved", result_of("decision", &[])),
+            ),
+            (
+                "rejected".into(),
+                ret("rejected", result_of("decision", &[])),
+            ),
+            (
+                "await".into(),
+                self.wait(
+                    "aq.decision.completed",
+                    "decision",
+                    DECISION_WAIT_MS,
+                    "completion",
+                    "assess",
+                )?,
+            ),
+            (
+                "assess".into(),
+                decide(
+                    eq(r("completion", &["outcome"]), "approved"),
+                    "approved_event",
+                    "assess_rejected",
+                ),
+            ),
+            (
+                "assess_rejected".into(),
+                decide(
+                    eq(r("completion", &["outcome"]), "rejected"),
+                    "rejected_event",
+                    "failure",
+                ),
+            ),
+            (
+                "approved_event".into(),
+                ret("approved", result_of("completion", &["output"])),
+            ),
+            (
+                "rejected_event".into(),
+                ret("rejected", result_of("completion", &["output"])),
+            ),
+        ]);
+        self.seal(
+            DECISION,
+            "Request one human decision and converge its sync or async completion",
+            self.command("decision.request")?.input.clone(),
+            outcomes,
+            "request",
+            steps,
+            &[],
+            fields(&[]),
+        )
+    }
+
+    fn expiry(&self) -> Result<Schema, CodingError> {
+        self.input_field("decision.request", "expires_at_ms")
+    }
+
+    fn attempt_input(&self, policy: &CodingPolicy) -> Result<Schema, CodingError> {
+        let mut properties = BTreeMap::from([
             ("work".into(), self.command("work.ensure")?.input.clone()),
             ("base".into(), self.subject()?),
             ("destination".into(), self.subject()?),
@@ -601,7 +760,11 @@ impl Builder {
             ),
             ("review_key".into(), Schema::string(TEXT)),
             ("visibility".into(), Schema::string(TEXT)),
-        ])))
+        ]);
+        if policy.human_decision.is_some() {
+            properties.insert("decision_expires_at_ms".into(), self.expiry()?);
+        }
+        Ok(Schema::object(properties))
     }
 
     fn attempt(
@@ -609,6 +772,7 @@ impl Builder {
         policy: &CodingPolicy,
         work: &Artifact,
         check: &Artifact,
+        decision: Option<&Artifact>,
     ) -> Result<Artifact, CodingError> {
         let rework = |bind: &str| ret("rework", fields(&[("reference", r(bind, &["reference"]))]));
         let mut steps = BTreeMap::from([
@@ -701,7 +865,14 @@ impl Builder {
                 ]),
                 "review",
                 &[
-                    ("accepted", "publish"),
+                    (
+                        "accepted",
+                        if decision.is_some() {
+                            "decision"
+                        } else {
+                            "publish"
+                        },
+                    ),
                     ("rejected", "rework_review"),
                     ("escalated", "failure"),
                 ],
@@ -712,6 +883,33 @@ impl Builder {
             ("id", r("review", &["reference"])),
             ("revision", candidate_revision()),
         ]));
+        if let Some(d) = &policy.human_decision {
+            // The human decision follows, and never replaces, the review.
+            steps.insert(
+                "decision".into(),
+                call(
+                    DECISION,
+                    fields(&[
+                        ("question", lit(json!(d.question))),
+                        ("choices", lit(json!(DECISION_CHOICES))),
+                        ("responders", lit(json!(d.responders))),
+                        ("subject", r("candidate", &["subject"])),
+                        ("expires_at_ms", r("input", &["decision_expires_at_ms"])),
+                    ]),
+                    "decision",
+                    &[
+                        ("approved", "publish"),
+                        ("rejected", "rework_decision"),
+                        ("escalated", "failure"),
+                    ],
+                ),
+            );
+            steps.insert("rework_decision".into(), rework("decision"));
+            evidence.push(fields(&[
+                ("id", r("decision", &["reference"])),
+                ("revision", candidate_revision()),
+            ]));
+        }
         steps.insert(
             "publish".into(),
             self.invoke(
@@ -738,11 +936,14 @@ impl Builder {
         self.seal(
             ATTEMPT,
             "One coding attempt: work, prepare, checks, cross-family review, publish",
-            self.attempt_input()?,
+            self.attempt_input(policy)?,
             outcomes,
             "work",
             steps,
-            &[work, check],
+            &std::iter::once(work)
+                .chain(Some(check))
+                .chain(decision)
+                .collect::<Vec<_>>(),
             fields(&[]),
         )
     }
@@ -755,7 +956,7 @@ impl Builder {
         let keys = (0..=policy.max_repairs)
             .map(|i| (format!("a{i}"), key.clone()))
             .collect();
-        let input = Schema::object(BTreeMap::from([
+        let mut input = BTreeMap::from([
             ("subject".into(), self.subject()?),
             ("context".into(), Schema::string(TEXT)),
             ("base".into(), self.subject()?),
@@ -766,7 +967,11 @@ impl Builder {
             ),
             ("visibility".into(), Schema::string(TEXT)),
             ("keys".into(), Schema::object(keys)),
-        ]));
+        ]);
+        if policy.human_decision.is_some() {
+            input.insert("decision_expires_at_ms".into(), self.expiry()?);
+        }
+        let input = Schema::object(input);
         let mut steps = BTreeMap::new();
         for i in 0..=policy.max_repairs {
             let bind = format!("attempt_{i}");
@@ -787,24 +992,34 @@ impl Builder {
                 bind.clone(),
                 call(
                     ATTEMPT,
-                    fields(&[
-                        (
-                            "work",
-                            fields(&[
-                                ("kind", lit(json!(kind))),
-                                ("subject", r("input", &["subject"])),
-                                ("context", context),
-                                ("lifetime", lit(json!("owned"))),
-                                ("logical_key", r("input", &["keys", &a, "work"])),
-                                ("visibility", r("input", &["visibility"])),
-                            ]),
-                        ),
-                        ("base", r("input", &["base"])),
-                        ("destination", r("input", &["destination"])),
-                        ("source", r("input", &["source"])),
-                        ("review_key", r("input", &["keys", &a, "review"])),
-                        ("visibility", r("input", &["visibility"])),
-                    ]),
+                    fields(
+                        &[
+                            (
+                                "work",
+                                fields(&[
+                                    ("kind", lit(json!(kind))),
+                                    ("subject", r("input", &["subject"])),
+                                    ("context", context),
+                                    ("lifetime", lit(json!("owned"))),
+                                    ("logical_key", r("input", &["keys", &a, "work"])),
+                                    ("visibility", r("input", &["visibility"])),
+                                ]),
+                            ),
+                            ("base", r("input", &["base"])),
+                            ("destination", r("input", &["destination"])),
+                            ("source", r("input", &["source"])),
+                            ("review_key", r("input", &["keys", &a, "review"])),
+                            ("visibility", r("input", &["visibility"])),
+                        ]
+                        .into_iter()
+                        .chain(policy.human_decision.as_ref().map(|_| {
+                            (
+                                "decision_expires_at_ms",
+                                r("input", &["decision_expires_at_ms"]),
+                            )
+                        }))
+                        .collect::<Vec<_>>(),
+                    ),
                     &bind,
                     &[
                         ("published", &published),
