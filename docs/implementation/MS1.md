@@ -4,6 +4,111 @@ Task `stark-zenith-16.2`. Run on 2026-11-05, 05:00–05:35 UTC, on the owner's
 desktop (WSL2). Owner decision of 2026-11-04: the agent is **Claude Code**
 signed in with the owner's Claude subscription login (no API key), not Codex.
 
+## Update 2026-11-05 (21:20–21:46 UTC): B4 retry and B5b closure settlement live
+
+Server image from `ms1/retry` (merged with `main` and `ms1/d1`); D1 stays
+off on `aq-ms1` (`AQ_MS1_D1` unset). Migration **0095** is applied (state
+format 95).
+
+### B4: a failed attempt is retried in a new sandbox and D3 completes the task
+
+Task `e0a20000-0000-4000-8000-000000000103` (slow 10-file task, priority 30):
+
+| | Attempt 1 (failed) | Attempt 2 (replacement) |
+| --- | --- | --- |
+| Attempt | `452394d1-32f7-5308-8901-e0a6c35d33a8` | `3440bb36-d8b1-522d-af70-4c188a902cd7` |
+| Grant | `90937684-32e0-4816-a7ac-1b121579f1db` | `1372aea5-67a4-4116-b8f7-6d52e9de3bfc` |
+| Sandbox | `aq-10112d04…-452394d132f753088901e0a6c35d33a8` | `aq-10112d04…-3440bb36d8b1522daf704c188a902cd7` (new) |
+| What happened | Claude SIGKILLed in its sandbox at 21:20:11Z after 2 of 10 files (operator-injected harness crash); driver `exit.json` `success:false` | Claude ran to the end: result `success`, `is_error:false`, 22 turns, session `e5e6a1e8-92b6-42d5-9e37-5ca78a733e1e`; `exit.json` `success:true` |
+| Retained source (central aq-git) | `9d9adfcb6107b88a007085f361047f3b9ae8c16d` (partial work) | `b162f4bee92eab2c76d773fc04b6d3716473a8b3` |
+| Report | `36b7dd7c-bd03-4619-8c5c-a517631ab29a`, outcome `failed` | `ab86777c-f177-40f2-adee-1e342d44a348`, outcome `success` |
+| D3 | `rework_required`/`not_accepted`; then (21:20:24Z) replacement facts recorded: retention `retained`, effects `quiescent` | `confirmed`, Graph operation `a080377a-a709-4194-8318-a61e5925759e`; task `completed` (v2) |
+
+At 21:20:41Z the poll admitted the replacement: "replacement attempt admitted
+within the lineage budget … attempts_started=1 lineage_elapsed_ms=66848
+sandbox_ms_charged=910683 max_attempts=3 max_sandbox_ms=14400000", and B4
+released the predecessor's claim (`profiled_replacement_releases`,
+`attempts_started=1`). The predecessor's sandbox was destroyed after its
+copy-back; the replacement ran in its own sandbox, which was destroyed too.
+
+**Budget enforcement, observed:** drill 2 (`…0102`) failed at 15:03Z; its
+replacement at 21:18Z (after the pause) was refused by selection because the
+1-hour lineage time budget of the selection policy was spent (B4's own server
+cap is 24 h). Follow-up (B4): that refusal currently fails the poll instead
+of skipping the lineage, like the project-revision case fixed earlier.
+
+### B5b: a granted attempt that never started is closed, settled, released and replaced; its node re-registers
+
+Task `e0a20000-0000-4000-8000-000000000104`, node `10112d04…`:
+
+1. Induced fault: `aq-session-host` made non-executable for one run.
+   Attempt `4b19839c-bf0a-5f9f-9ed2-350ea585c7c6` (boot `e82391b9…`) was
+   granted, then "guardian spawn uncertain: Permission denied" (21:30:59Z):
+   granted/stop unknown, task held.
+2. The node is wedged: the next run's registration was refused (21:31:13Z)
+   with "prior execution claims remain held".
+3. Worker closure: `aq-worker reconcile-native` on the preserved state
+   recorded a durable suppression and posted it (21:32:38Z, "granted launch
+   closed before Started"): closure `7dbac2e5-fb4e-43f9-aecf-43fd0d6fcaf7`,
+   evidence `suppressed`.
+4. Server settlement (sweep, 21:32:46Z): status `finished`, stop
+   `not_started` (`aq.launch-closure/7dbac2e5…`), retention `retained`
+   (`aq.source-export/98c352d0-99d1-5ed0-ab3d-1d1f6afb963f`, its own input
+   export), effects `quiescent`.
+5. Release (sweep after the new image, 21:44:47Z): "closed launch settled and
+   its task claim released for B4 replacement": `profiled_replacement_releases`
+   row, `attempts_started=1`.
+6. The same node, with its existing enrollment (`node/config/worker.toml`),
+   re-registered with a new boot (`6c3d3b53…`) at 21:45:28Z and took the
+   replacement: attempt `a9b73699-8ff3-5279-a1c5-e07b5fb1336f`, report
+   `92009cd6-f3fc-4247-824b-da0aa5fd574a` (`success`), retained source
+   `278a93645b15643b2fe6feb8c3be602516fef366`, D3 `confirmed` (Graph
+   operation `dc17116a-9128-4efb-9daf-6c76c4f350bc`); task `completed` (v2).
+
+**Closure rule for "host started, harness never launched" (the `aq-ms1d`
+case, attempt `59c31201…`).** Settling it the same way is safe only when the
+host's own stopped proof shows that no process ever ran under it: no root
+status, no reaped process, and the kernel wait sees no children. That holds
+when the observed gate failed closed before exec, pane or not, so the
+server now accepts it (commit `7aed79ba`). The worker sends that proof:
+`reconcile-native` recovers a started guardian from its sealed intent, stops
+it and retains the kernel stopped proof before the closure. A host whose pane
+ran anything stays held for an operator. If the host cannot be recovered (no
+host state left), there is no proof, and the attempt cannot be closed
+automatically.
+
+**The two old wedged nodes (`c7caa999…`, `f051a29d…`) were not closed.**
+Their attempts (`30383974…`, `69de1b52…`) were granted under runtime
+qualification version 1. The server only installs the current terminal
+qualification, so it refuses their closure with "phase terminal owner
+mismatch". Their journals also no longer open with the current worker,
+because the renamed RUNNER changed the recipe identity (`result recipe
+identity`). A worker built from `0ee3b25` with `88c98f7` cherry-picked got past the
+second problem but not the first. Owner: B5b/config. The fix is to keep
+historical terminal qualifications and recipe identities installed for
+recovery, or to add an owner abandonment for closed-but-unstopped attempts.
+Those two nodes stay retired; nothing new is placed on them.
+
+### Tests (after merging `main` and `ms1/d1`)
+
+- **aq-server, nextest:** 66 passed across `it_profiled`, `it_phase` and
+  `it_native`. The subset covered `auto_settlement56`, `replacement_source`,
+  `replacement_release`, `phase_terminal_closure`, `phase_execution`,
+  `native_cancellation`, `native_offers`, `native_registration` and
+  `profiled_source`. The `failed_or_unknown_report_never_completes…` guard is
+  green.
+- **aq-server, lib:** 30 passed for `replacement`, `closure::settlement`,
+  `login_import`, `expiry` and `settlement`. `clippy --all-targets -D
+  warnings` and `fmt --check` are clean.
+- **aq-worker:** 440 lib tests passed, including the new `unstarted…` and
+  `refresh_profile…` closure tests. `--test templates` passes. Clippy and
+  fmt are clean.
+- **Flaky under load only:** `native_cancel_owner_validation_attempt_replay_and_concurrency`,
+  `final_insert_wait_expiring_facts_rolls_back…` (aq-server) and the journal
+  test `unknown_attempts_and_changed_acceptance_retries_do_not_consume_revision`
+  (aq-worker) each failed once while a Docker image build ran beside them.
+  All three passed when rerun alone.
+
 ## Update 2026-11-05 (21:00–21:30 UTC): D1 publication live, B builds on A
 
 Branch `ms1/d1`. Plan:
@@ -170,24 +275,7 @@ attempt ran to completion. D1 moved to another agent (`ms1/d1`). Migration
 5. Zero-capacity cancellation polls were refused once the inventory aged
    out, so the executor saw "unknown" instead of "not cancelled".
 
-**Not yet shown (resume here):** the replacement attempt running in a new
-sandbox and D3 completing task `…0102` (fix 4, commit `7bf5315c`, is
-committed and tested but not yet in the running image); the worker closure
-(`reconcile-native` on nodes `c7caa999…`/`f051a29d…`), server closure
-settlement, and the stuck nodes re-registering and taking work. Grant
-renewal still requires a single started attempt (B4/B6a1 follow-up).
-
-**Resume:** from `wt/ms1r-server` with `wt/ms1r-worker` built:
-`AQ_MS1_COMPOSE_EXTRA=<override with RUST_LOG=info,aq_refusal=debug> scripts/ms1-demo.sh rebuild-server`
-(after any worker rebuild that changes a pinned program, bump
-`~/.local/share/aq-ms1/revision` and run `AQ_DEV_REPLACE_OPERATOR_SECTION=1
-scripts/ms1-demo.sh profiled` *before* the server can start), then
-`scripts/ms1-demo.sh run` twice for `…0102`. For a stuck node: move
-`node/state` aside, move its `runs/state-…` back to `node/state`, run
-`aq-worker --config node/config/worker.toml.<stamp> reconcile-native
---native-config node/config/native.json --attempt-id <id>`, restore the
-directories; the server sweep then settles the closure and the next poll
-replaces the task, which frees the node.
+**Finished live at 21:20–21:46 UTC: see the next update above.**
 
 **Dashboard.** `[result_media]` is configured on `aq-ms1`
 (`ms1-demo.sh media`; the bootstrap now reports `results.media.read`/`upload`
