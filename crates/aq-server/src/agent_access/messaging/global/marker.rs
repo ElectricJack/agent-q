@@ -28,12 +28,13 @@ pub(super) struct Update {
 }
 
 async fn latest(tx: &mut Transaction<'_, Postgres>, id: Uuid) -> Result<Option<Position>> {
-    let human: Option<i64> =
-        sqlx::query_scalar("SELECT max(cursor) FROM mailbox_messages WHERE mailbox_key=$1 AND sender->>'kind'='owner'")
-            .bind(key(id)?)
-            .fetch_one(&mut **tx)
-            .await
-            .map_err(db)?;
+    let human: Option<i64> = sqlx::query_scalar(
+        "SELECT max(cursor) FROM mailbox_messages WHERE mailbox_key=$1 AND sender->>'kind'='owner'",
+    )
+    .bind(key(id)?)
+    .fetch_one(&mut **tx)
+    .await
+    .map_err(db)?;
     let reply: Option<(i64, i64)> = sqlx::query_as(&format!(
         "{REPLIES} ORDER BY x.anchor DESC,x.cursor DESC LIMIT 1"
     ))

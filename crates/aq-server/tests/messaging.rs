@@ -1103,14 +1103,19 @@ async fn session_sends_to_current_supervisor_conversation_and_store_reopens() {
     assert_eq!(receipt["thread_id"], json!(current));
     assert_eq!(receipt["disposition"], "queued");
     assert_eq!(
-        send(&e.app, path, Some(&e.token), Some(request.clone())).await.1,
+        send(&e.app, path, Some(&e.token), Some(request.clone()))
+            .await
+            .1,
         receipt
     );
     let message_id: Uuid = request["message_id"].as_str().unwrap().parse().unwrap();
     let row: (Value, bool, bool) = sqlx::query_as("SELECT m.sender,m.mailbox_key=central_global_mailbox_key(),central_global_mail_source_valid(m.message_id) FROM mailbox_messages m WHERE m.message_id=$1")
         .bind(message_id).fetch_one(&e.pool).await.unwrap();
     assert_eq!(row.0, json!({"kind":"session","binding":e.binding}));
-    assert!(row.1 && row.2, "agent mail lands in the proven supervisor mailbox");
+    assert!(
+        row.1 && row.2,
+        "agent mail lands in the proven supervisor mailbox"
+    );
     let retained: i64 = sqlx::query_scalar(
         "SELECT retained_operations FROM global_supervisor_conversation WHERE singleton",
     )
@@ -1120,9 +1125,14 @@ async fn session_sends_to_current_supervisor_conversation_and_store_reopens() {
     assert_eq!(retained, 1);
     // Owners use the conversation API; neither inbox can read the supervisor mailbox.
     assert_eq!(
-        send(&e.admin, "/api/messages/send", None, Some(addressed(current)))
-            .await
-            .0,
+        send(
+            &e.admin,
+            "/api/messages/send",
+            None,
+            Some(addressed(current))
+        )
+        .await
+        .0,
         StatusCode::NOT_FOUND
     );
     assert_eq!(list(&e, to(current), "0").await.0, StatusCode::NOT_FOUND);
