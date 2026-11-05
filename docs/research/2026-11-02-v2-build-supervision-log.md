@@ -1083,3 +1083,14 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **S5:** 4 new refusal tests; `auto_settlement56` passes 14/14 and `it_profiled` 201 passed.
   - **Build budget:** the aq-admission test was moved into an existing binary, so the count is back to 81. The aq-server lib is at 110,934 lines vs the 109,000 ratchet; it will be raised as decided, since the lib split is next.
   - Waiting on the `ms1/retry` fixes (B1, S2, S3, closure/worker tests), then convergence, then a re-review scoped to the fix commits only.
+- **23:35: all final-review fixes pushed. Converged heads: aq-server `ms1/retry` 97a50166 (contains `ms1/d1` c3266468), aq-worker 67ad996.**
+  - **B1:** the live tests were folded into existing binaries. The lib ratchets were raised with a reason: aq-server 110,953, aq-worker 71,448.
+  - **S2:** the container stop is confirmed before Stopped is reported; an unconfirmed stop is stop-uncertain, with no replacement facts.
+  - **S3:**
+    - the token is unlinked first and leftover `driver-*/token` files are removed;
+    - the token stays zeroized until copy-back;
+    - the exact token bytes in copied-back files, paths, the transcript or pane lines mean Failed, and the copy-back is refused.
+  - **S5:** closure variants, held cases, and `exit.json` → Unknown.
+  - **Nits:** `sync_tree` symlink hardening; the closure comment is corrected.
+  - **Merge regression caught and fixed:** D1's unpublished-delivery check queried a migration-59 table on older-schema stores, giving 500s in 6 `it_phase` tests. It now gates on the state format (339cf6de).
+  - Dispatched the re-review scoped to the fix commits only (e810e65f..97a50166, 88c98f7..67ad996), per the owner's rule.
