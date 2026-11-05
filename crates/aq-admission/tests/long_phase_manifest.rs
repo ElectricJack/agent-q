@@ -25,7 +25,10 @@ fn claude(capabilities: &[&str]) -> LaunchManifest {
     m.terminal.input_enabled = false;
     m.harness.required_capabilities = capabilities
         .iter()
-        .map(|id| Capability { id: Text::new(*id).unwrap(), version: 1 })
+        .map(|id| Capability {
+            id: Text::new(*id).unwrap(),
+            version: 1,
+        })
         .collect();
     m
 }
@@ -37,12 +40,26 @@ fn long_phase_claude_manifest_requires_container_confinement() {
     let base = ["aq.harness.startup-context", "aq.harness.stop"];
     let with = |extra: &[&str]| claude(&[&base[..], extra].concat());
     assert!(long().validate_for_manifest(&with(&[container])).is_ok());
-    assert!(long().validate_for_manifest(&with(&[])).is_err(), "no confinement");
-    assert!(long().validate_for_manifest(&with(&[native])).is_err(), "native");
-    assert!(long().validate_for_manifest(&with(&[container, native])).is_err(), "both");
+    assert!(
+        long().validate_for_manifest(&with(&[])).is_err(),
+        "no confinement"
+    );
+    assert!(
+        long().validate_for_manifest(&with(&[native])).is_err(),
+        "native"
+    );
+    assert!(
+        long()
+            .validate_for_manifest(&with(&[container, native]))
+            .is_err(),
+        "both"
+    );
     let mut input = with(&[container]);
     input.terminal.input_enabled = true;
-    assert!(long().validate_for_manifest(&input).is_err(), "terminal input");
+    assert!(
+        long().validate_for_manifest(&input).is_err(),
+        "terminal input"
+    );
     let mut other = with(&[container]);
     other.harness.cli_version = Text::new("2.1.319").unwrap();
     assert!(long().validate_for_manifest(&other).is_err(), "other CLI");
