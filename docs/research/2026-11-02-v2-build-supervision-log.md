@@ -850,3 +850,5 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Rebuilt `aq-v2-local` from aq-server main 620a1b83 and dashboard 42830ec8; healthy.
   - Browser check: the Decisions page now calls `/api/questions/decisions?state=open` (capability detected), and the server returns `question-inbox-1` with no items, since no agent has asked yet.
   - Main CI is green at 458f682d, so the post-#88 `playbook_host_requests` failure was a one-off flake.
+- **13:20: the MS1 wiring subagent had stalled.** Its review fixes were pushed (B1 Failure→Failed plus D3 Success-only, with a DB test on a production-shaped offer; should-fix 1, 2 and 4; nits), but there had been no commits and no live processes for hours after a "waiting for the server rebuild" message. Same pattern as W64: idle and waiting on background work that had already ended.
+  - Resumed it with a status request, asked it to continue with cancel, then stuck attempts, retry, restart drills and D1, and to merge main (now at 0094) early.
