@@ -1862,3 +1862,5 @@ mod auto_settlement56;
 mod settlement_owner39;
 #[path = "profiled_results/waits.rs"]
 mod waits;
+#[path = "profiled_results/wakes.rs"]
+mod wakes;
