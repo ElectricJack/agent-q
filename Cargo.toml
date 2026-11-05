@@ -78,12 +78,22 @@ lto = "thin"
 strip = true
 
 # CI-only images (scripts/update-lifecycle, scripts/product-smoke.py and
-# scripts/recovery-smoke.py): release code generation without the serial
-# ThinLTO link step. Release images (release.yml) keep [profile.release].
+# scripts/recovery-smoke.py). Release images (release.yml) keep
+# [profile.release]. Dropping ThinLTO alone saves nothing on a 4-vCPU runner
+# (cold aq-server build: 796 s release, 793 s without LTO), because LTO builds
+# dependencies as bitcode and generates code once. Optimization level is the
+# lever: the same build takes 445 s with workspace crates at opt-level 0 and
+# dependencies at 1, and the workspace rebuild that each further image
+# (another version) needs drops the most. Debug assertions and overflow
+# checks stay off, as in release; tests already run this code unoptimized.
 [profile.ci-image]
 inherits = "release"
 lto = false
+opt-level = 0
 codegen-units = 16
+
+[profile.ci-image.package."*"]
+opt-level = 1
 
 # Exact public transitive contract; existing published package bytes are unchanged.
 [patch.crates-io]

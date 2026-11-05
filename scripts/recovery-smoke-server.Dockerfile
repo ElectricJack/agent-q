@@ -2,7 +2,7 @@
 FROM rust:1.96.1-bookworm AS build
 WORKDIR /build
 ARG AQ_SOURCE_REVISION
-# CI-only fixture: release code generation without ThinLTO (Cargo.toml).
+# CI-only fixture: the CI image profile (no ThinLTO, low optimization; Cargo.toml).
 ARG CARGO_PROFILE=ci-image
 ENV AQ_SOURCE_REVISION=${AQ_SOURCE_REVISION}
 COPY Cargo.toml Cargo.lock rust-toolchain.toml ./

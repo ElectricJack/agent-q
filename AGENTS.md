@@ -115,9 +115,13 @@ by raising the budget. Raising a budget needs the owner's review, as for
   `Dockerfile.worker` keys its cache by the verified archive digest. Without
   either, cargo's mtime check reuses another branch's build. 458f682d hit this,
   and `cargo clean -p` of the workspace crates missed the `vendor/` path crates.
-- **Release-only settings stay out of CI images.** ThinLTO lives only in
-  `[profile.release]`. CI, smoke and test images build with
-  `--build-arg CARGO_PROFILE=ci-image`, which is release without LTO. The
-  smoke and lifecycle scripts do this by default (`AQ_IMAGE_CARGO_PROFILE`
-  overrides it). `release.yml` builds `release`. A new CI-only image build must
-  pass the CI profile too.
+- **Release-only settings stay out of CI images.** ThinLTO and opt-level 3
+  live only in `[profile.release]`. CI, smoke and test images build with
+  `--build-arg CARGO_PROFILE=ci-image`: no LTO, workspace crates at
+  opt-level 0, dependencies at 1. On a 4-vCPU runner only the optimization
+  level changes build time. Dropping LTO alone saved nothing (796 s against
+  793 s for a cold aq-server build); this profile takes 445 s. The smoke and
+  lifecycle scripts build it by default (`AQ_IMAGE_CARGO_PROFILE` overrides
+  it). `release.yml` builds `release`. A new CI-only image build must pass the
+  CI profile too. Measure build changes on 4 cores
+  (`taskset -c 0-3 cargo build -j 4`), not on a 24-core desktop.

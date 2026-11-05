@@ -172,7 +172,7 @@ WORKER_ARCHIVE_SHA256=$(python3 -c 'import json,sys; print(json.load(open(sys.ar
   fail "cannot read STATE_FORMAT_VERSION or SUPPORTED_WORKER_PROTOCOLS from the source"
 
 # Suite images are never released: build them with the CI image profile
-# (release without ThinLTO, Cargo.toml [profile.ci-image]).
+# (no ThinLTO, low optimization; Cargo.toml [profile.ci-image]).
 IMAGE_PROFILE=${AQ_IMAGE_CARGO_PROFILE:-ci-image}
 
 # build TARGET TAG CONTEXT VERSION: a Dockerfile target, stamped for VERSION.

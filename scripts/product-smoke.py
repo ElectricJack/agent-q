@@ -33,7 +33,7 @@ workers_smoke = importlib.util.module_from_spec(workers_spec)
 workers_spec.loader.exec_module(workers_smoke)
 CONTROLLER_CONFIG = "/etc/aq-worker/controller.json"
 # Locally built smoke images are never released: build them with the CI image
-# profile (release without ThinLTO, Cargo.toml [profile.ci-image]).
+# profile (no ThinLTO, low optimization; Cargo.toml [profile.ci-image]).
 IMAGE_PROFILE = os.environ.get("AQ_IMAGE_CARGO_PROFILE", "ci-image")
 SANDBOX_SOCKET = "/run/aq-sandbox/podman.sock"
 

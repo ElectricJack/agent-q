@@ -27,7 +27,7 @@ RUN sha256sum --check worker-candidate.sha256 \
 WORKDIR /build
 ENV AQ_SOURCE_REVISION=${AQ_SOURCE_REVISION}
 # Cargo profile: release images use `release` (ThinLTO). CI-only images pass
-# --build-arg CARGO_PROFILE=ci-image: release without LTO, defined here with
+# --build-arg CARGO_PROFILE=ci-image (no LTO, low optimization), defined here with
 # --config because the pinned worker source may predate that profile. The
 # target cache is keyed by the verified archive digest, so it never mixes trees.
 ARG CARGO_PROFILE=release
@@ -35,7 +35,7 @@ ARG CARGO_PROFILE=release
 # feature: the shipped image has no run-execution and no fixture agent.
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,id=aq-worker-${AQ_WORKER_ARCHIVE_SHA256},sharing=locked,target=/build/target \
-    case "$CARGO_PROFILE" in release) set --;; ci-image) set -- --config 'profile.ci-image.inherits="release"' --config profile.ci-image.lto=false --config profile.ci-image.codegen-units=16;; *) echo "unsupported CARGO_PROFILE=$CARGO_PROFILE" >&2; exit 1;; esac \
+    case "$CARGO_PROFILE" in release) set --;; ci-image) set -- --config 'profile.ci-image.inherits="release"' --config profile.ci-image.lto=false --config profile.ci-image.opt-level=0 --config 'profile.ci-image.package."*".opt-level=1' --config profile.ci-image.codegen-units=16;; *) echo "unsupported CARGO_PROFILE=$CARGO_PROFILE" >&2; exit 1;; esac \
     && cargo build --locked "$@" --profile "$CARGO_PROFILE" -p aq-worker --bin aq-worker \
     && mkdir /out \
     && cp "target/$CARGO_PROFILE/aq-worker" /out/
@@ -48,7 +48,7 @@ ARG AQ_WORKER_ARCHIVE_SHA256
 ARG CARGO_PROFILE=release
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,id=aq-worker-${AQ_WORKER_ARCHIVE_SHA256},sharing=locked,target=/build/target \
-    case "$CARGO_PROFILE" in release) set --;; ci-image) set -- --config 'profile.ci-image.inherits="release"' --config profile.ci-image.lto=false --config profile.ci-image.codegen-units=16;; *) echo "unsupported CARGO_PROFILE=$CARGO_PROFILE" >&2; exit 1;; esac \
+    case "$CARGO_PROFILE" in release) set --;; ci-image) set -- --config 'profile.ci-image.inherits="release"' --config profile.ci-image.lto=false --config profile.ci-image.opt-level=0 --config 'profile.ci-image.package."*".opt-level=1' --config profile.ci-image.codegen-units=16;; *) echo "unsupported CARGO_PROFILE=$CARGO_PROFILE" >&2; exit 1;; esac \
     && cargo build --locked "$@" --profile "$CARGO_PROFILE" -p aq-worker --features synthetic-runtime --bin aq-worker --bin aq-fixture-agent \
     && mkdir /out-synthetic \
     && cp "target/$CARGO_PROFILE/aq-worker" "target/$CARGO_PROFILE/aq-fixture-agent" /out-synthetic/
