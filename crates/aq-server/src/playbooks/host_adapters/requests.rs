@@ -511,7 +511,7 @@ impl Service {
         owner: &RuntimeOwner,
         limit: u32,
     ) -> Result<usize> {
-        if self.profile != CatalogProfile::Host7 || self.host.is_none() {
+        if !self.profile.is_host2() || self.host.is_none() {
             return Ok(0);
         }
         if !(1..=2).contains(&limit) {
@@ -587,17 +587,23 @@ impl Service {
         let workspace = self.namespace.workspace_id;
         let project = self.namespace.project_id;
         // Candidate subjects run on the prepared candidate's OID, never the
-        // caller's input.source (see `check_source`).
+        // caller's input.source (see `check_source`). Host7 (2.0.0) has no
+        // prepared source output, so it substitutes the OID; Host8 (2.1.0)
+        // policies bind `candidate.source`, so a different input.source is a
+        // consistency violation and is refused `invalid_request`.
         let source = if check_id.is_empty() || !source_valid(&input["source"]) {
             None
         } else {
-            Some(
-                match self.check_source(&mut tx, text(subject, "id")?).await? {
-                    CheckSource::Input => Some(input["source"].clone()),
-                    CheckSource::Candidate(oid) => Some(oid),
-                    CheckSource::NotPrepared => None,
-                },
-            )
+            match self.check_source(&mut tx, text(subject, "id")?).await? {
+                CheckSource::Input => Some(Some(input["source"].clone())),
+                CheckSource::Candidate(oid)
+                    if self.profile == CatalogProfile::Host8 && oid != input["source"] =>
+                {
+                    None
+                }
+                CheckSource::Candidate(oid) => Some(Some(oid)),
+                CheckSource::NotPrepared => Some(None),
+            }
         };
         let echoed = match &source {
             Some(Some(bound)) => bound,
@@ -805,7 +811,7 @@ impl Service {
         revision: i64,
         intent: &Intent,
     ) -> Result<CancellationResult> {
-        if self.profile != CatalogProfile::Host7 || intent.command.name != "check.request" {
+        if !self.profile.is_host2() || intent.command.name != "check.request" {
             return Err(Error::Invalid);
         }
         let identity = self.identity(intent)?;

@@ -143,7 +143,10 @@ impl Service {
     fn ports(&self) -> Result<&HostPorts> {
         if !matches!(
             self.profile,
-            CatalogProfile::Host5 | CatalogProfile::Monitoring6 | CatalogProfile::Host7
+            CatalogProfile::Host5
+                | CatalogProfile::Monitoring6
+                | CatalogProfile::Host7
+                | CatalogProfile::Host8
         ) {
             return Err(Error::Forbidden);
         }
@@ -206,7 +209,7 @@ impl Service {
         intent: &Intent,
     ) -> Result<(Transaction<'_, Postgres>, Option<Stage>, String)> {
         self.ports()?;
-        let commands: &[&str] = if self.profile == CatalogProfile::Host7 {
+        let commands: &[&str] = if self.profile.is_host2() {
             &HOST7_COMMANDS
         } else {
             &HOST5_COMMANDS
@@ -511,7 +514,7 @@ impl Service {
         intent: &Intent,
         result: HostResult,
     ) -> Result<(HostResult, Option<Value>)> {
-        if self.profile != CatalogProfile::Host7
+        if !self.profile.is_host2()
             || intent.command.name != "work.ensure"
             || result.outcome != "ensured"
         {
@@ -928,7 +931,7 @@ impl Service {
             Stage::Fresh => {
                 // A catalog 2.0.0 check operation handle (judgments are not
                 // cancellable and fall through to refused).
-                if self.profile == CatalogProfile::Host7
+                if self.profile.is_host2()
                     && let Some((check, subject)) = self.check_target(&handle).await?
                 {
                     let plan = json!({"check": check, "subject": subject});

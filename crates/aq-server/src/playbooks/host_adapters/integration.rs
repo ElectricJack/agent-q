@@ -557,6 +557,16 @@ impl Service {
                 Value::Null,
             ),
         };
+        // Catalog 2.1.0 (Host8): `prepared` carries the prepared candidate's
+        // OID, which policies bind check.request `source` to. 2.0.0 has none.
+        let output = match &detail["candidate"] {
+            candidate if outcome == "prepared" && self.profile == CatalogProfile::Host8 => {
+                let candidate: ObjectId =
+                    serde_json::from_value(candidate.clone()).map_err(|_| Error::Unknown)?;
+                merged(&output, json!({"source": catalog_oid(&candidate)}))
+            }
+            _ => output,
+        };
         let result = HostResult {
             outcome: outcome.into(),
             output,

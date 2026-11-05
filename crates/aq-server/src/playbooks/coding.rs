@@ -1,4 +1,4 @@
-//! D9 default coding policy, sealed from the pinned Host7 (catalog 2.0.0)
+//! D9 default coding policy, sealed from the pinned Host8 (catalog 2.1.0)
 //! command contracts only: `work.ensure`, `check.request`,
 //! `candidate.prepare`, `candidate.publish` and the `operation.get`
 //! reconciliation command their asynchronous completions name.
@@ -91,8 +91,9 @@ pub struct CodingRequest {
     pub context: String,
     pub base: Value,
     pub destination: Value,
-    /// Source passed to check.request (`{format, hex}`). Host7 ignores it for
-    /// candidate subjects and checks the prepared candidate's OID instead.
+    /// Run input `source` (`{format, hex}`), still admitted for request
+    /// compatibility. Checks on the prepared candidate bind
+    /// `candidate.source` (catalog 2.1.0), never this value.
     pub source: Value,
     pub visibility: String,
     /// Prefix of the per-attempt idempotent logical keys.
@@ -145,8 +146,8 @@ impl CodingPolicy {
         }
     }
 
-    /// Builds against the Host7 grant ceiling: every capability a Host7 grant
-    /// can hold (since D11 including `decision.request`).
+    /// Builds against the Host8 grant ceiling (the Host7 capability set): every
+    /// capability a grant can hold (since D11 including `decision.request`).
     pub fn build(&self) -> Result<CodingArtifacts, CodingError> {
         let ceiling: BTreeSet<String> = HOST7_CAPABILITIES.iter().map(|c| c.to_string()).collect();
         self.build_for(&ceiling)
@@ -316,14 +317,14 @@ struct Builder {
 impl Builder {
     fn new() -> Self {
         Self {
-            registry: CatalogProfile::Host7.registry(),
+            registry: CatalogProfile::Host8.registry(),
         }
     }
     fn command(&self, name: &str) -> Result<&CommandContract, CodingError> {
         self.registry
             .commands
             .get(name)
-            .ok_or_else(|| CodingError::Invalid(format!("Host7 lacks {name}")))
+            .ok_or_else(|| CodingError::Invalid(format!("Host8 lacks {name}")))
     }
     fn input_field(&self, command: &str, field: &str) -> Result<Schema, CodingError> {
         match &self.command(command)?.input {
@@ -387,7 +388,7 @@ impl Builder {
             .registry
             .events
             .get(name)
-            .ok_or_else(|| CodingError::Invalid(format!("Host7 lacks {name}")))?;
+            .ok_or_else(|| CodingError::Invalid(format!("Host8 lacks {name}")))?;
         Ok(ContractRef {
             name: name.into(),
             fingerprint: e
@@ -834,7 +835,8 @@ impl Builder {
                             lit(json!({"id": c.id, "validator": {"id": c.validator_id,
                                 "version": c.validator_version, "digest": c.validator_digest}})),
                         ),
-                        ("source", r("input", &["source"])),
+                        // The source the host prepared (2.1.0 output), not a caller input.
+                        ("source", r("candidate", &["source"])),
                         ("subject", r("candidate", &["subject"])),
                     ]),
                     &bind,
