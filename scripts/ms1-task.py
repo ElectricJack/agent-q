@@ -3,6 +3,7 @@
 
 usage: ms1-task.py ID TITLE BODY [--blocks OTHER_ID] [--priority N]
        ms1-task.py --show ID...
+       ms1-task.py --retire ID REASON
 """
 import json, os, sys, urllib.request
 from pathlib import Path
@@ -23,6 +24,14 @@ if sys.argv[1] == "--show":
         x = call("/nodes/" + n); x = x.get("node", x)
         print(json.dumps({"id": n, "title": x["title"], "task_state": x["task_state"], "version": x["version"],
                           "ready": n in ready}))
+    sys.exit(0)
+if sys.argv[1] == "--retire":  # owner tidy-up: retire a task node (leaves the ready page)
+    ident, reason = sys.argv[2:4]
+    x = call("/nodes/" + ident); x = x.get("node", x)
+    m = call("/mutations", dict(idempotency_key="ms1-retire-" + ident, reason="MS1 cleanup: " + reason,
+             operations=[dict(op="update_node", id=ident, expected_version=x["version"],
+                              patch=dict(retired=True, retirement_reason=reason))]))
+    print(json.dumps({"id": ident, "retired": True, "change_set_id": m.get("change_set_id")}))
     sys.exit(0)
 ident, title, body = sys.argv[1:4]
 node = dict(op="create_node", id=ident, kind="task", task_state="active", title=title, body=body)
