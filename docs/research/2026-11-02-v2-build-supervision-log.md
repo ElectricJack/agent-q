@@ -682,3 +682,15 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **W61 recurred, caused by me.** `swift-stone-62` (#55 rework) sat READY with an idle dashboard worker. Its `blocks` edge on `bold-vault-41` pointed at PR #43, whose head is the steward rebase I pushed in round 1 (completion `f14ff5f`, head `684e3b0`). Verified `f14ff5f` is on main and removed the edge. A rescan of all completed PR sources with open dependents found no other mismatch.
   - **F5 (`steady-harbor-87.6`)** had renamed `0081_stall_ladder` to 0082 on its branch, colliding with #78's `0082_agent_waits`; left it instructions.
   - H6 completed. #76 and #79 fail only the known `native_accepted` regression (`swift-harbor-15` fixing); waiting for lifecycle CI, then merge.
+- **02:20 check.**
+  - Merged aq-server #76 (only the known `native_accepted` failure). **That broke main:** H6 (`e5449d8`) had landed `0083_agent_wait_wakes` after I renumbered #76 to 0083, so main had two 0083s. I didn't re-check main's highest migration at merge time.
+  - **Fixed on main** in `053a738`: `agent_supervisor_mail` moved to 0084, with the central37 `include_str!` and version gate updated. `cargo check -p aq-server --tests` and the migration catalog (84) pass.
+  - **D9 (`crisp-meadow-36.10`)** closed COMPLETED, but commit `68e6bb8` was never integrated to main, and its 0084 migration now collides. Reopened it (priority 6) to merge main, renumber to 0085 and integrate (agent-owned, so no W61).
+  - Routed C5b's aq-worker CAS contract follow-up to C6b instead of filing a duplicate.
+- **02:40 check.**
+  - Updated #80 (`swift-harbor-15`, the `native_accepted` fix), which had failed only on the earlier duplicate 0083.
+  - Renumbered #79 (`azure-orbit-61`, H5 server follow-up) from `0083_hibernation` to 0085 (no gates). W61: its dependent `clear-crest-61.5.1` needs its edge cleared after merge.
+  - Told D9 to take the next free number when it merges (about 0086).
+  - G9 is blocked on D9 not being integrated; replied to its agent and routed its action-union adapter follow-up to D9.
+  - aq-worker main is red after H5 (`sandbox_runner::runner_needs_no_node_credential`); filed a fix task (priority 9).
+- **02:05 owner: run C6b in parallel with C5b.** Removed C6b's (`calm-delta-18.10`) `blocks` edge on C5b. Told it to build against C5b's published CAS contract (`base_version`, `RefreshOutcome`) with fixtures, plus one real round-trip if C5b lands first. Priority 3; claimable (fleet 5 of 8 busy). MS1 still waits on both. Open question for the owner: E5 holds the single operator-standard-high-claude slot that MS1 needs.
