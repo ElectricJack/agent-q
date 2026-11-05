@@ -156,7 +156,7 @@ pub async fn prepare_turn(
     } else {
         "NULL::jsonb"
     };
-    let bodies: Vec<(Uuid, String)> = sqlx::query(&format!("SELECT m.message_id,m.body,{refs} AS refs,{files} AS files FROM central_supervisor_mail_members b JOIN mailbox_messages m ON m.message_id=b.message_id WHERE b.reservation_id=$1 ORDER BY b.ordinal LIMIT 17"))
+    let bodies: Vec<(Uuid, String)> = sqlx::query(&format!("SELECT m.message_id,m.sender,m.body,{refs} AS refs,{files} AS files FROM central_supervisor_mail_members b JOIN mailbox_messages m ON m.message_id=b.message_id WHERE b.reservation_id=$1 ORDER BY b.ordinal LIMIT 17"))
         .bind(reservation)
         .fetch_all(&mut *tx)
         .await
@@ -164,6 +164,17 @@ pub async fn prepare_turn(
         .into_iter()
         .map(|r| {
             let mut body: String = r.get("body");
+            // bold-stone-51: agent mail names its sending session; owner bytes are unchanged.
+            let sender: serde_json::Value = r.get("sender");
+            if sender["kind"] == "session" {
+                let b = &sender["binding"];
+                body = format!(
+                    "[from agent session {} task {} project {}]\n{body}",
+                    b["session_id"].as_str().unwrap_or("?"),
+                    b["task_id"].as_str().unwrap_or("?"),
+                    b["project_id"].as_str().unwrap_or("?"),
+                );
+            }
             for c in super::writes::stored_context(r.get("refs"))? {
                 body.push_str(&format!("\n[context {}]", c.render()));
             }

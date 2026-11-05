@@ -45,10 +45,10 @@ impl From<engine::Error> for WaitError {
 const ROUNDS: usize = 4;
 const HOLD_RECHECK_MS: u64 = 60_000;
 
-fn text(s: impl Into<String>) -> wire::Text {
+pub(crate) fn text(s: impl Into<String>) -> wire::Text {
     wire::Text::new(s).expect("static wait text")
 }
-fn artifact(id: impl Into<String>, digest: wire::Digest) -> wire::ArtifactRef {
+pub(crate) fn artifact(id: impl Into<String>, digest: wire::Digest) -> wire::ArtifactRef {
     wire::ArtifactRef {
         id: text(id),
         version: text("1"),
@@ -204,7 +204,7 @@ fn row_due(snapshot: &Snapshot, now: u64) -> u64 {
     }
     .min(snapshot.deadline_ms())
 }
-fn i64_of(v: u64) -> Result<i64> {
+pub(crate) fn i64_of(v: u64) -> Result<i64> {
     i64::try_from(v).map_err(|_| WaitError("internal"))
 }
 
@@ -601,13 +601,13 @@ pub async fn run(state: AppState, mut stop: tokio::sync::watch::Receiver<bool>) 
     }
 }
 
-struct Stored {
-    snapshot: Snapshot,
-    registered: wire::RegisteredWait,
-    intent_state: Option<String>,
-    ack_receipt: Option<wire::ArtifactRef>,
+pub(crate) struct Stored {
+    pub snapshot: Snapshot,
+    pub registered: wire::RegisteredWait,
+    pub intent_state: Option<String>,
+    pub ack_receipt: Option<wire::ArtifactRef>,
 }
-async fn load_stored(
+pub(crate) async fn load_stored(
     tx: &mut Transaction<'_, Postgres>,
     wait_id: Uuid,
     lock: bool,
@@ -650,6 +650,35 @@ async fn load_stored(
         registered: *registered,
         intent_state,
         ack_receipt,
+    }))
+}
+/// H5: one wait's registered continuation and its recorded outcome, if any.
+pub(crate) struct WaitContinuation {
+    pub binding: wire::Binding,
+    pub node_id: Uuid,
+    pub continuation: wire::ContinuationRef,
+    pub terminal: bool,
+    pub outcome: Option<wire::OutcomeRef>,
+    pub intent_ready: bool,
+}
+pub(crate) async fn continuation_of(
+    tx: &mut Transaction<'_, Postgres>,
+    wait_id: Uuid,
+) -> Result<Option<WaitContinuation>> {
+    let Some(stored) = load_stored(tx, wait_id, false).await? else {
+        return Ok(None);
+    };
+    let row = sqlx::query("SELECT node_id,phase FROM agent_waits WHERE wait_id=$1")
+        .bind(wait_id)
+        .fetch_one(&mut **tx)
+        .await?;
+    Ok(Some(WaitContinuation {
+        binding: stored.registered.binding.clone(),
+        node_id: row.get("node_id"),
+        continuation: stored.registered.continuation.clone(),
+        terminal: row.get::<String, _>("phase") == "terminal",
+        outcome: stored.snapshot.outcome().map(|o| o.outcome.clone()),
+        intent_ready: stored.intent_state.as_deref() == Some("ready"),
     }))
 }
 fn view(stored: &Stored) -> Result<wire::WaitView> {

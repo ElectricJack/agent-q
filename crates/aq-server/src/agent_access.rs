@@ -9,6 +9,7 @@ pub(crate) mod native_binding;
 pub mod questions;
 pub mod scheduling;
 pub mod waits;
+pub mod wakes;
 use crate::{
     AppState,
     authz::RequireOwner,

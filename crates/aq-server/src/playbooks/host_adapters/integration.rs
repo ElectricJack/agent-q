@@ -208,7 +208,47 @@ struct Receipt<'a> {
     detail: Value,
 }
 
+/// How check.request binds its source for a subject (D9 follow-up).
+pub(super) enum CheckSource {
+    /// Not a candidate subject: the run input's source is used.
+    Input,
+    /// A prepared candidate: its OID in catalog form, replacing input.source.
+    Candidate(Value),
+    /// A candidate reference with no prepared candidate behind it.
+    NotPrepared,
+}
+
 impl Service {
+    /// The source a check on `subject_id` runs on. Catalog 2.0.0's
+    /// candidate.prepare output carries no OID, so for `aq.candidate/<op>`
+    /// subjects the host binds the prepared candidate's OID from its receipt
+    /// and ignores the caller's input.source; checks then run on, record and
+    /// echo the exact candidate bytes publication verifies against.
+    pub(super) async fn check_source(
+        &self,
+        tx: &mut Transaction<'_, Postgres>,
+        subject_id: &str,
+    ) -> Result<CheckSource> {
+        if !subject_id.starts_with(CANDIDATE_REF) {
+            return Ok(CheckSource::Input);
+        }
+        let Some(op) = handle(subject_id, CANDIDATE_REF) else {
+            return Ok(CheckSource::NotPrepared);
+        };
+        let detail: Option<Option<Value>> = sqlx::query_scalar("SELECT detail FROM playbook_integration_receipts WHERE operation_id=$1 AND namespace_id=$2 AND generation=$3 AND command_name='candidate.prepare' AND state='prepared'")
+            .bind(op)
+            .bind(self.namespace.namespace_id)
+            .bind(self.namespace.generation)
+            .fetch_optional(&mut **tx)
+            .await?;
+        let Some(detail) = detail.flatten() else {
+            return Ok(CheckSource::NotPrepared);
+        };
+        let candidate: ObjectId =
+            serde_json::from_value(detail["candidate"].clone()).map_err(|_| Error::Unknown)?;
+        Ok(CheckSource::Candidate(catalog_oid(&candidate)))
+    }
+
     async fn insert_receipt(
         &self,
         tx: &mut Transaction<'_, Postgres>,
