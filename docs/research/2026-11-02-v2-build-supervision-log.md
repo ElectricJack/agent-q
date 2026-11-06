@@ -1300,3 +1300,14 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - the comments UI, built last against the server contract.
   - The aq-worker `aq-agent comment` client follows once the server contract merges.
   - Then: a browser QA pass of the Phase 1 checklist, and owner verification.
+- **16:35: parity Phase 1 merged.**
+  - **aq-dashboard #81 (03479039):** the inspector rework and comments UI.
+  - **aq-server #98 (bec0e4a1):** task comments.
+    - New crate `aq-task-comments`; the cursor codec moved to a new `aq-human-cursor` crate. The lib ratchet went DOWN, 111153 → 111128.
+    - Migration 0096.
+    - Owner reads and add/edit/delete actions, plus agent routes in `protocol/agent-comments/v1`.
+    - Not done: comments in the attempt's startup context. The context projection schema is closed and pinned by aq-worker, so it needs a coordinated agent-access contract change (~0.5–1 day). It matters for Phase 3's reopen-with-feedback.
+  - **In progress:**
+    - rebuilding `aq-ms1` from main (migration 0096, new dashboard);
+    - the aq-worker `aq-agent comment add|list` client.
+  - Then: a browser QA pass of the Phase 1 checklist, and owner verification.
