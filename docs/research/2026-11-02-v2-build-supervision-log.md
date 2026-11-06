@@ -1121,3 +1121,5 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - aq-worker #41 merged as b82b08af, after c84270d and two consecutive green CI runs (rerun deliberately to rule out a lucky pass). c84270d makes CI show sandbox launch errors and removes guardian timing races.
   - aq-server #94 merged earlier as 1ac43cb1.
   - **Final step:** the `ms1/retry` subagent rebuilds `aq-ms1` from main, runs the full demo once with a real Claude agent (A→B with publication, cancel, fail→retry), consolidates to one demo stack, and opens an `ms1/handoff` PR with the owner verification section in MS1.md: rerun commands, the suspend drill, measurements and known limits.
+- **02:20:** main CI after #94 failed one test: `it_playbook::playbook_host_requests::check_request_cancel_completes_from_executor_stop`, where host_dispatch returned `Unknown`. It is the same test that flaked after #88 on 11-05, so it is recurring and timing-sensitive. Reran the failed job.
+  - Recorded as a flaky-test follow-up, with `native_cancellation::native_cancel_owner_validation…` and `real_adapter_pilots` (timeout under full-suite load).
