@@ -376,6 +376,7 @@ fn execution_confinement_defaults_to_deny_container_and_keeps_identities() {
             ExecutionConfinement {
                 permit_container: true,
                 require_native: true,
+                require_container: false,
             })
         .is_err()
     );

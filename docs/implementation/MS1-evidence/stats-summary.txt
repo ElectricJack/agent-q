@@ -1,0 +1,9 @@
+stack  aq-ms1-aq-git-1              peak    19.4 MiB  max cpu    3.3%
+stack  aq-ms1-aq-graph-1            peak     3.8 MiB  max cpu    3.1%
+stack  aq-ms1-postgres-1            peak   134.3 MiB  max cpu   40.6%
+stack  aq-ms1-server-1              peak    18.2 MiB  max cpu    4.9%
+stack  (sum of services)            peak   172.7 MiB
+sandbox 1199dbbef4b3 samples   7 peak   531.4 MiB  avg cpu   30.0% of one core over 6s
+sandbox 357237c98ddf samples  10 peak   145.3 MiB  avg cpu   14.0% of one core over 10s
+sandbox d6c6d9279e33 samples   9 peak   142.7 MiB  avg cpu   10.7% of one core over 9s
+node controller RSS peak 26.5 MiB

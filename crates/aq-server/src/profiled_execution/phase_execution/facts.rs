@@ -41,7 +41,7 @@ pub(super) fn confirmation(
                     == format!("aq.source-{name}/{}", p.input.source.manifest().transfer_id)
             })
             .cloned()
-            .ok_or_else(refused)
+            .ok_or_else(|| refused())
     };
     let values = vec![
         (
@@ -96,7 +96,7 @@ pub(super) fn confirmation(
                 .iter()
                 .map(|x| x.revision)
                 .max()
-                .ok_or_else(refused)?,
+                .ok_or_else(|| refused())?,
             c.checked_at_ms,
             c.availability_expires_at_ms,
             FactValue::Availability {
@@ -115,7 +115,7 @@ pub(super) fn confirmation(
             u64::MAX,
             FactValue::Budget {
                 lineage_id: p.input.spec.lifecycle.lineage_id,
-                elapsed_ms: Some(0),
+                elapsed_ms: Some(lineage_elapsed(p)?),
                 maximum_lineage_elapsed_ms: p.policy.max_lineage_elapsed_ms,
                 remaining_cost_microunits: None,
             },
@@ -153,7 +153,9 @@ pub(super) fn confirmation(
         (
             p.input.material.credential_revision,
             o.file_started_at_ms,
-            o.file_started_at_ms.checked_add(2000).ok_or_else(refused)?,
+            o.file_started_at_ms
+                .checked_add(2000)
+                .ok_or_else(|| refused())?,
             FactValue::PrivateMaterialBacking {
                 lease_id: p.input.material.lease_id,
                 backing_digest: o.file.digest.clone(),
@@ -168,7 +170,7 @@ pub(super) fn confirmation(
             .owners
             .iter()
             .find(|x| x.kind == kind)
-            .ok_or_else(refused)?
+            .ok_or_else(|| refused())?
             .authority
             .clone();
         let body = FactBody {
@@ -179,7 +181,7 @@ pub(super) fn confirmation(
             observed_at_ms: observed,
             expires_at_ms: observed
                 .checked_add(proposal.policy.maximum_observation_ms)
-                .ok_or_else(refused)?
+                .ok_or_else(|| refused())?
                 .min(ceiling),
             value,
         };
@@ -208,4 +210,16 @@ pub(super) fn confirmation(
         .validate_for(q, a, &p.history.request, proposal)
         .map_err(|_| refused())?;
     Ok(result)
+}
+
+/// Lineage time already used, as pinned by the selection decision: zero for a
+/// first attempt, the predecessors' elapsed time for a B4 replacement.
+pub(super) fn lineage_elapsed(p: &super::pinned::Pinned) -> Result<u64, AppError> {
+    p.input
+        .decision
+        .inputs
+        .budget
+        .elapsed_ms
+        .filter(|elapsed| *elapsed < p.policy.max_lineage_elapsed_ms)
+        .ok_or_else(|| refused())
 }

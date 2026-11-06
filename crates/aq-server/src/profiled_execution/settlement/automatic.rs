@@ -81,6 +81,12 @@ async fn lock_row(
         .await
         .map_err(db)
 }
+/// Only a Success report is acceptable (MS1 review B1). A native worker reports
+/// Success only for a harness exit it proved (exit 0 plus an explicit claim);
+/// Unknown, Failed, Expired and Cancelled go to rework, never to completion.
+fn outcome_acceptable(outcome: aq_admission::transport::ProcessOutcome) -> bool {
+    matches!(outcome, aq_admission::transport::ProcessOutcome::Success)
+}
 /// The retained default-completion policy, or None (no rows are written).
 fn applicable(state: &AppState, r: &results::RecordedResult) -> Option<Delivery> {
     if r.outcome.review != aq_admission::outcome::ReviewRequirement::PolicyActor {
@@ -115,8 +121,15 @@ pub async fn settle_after_record(
     if let Some(row) = &existing {
         let s = status(row)?;
         match s.disposition {
-            AutoDisposition::Confirmed | AutoDisposition::ReworkRequired => {
+            AutoDisposition::Confirmed => {
                 tx.commit().await.map_err(db)?;
+                return Ok(Some(s));
+            }
+            // A replay of a final rework also (re)records the B4 replacement
+            // facts, which a first evaluation may have found incomplete.
+            AutoDisposition::ReworkRequired => {
+                tx.commit().await.map_err(db)?;
+                Box::pin(replacement_facts_after_rework(state, report_id)).await;
                 return Ok(Some(s));
             }
             // Once possibly dispatched, only the SAME payload is replayed.
@@ -159,7 +172,179 @@ pub async fn settle_after_record(
         .ok_or(crate::error::AppError::Internal)?;
     let s = status(&row)?;
     tx.commit().await.map_err(db)?;
+    if s.disposition == AutoDisposition::ReworkRequired {
+        Box::pin(replacement_facts_after_rework(state, report_id)).await;
+    }
     Ok(Some(s))
+}
+
+/// What the policy actor could record for B4 after a final rework.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+pub struct ReplacementFacts {
+    /// The attempt's hot state now records `retention = retained`.
+    pub source_retained: bool,
+    /// The attempt's hot state now records `effects = quiescent`.
+    pub effects_quiescent: bool,
+    /// This call wrote at least one of the two facts.
+    pub changed: bool,
+}
+
+/// Best effort after the rework row is durable: a failure here never changes
+/// or fails the settlement; the replay and the sweep record the facts later.
+async fn replacement_facts_after_rework(state: &AppState, report_id: Uuid) {
+    match record_replacement_facts(state, report_id).await {
+        Ok(facts) if facts.changed => {
+            tracing::info!(%report_id, source_retained = facts.source_retained, effects_quiescent = facts.effects_quiescent, "replacement facts recorded for reworked attempt");
+        }
+        Ok(_) => {}
+        Err(error) => {
+            tracing::warn!(%report_id, ?error, "replacement facts deferred");
+        }
+    }
+}
+
+/// B4 replacement facts for a report the default policy finally reworked
+/// (MS1 retry). Under the report lock and the common node/attempt/hot locks,
+/// the policy actor records only what the owning domains prove:
+///
+/// - `retention = retained`: a central aq-git import receipt pinned by the
+///   report is confirmed (`source_retention::load_confirmed_locked`);
+/// - `effects = quiescent`: the attempt's complete AQ effect ledger is settled
+///   (`effects::inspect_aq_effects_locked`; a read-only Graph profile with no
+///   messaging and only terminal operations). Anything else stays `unknown`.
+///
+/// Nothing else changes: no Graph write, no completion, no claim release. Only
+/// a stopped attempt that still holds its task, whose current report head was
+/// reworked and that has no owner acceptance or completion, qualifies. B4's
+/// replacement owner re-assesses these facts, the stop proof and the lineage
+/// budgets under its own locks before it releases the claim.
+pub async fn record_replacement_facts(
+    state: &AppState,
+    report_id: Uuid,
+) -> Result<ReplacementFacts> {
+    use crate::execution::{
+        authority::{self, hot::HotState},
+        profiled::{Effects, Retention},
+    };
+    let mut tx = begin(state).await?;
+    let r = results::load_locked(state, &mut tx, report_id).await?;
+    sqlx::query("SELECT pg_advisory_xact_lock(hashtextextended($1,56))")
+        .bind(format!("aq-auto-settlement:{report_id}"))
+        .execute(&mut *tx)
+        .await
+        .map_err(db)?;
+    let reworked = match lock_row(&mut tx, report_id).await? {
+        Some(row) => status(&row)?.disposition == AutoDisposition::ReworkRequired,
+        None => false,
+    };
+    let view = authority::load_locked(
+        state,
+        &mut tx,
+        &r.report.binding.session,
+        authority::Policy::IdentityOnly,
+    )
+    .await?;
+    let attempt = r.report.binding.attempt_id;
+    let owner_settled: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM profiled_settlement_evaluations WHERE attempt_id=$1 AND disposition IN ('accepted','needs_reconciliation','stale')) OR EXISTS(SELECT 1 FROM profiled_task_completions WHERE attempt_id=$1)")
+        .bind(attempt)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db)?;
+    let mut hot: HotState = serde_json::from_value(
+        sqlx::query_scalar::<_, Value>(
+            "SELECT state FROM profiled_authority_hot WHERE attempt_id=$1 FOR UPDATE",
+        )
+        .bind(attempt)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(db)?,
+    )
+    .map_err(|_| crate::error::AppError::Internal)?;
+    let current = |hot: &HotState| ReplacementFacts {
+        source_retained: matches!(hot.retention, Retention::Retained { .. }),
+        effects_quiescent: matches!(hot.effects, Effects::Quiescent { .. }),
+        changed: false,
+    };
+    if !reworked
+        || !r.is_current_report_head
+        || !view.holds_task
+        || !view.stopped
+        || !hot.stop.known_stopped()
+        || owner_settled
+    {
+        let facts = current(&hot);
+        tx.commit().await.map_err(db)?;
+        return Ok(facts);
+    }
+    let mut changed = false;
+    if !matches!(hot.retention, Retention::Retained { .. }) {
+        for op in &r.report.source_receipt_ids {
+            match crate::source_retention::load_confirmed_locked(&mut tx, *op, &r).await {
+                Ok(confirmed) => {
+                    hot.retention = Retention::Retained {
+                        receipt: reference(
+                            format!("aq.git-import-receipt/{}", confirmed.receipt.receipt_id),
+                            &confirmed.acknowledgement,
+                        )?,
+                    };
+                    changed = true;
+                    break;
+                }
+                Err(crate::error::AppError::Conflict(_)) => {}
+                Err(e) => return Err(e),
+            }
+        }
+    }
+    if !matches!(hot.effects, Effects::Quiescent { .. }) {
+        let ledger = super::effects::inspect_aq_effects_locked(state, &mut tx, &r).await?;
+        if ledger.disposition() == super::effects::LedgerDisposition::Settled {
+            hot.effects = Effects::Quiescent {
+                receipt: reference(
+                    format!("aq.replacement-effects/{report_id}"),
+                    &json!({"report": r.receipt_artifact, "stopped": r.receipt.stopped_receipt, "ledger": ledger.digest(), "operations": ledger.operation_count(), "policy_actor": ACTOR}),
+                )?,
+            };
+            changed = true;
+        }
+    }
+    if changed {
+        hot.validate_against(&r.report.binding)
+            .map_err(|_| crate::error::AppError::Internal)?;
+        sqlx::query("UPDATE profiled_authority_hot SET state=$2 WHERE attempt_id=$1")
+            .bind(attempt)
+            .bind(serde_json::to_value(&hot).map_err(|_| crate::error::AppError::Internal)?)
+            .execute(&mut *tx)
+            .await
+            .map_err(db)?;
+    }
+    let facts = ReplacementFacts {
+        changed,
+        ..current(&hot)
+    };
+    tx.commit().await.map_err(db)?;
+    Ok(facts)
+}
+
+/// Reworked attempts that still hold their task without both replacement
+/// facts, in report order after `after`. Bounded; the cursor is disposable.
+pub async fn reworked_without_facts(
+    state: &AppState,
+    after: Option<Uuid>,
+    limit: i64,
+) -> Result<Vec<Uuid>> {
+    sqlx::query_scalar(
+        "SELECT s.report_id FROM profiled_auto_settlements s \
+         JOIN execution_attempts a USING(attempt_id) JOIN profiled_authority_hot h USING(attempt_id) \
+         WHERE s.disposition='rework_required' AND a.kind='profiled_v1' AND a.holds_task \
+         AND h.state#>>'{stop,kind}' IN ('stopped','not_started') \
+         AND (h.state#>>'{retention,kind}' IS DISTINCT FROM 'retained' OR h.state#>>'{effects,kind}' IS DISTINCT FROM 'quiescent') \
+         AND ($1::UUID IS NULL OR s.report_id>$1) ORDER BY s.report_id LIMIT $2",
+    )
+    .bind(after)
+    .bind(limit)
+    .fetch_all(&state.store.pool)
+    .await
+    .map_err(db)
 }
 
 /// Gathers only server-owned facts under the report/attempt locks.
@@ -177,10 +362,7 @@ async fn evaluate_locked(
     )
     .await?;
     let acceptance = if !r.is_current_report_head
-        || !matches!(
-            r.report.outcome,
-            aq_admission::transport::ProcessOutcome::Success
-        )
+        || !outcome_acceptable(r.report.outcome)
         || v.revoked
         || v.cancellation_id.is_some()
         || !v.holds_task
@@ -348,4 +530,21 @@ async fn dispatch(
     let s = status(&row)?;
     tx.commit().await.map_err(db)?;
     Ok(s)
+}
+
+#[cfg(test)]
+mod outcome_tests {
+    use aq_admission::transport::ProcessOutcome;
+    #[test]
+    fn only_a_success_outcome_is_acceptable() {
+        assert!(super::outcome_acceptable(ProcessOutcome::Success));
+        for refused in [
+            ProcessOutcome::Unknown,
+            ProcessOutcome::Failed,
+            ProcessOutcome::Expired,
+            ProcessOutcome::Cancelled,
+        ] {
+            assert!(!super::outcome_acceptable(refused));
+        }
+    }
 }

@@ -68,8 +68,33 @@ pub async fn record(
     report: &ResultReport,
 ) -> Result<Receipt, AppError> {
     let receipt = record_only(state, node, report).await?;
-    if let Err(error) = super::settlement::settle_after_record(state, report.report_id).await {
-        tracing::warn!(report_id = %report.report_id, ?error, "automatic settlement deferred");
+    match super::settlement::settle_after_record(state, report.report_id).await {
+        // D1: an accepted result waiting only on required delivery is published
+        // detached from this request, so a dropped client cannot cancel a
+        // publication between dispatch and receipt.
+        Ok(Some(s)) if super::settlement::publication::awaits_delivery(&s) => {
+            if let Some(delivery) = state.delivery() {
+                let (state, report_id) = (state.clone(), report.report_id);
+                tokio::spawn(async move {
+                    match super::settlement::publication::deliver_then_settle(
+                        &state, &delivery, report_id,
+                    )
+                    .await
+                    {
+                        Ok(s) => {
+                            tracing::info!(%report_id, settlement = ?s.map(|s| (s.disposition, s.reason)), "delivery settlement")
+                        }
+                        Err(error) => {
+                            tracing::warn!(%report_id, ?error, "delivery settlement deferred")
+                        }
+                    }
+                });
+            }
+        }
+        Ok(_) => {}
+        Err(error) => {
+            tracing::warn!(report_id = %report.report_id, ?error, "automatic settlement deferred");
+        }
     }
     Ok(receipt)
 }

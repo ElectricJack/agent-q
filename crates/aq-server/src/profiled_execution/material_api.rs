@@ -33,7 +33,9 @@ pub const VERSION_HEADER: &str = "aq-material-version";
 pub const MAX_METADATA_HEADER_BYTES: usize = 4096;
 pub const MAX_REQUEST_BYTES: usize = 16 * 1024;
 
+#[track_caller]
 fn refused() -> AppError {
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("private material delivery is not currently authorized".into())
 }
 fn db(_: sqlx::Error) -> AppError {
@@ -68,7 +70,7 @@ pub async fn fetch(
     if auth.id() != request.identity.node_id {
         return Err(AppError::Forbidden("material node mismatch".into()));
     }
-    let registry = state.config.intelligence.clone().ok_or_else(refused)?;
+    let registry = state.config.intelligence.clone().ok_or_else(|| refused())?;
     // This first read is only a bounded candidate for private file I/O. It grants
     // no delivery permission. All mutable owners are rechecked afterward.
     let candidate: Value = sqlx::query_scalar(
@@ -81,7 +83,7 @@ pub async fn fetch(
     .fetch_optional(&state.store.pool)
     .await
     .map_err(db)?
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     let lease: MaterialLease = serde_json::from_value(candidate).map_err(|_| refused())?;
     lease.validate().map_err(|_| refused())?;
     if lease.lease_id != request.lease_id || lease.binding != request.binding {
@@ -131,7 +133,7 @@ pub async fn fetch(
                 .iter()
                 .find(|r| r.runtime == runtime.runtime)
         })
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     if !qualified.features.contains(&Feature::ServerMaterialV1)
         || qualified.material_delivery.is_none()
     {
@@ -159,7 +161,7 @@ pub async fn fetch(
     .fetch_optional(&mut *tx)
     .await
     .map_err(db)?
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     let hot: HotState = serde_json::from_value(hot).map_err(|_| refused())?;
     hot.validate_against(&request.binding)
         .map_err(|_| refused())?;
@@ -193,7 +195,7 @@ pub async fn fetch(
     .fetch_optional(&mut *tx)
     .await
     .map_err(db)?
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     let identity = format!(
         "{}@{}",
         lease.credential_profile.id.as_str(),

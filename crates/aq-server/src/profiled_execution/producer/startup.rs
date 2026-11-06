@@ -57,7 +57,7 @@ pub async fn retain(
         let bytes = instruction.text.as_bytes();
         reconstructed.extend_from_slice(bytes);
         let artifact = if instruction.source.identity == super::result_startup::STARTUP_ID {
-            let reporting = reporting.as_ref().ok_or_else(refused)?;
+            let reporting = reporting.as_ref().ok_or_else(|| refused())?;
             if !reporting.matches(&instruction.source)
                 || bytes != reporting.text.as_bytes()
                 || !instruction.required
@@ -92,7 +92,7 @@ pub async fn retain(
             .instructions
             .iter()
             .find(|b| b.instruction_index == index)
-            .ok_or_else(refused)?;
+            .ok_or_else(|| refused())?;
         contexts.push(ContextRef {
             artifact: artifact.clone(),
             provenance: Text::new(&instruction.source.identity).map_err(|_| refused())?,
@@ -151,7 +151,7 @@ pub async fn retain(
             .proof
             .input_tokens_upper_bound
             .checked_sub(fact.fixed_overhead_tokens)
-            .ok_or_else(refused)?,
+            .ok_or_else(|| refused())?,
         implicit_tokens_upper_bound: fact.fixed_overhead_tokens,
     };
     descriptor

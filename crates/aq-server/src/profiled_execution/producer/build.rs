@@ -17,7 +17,7 @@ use crate::{
 use aq_admission::{
     ArtifactKind, ArtifactRef, Digest, SourceSelection, TaskRevision, Text,
     execution_spec::ProfiledExecutionSpec,
-    outcome::{Criterion, ExpectedOutcomeDefinition, OutcomeKind, ReviewRequirement, SourceAnchor},
+    outcome::{Criterion, ExpectedOutcomeDefinition, OutcomeKind, SourceAnchor},
     startup::NativeOffer,
     transport::{DeliveryClock, Feature, OfferedLaunch},
 };
@@ -75,10 +75,12 @@ fn criteria(context: &Value, task: Uuid) -> Result<Vec<Criterion>, AppError> {
     let root = context["nodes"]
         .as_array()
         .and_then(|a| a.iter().find(|n| n["id"] == task.to_string()))
-        .ok_or_else(refused)?;
-    let acceptance = root["acceptance_criteria"].as_str().ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
+    let acceptance = root["acceptance_criteria"]
+        .as_str()
+        .ok_or_else(|| refused())?;
     let body = if acceptance.trim().is_empty() {
-        root["body"].as_str().ok_or_else(refused)?
+        root["body"].as_str().ok_or_else(|| refused())?
     } else {
         acceptance
     };
@@ -135,13 +137,13 @@ async fn catalog_definitions(
         if !seen.insert(source.identity.clone()) {
             continue;
         }
-        let (kind, key) = source.identity.split_once(':').ok_or_else(refused)?;
+        let (kind, key) = source.identity.split_once(':').ok_or_else(|| refused())?;
         let c = &compiled.catalog.artifact().catalog;
         let value=match kind {
-            "agent"=>serde_json::to_value(c.agents.iter().find(|v|aq_profiles::key(&v.id,v.version)==key).ok_or_else(refused)?),
-            "intelligence"=>serde_json::to_value(c.intelligence.iter().find(|v|aq_profiles::key(&v.id,v.version)==key).ok_or_else(refused)?),
-            "execution"=>serde_json::to_value(c.execution.iter().find(|v|aq_profiles::key(&v.id,v.version)==key).ok_or_else(refused)?),
-            "module"=>{let metadata=c.modules.iter().find(|v|aq_profiles::key(&v.id,v.version)==key).ok_or_else(refused)?;Ok(json!({"metadata":metadata,"markdown":compiled.catalog.artifact().instructions.get(key).ok_or_else(refused)?}))},
+            "agent"=>serde_json::to_value(c.agents.iter().find(|v|aq_profiles::key(&v.id,v.version)==key).ok_or_else(|| refused())?),
+            "intelligence"=>serde_json::to_value(c.intelligence.iter().find(|v|aq_profiles::key(&v.id,v.version)==key).ok_or_else(|| refused())?),
+            "execution"=>serde_json::to_value(c.execution.iter().find(|v|aq_profiles::key(&v.id,v.version)==key).ok_or_else(|| refused())?),
+            "module"=>{let metadata=c.modules.iter().find(|v|aq_profiles::key(&v.id,v.version)==key).ok_or_else(|| refused())?;Ok(json!({"metadata":metadata,"markdown":compiled.catalog.artifact().instructions.get(key).ok_or_else(|| refused())?}))},
             _=>return Err(refused()),
         }.map_err(|_|AppError::Internal)?;
         let bytes = canonical(&value)?;
@@ -179,12 +181,13 @@ fn confinement_mode(
     compiled: &Compiled,
     composition: &aq_profiles::FrozenComposition,
     decision: &Decision,
+    harness: &aq_selection::InstalledHarness,
 ) -> Result<aq_selection::ConfinementMode, AppError> {
     let key = composition
         .execution_profile
         .identity
         .strip_prefix("execution:")
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let execution = compiled
         .catalog
         .artifact()
@@ -192,9 +195,13 @@ fn confinement_mode(
         .execution
         .iter()
         .find(|e| aq_profiles::key(&e.id, e.version) == key)
-        .ok_or_else(refused)?;
-    aq_selection::admit_confinement(decision.inputs.placement.as_ref(), &execution.confinement)
-        .map_err(|_| refused())
+        .ok_or_else(|| refused())?;
+    aq_selection::admit_confinement(
+        decision.inputs.placement.as_ref(),
+        &execution.confinement,
+        harness,
+    )
+    .map_err(|_| refused())
 }
 pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
     let Assembly {
@@ -210,17 +217,27 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         logical_identity,
         generation,
     } = input;
-    let selected: &ResolvedSelection = decision.outcome.resolved.as_ref().ok_or_else(refused)?;
+    let selected: &ResolvedSelection = decision
+        .outcome
+        .resolved
+        .as_ref()
+        .ok_or_else(|| refused())?;
     if (decision.inputs.budget.attempts_started != 0 && decision.inputs.replacement.is_none())
         || decision
             .inputs
             .project
             .ceilings
             .require_hard_cost_enforcement
-        || !matches!(
-            source.admission.selection,
-            SourceSelection::Immutable { .. }
-        )
+    {
+        return Err(refused());
+    }
+    // A named ref is admitted as the exact commit it resolved to at offer time:
+    // that commit is frozen into the export operation key, and the workflow
+    // refuses an admission whose commit differs from the export's base (D1:
+    // a ref-following project source). Anything else stays refused.
+    if let SourceSelection::NamedRef { .. } = &source.admission.selection
+        && (source.admission.resolved_object.format != aq_admission::ObjectFormat::Sha1
+            || decision.inputs.replacement.is_some())
     {
         return Err(refused());
     }
@@ -228,7 +245,7 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         .candidates
         .iter()
         .position(|c| c.digest == selected.choice.composition_digest)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let composition = compiled.candidates.remove(index).composition;
     let policy = compiled.policies.remove(index);
     // The catalog definition helper must use this same selected composition.
@@ -240,7 +257,7 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         .config
         .profiled_execution
         .as_ref()
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let counted = context_budget::evaluate(
         &configuration.context_qualifications,
         runtime,
@@ -253,11 +270,11 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         .context_qualifications
         .iter()
         .find(|f| f.artifact().ok().as_ref() == Some(&counted.proof.qualification))
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let until = (now(state)? / 86_400_000)
         .checked_add(8)
         .and_then(|n| n.checked_mul(86_400_000))
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let mut set = RetainedSet::new(source.admission.project_id, until);
     let harness = decision
         .inputs
@@ -270,7 +287,7 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
                 && h.adapter == selected.choice.adapter
                 && h.environment == selected.choice.environment
         })
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let mut needed = vec![
         runtime.runtime.clone(),
         runtime.qualification.clone(),
@@ -300,6 +317,13 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
             return Err(refused());
         }
     }
+    // D3: the default completion policy is settled by the policy actor.
+    let review = configuration
+        .definition_bodies
+        .iter()
+        .find(|d| d.artifact() == &validation)
+        .map(|d| crate::profiled_execution::settlement::review_requirement(d.body()))
+        .ok_or_else(|| refused())?;
     // Check every required actual body before writing any retained artifact.
     let definitions = unique
         .iter()
@@ -308,7 +332,7 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
                 .definition_bodies
                 .iter()
                 .find(|d| d.artifact() == r)
-                .ok_or_else(refused)
+                .ok_or_else(|| refused())
         })
         .collect::<Result<Vec<_>, _>>()?;
     for definition in definitions {
@@ -386,9 +410,9 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         .map_err(|_| refused())?;
     let profile_bytes = canonical(&profile)?;
     let profile_ref = ArtifactRef {
-        id: Text::new(profile["profile_id"].as_str().ok_or_else(refused)?)
+        id: Text::new(profile["profile_id"].as_str().ok_or_else(|| refused())?)
             .map_err(|_| refused())?,
-        version: Text::new(profile["revision"].as_str().ok_or_else(refused)?)
+        version: Text::new(profile["revision"].as_str().ok_or_else(|| refused())?)
             .map_err(|_| refused())?,
         digest: Digest::of(&profile_bytes),
     };
@@ -486,7 +510,7 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         inputs: vec![compiled.projection.artifact.clone()],
         acceptance_criteria: criteria(&compiled.projection.context, task.task_id)?,
         validation_policy: validation,
-        review: ReviewRequirement::HumanOwner,
+        review,
         required_checks: vec![],
     };
     outcome.validate().map_err(|_| refused())?;
@@ -531,7 +555,7 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
     let requested = composition
         .requested_permissions
         .as_ref()
-        .ok_or_else(refused)?
+        .ok_or_else(|| refused())?
         .iter()
         .map(scope)
         .collect::<Result<Vec<_>, _>>()?;
@@ -540,15 +564,21 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
         .iter()
         .map(scope)
         .collect::<Result<Vec<_>, _>>()?;
-    let mode = confinement_mode(&compiled, &composition, &decision)?;
+    let mode = confinement_mode(&compiled, &composition, &decision, harness)?;
     let required_caps = capabilities(mode)?;
     let spending_budget = project
         .ceilings
         .cost_limit_microunits
         .map(|limit| {
             Ok::<_, AppError>(wire::SpendingBudget {
-                currency: Text::new(project.ceilings.currency.as_ref().ok_or_else(refused)?)
-                    .map_err(|_| refused())?,
+                currency: Text::new(
+                    project
+                        .ceilings
+                        .currency
+                        .as_ref()
+                        .ok_or_else(|| refused())?,
+                )
+                .map_err(|_| refused())?,
                 basis: wire::BudgetBasis::TaskCumulativeEstimatedCost,
                 limit_microunits: limit,
             })
@@ -638,7 +668,7 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
     };
     let time = now(state)?;
     let deadline = [
-        time.checked_add(30000).ok_or_else(refused)?,
+        time.checked_add(30000).ok_or_else(|| refused())?,
         source.admission.expires_at_ms,
         selected.expires_at_ms,
         ready.stamp.expires_at_ms,
@@ -647,7 +677,7 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
     ]
     .into_iter()
     .min()
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     let native = NativeOffer {
         schema_version: 1,
         offered: OfferedLaunch {
@@ -678,8 +708,14 @@ pub async fn assemble(input: Assembly<'_>) -> Result<Built, AppError> {
     };
     let graph = aq_worker_protocol::GraphBinding {
         workspace_id: task.workspace_id,
-        profile_id: profile["profile_id"].as_str().ok_or_else(refused)?.into(),
-        profile_revision: profile["revision"].as_str().ok_or_else(refused)?.into(),
+        profile_id: profile["profile_id"]
+            .as_str()
+            .ok_or_else(|| refused())?
+            .into(),
+        profile_revision: profile["revision"]
+            .as_str()
+            .ok_or_else(|| refused())?
+            .into(),
         profile_digest: profile_ref.digest.as_str().into(),
         context_digest: compiled.projection.artifact.digest.as_str().into(),
     };

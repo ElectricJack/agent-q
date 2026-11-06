@@ -55,6 +55,26 @@ async fn prepare_with_policy(
     pilot: bool,
     policy_actor: Option<aq_server::profiled_execution::definitions::Definition>,
 ) -> (Fixture, aq_admission::started::Request, ResultReport) {
+    Box::pin(prepare_with_policy_checks(
+        pin,
+        stop_now,
+        graph_profile,
+        pilot,
+        policy_actor,
+        true,
+    ))
+    .await
+}
+/// `keep_checks: false` is the production offer shape: the producer seals no
+/// required checks (MS1 review B1).
+async fn prepare_with_policy_checks(
+    pin: bool,
+    stop_now: bool,
+    graph_profile: Option<serde_json::Value>,
+    pilot: bool,
+    policy_actor: Option<aq_server::profiled_execution::definitions::Definition>,
+    keep_checks: bool,
+) -> (Fixture, aq_admission::started::Request, ResultReport) {
     let mut f = fixture().await;
     // Optional synthetic ledger-fixture profile is pinned BEFORE the launch is
     // sealed. The original prepare wrapper preserves every prior fixture byte.
@@ -174,6 +194,9 @@ async fn prepare_with_policy(
     if let Some(definition) = &policy_actor {
         outcome.review = outcome::ReviewRequirement::PolicyActor;
         outcome.validation_policy = definition.artifact().clone();
+        if !keep_checks {
+            outcome.required_checks.clear();
+        }
     }
     spec.outcome_artifact = outcome.artifact().unwrap();
     f.profiled.offer.manifest.bindings.outcome = spec.outcome_artifact.clone();
@@ -725,8 +748,15 @@ async fn internal_owner_read_rejects_receipt_outcome_and_stored_spec_corruption(
     );
 }
 
-#[tokio::test]
-async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_binding() {
+/// In a debug build this test's own poll frame is about 390 KiB and
+/// review_env's about 190 KiB (measured), which with the fixture left little
+/// of the 2 MiB test-thread stack; CI overflowed it in the fixture's store
+/// setup, before any result or settlement code ran.
+#[test]
+fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_binding() {
+    common::on_large_stack(result_source_owner_body);
+}
+async fn result_source_owner_body() {
     let ReviewEnv {
         f,
         report,

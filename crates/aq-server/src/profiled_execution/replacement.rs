@@ -265,6 +265,8 @@ pub fn precheck(counts: &super::no_grant::AttemptCounts) -> Option<Assessment> {
     }
     (counts.started == 0).then_some(Assessment::Fresh)
 }
+/// First store format carrying `profiled_auto_settlements` (migration 59, D3).
+pub const AUTO_SETTLEMENT_FORMAT: u32 = 59;
 /// First store format carrying `stall_quarantines` (migration 81, H3).
 pub const STALL_QUARANTINE_FORMAT: u32 = 81;
 
@@ -303,6 +305,33 @@ pub async fn assess_task(state: &AppState, task: Uuid, now: u64) -> Result<Asses
     if quarantined {
         return Ok(Assessment::Blocked("stall_quarantined"));
     }
+    // D1: a successor reuses the predecessor's immutable export, so a result
+    // refused because its publication was definitively not applied (moved
+    // target, conflicted candidate) would recur. Such a lineage needs a new
+    // source admission (a new task attempt from the current source head).
+    // A store held at an earlier migration prefix has no automatic settlement
+    // table and so records no unpublished delivery (as for quarantines).
+    let format: String =
+        sqlx::query_scalar("SELECT value FROM meta WHERE key='state_format_version'")
+            .fetch_one(&state.store.pool)
+            .await
+            .map_err(|_| AppError::Internal)?;
+    let unpublished: bool = if format.parse::<u32>().map_err(|_| AppError::Internal)?
+        >= AUTO_SETTLEMENT_FORMAT
+    {
+        sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM profiled_auto_settlements s JOIN execution_attempts a USING(attempt_id) WHERE a.task_id=$1 AND s.disposition='rework_required' AND s.reason='delivery_unpublished')")
+            .bind(task)
+            .fetch_one(&state.store.pool)
+            .await
+            .map_err(|_| AppError::Internal)?
+    } else {
+        false
+    };
+    if unpublished {
+        return Ok(Assessment::Blocked(
+            "replacement_after_unpublished_delivery_needs_new_source",
+        ));
+    }
     let counts = super::no_grant::attempt_counts(&state.store.pool, task).await?;
     if let Some(decided) = precheck(&counts) {
         return Ok(decided);
@@ -311,6 +340,44 @@ pub async fn assess_task(state: &AppState, task: Uuid, now: u64) -> Result<Asses
         Some(priors) => assess(&priors, &Limits::default(), now),
         None => Assessment::Blocked("replacement_lineage_history_unknown"),
     })
+}
+
+/// Scheduling assessment against the current project binding revision. A
+/// successor reuses the predecessor's export, whose request pins the project
+/// revision it was offered under; source observation refuses any other
+/// revision. Such a lineage is reported blocked here, so one unreplaceable
+/// task cannot fail the whole poll and starve the project's other tasks.
+pub async fn assess_task_for_revision(
+    state: &AppState,
+    task: Uuid,
+    now: u64,
+    project_revision: u64,
+) -> Result<Assessment, AppError> {
+    let assessment = assess_task(state, task, now).await?;
+    let Some(replacement) = assessment.replacement() else {
+        return Ok(assessment);
+    };
+    let pinned = predecessor_project_revision(&state.store.pool, replacement.predecessor).await?;
+    Ok(if pinned == Some(project_revision) {
+        assessment
+    } else {
+        Assessment::Blocked("replacement_project_revision_changed")
+    })
+}
+
+/// The project revision pinned by an attempt's linked source export request.
+pub async fn predecessor_project_revision(
+    pool: &sqlx::PgPool,
+    attempt: Uuid,
+) -> Result<Option<u64>, AppError> {
+    let pinned: Option<Option<i64>> = sqlx::query_scalar(
+        "SELECT (convert_from(e.request_bytes,'UTF8')::jsonb->>'project_revision')::BIGINT FROM profiled_launch_source_exports x JOIN profiled_source_exports e USING(operation_id) WHERE x.attempt_id=$1",
+    )
+    .bind(attempt)
+    .fetch_optional(pool)
+    .await
+    .map_err(|_| AppError::Internal)?;
+    Ok(pinned.flatten().and_then(|r| u64::try_from(r).ok()))
 }
 
 /// Releases the failed predecessor's task claim under the common node →
@@ -538,6 +605,31 @@ pub(crate) mod tests {
         assert_eq!(
             assess(&[expired], &limits, now),
             Assessment::Blocked("replacement_predecessor_not_failed")
+        );
+    }
+
+    #[test]
+    fn closed_unstarted_attempt_is_replaceable() {
+        // B5b/AQ-08: a settled launch closure (not started, its own export
+        // retained, no effects) is a failed predecessor like any other.
+        let now = 1_000_000;
+        let mut closed = failed_prior(900_000);
+        closed.rejected = false;
+        closed.stop = Stop::NotStarted {
+            receipt: receipt("closure"),
+        };
+        let Assessment::Replace(r) = assess(std::slice::from_ref(&closed), &Limits::default(), now)
+        else {
+            panic!("settled closure must be replaceable");
+        };
+        assert_eq!(r.stop_receipt, receipt("closure"));
+        assert!(r.needs_release);
+        // An unsettled closure (stop still unknown) blocks.
+        closed.stop = Stop::Unknown;
+        closed.status = Status::Cancelling;
+        assert_eq!(
+            assess(&[closed], &Limits::default(), now),
+            Assessment::Blocked("replacement_prior_execution_uncertain")
         );
     }
 

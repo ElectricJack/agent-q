@@ -30,7 +30,9 @@ pub(super) struct Input {
     pub source: source_exports::LinkedExport,
     pub material: MaterialLease,
 }
+#[track_caller]
 fn refused() -> AppError {
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("pinned phase execution inputs changed".into())
 }
 fn unavailable() -> AppError {
@@ -76,7 +78,7 @@ impl Input {
             .outcome
             .resolved
             .as_ref()
-            .ok_or_else(refused)?;
+            .ok_or_else(|| refused())?;
         let request = self.source.token().request();
         let selection = digest(&self.selection)?;
         if context.len() > 1_048_576
@@ -181,7 +183,7 @@ fn profile(reference: &ArtifactRef, kind: &str) -> Result<String, AppError> {
         .strip_prefix(&format!("{kind}:"))
         .filter(|s| !s.is_empty())
         .map(str::to_owned)
-        .ok_or_else(refused)
+        .ok_or_else(|| refused())
 }
 async fn binding(state: &AppState, input: &Input) -> Result<FrozenProjectBinding, AppError> {
     let (revision, catalog) = crate::project_bindings::active_catalog(state).await?;
@@ -198,7 +200,7 @@ async fn binding(state: &AppState, input: &Input) -> Result<FrozenProjectBinding
                 || e.as_str() == format!("{}@{}", choice.id.as_str(), choice.version.as_str())
         })
         .cloned()
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let manifest = &input.offer.offered.offer.manifest;
     let result = crate::project_bindings::check_execution_eligibility(
         state,
@@ -223,7 +225,7 @@ async fn binding(state: &AppState, input: &Input) -> Result<FrozenProjectBinding
             },
         );
     }
-    result.frozen_binding.ok_or_else(refused)
+    result.frozen_binding.ok_or_else(|| refused())
 }
 /// Observation time is the only authorized projection field excluded. Unknown
 /// fields, revisions, coverage, edges and neighboring content remain significant.

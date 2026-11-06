@@ -31,7 +31,9 @@ pub(super) fn enabled(state: &AppState) -> bool {
     policy::enabled(state)
 }
 
+#[track_caller]
 fn refused() -> AppError {
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("registry refresh preparation is not currently available".into())
 }
 
@@ -40,7 +42,11 @@ fn validate_registry_at_proposal(
     registry: &ArtifactRef,
 ) -> Result<(), AppError> {
     let current = phase::registry_revision(registry).map_err(|_| refused())?;
-    let selected = decision.outcome.resolved.as_ref().ok_or_else(refused)?;
+    let selected = decision
+        .outcome
+        .resolved
+        .as_ref()
+        .ok_or_else(|| refused())?;
     if decision.inputs.registry_revision == 0
         || selected.registry_revision == 0
         || current < decision.inputs.registry_revision

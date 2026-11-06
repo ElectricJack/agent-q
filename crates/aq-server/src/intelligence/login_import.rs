@@ -28,6 +28,29 @@ pub fn read_source(source: &Path) -> anyhow::Result<Zeroizing<Vec<u8>>> {
     Ok(bytes)
 }
 
+/// Whether a configured credential is a Claude subscription login (the
+/// `claude setup-token` value), the only shape whose CR/LF is trimmed. API
+/// keys and other providers are delivered byte-exact (MS1 review nit).
+pub fn is_claude_setup_token(c: &super::config::CredentialConfig) -> bool {
+    c.kind == aq_selection::CredentialKind::SubscriptionLogin
+        && c.credential.provider.as_str() == "anthropic"
+}
+
+/// A Claude login is the long-lived `claude setup-token` value, delivered
+/// env-only. `claude setup-token > file` leaves a trailing newline that the
+/// runner's install (ASCII-graphic only) would refuse later, so trailing CR/LF
+/// is trimmed here and any other shape is refused before storage (C5b/MS1).
+pub fn normalize_claude_token(bytes: Zeroizing<Vec<u8>>) -> anyhow::Result<Zeroizing<Vec<u8>>> {
+    let mut end = bytes.len();
+    while end > 0 && matches!(bytes[end - 1], b'\n' | b'\r') {
+        end -= 1;
+    }
+    if end == 0 || !bytes[..end].iter().all(u8::is_ascii_graphic) {
+        bail!("a Claude login must be one line of printable ASCII (the setup-token value)");
+    }
+    Ok(Zeroizing::new(bytes[..end].to_vec()))
+}
+
 /// Stores `source` as the newest version of the configured subscription login
 /// `credential` (`id@version`) at `revision`; returns that version.
 pub async fn import(
@@ -38,13 +61,24 @@ pub async fn import(
     source: &Path,
     now_ms: i64,
 ) -> anyhow::Result<i64> {
-    let bytes = Arc::new(read_source(source)?);
-    let profile = loaded
+    let index = loaded
         .credentials
         .iter()
-        .find(|c| c.revision == revision && login_refresh::identity(&c.profile) == credential)
-        .map(|c| c.profile.clone())
+        .position(|c| c.revision == revision && login_refresh::identity(&c.profile) == credential)
         .with_context(|| format!("no configured credential {credential} at revision {revision}"))?;
+    let configured = &loaded.credentials[index];
+    let profile = configured.profile.clone();
+    let bytes = read_source(source)?;
+    let setup_token = loaded
+        .config
+        .credentials
+        .get(index)
+        .is_some_and(is_claude_setup_token);
+    let bytes = Arc::new(if setup_token {
+        normalize_claude_token(bytes)?
+    } else {
+        bytes
+    });
     Ok(
         login_refresh::operator_replace(&store.pool, loaded, &profile, revision, bytes, now_ms)
             .await?,
@@ -69,5 +103,36 @@ mod tests {
         let big = read_source(&token).unwrap_err();
         assert!(!format!("{big:#}").contains("xxx"));
         assert!(read_source(root.path()).is_err());
+    }
+    #[test]
+    fn only_claude_subscription_logins_are_trimmed() {
+        let config = |kind: &str, provider: &str| -> super::super::config::CredentialConfig {
+            serde_json::from_value(serde_json::json!({
+                "kind": kind,
+                "credential": {"profile": {"id": "p", "version": "1", "digest": "a".repeat(64)},
+                    "provider": provider, "account_reference": "a", "endpoint_reference": "e",
+                    "revision": 1, "enabled": true, "provisionable": false},
+                "allowed_node_ids": [], "secret_file": null}))
+            .unwrap()
+        };
+        assert!(is_claude_setup_token(&config(
+            "subscription-login",
+            "anthropic"
+        )));
+        assert!(!is_claude_setup_token(&config("api-key", "anthropic")));
+        assert!(!is_claude_setup_token(&config(
+            "subscription-login",
+            "openai"
+        )));
+    }
+    #[test]
+    fn claude_token_trailing_newline_is_trimmed_and_other_shapes_refused() {
+        let ok =
+            normalize_claude_token(Zeroizing::new(b"sk-ant-oat01-SECRET\r\n".to_vec())).unwrap();
+        assert_eq!(&**ok, b"sk-ant-oat01-SECRET");
+        for bad in [&b"\n"[..], b"sk-ant two\n", b"line1\nline2\n"] {
+            let error = normalize_claude_token(Zeroizing::new(bad.to_vec())).unwrap_err();
+            assert!(!format!("{error:#}").contains("sk-ant"));
+        }
     }
 }

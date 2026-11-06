@@ -10,6 +10,23 @@ mod automatic;
 mod completion;
 mod default_policy;
 mod owner;
-pub use automatic::{AutoDisposition, AutoSettlement, settle_after_record};
+pub mod publication;
+pub use automatic::{
+    AutoDisposition, AutoSettlement, ReplacementFacts, record_replacement_facts,
+    reworked_without_facts, settle_after_record,
+};
+
+/// The review requirement an offer must name for this validation policy body:
+/// D3's default completion policy is settled by the policy actor, every other
+/// policy by the human owner. Naming the policy actor removes the human review
+/// fallback for default-policy tasks: a held or reworked result has no human
+/// approval path (MS1 review; a later follow-up, no code change now).
+pub(crate) fn review_requirement(policy_body: &str) -> aq_admission::outcome::ReviewRequirement {
+    if default_policy::parse(policy_body).is_some() {
+        aq_admission::outcome::ReviewRequirement::PolicyActor
+    } else {
+        aq_admission::outcome::ReviewRequirement::HumanOwner
+    }
+}
 pub use completion::{CompletionReceipt, CompletionStatus};
 pub use owner::{EvaluateRequest, EvaluationDisposition, EvaluationReceipt, Service};

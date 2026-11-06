@@ -929,6 +929,7 @@ fn container_only_backend_admits_only_permitted_container_confinement() {
     let native = ExecutionConfinement {
         permit_container: false,
         require_native: true,
+        require_container: false,
     };
     let required = change_confinement(&catalog, native, &mut input);
     let out = select(&required, &input).unwrap();
@@ -940,11 +941,12 @@ fn container_only_backend_admits_only_permitted_container_confinement() {
     let permit = ExecutionConfinement {
         permit_container: true,
         require_native: false,
+        require_container: false,
     };
     let permitted = change_confinement(&catalog, permit, &mut input);
     assert!(select(&permitted, &input).unwrap().resolved.is_some());
     assert_eq!(
-        admit_confinement(input.placement.as_ref(), &permit),
+        admit_confinement(input.placement.as_ref(), &permit, &input.node.harnesses[0]),
         Ok(ConfinementMode::Container)
     );
     // Non-container-only backends (and nodes without a sandbox) stay native,
@@ -952,12 +954,75 @@ fn container_only_backend_admits_only_permitted_container_confinement() {
     for backend in [Some(BackendKind::Boat), None] {
         input.placement.as_mut().unwrap().backend = backend;
         assert_eq!(
-            admit_confinement(input.placement.as_ref(), &native),
+            admit_confinement(input.placement.as_ref(), &native, &input.node.harnesses[0]),
             Ok(ConfinementMode::Native)
         );
     }
+    // MS1: a profile whose harness always runs in a node-owned container is
+    // container-confined even on a node without B1 placement facts.
+    let always = ExecutionConfinement {
+        permit_container: true,
+        require_native: false,
+        require_container: true,
+    };
+    // Only for the node-sandbox adapter whose node snapshot advertises
+    // container confinement (MS1 review should-fix 1).
+    let fixture_harness = input.node.harnesses[0].clone();
     assert_eq!(
-        admit_confinement(None, &ExecutionConfinement::default()),
+        admit_confinement(None, &always, &fixture_harness),
+        Err((
+            CandidateState::Unsupported,
+            "container_required_adapter_unqualified"
+        ))
+    );
+    let mut sandboxed = fixture_harness.clone();
+    sandboxed.adapter.id = aq_session_protocol::Text::new(NODE_SANDBOX_ADAPTER).unwrap();
+    sandboxed
+        .capabilities
+        .retain(|c| c.id.as_str() != "aq.harness.container-confinement");
+    assert_eq!(
+        admit_confinement(None, &always, &sandboxed),
+        Err((
+            CandidateState::Unsupported,
+            "container_confinement_not_advertised"
+        ))
+    );
+    sandboxed
+        .capabilities
+        .push(aq_session_protocol::Capability {
+            id: aq_session_protocol::Text::new("aq.harness.container-confinement").unwrap(),
+            version: 1,
+        });
+    assert_eq!(
+        admit_confinement(None, &always, &sandboxed),
+        Ok(ConfinementMode::Container)
+    );
+    for contradictory in [
+        ExecutionConfinement {
+            permit_container: true,
+            require_native: true,
+            require_container: true,
+        },
+        ExecutionConfinement {
+            permit_container: false,
+            require_native: false,
+            require_container: true,
+        },
+    ] {
+        assert_eq!(
+            admit_confinement(None, &contradictory, &sandboxed),
+            Err((
+                CandidateState::PolicyDenied,
+                "execution_confinement_contradictory"
+            ))
+        );
+    }
+    assert_eq!(
+        admit_confinement(
+            None,
+            &ExecutionConfinement::default(),
+            &input.node.harnesses[0]
+        ),
         Ok(ConfinementMode::Native)
     );
     let required = change_confinement(&catalog, native, &mut input);

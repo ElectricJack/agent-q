@@ -53,6 +53,19 @@ async fn successor_reuses_predecessor_export_only_with_exact_release_receipt() {
     tx.commit().await.unwrap();
 
     let predecessor = f.profiled.offer.binding.attempt_id;
+    // The successor's revision check reads the revision this export pins.
+    assert_eq!(
+        replacement::predecessor_project_revision(&pool, predecessor)
+            .await
+            .unwrap(),
+        Some(request.project_revision)
+    );
+    assert_eq!(
+        replacement::predecessor_project_revision(&pool, Uuid::new_v4())
+            .await
+            .unwrap(),
+        None
+    );
     let mut hot = HotState::from_compat(&f.profiled).unwrap();
     sqlx::query("INSERT INTO profiled_authority_hot(attempt_id,state,record_revision,authority_revision,grant_revision) VALUES($1,$2,1,1,0)").bind(predecessor).bind(json!(hot)).execute(&pool).await.unwrap();
     hot.status = Status::Finished;
@@ -211,6 +224,88 @@ async fn successor_reuses_predecessor_export_only_with_exact_release_receipt() {
         error
             .to_string()
             .contains("shared source requires released predecessor")
+    );
+
+    // 0095: a successor that was offered but never granted (valid never-granted
+    // closure, no claim) no longer blocks the next successor of the same task.
+    // Synthetic owner rows written with guards bypassed, as a closure would.
+    let never = attempt;
+    let mut tx = pool.begin().await.unwrap();
+    sqlx::query("SET LOCAL session_replication_role=replica")
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    let launch: Value =
+        sqlx::query_scalar("SELECT launch_binding FROM profiled_launches WHERE attempt_id=$1")
+            .bind(never)
+            .fetch_one(&mut *tx)
+            .await
+            .unwrap();
+    let mut closed = HotState::from_compat(&f.profiled).unwrap();
+    closed.status = Status::NeverGranted;
+    sqlx::query("INSERT INTO profiled_authority_hot(attempt_id,state,record_revision,authority_revision,grant_revision) VALUES($1,$2,1,1,0) ON CONFLICT(attempt_id) DO UPDATE SET state=EXCLUDED.state")
+        .bind(never).bind(json!(closed)).execute(&mut *tx).await.unwrap();
+    let proof =
+        serde_json::to_vec(&json!({"binding":launch,"synthetic":"never-granted proof"})).unwrap();
+    sqlx::query("INSERT INTO profiled_never_granted_closures(attempt_id,closure_id,operation_id,binding,observed_record_revision,closed_at_ms,reason,proof_bytes,proof_digest) VALUES($1,$2,$3,$4,1,$5,'offer_expired',$6,encode(sha256($6),'hex'))")
+        .bind(never).bind(Uuid::new_v4()).bind(Uuid::new_v4()).bind(&launch).bind(NOW as i64).bind(&proof).execute(&mut *tx).await.unwrap();
+    sqlx::query("UPDATE execution_attempts SET holds_task=FALSE WHERE attempt_id=$1")
+        .bind(never)
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+    assert!(
+        sqlx::query_scalar::<_, bool>("SELECT profiled_never_granted_valid($1)")
+            .bind(never)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+    );
+    let third = Uuid::new_v4();
+    let session = aq_session_protocol::SessionIdentity::Remote {
+        node_id: f.node.node_id,
+        boot_id: f.node.boot_id,
+        attempt_id: third,
+        assignment_generation: 3,
+        session_id: Uuid::new_v4(),
+    };
+    let offer = &mut f.profiled.offer;
+    offer.binding.session = session.clone();
+    offer.binding.attempt_id = third;
+    offer.binding.assignment_generation = 3;
+    offer.binding.offer_id = Uuid::new_v4();
+    offer.manifest.bindings.session = session;
+    offer.manifest.bindings.attempt_id = third;
+    offer.manifest.bindings.assignment_generation = 3;
+    offer.binding.launch_manifest_digest =
+        aq_session_protocol::canonical_digest(&offer.manifest).unwrap();
+    spec.lifecycle = aq_admission::transport::lifecycle_binding(offer).unwrap();
+    offer.binding.execution_spec_digest = spec.artifact().unwrap().digest;
+    f.decision = Uuid::new_v4();
+    profiled::insert_typed(&f, &spec).await;
+    let mut tx = pool.begin().await.unwrap();
+    let linked = source_exports::link_locked(
+        &f.state,
+        &mut tx,
+        &f.profiled.offer.binding.session,
+        retained.token(),
+        retained.fact(),
+        &retention,
+    )
+    .await
+    .unwrap();
+    tx.commit().await.unwrap();
+    assert_eq!(linked.artifact_id, first.artifact_id);
+    assert_eq!(
+        sqlx::query_scalar::<_, i64>(
+            "SELECT count(*) FROM profiled_launch_source_exports WHERE operation_id=$1"
+        )
+        .bind(request.operation_id)
+        .fetch_one(&pool)
+        .await
+        .unwrap(),
+        3
     );
 }
 

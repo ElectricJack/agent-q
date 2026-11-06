@@ -1,0 +1,22 @@
+{
+  "attempt_id": "fbded66c-4a69-449d-bbc5-c60d8d19a631",
+  "claude_reached_its_own_exit": false,
+  "cleanup_after_reconcile": "Some(\"Cleanup { reason: NoCurrentGrant, destroy_after_ms: 1793855459383 }\")",
+  "destroy_refused_during_grace": 5,
+  "destroy_waited_ms": 25227,
+  "destroyed": true,
+  "disk_present_after_reconcile": true,
+  "first_boot_id": "374c6cf7-2d3d-4e43-ba0f-a8142b69e778",
+  "first_claude_turn_after_ms": 4962,
+  "owned_after_destroy": 0,
+  "owned_after_reconcile": 1,
+  "owned_before_restart": 1,
+  "phase_after_reconcile": "Stopped",
+  "reopen_and_reconcile_ms": 6505,
+  "same_backend_id_after": true,
+  "sandbox_backend_id": "aq-0fee17a534434eaf8df3d1d0cce8df02-fbded66c4a69449dbbc5c60d8d19a631",
+  "second_boot_id": "3414530c-1a7d-4181-a83a-3d8dcf630e9f",
+  "stop_proof": "StoppedNoProcesses",
+  "template_digest": "sha256:194e11f54fbe104734166ec219f5ac13b2e54055fae01f6c3ce264a915f172a4",
+  "write_calls_before_stop": 5
+}

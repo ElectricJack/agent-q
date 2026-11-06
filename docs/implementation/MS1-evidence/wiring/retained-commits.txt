@@ -1,0 +1,32 @@
+commit 6d9c318922250127c723364e098ffe0684ca565c
+parent 2e32645bab743729bfaeb0f2eec417c2ace7794b
+Retained execution checkpoint
+
+ .gitignore |  1 +
+ Cargo.lock |  7 +++++++
+ Cargo.toml |  6 ++++++
+ src/lib.rs | 14 ++++++++++++++
+ 4 files changed, 28 insertions(+)
+
+commit e41b1a002b9bf1bdacdc5f10f719be8edf2d07f0
+parent 2e32645bab743729bfaeb0f2eec417c2ace7794b
+Retained execution checkpoint
+
+ README.md | 2 ++
+ 1 file changed, 2 insertions(+)
+
+commit e41b1a002b9bf1bdacdc5f10f719be8edf2d07f0
+Author: AQ Worker <worker@invalid>
+Date:   Thu Nov 5 07:38:54 2026 +0000
+
+    Retained execution checkpoint
+
+diff --git a/README.md b/README.md
+index 0e881cb..befefd0 100644
+--- a/README.md
++++ b/README.md
+@@ -1,2 +1,4 @@
+ # aq-scratch
+ Scratch repository for AQ v2 real-agent qualification runs (disposable test edits)
++
++`hello()` returns the string "hello from MS1".

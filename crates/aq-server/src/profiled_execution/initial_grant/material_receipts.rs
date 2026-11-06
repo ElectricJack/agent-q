@@ -45,7 +45,7 @@ pub(crate) async fn load_installed_receipt_locked(
 ) -> Result<MaterialReceipt, AppError> {
     retained(tx, lease, original_issued_ms)
         .await?
-        .ok_or_else(refused)
+        .ok_or_else(|| refused())
 }
 /// Under the same lease lock and shared quota lock as first grant. Each retained
 /// row is included once in the shared actual retained JSONB aggregate; exact

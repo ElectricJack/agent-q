@@ -60,7 +60,7 @@ pub async fn accept(
     let timely = before.offer_expiry.min(
         received
             .checked_add(q.original.reservation_remaining_ms)
-            .ok_or_else(refused)?,
+            .ok_or_else(|| refused())?,
     );
     let expiry = received
         .checked_add(
@@ -68,7 +68,7 @@ pub async fn accept(
                 .maximum_preparation_ms
                 .min(p.policy.maximum_preparation_ms),
         )
-        .ok_or_else(refused)?
+        .ok_or_else(|| refused())?
         .min(
             p.original
                 .offered
@@ -76,7 +76,7 @@ pub async fn accept(
                 .iter()
                 .map(|a| a.retain_until_ms)
                 .min()
-                .ok_or_else(refused)?,
+                .ok_or_else(|| refused())?,
         );
     if now(state)? >= timely || expiry <= received {
         return Err(refused());
@@ -88,7 +88,7 @@ pub async fn accept(
         before.source.fact(),
     )
     .await?;
-    let registry = state.config.intelligence.clone().ok_or_else(refused)?;
+    let registry = state.config.intelligence.clone().ok_or_else(|| refused())?;
     let selection = before.selection.clone();
     let binding = q.original.acceptance.binding.clone();
     let lease_id = Uuid::new_v5(&q.original.operation_id, binding.attempt_id.as_bytes());

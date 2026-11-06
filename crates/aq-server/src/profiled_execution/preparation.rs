@@ -21,7 +21,9 @@ use aq_session_protocol::ProfiledOffer;
 use serde_json::Value;
 use sqlx::{Postgres, Row, Transaction};
 use uuid::Uuid;
+#[track_caller]
 fn refused() -> AppError {
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("native preparation is not currently available".into())
 }
 fn db(_: sqlx::Error) -> AppError {
@@ -31,7 +33,7 @@ fn now(state: &AppState) -> Result<u64, AppError> {
     u64::try_from((state.clock)().timestamp_millis())
         .ok()
         .filter(|t| *t > 0)
-        .ok_or_else(refused)
+        .ok_or_else(|| refused())
 }
 pub(super) struct Locked {
     pub(super) hot: HotState,
@@ -58,7 +60,7 @@ pub(super) async fn locked(
                 .iter()
                 .find(|r| r.runtime == current.runtime && r.qualification == current.qualification)
         })
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let registration =
         registration::admitted_runtime_locked(tx, auth.id(), request.identity.boot_id).await?;
     if request.identity != registration.request.identity
@@ -86,7 +88,7 @@ pub(super) async fn locked(
     let row=sqlx::query("SELECT a.state,l.decision_id,l.offer_expires_at_ms FROM execution_attempts a JOIN profiled_launches l USING(attempt_id) WHERE a.attempt_id=$1").bind(binding.attempt_id).fetch_one(&mut **tx).await.map_err(db)?;
     let value: Value = row.get("state");
     let offer: ProfiledOffer =
-        serde_json::from_value(value.get("offer").cloned().ok_or_else(refused)?)
+        serde_json::from_value(value.get("offer").cloned().ok_or_else(|| refused())?)
             .map_err(|_| refused())?;
     request
         .acceptance
@@ -111,7 +113,7 @@ pub(super) async fn locked(
     .map_err(db)?;
     let decision: Decision = serde_json::from_value(raw).map_err(|_| refused())?;
     resolver::fence_for_preparation(state, tx, &decision, binding).await?;
-    let selection = decision.outcome.resolved.ok_or_else(refused)?;
+    let selection = decision.outcome.resolved.ok_or_else(|| refused())?;
     if offer.manifest.credentials.len() != 1
         || offer.manifest.credentials[0].credential_profile != selection.choice.credential_profile
         || offer.manifest.credentials[0].purpose.as_str() != "model-authentication"
@@ -133,7 +135,7 @@ pub(super) async fn locked(
     let hot: HotState = serde_json::from_value(hot).map_err(|_| refused())?;
     let source = source_exports::load_linked_locked(tx, binding.attempt_id).await?;
     if source.manifest().attempt != view.attempt
-        || source.manifest().source != view.source.ok_or_else(refused)?
+        || source.manifest().source != view.source.ok_or_else(|| refused())?
         || source.manifest().resolved_spec_digest != view.execution_spec_digest
         || source.token().request().project_id != view.project_id
         || source.token().request().project_revision != selection.project_revision
@@ -236,7 +238,7 @@ pub async fn accept(
         before.offer_expiry.min(
             observed_at
                 .checked_add(request.reservation_remaining_ms)
-                .ok_or_else(refused)?,
+                .ok_or_else(|| refused())?,
         ),
     );
     if expiry <= observed_at {
@@ -264,7 +266,7 @@ pub async fn accept(
         before.source.fact(),
     )
     .await?;
-    let registry = state.config.intelligence.clone().ok_or_else(refused)?;
+    let registry = state.config.intelligence.clone().ok_or_else(|| refused())?;
     let selection = before.selection.clone();
     let binding = request.acceptance.binding.clone();
     let head = super::login_refresh::newest_source(
@@ -425,7 +427,7 @@ async fn admit(
     let quota = retained_quota_locked(tx, auth.id()).await?;
     let incoming = lease_bytes
         .checked_add(response_bytes)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     if quota.0 >= 4096
         || quota.1 >= 256
         || u64::try_from(quota.2)
@@ -481,10 +483,10 @@ pub(super) async fn retained_quota_locked(
 ) -> Result<(i64, i64, i64, i64), AppError> {
     let mut quota: (i64,i64,i64,i64) = sqlx::query_as("SELECT count(*),count(*) FILTER(WHERE node_id=$1),COALESCE(sum(octet_length(lease::text)),0)+COALESCE((SELECT sum(octet_length(response::text)) FROM profiled_execution_receipts),0)+COALESCE((SELECT sum(octet_length(r.receipt::text)) FROM admission_material_receipts r JOIN admission_material_leases m ON m.lease_id=r.lease_id),0),COALESCE(sum(octet_length(lease::text)) FILTER(WHERE node_id=$1),0)+COALESCE((SELECT sum(octet_length(response::text)) FROM profiled_execution_receipts WHERE node_id=$1),0)+COALESCE((SELECT sum(octet_length(r.receipt::text)) FROM admission_material_receipts r JOIN admission_material_leases m ON m.lease_id=r.lease_id WHERE m.node_id=$1),0) FROM admission_material_leases").bind(node).fetch_one(&mut **tx).await.map_err(db)?;
     let extra = super::accepted_preparation::retained_bytes_locked(tx, node).await?;
-    quota.2 = quota.2.checked_add(extra.0).ok_or_else(refused)?;
-    quota.3 = quota.3.checked_add(extra.1).ok_or_else(refused)?;
+    quota.2 = quota.2.checked_add(extra.0).ok_or_else(|| refused())?;
+    quota.3 = quota.3.checked_add(extra.1).ok_or_else(|| refused())?;
     let phase = super::phase_execution::retained_bytes_locked(tx, node).await?;
-    quota.2 = quota.2.checked_add(phase.0).ok_or_else(refused)?;
-    quota.3 = quota.3.checked_add(phase.1).ok_or_else(refused)?;
+    quota.2 = quota.2.checked_add(phase.0).ok_or_else(|| refused())?;
+    quota.3 = quota.3.checked_add(phase.1).ok_or_else(|| refused())?;
     Ok(quota)
 }

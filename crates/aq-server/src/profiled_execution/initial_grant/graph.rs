@@ -85,7 +85,7 @@ pub(super) async fn observe(
     input: &Input,
     decision: &crate::intelligence::resolver::Decision,
 ) -> Result<Observation, AppError> {
-    let graph = state.agent_access.as_ref().ok_or_else(refused)?;
+    let graph = state.agent_access.as_ref().ok_or_else(|| refused())?;
     let binding = &decision.project.project.binding;
     if binding.project_id != input.spec.lifecycle.project_id
         || binding.graph_workspace_id != input.spec.task.workspace_id

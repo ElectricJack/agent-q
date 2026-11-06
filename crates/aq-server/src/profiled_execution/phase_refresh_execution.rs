@@ -170,7 +170,7 @@ fn validate_provenance_profile(
             )),
             _ => None,
         })
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     if fact
         != (
             &p.selected_registry,

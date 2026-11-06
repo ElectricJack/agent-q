@@ -50,13 +50,54 @@ pub fn container_only(backend: Option<BackendKind>) -> bool {
     backend == Some(BackendKind::DockerLocal)
 }
 
+/// The one adapter whose harness always runs in a node-owned sandbox container
+/// (MS1: Claude Code driven in a docker-local sandbox by the node).
+pub const NODE_SANDBOX_ADAPTER: &str = "aq.claude-result-local-adapter";
+
+/// `require_container` (MS1) bypasses B1 placement facts, so it is admitted only
+/// for the node-sandbox adapter and only when the node's authenticated
+/// capability snapshot advertises container confinement for that harness.
+fn require_container(
+    profile: &aq_profiles::ExecutionConfinement,
+    harness: &crate::InstalledHarness,
+) -> Result<ConfinementMode, (CandidateState, &'static str)> {
+    if profile.require_native || !profile.permit_container {
+        return Err((
+            CandidateState::PolicyDenied,
+            "execution_confinement_contradictory",
+        ));
+    }
+    if harness.adapter.id.as_str() != NODE_SANDBOX_ADAPTER {
+        return Err((
+            CandidateState::Unsupported,
+            "container_required_adapter_unqualified",
+        ));
+    }
+    let container = ConfinementMode::Container.capability();
+    if !harness
+        .capabilities
+        .iter()
+        .any(|c| c.id.as_str() == container && c.version == 1)
+    {
+        return Err((
+            CandidateState::Unsupported,
+            "container_confinement_not_advertised",
+        ));
+    }
+    Ok(ConfinementMode::Container)
+}
+
 /// Admits the execution profile's confinement permission on the placement's
 /// backend before placement. A native-required profile is refused on a
 /// container-only backend, and container confinement needs explicit permit.
 pub fn admit_confinement(
     placement: Option<&Placement>,
     profile: &aq_profiles::ExecutionConfinement,
+    harness: &crate::InstalledHarness,
 ) -> Result<ConfinementMode, (CandidateState, &'static str)> {
+    if profile.require_container {
+        return require_container(profile, harness);
+    }
     if !container_only(placement.and_then(|p| p.backend)) {
         return Ok(ConfinementMode::Native);
     }

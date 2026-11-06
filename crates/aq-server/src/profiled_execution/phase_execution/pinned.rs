@@ -147,7 +147,7 @@ async fn load_for_locked(
         .validate_after(&h.receipt.versions)
         .map_err(|_| refused())?;
     if let Some(issued) = issued {
-        let live = hot.grant.as_ref().ok_or_else(refused)?;
+        let live = hot.grant.as_ref().ok_or_else(|| refused())?;
         let grant_matches = if continuing {
             live.binding == issued.receipt.grant.binding
                 && live.grant_id == issued.receipt.grant.grant_id
@@ -188,7 +188,7 @@ async fn load_for_locked(
                 .iter()
                 .find(|r| r.runtime == runtime.runtime && r.qualification == runtime.qualification)
         })
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     if qualified.material_delivery.is_none()
         || offer.offered.required_features.iter().any(|f| {
             !qualified.features.contains(f) || !current_registration.request.features.contains(f)
@@ -262,7 +262,7 @@ async fn load_for_locked(
     }
     let source = source_exports::load_linked_locked(tx, q.original.binding.attempt_id).await?;
     if source.manifest().attempt != view.attempt
-        || source.manifest().source != view.source.ok_or_else(refused)?
+        || source.manifest().source != view.source.ok_or_else(|| refused())?
         || source.manifest().resolved_spec_digest != view.execution_spec_digest
         || source.token().request().project_revision != spec.project_revision
         || source.token().request().project_id != view.project_id
@@ -275,7 +275,7 @@ async fn load_for_locked(
         Some(h) => hot
             .grant
             .as_ref()
-            .ok_or_else(refused)?
+            .ok_or_else(|| refused())?
             .expires_at_ms
             .min(h.receipt.execution_deadline_ms),
         None => h.receipt.lease.expires_at_ms.min(material.expires_at_ms),
@@ -322,7 +322,7 @@ async fn load_for_locked(
                 .manifest()
                 .bundle_digest
                 .as_deref()
-                .ok_or_else(refused)?,
+                .ok_or_else(|| refused())?,
             source.manifest().bundle_bytes,
         ),
     ] {
@@ -372,14 +372,21 @@ async fn load_for_locked(
             .binding
             .ceilings
             .require_hard_cost_enforcement
-        || decision.inputs.budget.elapsed_ms != Some(0)
+        // A first attempt starts its lineage at zero; a B4 replacement carries
+        // the lineage time already used, which must leave time remaining.
+        || decision
+            .inputs
+            .budget
+            .elapsed_ms
+            .is_none_or(|elapsed| elapsed >= policy.max_lineage_elapsed_ms)
+        || (decision.inputs.replacement.is_none() && decision.inputs.budget.elapsed_ms != Some(0))
     {
         return Err(refused());
     }
     let input = observations::Input {
         full_context_digest: h.proposal.full_context_digest.clone(),
         spec,
-        context: context.ok_or_else(refused)?,
+        context: context.ok_or_else(|| refused())?,
         decision,
         selection,
         offer,

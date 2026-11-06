@@ -1,0 +1,7 @@
+== store the Claude setup-token as credential owner-claude-subscription@1 (revision 1)  [05:41:40Z]
+C5b needs a configured base file (version 0): staging it, then restarting the server
+import-login: 1
+staged copy removed
+drwx------
+stored versions of owner-claude-subscription@1: 1
+credential_material_revisions row: owner-claude-subscription@1 | revision 1 | sequence 1 | origin operator | 108 bytes | content digest 25e32ec85fc9… | created_at_ms 1793857313036

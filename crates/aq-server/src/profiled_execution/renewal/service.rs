@@ -11,7 +11,9 @@ use aq_admission::{
 };
 use sqlx::Row;
 use uuid::Uuid;
+#[track_caller]
 fn refused() -> AppError {
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("continuing permit expired, changed, or cannot be extended".into())
 }
 fn unavailable() -> AppError {
@@ -56,7 +58,12 @@ pub async fn renew(
     {
         return Err(refused());
     }
-    let previous_expiry = after.hot.grant.as_ref().ok_or_else(refused)?.expires_at_ms;
+    let previous_expiry = after
+        .hot
+        .grant
+        .as_ref()
+        .ok_or_else(|| refused())?
+        .expires_at_ms;
     let hard = after.original.execution_deadline_ms;
     let lineage = after
         .original
@@ -64,7 +71,7 @@ pub async fn renew(
         .clock
         .server_time_ms
         .checked_add(after.remaining_lineage_ms)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let ceiling = hard
         .min(lineage)
         .min(observed.ceiling()?)
@@ -83,7 +90,7 @@ pub async fn renew(
         }
         stored
     } else {
-        let row=sqlx::query("SELECT revision,binding,grant_id FROM profiled_owner_journals WHERE attempt_id=$1 FOR SHARE").bind(request.binding.attempt_id).fetch_optional(&mut *tx).await.map_err(|_|AppError::Internal)?.ok_or_else(refused)?;
+        let row=sqlx::query("SELECT revision,binding,grant_id FROM profiled_owner_journals WHERE attempt_id=$1 FOR SHARE").bind(request.binding.attempt_id).fetch_optional(&mut *tx).await.map_err(|_|AppError::Internal)?.ok_or_else(|| refused())?;
         if row.get::<serde_json::Value, _>("binding")
             != serde_json::to_value(&request.binding).map_err(|_| AppError::Internal)?
             || row.get::<Option<Uuid>, _>("grant_id") != Some(request.grant_id)
@@ -100,11 +107,19 @@ pub async fn renew(
         }
         let issued = now(state)?;
         observed.fresh_at(issued)?;
-        let expiry = issued.checked_add(10_000).ok_or_else(refused)?.min(ceiling);
+        let expiry = issued
+            .checked_add(10_000)
+            .ok_or_else(|| refused())?
+            .min(ceiling);
         if issued >= previous_expiry || expiry <= previous_expiry {
             return Err(refused());
         }
-        after.hot.grant.as_mut().ok_or_else(refused)?.expires_at_ms = expiry;
+        after
+            .hot
+            .grant
+            .as_mut()
+            .ok_or_else(|| refused())?
+            .expires_at_ms = expiry;
         after
             .hot
             .validate_against(&request.binding)

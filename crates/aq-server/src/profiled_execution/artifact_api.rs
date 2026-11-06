@@ -24,7 +24,9 @@ use uuid::Uuid;
 pub const RETENTION_HEADER: &str = "aq-artifact-retention";
 pub const OFFSET_HEADER: &str = "aq-artifact-offset";
 pub const MAX_REQUEST_BYTES: usize = 16 * 1024;
+#[track_caller]
 fn refused() -> AppError {
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("artifact is not currently available to this assignment".into())
 }
 fn db(_: sqlx::Error) -> AppError {
@@ -106,7 +108,7 @@ async fn fetch(
     .fetch_optional(&mut *tx)
     .await
     .map_err(db)?
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     let hot: HotState = serde_json::from_value(hot).map_err(|_| refused())?;
     hot.validate_against(&request.binding)
         .map_err(|_| refused())?;
@@ -137,9 +139,9 @@ async fn fetch(
             0,
             hot.grant
                 .as_ref()
-                .ok_or_else(refused)?
+                .ok_or_else(|| refused())?
                 .expires_at_ms
-                .min(hot.execution_deadline_ms.ok_or_else(refused)?),
+                .min(hot.execution_deadline_ms.ok_or_else(|| refused())?),
         ),
         _ => return Err(refused()),
     };
@@ -172,7 +174,7 @@ async fn fetch(
     }
     let end = offset
         .checked_add(request.length as usize)
-        .ok_or_else(refused)?
+        .ok_or_else(|| refused())?
         .min(item.bytes.len());
     let encoded = URL_SAFE_NO_PAD
         .encode(serde_json::to_vec(&item.descriptor).map_err(|_| AppError::Internal)?);

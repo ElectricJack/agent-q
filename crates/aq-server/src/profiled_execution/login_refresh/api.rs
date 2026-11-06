@@ -59,7 +59,9 @@ pub struct RefreshOutcome {
     pub replayed: bool,
 }
 
+#[track_caller]
 fn refused() -> AppError {
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("material refresh is not currently authorized".into())
 }
 fn db(_: sqlx::Error) -> AppError {
@@ -128,8 +130,12 @@ pub async fn write_back(
     {
         return Err(refused());
     }
-    let registry = state.config.intelligence.clone().ok_or_else(refused)?;
-    let dir = registry.config.material_store.clone().ok_or_else(refused)?;
+    let registry = state.config.intelligence.clone().ok_or_else(|| refused())?;
+    let dir = registry
+        .config
+        .material_store
+        .clone()
+        .ok_or_else(|| refused())?;
     let mut tx = state.store.pool.begin().await.map_err(db)?;
     sqlx::query("SET LOCAL lock_timeout='2s'")
         .execute(&mut *tx)
@@ -158,7 +164,7 @@ pub async fn write_back(
     .fetch_optional(&mut *tx)
     .await
     .map_err(db)?
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     let hot: HotState = serde_json::from_value(hot).map_err(|_| refused())?;
     hot.validate_against(&request.binding)
         .map_err(|_| refused())?;
@@ -181,12 +187,12 @@ pub async fn write_back(
     .fetch_optional(&mut *tx)
     .await
     .map_err(db)?
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     let lease: MaterialLease = serde_json::from_value(lease).map_err(|_| refused())?;
     if lease.lease_id != request.lease_id || lease.binding != request.binding {
         return Err(refused());
     }
-    let index = super::configured_index(&registry, &lease).ok_or_else(refused)?;
+    let index = super::configured_index(&registry, &lease).ok_or_else(|| refused())?;
     let (credential, configured) = (
         &registry.credentials[index],
         &registry.config.credentials[index],
@@ -196,7 +202,7 @@ pub async fn write_back(
         .get(index)
         .cloned()
         .flatten()
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     if configured.kind != aq_selection::CredentialKind::SubscriptionLogin
         || !credential.enabled
         || !configured.allowed_node_ids.contains(&auth.id())

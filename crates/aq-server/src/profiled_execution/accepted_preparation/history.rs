@@ -21,7 +21,7 @@ pub(crate) async fn load_accepted_history_locked(
         } => (node_id, boot_id),
         _ => return Err(refused()),
     };
-    let row=sqlx::query("SELECT a.request,p.policy FROM profiled_v2_accepts a JOIN profiled_v2_proposals p USING(attempt_id) WHERE a.attempt_id=$1 AND a.node_id=$2 AND p.node_id=$2 AND p.boot_id=$3 FOR SHARE OF a,p").bind(binding.attempt_id).bind(node).bind(boot).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(refused)?;
+    let row=sqlx::query("SELECT a.request,p.policy FROM profiled_v2_accepts a JOIN profiled_v2_proposals p USING(attempt_id) WHERE a.attempt_id=$1 AND a.node_id=$2 AND p.node_id=$2 AND p.boot_id=$3 FOR SHARE OF a,p").bind(binding.attempt_id).bind(node).bind(boot).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(|| refused())?;
     let request: AcceptRequest =
         serde_json::from_value(row.get("request")).map_err(|_| refused())?;
     let policy: ArtifactRef = serde_json::from_value(row.get("policy")).map_err(|_| refused())?;
@@ -29,11 +29,11 @@ pub(crate) async fn load_accepted_history_locked(
     aq_session_protocol::Validate::validate(&policy.version).map_err(|_| refused())?;
     let receipt = authority::accepted_locked(tx, &proposal, &request)
         .await?
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     // Historical lease body/indices stay required after retrieval expiry or
     // revocation. Current admitted state is checked only by the live owner.
     let lease = &receipt.lease.materials[0];
-    let actual=sqlx::query("SELECT m.* FROM admission_material_leases m JOIN profiled_launch_materials x ON x.lease_id=m.lease_id AND x.attempt_id=$2 WHERE m.lease_id=$1 FOR SHARE OF m,x").bind(lease.lease_id).bind(binding.attempt_id).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(refused)?;
+    let actual=sqlx::query("SELECT m.* FROM admission_material_leases m JOIN profiled_launch_materials x ON x.lease_id=m.lease_id AND x.attempt_id=$2 WHERE m.lease_id=$1 FOR SHARE OF m,x").bind(lease.lease_id).bind(binding.attempt_id).fetch_optional(&mut **tx).await.map_err(db)?.ok_or_else(|| refused())?;
     if actual.get::<serde_json::Value, _>("lease") != value(lease)?
         || actual.get::<uuid::Uuid, _>("node_id") != node
         || actual.get::<uuid::Uuid, _>("boot_id") != boot

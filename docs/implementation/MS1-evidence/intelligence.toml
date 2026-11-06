@@ -1,0 +1,28 @@
+# MS1: the owner's Claude subscription login as a versioned, env-only credential.
+# Configuration only; the token enters through `aq-server import-login`.
+# C5b needs a configured base file (version 0); `scripts/ms1-demo.sh
+# import-login` stages it on the private source volume, restarts the server
+# so it is fingerprinted, then imports the newest version. allowed_node_ids is
+# empty: nothing on main leases it to a docker-local sandbox yet (MS1.md).
+[intelligence]
+revision = 1
+material_store = "/var/lib/aq/login-material"
+
+[[intelligence.credentials]]
+kind = "subscription-login"
+allowed_node_ids = []
+secret_file = "/var/lib/aq/credentials/owner-claude-subscription"
+delivery_mode = "server_material_v1"
+
+[intelligence.credentials.credential]
+provider = "anthropic"
+account_reference = "owner-claude-subscription"
+endpoint_reference = "claude-code"
+revision = 1
+enabled = true
+provisionable = false
+
+[intelligence.credentials.credential.profile]
+id = "owner-claude-subscription"
+version = "1"
+digest = "c2b3fba36b15600b65887a3e5ff059957cfcf868c1b23a633cbbb086309071b6"

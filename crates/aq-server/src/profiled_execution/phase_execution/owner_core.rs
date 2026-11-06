@@ -2,7 +2,9 @@ use crate::{AppState, error::AppError, profiled_execution::on_heap};
 use aq_admission::{ArtifactRef, Digest};
 use serde::Serialize;
 use sqlx::{Postgres, Transaction};
+#[track_caller]
 fn refused() -> AppError {
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("phase execution authority is not currently available".into())
 }
 fn db(_: sqlx::Error) -> AppError {
@@ -25,7 +27,7 @@ fn now(state: &AppState) -> Result<u64, AppError> {
     u64::try_from((state.clock)().timestamp_millis())
         .ok()
         .filter(|n| *n > 0)
-        .ok_or_else(refused)
+        .ok_or_else(|| refused())
 }
 fn canonical(v: &impl Serialize) -> Result<Vec<u8>, AppError> {
     let mut v = serde_json::to_value(v).map_err(|_| AppError::Internal)?;
@@ -186,11 +188,24 @@ async fn prepare_inner(
     .execute(&mut *tx)
     .await
     .map_err(db)?;
-    // A genuinely unissued lineage, not an absent accounting row interpreted as zero.
+    // A genuinely unissued attempt, not an absent accounting row interpreted as
+    // zero: the lineage holds exactly the decision's started attempts plus this
+    // one (1 for a first attempt; a B4 replacement counts its predecessors).
     let counts =
         on_heap(|| super::no_grant::attempt_counts_locked(&mut tx, after.input.spec.task.task_id))
             .await?;
-    if counts.started != 1 || after.hot.grant.is_some() || after.hot.execution_deadline_ms.is_some()
+    let expected = after
+        .input
+        .decision
+        .inputs
+        .budget
+        .attempts_started
+        .checked_add(1)
+        .ok_or_else(|| refused())?;
+    if counts.started != expected
+        || (after.input.decision.inputs.replacement.is_none() && expected != 1)
+        || after.hot.grant.is_some()
+        || after.hot.execution_deadline_ms.is_some()
     {
         return Err(refused());
     }
@@ -218,13 +233,19 @@ async fn prepare_inner(
                 .manifest
                 .resources
                 .wall_time_ms
-                .min(after.policy.max_lineage_elapsed_ms),
+                .min(
+                    after
+                        .policy
+                        .max_lineage_elapsed_ms
+                        .checked_sub(facts::lineage_elapsed(&after)?)
+                        .ok_or_else(|| refused())?,
+                ),
         )
         .filter(|d| *d <= i64::MAX as u64)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let expiry = issued
         .checked_add(after.history.proposal.policy.maximum_execution_lease_ms)
-        .ok_or_else(refused)?
+        .ok_or_else(|| refused())?
         .min(deadline);
     let grant = aq_session_protocol::ProfiledGrant {
         binding: request.original.binding.clone(),
@@ -256,7 +277,7 @@ async fn prepare_inner(
     super::journal::record_prepared(
         &mut tx,
         &request.original.binding,
-        after.hot.owner.as_ref().ok_or_else(refused)?,
+        after.hot.owner.as_ref().ok_or_else(|| refused())?,
         grant.grant_id,
         request.original.journal_revision,
         &request.original.journal_digest,
@@ -433,7 +454,7 @@ async fn replay_locked(
         history::load_optional_locked(tx, auth.id(), &q.original.binding, rows[0].get("grant_id"))
     })
     .await?
-    .ok_or_else(refused)?;
+    .ok_or_else(|| refused())?;
     if !same(&original.request, q)? || !same(&original.installation, &q.original.materials[0])? {
         return Err(refused());
     }
@@ -512,7 +533,7 @@ async fn replay_locked(
         || view.cancellation_id.is_some()
         || hot.status != Status::Granted
         || !same(
-            hot.grant.as_ref().ok_or_else(refused)?,
+            hot.grant.as_ref().ok_or_else(|| refused())?,
             &original.receipt.grant,
         )?
         || hot.execution_deadline_ms != Some(original.receipt.execution_deadline_ms)
@@ -582,8 +603,8 @@ async fn finish_replay(
     require_schema(&mut tx).await?;
     let current_replay = replay_locked(state, &mut tx, auth, request, nonce)
         .await?
-        .ok_or_else(refused)?;
-    let after = current_replay.preflight.as_ref().ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
+    let after = current_replay.preflight.as_ref().ok_or_else(|| refused())?;
     if !same(&original.history.receipt, &current_replay.history.receipt)?
         || !same(
             &original.history.provenance,

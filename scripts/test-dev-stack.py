@@ -214,3 +214,54 @@ def test_atomic_credential_publish_preserves_an_existing_record(tmp_path):
         dev.save_worker_credential(credential, {"credential": "replacement"})
     assert json.loads(credential.read_text()) == {"credential": "first"}
     assert list(tmp_path.iterdir()) == [credential]
+
+
+def test_prepare_appends_only_an_operator_intelligence_section(tmp_path):
+    """MS1: an opt-in [intelligence] file (no secrets) joins the generated vault."""
+    import tomllib
+    section = tmp_path / "intelligence.toml"
+    section.write_text('[intelligence]\nrevision = 1\nmaterial_store = "/var/lib/aq/login-material"\n')
+    extra = dict(AQ_DEV_INTELLIGENCE_FILE=str(section))
+    first = command(tmp_path, "prepare", extra=extra)
+    assert first.returncode == 0, first.stderr
+    vault = Path(json.loads(first.stdout)["AQ_VAULT_DIR"]) / "config.toml"
+    config = tomllib.loads(vault.read_text())
+    assert config["intelligence"]["material_store"] == "/var/lib/aq/login-material"
+    assert config["auth"]["mode"] == "dev"
+    # Replay with the same file is stable; dropping or changing it is refused.
+    assert command(tmp_path, "prepare", extra=extra).returncode == 0
+    assert command(tmp_path, "prepare").returncode != 0
+    for bad in ('[server]\nadmin_bind = "0.0.0.0:1"\n', '[intelligence]\nrevision = 1\nsecret = "x"\n[auth]\nmode = "x"\n',
+                "not toml ["):
+        other = tmp_path / "bad.toml"
+        other.write_text(bad)
+        refused = command(tmp_path / "fresh", "prepare", extra=dict(AQ_DEV_INTELLIGENCE_FILE=str(other)))
+        assert refused.returncode != 0
+        assert "intelligence" in refused.stderr
+    link = tmp_path / "link.toml"
+    link.symlink_to(section)
+    assert command(tmp_path / "linked", "prepare", extra=dict(AQ_DEV_INTELLIGENCE_FILE=str(link))).returncode != 0
+
+
+def test_operator_section_may_carry_profiled_execution_and_be_replaced_explicitly(tmp_path):
+    """MS1: [profiled_execution] may join [intelligence]; replacing the operator
+    section of an existing vault needs AQ_DEV_REPLACE_OPERATOR_SECTION=1 and
+    never touches a generated table."""
+    import tomllib
+    section = tmp_path / "intelligence.toml"
+    section.write_text('[intelligence]\nrevision = 1\n')
+    extra = dict(AQ_DEV_INTELLIGENCE_FILE=str(section))
+    first = command(tmp_path, "prepare", extra=extra)
+    assert first.returncode == 0, first.stderr
+    vault = Path(json.loads(first.stdout)["AQ_VAULT_DIR"]) / "config.toml"
+    section.write_text('[intelligence]\nrevision = 2\n[profiled_execution]\nrevision = 1\nqualified_runtimes = []\nprojects = []\n')
+    assert command(tmp_path, "prepare", extra=extra).returncode != 0
+    replaced = command(tmp_path, "prepare", extra=dict(extra, AQ_DEV_REPLACE_OPERATOR_SECTION="1"))
+    assert replaced.returncode == 0, replaced.stderr
+    config = tomllib.loads(vault.read_text())
+    assert config["intelligence"]["revision"] == 2 and config["profiled_execution"]["revision"] == 1
+    assert command(tmp_path, "prepare", extra=extra).returncode == 0
+    vault.write_text(vault.read_text().replace('mode = "dev"', 'mode = "other"'))
+    assert command(tmp_path, "prepare", extra=dict(extra, AQ_DEV_REPLACE_OPERATOR_SECTION="1")).returncode != 0
+    section.write_text('[profiled_execution]\nrevision = 1\n')
+    assert command(tmp_path / "fresh", "prepare", extra=extra).returncode != 0

@@ -109,7 +109,7 @@ pub fn policy_for(
         .config
         .profiled_execution
         .as_ref()
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     validate_catalog(config).map_err(|_| refused())?;
     for d in &config.definition_bodies {
         if d.artifact().id.as_str().starts_with(PREFIX) {

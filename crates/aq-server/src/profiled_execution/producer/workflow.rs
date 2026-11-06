@@ -37,7 +37,14 @@ async fn runtime(
     state: &AppState,
     auth: &AuthenticatedNode,
     request: &Poll,
-) -> Result<(registration::RegisteredRuntime, CapabilitySnapshot), AppError> {
+) -> Result<
+    (
+        registration::RegisteredRuntime,
+        CapabilitySnapshot,
+        Vec<&'static str>,
+    ),
+    AppError,
+> {
     let mut tx = state.store.pool.begin().await.map_err(db)?;
     crate::worker_api::lock_current_node(&mut tx, auth).await?;
     if auth.id() != request.identity.node_id {
@@ -60,7 +67,7 @@ async fn runtime(
         .config
         .profiled_execution
         .as_ref()
-        .ok_or_else(refused)?
+        .ok_or_else(|| refused())?
         .qualified(&admitted.request)
         .map_err(|_| refused())?;
     for feature in [
@@ -94,13 +101,19 @@ async fn runtime(
         }
     }
     // The frozen manifest carries exactly one confinement mode (native or
-    // container); the node must qualify at least one of them.
-    if !has(aq_selection::ConfinementMode::Native.capability())
-        && !has(aq_selection::ConfinementMode::Container.capability())
-    {
+    // container); the node must qualify at least one of them here, and the
+    // exact mode the built manifest requires is checked after assembly.
+    let modes: Vec<&'static str> = [
+        aq_selection::ConfinementMode::Native.capability(),
+        aq_selection::ConfinementMode::Container.capability(),
+    ]
+    .into_iter()
+    .filter(|cap| has(cap))
+    .collect();
+    if modes.is_empty() {
         return Err(refused());
     }
-    let row=sqlx::query("SELECT boot_id,sequence,snapshot FROM intelligence_node_snapshots WHERE node_id=$1 FOR SHARE").bind(auth.id()).fetch_optional(&mut *tx).await.map_err(db)?.ok_or_else(refused)?;
+    let row=sqlx::query("SELECT boot_id,sequence,snapshot FROM intelligence_node_snapshots WHERE node_id=$1 FOR SHARE").bind(auth.id()).fetch_optional(&mut *tx).await.map_err(db)?.ok_or_else(|| refused())?;
     let snapshot: CapabilitySnapshot =
         serde_json::from_value(row.get("snapshot")).map_err(|_| refused())?;
     if row.get::<Uuid, _>("boot_id") != request.identity.boot_id
@@ -115,7 +128,7 @@ async fn runtime(
         return Err(refused());
     }
     tx.commit().await.map_err(db)?;
-    Ok((runtime, snapshot))
+    Ok((runtime, snapshot, modes))
 }
 async fn reservation(
     state: &AppState,
@@ -133,7 +146,7 @@ async fn reservation(
         project,
         now(state)?
             .checked_add(7 * 86_400_000)
-            .ok_or_else(refused)?,
+            .ok_or_else(|| refused())?,
     );
     proposals
         .retain(
@@ -261,7 +274,9 @@ where
         // task, an exhausted retry/time/sandbox budget or an uncertain prior
         // must not starve later tasks on this same bounded page.
         match assess(candidate.revision.task_id).await? {
-            Assessment::Blocked(_) => {}
+            Assessment::Blocked(reason) => {
+                tracing::debug!(task_id = %candidate.revision.task_id, reason, "ready task not offered");
+            }
             admitted => return Ok(Some((candidate.revision.clone(), admitted))),
         }
     }
@@ -309,6 +324,14 @@ pub async fn poll(
             _ => Ok(page),
         };
     }
+    // A zero-capacity poll is a cancellation query (MS1 B3): it asks for no
+    // offer, so it never depends on a fresh inventory snapshot. Answering it
+    // here keeps "no pending cancellation" distinct from a refused poll for a
+    // node whose inventory has aged past its TTL during a long attempt.
+    if request.available.slots == 0 {
+        page.validate_for(request).map_err(|_| refused())?;
+        return Ok(page);
+    }
     // Offer assembly has a large future. Keep this shared scheduling boundary
     // on the heap instead of embedding it in every control/fixture caller.
     on_heap(|| offers(state, auth, request, page)).await
@@ -324,7 +347,7 @@ async fn offers(
         .get_or_init(|| Semaphore::new(4))
         .try_acquire()
         .map_err(|_| refused())?;
-    let (runtime, snapshot) = on_heap(|| runtime(state, auth, request)).await?;
+    let (runtime, snapshot, modes) = on_heap(|| runtime(state, auth, request)).await?;
     if request.available.slots == 0 {
         return Ok(page);
     }
@@ -347,7 +370,7 @@ async fn offers(
         .config
         .profiled_execution
         .as_ref()
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     let candidates = config
         .projects
         .iter()
@@ -357,7 +380,7 @@ async fn offers(
             priority: p.priority,
         })
         .collect::<Vec<_>>();
-    let graph = state.agent_access.as_ref().ok_or_else(refused)?;
+    let graph = state.agent_access.as_ref().ok_or_else(|| refused())?;
     let polled_at = now(state)?;
     let recorded = on_heap(|| fairness::recorded(&state.store.pool)).await?;
     let served = if recorded {
@@ -377,7 +400,7 @@ async fn offers(
             .projects
             .iter()
             .find(|p| p.project_id == candidate.project_id)
-            .ok_or_else(refused)?;
+            .ok_or_else(|| refused())?;
         if recorded {
             on_heap(|| fairness::record(&state.store.pool, policy.project_id, polled_at)).await?;
         }
@@ -394,7 +417,7 @@ async fn offers(
         .map_err(|_| refused())?;
         if let Some((task, assessment)) = on_heap(|| {
             first_eligible_task(&ready, |task| {
-                replacement::assess_task(state, task, polled_at)
+                replacement::assess_task_for_revision(state, task, polled_at, record.revision)
             })
         })
         .await?
@@ -408,6 +431,16 @@ async fn offers(
     };
     let replacement = assessment.replacement().cloned();
     if let Some(replacement) = &replacement {
+        tracing::info!(
+            task_id = %task.task_id,
+            predecessor = %replacement.predecessor,
+            attempts_started = replacement.attempts_started,
+            lineage_elapsed_ms = replacement.elapsed_ms,
+            sandbox_ms_charged = replacement.sandbox_ms,
+            max_attempts = replacement::MAX_ATTEMPTS,
+            max_sandbox_ms = replacement::MAX_SANDBOX_MS,
+            "replacement attempt admitted within the lineage budget"
+        );
         // The failed predecessor's claim is released under its locks before
         // the successor's generation; a later refusal retries idempotently.
         on_heap(|| replacement::release(state, task.task_id, replacement)).await?;
@@ -433,16 +466,20 @@ async fn offers(
             .items
             .iter()
             .find(|r| r.revision == task)
-            .ok_or_else(refused)?
+            .ok_or_else(|| refused())?
             .node,
     )?;
     let decision = on_heap(|| selection(state, &task, &compiled, replacement.as_ref())).await?;
-    let selected = decision.outcome.resolved.as_ref().ok_or_else(refused)?;
+    let selected = decision
+        .outcome
+        .resolved
+        .as_ref()
+        .ok_or_else(|| refused())?;
     let composition = compiled
         .candidates
         .iter()
         .find(|c| c.digest == selected.choice.composition_digest)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     // Qualification and exact startup counting precede expensive source export.
     context_budget::evaluate(
         &config.context_qualifications,
@@ -510,7 +547,7 @@ async fn offers(
             .items
             .iter()
             .find(|r| r.revision == task)
-            .ok_or_else(refused)?
+            .ok_or_else(|| refused())?
             .node,
     )? != original_ready_node
     {
@@ -552,6 +589,20 @@ async fn offers(
         })
     })
     .await?;
+    // The node's authenticated registration must qualify the exact
+    // confinement mode this manifest requires (MS1 review should-fix 1).
+    if !built
+        .native
+        .offered
+        .offer
+        .manifest
+        .harness
+        .required_capabilities
+        .iter()
+        .any(|c| c.version == 1 && modes.contains(&c.id.as_str()))
+    {
+        return Err(refused());
+    }
     let limits = &built.native.offered.offer.manifest.resources;
     if limits.memory_bytes > request.available.memory_bytes
         || limits.cpu_millis > request.available.cpu_millis

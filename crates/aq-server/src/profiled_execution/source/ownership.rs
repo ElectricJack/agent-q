@@ -22,6 +22,9 @@ struct Body {
 struct Evidence {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     reference_observation: Option<Value>,
+    /// D1: the server-owned source head AQ published to the named ref.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    publication_head: Option<Value>,
     commit_inspection: Value,
     retention_inspection: Value,
 }
@@ -52,7 +55,26 @@ pub fn validate_body(bytes: &[u8], project: Uuid, now: u64) -> Result<SourceAdmi
     }
     match &a.selection {
         SourceSelection::Immutable { object } => {
-            if *object != a.resolved_object || body.evidence.reference_observation.is_some() {
+            if *object != a.resolved_object
+                || body.evidence.reference_observation.is_some()
+                || body.evidence.publication_head.is_some()
+            {
+                return Err(refused());
+            }
+        }
+        SourceSelection::NamedRef { reference } if body.evidence.publication_head.is_some() => {
+            let head: crate::profiled_execution::settlement::publication::SourceHead =
+                serde_json::from_value(body.evidence.publication_head.clone().unwrap_or_default())
+                    .map_err(|_| refused())?;
+            if body.evidence.reference_observation.is_some()
+                || !head.validate()
+                || head.target != reference.as_str()
+                || head.oid != a.resolved_object.hex
+                || head.retention_handle != body.retention_handle
+                || head.project_id != a.project_id
+                || head.repository_id != a.repository_id
+                || head.binding_generation != a.repository_binding_generation
+            {
                 return Err(refused());
             }
         }
@@ -61,7 +83,7 @@ pub fn validate_body(bytes: &[u8], project: Uuid, now: u64) -> Result<SourceAdmi
                 .evidence
                 .reference_observation
                 .as_ref()
-                .ok_or_else(refused)?;
+                .ok_or_else(|| refused())?;
             if resolve_ref(
                 record,
                 reference.as_str(),
@@ -91,7 +113,7 @@ pub fn validate_stored_body(bytes: &[u8], project: Uuid) -> Result<SourceAdmissi
         .admission
         .expires_at_ms
         .checked_sub(1)
-        .ok_or_else(refused)?;
+        .ok_or_else(|| refused())?;
     validate_body(bytes, project, as_of)
 }
 pub async fn retain_admission(

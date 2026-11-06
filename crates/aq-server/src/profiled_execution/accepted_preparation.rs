@@ -21,7 +21,9 @@ pub(crate) use history::{
 pub use policy::{PolicyDefinition, policy_for};
 pub use proposal::{ProposalRequest, propose};
 use sqlx::{Postgres, Transaction};
+#[track_caller]
 fn refused() -> AppError {
+    tracing::debug!(target: "aq_refusal", at = %std::panic::Location::caller(), "profiled refusal");
     AppError::Conflict("accepted preparation v2 is not currently available".into())
 }
 pub(super) fn db(_: sqlx::Error) -> AppError {
@@ -31,7 +33,7 @@ pub(super) fn now(state: &AppState) -> Result<u64, AppError> {
     u64::try_from((state.clock)().timestamp_millis())
         .ok()
         .filter(|n| *n > 0)
-        .ok_or_else(refused)
+        .ok_or_else(|| refused())
 }
 pub(super) fn value(v: &impl serde::Serialize) -> Result<serde_json::Value, AppError> {
     serde_json::to_value(v).map_err(|_| AppError::Internal)

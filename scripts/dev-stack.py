@@ -55,6 +55,30 @@ def paths():
     return state, secret, vault
 
 
+def intelligence_section():
+    """Opt-in operator [intelligence] tables (MS1: a subscription-login
+    credential and its material store). Configuration only, never login bytes:
+    those enter through `aq-server import-login`."""
+    name = os.environ.get("AQ_DEV_INTELLIGENCE_FILE")
+    if not name:
+        return ""
+    import tomllib
+    path = Path(name)
+    try:
+        metadata = path.lstat()
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_size > 2 * 1024 * 1024:
+            raise ValueError()
+        text = path.read_text()
+        tables = tomllib.loads(text)
+    except (OSError, ValueError, UnicodeDecodeError):
+        raise ValueError("AQ_DEV_INTELLIGENCE_FILE must be a small regular TOML file with only [intelligence] tables") from None
+    # MS1: optionally also the matching [profiled_execution] tables and the
+    # private result-media store the dashboard's Results view requires.
+    if "intelligence" not in tables or not set(tables) <= {"intelligence", "profiled_execution", "result_media"}:
+        raise ValueError("AQ_DEV_INTELLIGENCE_FILE must contain only [intelligence] (and [profiled_execution], [result_media]) tables")
+    return "\n" + text if text.endswith("\n") else "\n" + text + "\n"
+
+
 def prepare():
     state, secret, vault = paths()
     for directory in (state, secret, vault,
@@ -95,9 +119,24 @@ active_key_id = "dev-terminal-1"
 id = "dev-terminal-1"
 file = "/run/aq-dev/terminal_protection_key"
 '''
+    generated = config
+    config += intelligence_section()
     target = vault / "config.toml"
     if target.exists() and target.read_text() != config:
-        raise ValueError("development vault differs from generated configuration; preserve it and use a new AQ_DEV_STATE_DIR")
+        # MS1: an operator may replace only the appended operator section of an
+        # existing vault (revisioned [intelligence]/[profiled_execution]); every
+        # generated table must be byte-identical.
+        previous = target.read_text()
+        if not (os.environ.get("AQ_DEV_REPLACE_OPERATOR_SECTION") == "1"
+                and previous.startswith(generated)):
+            raise ValueError("development vault differs from generated configuration; preserve it and use a new AQ_DEV_STATE_DIR")
+        # The settlement config is config.toml plus [playbooks]: carry it over.
+        playbooks = vault / "playbooks.toml"
+        if playbooks.exists():
+            retained = playbooks.read_text()
+            if not retained.startswith(previous):
+                raise ValueError("retained settlement configuration differs; use a fresh development stack")
+            playbooks.write_text(config + retained[len(previous):])
     target.write_text(config)
     return dict(AQ_STATE_FORMAT=str(state_format(ROOT)), AQ_DEV_STATE_DIR=str(state),
                 AQ_VAULT_DIR=str(vault), AQ_SECRETS_DIR=str(secret),
@@ -212,7 +251,11 @@ def designation(local_fixture=False):
     if parsed.username or parsed.password or parsed.query or parsed.fragment or any(c.isspace() for c in url):
         raise ValueError("DEV_SCRATCH_REPO_URL must not contain credentials, query, fragment or whitespace")
     if not (parsed.scheme == "https" and parsed.hostname == "github.com" and len(parsed.path.strip("/").split("/")) == 2):
-        if not (local_fixture and url.startswith("/fixture/") and not parsed.scheme):
+        # MS1 D1: a writable local bare remote inside the aq-git volume.
+        local_remote = os.environ.get("DEV_SCRATCH_LOCAL_REMOTE") == "1" and url.startswith("/var/lib/aq/remotes/")
+        if local_remote and not parsed.scheme and ".." not in url:
+            local_fixture = True
+        elif not (local_fixture and url.startswith("/fixture/") and not parsed.scheme):
             raise ValueError("DEV_SCRATCH_REPO_URL must designate an HTTPS GitHub repository")
     if subprocess.run(["git", "check-ref-format", "refs/heads/" + branch], capture_output=True).returncode:
         raise ValueError("invalid DEV_SCRATCH_BASE_BRANCH")
@@ -264,7 +307,7 @@ def seed(local_fixture=False):
     state, _, _ = paths()
     with (state / "seed.lock").open("a") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        return seed_locked(choice, local_fixture)
+        return seed_locked(choice, choice["local_fixture"])
 
 
 def verify_worker_credential(record, node_id, worker_url):

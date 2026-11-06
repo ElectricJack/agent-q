@@ -23,6 +23,14 @@ copy_private() {
         temporary=''
     fi
 }
+# MS1: scripts/dev-stack.py prepare has already checked that only the appended
+# operator section ([intelligence]/[profiled_execution]) changed.
+if [ "${AQ_DEV_REPLACE_OPERATOR_SECTION:-}" = 1 ] && [ -e /vault/config.toml ] && ! cmp -s /dev-vault/config.toml /vault/config.toml; then
+    temporary=$(mktemp /vault/.e0-init.XXXXXX)
+    install -o 10001 -g 10001 -m 0600 /dev-vault/config.toml "$temporary"
+    mv -f "$temporary" /vault/config.toml
+    temporary=''
+fi
 copy_private /dev-vault/config.toml /vault/config.toml
 copy_private /run/secrets/graph_token /run/aq-dev/graph_token
 copy_private /run/secrets/playbook_engine_keys /run/aq-dev/playbook_engine_keys
@@ -30,6 +38,12 @@ copy_private /run/secrets/playbook_bridge_key /run/aq-dev/playbook_bridge_key
 copy_private /run/secrets/terminal_protection_key /run/aq-dev/terminal_protection_key
 if [ -f /dev-vault/playbooks.toml ]; then
     install -d -o 10001 -g 10001 -m 0700 /vault/settlement
+    if [ "${AQ_DEV_REPLACE_OPERATOR_SECTION:-}" = 1 ] && [ -e /vault/settlement/config.toml ] && ! cmp -s /dev-vault/playbooks.toml /vault/settlement/config.toml; then
+        temporary=$(mktemp /vault/settlement/.e0-init.XXXXXX)
+        install -o 10001 -g 10001 -m 0600 /dev-vault/playbooks.toml "$temporary"
+        mv -f "$temporary" /vault/settlement/config.toml
+        temporary=''
+    fi
     copy_private /dev-vault/playbooks.toml /vault/settlement/config.toml
     copy_private /dev-vault/playbook-artifact.json /run/aq-dev/playbook-artifact.json
 fi
