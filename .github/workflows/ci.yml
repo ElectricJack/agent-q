@@ -131,8 +131,8 @@ jobs:
       - name: Recovery authority and reserved control capacity regressions
         run: cargo nextest run -p aq-server --locked --no-fail-fast --profile ci --features recovery-test-support --test it_server -E 'test(/^execution::/) | test(/^readiness::/)'
 
-  # The static updater that release.yml ships, built the same way, so musl
-  # breakage shows up here rather than at tag time.
+  # The static updater and v2 CLI that release.yml ships, built the same way,
+  # so musl breakage shows up here rather than at tag time.
   musl:
     name: aq-updater static build (musl)
     runs-on: ubuntu-latest
@@ -148,6 +148,14 @@ jobs:
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
       - name: Build aq-updater (release, no features)
         run: cargo build --release --locked -p aq-updater --target x86_64-unknown-linux-musl
+      # ring needs a C compiler for the musl target (release.yml does the same).
+      - name: Build the v2 CLI (release, static)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends musl-tools
+          CC_x86_64_unknown_linux_musl=musl-gcc \
+            cargo build --release --locked -p aqv2 --target x86_64-unknown-linux-musl
+          file target/x86_64-unknown-linux-musl/release/aqv2 | grep -q 'statically linked\|static-pie linked'
 
   postgres-only:
     name: no SQLite in Cargo.lock
