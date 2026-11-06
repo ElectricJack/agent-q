@@ -2,7 +2,93 @@
 //! the attempt holds, record the decision and refuse with the reason. The
 //! decision itself is `aq-agent-grants`.
 use super::*;
-use aq_agent_grants::{AttemptIds, AuditEntry, Decision, GrantSet, Holder, Refusal};
+use aq_agent_grants::{
+    AttemptIds, AuditEntry, Decision, GrantSet, Holder, Refusal, RefusalCode, Target,
+};
+
+tokio::task_local! {
+    /// Set while the command surface forwards a call it already checked and
+    /// audited: the route's own check runs again but writes no second row.
+    pub(crate) static DISPATCHED: ();
+}
+
+/// An authenticated attempt, as the command surface sees it.
+pub(crate) struct AgentCaller {
+    pub(crate) ids: AttemptIds,
+    pub(crate) grants: GrantSet,
+    pub(crate) binding: Value,
+    principal: Principal,
+}
+pub(crate) async fn agent_caller(
+    state: &AppState,
+    headers: &HeaderMap,
+) -> std::result::Result<AgentCaller, RefusalCode> {
+    let p = authenticate(state, headers).await.map_err(|e| match e.0 {
+        "session_revoked" => RefusalCode::SessionRevoked,
+        "session_expired" => RefusalCode::SessionExpired,
+        "internal" => RefusalCode::Internal,
+        _ => RefusalCode::Unauthorized,
+    })?;
+    Ok(AgentCaller {
+        ids: ids(&p).map_err(|_| RefusalCode::Internal)?,
+        grants: p.grants.clone(),
+        binding: p.binding.clone(),
+        principal: p,
+    })
+}
+impl AgentCaller {
+    pub(crate) fn whoami(&self) -> Value {
+        let p = &self.principal;
+        let expires =
+            chrono::DateTime::from_timestamp_millis(p.expires as i64).map(|t| t.to_rfc3339());
+        json!({"api_version":1,"principal":"agent","attempt_id":self.ids.attempt_id,"task_id":self.ids.task_id,
+            "project_id":self.ids.project_id,"session_id":p.binding["session_id"],"workspace_id":p.binding["workspace_id"],
+            "profile_id":p.profile["profile_id"],"grants":self.grants,"grants_digest":self.grants.digest(),
+            "credential":{"version":p.version.to_string(),"expires_at":expires,"authority_revision":p.revision.to_string()}})
+    }
+    /// The grant and scope check for one command (§6.4), with its target.
+    pub(crate) fn authorize(
+        &self,
+        spec: &aq_command_registry::CommandSpec,
+        params: &mut serde_json::Map<String, Value>,
+    ) -> (Decision, Target) {
+        let holder = Holder {
+            project: self.ids.project_id,
+        };
+        let own = Target::OwnAttempt;
+        let Some(grant) = spec.grant else {
+            return (
+                Decision::Allow(aq_agent_grants::Grant::new(
+                    "self",
+                    aq_agent_grants::Scope::AttemptSelf,
+                )),
+                own,
+            );
+        };
+        let target = aq_command_registry::agent_target(
+            spec.target,
+            params,
+            holder,
+            self.ids.task_id,
+            |_| aq_agent_grants::Relation::Other,
+        );
+        let Ok(target) = target else {
+            return (
+                Decision::Deny(Refusal::error(
+                    RefusalCode::InvalidRequest,
+                    spec.name,
+                    "A target param is malformed.",
+                )),
+                own,
+            );
+        };
+        let grant = aq_command_registry::required_grant(spec, &target).unwrap_or(grant);
+        (
+            aq_agent_grants::check(&self.grants, holder, spec.name, grant, target),
+            target,
+        )
+    }
+}
 
 /// Seal `grants` beside a new launch binding, in its transaction. No row holds none.
 pub(super) async fn seal(
@@ -47,8 +133,13 @@ pub(super) async fn require(
     let (command, grant, target) = aq_agent_grants::route_grant(path, holder)
         .ok_or_else(|| Error("internal").respond(request_id))?;
     let decision = aq_agent_grants::check(&p.grants, holder, command, grant, target);
-    let entry = AuditEntry::agent(ids, command, grant, target, &decision, request_id);
-    audit(state, &entry).await;
+    if DISPATCHED.try_with(|_| ()).is_err() {
+        audit(
+            state,
+            &AuditEntry::agent(ids, command, grant, target, &decision, request_id),
+        )
+        .await;
+    }
     match decision {
         Decision::Allow(_) => Ok(()),
         Decision::Deny(refusal) => Err(refused(headers, refusal, request_id)),

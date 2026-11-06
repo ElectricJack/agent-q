@@ -77,6 +77,8 @@ fn confirmed(response: &Value) -> Outcome {
 impl ActionKind for AnswerQuestion {
     type Payload = QuestionAnswer;
     const KIND: &'static str = KIND;
+    const GRANT: &'static str = "question.answer";
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
     async fn authorize(
         &self,
         state: &AppState,

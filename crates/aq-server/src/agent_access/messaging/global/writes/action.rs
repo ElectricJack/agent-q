@@ -40,6 +40,8 @@ fn result(receipt: Receipt) -> Outcome {
 impl ActionKind for SendMessage {
     type Payload = Create;
     const KIND: &'static str = "supervisor.message.send";
+    const GRANT: &'static str = aq_agent_grants::op::MESSAGE_SEND;
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Own;
     async fn authorize(
         &self,
         _state: &AppState,

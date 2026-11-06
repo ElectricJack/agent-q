@@ -31,6 +31,8 @@ pub(crate) trait GraphPayload:
     Clone + serde::de::DeserializeOwned + Serialize + JsonSchema + Send + Sync + 'static
 {
     const KIND: &'static str;
+    const GRANT: &'static str;
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
     /// Subject entity type, which is also the Graph node kind ("project" for author).
     const ENTITY: &'static str;
     fn operation_id(&self) -> Uuid;
@@ -94,8 +96,9 @@ pub(crate) enum Verdict {
 }
 
 macro_rules! common {
-    ($kind:literal, $entity:literal) => {
+    ($kind:literal, $entity:literal, $grant:expr) => {
         const KIND: &'static str = $kind;
+        const GRANT: &'static str = $grant;
         const ENTITY: &'static str = $entity;
         fn operation_id(&self) -> Uuid {
             self.operation_id
@@ -130,7 +133,7 @@ pub(crate) struct TaskEdit {
     pub labels: Option<Vec<String>>,
 }
 impl GraphPayload for TaskEdit {
-    common!("task.edit", "task");
+    common!("task.edit", "task", aq_agent_grants::op::TASK_EDIT);
     fn valid(&self) -> bool {
         (self.title.is_some()
             || self.body.is_some()
@@ -173,7 +176,7 @@ pub(crate) struct TaskReprioritize {
     pub priority: i64,
 }
 impl GraphPayload for TaskReprioritize {
-    common!("task.reprioritize", "task");
+    common!("task.reprioritize", "task", aq_agent_grants::op::TASK_EDIT);
     fn valid(&self) -> bool {
         (-1_000_000..=1_000_000).contains(&self.priority)
     }
@@ -203,7 +206,11 @@ pub(crate) struct DependencyAdd {
     pub blocker_id: Uuid,
 }
 impl GraphPayload for DependencyAdd {
-    common!("task.dependency.add", "task");
+    common!(
+        "task.dependency.add",
+        "task",
+        aq_agent_grants::op::TASK_EDIT
+    );
     fn valid(&self) -> bool {
         !self.blocker_id.is_nil()
     }
@@ -233,7 +240,11 @@ pub(crate) struct DependencyRemove {
     pub edge_version: String,
 }
 impl GraphPayload for DependencyRemove {
-    common!("task.dependency.remove", "task");
+    common!(
+        "task.dependency.remove",
+        "task",
+        aq_agent_grants::op::TASK_EDIT
+    );
     fn valid(&self) -> bool {
         !self.edge_id.is_nil() && version(&self.edge_version).is_some()
     }
@@ -264,6 +275,9 @@ pub(crate) struct KnowledgeAuthor {
 }
 impl GraphPayload for KnowledgeAuthor {
     const KIND: &'static str = "knowledge.author";
+    const GRANT: &'static str = aq_agent_grants::op::KNOWLEDGE_AUTHOR;
+    const TARGET: aq_command_registry::TargetRule =
+        aq_command_registry::TargetRule::Project("project_id");
     const ENTITY: &'static str = "project";
     fn operation_id(&self) -> Uuid {
         self.operation_id
@@ -313,7 +327,11 @@ pub(crate) struct KnowledgeCorrect {
     pub content_type: Option<ContentType>,
 }
 impl GraphPayload for KnowledgeCorrect {
-    common!("knowledge.correct", "knowledge");
+    common!(
+        "knowledge.correct",
+        "knowledge",
+        aq_agent_grants::op::KNOWLEDGE_AUTHOR
+    );
     fn valid(&self) -> bool {
         (self.title.is_some()
             || self.body.is_some()
@@ -349,7 +367,7 @@ pub(crate) struct KnowledgeVerify {
     pub evidence: Vec<serde_json::Map<String, Value>>,
 }
 impl GraphPayload for KnowledgeVerify {
-    common!("knowledge.verify", "knowledge");
+    common!("knowledge.verify", "knowledge", "knowledge.verify");
     fn reason_required() -> bool {
         true
     }
@@ -380,7 +398,7 @@ pub(crate) struct KnowledgeRetire {
     pub successor_id: Option<Uuid>,
 }
 impl GraphPayload for KnowledgeRetire {
-    common!("knowledge.retire", "knowledge");
+    common!("knowledge.retire", "knowledge", "knowledge.retire");
     fn valid(&self) -> bool {
         text(&self.retirement_reason, 1, 4096)
             && !self.retirement_reason.trim().is_empty()
@@ -412,7 +430,7 @@ pub(crate) struct KnowledgeRestore {
     pub include_lifecycle: Option<bool>,
 }
 impl GraphPayload for KnowledgeRestore {
-    common!("knowledge.restore", "knowledge");
+    common!("knowledge.restore", "knowledge", "knowledge.restore");
     fn valid(&self) -> bool {
         self.revision >= 1 && self.revision <= i64::MAX as u64
     }
@@ -632,6 +650,8 @@ fn code(raw: &Value) -> Option<&str> {
 impl<P: GraphPayload> ActionKind for GraphAction<P> {
     type Payload = P;
     const KIND: &'static str = P::KIND;
+    const GRANT: &'static str = P::GRANT;
+    const TARGET: aq_command_registry::TargetRule = P::TARGET;
     async fn authorize(
         &self,
         state: &AppState,

@@ -23,6 +23,11 @@ type ApiResult<T> = std::result::Result<T, ApiError>;
 struct SingleGraph(GraphCreate);
 impl GraphPayload for SingleGraph {
     const KIND: &'static str = "task.create";
+    const GRANT: &'static str = aq_agent_grants::op::TASK_CREATE_SUBTASK;
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::ParentTask {
+        field: "parent_id",
+        unparented: aq_agent_grants::op::TASK_CREATE_PROJECT,
+    };
     const ENTITY: &'static str = "project";
     fn operation_id(&self) -> Uuid {
         self.0.operation_id
@@ -75,6 +80,11 @@ fn single(request: &ActionRequest, p: &super::super::commands::Create) -> ApiRes
 impl ActionKind for Single {
     type Payload = super::super::commands::Create;
     const KIND: &'static str = "task.create";
+    const GRANT: &'static str = aq_agent_grants::op::TASK_CREATE_SUBTASK;
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::ParentTask {
+        field: "parent_id",
+        unparented: aq_agent_grants::op::TASK_CREATE_PROJECT,
+    };
     async fn authorize(
         &self,
         s: &AppState,

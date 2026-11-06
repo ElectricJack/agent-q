@@ -2,6 +2,7 @@ pub mod admin_api;
 pub mod admission;
 pub mod agent_access;
 pub mod authz;
+pub mod commands;
 pub mod config;
 pub mod dashboard_api;
 pub mod dashboard_assets;
@@ -337,7 +338,11 @@ pub fn build_admin_router_with_optional_owners(
     } else {
         app
     };
-    app.with_state(state)
+    commands::mount(
+        app.with_state(state.clone()),
+        state,
+        commands::Listener::Admin,
+    )
 }
 
 /// Machine routes plus `/healthz`. No human routes are mounted here.
@@ -361,7 +366,7 @@ fn build_worker_router_inner(
         Some(policy) => profiled_execution::closure::api::routes(state.clone(), policy),
         None => Router::new(),
     };
-    Router::new()
+    let router = Router::new()
         .merge(closure)
         .merge(worker_api::worker_routes(state.clone()))
         .merge(delegated_permits::incarnation::routes(state.clone()))
@@ -418,7 +423,8 @@ fn build_worker_router_inner(
             admission::gate,
         ))
         .layer(from_fn(harden))
-        .with_state(state)
+        .with_state(state.clone());
+    commands::mount(router, state, commands::Listener::Machine)
 }
 
 /// Serves both routers until `shutdown` resolves, then drains gracefully.

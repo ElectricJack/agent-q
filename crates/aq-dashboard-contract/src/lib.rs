@@ -1,4 +1,6 @@
 //! dashboard-read-1 projections. These read claims never grant execution/control.
+pub mod action_contract;
+pub mod feedback_contract;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

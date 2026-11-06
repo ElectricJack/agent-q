@@ -1,0 +1,3787 @@
+{
+  "commands": [
+    {
+      "cli": [
+        "comment",
+        "list"
+      ],
+      "grant": "comment.read",
+      "kind": "read",
+      "name": "comment.list",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "params_with_api_version",
+          "params_digest": "sha256:8594214a14bdfe6be83b5033daa8633803d9dabee600d4f5261d01279cccb563",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "cursor": {
+                "type": "string"
+              },
+              "limit": {
+                "maximum": 100,
+                "minimum": 1,
+                "type": "integer"
+              }
+            },
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/comments/list"
+          }
+        },
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:c5436209c157f6c68f3279e00241f53410369452254cfa885ece32eb1e464c85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "project_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "task_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_id",
+              "task_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/projects/{project}/tasks/{node}/comments"
+          }
+        }
+      },
+      "summary": "A task's comment thread, newest first",
+      "target": {
+        "rule": "own_task"
+      }
+    },
+    {
+      "cli": [
+        "comment",
+        "revise"
+      ],
+      "grant": "comment.revise",
+      "kind": "mutation",
+      "name": "comment.revise",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:9c51d2f5113dcf0736c651abf74b0bbce925197c7e7c0b11b174065b7cd11ccc",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=comment.revise"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "conversation",
+        "global"
+      ],
+      "grant": "message.read",
+      "kind": "read",
+      "name": "conversation.global",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/conversations/global"
+          }
+        }
+      },
+      "summary": "The supervisor conversation",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "conversation",
+        "messages"
+      ],
+      "grant": "message.read",
+      "kind": "read",
+      "name": "conversation.messages",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:033dd6102e2c380b11abd7b145154745e999d003572010695a83efc827359de0",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "conversation_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "conversation_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/conversations/{conversation}/messages"
+          }
+        }
+      },
+      "summary": "A conversation's messages",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "conversation",
+        "operation"
+      ],
+      "grant": "message.read",
+      "kind": "read",
+      "name": "conversation.operation",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:eaba2e789e5869772df631153531e35254833d80665d305b03904ebd344f98e1",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "conversation_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "operation_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "conversation_id",
+              "operation_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/conversations/{conversation}/operations/{operation}"
+          }
+        }
+      },
+      "summary": "A conversation send operation",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "conversation",
+        "read-marker"
+      ],
+      "grant": "message.read",
+      "kind": "read",
+      "name": "conversation.read_marker",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:033dd6102e2c380b11abd7b145154745e999d003572010695a83efc827359de0",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "conversation_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "conversation_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/conversations/{conversation}/read-marker"
+          }
+        }
+      },
+      "summary": "A conversation's read marker",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "dashboard",
+        "bootstrap"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "dashboard.bootstrap",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/bootstrap"
+          }
+        }
+      },
+      "summary": "Dashboard bootstrap: principal, product and capabilities",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "dashboard",
+        "capacity"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "dashboard.capacity",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/capacity"
+          }
+        }
+      },
+      "summary": "Worker capacity",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "dashboard",
+        "overview"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "dashboard.overview",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/overview"
+          }
+        }
+      },
+      "summary": "The dashboard overview",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "dashboard",
+        "provider-usage"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "dashboard.provider_usage",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/provider-usage"
+          }
+        }
+      },
+      "summary": "Provider usage and quota",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "decision",
+        "resolve"
+      ],
+      "grant": "decision.resolve",
+      "kind": "mutation",
+      "name": "decision.resolve",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:afd5b2945dadd576001ad5fd7fb12d03ea8f94427e592d4c7dd084271cf1ee4c",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=decision.resolve"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "feedback",
+        "link"
+      ],
+      "grant": "feedback.link",
+      "kind": "mutation",
+      "name": "feedback.link",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:21d79aff3b7d6ac479e3b26cd934018e6bcff88e295e60d7f57d9e4cc1cc1bea",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=feedback.link"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "feedback",
+        "task",
+        "show"
+      ],
+      "grant": "result.read",
+      "kind": "read",
+      "name": "feedback.task.show",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:75980c80a078931712d894f4219bd493e53f2f90f6ce8f799132cb4f889738eb",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "draft_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "draft_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/feedback-tasks/{id}"
+          }
+        }
+      },
+      "summary": "A feedback task draft",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "feedback",
+        "task-create"
+      ],
+      "grant": "feedback.task_create",
+      "kind": "mutation",
+      "name": "feedback.task_create",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:ea814b4d8fa8f8d33adb83fda0f7c1c7fd34fb0601be681171fefe36d7641601",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=feedback.task_create"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "graph",
+        "command"
+      ],
+      "grant": "knowledge.author",
+      "kind": "mutation",
+      "name": "graph.command",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "graph_command",
+          "params_digest": "sha256:0af29075a6b86c8352f795d0a5ab9e8fc412fc3c318ea79c85ad97c013be116a",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "commands": {
+                "items": {
+                  "$ref": "protocol/agent-access/v1/schema.json#/$defs/GraphCommand"
+                },
+                "maxItems": 16,
+                "minItems": 1,
+                "type": "array"
+              },
+              "operation_id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "reason": {
+                "maxLength": 4096,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "commands"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/graph/commands"
+          }
+        }
+      },
+      "summary": "Durable graph intent: findings, corrections, relationships, proposals",
+      "target": {
+        "param": "project_id",
+        "rule": "project"
+      }
+    },
+    {
+      "cli": [
+        "graph",
+        "read"
+      ],
+      "grant": "knowledge.read",
+      "kind": "read",
+      "name": "graph.read",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "graph_read",
+          "params_digest": "sha256:9b89f99b30e8527c603d82eba26de5aceb5ee89bf0bf7bca7c74931b4267dcc0",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "query": {
+                "$ref": "protocol/agent-access/v1/schema.json#/$defs/ReadQuery"
+              }
+            },
+            "required": [
+              "query"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/graph/read"
+          }
+        }
+      },
+      "summary": "A scoped graph read (get, revision, history, search, context, relationships)",
+      "target": {
+        "param": "project_id",
+        "rule": "project"
+      }
+    },
+    {
+      "cli": [
+        "knowledge",
+        "author"
+      ],
+      "grant": "knowledge.author",
+      "kind": "mutation",
+      "name": "knowledge.author",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:5408ae01f393e2046af417721f2f5cfb2eea90c977b31e5386be287afdfd22e2",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=knowledge.author"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "param": "project_id",
+        "rule": "project"
+      }
+    },
+    {
+      "cli": [
+        "knowledge",
+        "correct"
+      ],
+      "grant": "knowledge.author",
+      "kind": "mutation",
+      "name": "knowledge.correct",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:53e33e4fefe283c6c1a39013ced332d38c6e7a79cda5349d9645b33945250011",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=knowledge.correct"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "knowledge",
+        "list"
+      ],
+      "grant": "knowledge.read",
+      "kind": "read",
+      "name": "knowledge.list",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:b4c1595be719f4ffd396989f3c40e8d4a77df5bc35b67dc5f66e424669b4f741",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "project_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/projects/{project}/knowledge"
+          }
+        }
+      },
+      "summary": "Knowledge records in a project",
+      "target": {
+        "param": "project_id",
+        "rule": "project"
+      }
+    },
+    {
+      "cli": [
+        "knowledge",
+        "restore"
+      ],
+      "grant": "knowledge.restore",
+      "kind": "mutation",
+      "name": "knowledge.restore",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:96715179afd42a51bb9d65ce99e9d6fb449dcc53a8f6a5282879fd46a808d3b5",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=knowledge.restore"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "knowledge",
+        "retire"
+      ],
+      "grant": "knowledge.retire",
+      "kind": "mutation",
+      "name": "knowledge.retire",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:206ac28ebbc10d9da6ea5b17fdfbc53db73910e289de53403502ba15e1348749",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=knowledge.retire"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "knowledge",
+        "search"
+      ],
+      "grant": "knowledge.read",
+      "kind": "read",
+      "name": "knowledge.search",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "graph_read",
+          "params_digest": "sha256:ffffc4e03eeeefae55c748ef9f2b246959627f48ef71e3a442228d892072c315",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "cursor": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "kind_filter": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "task",
+                      "knowledge"
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "limit": {
+                "maximum": 64,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "text": {
+                "maxLength": 1024,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "text"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/graph/read"
+          }
+        },
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/search"
+          }
+        }
+      },
+      "summary": "Search tasks and knowledge",
+      "target": {
+        "param": "project_id",
+        "rule": "project"
+      }
+    },
+    {
+      "cli": [
+        "knowledge",
+        "show"
+      ],
+      "grant": "knowledge.read",
+      "kind": "read",
+      "name": "knowledge.show",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "graph_read",
+          "params_digest": "sha256:08b0554bebf28488889b3cf2705d7521bb79f5e0b465b65fe2887f109edd319f",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "node_id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "node_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/graph/read"
+          }
+        },
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:30d90c0e4ad141de20aead70dd0caa66cc6dba18b21696bbe677efbf7fa74dd1",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "node_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "project_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_id",
+              "node_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/projects/{project}/knowledge/{node}"
+          }
+        }
+      },
+      "summary": "One knowledge record",
+      "target": {
+        "param": "project_id",
+        "rule": "project"
+      }
+    },
+    {
+      "cli": [
+        "knowledge",
+        "verify"
+      ],
+      "grant": "knowledge.verify",
+      "kind": "mutation",
+      "name": "knowledge.verify",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:27b309bc81b1d12e0e6362b325784751b1e2e5d11a760b54d210ffb03f8bb7e3",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=knowledge.verify"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "message",
+        "ack"
+      ],
+      "grant": "message.ack",
+      "kind": "mutation",
+      "name": "message.ack",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "params",
+          "params_digest": "sha256:e2108d0371c887e0ec5797c0ae6541494297851e6256adc84742d9a792b959f8",
+          "params_schema": {
+            "$ref": "protocol/agent-access/v1/schema.json#/$defs/MessageAck"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/messages/ack"
+          }
+        }
+      },
+      "summary": "Acknowledge a message as received or read",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "message",
+        "body"
+      ],
+      "grant": "message.read",
+      "kind": "read",
+      "name": "message.body",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "params",
+          "params_digest": "sha256:4760c9aa1afc7cca8e17fb9b56d65ff65ae5919b7c04dc3a5589d8d4b4668290",
+          "params_schema": {
+            "$ref": "protocol/agent-access/v1/schema.json#/$defs/MessageBodyRequest"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/messages/body"
+          }
+        }
+      },
+      "summary": "One message body, in bounded chunks",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "message",
+        "inbox"
+      ],
+      "grant": "message.read",
+      "kind": "read",
+      "name": "message.inbox",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "params",
+          "params_digest": "sha256:49139ae6bd97ef54902874629a913cc779a718898a4ce53a24ae3ec1d1157c85",
+          "params_schema": {
+            "$ref": "protocol/agent-access/v1/schema.json#/$defs/MessageInbox"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/messages/inbox"
+          }
+        },
+        "owner": {
+          "body": "params",
+          "params_digest": "sha256:49139ae6bd97ef54902874629a913cc779a718898a4ce53a24ae3ec1d1157c85",
+          "params_schema": {
+            "$ref": "protocol/agent-access/v1/schema.json#/$defs/MessageInbox"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/messages/inbox"
+          }
+        }
+      },
+      "summary": "A mailbox page",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "message",
+        "send"
+      ],
+      "grant": "message.send",
+      "kind": "mutation",
+      "name": "message.send",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "params",
+          "params_digest": "sha256:5fb208e72b6e15f984ee23212e932565fcb67752885b18a52a2f6eb6fe54ab2e",
+          "params_schema": {
+            "$ref": "protocol/agent-access/v1/schema.json#/$defs/MessageSend"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/messages/send"
+          }
+        },
+        "owner": {
+          "body": "params",
+          "params_digest": "sha256:5fb208e72b6e15f984ee23212e932565fcb67752885b18a52a2f6eb6fe54ab2e",
+          "params_schema": {
+            "$ref": "protocol/agent-access/v1/schema.json#/$defs/MessageSend"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/messages/send"
+          }
+        }
+      },
+      "summary": "Send mail to a task, session or supervisor mailbox",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "notification",
+        "list"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "notification.list",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/notifications"
+          }
+        }
+      },
+      "summary": "Notifications",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "notification",
+        "show"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "notification.show",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:3581f22ecc63c42f5cbacceddce2fbfa4dfda1cad26e3f3c880791a2371b9e90",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "message_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "message_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/notifications/{message}"
+          }
+        }
+      },
+      "summary": "One notification",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "operation",
+        "show"
+      ],
+      "grant": null,
+      "kind": "read",
+      "name": "operation.show",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "query",
+          "params_digest": "sha256:54b4e8e3ed94783cfdbe64474e649ddab5c5f70c01b67fcdbe79014e40fed8c9",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "operation_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/v1/agent/operations/{operation_id}"
+          }
+        },
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:54b4e8e3ed94783cfdbe64474e649ddab5c5f70c01b67fcdbe79014e40fed8c9",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "operation_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/operations/{id}"
+          }
+        },
+        "supervisor": {
+          "body": "query",
+          "params_digest": "sha256:54b4e8e3ed94783cfdbe64474e649ddab5c5f70c01b67fcdbe79014e40fed8c9",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "operation_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/operations/{id}"
+          }
+        }
+      },
+      "summary": "One operation by ID, with its current disposition (never resends it)",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "playbook",
+        "activation",
+        "activate"
+      ],
+      "grant": "playbook.activate",
+      "kind": "mutation",
+      "name": "playbook.activation.activate",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:af16eaf72232f8cb1bbc8cb004c02843a6b5743d556631a1515c3d241d884682",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=playbook.activation.activate"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "playbook",
+        "activation",
+        "rollback"
+      ],
+      "grant": "playbook.activate",
+      "kind": "mutation",
+      "name": "playbook.activation.rollback",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:af16eaf72232f8cb1bbc8cb004c02843a6b5743d556631a1515c3d241d884682",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=playbook.activation.rollback"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "playbook",
+        "catalog",
+        "activations"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "playbook.catalog.activations",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/playbooks/inspection/catalog/activations"
+          }
+        }
+      },
+      "summary": "Playbook catalog activations",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "playbook",
+        "catalog",
+        "definitions"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "playbook.catalog.definitions",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/playbooks/inspection/catalog/definitions"
+          }
+        }
+      },
+      "summary": "Playbook catalog definitions",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "playbook",
+        "inspection",
+        "admissions"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "playbook.inspection.admissions",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/playbooks/inspection/admissions"
+          }
+        }
+      },
+      "summary": "Playbook admissions",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "playbook",
+        "inspection",
+        "run"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "playbook.inspection.run",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:9dd24aea0173f591a34edec97a6b28c4ce19724395d613968c555e4d084bfaa1",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "run_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "run_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/playbooks/inspection/runs/{id}"
+          }
+        }
+      },
+      "summary": "One playbook run",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "playbook",
+        "inspection",
+        "runs"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "playbook.inspection.runs",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/playbooks/inspection/runs"
+          }
+        }
+      },
+      "summary": "Playbook runs",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "playbook",
+        "loaded-definitions"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "playbook.loaded_definitions",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/playbooks/inspection/loaded-definitions"
+          }
+        }
+      },
+      "summary": "Loaded playbook definitions",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "playbook",
+        "run",
+        "cancel"
+      ],
+      "grant": "playbook.run",
+      "kind": "mutation",
+      "name": "playbook.run.cancel",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:831664f7bcefbc2be9ccca55ce422659a0c9d7fc530c7cfd6c84c69c43a22897",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=playbook.run.cancel"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "playbook",
+        "run",
+        "start"
+      ],
+      "grant": "playbook.run",
+      "kind": "mutation",
+      "name": "playbook.run.start",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:ffaa1717da6f76fa460013448934dc4d61259d742274b0cb14614a8853b94e5e",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=playbook.run.start"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "project",
+        "list"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "project.list",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/projects"
+          }
+        }
+      },
+      "summary": "Projects",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "provider",
+        "accounts"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "provider.accounts",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/provider-accounts"
+          }
+        }
+      },
+      "summary": "Provider accounts",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "question",
+        "answer"
+      ],
+      "grant": "question.answer",
+      "kind": "mutation",
+      "name": "question.answer",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:0cee3434385b154f032fca4c326f9510649a105045fe0a22ff1820f12b6a619e",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=question.answer"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "question",
+        "ask"
+      ],
+      "grant": "question.ask",
+      "kind": "mutation",
+      "name": "question.ask",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "params_with_api_version",
+          "params_digest": "sha256:fe33f0e16352747d509a595c2a09270aa344293a49f50d6664b683d8fd54ba9b",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "operation_id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "question": {
+                "maxLength": 4096,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_id",
+              "question"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/questions"
+          }
+        }
+      },
+      "summary": "Ask the owner a question; wait on it with question.show",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "question",
+        "list"
+      ],
+      "grant": "question.read",
+      "kind": "read",
+      "name": "question.list",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/questions/decisions"
+          }
+        }
+      },
+      "summary": "Open and answered agent questions",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "question",
+        "show"
+      ],
+      "grant": "question.read",
+      "kind": "read",
+      "name": "question.show",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "params_with_api_version",
+          "params_digest": "sha256:481e296e6c9ee1c0c388d028487ff199ecc2da03bc5a85f5729017e99c674406",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "decision_id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "decision_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/questions/show"
+          }
+        },
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:13ccc9498b0e4a75d90e52943d6c8878fd45695f93abf797ac937101fd0d047d",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "decision_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "decision_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/questions/decisions/{id}"
+          }
+        }
+      },
+      "summary": "One question, with the answer once recorded",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "result",
+        "comment"
+      ],
+      "grant": "result.comment",
+      "kind": "mutation",
+      "name": "result.comment",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:363ab6f6a12b72d0acad8c331e6f34c126c861ecd08c170c6f6561fc03602074",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=result.comment"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "result",
+        "comments"
+      ],
+      "grant": "result.read",
+      "kind": "read",
+      "name": "result.comments",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:d3ecdb2cd675abfa7c4e6ad4ba4b87e7658ecec61275b733778f639a3859cb2f",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "result_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "revision": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "result_id",
+              "revision"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/results/{id}/revisions/{revision}/comments"
+          }
+        }
+      },
+      "summary": "A result's comment threads",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "result",
+        "detail"
+      ],
+      "grant": "result.read",
+      "kind": "read",
+      "name": "result.detail",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:d3ecdb2cd675abfa7c4e6ad4ba4b87e7658ecec61275b733778f639a3859cb2f",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "result_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "revision": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "result_id",
+              "revision"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/results/{id}/revisions/{revision}"
+          }
+        }
+      },
+      "summary": "One result in the feed",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "result",
+        "evidence-waive"
+      ],
+      "grant": "result.evidence_waive",
+      "kind": "mutation",
+      "name": "result.evidence_waive",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:d5b9b8b4a9c3a26252b245ba45be9d1cc4f3de57e5b13f7ca89c6b577de66945",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=result.evidence_waive"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "result",
+        "feed"
+      ],
+      "grant": "result.read",
+      "kind": "read",
+      "name": "result.feed",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/results"
+          }
+        }
+      },
+      "summary": "The results feed",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "result",
+        "follow"
+      ],
+      "grant": "result.follow",
+      "kind": "mutation",
+      "name": "result.follow",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:25588c5f5de8cbb3e4a5c554656c28b9c98816c137ee90e8924a61141fdc9441",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=result.follow"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "result",
+        "list"
+      ],
+      "grant": "result.read",
+      "kind": "read",
+      "name": "result.list",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/results"
+          }
+        }
+      },
+      "summary": "Results",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "result",
+        "media",
+        "list"
+      ],
+      "grant": "result.read",
+      "kind": "read",
+      "name": "result.media.list",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:d3ecdb2cd675abfa7c4e6ad4ba4b87e7658ecec61275b733778f639a3859cb2f",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "result_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "revision": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "result_id",
+              "revision"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/results/{report}/revisions/{revision}/media"
+          }
+        }
+      },
+      "summary": "Media attached to a result revision",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "result",
+        "show"
+      ],
+      "grant": "result.read",
+      "kind": "read",
+      "name": "result.show",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:d3ecdb2cd675abfa7c4e6ad4ba4b87e7658ecec61275b733778f639a3859cb2f",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "result_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "revision": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "result_id",
+              "revision"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/results/{id}/revisions/{revision}"
+          }
+        }
+      },
+      "summary": "One result revision",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "review",
+        "decision",
+        "list"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "review.decision.list",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/reviews/decisions"
+          }
+        }
+      },
+      "summary": "Review decisions",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "review",
+        "decision",
+        "show"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "review.decision.show",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:13ccc9498b0e4a75d90e52943d6c8878fd45695f93abf797ac937101fd0d047d",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "decision_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "decision_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/reviews/decisions/{id}"
+          }
+        }
+      },
+      "summary": "One review decision",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "session",
+        "events"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "session.events",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:00ad32430bb944f6f3b7dfb9cfa558296b5c0b752e8db744597e1b66c007f8b7",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "attempt_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "attempt_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/observations/sessions/{attempt}/events"
+          }
+        }
+      },
+      "summary": "A session's observed events",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "session",
+        "list"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "session.list",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/sessions"
+          }
+        }
+      },
+      "summary": "Sessions",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "session",
+        "message",
+        "send"
+      ],
+      "grant": "message.send",
+      "kind": "mutation",
+      "name": "session.message.send",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:134916b46ec290d7bc88dcbeb4341822b1f3dcc4f6181afdaf4b2b58eeff8a59",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=session.message.send"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "session",
+        "nudge"
+      ],
+      "grant": "session.nudge",
+      "kind": "mutation",
+      "name": "session.nudge",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:9ae04b9c76114039e713467de72c717a5209a77b19b26a8d523062f033d6c2eb",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=session.nudge"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "session",
+        "operations"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "session.operations",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:3c89e0099931c916e966bcf5c882645a53960ab1b27c68a499b3bfdf833c3dfb",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "session_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "session_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/sessions/{id}/operations"
+          }
+        }
+      },
+      "summary": "A session's operations",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "session",
+        "show"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "session.show",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:3c89e0099931c916e966bcf5c882645a53960ab1b27c68a499b3bfdf833c3dfb",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "session_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "session_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/sessions/{id}"
+          }
+        }
+      },
+      "summary": "One session",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "session",
+        "usage"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "session.usage",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:00ad32430bb944f6f3b7dfb9cfa558296b5c0b752e8db744597e1b66c007f8b7",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "attempt_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "attempt_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/observations/sessions/{attempt}/usage"
+          }
+        }
+      },
+      "summary": "A session's observed usage",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "supervisor",
+        "message",
+        "send"
+      ],
+      "grant": "message.send",
+      "kind": "mutation",
+      "name": "supervisor.message.send",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:3d048fe4d581d7f286ff6d4516c3bd262b77ec679a80f4e6ccb0db7930c95f84",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=supervisor.message.send"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "cancel"
+      ],
+      "grant": "task.cancel",
+      "kind": "mutation",
+      "name": "task.cancel",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:55723a165d16dea35f9d25531eee4f0a92a7378923f60428a7ee2d15ca7cadfa",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=task.cancel"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "comment",
+        "add"
+      ],
+      "grant": "comment.write",
+      "kind": "mutation",
+      "name": "task.comment.add",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "params_with_api_version",
+          "params_digest": "sha256:854dfed7df509894ca3e8788d9259f3da68ebe8427767f1e2893c96b6d986908",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "body": {
+                "maxLength": 16384,
+                "minLength": 1,
+                "type": "string"
+              },
+              "operation_id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_id",
+              "body"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/comments"
+          }
+        },
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:0a647ffcd964da79ff1588a2ec955b79a7218b57ec5e6ba18bcb224b099452e6",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=task.comment.add"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Comment on a task (an agent comments on its own task)",
+      "target": {
+        "rule": "own_task"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "comment",
+        "delete"
+      ],
+      "grant": "comment.write",
+      "kind": "mutation",
+      "name": "task.comment.delete",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:e561ef2ff272ef8afbc1d8b36aa6538a7082537f8c14dfee6da6b4a03514e23e",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=task.comment.delete"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "comment",
+        "edit"
+      ],
+      "grant": "comment.write",
+      "kind": "mutation",
+      "name": "task.comment.edit",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:5b7fc9d3ecdea5af0f711d1636a18cc4dba9c3669d20a971688175b7d42a89df",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=task.comment.edit"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "create"
+      ],
+      "grant": "task.create.subtask",
+      "kind": "mutation",
+      "name": "task.create",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:44c0fc21cdd94ec3cec0afddab9b76cf8a23f1c5f582ea2ddb8357157f651701",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=task.create"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        },
+        "supervisor": {
+          "body": "action_request",
+          "params_digest": "sha256:44c0fc21cdd94ec3cec0afddab9b76cf8a23f1c5f582ea2ddb8357157f651701",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=task.create"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Create a task (a subtask when parent_id is given)",
+      "target": {
+        "param": "parent_id",
+        "rule": "parent_task",
+        "unparented_grant": "task.create.project"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "dependency",
+        "add"
+      ],
+      "grant": "task.edit",
+      "kind": "mutation",
+      "name": "task.dependency.add",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:2b5d2cf95e1d62ec29d7546baa13b610d1e1f9e62a4ddd1c9f49e97e513e2fa3",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=task.dependency.add"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "dependency",
+        "remove"
+      ],
+      "grant": "task.edit",
+      "kind": "mutation",
+      "name": "task.dependency.remove",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:ed5733a89bb4d8b2ad31a36901dab9eab2d0777152555e4280e6e9ee8f99712d",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=task.dependency.remove"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "edit"
+      ],
+      "grant": "task.edit",
+      "kind": "mutation",
+      "name": "task.edit",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:e4e95ad0d28a4845223602e3f7de88204164301863204f44eec4486ddc2c22aa",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=task.edit"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "graph",
+        "create"
+      ],
+      "grant": "task.create.subtask",
+      "kind": "mutation",
+      "name": "task.graph.create",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:e457bbff928e6264507cd72ae53f32a02523a6d4c1cbb40d9093274a5a33035a",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=task.graph.create"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        },
+        "supervisor": {
+          "body": "action_request",
+          "params_digest": "sha256:e457bbff928e6264507cd72ae53f32a02523a6d4c1cbb40d9093274a5a33035a",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=task.graph.create"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Create several related tasks and their edges in one operation",
+      "target": {
+        "param": "parent_id",
+        "rule": "parent_task",
+        "unparented_grant": "task.create.project"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "graph",
+        "show"
+      ],
+      "grant": "task.read",
+      "kind": "read",
+      "name": "task.graph.show",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:c5436209c157f6c68f3279e00241f53410369452254cfa885ece32eb1e464c85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "project_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "task_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_id",
+              "task_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/projects/{project}/tasks/{node}/graph"
+          }
+        }
+      },
+      "summary": "A task's dependency graph",
+      "target": {
+        "param": "task_id",
+        "rule": "task"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "history"
+      ],
+      "grant": "task.read",
+      "kind": "read",
+      "name": "task.history",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:c5436209c157f6c68f3279e00241f53410369452254cfa885ece32eb1e464c85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "project_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "task_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_id",
+              "task_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/projects/{project}/tasks/{node}/history"
+          }
+        }
+      },
+      "summary": "A task's history",
+      "target": {
+        "param": "task_id",
+        "rule": "task"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "list"
+      ],
+      "grant": "task.read",
+      "kind": "read",
+      "name": "task.list",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:b4c1595be719f4ffd396989f3c40e8d4a77df5bc35b67dc5f66e424669b4f741",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "project_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/projects/{project}/tasks"
+          }
+        }
+      },
+      "summary": "Tasks in a project",
+      "target": {
+        "param": "project_id",
+        "rule": "project"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "overview"
+      ],
+      "grant": "task.read",
+      "kind": "read",
+      "name": "task.overview",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/overview/tasks"
+          }
+        }
+      },
+      "summary": "Tasks across projects",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "reprioritize"
+      ],
+      "grant": "task.edit",
+      "kind": "mutation",
+      "name": "task.reprioritize",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:0b1beee3c148e878c5f704186891bc393d8315725778a5a36043f6ce82dbd001",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=task.reprioritize"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "retry"
+      ],
+      "grant": "task.retry",
+      "kind": "mutation",
+      "name": "task.retry",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:55723a165d16dea35f9d25531eee4f0a92a7378923f60428a7ee2d15ca7cadfa",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=task.retry"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "show"
+      ],
+      "grant": "task.read",
+      "kind": "read",
+      "name": "task.show",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:c5436209c157f6c68f3279e00241f53410369452254cfa885ece32eb1e464c85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "project_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "task_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_id",
+              "task_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/projects/{project}/tasks/{node}"
+          }
+        }
+      },
+      "summary": "One task",
+      "target": {
+        "param": "task_id",
+        "rule": "task"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "summary"
+      ],
+      "grant": "task.read",
+      "kind": "read",
+      "name": "task.summary",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:c5436209c157f6c68f3279e00241f53410369452254cfa885ece32eb1e464c85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "project_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "task_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_id",
+              "task_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/projects/{project}/tasks/{node}/summary"
+          }
+        }
+      },
+      "summary": "A task's work summary",
+      "target": {
+        "param": "task_id",
+        "rule": "task"
+      }
+    },
+    {
+      "cli": [
+        "task",
+        "work"
+      ],
+      "grant": "task.read",
+      "kind": "read",
+      "name": "task.work",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:c5436209c157f6c68f3279e00241f53410369452254cfa885ece32eb1e464c85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "project_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "task_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_id",
+              "task_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/human/projects/{project}/tasks/{node}/work"
+          }
+        }
+      },
+      "summary": "A task's attempts and work",
+      "target": {
+        "param": "task_id",
+        "rule": "task"
+      }
+    },
+    {
+      "cli": [
+        "terminal",
+        "output"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "terminal.output",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:72d823fbb28c05966fab1aa1671e7ab3d779a4e0fc02e05d729ba48fc272f40c",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "terminal_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "terminal_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/terminals/{terminal}/output"
+          }
+        }
+      },
+      "summary": "A terminal's output",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "terminal",
+        "receipt"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "terminal.receipt",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:71df13b13b7c2e222fd6a703801e919afc0c0ee5b18d38b5e7f51bf8c19104dc",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "operation_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "terminal_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "terminal_id",
+              "operation_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/terminals/{terminal}/receipts/{operation}"
+          }
+        }
+      },
+      "summary": "A terminal mutation receipt",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "terminal",
+        "show"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "terminal.show",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:72d823fbb28c05966fab1aa1671e7ab3d779a4e0fc02e05d729ba48fc272f40c",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "terminal_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "terminal_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/terminals/{terminal}"
+          }
+        }
+      },
+      "summary": "A terminal",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "terminal",
+        "tail"
+      ],
+      "grant": "dashboard.read",
+      "kind": "read",
+      "name": "terminal.tail",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:72d823fbb28c05966fab1aa1671e7ab3d779a4e0fc02e05d729ba48fc272f40c",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "terminal_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "terminal_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/v1/terminals/{terminal}/tail"
+          }
+        }
+      },
+      "summary": "A terminal's tail",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "thread",
+        "resolve"
+      ],
+      "grant": "thread.resolve",
+      "kind": "mutation",
+      "name": "thread.resolve",
+      "owner_only": true,
+      "principals": {
+        "owner": {
+          "body": "action_request",
+          "params_digest": "sha256:22cb61cc94e8eeccbf9074f0bc7336d0bb158b719e530b19c2ee3c1fdfed0457",
+          "params_schema": {
+            "$ref": "protocol/dashboard-actions/v1/schema.json#kind=thread.resolve"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/actions"
+          }
+        }
+      },
+      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "target": {
+        "rule": "subject"
+      }
+    },
+    {
+      "cli": [
+        "wait",
+        "ack"
+      ],
+      "grant": "wait.ack",
+      "kind": "mutation",
+      "name": "wait.ack",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "params",
+          "params_digest": "sha256:e3d15311107b82b5e69ff2f0a282077ecbfe84210befd5b6be28de2c16f5e336",
+          "params_schema": {
+            "$ref": "crates/aq-lifecycle-api/artifacts/request.schema.json"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/waits/ack"
+          }
+        }
+      },
+      "summary": "Acknowledge a continuation (a sealed lifecycle request)",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "wait",
+        "inspect"
+      ],
+      "grant": "wait.read",
+      "kind": "read",
+      "name": "wait.inspect",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "params",
+          "params_digest": "sha256:e3d15311107b82b5e69ff2f0a282077ecbfe84210befd5b6be28de2c16f5e336",
+          "params_schema": {
+            "$ref": "crates/aq-lifecycle-api/artifacts/request.schema.json"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/waits/inspect"
+          }
+        }
+      },
+      "summary": "Inspect this attempt's wait (a sealed lifecycle request)",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "wait",
+        "list"
+      ],
+      "grant": "wait.read",
+      "kind": "read",
+      "name": "wait.list",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {},
+            "required": [],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/waits"
+          }
+        }
+      },
+      "summary": "Registered waits",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "wait",
+        "register"
+      ],
+      "grant": "wait.register",
+      "kind": "mutation",
+      "name": "wait.register",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "params",
+          "params_digest": "sha256:e3d15311107b82b5e69ff2f0a282077ecbfe84210befd5b6be28de2c16f5e336",
+          "params_schema": {
+            "$ref": "crates/aq-lifecycle-api/artifacts/request.schema.json"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/waits/register"
+          }
+        }
+      },
+      "summary": "Register an H4 wait for this attempt (a sealed lifecycle request)",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "wait",
+        "show"
+      ],
+      "grant": "wait.read",
+      "kind": "read",
+      "name": "wait.show",
+      "owner_only": false,
+      "principals": {
+        "owner": {
+          "body": "query",
+          "params_digest": "sha256:abc32a4c5d82fd011dbd30b12461081f4955fef9002c47c9b231d267d378f422",
+          "params_schema": {
+            "additionalProperties": {
+              "type": [
+                "string",
+                "integer",
+                "boolean"
+              ]
+            },
+            "description": "Path params as named; every other param is passed as a query string value.",
+            "properties": {
+              "wait_id": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "wait_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "GET",
+            "path": "/api/waits/{wait_id}"
+          }
+        }
+      },
+      "summary": "One registered wait",
+      "target": {
+        "rule": "own"
+      }
+    },
+    {
+      "cli": [
+        "whoami"
+      ],
+      "grant": null,
+      "kind": "read",
+      "name": "whoami",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "local",
+          "params_digest": "sha256:cd1a463c46d6264134447db17a8c3c7abe5b9a2488c6d759fea66da1f96b133e",
+          "params_schema": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/commands/whoami"
+          }
+        },
+        "owner": {
+          "body": "local",
+          "params_digest": "sha256:cd1a463c46d6264134447db17a8c3c7abe5b9a2488c6d759fea66da1f96b133e",
+          "params_schema": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/commands/whoami"
+          }
+        },
+        "supervisor": {
+          "body": "local",
+          "params_digest": "sha256:cd1a463c46d6264134447db17a8c3c7abe5b9a2488c6d759fea66da1f96b133e",
+          "params_schema": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/api/v1/commands/whoami"
+          }
+        }
+      },
+      "summary": "The calling principal: attempt, task, project, profile, grants and credential expiry",
+      "target": {
+        "rule": "own"
+      }
+    }
+  ],
+  "contract": "commands-1",
+  "discover": {
+    "method": "GET",
+    "path": "/api/v1/commands",
+    "query": {
+      "all": "true also lists commands the caller cannot run, each with its missing grant"
+    }
+  },
+  "generated_from": "aq-server command registry (crates/aq-command-registry and the registered ActionKinds); regenerate with `AQ_REGENERATE_COMMANDS=1 cargo nextest run -p aq-server --test it_server -E 'test(/^commands::/)'`",
+  "invoke": {
+    "method": "POST",
+    "path": "/api/v1/commands/{name}",
+    "request": "#/$defs/CommandRequest in schema.json"
+  },
+  "listeners": {
+    "admin": "owner (Cloudflare Access)",
+    "machine": "agent (per-attempt aqa_ bearer, or the sandbox channel) and supervisor (F1b bearer)"
+  },
+  "version": 1
+}

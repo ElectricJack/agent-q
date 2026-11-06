@@ -209,19 +209,11 @@ fn vocabulary_matches_published_contract() {
         .collect();
     assert_eq!(ops, op::ALL);
     let codes = schema["$defs"]["RefusalCode"]["enum"].as_array().unwrap();
-    for code in [
-        RefusalCode::GrantMissing,
-        RefusalCode::ScopeDenied,
-        RefusalCode::OwnerOnly,
-        RefusalCode::QuotaExceeded,
-        RefusalCode::SessionRevoked,
-        RefusalCode::SessionExpired,
-        RefusalCode::ChannelRefused,
-    ] {
+    for code in CODES {
         assert!(codes.contains(&serde_json::json!(code.as_str())));
         assert_eq!(serde_json::to_value(code).unwrap(), code.as_str());
     }
-    assert_eq!(codes.len(), 7);
+    assert_eq!(codes.len(), CODES.len());
 }
 
 #[test]

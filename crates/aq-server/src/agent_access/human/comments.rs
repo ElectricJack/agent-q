@@ -126,6 +126,8 @@ fn confirmed(comment: Uuid, task: Uuid, revision: i64) -> Outcome {
 impl<C: Command> ActionKind for Comments<C> {
     type Payload = C;
     const KIND: &'static str = C::KIND;
+    const GRANT: &'static str = aq_agent_grants::op::COMMENT_WRITE;
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
     async fn authorize(
         &self,
         state: &AppState,

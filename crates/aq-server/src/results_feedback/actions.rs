@@ -131,6 +131,8 @@ fn native_request(v: &FeedbackDraft) -> ActionRequest {
 impl<P: Payload> ActionKind for Adapter<P> {
     type Payload = P;
     const KIND: &'static str = P::KIND;
+    const GRANT: &'static str = P::KIND;
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
     async fn authorize(
         &self,
         state: &AppState,

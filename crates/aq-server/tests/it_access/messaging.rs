@@ -50,7 +50,7 @@ pub(crate) struct Env {
     db: TestDb,
     pub(crate) pool: sqlx::PgPool,
     pub(crate) app: Router,
-    admin: Router,
+    pub(crate) admin: Router,
     pub(crate) token: String,
     pub(crate) binding: Value,
     time: Arc<std::sync::atomic::AtomicI64>,

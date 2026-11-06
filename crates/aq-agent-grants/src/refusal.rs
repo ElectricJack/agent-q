@@ -20,7 +20,29 @@ pub enum RefusalCode {
     SessionExpired,
     /// The channel proxy refused the path (aq-worker).
     ChannelRefused,
+    /// The command surface's own errors: no such command, no route for this
+    /// principal, a malformed request, no credential, or a server failure.
+    UnknownCommand,
+    NotAvailable,
+    InvalidRequest,
+    Unauthorized,
+    Internal,
 }
+/// Every code, in the published order.
+pub const CODES: [RefusalCode; 12] = [
+    RefusalCode::GrantMissing,
+    RefusalCode::ScopeDenied,
+    RefusalCode::OwnerOnly,
+    RefusalCode::QuotaExceeded,
+    RefusalCode::SessionRevoked,
+    RefusalCode::SessionExpired,
+    RefusalCode::ChannelRefused,
+    RefusalCode::UnknownCommand,
+    RefusalCode::NotAvailable,
+    RefusalCode::InvalidRequest,
+    RefusalCode::Unauthorized,
+    RefusalCode::Internal,
+];
 impl RefusalCode {
     pub fn as_str(self) -> &'static str {
         match self {
@@ -31,6 +53,11 @@ impl RefusalCode {
             Self::SessionRevoked => "session_revoked",
             Self::SessionExpired => "session_expired",
             Self::ChannelRefused => "channel_refused",
+            Self::UnknownCommand => "unknown_command",
+            Self::NotAvailable => "not_available",
+            Self::InvalidRequest => "invalid_request",
+            Self::Unauthorized => "unauthorized",
+            Self::Internal => "internal",
         }
     }
     /// The closed agent-access-1 `ErrorResponse` code that carries this
@@ -38,7 +65,10 @@ impl RefusalCode {
     /// to the structured shape.
     pub fn legacy(self) -> &'static str {
         match self {
-            Self::GrantMissing | Self::OwnerOnly => "unsupported_capability",
+            Self::GrantMissing | Self::OwnerOnly | Self::NotAvailable => "unsupported_capability",
+            Self::UnknownCommand | Self::InvalidRequest => "invalid_request",
+            Self::Unauthorized => "unauthorized",
+            Self::Internal => "internal",
             Self::ScopeDenied | Self::QuotaExceeded | Self::ChannelRefused => "scope_denied",
             Self::SessionRevoked => "session_revoked",
             Self::SessionExpired => "session_expired",
@@ -46,7 +76,10 @@ impl RefusalCode {
     }
     pub fn status(self) -> u16 {
         match self {
-            Self::SessionRevoked | Self::SessionExpired => 401,
+            Self::SessionRevoked | Self::SessionExpired | Self::Unauthorized => 401,
+            Self::UnknownCommand => 404,
+            Self::InvalidRequest => 400,
+            Self::Internal => 500,
             _ => 403,
         }
     }
@@ -118,6 +151,18 @@ impl Refusal {
             "This agent reached the `{limit}` limit of its `{grant}` grant for `{command}`. {ASK}"
         );
         Self::new(RefusalCode::QuotaExceeded, command, grant, held, message)
+    }
+    /// A command-surface error that names no grant.
+    pub fn error(code: RefusalCode, command: &str, message: &str) -> Self {
+        Self {
+            code,
+            command: command.into(),
+            grant: None,
+            held: Vec::new(),
+            message: message.into(),
+            effect: "not_applied".into(),
+            request_id: None,
+        }
     }
     pub fn with_request(mut self, request_id: Uuid) -> Self {
         self.request_id = Some(request_id);

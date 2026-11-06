@@ -260,6 +260,8 @@ fn admitted(status: &super::service::AdmissionStatus) -> Option<Outcome> {
 impl ActionKind for CancelRun {
     type Payload = RunCancel;
     const KIND: &'static str = "playbook.run.cancel";
+    const GRANT: &'static str = "playbook.run";
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
     async fn authorize(
         &self,
         state: &AppState,
@@ -305,6 +307,8 @@ impl ActionKind for CancelRun {
 impl ActionKind for StartRun {
     type Payload = RunStart;
     const KIND: &'static str = "playbook.run.start";
+    const GRANT: &'static str = "playbook.run";
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
     async fn authorize(
         &self,
         state: &AppState,
@@ -412,6 +416,8 @@ impl ActionKind for StartRun {
 impl ActionKind for Activate {
     type Payload = BindingChange;
     const KIND: &'static str = "playbook.activation.activate";
+    const GRANT: &'static str = "playbook.activate";
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
     async fn authorize(
         &self,
         state: &AppState,
@@ -476,6 +482,8 @@ impl ActionKind for Activate {
 impl ActionKind for Rollback {
     type Payload = BindingChange;
     const KIND: &'static str = "playbook.activation.rollback";
+    const GRANT: &'static str = "playbook.activate";
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
     async fn authorize(
         &self,
         state: &AppState,

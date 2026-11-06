@@ -19,6 +19,8 @@ struct TestAction(Arc<AtomicUsize>);
 impl ActionKind for TestAction {
     type Payload = Payload;
     const KIND: &'static str = "test.effect";
+    const GRANT: &'static str = "test.effect";
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
     async fn authorize(
         &self,
         _: &AppState,
@@ -387,6 +389,8 @@ fn registry_is_finite_versioned_and_rejects_open_payload_schemas() {
     impl ActionKind for UnsafeAction {
         type Payload = Open;
         const KIND: &'static str = "unsafe.run";
+        const GRANT: &'static str = "unsafe.run";
+        const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
         async fn authorize(
             &self,
             _: &AppState,

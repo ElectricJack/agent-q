@@ -6,54 +6,436 @@
   "$defs": {
     "Operation": {
       "description": "A grantable operation (spec 0006 §6.2). Owner-only operations are never grantable.",
-      "enum": ["task.read", "task.create.subtask", "task.create.project", "task.edit", "comment.read", "comment.write", "knowledge.read", "knowledge.author", "question.ask", "question.read", "wait.register", "wait.read", "wait.ack", "message.send", "message.read", "message.ack", "result.read"]
+      "enum": [
+        "task.read",
+        "task.create.subtask",
+        "task.create.project",
+        "task.edit",
+        "comment.read",
+        "comment.write",
+        "knowledge.read",
+        "knowledge.author",
+        "question.ask",
+        "question.read",
+        "wait.register",
+        "wait.read",
+        "wait.ack",
+        "message.send",
+        "message.read",
+        "message.ack",
+        "result.read"
+      ]
     },
     "Scope": {
       "description": "attempt:self, task:self (the attempt's task), task:subtree (the task and its descendants), project:self, or project:<uuid> (owner override only).",
       "type": "string",
       "pattern": "^(attempt:self|task:self|task:subtree|project:self|project:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$",
-      "not": {"const": "project:00000000-0000-0000-0000-000000000000"}
+      "not": {
+        "const": "project:00000000-0000-0000-0000-000000000000"
+      }
     },
     "Limits": {
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "max_created_tasks": {"type": "integer", "minimum": 0, "maximum": 4294967295},
-        "max_depth": {"type": "integer", "minimum": 0, "maximum": 4294967295}
+        "max_created_tasks": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 4294967295
+        }
       }
     },
     "Grant": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["operation", "scope"],
+      "required": [
+        "operation",
+        "scope"
+      ],
       "properties": {
-        "operation": {"$ref": "#/$defs/Operation"},
-        "scope": {"$ref": "#/$defs/Scope"},
-        "limits": {"$ref": "#/$defs/Limits"}
+        "operation": {
+          "$ref": "#/$defs/Operation"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "limits": {
+          "$ref": "#/$defs/Limits"
+        }
       }
     },
     "GrantSet": {
       "description": "Sorted by operation, one grant per operation.",
       "type": "array",
       "maxItems": 64,
-      "items": {"$ref": "#/$defs/Grant"}
+      "items": {
+        "$ref": "#/$defs/Grant"
+      }
     },
     "RefusalCode": {
-      "enum": ["grant_missing", "scope_denied", "owner_only", "quota_exceeded", "session_revoked", "session_expired", "channel_refused"]
+      "enum": [
+        "grant_missing",
+        "scope_denied",
+        "owner_only",
+        "quota_exceeded",
+        "session_revoked",
+        "session_expired",
+        "channel_refused",
+        "unknown_command",
+        "not_available",
+        "invalid_request",
+        "unauthorized",
+        "internal"
+      ]
     },
     "Refusal": {
       "description": "Spec 0006 §6.8. It describes only the caller's own authority and never another record. On /v1/agent/* it is returned when the request carries X-AQ-Refusal-Version: 1; otherwise those routes return the closed agent-access-1 ErrorResponse whose message carries the same text.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["code", "command", "grant", "held", "message", "effect", "request_id"],
+      "required": [
+        "code",
+        "command",
+        "grant",
+        "held",
+        "message",
+        "effect",
+        "request_id"
+      ],
       "properties": {
-        "code": {"$ref": "#/$defs/RefusalCode"},
-        "command": {"type": "string", "minLength": 1, "maxLength": 128},
-        "grant": {"anyOf": [{"type": "string", "minLength": 1, "maxLength": 128}, {"type": "null"}]},
-        "held": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/Grant"}},
-        "message": {"type": "string", "minLength": 1, "maxLength": 4096},
-        "effect": {"const": "not_applied"},
-        "request_id": {"anyOf": [{"type": "string", "format": "uuid"}, {"type": "null"}]}
+        "code": {
+          "$ref": "#/$defs/RefusalCode"
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "grant": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "held": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/Grant"
+          }
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "effect": {
+          "const": "not_applied"
+        },
+        "request_id": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uuid"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "CommandRequest": {
+      "description": "POST /api/v1/commands/{name}. `params` is the command's params (commands.json principals.<principal>.params_schema). A mutation through the action union also takes operation_id, subject, expected_versions and reason, as /api/v1/actions does.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "subject": {
+          "type": "object"
+        },
+        "expected_versions": {
+          "type": "object",
+          "maxProperties": 32,
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "params": {
+          "type": "object"
+        }
+      }
+    },
+    "Whoami": {
+      "description": "The `whoami` command's response.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "api_version",
+            "principal",
+            "attempt_id",
+            "task_id",
+            "project_id",
+            "session_id",
+            "grants",
+            "grants_digest",
+            "credential"
+          ],
+          "properties": {
+            "api_version": {
+              "const": 1
+            },
+            "principal": {
+              "const": "agent"
+            },
+            "attempt_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "task_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "project_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "session_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "workspace_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "profile_id": {
+              "type": "string"
+            },
+            "grants": {
+              "$ref": "#/$defs/GrantSet"
+            },
+            "grants_digest": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "credential": {
+              "type": "object",
+              "required": [
+                "version",
+                "expires_at",
+                "authority_revision"
+              ],
+              "properties": {
+                "version": {
+                  "type": "string"
+                },
+                "expires_at": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "authority_revision": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "api_version",
+            "principal",
+            "session_id",
+            "actor_id",
+            "scopes"
+          ],
+          "properties": {
+            "api_version": {
+              "const": 1
+            },
+            "principal": {
+              "const": "supervisor"
+            },
+            "session_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "actor_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "generation": {
+              "type": "string"
+            },
+            "scopes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "required": [
+            "api_version",
+            "principal",
+            "user_id",
+            "email"
+          ],
+          "properties": {
+            "api_version": {
+              "const": 1
+            },
+            "principal": {
+              "enum": [
+                "owner",
+                "viewer"
+              ]
+            },
+            "user_id": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "email": {
+              "type": "string"
+            }
+          }
+        }
+      ]
+    },
+    "Discovery": {
+      "description": "GET /api/v1/commands[?all=true]: the commands this caller may run (with the scope of the grant it holds), and with all=true the others with the reason (grant_missing, owner_only, not_available).",
+      "type": "object",
+      "required": [
+        "api_version",
+        "principal",
+        "commands"
+      ],
+      "properties": {
+        "api_version": {
+          "const": 1
+        },
+        "principal": {
+          "type": "string"
+        },
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "kind",
+              "summary",
+              "cli",
+              "grant"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "read",
+                  "mutation"
+                ]
+              },
+              "summary": {
+                "type": "string"
+              },
+              "cli": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "grant": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "scope": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "$ref": "#/$defs/RefusalCode"
+              }
+            }
+          }
+        },
+        "unavailable": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "name",
+              "kind",
+              "summary",
+              "cli",
+              "grant"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "kind": {
+                "enum": [
+                  "read",
+                  "mutation"
+                ]
+              },
+              "summary": {
+                "type": "string"
+              },
+              "cli": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "grant": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "scope": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "reason": {
+                "$ref": "#/$defs/RefusalCode"
+              }
+            }
+          }
+        }
       }
     }
   }
