@@ -1358,3 +1358,5 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Why it's held:** it changes the human-graph and results-feedback contracts in ways today's dashboard rejects (a strict readiness enum, and the results reader refuses unknown fields). Merging it alone would break the Work and Results pages, the W77 failure again.
   - Dispatched the dashboard re-pin plus rendering (`held`, history change, outcome) plus tolerant enum adapters, on `parity/p1-repin`. The two merge together.
   - Note: the CI tests job was 16m and update-lifecycle 18m on #99, both over budget. To check against recent main runs.
+- **18:00: owner asked to make the task view "cleaner, more compact, closer to v1".**
+  - Dispatched `style/task-view-compact`. It runs read-only side-by-side screenshots of v1 (http://127.0.0.1:5173) and v2, writes `compare.md` with concrete density targets, then implements on top of `parity/p1-repin`, scoped to the Work list and inspector. It produces before/after evidence for the owner.
