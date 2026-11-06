@@ -1454,3 +1454,12 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Dispatched a flake agent to find the root cause (product race versus test) and fix it, with no retries, sleeps or ignores. Branch `fix/host-cancel-flake`.
 - **23:06:** the #104 rerun passed, so the host-cancel failure was the known flake. Merged aq-server #104 (58ffe77e), agent channel phase 4: one CLI. It gives `aqv2`/`aq` a channel mode, `aq run <any command>`, `aq commands` discovery, typed wrappers generated from `commands.json`, and the refusal exit codes. The musl job and `release.yml` build the static v2 CLI.
   - Server, CLI and contract are done. The remaining pieces are phase 3 (worker proxy), phase 6 (live proof) and phase 7 (migration).
+- **23:07:** the phase 4 CLI agent finished and cleaned up its worktree.
+  - **Gaps it reported:**
+    - the CLI reads only `AQ_CHANNEL`, with no socket fallback;
+    - agents have no read routes for task show, comment edit/delete, or wait list/show;
+    - `whoami` lacks the session generation and the supervisor conversation ID;
+    - `question wait` exits on a transport drop instead of retrying;
+    - nothing has run end to end against a live server yet.
+  - **Forwarded to the worker proxy agent:** the env, socket permission, header, query-string and sandbox-template requirements, including shipping `aq` as `/opt/aq/bin/aq` and inverting B7's never-ship-aq check.
+  - **Dispatched a server follow-up agent** (`chan/server-followups`) for agent read routes (`task.show`, subtree reads, comment edit/delete, wait list/show) and the two `whoami` IDs, with matching CLI updates.
