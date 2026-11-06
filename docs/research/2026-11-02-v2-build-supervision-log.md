@@ -1448,3 +1448,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - denials appear only in `command_audit`, not in the dashboard.
   - Removed the four finished worktrees (67 G). Disk is at 69%.
   - Asked the phase 4 CLI agent to rebase #104 onto the new main and rerun CI before merging: #104 was green only against the old base, and #102 added registry commands that its generated tests had not seen.
+- **23:15:** #104 (phase 4 CLI) failed `tests` on its rebased head 75c46ec1 in one test: `playbook_host_requests::check_request_cancel_completes_from_executor_stop` (host_dispatch `Err(Unknown)`), failing on nextest's retry too.
+  - This is the third time, after main #88 and main #94. The PR touches only `aqv2`, `aq-human-http` and the workflows.
+  - Reran the failed job.
+  - Dispatched a flake agent to find the root cause (product race versus test) and fix it, with no retries, sleeps or ignores. Branch `fix/host-cancel-flake`.
