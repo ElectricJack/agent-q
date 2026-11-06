@@ -12,6 +12,7 @@ mod central_sessions;
 mod dashboard_actions;
 mod dashboard_aggregation;
 mod dashboard_assets;
+mod dashboard_errors;
 mod dashboard_mounts;
 mod dashboard_notifications;
 mod dashboard_read;

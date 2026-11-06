@@ -258,6 +258,16 @@ pub(super) async fn bootstrap(
             "Task inspection requires an owner account and configured Graph runtime",
         ),
         capability(
+            "tasks.comments.read",
+            graph,
+            "Task comments require an owner account and configured Graph runtime",
+        ),
+        capability(
+            "tasks.comments.write",
+            graph && actions,
+            "Writing task comments requires an owner account, Graph runtime and dashboard actions",
+        ),
+        capability(
             "tasks.create",
             graph_mutation,
             "Task creation requires an owner account and configured Graph mutation identity",

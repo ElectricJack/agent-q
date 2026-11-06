@@ -1,0 +1,18 @@
+{
+  "operation_id": "00000000-0000-4000-8000-000000000502",
+  "kind": "task.comment.edit",
+  "subject": {
+    "type": "task_comment",
+    "id": "00000000-0000-4000-8000-000000000501",
+    "revision": "1"
+  },
+  "expected_versions": {
+    "task_comment": "1"
+  },
+  "payload": {
+    "operation_id": "00000000-0000-4000-8000-000000000502",
+    "project_id": "00000000-0000-4000-8000-000000000010",
+    "expected_revision": "1",
+    "body": "Please also cover the **phone** and tablet layouts."
+  }
+}

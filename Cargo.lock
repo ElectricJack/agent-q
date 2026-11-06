@@ -172,6 +172,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-human-cursor"
+version = "0.1.0"
+dependencies = [
+ "base64 0.22.1",
+ "chacha20poly1305",
+ "rand 0.8.8",
+ "serde",
+ "serde_json",
+ "uuid",
+ "zeroize",
+]
+
+[[package]]
 name = "aq-human-http"
 version = "0.1.0"
 dependencies = [
@@ -440,6 +453,7 @@ dependencies = [
  "aq-admission 0.3.3",
  "aq-agent-api",
  "aq-central-authority",
+ "aq-human-cursor",
  "aq-lifecycle-api",
  "aq-notifications",
  "aq-observation-admission",
@@ -457,6 +471,7 @@ dependencies = [
  "aq-session-api",
  "aq-session-host",
  "aq-session-protocol",
+ "aq-task-comments",
  "aq-terminal-relay",
  "aq-terminal-relay-protocol",
  "aq-wait-engine",
@@ -583,6 +598,21 @@ dependencies = [
  "tower",
  "uuid",
  "zeroize",
+]
+
+[[package]]
+name = "aq-task-comments"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "hex",
+ "schemars",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "sqlx",
+ "sqlx-postgres",
+ "uuid",
 ]
 
 [[package]]

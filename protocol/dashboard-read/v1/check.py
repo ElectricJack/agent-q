@@ -132,4 +132,5 @@ for path, value in ((("items", 0, "state"), "expired"),
 bootstrap = json.loads((root / "fixtures" / "bootstrap.json").read_text())
 names = {c["name"] for c in bootstrap["data"]["capabilities"]}
 assert {"questions.read", "questions.answer"} <= names
+assert {"tasks.comments.read", "tasks.comments.write"} <= names
 print("Question inbox open/closed/detail fixtures and invalid question fields checked")

@@ -14,6 +14,8 @@ subtle = "=2.6.1"
 http-body = "=1.1.0"
 aq-central-authority = { path = "../aq-central-authority", version = "=0.1.0" }
 aq-result-media = { path = "../aq-result-media", version = "=0.1.0" }
+aq-task-comments = { path = "../aq-task-comments", version = "=0.1.0" }
+aq-human-cursor = { path = "../aq-human-cursor", version = "=0.1.0" }
 schemars = "1"
 aq-review-protocol = { path = "../aq-review-protocol", version = "=0.1.0" }
 aq-playbook-host = { path = "../aq-playbook-host", version = "=0.1.3" }
