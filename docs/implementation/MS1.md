@@ -138,14 +138,7 @@ and its data is kept (`docker compose -p aq-ms1d start` restarts it).
 - **Agents** (`/agents`): one row per attempt with harness `claude`, model
   `claude-sonnet-5-5`, central state `Finished` and start and stop times. The
   live state reads "State unknown" and "Controller unknown" (see Known limits).
-- **Results** (`/results`): **blocked**. It shows "Dashboard update
-  required". The server's `GET /api/v1/results` returns 200, but each item
-  carries `feedback_read_version` and `follow_up_submission`, and a nested
-  object carries `directly_following` (added by aq-server `4eef26ea` "Expose
-  additive Results feedback reload state"). The dashboard's pinned
-  `contracts/pinned/results-feedback/v1/schema.json` forbids additional
-  properties, so it rejects the page. The fix is a dashboard contract re-pin,
-  outside MS1's scope.
+- **Results** (`/results`): each MS1 result appears with its summary, its changed files and its checks and evidence. This was fixed by aq-dashboard #71 (d5c3bc4d), which re-pins the results-feedback contract; a contract mismatch now degrades only the Results view. The retry run's change set (task `…01d1`) lists `target/` build output; see Known limits.
 
 ### Step 6: Windows suspend drill
 
@@ -210,7 +203,7 @@ RSS. A realistic Rust build has not been measured (E5).
 
 | Limit | Owner |
 | --- | --- |
-| Results view blocked by the pinned results-feedback schema (above) | aq-dashboard contract re-pin (G6 results-feedback) |
+| Copy-back takes every file the agent leaves, so a repo without a `.gitignore` for build output publishes it. The retry commit `22a13087` includes `target/`. Copy-back and publication need a build-output/ignore policy, and must not rely on the agent running `cargo clean` | aq-worker sandbox driver (C6a), D1a policy |
 | GitHub push: D1 publishes to a local bare remote; pushing to GitHub needs named credential profiles in the pinned aq-git and central credentials | A3b (`eager-grove-45.3`), D2 (`crisp-meadow-36.3`) |
 | The persistent `aq-worker run` controller is still fenced; attempts run through one-shot `run-native` | no open plan task (see [Missing integration](#missing-integration), item 1) |
 | No live session or terminal state reaches Agents ("State unknown", "Controller unknown") | not assigned |
