@@ -6,8 +6,8 @@ Owner receives 404. Graph service credentials remain server-side. No agent token
 execution attempt, worker assignment or launch is manufactured.
 
 - POST `/api/human/projects/{project_id}/tasks`: closed `Create` object from
-  schema.json, JSON body at most 65536 bytes. Title at most 512 Unicode scalars,
-  nonblank and no controls; body 32768 UTF-8 bytes; acceptance 8192 UTF-8 bytes;
+  schema.json, JSON body at most 65536 bytes. Title at most 512 UTF-8 bytes (Graph's
+  title cap), nonblank and no controls; body 32768 UTF-8 bytes; acceptance 8192 UTF-8 bytes;
   body and acceptance cannot contain NUL;
   unique labels at most 16, each nonblank/no controls/at most 128 UTF-8 bytes.
   Optional priority is 1–300; profile_hint, intelligence_hint and task_type

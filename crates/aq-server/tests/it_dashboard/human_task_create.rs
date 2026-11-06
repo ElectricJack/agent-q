@@ -81,6 +81,9 @@ async fn owner_command_requires_configured_mutation_service_and_bounded_closed_i
         request(Uuid::new_v4(), "01"),
         request(Uuid::new_v4(), "0"),
         "{\"operation_id\":1,\"operation_id\":2}".into(),
+        // 300 characters but 600 UTF-8 bytes: titles are bounded in bytes,
+        // like task.edit and Graph's own 512-byte cap.
+        request(Uuid::new_v4(), "1").replace("Human authored task", &"\u{e9}".repeat(300)),
     ] {
         assert_eq!(
             send(&app, &path, Some(&body), "owner@localhost").await.0,
