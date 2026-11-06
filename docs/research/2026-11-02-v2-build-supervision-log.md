@@ -1256,3 +1256,12 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **New RR-02, major:** the Decisions badge reads "~6" but the inbox is empty. Since #97, `needs_you` counts every attention item while the badge still labels it decisions.
   - **SO-08 partial:** observations are fresh for 5 s but polled every ~60 s, so the strip shows "Stale" ~90% of the time.
   - Both were added to the urgent media-contract fix PR.
+- **09:45: Work/Decisions re-run.** 115/135 pass (was 93/118). Fixed: WD-01, 02, 04, 05, 06, 07 (36 parallel reads all 200), 09, 10 and 13. Partial: WD-03, WD-11, WD-12. Deferred: WD-08.
+  - **New:**
+    - **WDR-01 (major, data loss):** after an edit conflict, "Reload current versions" bumps the version but keeps stale field values, so resubmitting reverted another tab's edit.
+    - **WDR-02 (major):** the bootstrap re-check after a 403 doesn't retry a transient 503, so ~2 in 15 loads show app-wide "Access not confirmed".
+    - **WDR-04:** the badge issue, = RR-02.
+    - **WDR-03:** the create title is checked in characters while the server counts bytes; a 400 then shows "uncertain".
+    - **WDR-05:** dependency rejection copy.
+  - Dispatched a second fix PR (`qafix/work-rerun`) for WDR-01/02/03/05 and the WD-11 remainder, alongside the media-contract/badge fix.
+  - **All four re-run groups combined:** about 340/386 cases pass (first pass 274/368). Blocker RR-01 and 3–4 majors are being fixed.
