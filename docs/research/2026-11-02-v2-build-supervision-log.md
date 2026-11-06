@@ -1265,3 +1265,11 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - **WDR-05:** dependency rejection copy.
   - Dispatched a second fix PR (`qafix/work-rerun`) for WDR-01/02/03/05 and the WD-11 remainder, alongside the media-contract/badge fix.
   - **All four re-run groups combined:** about 340/386 cases pass (first pass 274/368). Blocker RR-01 and 3–4 majors are being fixed.
+- **10:05: merged aq-dashboard #79** (a57195da): re-pinned the drifted contracts (human-result-media, plus any others behind aq-server main); a contract failure on a per-card read now degrades only that card; the Decisions badge uses the reviews total; the usage strip is no longer stale ~90% of the time.
+  - aq-dashboard #80 (Work re-run fixes):
+    - WDR-01: three-way reload after an edit conflict — untouched fields take the server value, user edits are kept, and "Use AQ's …" appears on fields both sides changed;
+    - WDR-02: the bootstrap re-check retries transient errors;
+    - WDR-03: byte-based title check, and a 400 shows the server message;
+    - WDR-05: dependency copy, and the picker greys out existing blockers;
+    - Retry is disabled when a task never had an attempt.
+  - #80 was merged with main locally (typecheck and 1034 unit tests pass), pushed, and is in CI.
