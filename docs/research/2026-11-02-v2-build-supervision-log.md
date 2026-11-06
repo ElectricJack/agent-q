@@ -1339,3 +1339,12 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - focus is lost after dialogs.
   - **Blocked:** parent/child data (none on the stack), and agent comments from a real run (sandbox agent channel).
   - Dispatched `parity/p1-fixes` (dashboard) and `parity/p1-server-fixes` (server: a held-not-running readiness state, history attribution and change summaries, results outcome).
+- **17:35: merged aq-dashboard #82 (3c70a13a), the Phase 1 client fixes:**
+  - "Held by a finished attempt" instead of "Running";
+  - a compact phone header (~100 px) with a single actions menu;
+  - Comments moved directly under Status, so the composer is visible on open (spec §3 amended);
+  - scroll-margin under the sticky header;
+  - comment links, autolinks and quotes, with safe schemes only;
+  - three-way comment edit conflicts;
+  - focus return after dialogs; phone targets ≥44 px; clamped result summaries.
+  - The server half (`parity/p1-server-fixes`) is in CI.
