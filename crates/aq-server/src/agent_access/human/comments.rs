@@ -94,7 +94,8 @@ pub(crate) fn schemas(r: &mut Registry) {
 /// Add targets `{type:"task",id}` with no versions; edit and delete target
 /// `{type:"task_comment",id,revision}` with `expected_versions.task_comment`.
 fn target<C: Command>(request: &ActionRequest, c: &C) -> std::result::Result<Uuid, ApiError> {
-    if request.operation_id != c.operation_id() || c.project_id().is_nil() {
+    let body = c.body().map_or(Ok(()), comments::validate_body);
+    if request.operation_id != c.operation_id() || c.project_id().is_nil() || body.is_err() {
         return Err(ApiError::invalid());
     }
     let Some(expected) = c.expected_revision() else {

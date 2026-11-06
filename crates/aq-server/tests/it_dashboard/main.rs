@@ -20,6 +20,7 @@ mod dashboard_search;
 mod dashboard_task_knowledge;
 mod dashboard_usage;
 mod human_graph;
+mod human_task_comments;
 mod human_task_create;
 mod human_work;
 mod notification_discord_live;
