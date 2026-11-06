@@ -2,7 +2,9 @@
 pub mod actions;
 mod aggregation;
 mod capacity;
-pub mod contract;
+pub mod contract {
+    pub use aq_dashboard_contract::*;
+}
 pub use aq_human_cursor as cursor;
 pub mod errors;
 pub mod quota;

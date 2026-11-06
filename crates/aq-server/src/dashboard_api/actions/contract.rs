@@ -79,22 +79,7 @@ pub enum ActionVersion {
     V1,
 }
 pub type OperationResponse = Envelope<Operation, ActionVersion>;
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-#[serde(deny_unknown_fields)]
-pub struct OperationRetention {
-    pub minimum_days: u16,
-    pub unresolved_indefinite: bool,
-    pub retired_ids_indefinite: bool,
-}
-impl Default for OperationRetention {
-    fn default() -> Self {
-        Self {
-            minimum_days: 90,
-            unresolved_indefinite: true,
-            retired_ids_indefinite: true,
-        }
-    }
-}
+pub use super::super::contract::OperationRetention;
 pub(super) fn safe(value: &str, max: usize) -> bool {
     !value.is_empty() && value.len() <= max && !value.chars().any(char::is_control)
 }

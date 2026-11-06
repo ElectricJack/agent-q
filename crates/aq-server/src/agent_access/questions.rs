@@ -361,10 +361,12 @@ pub fn machine_routes() -> Router<AppState> {
 async fn caller(
     state: &AppState,
     headers: &HeaderMap,
+    path: &str,
 ) -> std::result::Result<(Uuid, Uuid), Response> {
     let principal = authenticate(state, headers)
         .await
         .map_err(IntoResponse::into_response)?;
+    super::grant_check::require(state, headers, &principal, path).await?;
     match (
         id(&principal.binding, "node_id"),
         id(&principal.binding, "attempt_id"),
@@ -380,7 +382,7 @@ fn reply(result: Result<Value>) -> Response {
     }
 }
 async fn ask_route(State(state): State<AppState>, headers: HeaderMap, body: Bytes) -> Response {
-    let (node, attempt) = match caller(&state, &headers).await {
+    let (node, attempt) = match caller(&state, &headers, ROUTES[0].0).await {
         Ok(ids) => ids,
         Err(response) => return response,
     };
@@ -393,7 +395,7 @@ async fn ask_route(State(state): State<AppState>, headers: HeaderMap, body: Byte
     }
 }
 async fn show_route(State(state): State<AppState>, headers: HeaderMap, body: Bytes) -> Response {
-    let (node, attempt) = match caller(&state, &headers).await {
+    let (node, attempt) = match caller(&state, &headers, ROUTES[1].0).await {
         Ok(ids) => ids,
         Err(response) => return response,
     };

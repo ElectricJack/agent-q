@@ -4,12 +4,12 @@
   "comment_schema": "protocol/human-graph/v1/schema.json#/components/schemas/HumanComment",
   "routes": [
     {
-      "method": "POST", "path": "/v1/agent/comments", "capability": "comment.add",
+      "method": "POST", "path": "/v1/agent/comments", "capability": "comment.add", "grant": "comment.write",
       "request": {"api_version": 1, "operation_id": "uuid", "body": "markdown string, 1..16384 bytes, not blank, no control characters except tab/LF/CR"},
       "response": {"api_version": 1, "comment": "HumanComment (author.kind agent, can_edit false)"}
     },
     {
-      "method": "POST", "path": "/v1/agent/comments/list", "capability": "comment.list",
+      "method": "POST", "path": "/v1/agent/comments/list", "capability": "comment.list", "grant": "comment.read",
       "request": {"api_version": 1, "cursor?": "string from next_cursor", "limit?": "integer 1..100, default 50"},
       "response": {"api_version": 1, "task_id": "uuid", "items": "HumanComment[] newest first", "next_cursor": "string or null"}
     }

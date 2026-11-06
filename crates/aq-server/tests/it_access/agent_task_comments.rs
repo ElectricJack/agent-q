@@ -1,6 +1,6 @@
 //! Agent task-comment routes (protocol/agent-comments/v1) under the real
 //! per-attempt credential: an agent comments on and reads only its own task.
-use crate::messaging::{send, setup};
+use crate::messaging::{send, setup_with};
 use aq_task_comments::{self as comments, Author, Thread};
 use axum::http::StatusCode;
 use serde_json::{Value, json};
@@ -12,7 +12,7 @@ fn uuid(v: &Value) -> Uuid {
 
 #[tokio::test]
 async fn agent_adds_and_lists_only_its_own_task_thread() {
-    let e = setup().await;
+    let e = setup_with(Some(json!([{"operation":"comment.write","scope":"task:subtree"},{"operation":"comment.read","scope":"project:self"}]))).await;
     let (project, task) = (uuid(&e.binding["project_id"]), uuid(&e.binding["task_id"]));
     let op = Uuid::new_v4();
     let request = json!({"api_version":1,"operation_id":op,"body":"Finding: the adapter drops `executions`."});

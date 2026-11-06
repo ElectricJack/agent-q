@@ -225,10 +225,15 @@ impl<C: Command> ActionKind for Comments<C> {
 }
 
 /// The attempt's own task thread and its agent author, from the credential.
-async fn agent(s: &AppState, h: &HeaderMap) -> std::result::Result<(Thread, Author), Response> {
+async fn agent(
+    s: &AppState,
+    h: &HeaderMap,
+    path: &str,
+) -> std::result::Result<(Thread, Author), Response> {
     let p = authenticate(s, h)
         .await
         .map_err(IntoResponse::into_response)?;
+    crate::agent_access::grant_check::require(s, h, &p, path).await?;
     let b = &p.binding;
     match [
         field(b, "project_id"),
@@ -259,13 +264,13 @@ pub(crate) fn machine_routes() -> Router<AppState> {
         .route(list_path, post(agent_list))
 }
 async fn agent_add(State(s): State<AppState>, h: HeaderMap, body: Bytes) -> Response {
-    match agent(&s, &h).await {
+    match agent(&s, &h, comments::AGENT_ROUTES[0].0).await {
         Ok((t, a)) => reply(comments::agent_add(&s.store.pool, t, &a, &body, (s.clock)()).await),
         Err(response) => response,
     }
 }
 async fn agent_list(State(s): State<AppState>, h: HeaderMap, body: Bytes) -> Response {
-    match agent(&s, &h).await {
+    match agent(&s, &h, comments::AGENT_ROUTES[1].0).await {
         Ok((t, _)) => reply(comments::agent_list(&s.store.pool, t, &body).await),
         Err(response) => response,
     }

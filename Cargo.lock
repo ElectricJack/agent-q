@@ -147,6 +147,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-agent-grants"
+version = "0.1.0"
+dependencies = [
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "uuid",
+]
+
+[[package]]
 name = "aq-central-authority"
 version = "0.1.0"
 dependencies = [
@@ -169,6 +180,17 @@ dependencies = [
  "anyhow",
  "aq-session-protocol",
  "toml",
+]
+
+[[package]]
+name = "aq-dashboard-contract"
+version = "0.1.0"
+dependencies = [
+ "aq-lifecycle-api",
+ "schemars",
+ "serde",
+ "serde_json",
+ "uuid",
 ]
 
 [[package]]
@@ -460,7 +482,9 @@ dependencies = [
  "aq-admission 0.1.12",
  "aq-admission 0.3.3",
  "aq-agent-api",
+ "aq-agent-grants",
  "aq-central-authority",
+ "aq-dashboard-contract",
  "aq-human-cursor",
  "aq-human-work",
  "aq-lifecycle-api",

@@ -468,6 +468,7 @@ mod tests {
             version: 1,
             revision: 1,
             expires: 1,
+            grants: Default::default(),
         };
         p.profile["max_response_bytes"] = json!(1024);
         let op = Uuid::new_v4();

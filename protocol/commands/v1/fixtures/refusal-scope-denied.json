@@ -1,0 +1,1 @@
+{"code":"scope_denied","command":"comment.list","grant":"comment.read","held":[{"operation":"comment.read","scope":"attempt:self"}],"message":"This agent holds `comment.read` only as comment.read @ attempt:self; the target of `comment.list` is outside that scope. Use `aq question ask` to request it.","effect":"not_applied","request_id":"5d2c1e3a-8f1b-4c6e-9a7d-2b3c4d5e6f71"}

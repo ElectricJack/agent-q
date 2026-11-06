@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:aq:commands:1",
+  "title": "AQ command surface: grants and refusals (spec 0006)",
+  "x-contract-version": 1,
+  "$defs": {
+    "Operation": {
+      "description": "A grantable operation (spec 0006 §6.2). Owner-only operations are never grantable.",
+      "enum": ["task.read", "task.create.subtask", "task.create.project", "task.edit", "comment.read", "comment.write", "knowledge.read", "knowledge.author", "question.ask", "question.read", "wait.register", "wait.read", "wait.ack", "message.send", "message.read", "message.ack", "result.read"]
+    },
+    "Scope": {
+      "description": "attempt:self, task:self (the attempt's task), task:subtree (the task and its descendants), project:self, or project:<uuid> (owner override only).",
+      "type": "string",
+      "pattern": "^(attempt:self|task:self|task:subtree|project:self|project:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$",
+      "not": {"const": "project:00000000-0000-0000-0000-000000000000"}
+    },
+    "Limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_created_tasks": {"type": "integer", "minimum": 0, "maximum": 4294967295},
+        "max_depth": {"type": "integer", "minimum": 0, "maximum": 4294967295}
+      }
+    },
+    "Grant": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "scope"],
+      "properties": {
+        "operation": {"$ref": "#/$defs/Operation"},
+        "scope": {"$ref": "#/$defs/Scope"},
+        "limits": {"$ref": "#/$defs/Limits"}
+      }
+    },
+    "GrantSet": {
+      "description": "Sorted by operation, one grant per operation.",
+      "type": "array",
+      "maxItems": 64,
+      "items": {"$ref": "#/$defs/Grant"}
+    },
+    "RefusalCode": {
+      "enum": ["grant_missing", "scope_denied", "owner_only", "quota_exceeded", "session_revoked", "session_expired", "channel_refused"]
+    },
+    "Refusal": {
+      "description": "Spec 0006 §6.8. It describes only the caller's own authority and never another record. On /v1/agent/* it is returned when the request carries X-AQ-Refusal-Version: 1; otherwise those routes return the closed agent-access-1 ErrorResponse whose message carries the same text.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "command", "grant", "held", "message", "effect", "request_id"],
+      "properties": {
+        "code": {"$ref": "#/$defs/RefusalCode"},
+        "command": {"type": "string", "minLength": 1, "maxLength": 128},
+        "grant": {"anyOf": [{"type": "string", "minLength": 1, "maxLength": 128}, {"type": "null"}]},
+        "held": {"type": "array", "maxItems": 64, "items": {"$ref": "#/$defs/Grant"}},
+        "message": {"type": "string", "minLength": 1, "maxLength": 4096},
+        "effect": {"const": "not_applied"},
+        "request_id": {"anyOf": [{"type": "string", "format": "uuid"}, {"type": "null"}]}
+      }
+    }
+  }
+}

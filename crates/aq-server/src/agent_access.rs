@@ -1,5 +1,6 @@
 //! Online attempt credentials, scoped graph reads, durable graph intent and mail.
 mod contract;
+mod grant_check;
 mod graph;
 pub mod human;
 pub(crate) mod messaging;
@@ -358,6 +359,8 @@ struct Provision {
     attempt_id: Uuid,
     profile: Value,
     context: Value,
+    #[serde(default)]
+    grants: Option<Vec<aq_agent_grants::Grant>>,
 }
 #[derive(Clone)]
 struct Principal {
@@ -368,6 +371,7 @@ struct Principal {
     version: i64,
     revision: i64,
     expires: u64,
+    grants: aq_agent_grants::GrantSet,
 }
 impl Principal {
     fn context_response(&self) -> Value {
@@ -471,15 +475,27 @@ async fn provision(
         version: i64::MAX,
         revision: i64::MAX,
         expires: 253402300799999,
+        grants: Default::default(),
     };
     graph::validate_launch(&principal)?;
+    let grants = request
+        .grants
+        .map(aq_agent_grants::GrantSet::new)
+        .transpose();
+    let grants = grants.map_err(|_| Error("invalid_request"))?;
+    let grants_json = grants.as_ref().map(serde_json::to_value).transpose()?;
     // Reserve room for maximum credential/authority version widths and a full
     // timestamp before persisting authority. A response refusal cannot mint a token.
     principal.issuance_response(&"a".repeat(47))?;
     let inserted=sqlx::query("INSERT INTO agent_launch_bindings(attempt_id,node_id,binding,profile,context) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING").bind(request.attempt_id).bind(node).bind(&binding).bind(&request.profile).bind(&request.context).execute(&mut *tx).await?.rows_affected();
+    if inserted == 1
+        && let Some(g) = &grants
+    {
+        grant_check::seal(&mut tx, request.attempt_id, g).await?;
+    }
     if inserted == 0 {
         let row = sqlx::query(
-            "SELECT binding,profile,context,revoked FROM agent_launch_bindings WHERE attempt_id=$1",
+            "SELECT binding,profile,context,revoked,(SELECT grants FROM agent_launch_grants g WHERE g.attempt_id=b.attempt_id) grants FROM agent_launch_bindings b WHERE attempt_id=$1",
         )
         .bind(request.attempt_id)
         .fetch_one(&mut *tx)
@@ -487,6 +503,7 @@ async fn provision(
         if row.get::<Value, _>("binding") != binding
             || row.get::<Value, _>("profile") != request.profile
             || row.get::<Value, _>("context") != request.context
+            || row.get::<Option<Value>, _>("grants") != grants_json
             || row.get::<bool, _>("revoked")
         {
             return Err(Error("id_conflict"));
@@ -573,6 +590,7 @@ async fn issue(
         version: old + 1,
         revision: row.get("authority_revision"),
         expires,
+        grants: Default::default(),
     };
     let body = p.issuance_response(&token)?;
     sqlx::query("UPDATE agent_launch_bindings SET credential_version=$2,credential_verifier=$3,credential_expires_at_ms=$4 WHERE attempt_id=$1").bind(request.attempt.attempt_id).bind(old+1).bind(crate::tokens::verifier(&token)).bind(expires as i64).execute(&mut *tx).await?;
@@ -605,7 +623,7 @@ async fn authenticate_locked(
     .await?;
     let (attempt, node) = identity.ok_or(Error("unauthorized"))?;
     let a = lock_attempt(state, tx, attempt, node).await?;
-    let row=sqlx::query("SELECT binding,profile,context,credential_version,authority_revision,credential_expires_at_ms,revoked FROM agent_launch_bindings WHERE attempt_id=$1 AND credential_verifier=$2 FOR UPDATE").bind(attempt).bind(verifier).fetch_optional(&mut **tx).await?.ok_or(Error("unauthorized"))?;
+    let row=sqlx::query("SELECT binding,profile,context,credential_version,authority_revision,credential_expires_at_ms,revoked,(SELECT grants FROM agent_launch_grants g WHERE g.attempt_id=b.attempt_id) grants FROM agent_launch_bindings b WHERE attempt_id=$1 AND credential_verifier=$2 FOR UPDATE").bind(attempt).bind(verifier).fetch_optional(&mut **tx).await?.ok_or(Error("unauthorized"))?;
     if row.get::<bool, _>("revoked") {
         return Err(Error("session_revoked"));
     }
@@ -621,6 +639,7 @@ async fn authenticate_locked(
         version: row.get("credential_version"),
         revision: row.get("authority_revision"),
         expires,
+        grants: grant_check::sealed(row.get("grants"))?,
     };
     if p.binding["generation"] != a.attempt.generation
         || p.binding["session_id"] != a.attempt.session_id.to_string()
@@ -761,6 +780,7 @@ mod tests {
             version: 1,
             revision: 1,
             expires: 1,
+            grants: Default::default(),
         };
         let snapshot_bytes = canonical(&p.context).unwrap().len();
         p.profile["max_response_bytes"] = json!(snapshot_bytes.max(1024) + 10);

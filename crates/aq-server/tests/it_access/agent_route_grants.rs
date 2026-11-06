@@ -1,0 +1,176 @@
+//! Spec 0006 phase 0: every `/v1/agent/*` question, comment and wait route
+//! refuses an attempt that does not hold its grant, names the missing grant,
+//! and records each decision in `command_audit`.
+use crate::messaging::{Env, send, setup_with};
+use axum::{
+    body::Body,
+    http::{Request, StatusCode},
+};
+use http_body_util::BodyExt;
+use serde_json::{Value, json};
+use tower::ServiceExt;
+use uuid::Uuid;
+
+const ROUTES: [(&str, &str, &str); 7] = [
+    ("/v1/agent/questions", "question.ask", "question.ask"),
+    ("/v1/agent/questions/show", "question.show", "question.read"),
+    ("/v1/agent/comments", "task.comment.add", "comment.write"),
+    ("/v1/agent/comments/list", "comment.list", "comment.read"),
+    ("/v1/agent/waits/register", "wait.register", "wait.register"),
+    ("/v1/agent/waits/inspect", "wait.inspect", "wait.read"),
+    ("/v1/agent/waits/ack", "wait.ack", "wait.ack"),
+];
+
+async fn structured(e: &Env, path: &str) -> (StatusCode, Value) {
+    let r = e
+        .app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri(path)
+                .header("content-type", "application/json")
+                .header("X-AQ-Request", "1")
+                .header("X-AQ-Refusal-Version", "1")
+                .header("authorization", format!("Bearer {}", e.token))
+                .body(Body::from(json!({"api_version":1}).to_string()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let status = r.status();
+    let bytes = r.into_body().collect().await.unwrap().to_bytes();
+    (status, serde_json::from_slice(&bytes).unwrap())
+}
+
+#[tokio::test]
+async fn agent_routes_refuse_without_their_grant_and_name_it() {
+    // Messaging only: none of the question, comment or wait grants.
+    let e = setup_with(Some(json!([
+        {"operation":"message.send","scope":"project:self"},
+        {"operation":"comment.read","scope":"attempt:self"}
+    ])))
+    .await;
+    let schema: Value = serde_json::from_str(include_str!(
+        "../../../../protocol/agent-access/v1/schema.json"
+    ))
+    .unwrap();
+    for (path, command, grant) in ROUTES {
+        // Default: the closed agent-access-1 ErrorResponse, naming the grant.
+        let (status, body) =
+            send(&e.app, path, Some(&e.token), Some(json!({"api_version":1}))).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{path} {body}");
+        assert!(
+            aq_agent_api::check(&schema, &schema["$defs"]["ErrorResponse"], &body),
+            "{path} {body}"
+        );
+        assert!(body["message"].as_str().unwrap().contains(grant), "{body}");
+        // Opt-in: the spec 0006 §6.8 refusal.
+        let (status, body) = structured(&e, path).await;
+        assert_eq!(status, StatusCode::FORBIDDEN, "{path} {body}");
+        assert_eq!(body["command"], command, "{body}");
+        assert_eq!(body["grant"], grant, "{body}");
+        assert_eq!(body["effect"], "not_applied");
+        assert!(body["request_id"].is_string());
+        // The commands-1 Refusal (closed; protocol/commands/v1/check.py
+        // validates the same shape against the schema).
+        let refusal: aq_agent_grants::Refusal = serde_json::from_value(body.clone()).unwrap();
+        assert_eq!(refusal.body(), body);
+        if path == "/v1/agent/comments/list" {
+            // Held, but attempt:self does not reach the task thread.
+            assert_eq!(body["code"], "scope_denied", "{body}");
+            assert_eq!(
+                body["held"],
+                json!([{"operation":"comment.read","scope":"attempt:self"}])
+            );
+            assert!(body["message"].as_str().unwrap().contains("attempt:self"));
+        } else {
+            assert_eq!(body["code"], "grant_missing", "{body}");
+            // Only the caller's own grants of the same family are shown.
+            assert!(body["held"].as_array().unwrap().iter().all(|g| {
+                g["operation"].as_str().unwrap().split('.').next() == grant.split('.').next()
+            }));
+        }
+    }
+    let rows: Vec<(String, String, Option<String>, String)> = sqlx::query_as(
+        "SELECT command,decision,reason_code,grant_operation FROM command_audit WHERE attempt_id=$1 ORDER BY recorded_at_ms,command",
+    )
+    .bind(Uuid::parse_str(e.binding["attempt_id"].as_str().unwrap()).unwrap())
+    .fetch_all(&e.pool)
+    .await
+    .unwrap();
+    assert_eq!(rows.len(), 2 * ROUTES.len());
+    assert!(rows.iter().all(|r| r.1 == "deny" && r.2.is_some()));
+}
+
+#[tokio::test]
+async fn held_grant_admits_the_route_and_audits_the_allow() {
+    let e = setup_with(Some(json!([
+        {"operation":"comment.write","scope":"task:subtree"},
+        {"operation":"comment.read","scope":"project:self"}
+    ])))
+    .await;
+    let op = Uuid::new_v4();
+    let (status, body) = send(
+        &e.app,
+        "/v1/agent/comments",
+        Some(&e.token),
+        Some(json!({"api_version":1,"operation_id":op,"body":"Granted comment."})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let (status, body) = send(
+        &e.app,
+        "/v1/agent/comments/list",
+        Some(&e.token),
+        Some(json!({"api_version":1})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let allowed: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM command_audit WHERE attempt_id=$1 AND decision='allow' AND caller_kind='agent'",
+    )
+    .bind(Uuid::parse_str(e.binding["attempt_id"].as_str().unwrap()).unwrap())
+    .fetch_one(&e.pool)
+    .await
+    .unwrap();
+    assert_eq!(allowed, 2);
+    // A binding sealed without grants holds none.
+    let e = setup_with(None).await;
+    let (status, body) = send(
+        &e.app,
+        "/v1/agent/comments/list",
+        Some(&e.token),
+        Some(json!({"api_version":1})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "{body}");
+    assert_eq!(body["code"], "unsupported_capability");
+}
+
+#[test]
+fn route_contracts_publish_the_grant_each_route_checks() {
+    let mut published = std::collections::BTreeMap::new();
+    for raw in [
+        include_str!("../../../../protocol/agent-questions/v1/routes.json"),
+        include_str!("../../../../protocol/agent-comments/v1/routes.json"),
+        include_str!("../../../../protocol/agent-waits/v1/routes.json"),
+    ] {
+        let routes: Value = serde_json::from_str(raw).unwrap();
+        for r in routes["routes"].as_array().unwrap() {
+            published.insert(
+                r["path"].as_str().unwrap().to_owned(),
+                r["grant"].as_str().unwrap().to_owned(),
+            );
+        }
+    }
+    let served: std::collections::BTreeMap<_, _> = aq_agent_grants::AGENT_ROUTE_GRANTS
+        .iter()
+        .map(|(path, _, grant)| (path.to_string(), grant.to_string()))
+        .collect();
+    assert_eq!(published, served);
+    assert_eq!(
+        ROUTES.map(|(p, c, g)| (p, c, g)).to_vec(),
+        aq_agent_grants::AGENT_ROUTE_GRANTS.to_vec()
+    );
+}

@@ -531,6 +531,7 @@ mod tests {
             version: 1,
             revision: 1,
             expires: 1,
+            grants: Default::default(),
         }
     }
     fn graph() -> Value {
