@@ -174,6 +174,17 @@ pub async fn publish(
         source_exports::link_locked(state, &mut tx, &binding.session, export, fact, inspection)
     })
     .await?;
+    let m = &built.state.offer.manifest;
+    let effective: Vec<_> = m
+        .permissions
+        .effective
+        .iter()
+        .map(|p| (p.operation.as_str(), p.resource.as_str()))
+        .collect();
+    let (project, task) = (m.bindings.project_id, m.bindings.task_id);
+    let grants =
+        crate::agent_access::grant_check::resolve_native(&mut tx, state, &effective, project, task);
+    let grants = grants.await.map_err(db)?;
     on_heap(|| {
         crate::agent_access::native_binding::seal_locked(
             state,
@@ -181,6 +192,7 @@ pub async fn publish(
             &binding.session,
             &built.graph_profile,
             &built.context,
+            &grants,
         )
     })
     .await?;

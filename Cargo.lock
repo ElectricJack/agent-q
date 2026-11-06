@@ -242,6 +242,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-intelligence-config"
+version = "0.1.0"
+dependencies = [
+ "aq-accounting",
+ "aq-selection",
+ "hex",
+ "nix",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tracing",
+ "uuid",
+ "zeroize",
+]
+
+[[package]]
 name = "aq-lifecycle-api"
 version = "0.1.0"
 dependencies = [
@@ -393,6 +409,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-profiled-state"
+version = "0.1.0"
+dependencies = [
+ "aq-session-protocol",
+ "aq-worker-protocol",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
 name = "aq-profiles"
 version = "0.1.2"
 dependencies = [
@@ -501,6 +528,7 @@ dependencies = [
  "aq-dashboard-contract",
  "aq-human-cursor",
  "aq-human-work",
+ "aq-intelligence-config",
  "aq-lifecycle-api",
  "aq-notifications",
  "aq-observation-admission",
@@ -508,6 +536,7 @@ dependencies = [
  "aq-phase-terminal-protocol",
  "aq-playbook-host",
  "aq-playbooks-compiler",
+ "aq-profiled-state",
  "aq-profiles",
  "aq-protocol",
  "aq-release",

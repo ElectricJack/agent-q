@@ -263,7 +263,7 @@ impl IntelligenceConfig {
 pub struct LoadedRegistry {
     pub config: IntelligenceConfig,
     pub credentials: Vec<AuthorizedCredential>,
-    pub(crate) fingerprints: Vec<Option<String>>,
+    pub fingerprints: Vec<Option<String>>,
 }
 impl std::fmt::Debug for LoadedRegistry {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

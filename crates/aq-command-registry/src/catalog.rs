@@ -46,6 +46,7 @@ const fn get(path: &'static str) -> Option<Route> {
     Some(Route::get(path, &[]))
 }
 
+const AGENT_TASK: &str = r#"{"type":"object","additionalProperties":false,"required":["operation_id","title"],"properties":{"operation_id":{"type":"string","format":"uuid"},"title":{"type":"string","minLength":1,"maxLength":512},"body":{"type":"string","maxLength":32768},"acceptance_criteria":{"type":"string","maxLength":8192},"labels":{"type":"array","maxItems":16,"items":{"type":"string","minLength":1,"maxLength":128}},"parent_id":{"anyOf":[{"type":"string","format":"uuid"},{"const":"self"},{"type":"null"}]},"priority":{"type":"integer","minimum":1,"maximum":300},"task_type":{"type":"string","minLength":1,"maxLength":128},"task_state":{"enum":["active","draft"]},"expected_project_revision":{"type":"string","pattern":"^[1-9][0-9]{0,18}$"},"profile_hint":{"type":"null","description":"An agent cannot choose the profile of a task it creates"},"intelligence_hint":{"type":"null","description":"An agent cannot choose the intelligence of a task it creates"}}}"#;
 const P: TargetRule = TargetRule::Project("project_id");
 const T: TargetRule = TargetRule::Task("task_id");
 const TASK: &[(&str, &str)] = &[("project", "project_id"), ("node", "task_id")];
@@ -99,6 +100,13 @@ pub fn catalog() -> Vec<CommandSpec> {
         "Create a task (a subtask when parent_id is given)",
     );
     task_create.supervisor = Some(Route::action());
+    // An agent's subtask: parent_id "self" or omitted is its own task; the
+    // project revision is the current one unless given.
+    task_create.agent = Some(Route::post(
+        "/v1/agent/tasks",
+        Body::Versioned,
+        Params::Inline(AGENT_TASK),
+    ));
     let mut graph_create = mutation(
         "task.graph.create",
         op::TASK_CREATE_SUBTASK,
@@ -362,7 +370,7 @@ pub fn catalog() -> Vec<CommandSpec> {
             ..mutation(
                 "message.send",
                 op::MESSAGE_SEND,
-                TargetRule::Own,
+                TargetRule::Mailbox("recipient"),
                 "Send mail to a task, session or supervisor mailbox",
             )
         },
@@ -380,7 +388,7 @@ pub fn catalog() -> Vec<CommandSpec> {
             ..read(
                 "message.inbox",
                 op::MESSAGE_READ,
-                TargetRule::Own,
+                TargetRule::Mailbox("recipient"),
                 "A mailbox page",
                 None,
             )
@@ -394,7 +402,7 @@ pub fn catalog() -> Vec<CommandSpec> {
             ..read(
                 "message.body",
                 op::MESSAGE_READ,
-                TargetRule::Own,
+                TargetRule::Mailbox("recipient"),
                 "One message body, in bounded chunks",
                 None,
             )
@@ -408,7 +416,7 @@ pub fn catalog() -> Vec<CommandSpec> {
             ..mutation(
                 "message.ack",
                 op::MESSAGE_ACK,
-                TargetRule::Own,
+                TargetRule::Mailbox("recipient"),
                 "Acknowledge a message as received or read",
             )
         },

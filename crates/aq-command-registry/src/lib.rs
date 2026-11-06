@@ -62,6 +62,9 @@ pub enum TargetRule {
     Project(&'static str),
     /// The request `subject` (a task, comment or knowledge record).
     Subject,
+    /// The mailbox named by this param: a task mailbox is that task; the
+    /// caller's own session and the supervisor are its own attempt.
+    Mailbox(&'static str),
 }
 impl TargetRule {
     pub fn describe(&self) -> Value {
@@ -74,6 +77,7 @@ impl TargetRule {
             }
             Self::Project(f) => json!({"rule":"project","param":f}),
             Self::Subject => json!({"rule":"subject"}),
+            Self::Mailbox(f) => json!({"rule":"mailbox","param":f}),
         }
     }
 }
@@ -582,7 +586,8 @@ pub fn agent_target(
         TargetRule::ParentTask { field, .. } => match params.get(field) {
             Some(Value::Null) | None => Target::Project(holder.project),
             Some(v) => {
-                let parent = id(v).ok_or(BuildError("parent id must be a UUID"))?;
+                let parent = if v == "self" { Some(own_task) } else { id(v) };
+                let parent = parent.ok_or(BuildError("parent_id must be a UUID or \"self\""))?;
                 // A child of `parent` sits one level below it.
                 match task(parent) {
                     Target::Task {
@@ -603,6 +608,18 @@ pub fn agent_target(
                 }
             }
         },
+        TargetRule::Mailbox(field) => match params.get(field) {
+            Some(r) if r["kind"] == "task" => {
+                let t = id(&r["task_id"]).ok_or(BuildError("task mailbox needs a task_id"))?;
+                if r["project_id"] != json!(holder.project) {
+                    Target::Project(id(&r["project_id"]).unwrap_or_default())
+                } else {
+                    task(t)
+                }
+            }
+            Some(_) => Target::OwnAttempt,
+            None => return Err(BuildError("a mailbox command needs a recipient")),
+        },
         TargetRule::Subject => return Err(BuildError("this command takes no agent subject")),
     })
 }
@@ -617,5 +634,32 @@ pub fn required_grant(
             Some(unparented)
         }
         _ => spec.grant,
+    }
+}
+/// The task id a rule's param names, for the server to resolve its
+/// relation to the attempt's task before `agent_target`.
+pub fn target_task(rule: TargetRule, params: &Map<String, Value>) -> Option<Uuid> {
+    let v = match rule {
+        TargetRule::Task(f) | TargetRule::ParentTask { field: f, .. } => params.get(f)?,
+        TargetRule::Mailbox(f) => params.get(f)?.get("task_id")?,
+        _ => return None,
+    };
+    v.as_str()?.parse().ok()
+}
+/// A grant's limits applied to its target: the depth of a created task.
+/// `Err(limit name)` when the target is deeper than the grant allows.
+pub fn within_limits(
+    grant: &aq_agent_grants::Grant,
+    target: &aq_agent_grants::Target,
+) -> Result<(), &'static str> {
+    match (grant.limits.max_depth, target) {
+        (
+            Some(max),
+            aq_agent_grants::Target::Task {
+                relation: aq_agent_grants::Relation::Descendant(d),
+                ..
+            },
+        ) if *d > max => Err("max_depth"),
+        _ => Ok(()),
     }
 }

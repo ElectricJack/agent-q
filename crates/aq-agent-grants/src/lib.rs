@@ -7,7 +7,9 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 use uuid::Uuid;
 
+pub mod budget;
 pub mod refusal;
+pub mod resolve;
 pub use refusal::{CODES, Refusal, RefusalCode};
 
 /// The operations a grant can name (§6.2). Owner-only operations are listed
@@ -452,6 +454,37 @@ pub struct AttemptIds {
     pub project_id: Uuid,
 }
 impl AuditEntry {
+    /// Any caller's decision; `ids` is the attempt for an agent.
+    #[allow(clippy::too_many_arguments)]
+    pub fn caller(
+        caller_kind: &'static str,
+        caller_id: Uuid,
+        ids: Option<AttemptIds>,
+        command: &str,
+        grant: Option<&str>,
+        target: Option<&Target>,
+        decision: &Decision,
+        operation_id: Option<Uuid>,
+        request_id: Uuid,
+    ) -> Self {
+        Self {
+            caller_kind,
+            caller_id,
+            attempt_id: ids.map(|i| i.attempt_id),
+            task_id: ids.map(|i| i.task_id),
+            project_id: ids.map(|i| i.project_id),
+            command: command.into(),
+            grant: grant.map(Into::into),
+            target: target.map_or(serde_json::json!({}), Target::audit),
+            allowed: matches!(decision, Decision::Allow(_)),
+            reason_code: match decision {
+                Decision::Allow(_) => None,
+                Decision::Deny(r) => Some(r.code.as_str()),
+            },
+            operation_id,
+            request_id,
+        }
+    }
     pub fn agent(
         ids: AttemptIds,
         command: &str,

@@ -10,7 +10,9 @@ use crate::store::Store;
 
 pub mod api;
 pub mod authority;
-pub mod profiled;
+pub mod profiled {
+    pub use aq_profiled_state::*;
+}
 #[cfg(feature = "recovery-test-support")]
 pub mod testing;
 

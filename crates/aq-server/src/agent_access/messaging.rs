@@ -129,9 +129,11 @@ pub(super) fn machine_routes() -> Router<AppState> {
         .route("/v1/agent/messages/body", post(agent_body))
 }
 fn capability(p: &Principal, name: &str) -> Result<()> {
-    if p.profile["capabilities"]
-        .as_array()
-        .is_some_and(|c| c.contains(&json!(name)))
+    // The message grants (spec 0006) carry the same names as the capabilities.
+    if p.grants.get(name).is_some()
+        || p.profile["capabilities"]
+            .as_array()
+            .is_some_and(|c| c.contains(&json!(name)))
     {
         Ok(())
     } else {

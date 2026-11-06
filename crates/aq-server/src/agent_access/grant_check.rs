@@ -47,8 +47,9 @@ impl AgentCaller {
             "credential":{"version":p.version.to_string(),"expires_at":expires,"authority_revision":p.revision.to_string()}})
     }
     /// The grant and scope check for one command (§6.4), with its target.
-    pub(crate) fn authorize(
+    pub(crate) async fn authorize(
         &self,
+        state: &AppState,
         spec: &aq_command_registry::CommandSpec,
         params: &mut serde_json::Map<String, Value>,
     ) -> (Decision, Target) {
@@ -57,37 +58,114 @@ impl AgentCaller {
         };
         let own = Target::OwnAttempt;
         let Some(grant) = spec.grant else {
-            return (
-                Decision::Allow(aq_agent_grants::Grant::new(
-                    "self",
-                    aq_agent_grants::Scope::AttemptSelf,
-                )),
-                own,
-            );
+            let g = aq_agent_grants::Grant::new("self", aq_agent_grants::Scope::AttemptSelf);
+            return (Decision::Allow(g), own);
+        };
+        let rel = match aq_command_registry::target_task(spec.target, params) {
+            Some(t) => relation(state, self.ids.task_id, t).await,
+            None => aq_agent_grants::Relation::Other,
         };
         let target = aq_command_registry::agent_target(
             spec.target,
             params,
             holder,
             self.ids.task_id,
-            |_| aq_agent_grants::Relation::Other,
+            |_| rel,
         );
         let Ok(target) = target else {
-            return (
-                Decision::Deny(Refusal::error(
-                    RefusalCode::InvalidRequest,
-                    spec.name,
-                    "A target param is malformed.",
-                )),
-                own,
+            let r = Refusal::error(
+                RefusalCode::InvalidRequest,
+                spec.name,
+                "A target param is malformed.",
             );
+            return (Decision::Deny(r), own);
         };
         let grant = aq_command_registry::required_grant(spec, &target).unwrap_or(grant);
-        (
-            aq_agent_grants::check(&self.grants, holder, spec.name, grant, target),
-            target,
-        )
+        match aq_agent_grants::check(&self.grants, holder, spec.name, grant, target) {
+            Decision::Allow(g) => match aq_command_registry::within_limits(&g, &target) {
+                Ok(()) => (Decision::Allow(g), target),
+                Err(limit) => {
+                    let held = self.grants.related(grant);
+                    (
+                        Decision::Deny(Refusal::quota_exceeded(spec.name, grant, held, limit)),
+                        target,
+                    )
+                }
+            },
+            deny => (deny, target),
+        }
     }
+}
+/// `task` relative to the attempt's task: a task an agent created under it
+/// (at the recorded depth), or any other task.
+pub(crate) async fn relation(state: &AppState, own: Uuid, task: Uuid) -> aq_agent_grants::Relation {
+    let depth: Option<i32> = sqlx::query_scalar("SELECT depth FROM agent_created_tasks WHERE task_id=$1 AND root_task_id=$2 AND depth IS NOT NULL")
+        .bind(task).bind(own).fetch_optional(&state.store.pool).await.ok().flatten();
+    depth.map_or(aq_agent_grants::Relation::Other, |d| {
+        aq_agent_grants::Relation::Descendant(d as u32)
+    })
+}
+/// The project's agent-grant policy (`ProjectPolicy.agent_grants`).
+pub(crate) fn project_grants(
+    state: &AppState,
+    project: Uuid,
+) -> aq_agent_grants::resolve::ProjectGrants {
+    let projects = state
+        .config
+        .profiled_execution
+        .as_ref()
+        .map(|c| c.projects.as_slice());
+    let policy = projects
+        .unwrap_or_default()
+        .iter()
+        .find(|p| p.project_id == project);
+    policy
+        .and_then(|p| p.agent_grants.clone())
+        .unwrap_or_default()
+}
+/// Live narrowing (§6.3): a lowered project ceiling applies at the next call.
+pub(super) fn narrow(state: &AppState, project: Uuid, sealed: GrantSet) -> GrantSet {
+    project_grants(state, project)
+        .ceiling()
+        .map_or(sealed.clone(), |c| sealed.intersect(&c))
+}
+/// False only for a historical test store older than migration 0098 (no grant tables).
+#[allow(clippy::needless_return)]
+pub(crate) fn grant_tables(_state: &AppState) -> bool {
+    #[cfg(feature = "test-support")]
+    return _state.store.fixture_profile.is_none_or(|v| v >= 98);
+    #[cfg(not(feature = "test-support"))]
+    true
+}
+/// The grants a native launch seals: profile, project policy, and the
+/// creating attempt's grants when an agent created the task.
+pub(crate) async fn resolve_native(
+    tx: &mut Transaction<'_, Postgres>,
+    state: &AppState,
+    effective: &[(&str, &str)],
+    project: Uuid,
+    task: Uuid,
+) -> std::result::Result<GrantSet, sqlx::Error> {
+    use aq_agent_grants::resolve::{Permission, from_permissions, resolve};
+    if !grant_tables(state) {
+        return Ok(GrantSet::empty());
+    }
+    let perms: Vec<_> = effective
+        .iter()
+        .map(|(o, s)| Permission {
+            operation: o,
+            scope_reference: s,
+        })
+        .collect();
+    let creator: Option<Value> = sqlx::query_scalar("SELECT g.grants FROM agent_created_tasks c JOIN agent_launch_grants g USING(attempt_id) WHERE c.task_id=$1")
+        .bind(task).fetch_optional(&mut **tx).await?;
+    // A creator whose grants cannot be read holds none, so the child gets none.
+    let creator = creator.map(|v| sealed(Some(v)).unwrap_or_default());
+    Ok(resolve(
+        &from_permissions(&perms, project),
+        &project_grants(state, project),
+        creator.as_ref(),
+    ))
 }
 
 /// Seal `grants` beside a new launch binding, in its transaction. No row holds none.

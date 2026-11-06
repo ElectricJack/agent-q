@@ -22,6 +22,8 @@ pub(crate) struct Current<'a> {
     pub(crate) subject: Uuid,
     pub(crate) actor: Uuid,
     pub(crate) supervisor_actor: Option<Uuid>,
+    /// `(attempt, task)` when an agent creates the task (spec 0006 §6.7).
+    pub(crate) agent: Option<(Uuid, Uuid)>,
     pub(crate) project: Uuid,
     pub(crate) version: u64,
     pub(crate) node: &'a Value,
@@ -446,6 +448,8 @@ impl GraphPayload for KnowledgeRestore {
 pub(crate) struct GraphAction<P> {
     runtime: Arc<ReadRuntime>,
     supervisor: Option<super::super::supervisor_conversation::reply::SupervisorPrincipal>,
+    /// `(attempt, task, project)` of an agent creating under its own grants.
+    agent: Option<(Uuid, Uuid, Uuid)>,
     payload: std::marker::PhantomData<P>,
 }
 impl<P> GraphAction<P> {
@@ -457,9 +461,27 @@ impl<P> GraphAction<P> {
         adapter.supervisor = Some(principal);
         adapter
     }
+    /// An agent's create; the command surface and the agent route have
+    /// checked its grant, scope and quota.
+    pub(crate) fn for_agent(state: &AppState, attempt: Uuid, task: Uuid, project: Uuid) -> Self {
+        let mut adapter = Self::new(state);
+        adapter.agent = Some((attempt, task, project));
+        adapter
+    }
+    fn machine(&self) -> bool {
+        self.supervisor.is_some() || self.agent.is_some()
+    }
     async fn project(&self, state: &AppState, user: &User, project: Uuid) -> Result<ProjectRecord> {
-        if let Some(principal) = &self.supervisor {
-            if user.id != principal.session_id || !principal.scopes.iter().any(|s| s == "enqueue") {
+        if self.machine() {
+            let supervisor = self
+                .supervisor
+                .as_ref()
+                .is_none_or(|p| user.id == p.session_id && p.scopes.iter().any(|s| s == "enqueue"));
+            if !supervisor
+                || self
+                    .agent
+                    .is_some_and(|(a, _, p)| user.id != a || p != project)
+            {
                 return Err(invalid());
             }
             let record = project_bindings::current(state, project).await?;
@@ -479,6 +501,7 @@ impl<P> GraphAction<P> {
         Self {
             runtime: Arc::new(ReadRuntime::new(state)),
             supervisor: None,
+            agent: None,
             payload: std::marker::PhantomData,
         }
     }
@@ -668,7 +691,7 @@ impl<P: GraphPayload> ActionKind for GraphAction<P> {
         {
             return Err(ApiError::invalid());
         }
-        if self.supervisor.is_none() {
+        if !self.machine() {
             admit(
                 state,
                 &self.runtime,
@@ -688,7 +711,7 @@ impl<P: GraphPayload> ActionKind for GraphAction<P> {
         {
             return Err(ApiError::invalid());
         }
-        if self.supervisor.is_some() || P::KIND == "task.graph.create" {
+        if self.machine() || P::KIND == "task.graph.create" {
             let record = self
                 .project(state, user, payload.project_id())
                 .await
@@ -714,7 +737,7 @@ impl<P: GraphPayload> ActionKind for GraphAction<P> {
         scope: &Scope,
         operation: Option<&actions::Operation>,
     ) -> ApiResult<()> {
-        if self.supervisor.is_none() {
+        if !self.machine() {
             return lookup(state, &self.runtime, user, scope, operation, P::ENTITY).await;
         }
         let Scope::Project { project_id } = scope else {
@@ -820,6 +843,7 @@ impl<P: GraphPayload> GraphAction<P> {
                 subject,
                 actor: user.id,
                 supervisor_actor: self.supervisor.as_ref().map(|p| p.actor_id),
+                agent: self.agent.map(|(a, t, _)| (a, t)),
                 project,
                 version: live,
                 node: &node,

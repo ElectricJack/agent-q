@@ -34,6 +34,7 @@ fn config() -> ProfiledConfig {
             },
             retention_handle: Uuid::from_u128(2),
             placement: None,
+            agent_grants: None,
         }],
     }
 }

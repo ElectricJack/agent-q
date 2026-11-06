@@ -90,7 +90,8 @@
         "not_available",
         "invalid_request",
         "unauthorized",
-        "internal"
+        "internal",
+        "overloaded"
       ]
     },
     "Refusal": {

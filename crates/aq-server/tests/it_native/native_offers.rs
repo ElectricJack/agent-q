@@ -68,6 +68,15 @@ async fn actual_native_offer_seals_real_owner_artifacts_source_and_graph_without
         0
     );
     assert_eq!(sqlx::query_scalar::<_,i64>("SELECT count(*) FROM agent_launch_bindings WHERE credential_verifier IS NULL AND credential_version=0").fetch_one(pool).await.unwrap(),1);
+    // Spec 0006 phase 2: the offer seals the default coding grants.
+    let (grants, digest): (Value, String) =
+        sqlx::query_as("SELECT grants,grants_digest FROM agent_launch_grants")
+            .fetch_one(pool)
+            .await
+            .unwrap();
+    let default = aq_agent_grants::resolve::default_coding();
+    assert_eq!(grants, serde_json::to_value(&default).unwrap());
+    assert_eq!(digest, default.digest());
     let original: Value =
         sqlx::query_scalar("SELECT graph_task_observation FROM profiled_launches")
             .fetch_one(pool)

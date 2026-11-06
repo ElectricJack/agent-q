@@ -260,6 +260,7 @@ pub async fn setup() -> Case {
             },
             retention_handle: handle,
             placement: None,
+            agent_grants: None,
         }],
         context_qualifications: vec![fact],
         definition_bodies: definitions,

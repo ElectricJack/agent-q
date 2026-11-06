@@ -212,3 +212,39 @@ async fn lookup(
     tx.commit().await?;
     Ok(Json(response))
 }
+/// An agent's single-task create (spec 0006 phase 2), journaled under the
+/// attempt's own identity. Its grant, scope and quota are already checked.
+pub(crate) async fn agent_create(
+    state: &AppState,
+    ids: aq_agent_grants::AttemptIds,
+    request: ActionRequest,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    let (attempt, task, project) = (ids.attempt_id, ids.task_id, ids.project_id);
+    let run = async {
+        let collision: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM users WHERE id=$1)")
+            .bind(attempt)
+            .fetch_one(&state.store.pool)
+            .await?;
+        if collision {
+            return Err(ApiError::for_status(StatusCode::FORBIDDEN));
+        }
+        let mut r = Registry::default();
+        r.register(Single(GraphAction::<SingleGraph>::for_agent(
+            state, attempt, task, project,
+        )))?;
+        let user = User {
+            id: attempt,
+            email: String::new(),
+            role: crate::store::Role::Viewer,
+            issuer: None,
+            subject: None,
+        };
+        let op = actions::submit_scoped(state, &r, &user, request).await?;
+        ApiResult::Ok(actions::response(state, op))
+    };
+    match run.await {
+        Ok(response) => (actions::operation_status(&response.data), Json(response)).into_response(),
+        Err(error) => error.into_response(),
+    }
+}

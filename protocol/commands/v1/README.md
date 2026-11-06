@@ -79,7 +79,7 @@ take the project from the binding, so the param is not forwarded.
 Every refusal and error on the command surface is a `Refusal` body. The
 grant codes are below; the surface's own errors are `unknown_command` (404),
 `not_available` (403), `invalid_request` (400), `unauthorized` (401) and
-`internal` (500). Errors from the route that serves a command are that
+`internal` (500), and `overloaded` (503, retryable). Errors from the route that serves a command are that
 route's errors; the command surface asks the `/v1/agent/*` routes for the
 structured refusal (`X-AQ-Refusal-Version: 1`).
 
@@ -93,6 +93,61 @@ retire, evidence waivers, playbook control, administration and grant
 changes) are not in the vocabulary and can never be held by an agent.
 
 An attempt's grants are sealed with its launch in `agent_launch_grants`.
+
+### Where grants come from (spec 0006 §6.3)
+
+A native launch resolves its grants at offer and seals them with the binding:
+
+1. **Profile.** The `aq.coding` default below, plus what the profile's
+   `effective_permissions` request in this vocabulary (`wait.show` is
+   `wait.read`, `wait.checkpoint` is part of `wait.register`, and
+   `project:<own id>` is `project:self`).
+2. **Project ceiling.** `ProjectPolicy.agent_grants.ceiling`, when set.
+3. **Owner additions.** `ProjectPolicy.agent_grants.add`, for example
+   `task.create.project` for one project. Per-task overrides
+   (`task.agent_grants.set`) come later (owner decision 6).
+4. **Inheritance.** For a task an agent created (`agent_created_tasks`), the
+   result is intersected with the creating attempt's grants: a child never
+   holds more than its creator.
+
+A lowered project ceiling narrows a live attempt at its next call. A wider
+grant takes effect from the next attempt.
+
+### The `aq.coding` default (§6.6, owner decisions 1–4)
+
+| Grant | Scope | Limits |
+| --- | --- | --- |
+| `task.read`, `comment.read`, `knowledge.read`, `result.read` | `project:self` | |
+| `task.create.subtask` | `task:subtree` | at most 5 per attempt, depth ≤ 2 below the attempt's task |
+| `comment.write` | `task:subtree` | |
+| `knowledge.author` | `project:self` | |
+| `question.ask`, `question.read`, `wait.register`, `wait.read`, `wait.ack` | `attempt:self` | |
+| `message.send`, `message.read`, `message.ack` | `task:subtree` (the supervisor, the agent's own session and its task tree) | |
+
+Not granted by default: `task.create.project`, `task.edit` and every
+owner-only operation. `knowledge.read @ project:self` reads the whole
+project's knowledge on the graph routes. The message grants also admit the
+`/v1/agent/messages/*` routes.
+
+### Agent task creation
+
+`task.create` for an agent is `POST /v1/agent/tasks` (through the command
+surface). `parent_id: "self"` is the attempt's task; no `parent_id` is a
+top-level task and needs `task.create.project`. A parent must be the
+attempt's task or a task created below it (`task:subtree`), the new task's
+depth must be within `max_depth`, and the attempt may create at most
+`max_created_tasks`: each create is reserved in `agent_created_tasks`
+before the Graph write, and a replay of the same `operation_id` is not
+counted again. An agent cannot set `profile_hint` or `intelligence_hint`
+(`scope_denied`), so a child cannot launch with more authority than its
+creator. Tasks are `active` unless `task_state: "draft"` is given. The task
+records `aq:agent_attempt_id` and `aq:agent_task_id` in its metadata.
+
+### Budgets
+
+Each attempt has a command budget on the command surface (the
+`AgentCommand` admission class): 8 concurrent calls, 240 calls a minute and
+60 mutations a minute. Over budget is `overloaded` (503), retryable.
 
 ## Refusals
 
