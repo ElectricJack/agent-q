@@ -1246,3 +1246,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - Overview "Work is moving in N projects" should count only projects with running > 0;
     - WD-08 rejection reasons belong to spec 0004 item 10.
   - Rebuilding `aq-ms1` from main (aq-server a72825df, dashboard 35e9bff), then re-running the QA plans.
+- **09:20: QA re-run results so far.**
+  - **Playbooks/Knowledge/Supervisor/Settings:** 77/79 pass (was 58). 14 of 15 issues fixed and 1 partial (focus); 7 new minor/cosmetic issues.
+  - **Results/Agents:** 76/87 pass. RA-01..RA-20 fixed, but there is a **new blocker, RR-01.**
+    - **What happens:** /results and result detail show the app-wide "Dashboard update required".
+    - **Cause:** #97 fixed RA-03, so the media listing now returns 200. Its response carries `max_clip_bytes`/`max_clip_duration_ms`, which aq-server added on Nov 4, and the dashboard's pinned human-result-media contract predates them. The contract failure escalates to the session-wide incompatible fence.
+    - Dispatched an urgent fix: re-pin every drifted contract, and contain contract failures on non-essential reads to their card.
