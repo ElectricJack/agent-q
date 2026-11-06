@@ -1348,3 +1348,13 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - three-way comment edit conflicts;
   - focus return after dialogs; phone targets ≥44 px; clamped result summaries.
   - The server half (`parity/p1-server-fixes`) is in CI.
+- **17:50: aq-server #99 (Phase 1 server fixes) is green; holding the merge.**
+  - **What it adds:**
+    - a `held` readiness state with reasons, e.g. `cancelled_attempt_holds_task`;
+    - history attribution to the acting owner, via receipts and the create journal;
+    - a history `change` summary with fields from→to and edges;
+    - `process_outcome` on results.
+    - New crate `aq-human-work`; the lib ratchet went down to 111,111.
+  - **Why it's held:** it changes the human-graph and results-feedback contracts in ways today's dashboard rejects (a strict readiness enum, and the results reader refuses unknown fields). Merging it alone would break the Work and Results pages, the W77 failure again.
+  - Dispatched the dashboard re-pin plus rendering (`held`, history change, outcome) plus tolerant enum adapters, on `parity/p1-repin`. The two merge together.
+  - Note: the CI tests job was 16m and update-lifecycle 18m on #99, both over budget. To check against recent main runs.
