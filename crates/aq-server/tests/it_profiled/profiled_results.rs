@@ -748,8 +748,15 @@ async fn internal_owner_read_rejects_receipt_outcome_and_stored_spec_corruption(
     );
 }
 
-#[tokio::test]
-async fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_binding() {
+/// In a debug build this test's own poll frame is about 390 KiB and
+/// review_env's about 190 KiB (measured), which with the fixture left little
+/// of the 2 MiB test-thread stack; CI overflowed it in the fixture's store
+/// setup, before any result or settlement code ran.
+#[test]
+fn result_source_owner_requires_a_real_retained_transfer_and_exact_native_binding() {
+    common::on_large_stack(result_source_owner_body);
+}
+async fn result_source_owner_body() {
     let ReviewEnv {
         f,
         report,

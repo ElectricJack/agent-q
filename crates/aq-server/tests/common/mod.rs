@@ -144,3 +144,29 @@ pub mod closure;
 
 /// Shared source-only presence fixture; independent of phase protocol profile.
 pub mod presence;
+
+/// Runs a test body on its own thread with a large stack and a current-thread
+/// runtime (as `#[tokio::test]` uses). For bodies whose debug-build async poll
+/// frames, not production code, approach the default 2 MiB test-thread stack.
+#[allow(dead_code)]
+pub fn on_large_stack<F, Fut>(body: F)
+where
+    F: FnOnce() -> Fut + Send + 'static,
+    Fut: std::future::Future<Output = ()>,
+{
+    let joined = std::thread::Builder::new()
+        .name("large-stack-test".into())
+        .stack_size(16 * 1024 * 1024)
+        .spawn(move || {
+            tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .expect("test runtime")
+                .block_on(body())
+        })
+        .expect("spawn large-stack test thread")
+        .join();
+    if let Err(panic) = joined {
+        std::panic::resume_unwind(panic);
+    }
+}
