@@ -1387,3 +1387,13 @@ Each entry records what was observed, the action taken, and anything waiting on 
 
   - Waiting on the owner to merge or adjust.
 - **19:10: owner approved the style pass** ("This is good progress. I like it."). Merged aq-dashboard #84.
+- **19:30: owner direction on the roadmap.**
+  - No time estimates, ever (saved as a standing rule).
+  - GitHub publishing is not a priority; local worker plus local git first.
+  - AQ shouldn't own test running; checks belong to playbook policy (D6 #63 stays held).
+  - **Top priority:** the agent ↔ AQ channel from inside the sandbox, as a GENERIC channel. "All aq command line operation to work, without having to explicitly add them… create additional tasks or subtasks… queries to learn about knowledgebase information".
+  - Dispatched a design-spec subagent for `docs/specs/0006-agent-channel.md`. It covers:
+    - the current-state investigation (CLIs, agent-access authz, grants, the sandbox launch path, the unused B7 proxy, v1's session-token model);
+    - the design: one CLI, a generic proxy channel, server-side grants enforced uniformly, new commands agent-usable by declaring a grant;
+    - a live proof scenario and open questions.
+  - The owner reviews the spec before implementation.
