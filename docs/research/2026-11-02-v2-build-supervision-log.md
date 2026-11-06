@@ -1174,3 +1174,20 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - Root-cause fix pending: `scripts/dev-stack.py` and the MS1 scripts must derive `public_origin` from the published admin URL.
   - **Second app-wide failure mode:** any single 403 or 404 on an action or link replaces the whole dashboard with "Access denied" (SO-03, WD-05, WD-12, RA-01).
   - Dispatched a re-test of every write-related case after the origin fix.
+- **05:25: QA re-test after the origin fix, and the consolidated report** (`aq-platform/qa/2026-11-06/REPORT.md`).
+  - **Fixed by the origin change:** WD-04, RA-02, RA-01, ISSUE-002. Task create/edit/dependencies, all knowledge actions and the terminal watch now work.
+  - **Still failing:**
+    - the app-wide "Access denied" takeover, now latent;
+    - no reasons on rejections;
+    - Cancel/Retry only work on attempts;
+    - knowledge restore missing in the UI;
+    - Message disabled.
+  - **New:**
+    - N-01: terminal watch dies on a retryable 503 and never reconnects;
+    - N-02: about 6 req/s polling;
+    - N-04: writes attributed to `dev-service`;
+    - N-05: `localhost:28080` origin still refused.
+  - **Cross-cutting causes:**
+    1. the client lets a single 403/404 take over the app;
+    2. server read capacity is 2 per owner (playbooks 429, graph 503, terminal 503) with no client retry.
+  - **Suggested fix order:** dev-stack origin, error containment, read capacity and retry, data errors, then operator capabilities via spec 0004, then minor/cosmetic.
