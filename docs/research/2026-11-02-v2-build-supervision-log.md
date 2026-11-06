@@ -1206,3 +1206,12 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - **client-core:** SO-10/12/13/21, ISSUE-013 search icon, `projectsLoaded` prop.
     - **server:** SO-06 only 1 of 4 offline workers reported, SO-07 `needs_you` counts only reviews, SO-01 still flapping.
   - Open: aq-dashboard #76 (client-core) in CI, the server PR, and the Work/Results PR.
+- **08:20: client-core QA fixes merged.**
+  - **aq-dashboard #76 (66f55e02), the core:**
+    - a 403 on a read or action is contained to its view or dialog, keeps the draft and re-checks bootstrap; only 401 or bootstrap failure reaches the shell;
+    - `src/api/retry.ts` retries 429 and retryable 503 with backoff and Retry-After, and never retries 4xx;
+    - the terminal watch auto-reconnects (6 tries) and polls every 2s when idle;
+    - per-page titles; `RetainedNotice` for stale data; focus return and the dock;
+    - the search icon at larger text sizes.
+  - **aq-dashboard #78 (3bf4bba5), the follow-up:** usage dropdown, phone More, shared outcome labels, the title validation split, `ApiError.serverMessage`.
+  - Open: aq-dashboard #77 (adopting the core changes on Work/Results/Agents pages) and aq-server #97.
