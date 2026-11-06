@@ -397,6 +397,30 @@ async fn overview_attention_lists_waiting_decision_and_failed_task() {
         .unwrap();
     assert_eq!(outcome["subject"]["revision"], digest);
     assert_eq!(outcome["outcome"], "process_failed");
+    // The dashboard links `sha256:<hex>` references to the results detail route
+    // using the bare hex revision; every Overview result link must resolve there.
+    for subject in [&failed["subject"], &outcome["subject"]] {
+        let bare = subject["revision"]
+            .as_str()
+            .unwrap()
+            .strip_prefix("sha256:")
+            .unwrap();
+        let uri = format!(
+            "/api/v1/results/{}/revisions/{bare}",
+            subject["id"].as_str().unwrap()
+        );
+        let detail = app
+            .clone()
+            .oneshot(
+                axum::http::Request::get(uri)
+                    .header("x-aq-dev-email", "owner@localhost")
+                    .body(axum::body::Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(detail.status(), 200, "overview result link must resolve");
+    }
     assert_eq!(outcome["at"], "1970-01-01T00:16:40.000Z");
     assert_eq!(body["coverage"]["state"], "partial");
     let sources = body["data"]["sources"].as_array().unwrap();
