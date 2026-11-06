@@ -181,17 +181,34 @@ fn every_route_grant_is_grantable() {
     let h = Holder { project: id(1) };
     for (path, command, grant) in AGENT_ROUTE_GRANTS {
         assert!(path.starts_with("/v1/agent/") && grantable(grant), "{path}");
-        assert_eq!(route_grant(path, h).unwrap().0, command);
+        assert_eq!(route_grant(path, h, Relation::Own).unwrap().0, command);
     }
     assert!(matches!(
-        route_grant("/v1/agent/comments", h).unwrap().2,
-        Target::Task { .. }
+        route_grant("/v1/agent/comments", h, Relation::Own)
+            .unwrap()
+            .2,
+        Target::Task {
+            relation: Relation::Own,
+            ..
+        }
     ));
-    assert_eq!(
-        route_grant("/v1/agent/waits/ack", h).unwrap().2,
-        Target::OwnAttempt
-    );
-    assert!(route_grant("/v1/agent/messages/send", h).is_none());
+    // A comment list of another task is checked at that task's relation.
+    assert!(matches!(
+        route_grant("/v1/agent/comments/list", h, Relation::Other)
+            .unwrap()
+            .2,
+        Target::Task {
+            relation: Relation::Other,
+            ..
+        }
+    ));
+    for path in ["/v1/agent/waits/ack", "/v1/agent/waits/list"] {
+        assert_eq!(
+            route_grant(path, h, Relation::Other).unwrap().2,
+            Target::OwnAttempt
+        );
+    }
+    assert!(route_grant("/v1/agent/messages/send", h, Relation::Own).is_none());
     for o in OWNER_ONLY {
         assert!(!grantable(o));
     }

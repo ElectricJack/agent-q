@@ -177,3 +177,131 @@ fn reviewed_routes_parse_and_are_not_also_commands() {
         }
     }
 }
+
+#[test]
+fn agent_task_reads_are_scoped_graph_reads_of_the_named_task() {
+    use aq_agent_grants::{Decision, Grant, GrantSet, Holder, Relation, Scope, Target};
+    let r = Registry::new(&actions()).unwrap();
+    let (project, own, other) = (Uuid::from_u128(7), Uuid::from_u128(8), Uuid::from_u128(9));
+    let holder = Holder { project };
+    let binding = json!({"attempt_id":"a"});
+    let rid = Uuid::from_u128(1);
+    let grants = GrantSet::new(vec![
+        Grant::new("task.read", Scope::TaskSubtree),
+        Grant::new("comment.write", Scope::TaskSubtree),
+    ])
+    .unwrap();
+    let run = |name: &str, params: Value, rel: Relation| {
+        let spec = r.get(name).unwrap();
+        let mut params = params.as_object().unwrap().clone();
+        let (d, t) = authorize(spec, &mut params, &grants, holder, own, rel);
+        let request = CommandRequest {
+            params,
+            ..Default::default()
+        };
+        let f = forward(
+            spec,
+            spec.agent.as_ref().unwrap(),
+            &request,
+            Some(&binding),
+            rid,
+        );
+        (d, t, f.map(|f| f.body.unwrap()["query"].clone()))
+    };
+    // Omitted: the attempt's own task, sent as the graph node.
+    let (d, t, q) = run("task.show", json!({}), Relation::Other);
+    assert!(matches!(d, Decision::Allow(_)));
+    assert_eq!(
+        t,
+        Target::Task {
+            project,
+            relation: Relation::Own
+        }
+    );
+    assert_eq!(q.unwrap(), json!({"kind":"get","node_id":own}));
+    // Another task: its resolved relation decides the scope.
+    let (d, _, _) = run("task.show", json!({"task_id":other}), Relation::Other);
+    assert!(matches!(d, Decision::Deny(r) if r.code == aq_agent_grants::RefusalCode::ScopeDenied));
+    let (d, _, q) = run(
+        "task.children",
+        json!({"task_id":other,"project_id":project}),
+        Relation::Descendant(1),
+    );
+    assert!(matches!(d, Decision::Allow(_)));
+    assert_eq!(
+        q.unwrap(),
+        json!({"kind":"relationships","node_id":other,"direction":"outgoing","edge_types":["parent-child"],"limit":64,"cursor":null})
+    );
+    let (_, _, q) = run("task.history", json!({"limit":5}), Relation::Other);
+    assert_eq!(
+        q.unwrap(),
+        json!({"kind":"history","node_id":own,"limit":5,"cursor":null})
+    );
+    // Another project is outside every agent scope but an owner override.
+    let (d, t, _) = run(
+        "task.show",
+        json!({"project_id":Uuid::from_u128(5)}),
+        Relation::Own,
+    );
+    assert!(matches!(d, Decision::Deny(_)));
+    assert_eq!(t, Target::Project(Uuid::from_u128(5)));
+    // A comment the caller did not write resolves outside every scope.
+    let c = json!({"comment_id":Uuid::from_u128(4),"expected_revision":"1","operation_id":rid});
+    let (d, _, _) = run("task.comment.delete", c.clone(), Relation::Other);
+    assert!(matches!(d, Decision::Deny(r) if r.code == aq_agent_grants::RefusalCode::ScopeDenied));
+    let (d, _, _) = run("task.comment.delete", c, Relation::Own);
+    assert!(matches!(d, Decision::Allow(_)));
+    let (d, _, _) = run(
+        "task.comment.edit",
+        json!({"comment_id":"x"}),
+        Relation::Own,
+    );
+    assert!(
+        matches!(d, Decision::Deny(r) if r.code == aq_agent_grants::RefusalCode::InvalidRequest)
+    );
+    // Discovery agrees with the check.
+    let names = r.agent_commands(&grants);
+    for n in [
+        "task.show",
+        "task.children",
+        "task.history",
+        "task.comment.edit",
+    ] {
+        assert!(names.contains(&n.to_string()), "{n}");
+    }
+    assert!(!names.contains(&"comment.list".to_string()));
+    assert_eq!(
+        available(
+            r.get("task.show").unwrap(),
+            Some(Principal::Agent),
+            Some(&grants)
+        ),
+        Ok(Some("task:subtree".into()))
+    );
+    assert_eq!(
+        available(
+            r.get("task.list").unwrap(),
+            Some(Principal::Agent),
+            Some(&grants)
+        ),
+        Err(aq_agent_grants::RefusalCode::NotAvailable)
+    );
+}
+
+#[test]
+fn a_task_read_must_have_read_a_task() {
+    let r = Registry::new(&actions()).unwrap();
+    let show = r.get("task.show").unwrap();
+    let node = |kind: &str| json!({"result":{"kind":"get","node":{"kind":kind}}});
+    assert!(agent_result_ok(show, &node("task")));
+    assert!(!agent_result_ok(show, &node("knowledge")));
+    let history = r.get("task.history").unwrap();
+    let items =
+        json!({"result":{"kind":"history","items":[{"node":null},{"node":{"kind":"knowledge"}}]}});
+    assert!(!agent_result_ok(history, &items));
+    // Other graph reads are the knowledge grant's and pass unchanged.
+    assert!(agent_result_ok(
+        r.get("knowledge.show").unwrap(),
+        &node("knowledge")
+    ));
+}

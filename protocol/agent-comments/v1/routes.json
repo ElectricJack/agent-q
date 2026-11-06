@@ -10,15 +10,27 @@
     },
     {
       "method": "POST", "path": "/v1/agent/comments/list", "capability": "comment.list", "grant": "comment.read",
-      "request": {"api_version": 1, "cursor?": "string from next_cursor", "limit?": "integer 1..100, default 50"},
+      "request": {"api_version": 1, "task_id?": "uuid; omitted: the attempt's own task. Another task needs comment.read at a scope that reaches it", "cursor?": "string from next_cursor", "limit?": "integer 1..100, default 50"},
       "response": {"api_version": 1, "task_id": "uuid", "items": "HumanComment[] newest first", "next_cursor": "string or null"}
+    },
+    {
+      "method": "POST", "path": "/v1/agent/comments/edit", "capability": "comment.edit", "grant": "comment.write",
+      "request": {"api_version": 1, "operation_id": "uuid", "comment_id": "uuid of a comment this attempt wrote", "expected_revision": "decimal string, the comment's current revision", "body": "markdown string, as for add"},
+      "response": {"api_version": 1, "comment": "HumanComment", "revision": "decimal string, the revision this operation made"}
+    },
+    {
+      "method": "POST", "path": "/v1/agent/comments/delete", "capability": "comment.delete", "grant": "comment.write",
+      "request": {"api_version": 1, "operation_id": "uuid", "comment_id": "uuid of a comment this attempt wrote", "expected_revision": "decimal string, the comment's current revision"},
+      "response": {"api_version": 1, "comment": "HumanComment (a tombstone, body null)", "revision": "decimal string, the revision this operation made"}
     }
   ],
   "owner_actions": ["task.comment.add", "task.comment.edit", "task.comment.delete"],
   "errors": {
     "invalid_request": 400,
     "unauthorized": 401, "session_revoked": 401, "session_expired": 401,
+    "scope_denied": 403,
+    "not_found": 404,
     "unsupported_api_version": 426,
-    "id_conflict": 409
+    "id_conflict": 409, "stale_revision": 409
   }
 }

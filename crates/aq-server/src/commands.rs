@@ -129,7 +129,7 @@ async fn caller(state: &AppState, s: &Surface, headers: &HeaderMap) -> Result<Ca
     Ok(Caller::Supervisor(p))
 }
 
-fn whoami(c: &Caller) -> Value {
+async fn whoami(state: &AppState, c: &Caller) -> Value {
     match c {
         Caller::Owner(u) | Caller::Viewer(u) => {
             json!({"api_version":1,"principal":if u.role == Role::Owner {"owner"} else {"viewer"},"user_id":u.id,"email":u.email})
@@ -137,7 +137,15 @@ fn whoami(c: &Caller) -> Value {
         Caller::Supervisor(p) => {
             json!({"api_version":1,"principal":"supervisor","session_id":p.session_id,"actor_id":p.actor_id,"generation":p.generation.to_string(),"scopes":p.scopes})
         }
-        Caller::Agent(a) => a.whoami(),
+        Caller::Agent(a) => a.whoami(
+            sqlx::query_scalar(
+                "SELECT conversation_id FROM global_supervisor_conversation WHERE singleton",
+            )
+            .fetch_optional(&state.store.pool)
+            .await
+            .ok()
+            .flatten(),
+        ),
     }
 }
 
@@ -161,47 +169,14 @@ async fn discover(
             );
         }
     };
+    let grants = match &c {
+        Caller::Agent(a) => Some(&a.grants),
+        _ => None,
+    };
     let all = q.get("all").is_some_and(|v| v == "true");
-    let (mut runnable, mut unavailable) = (Vec::new(), Vec::new());
-    for spec in registry().commands() {
-        let entry = json!({"name":spec.name,"kind":spec.kind,"summary":spec.summary,"cli":spec.cli(),"grant":spec.grant});
-        match available(&c, spec) {
-            Ok(scope) => {
-                let mut e = entry;
-                e["scope"] = json!(scope);
-                runnable.push(e);
-            }
-            Err(code) if all => {
-                let mut e = entry;
-                e["reason"] = json!(code.as_str());
-                unavailable.push(e);
-            }
-            Err(_) => {}
-        }
-    }
-    let mut body = json!({"api_version":1,"principal":whoami(&c)["principal"],"commands":runnable});
-    if all {
-        body["unavailable"] = json!(unavailable);
-    }
+    let body = registry().discovery(c.principal(), grants, all);
     (StatusCode::OK, [("Cache-Control", "no-store")], Json(body)).into_response()
 }
-/// Ok(held scope) when `c` may run `spec` at all.
-fn available(c: &Caller, spec: &registry::CommandSpec) -> Result<Option<String>, RefusalCode> {
-    let p = c.principal().ok_or(RefusalCode::NotAvailable)?;
-    spec.route(p).ok_or(RefusalCode::NotAvailable)?;
-    let Caller::Agent(a) = c else {
-        return Ok(None);
-    };
-    let Some(grant) = spec.grant else {
-        return Ok(None);
-    };
-    if spec.owner_only() {
-        return Err(RefusalCode::OwnerOnly);
-    }
-    let g = a.grants.get(grant).ok_or(RefusalCode::GrantMissing)?;
-    Ok(Some(g.scope.to_string()))
-}
-
 /// `POST /api/v1/commands/{name}`.
 async fn invoke(
     State(state): State<AppState>,
@@ -330,7 +305,7 @@ async fn invoke(
         return (
             StatusCode::OK,
             [("Cache-Control", "no-store")],
-            Json(whoami(&c)),
+            Json(whoami(&state, &c).await),
         )
             .into_response();
     }
@@ -371,12 +346,34 @@ async fn invoke(
         Ok(r) => r.into_response(),
         Err(never) => match never {},
     };
+    if binding.is_some() && registry::checks_agent_result(spec) && response.status().is_success() {
+        response = checked(response, spec, request_id).await;
+    }
     if let Ok(v) = HeaderValue::from_str(spec.name) {
         response.headers_mut().insert("X-AQ-Command", v);
     }
     response
 }
 
+/// An agent's `task.*` graph read must have read a task (§6.4): any other
+/// node is the graph route's own `not_found`, as for a record out of scope.
+async fn checked(r: Response, spec: &registry::CommandSpec, request_id: Uuid) -> Response {
+    let (parts, body) = r.into_parts();
+    let Ok(bytes) = axum::body::to_bytes(body, 2 << 20).await else {
+        return error(
+            RefusalCode::Internal,
+            spec.name,
+            "Unreadable response.",
+            request_id,
+        );
+    };
+    match serde_json::from_slice::<Value>(&bytes) {
+        Ok(v) if !registry::agent_result_ok(spec, &v) => {
+            crate::agent_access::Error("not_found").respond(request_id)
+        }
+        _ => Response::from_parts(parts, Body::from(bytes)),
+    }
+}
 async fn audit(
     state: &AppState,
     c: &Caller,
@@ -408,13 +405,5 @@ async fn audit(
 
 /// The commands an agent holding `grants` may run (`aq commands`).
 pub(crate) fn agent_commands(grants: &aq_agent_grants::GrantSet) -> Vec<String> {
-    let runnable = |c: &&registry::CommandSpec| {
-        c.agent.is_some() && !c.owner_only() && c.grant.is_none_or(|g| grants.get(g).is_some())
-    };
-    registry()
-        .commands()
-        .iter()
-        .filter(runnable)
-        .map(|c| c.name.to_string())
-        .collect()
+    registry().agent_commands(grants)
 }

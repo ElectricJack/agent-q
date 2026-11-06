@@ -11,14 +11,26 @@ use serde_json::{Value, json};
 use tower::ServiceExt;
 use uuid::Uuid;
 
-const ROUTES: [(&str, &str, &str); 7] = [
+const ROUTES: [(&str, &str, &str); 11] = [
     ("/v1/agent/questions", "question.ask", "question.ask"),
     ("/v1/agent/questions/show", "question.show", "question.read"),
     ("/v1/agent/comments", "task.comment.add", "comment.write"),
     ("/v1/agent/comments/list", "comment.list", "comment.read"),
+    (
+        "/v1/agent/comments/edit",
+        "task.comment.edit",
+        "comment.write",
+    ),
+    (
+        "/v1/agent/comments/delete",
+        "task.comment.delete",
+        "comment.write",
+    ),
     ("/v1/agent/waits/register", "wait.register", "wait.register"),
     ("/v1/agent/waits/inspect", "wait.inspect", "wait.read"),
     ("/v1/agent/waits/ack", "wait.ack", "wait.ack"),
+    ("/v1/agent/waits/list", "wait.list", "wait.read"),
+    ("/v1/agent/waits/show", "wait.show", "wait.read"),
 ];
 
 async fn structured(e: &Env, path: &str) -> (StatusCode, Value) {

@@ -26,6 +26,8 @@ pub fn machine_routes() -> Router<AppState> {
         .route(ROUTES[0].0, post(register))
         .route(ROUTES[1].0, post(inspect))
         .route(ROUTES[2].0, post(ack))
+        .route("/v1/agent/waits/list", post(agent_list))
+        .route("/v1/agent/waits/show", post(agent_show))
 }
 pub fn admin_routes() -> Router<AppState> {
     Router::new()
@@ -40,7 +42,7 @@ async fn call(state: AppState, headers: HeaderMap, body: Bytes, route: usize) ->
     };
     let path = ROUTES[route].0;
     if let Err(refusal) =
-        super::super::grant_check::require(&state, &headers, &principal, path).await
+        super::super::grant_check::require(&state, &headers, &principal, path, None).await
     {
         return refusal;
     }
@@ -79,6 +81,45 @@ async fn ack(State(s): State<AppState>, h: HeaderMap, b: Bytes) -> Response {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
+struct AgentRead {
+    api_version: u32,
+    wait_id: Option<Uuid>,
+}
+/// `wait.list` / `wait.show` for the attempt's own waits (`wait.read`).
+async fn agent_read(s: AppState, h: HeaderMap, body: Bytes, path: &str) -> Response {
+    let p = match authenticate(&s, &h).await {
+        Ok(p) => p,
+        Err(error) => return error.into_response(),
+    };
+    if let Err(refusal) = super::super::grant_check::require(&s, &h, &p, path, None).await {
+        return refusal;
+    }
+    let (Ok(b), Ok(attempt)) = (
+        serde_json::from_slice::<AgentRead>(&body),
+        super::super::id(&p.binding, "attempt_id"),
+    ) else {
+        return Error("invalid_request").into_response();
+    };
+    let result = match (b.api_version, b.wait_id, path.ends_with("/show")) {
+        (1, None, false) => super::owner_list(&s, None, Some(attempt)).await.map(Some),
+        (1, Some(w), true) => super::owner_show(&s, w, Some(attempt)).await,
+        (1, ..) => return Error("invalid_request").into_response(),
+        _ => return Error("unsupported_api_version").into_response(),
+    };
+    match result {
+        Ok(Some(v)) => ok(v),
+        Ok(None) => Error("not_found").into_response(),
+        Err(_) => Error("internal").into_response(),
+    }
+}
+async fn agent_list(State(s): State<AppState>, h: HeaderMap, b: Bytes) -> Response {
+    agent_read(s, h, b, "/v1/agent/waits/list").await
+}
+async fn agent_show(State(s): State<AppState>, h: HeaderMap, b: Bytes) -> Response {
+    agent_read(s, h, b, "/v1/agent/waits/show").await
+}
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
 struct ListQuery {
     project_id: Option<Uuid>,
 }
@@ -87,7 +128,7 @@ async fn owner_list(
     RequireOwner(_): RequireOwner,
     Query(q): Query<ListQuery>,
 ) -> Result<Json<Value>, AppError> {
-    super::owner_list(&s, q.project_id)
+    super::owner_list(&s, q.project_id, None)
         .await
         .map(Json)
         .map_err(|_| AppError::UpdatesUnavailable("Wait registry unavailable".into()))
@@ -97,7 +138,7 @@ async fn owner_show(
     RequireOwner(_): RequireOwner,
     Path(wait_id): Path<Uuid>,
 ) -> Result<Json<Value>, AppError> {
-    match super::owner_show(&s, wait_id).await {
+    match super::owner_show(&s, wait_id, None).await {
         Ok(Some(v)) => Ok(Json(v)),
         Ok(None) => Err(AppError::NotFound("Wait not found".into())),
         Err(_) => Err(AppError::UpdatesUnavailable(

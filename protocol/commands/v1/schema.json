@@ -224,9 +224,22 @@
               "type": "string",
               "format": "uuid"
             },
+            "session_generation": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "The session generation: with the IDs above it addresses the agent's own session mailbox (agent-access-1 SessionMailbox)"
+            },
             "workspace_id": {
               "type": "string",
               "format": "uuid"
+            },
+            "supervisor_conversation_id": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "format": "uuid",
+              "description": "The current supervisor conversation (SupervisorMailbox conversation_id); null when none is open"
             },
             "profile_id": {
               "type": "string"

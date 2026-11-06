@@ -41,7 +41,7 @@ the generic command surface, `POST /api/v1/commands/{name}`:
 
 ```text
 aq commands [--all]                  # what you may run (with each grant's scope); --all adds the rest and why
-aq whoami                            # attempt, task, project, grants, credential expiry
+aq whoami                            # attempt, task, project, session (and generation), supervisor conversation, grants, credential expiry
 aq run NAME [--param KEY=VALUE | --param KEY:=JSON]... [--params-file FILE|-]
        [--subject TYPE:ID[:REVISION]] [--expect TYPE=REVISION]... [--reason TEXT]
        [--operation-id UUID] [--describe]
@@ -65,6 +65,7 @@ owner's REST read or action-union payload in owner mode.
 
 ```text
 aq task show [self|TASK_ID] [--project P]
+aq task children [--param task_id=ID] | aq task history [--param task_id=ID]
 aq task create --title T [--body B|-] [--acceptance-criteria A] [--label L]... [--parent self|TASK_ID]
                [--draft] [--priority N] [--task-type K] [--project P --expected-project-revision R]
 aq knowledge search TEXT [--kind task|knowledge] [--limit N] [--cursor C]
@@ -79,7 +80,7 @@ aq question show ID
 aq question wait ID [--timeout 300] [--interval 5]
 aq wait register|inspect|ack --request FILE|-
 aq wait list | aq wait show ID
-aq message send BODY|- [--to task|task:ID|supervisor:CONVERSATION | --to-json JSON] [--thread ID]
+aq message send BODY|- [--to task|task:ID|session|supervisor|supervisor:CONVERSATION | --to-json JSON] [--thread ID]
 aq message inbox [--to …] [--after 0] [--limit 32] [--thread ID]
 aq message body MESSAGE [--to …] [--offset 0] [--max-bytes 16384]
 aq message ack MESSAGE [--to …] [--read]
@@ -87,18 +88,26 @@ aq operation show ID
 ```
 
 - In a sandbox `self` is the attempt's task, `--parent self` makes a subtask,
-  a comment goes on the attempt's own task, and `--to task` is the attempt's
-  own task mailbox (from `whoami`). Owner mode needs the IDs the owner routes
-  take (`--project`, `--task`, `--expected-project-revision`).
+  a comment goes on the attempt's own task, `comment list` lists the
+  attempt's own task unless `--task` names another, `comment edit` and
+  `comment delete` change only the agent's own comments, and `wait list` /
+  `wait show` show the attempt's own waits. `task children` and
+  `task history` (generic tokens) read the attempt's task unless
+  `--param task_id=ID` names another. Owner mode needs the IDs the owner
+  routes take (`--project`, `--task`, `--expected-project-revision`).
 - `knowledge author` is a `create_finding` graph command for an agent and a
   `knowledge.author` action for the owner.
 - `question wait` re-reads `question.show` until the state is `answered`,
   within `--timeout` seconds (at most 3600). Each read is its own bounded
   request. If the question is still open it exits 16 and the question stays
   open.
-- The supervisor mailbox is addressed as `supervisor:CONVERSATION_ID` (the
-  `conversation_id` of a supervisor message you received). A session mailbox
-  needs `--to-json`: `whoami` does not yet return the session generation.
+- Mailboxes in a sandbox, all from `whoami`: `--to task` is the attempt's own
+  task mailbox, `--to session` its own session mailbox (`session_generation`)
+  and `--to supervisor` the current supervisor conversation
+  (`supervisor_conversation_id`). `supervisor:CONVERSATION_ID` names a
+  conversation explicitly. A server whose `whoami` lacks those fields, or has
+  no open supervisor conversation, is refused before sending (exit 2); any
+  other mailbox takes `--to-json`.
 
 The owner subcommands below (`tasks`, `decisions`, `messages`, `chat`,
 `workers`, `projects`) call owner routes on the admin listener and are refused

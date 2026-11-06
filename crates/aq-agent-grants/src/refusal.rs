@@ -178,4 +178,11 @@ impl Refusal {
     pub fn body(&self) -> serde_json::Value {
         serde_json::to_value(self).expect("refusal encodes")
     }
+    /// The closed agent-access-1 `ErrorResponse` for a `/v1/agent/*` client
+    /// that did not opt in to the structured shape: the [`RefusalCode::legacy`]
+    /// code, with this refusal's message naming the grant.
+    pub fn legacy_body(&self, request_id: Uuid) -> serde_json::Value {
+        serde_json::json!({"api_version":1,"request_id":request_id,"operation_id":null,"code":self.code.legacy(),
+            "message":self.message,"effect":"not_applied","retryable":false,"recovery":null})
+    }
 }

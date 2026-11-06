@@ -53,7 +53,7 @@ Body mappings:
 | `params` | `params` |
 | `params_with_api_version` | `params` plus `"api_version": 1` |
 | `query` | a GET; path segments from the named params, every other param as a query string value |
-| `graph_read` | an agent-access-1 `ReadRequest` with the attempt's binding; `knowledge.search` defaults `kind_filter` null, `limit` 20, `cursor` null |
+| `graph_read` | an agent-access-1 `ReadRequest` with the attempt's binding. The principal entry's `graph_query` names the query `kind`, the `defaults` for omitted fields (`knowledge.search`: `kind_filter` null, `limit` 20, `cursor` null) and the params sent under another field (`rename`: `task_id` is the query's `node_id`) |
 | `graph_command` | an agent-access-1 `CommandRequest`: `params` plus the binding (and `operation_id`/`reason` from the request when absent) |
 | `action_request` | an `ActionRequest` with `kind` = the command name and `payload` = `params` |
 | `local` | answered by the command surface (`whoami`) |
@@ -61,7 +61,9 @@ Body mappings:
 For an agent, an omitted `project_id` is the attempt's project; a
 `project_id` that differs from it is refused (`scope_denied` or
 `grant_missing`) unless an owner override grants that project. Agent routes
-take the project from the binding, so the param is not forwarded.
+take the project from the binding, so the param is not forwarded. An omitted
+`task_id` (target rule `task`) is the attempt's own task and is forwarded as
+its ID.
 
 ## Discovery and identity
 
@@ -72,7 +74,11 @@ take the project from the binding, so the param is not forwarded.
   principal).
 - `whoami` (`POST /api/v1/commands/whoami`, empty params) returns the
   principal (`Whoami`): for an agent, the attempt, task, project, session,
-  profile, grants, credential expiry and authority revision.
+  profile, grants, credential expiry and authority revision. It also returns
+  `session_generation`, so the agent can address its own session mailbox
+  (with `workspace_id`, `project_id`, `task_id`, `session_id` and
+  `attempt_id`), and `supervisor_conversation_id`, the current supervisor
+  conversation (`null` when none is open).
 
 ## Errors
 
@@ -128,6 +134,35 @@ Not granted by default: `task.create.project`, `task.edit` and every
 owner-only operation. `knowledge.read @ project:self` reads the whole
 project's knowledge on the graph routes. The message grants also admit the
 `/v1/agent/messages/*` routes.
+
+### Agent reads and edits
+
+What an agent runs, beyond creation, with the grant each needs. Each is
+checked, audited and refused like every other command.
+
+| Command | Agent route | Grant | Target |
+| --- | --- | --- | --- |
+| `task.show` | graph read `get` | `task.read` | `task_id` (own task when omitted) |
+| `task.history` | graph read `history` (`limit` 20) | `task.read` | `task_id` |
+| `task.children` | graph read `relationships`, outgoing `parent-child` (`limit` 64) | `task.read` | `task_id` |
+| `comment.list` | `/v1/agent/comments/list` | `comment.read` | `task_id` (own task when omitted) |
+| `task.comment.edit`, `task.comment.delete` | `/v1/agent/comments/edit`, `/delete` | `comment.write` | `comment_id`: a comment this attempt wrote, at its task |
+| `wait.list`, `wait.show` | `/v1/agent/waits/list`, `/show` | `wait.read` | the attempt's own waits |
+
+- A `task.*` read is a scoped graph read of the named node, so the graph
+  read scope still applies, and it must read a task: any other node kind
+  is `not_found`, as a record outside the scope is.
+- A task other than the attempt's own is checked at its relation to the
+  attempt's task: `project:self` reaches any task in the project,
+  `task:subtree` the tasks created below the attempt's task
+  (`agent_created_tasks`), `task:self` only the attempt's task.
+- A comment another author wrote, or one that does not exist, is outside
+  every scope (`scope_denied`); the route also refuses it on its own
+  (`scope_denied` from the author check). A stale `expected_revision` is
+  `stale_revision` (409).
+- `task.list` and the other owner REST reads (`task.graph.show`,
+  `task.summary`, `task.work`, `task.overview`) have no agent route
+  (`not_available`).
 
 ### Agent task creation
 

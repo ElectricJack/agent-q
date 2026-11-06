@@ -28,6 +28,19 @@ pub struct Question {
     pub question: String,
     pub answer: Option<String>,
 }
+/// A `(decision_id, state, question, answer)` row.
+impl From<(Uuid, String, String, Option<String>)> for Question {
+    fn from(
+        (decision_id, state, question, answer): (Uuid, String, String, Option<String>),
+    ) -> Self {
+        Self {
+            decision_id,
+            state,
+            question,
+            answer,
+        }
+    }
+}
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Message {
     pub at: String,

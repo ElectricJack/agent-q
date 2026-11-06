@@ -226,16 +226,18 @@ impl<C: Command> ActionKind for Comments<C> {
     }
 }
 
-/// The attempt's own task thread and its agent author, from the credential.
+/// The task thread (the attempt's own task unless `task` names another the
+/// grant reaches) and the attempt as author, from the credential.
 async fn agent(
     s: &AppState,
     h: &HeaderMap,
     path: &str,
+    task: Option<Uuid>,
 ) -> std::result::Result<(Thread, Author), Response> {
     let p = authenticate(s, h)
         .await
         .map_err(IntoResponse::into_response)?;
-    crate::agent_access::grant_check::require(s, h, &p, path).await?;
+    crate::agent_access::grant_check::require(s, h, &p, path, task).await?;
     let b = &p.binding;
     match [
         field(b, "project_id"),
@@ -243,10 +245,10 @@ async fn agent(
         field(b, "session_id"),
         field(b, "attempt_id"),
     ] {
-        [Ok(project_id), Ok(task_id), Ok(session_id), Ok(attempt_id)] => Ok((
+        [Ok(project_id), Ok(own), Ok(session_id), Ok(attempt_id)] => Ok((
             Thread {
                 project_id,
-                task_id,
+                task_id: task.unwrap_or(own),
             },
             Author::Agent {
                 session_id,
@@ -260,20 +262,39 @@ fn reply(result: std::result::Result<Value, &'static str>) -> Response {
     result.map_or_else(|code| AgentError(code).into_response(), ok)
 }
 pub(crate) fn machine_routes() -> Router<AppState> {
-    let [(add_path, _), (list_path, _)] = comments::AGENT_ROUTES;
+    let [(add_path, _), (list_path, _), ..] = comments::AGENT_ROUTES;
     Router::new()
         .route(add_path, post(agent_add))
         .route(list_path, post(agent_list))
+        .route("/v1/agent/comments/edit", post(agent_edit))
+        .route("/v1/agent/comments/delete", post(agent_delete))
 }
 async fn agent_add(State(s): State<AppState>, h: HeaderMap, body: Bytes) -> Response {
-    match agent(&s, &h, comments::AGENT_ROUTES[0].0).await {
+    match agent(&s, &h, comments::AGENT_ROUTES[0].0, None).await {
         Ok((t, a)) => reply(comments::agent_add(&s.store.pool, t, &a, &body, (s.clock)()).await),
         Err(response) => response,
     }
 }
 async fn agent_list(State(s): State<AppState>, h: HeaderMap, body: Bytes) -> Response {
-    match agent(&s, &h, comments::AGENT_ROUTES[1].0).await {
+    let task = comments::agent_list_task(&body);
+    match agent(&s, &h, comments::AGENT_ROUTES[1].0, task).await {
         Ok((t, _)) => reply(comments::agent_list(&s.store.pool, t, &body).await),
+        Err(response) => response,
+    }
+}
+/// Edit or delete a comment the attempt wrote.
+async fn agent_edit(State(s): State<AppState>, h: HeaderMap, b: Bytes) -> Response {
+    agent_change(s, h, b, 2).await
+}
+async fn agent_delete(State(s): State<AppState>, h: HeaderMap, b: Bytes) -> Response {
+    agent_change(s, h, b, 3).await
+}
+async fn agent_change(s: AppState, h: HeaderMap, body: Bytes, route: usize) -> Response {
+    let kind = [comments::EDIT, comments::DELETE][route - 2];
+    match agent(&s, &h, comments::AGENT_ROUTES[route].0, None).await {
+        Ok((t, a)) => reply(
+            comments::agent_change(&s.store.pool, kind, t.project_id, &a, &body, (s.clock)()).await,
+        ),
         Err(response) => response,
     }
 }

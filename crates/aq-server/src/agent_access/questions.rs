@@ -366,7 +366,7 @@ async fn caller(
     let principal = authenticate(state, headers)
         .await
         .map_err(IntoResponse::into_response)?;
-    super::grant_check::require(state, headers, &principal, path).await?;
+    super::grant_check::require(state, headers, &principal, path, None).await?;
     match (
         id(&principal.binding, "node_id"),
         id(&principal.binding, "attempt_id"),
