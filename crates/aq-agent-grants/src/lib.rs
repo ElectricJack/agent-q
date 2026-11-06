@@ -376,10 +376,10 @@ pub fn check(
     }
 }
 
-/// Grant each existing `/v1/agent/*` question, comment and wait route
-/// requires, with the registry command it maps to (spec 0006 §9). The graph
-/// and message routes keep checking their agent-access-1 profile capability.
-pub const AGENT_ROUTE_GRANTS: [(&str, &str, &str); 7] = [
+/// Grant each `/v1/agent/*` question, comment and wait route requires, with
+/// the registry command it maps to (spec 0006 §9). The graph and message
+/// routes keep checking their agent-access-1 profile capability.
+pub const AGENT_ROUTE_GRANTS: [(&str, &str, &str); 11] = [
     ("/v1/agent/questions", "question.ask", op::QUESTION_ASK),
     (
         "/v1/agent/questions/show",
@@ -389,21 +389,38 @@ pub const AGENT_ROUTE_GRANTS: [(&str, &str, &str); 7] = [
     ("/v1/agent/comments", "task.comment.add", op::COMMENT_WRITE),
     ("/v1/agent/comments/list", "comment.list", op::COMMENT_READ),
     (
+        "/v1/agent/comments/edit",
+        "task.comment.edit",
+        op::COMMENT_WRITE,
+    ),
+    (
+        "/v1/agent/comments/delete",
+        "task.comment.delete",
+        op::COMMENT_WRITE,
+    ),
+    (
         "/v1/agent/waits/register",
         "wait.register",
         op::WAIT_REGISTER,
     ),
     ("/v1/agent/waits/inspect", "wait.inspect", op::WAIT_READ),
     ("/v1/agent/waits/ack", "wait.ack", op::WAIT_ACK),
+    ("/v1/agent/waits/list", "wait.list", op::WAIT_READ),
+    ("/v1/agent/waits/show", "wait.show", op::WAIT_READ),
 ];
-/// `(command, grant, target)` for an agent route path. Comments act on the
-/// attempt's own task thread; questions and waits on the attempt itself.
-pub fn route_grant(path: &str, holder: Holder) -> Option<(&'static str, &'static str, Target)> {
+/// `(command, grant, target)` for an agent route path. Comments act on a
+/// task thread related to the attempt's task as `relation` (its own task
+/// unless a comment list names another); questions and waits on the attempt.
+pub fn route_grant(
+    path: &str,
+    holder: Holder,
+    relation: Relation,
+) -> Option<(&'static str, &'static str, Target)> {
     let (_, command, grant) = AGENT_ROUTE_GRANTS.iter().find(|(p, _, _)| *p == path)?;
     let target = if grant.starts_with("comment.") {
         Target::Task {
             project: holder.project,
-            relation: Relation::Own,
+            relation,
         }
     } else {
         Target::OwnAttempt

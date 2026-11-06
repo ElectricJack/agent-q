@@ -222,7 +222,7 @@ impl Runtime {
     }
 }
 #[derive(Debug)]
-struct Error(&'static str);
+pub(crate) struct Error(pub(crate) &'static str);
 type Result<T> = std::result::Result<T, Error>;
 impl From<sqlx::Error> for Error {
     fn from(_: sqlx::Error) -> Self {
@@ -240,7 +240,7 @@ impl IntoResponse for Error {
     }
 }
 impl Error {
-    fn respond(self, request_id: Uuid) -> Response {
+    pub(crate) fn respond(self, request_id: Uuid) -> Response {
         let status = match self.0 {
             "unauthorized" | "session_expired" | "session_revoked" => StatusCode::UNAUTHORIZED,
             "scope_denied" | "unsupported_capability" => StatusCode::FORBIDDEN,

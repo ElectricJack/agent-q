@@ -67,7 +67,8 @@ fn check_golden(name: &str, actual: &str) {
 }
 fn identity() -> Value {
     json!({"api_version":1,"principal":"agent","attempt_id":ATTEMPT,"task_id":TASK,"project_id":PROJECT,
-        "session_id":SESSION,"workspace_id":WORKSPACE,"profile_id":"aq.coding",
+        "session_id":SESSION,"session_generation":3,"workspace_id":WORKSPACE,
+        "supervisor_conversation_id":CONVERSATION,"profile_id":"aq.coding",
         "grants":[{"operation":"comment.write","scope":"task:subtree"},
                   {"operation":"task.create.subtask","scope":"task:subtree","limits":{"max_created_tasks":5,"max_depth":2}},
                   {"operation":"task.read","scope":"project:self"}],
@@ -325,6 +326,13 @@ fn channel_cases() -> Vec<Vec<String>> {
         c(&["commands", "--all"]),
         c(&["task", "show"]),
         c(&["task", "show", OTHER_TASK]),
+        c(&["task", "children"]),
+        c(&[
+            "task",
+            "history",
+            "--param",
+            &format!("task_id={OTHER_TASK}"),
+        ]),
         c(&[
             "task",
             "create",
@@ -385,6 +393,7 @@ fn channel_cases() -> Vec<Vec<String>> {
         ]),
         c(&["comment", "add", "Found the checklist; following it."]),
         c(&["comment", "list", "--limit", "10"]),
+        c(&["comment", "list", "--task", OTHER_TASK]),
         c(&[
             "comment",
             "edit",
@@ -421,6 +430,8 @@ fn channel_cases() -> Vec<Vec<String>> {
             "--to",
             &format!("supervisor:{CONVERSATION}"),
         ]),
+        c(&["message", "send", "Hello, supervisor", "--to", "supervisor"]),
+        c(&["message", "inbox", "--to", "session"]),
         c(&["message", "inbox"]),
         c(&["message", "body", MESSAGE]),
         c(&["message", "ack", MESSAGE, "--read"]),
@@ -642,15 +653,55 @@ async fn typed_subcommands_build_the_golden_requests() {
         &(serde_json::to_string_pretty(&out).unwrap() + "\n"),
     );
 }
+/// `--to session` and `--to supervisor` come from `whoami`; a server whose
+/// `whoami` lacks them (or has no open conversation) is refused before any
+/// mail is sent.
+#[tokio::test]
+async fn own_session_and_supervisor_mailboxes_need_their_whoami_fields() {
+    let mut fake = fake(|method, path, body| match (method, path) {
+        ("POST", "/api/v1/commands/whoami") => {
+            let mut me = identity();
+            me.as_object_mut().unwrap().remove("session_generation");
+            me["supervisor_conversation_id"] = Value::Null;
+            (StatusCode::OK, me)
+        }
+        _ => default_reply(method, path, body),
+    })
+    .await;
+    for to in ["session", "supervisor"] {
+        let err = fake
+            .run(&["message", "send", "x", "--to", to])
+            .await
+            .unwrap_err();
+        assert_eq!(err["code"], "invalid_arguments", "{to}");
+        assert!(
+            fake.drain()
+                .iter()
+                .all(|s| s.path == "/api/v1/commands/whoami"),
+            "{to}"
+        );
+    }
+}
 #[tokio::test]
 async fn typed_subcommands_refuse_mode_mismatches_without_sending() {
     let mut fake = fake(default_reply).await;
+    let session_with_id = format!("session:{SESSION}");
     for args in [
         vec!["comment", "add", "x", "--task", OTHER_TASK],
-        vec!["comment", "list", "--project", PROJECT],
+        vec![
+            "comment",
+            "edit",
+            COMMENT,
+            "--body",
+            "x",
+            "--revision",
+            "1",
+            "--project",
+            PROJECT,
+        ],
         vec!["task", "create", "--title", "x", "--project", PROJECT],
         vec!["task", "show", "not-a-task"],
-        vec!["message", "send", "x", "--to", "supervisor"],
+        vec!["message", "send", "x", "--to", &session_with_id],
         vec!["message", "send", "x", "--to", "elsewhere"],
         vec!["run", "task.show", "--param", "Bad-Key=1"],
         vec!["run", "task.show", "--param", "a=1", "--param", "a=2"],
@@ -683,6 +734,8 @@ async fn typed_subcommands_refuse_mode_mismatches_without_sending() {
         ],
         vec!["comment", "add", "x"],
         vec!["message", "send", "x"],
+        vec!["message", "send", "x", "--to", "supervisor"],
+        vec!["message", "inbox", "--to", "session"],
     ] {
         let err = aqv2::execute(srv.client.clone(), &args).await.unwrap_err();
         assert_eq!(err["code"], "invalid_arguments", "{args:?}");

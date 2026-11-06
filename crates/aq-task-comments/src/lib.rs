@@ -33,9 +33,11 @@ pub const ADD: &str = "task.comment.add";
 pub const EDIT: &str = "task.comment.edit";
 pub const DELETE: &str = "task.comment.delete";
 /// Agent routes; published in `protocol/agent-comments/v1/routes.json`.
-pub const AGENT_ROUTES: [(&str, &str); 2] = [
+pub const AGENT_ROUTES: [(&str, &str); 4] = [
     ("/v1/agent/comments", "comment.add"),
     ("/v1/agent/comments/list", "comment.list"),
+    ("/v1/agent/comments/edit", "comment.edit"),
+    ("/v1/agent/comments/delete", "comment.delete"),
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -317,6 +319,23 @@ pub async fn get(pool: &PgPool, comment_id: Uuid) -> Result<Option<Comment>> {
         .map(Comment::from_row)
         .transpose()
 }
+/// The task of `comment_id` in `project_id` when `author` wrote it (the
+/// scope target of an agent's edit or delete).
+pub async fn authored_task(
+    pool: &PgPool,
+    comment_id: Uuid,
+    project_id: Uuid,
+    author: &Author,
+) -> Result<Option<Uuid>> {
+    Ok(sqlx::query_scalar(
+        "SELECT task_id FROM task_comments WHERE comment_id=$1 AND project_id=$2 AND author_ref=$3",
+    )
+    .bind(comment_id)
+    .bind(project_id)
+    .bind(serde_json::to_value(author)?)
+    .fetch_optional(pool)
+    .await?)
+}
 pub async fn operation(pool: &PgPool, operation_id: Uuid) -> Result<Option<Recorded>> {
     let row = sqlx::query("SELECT o.kind,o.comment_id,o.actor,o.revision,c.project_id,c.task_id FROM task_comment_operations o JOIN task_comments c USING(comment_id) WHERE o.operation_id=$1")
         .bind(operation_id)
@@ -556,6 +575,9 @@ struct AgentAdd {
 #[serde(deny_unknown_fields)]
 struct AgentList {
     api_version: u32,
+    /// The thread's task; the caller resolves and checks it ([`agent_list_task`]).
+    #[serde(default, rename = "task_id")]
+    _task_id: Option<Uuid>,
     #[serde(default)]
     cursor: Option<String>,
     #[serde(default)]
@@ -579,7 +601,61 @@ pub async fn agent_add(
         .map_err(Error::code)?;
     Ok(json!({"api_version": 1, "comment": applied.comment.view(None)}))
 }
-/// `POST /v1/agent/comments/list`: the attempt's own task thread, newest first.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct AgentChange {
+    api_version: u32,
+    operation_id: Uuid,
+    comment_id: Uuid,
+    expected_revision: String,
+    #[serde(default)]
+    body: Option<String>,
+}
+/// The task a comment list names (`task_id`), read before the grant check.
+/// A body that does not name one lists the attempt's own task (and a
+/// malformed one is refused once the grant is checked).
+pub fn agent_list_task(body: &[u8]) -> Option<Uuid> {
+    let v: Value = serde_json::from_slice(body).ok()?;
+    v.get("task_id")?.as_str()?.parse().ok()
+}
+/// `POST /v1/agent/comments/edit` (`kind` [`EDIT`]) and `/delete` ([`DELETE`]):
+/// a comment `author` wrote in `project_id`, at its expected revision. Another
+/// author's comment is `scope_denied`, a stale revision `stale_revision`.
+pub async fn agent_change(
+    pool: &PgPool,
+    kind: &str,
+    project_id: Uuid,
+    author: &Author,
+    body: &[u8],
+    now: DateTime<Utc>,
+) -> std::result::Result<Value, &'static str> {
+    let b: AgentChange = serde_json::from_slice(body).map_err(|_| "invalid_request")?;
+    if b.api_version != 1 {
+        return Err("unsupported_api_version");
+    }
+    let expected = revision(&b.expected_revision).ok_or("invalid_request")?;
+    if ![EDIT, DELETE].contains(&kind) || (kind == DELETE) != b.body.is_none() {
+        return Err("invalid_request");
+    }
+    let applied = mutate(
+        pool,
+        kind,
+        b.operation_id,
+        project_id,
+        b.comment_id,
+        author,
+        Some(expected),
+        b.body.as_deref(),
+        now,
+    )
+    .await
+    .map_err(Error::code)?;
+    Ok(
+        json!({"api_version": 1, "comment": applied.comment.view(None), "revision": applied.revision.to_string()}),
+    )
+}
+/// `POST /v1/agent/comments/list`: a task thread (the attempt's own unless
+/// `task_id` names another the caller may read), newest first.
 pub async fn agent_list(
     pool: &PgPool,
     thread: Thread,

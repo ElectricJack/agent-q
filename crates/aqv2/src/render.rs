@@ -103,7 +103,9 @@ fn whoami(value: &Value) -> String {
                 ("task", "task_id"),
                 ("project", "project_id"),
                 ("session", "session_id"),
+                ("generation", "session_generation"),
                 ("workspace", "workspace_id"),
+                ("supervisor", "supervisor_conversation_id"),
                 ("profile", "profile_id"),
             ] {
                 let _ = writeln!(out, "{label:<10} {}", s(&value[key]));

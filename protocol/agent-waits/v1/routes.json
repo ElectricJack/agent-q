@@ -6,7 +6,13 @@
   "routes": [
     {"method": "POST", "path": "/v1/agent/waits/register", "command": "register_wait", "capability": "aq.lifecycle-api.wait", "grant": "wait.register", "fixture": "register_task_wait"},
     {"method": "POST", "path": "/v1/agent/waits/inspect", "command": "inspect", "capability": "aq.lifecycle-api.inspect", "grant": "wait.read", "fixture": "inspect_wait"},
-    {"method": "POST", "path": "/v1/agent/waits/ack", "command": "continuation_ack", "capability": "aq.lifecycle-api.continuation-ack", "grant": "wait.ack", "fixture": "ack_continuation"}
+    {"method": "POST", "path": "/v1/agent/waits/ack", "command": "continuation_ack", "capability": "aq.lifecycle-api.continuation-ack", "grant": "wait.ack", "fixture": "ack_continuation"},
+    {"method": "POST", "path": "/v1/agent/waits/list", "command": "wait.list", "grant": "wait.read",
+      "request": {"api_version": 1},
+      "response": "the owner list's shape, {items: [...]}, for this attempt's own waits only (newest first, at most 200)"},
+    {"method": "POST", "path": "/v1/agent/waits/show", "command": "wait.show", "grant": "wait.read",
+      "request": {"api_version": 1, "wait_id": "uuid"},
+      "response": "the owner detail's shape; a wait of another attempt is not_found, as a missing one"}
   ],
   "owner_routes": [
     {"method": "GET", "path": "/api/waits", "query": ["project_id"], "auth": "owner"},

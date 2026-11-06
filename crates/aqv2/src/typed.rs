@@ -335,7 +335,8 @@ pub enum Comment {
         #[arg(long)]
         project: Option<Uuid>,
     },
-    /// A task's comment thread, newest first.
+    /// A task's comment thread, newest first (in a sandbox, your own task's
+    /// unless `--task` names another you may read).
     List {
         #[arg(long)]
         task: Option<Uuid>,
@@ -346,7 +347,7 @@ pub enum Comment {
         #[arg(long)]
         cursor: Option<String>,
     },
-    /// Edit a comment at its current revision.
+    /// Edit a comment at its current revision (in a sandbox, only your own).
     Edit {
         comment: Uuid,
         #[arg(long)]
@@ -356,7 +357,7 @@ pub enum Comment {
         #[arg(long)]
         project: Option<Uuid>,
     },
-    /// Delete a comment at its current revision.
+    /// Delete a comment at its current revision (in a sandbox, only your own).
     Delete {
         comment: Uuid,
         #[arg(long)]
@@ -366,6 +367,29 @@ pub enum Comment {
     },
     #[command(external_subcommand)]
     Other(Vec<String>),
+}
+/// A revisioned comment edit or delete. In a sandbox the agent route takes
+/// the comment in `params` (an agent changes only its own comments); the
+/// owner's action takes it as the subject.
+fn comment_change(
+    name: &str,
+    mode: Mode,
+    mut p: Map<String, Value>,
+    comment: &Uuid,
+    revision: &str,
+    project: Option<Uuid>,
+) -> Result<Invocation> {
+    if mode == Mode::Channel {
+        if project.is_some() {
+            return Err(invalid(
+                "In a sandbox the comment is in the attempt's project; drop --project",
+            ));
+        }
+        p.insert("comment_id".into(), json!(comment));
+        return Ok(Invocation::mutation(name, p, true));
+    }
+    p.insert("project_id".into(), json!(need(project, "--project")?));
+    Ok(Invocation::mutation(name, p, true).subject("task_comment", comment, Some(revision)))
 }
 pub fn comment_invocation(mode: Mode, c: &Comment) -> Result<Option<Invocation>> {
     Ok(Some(match c {
@@ -399,12 +423,10 @@ pub fn comment_invocation(mode: Mode, c: &Comment) -> Result<Option<Invocation>>
         } => {
             let mut p = Map::new();
             match mode {
+                // An omitted task is the attempt's own task.
                 Mode::Channel => {
-                    if task.is_some() || project.is_some() {
-                        return Err(invalid(
-                            "In a sandbox this lists your own task's comments; drop --task and --project",
-                        ));
-                    }
+                    put(&mut p, "task_id", *task);
+                    put(&mut p, "project_id", *project);
                 }
                 Mode::Owner => {
                     p.insert("project_id".into(), json!(need(*project, "--project")?));
@@ -421,32 +443,16 @@ pub fn comment_invocation(mode: Mode, c: &Comment) -> Result<Option<Invocation>>
             revision,
             project,
         } => {
-            let mut p = obj(json!({"expected_revision":revision,"body":input::text(body)?}));
-            if mode == Mode::Owner {
-                need(*project, "--project")?;
-            }
-            put(&mut p, "project_id", *project);
-            Invocation::mutation("task.comment.edit", p, true).subject(
-                "task_comment",
-                comment,
-                Some(revision),
-            )
+            let p = obj(json!({"expected_revision":revision,"body":input::text(body)?}));
+            comment_change("task.comment.edit", mode, p, comment, revision, *project)?
         }
         Comment::Delete {
             comment,
             revision,
             project,
         } => {
-            let mut p = obj(json!({"expected_revision":revision}));
-            if mode == Mode::Owner {
-                need(*project, "--project")?;
-            }
-            put(&mut p, "project_id", *project);
-            Invocation::mutation("task.comment.delete", p, true).subject(
-                "task_comment",
-                comment,
-                Some(revision),
-            )
+            let p = obj(json!({"expected_revision":revision}));
+            comment_change("task.comment.delete", mode, p, comment, revision, *project)?
         }
         Comment::Other(_) => return Ok(None),
     }))
@@ -564,9 +570,9 @@ pub enum Wait {
         #[arg(long, value_name = "FILE|-")]
         request: String,
     },
-    /// List waits (owner).
+    /// List waits (in a sandbox, your attempt's own).
     List,
-    /// Show one wait (owner).
+    /// Show one wait (in a sandbox, one of your attempt's).
     Show { id: Uuid },
     #[command(external_subcommand)]
     Other(Vec<String>),
@@ -600,13 +606,15 @@ pub async fn wait(ctx: &Ctx, c: &Wait) -> Result<Value> {
 // ---- message ---------------------------------------------------------------
 
 /// A mailbox: `task` (your own task's), `task:ID` (a task in your project),
-/// `supervisor:CONVERSATION_ID`, or any MailboxRecipient as `--to-json`.
+/// `session` (your own session's), `supervisor` (the current supervisor
+/// conversation, from `whoami`) or `supervisor:CONVERSATION_ID`, or any
+/// MailboxRecipient as `--to-json`.
 #[derive(Args, Clone)]
 pub struct To {
     #[arg(
         long,
         default_value = "task",
-        value_name = "task|task:ID|supervisor:CONVERSATION_ID"
+        value_name = "task|task:ID|session|supervisor|supervisor:CONVERSATION_ID"
     )]
     pub to: String,
     /// An agent-access MailboxRecipient object.
@@ -675,17 +683,37 @@ pub fn recipient(to: &To, identity: Option<&Value>) -> Result<Value> {
         i.parse::<Uuid>()
             .map_err(|_| invalid("A mailbox ID is a UUID"))
     };
+    let me =
+        || {
+            identity.filter(|v| v["principal"] == "agent").ok_or_else(|| {
+            invalid("Owner mode addresses a mailbox with --to-json or supervisor:CONVERSATION_ID")
+        })
+        };
     match (kind, id) {
         ("supervisor", Some(c)) => {
             Ok(json!({"kind":"global_supervisor","conversation_id":parse(c)?}))
         }
-        ("supervisor", None) => Err(invalid(
-            "The supervisor mailbox is `supervisor:CONVERSATION_ID` (the conversation of a supervisor message you received)",
-        )),
+        ("supervisor", None) => match me()?["supervisor_conversation_id"].as_str() {
+            Some(c) => Ok(json!({"kind":"global_supervisor","conversation_id":parse(c)?})),
+            None => Err(invalid(
+                "No supervisor conversation is open; use `supervisor:CONVERSATION_ID` (the conversation of a supervisor message you received)",
+            )),
+        },
+        ("session", None) => {
+            let me = me()?;
+            if !me["session_generation"].is_u64() {
+                return Err(invalid(
+                    "This server's whoami has no session_generation; address the session with --to-json",
+                ));
+            }
+            Ok(
+                json!({"kind":"session","workspace_id":me["workspace_id"],"project_id":me["project_id"],
+                "task_id":me["task_id"],"session_id":me["session_id"],"attempt_id":me["attempt_id"],
+                "generation":me["session_generation"]}),
+            )
+        }
         ("task", id) => {
-            let me = identity.filter(|v| v["principal"] == "agent").ok_or_else(|| {
-                invalid("Owner mode addresses a mailbox with --to-json or supervisor:CONVERSATION_ID")
-            })?;
+            let me = me()?;
             let task = match id {
                 Some(i) => json!(parse(i)?),
                 None => me["task_id"].clone(),
@@ -695,12 +723,14 @@ pub fn recipient(to: &To, identity: Option<&Value>) -> Result<Value> {
             )
         }
         _ => Err(invalid(
-            "--to is task, task:ID or supervisor:CONVERSATION_ID",
+            "--to is task, task:ID, session, supervisor or supervisor:CONVERSATION_ID",
         )),
     }
 }
 fn needs_identity(to: &To) -> bool {
-    to.to_json.is_none() && (to.to == "task" || to.to.starts_with("task:"))
+    to.to_json.is_none()
+        && (["task", "session", "supervisor"].contains(&to.to.as_str())
+            || to.to.starts_with("task:"))
 }
 pub fn message_invocation(c: &Message, identity: Option<&Value>) -> Result<Option<Invocation>> {
     Ok(Some(match c {

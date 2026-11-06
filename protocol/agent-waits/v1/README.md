@@ -2,7 +2,7 @@
 
 These are the agent-facing durable wait routes served by `aq-server` (H4). Every request and response is the `aq-lifecycle-api` envelope. The schemas live in `crates/aq-lifecycle-api/artifacts/request.schema.json` and `response.schema.json`.
 
-- `routes.json` maps each route to its command, capability and fixture.
+- `routes.json` maps each lifecycle route to its command, capability and fixture, and lists the two agent read routes.
 - `fixtures.json` holds sealed requests that `decode_request` accepts. The unit test `wait_route_fixtures_decode` checks them.
 
 ## Rules
@@ -19,6 +19,7 @@ These are the agent-facing durable wait routes served by `aq-server` (H4). Every
   - known cycles get `known_cycle`.
 - **Outcomes:** `satisfied`, `source_failed`, `cancelled` and `deadline_reached`. When a source is temporarily unreachable, the wait stays pending. Inspect shows the member's freshness and the hold reason.
 - **Ack:** an ack consumes the ready resume intent exactly once. A duplicate `admission_id` returns the original receipt. A stale continuation generation returns `stale_generation` and leaves the intent ready.
+- **Agent reads** (spec 0006): `POST /v1/agent/waits/list` and `POST /v1/agent/waits/show` (`{"api_version":1}`, plus `wait_id` for show) are plain JSON, not lifecycle envelopes. They need `wait.read` and return the owner routes' shapes for the calling attempt's own waits only; another attempt's wait is `not_found`.
 - **Owner routes:** `GET /api/waits[?project_id=]` and `GET /api/waits/{wait_id}`. They require owner auth and are intended for the G10 views.
 
 ## Grants (spec 0006 phase 0)

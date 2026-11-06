@@ -37,12 +37,14 @@ pub(crate) async fn agent_caller(
     })
 }
 impl AgentCaller {
-    pub(crate) fn whoami(&self) -> Value {
+    /// `supervisor` is the current supervisor conversation, if one exists.
+    pub(crate) fn whoami(&self, supervisor: Option<Uuid>) -> Value {
         let p = &self.principal;
         let expires =
             chrono::DateTime::from_timestamp_millis(p.expires as i64).map(|t| t.to_rfc3339());
         json!({"api_version":1,"principal":"agent","attempt_id":self.ids.attempt_id,"task_id":self.ids.task_id,
-            "project_id":self.ids.project_id,"session_id":p.binding["session_id"],"workspace_id":p.binding["workspace_id"],
+            "project_id":self.ids.project_id,"session_id":p.binding["session_id"],"session_generation":p.binding["generation"],
+            "workspace_id":p.binding["workspace_id"],"supervisor_conversation_id":supervisor,
             "profile_id":p.profile["profile_id"],"grants":self.grants,"grants_digest":self.grants.digest(),
             "credential":{"version":p.version.to_string(),"expires_at":expires,"authority_revision":p.revision.to_string()}})
     }
@@ -53,47 +55,30 @@ impl AgentCaller {
         spec: &aq_command_registry::CommandSpec,
         params: &mut serde_json::Map<String, Value>,
     ) -> (Decision, Target) {
+        use aq_agent_grants::Relation;
+        let own = self.ids.task_id;
+        let me = aq_task_comments::Author::Agent {
+            session_id: id(&self.binding, "session_id").unwrap_or_default(),
+            attempt_id: self.ids.attempt_id,
+        };
+        let pool = &state.store.pool;
+        let task = match aq_command_registry::target_comment(spec.target, params) {
+            Some(c) => aq_task_comments::authored_task(pool, c, self.ids.project_id, &me)
+                .await
+                .ok()
+                .flatten(),
+            None => aq_command_registry::target_task(spec.target, params),
+        };
+        // A comment the caller did not write is in no scope it holds.
+        let rel = match task {
+            Some(t) if t == own => Relation::Own,
+            Some(t) => relation(state, own, t).await,
+            None => Relation::Other,
+        };
         let holder = Holder {
             project: self.ids.project_id,
         };
-        let own = Target::OwnAttempt;
-        let Some(grant) = spec.grant else {
-            let g = aq_agent_grants::Grant::new("self", aq_agent_grants::Scope::AttemptSelf);
-            return (Decision::Allow(g), own);
-        };
-        let rel = match aq_command_registry::target_task(spec.target, params) {
-            Some(t) => relation(state, self.ids.task_id, t).await,
-            None => aq_agent_grants::Relation::Other,
-        };
-        let target = aq_command_registry::agent_target(
-            spec.target,
-            params,
-            holder,
-            self.ids.task_id,
-            |_| rel,
-        );
-        let Ok(target) = target else {
-            let r = Refusal::error(
-                RefusalCode::InvalidRequest,
-                spec.name,
-                "A target param is malformed.",
-            );
-            return (Decision::Deny(r), own);
-        };
-        let grant = aq_command_registry::required_grant(spec, &target).unwrap_or(grant);
-        match aq_agent_grants::check(&self.grants, holder, spec.name, grant, target) {
-            Decision::Allow(g) => match aq_command_registry::within_limits(&g, &target) {
-                Ok(()) => (Decision::Allow(g), target),
-                Err(limit) => {
-                    let held = self.grants.related(grant);
-                    (
-                        Decision::Deny(Refusal::quota_exceeded(spec.name, grant, held, limit)),
-                        target,
-                    )
-                }
-            },
-            deny => (deny, target),
-        }
+        aq_command_registry::authorize(spec, params, &self.grants, holder, own, rel)
     }
 }
 /// `task` relative to the attempt's task: a task an agent created under it
@@ -196,19 +181,25 @@ fn ids(p: &Principal) -> Result<AttemptIds> {
         project_id: id(&p.binding, "project_id")?,
     })
 }
-/// Check the grant `path` needs for `p`; Err is the refusal response.
+/// Check the grant `path` needs for `p`; Err is the refusal response. `task`
+/// is the task thread a comment route names when it is not the attempt's own.
 pub(super) async fn require(
     state: &AppState,
     headers: &HeaderMap,
     p: &Principal,
     path: &str,
+    task: Option<Uuid>,
 ) -> std::result::Result<(), Response> {
     let request_id = Uuid::new_v4();
     let ids = ids(p).map_err(|e| e.respond(request_id))?;
     let holder = Holder {
         project: ids.project_id,
     };
-    let (command, grant, target) = aq_agent_grants::route_grant(path, holder)
+    let rel = match task.filter(|t| *t != ids.task_id) {
+        Some(t) => relation(state, ids.task_id, t).await,
+        None => aq_agent_grants::Relation::Own,
+    };
+    let (command, grant, target) = aq_agent_grants::route_grant(path, holder, rel)
         .ok_or_else(|| Error("internal").respond(request_id))?;
     let decision = aq_agent_grants::check(&p.grants, holder, command, grant, target);
     if DISPATCHED.try_with(|_| ()).is_err() {
@@ -246,8 +237,5 @@ pub(crate) fn refused(headers: &HeaderMap, r: Refusal, request_id: Uuid) -> Resp
     {
         return response(status, r.with_request(request_id).body());
     }
-    response(
-        status,
-        json!({"api_version":1,"request_id":request_id,"operation_id":null,"code":r.code.legacy(),"message":r.message,"effect":"not_applied","retryable":false,"recovery":null}),
-    )
+    response(status, r.legacy_body(request_id))
 }

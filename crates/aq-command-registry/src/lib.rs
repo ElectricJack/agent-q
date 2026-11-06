@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use uuid::Uuid;
 
+pub mod agent_task;
 mod catalog;
 pub mod routes;
 pub use catalog::catalog;
@@ -65,6 +66,10 @@ pub enum TargetRule {
     /// The mailbox named by this param: a task mailbox is that task; the
     /// caller's own session and the supervisor are its own attempt.
     Mailbox(&'static str),
+    /// The comment named by this param: the task it is on, related to the
+    /// attempt's task, when the caller wrote it; any other comment is
+    /// outside every scope (an agent edits and deletes only its own).
+    Comment(&'static str),
 }
 impl TargetRule {
     pub fn describe(&self) -> Value {
@@ -78,6 +83,7 @@ impl TargetRule {
             Self::Project(f) => json!({"rule":"project","param":f}),
             Self::Subject => json!({"rule":"subject"}),
             Self::Mailbox(f) => json!({"rule":"mailbox","param":f}),
+            Self::Comment(f) => json!({"rule":"comment","param":f}),
         }
     }
 }
@@ -93,9 +99,10 @@ pub enum Body {
     /// string value.
     Query,
     /// An agent-access-1 graph read: `{api_version, request_id, binding,
-    /// query}` where `query` is `params` (plus `kind` when given) with
-    /// omitted optional fields defaulted.
-    GraphRead(Option<&'static str>),
+    /// query}` where `query` is `params` (plus `kind` when given, with the
+    /// route's `rename` applied as `(query field, param)`) and every field
+    /// of the defaults object (inline JSON) the params omit.
+    GraphRead(Option<&'static str>, &'static str),
     /// An agent-access-1 graph command: `params` plus the binding.
     GraphCommand,
     /// The action union: an `ActionRequest` whose payload is `params`.
@@ -380,7 +387,7 @@ pub fn forward(
             params.insert("api_version".into(), json!(1));
             Some(Value::Object(params))
         }
-        Body::GraphRead(kind) => {
+        Body::GraphRead(kind, defaults) => {
             let binding = binding.ok_or(BuildError("graph reads need a binding"))?;
             let mut query = if kind.is_none() {
                 match params.remove("query") {
@@ -390,16 +397,15 @@ pub fn forward(
             } else {
                 params
             };
+            for (field, param) in route.rename {
+                if let Some(v) = query.remove(*param) {
+                    query.insert((*field).into(), v);
+                }
+            }
             if let Some(kind) = kind {
                 query.insert("kind".into(), json!(kind));
-                if kind == "search" {
-                    for (k, v) in [
-                        ("kind_filter", Value::Null),
-                        ("limit", json!(20)),
-                        ("cursor", Value::Null),
-                    ] {
-                        query.entry(k).or_insert(v);
-                    }
+                for (k, v) in graph_defaults(defaults) {
+                    query.entry(k).or_insert(v);
                 }
             }
             Some(json!({"api_version":1,"request_id":request_id,"binding":binding,"query":query}))
@@ -442,6 +448,9 @@ pub fn forward(
         uri,
         body,
     })
+}
+fn graph_defaults(defaults: &str) -> Map<String, Value> {
+    serde_json::from_str(defaults).unwrap_or_default()
 }
 fn scalar(v: &Value) -> Option<String> {
     match v {
@@ -514,6 +523,13 @@ pub fn document(
                 let schema = params_schema(r, action_schemas, c.name);
                 let mut entry = json!({"route":{"method":r.method,"path":r.path},
                     "body":body_name(r.body),"params_digest":digest(&schema)});
+                // A graph read's query kind, the defaults for omitted fields
+                // and the params sent under another query field name.
+                if let Body::GraphRead(Some(kind), defaults) = r.body {
+                    let renamed: Map<String, Value> =
+                        r.rename.iter().map(|(f, p)| ((*p).into(), json!(f))).collect();
+                    entry["graph_query"] = json!({"kind":kind,"defaults":graph_defaults(defaults),"rename":renamed});
+                }
                 if matches!(r.params, Params::Ref(_) | Params::Inline(_) | Params::Path) {
                     entry["params_schema"] = schema;
                 } else {
@@ -540,7 +556,7 @@ fn body_name(b: Body) -> &'static str {
         Body::Params => "params",
         Body::Versioned => "params_with_api_version",
         Body::Query => "query",
-        Body::GraphRead(_) => "graph_read",
+        Body::GraphRead(..) => "graph_read",
         Body::GraphCommand => "graph_command",
         Body::Action => "action_request",
         Body::Local => "local",
@@ -552,15 +568,16 @@ mod tests;
 
 /// The agent's scope target for `rule` (§6.4). Params gain defaults from
 /// the binding: an omitted `project_id` is the attempt's project and is
-/// removed before forwarding (agent routes take it from the binding), and a
-/// task param equal to the attempt's task is `Own`. `relation` resolves any
-/// other task against the attempt's task (its ancestry).
+/// removed before forwarding (agent routes take it from the binding), an
+/// omitted task param is the attempt's task, and a task equal to the
+/// attempt's task is `Own`. `relation` is the server's resolution of any
+/// other named task (its ancestry), or of a `Comment` rule's comment.
 pub fn agent_target(
     rule: TargetRule,
     params: &mut Map<String, Value>,
     holder: aq_agent_grants::Holder,
     own_task: Uuid,
-    relation: impl Fn(Uuid) -> aq_agent_grants::Relation,
+    relation: aq_agent_grants::Relation,
 ) -> Result<aq_agent_grants::Target, BuildError> {
     use aq_agent_grants::{Relation, Target};
     let id = |v: &Value| v.as_str().and_then(|s| s.parse::<Uuid>().ok());
@@ -569,20 +586,40 @@ pub fn agent_target(
         relation: if t == own_task {
             Relation::Own
         } else {
-            relation(t)
+            relation
         },
+    };
+    let project = |params: &mut Map<String, Value>, field: &str| match params.remove(field) {
+        None => Ok(holder.project),
+        Some(v) => id(&v).ok_or(BuildError("project_id must be a UUID")),
     };
     Ok(match rule {
         TargetRule::Own => Target::OwnAttempt,
         TargetRule::OwnTask => task(own_task),
-        TargetRule::Project(field) => match params.remove(field) {
-            None => Target::Project(holder.project),
-            Some(v) => Target::Project(id(&v).ok_or(BuildError("project_id must be a UUID"))?),
-        },
-        TargetRule::Task(field) => match params.get(field) {
-            None => task(own_task),
-            Some(v) => task(id(v).ok_or(BuildError("task id must be a UUID"))?),
-        },
+        TargetRule::Project(field) => Target::Project(project(params, field)?),
+        TargetRule::Task(field) => {
+            let p = project(params, "project_id")?;
+            let t = match params.get(field) {
+                None => own_task,
+                Some(v) => id(v).ok_or(BuildError("task id must be a UUID"))?,
+            };
+            params.insert(field.into(), json!(t));
+            if p != holder.project {
+                Target::Project(p)
+            } else {
+                task(t)
+            }
+        }
+        TargetRule::Comment(field) => {
+            params
+                .get(field)
+                .and_then(id)
+                .ok_or(BuildError("comment id must be a UUID"))?;
+            Target::Task {
+                project: holder.project,
+                relation,
+            }
+        }
         TargetRule::ParentTask { field, .. } => match params.get(field) {
             Some(Value::Null) | None => Target::Project(holder.project),
             Some(v) => {
@@ -646,6 +683,13 @@ pub fn target_task(rule: TargetRule, params: &Map<String, Value>) -> Option<Uuid
     };
     v.as_str()?.parse().ok()
 }
+/// The comment id a `Comment` rule names, for the server to resolve.
+pub fn target_comment(rule: TargetRule, params: &Map<String, Value>) -> Option<Uuid> {
+    match rule {
+        TargetRule::Comment(f) => params.get(f)?.as_str()?.parse().ok(),
+        _ => None,
+    }
+}
 /// A grant's limits applied to its target: the depth of a created task.
 /// `Err(limit name)` when the target is deeper than the grant allows.
 pub fn within_limits(
@@ -662,4 +706,129 @@ pub fn within_limits(
         ) if *d > max => Err("max_depth"),
         _ => Ok(()),
     }
+}
+
+/// The grant and scope check for one agent command (§6.4), with its
+/// target: the target from the params, the grant it needs, the scope and
+/// the grant's limits. `relation` is the server's resolution of the named
+/// task or comment ([`target_task`], [`target_comment`]).
+pub fn authorize(
+    spec: &CommandSpec,
+    params: &mut Map<String, Value>,
+    grants: &aq_agent_grants::GrantSet,
+    holder: aq_agent_grants::Holder,
+    own_task: Uuid,
+    relation: aq_agent_grants::Relation,
+) -> (aq_agent_grants::Decision, aq_agent_grants::Target) {
+    use aq_agent_grants::{Decision, Grant, Refusal, RefusalCode, Scope, Target};
+    let Some(grant) = spec.grant else {
+        let own = Grant::new("self", Scope::AttemptSelf);
+        return (Decision::Allow(own), Target::OwnAttempt);
+    };
+    let Ok(target) = agent_target(spec.target, params, holder, own_task, relation) else {
+        let r = Refusal::error(
+            RefusalCode::InvalidRequest,
+            spec.name,
+            "A target param is malformed.",
+        );
+        return (Decision::Deny(r), Target::OwnAttempt);
+    };
+    let grant = required_grant(spec, &target).unwrap_or(grant);
+    match aq_agent_grants::check(grants, holder, spec.name, grant, target) {
+        Decision::Allow(g) => match within_limits(&g, &target) {
+            Ok(()) => (Decision::Allow(g), target),
+            Err(limit) => {
+                let held = grants.related(grant);
+                let r = Refusal::quota_exceeded(spec.name, grant, held, limit);
+                (Decision::Deny(r), target)
+            }
+        },
+        deny => (deny, target),
+    }
+}
+/// Whether a caller may run `spec` at all (discovery, "published means
+/// runnable"): `Ok` with the scope of the grant an agent holds for it.
+/// `principal` is `None` for a caller with no command principal (a viewer);
+/// `grants` is `Some` for an agent.
+pub fn available(
+    spec: &CommandSpec,
+    principal: Option<Principal>,
+    grants: Option<&aq_agent_grants::GrantSet>,
+) -> Result<Option<String>, aq_agent_grants::RefusalCode> {
+    use aq_agent_grants::RefusalCode;
+    let p = principal.ok_or(RefusalCode::NotAvailable)?;
+    spec.route(p).ok_or(RefusalCode::NotAvailable)?;
+    let (Some(grants), Some(grant)) = (grants, spec.grant) else {
+        return Ok(None);
+    };
+    if spec.owner_only() {
+        return Err(RefusalCode::OwnerOnly);
+    }
+    let g = grants.get(grant).ok_or(RefusalCode::GrantMissing)?;
+    Ok(Some(g.scope.to_string()))
+}
+impl Registry {
+    /// `GET /api/v1/commands[?all=true]` (a `Discovery`): what the caller may
+    /// run, each with the scope of the grant an agent holds, filtered by the
+    /// check `invoke` applies ("published means runnable"). `all` also lists
+    /// the others with the reason. A caller with no principal is a viewer.
+    pub fn discovery(
+        &self,
+        principal: Option<Principal>,
+        grants: Option<&aq_agent_grants::GrantSet>,
+        all: bool,
+    ) -> Value {
+        let (mut runnable, mut unavailable) = (Vec::new(), Vec::new());
+        for spec in &self.commands {
+            let mut e = json!({"name":spec.name,"kind":spec.kind,"summary":spec.summary,"cli":spec.cli(),"grant":spec.grant});
+            match available(spec, principal, grants) {
+                Ok(scope) => {
+                    e["scope"] = json!(scope);
+                    runnable.push(e);
+                }
+                Err(code) if all => {
+                    e["reason"] = json!(code.as_str());
+                    unavailable.push(e);
+                }
+                Err(_) => {}
+            }
+        }
+        let p = principal.map_or("viewer", Principal::as_str);
+        let mut body = json!({"api_version":1,"principal":p,"commands":runnable});
+        if all {
+            body["unavailable"] = json!(unavailable);
+        }
+        body
+    }
+    /// The commands an agent holding `grants` may run (`aq commands`).
+    pub fn agent_commands(&self, grants: &aq_agent_grants::GrantSet) -> Vec<String> {
+        self.commands
+            .iter()
+            .filter(|c| available(c, Some(Principal::Agent), Some(grants)).is_ok())
+            .map(|c| c.name.to_string())
+            .collect()
+    }
+}
+/// Whether an agent's response to `spec` is checked by [`agent_result_ok`].
+pub fn checks_agent_result(spec: &CommandSpec) -> bool {
+    spec.grant == Some(aq_agent_grants::op::TASK_READ)
+        && matches!(
+            spec.agent.map(|r| r.body),
+            Some(Body::GraphRead(Some(_), _))
+        )
+}
+/// A `task.*` agent read is a scoped graph read of the named node, so it
+/// must have read a task: a node of another kind is answered as not found
+/// (§6.4), never as a knowledge record under the task grant. `body` is the
+/// graph read response; reads of other commands always pass.
+pub fn agent_result_ok(spec: &CommandSpec, body: &Value) -> bool {
+    if !checks_agent_result(spec) {
+        return true;
+    }
+    let result = &body["result"];
+    let items = result["items"].as_array().into_iter().flatten();
+    std::iter::once(&result["node"])
+        .chain(items.map(|i| &i["node"]))
+        .filter(|n| !n.is_null())
+        .all(|n| n["kind"] == "task")
 }

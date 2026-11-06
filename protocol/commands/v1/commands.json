@@ -12,7 +12,7 @@
       "principals": {
         "agent": {
           "body": "params_with_api_version",
-          "params_digest": "sha256:8594214a14bdfe6be83b5033daa8633803d9dabee600d4f5261d01279cccb563",
+          "params_digest": "sha256:eeb27052cd0518991b79f92295054dbb2ac6fe4a03ed8b91beeb7ffd2d51a218",
           "params_schema": {
             "additionalProperties": false,
             "properties": {
@@ -23,6 +23,16 @@
                 "maximum": 100,
                 "minimum": 1,
                 "type": "integer"
+              },
+              "project_id": {
+                "description": "Omitted: the attempt's project; another is refused",
+                "format": "uuid",
+                "type": "string"
+              },
+              "task_id": {
+                "description": "Omitted: the attempt's own task",
+                "format": "uuid",
+                "type": "string"
               }
             },
             "type": "object"
@@ -70,7 +80,8 @@
       },
       "summary": "A task's comment thread, newest first",
       "target": {
-        "rule": "own_task"
+        "param": "task_id",
+        "rule": "task"
       }
     },
     {
@@ -808,6 +819,15 @@
       "principals": {
         "agent": {
           "body": "graph_read",
+          "graph_query": {
+            "defaults": {
+              "cursor": null,
+              "kind_filter": null,
+              "limit": 20
+            },
+            "kind": "search",
+            "rename": {}
+          },
           "params_digest": "sha256:ffffc4e03eeeefae55c748ef9f2b246959627f48ef71e3a442228d892072c315",
           "params_schema": {
             "additionalProperties": false,
@@ -896,6 +916,11 @@
       "principals": {
         "agent": {
           "body": "graph_read",
+          "graph_query": {
+            "defaults": {},
+            "kind": "get",
+            "rename": {}
+          },
           "params_digest": "sha256:08b0554bebf28488889b3cf2705d7521bb79f5e0b465b65fe2887f109edd319f",
           "params_schema": {
             "additionalProperties": false,
@@ -2671,6 +2696,66 @@
     {
       "cli": [
         "task",
+        "children"
+      ],
+      "grant": "task.read",
+      "kind": "read",
+      "name": "task.children",
+      "owner_only": false,
+      "principals": {
+        "agent": {
+          "body": "graph_read",
+          "graph_query": {
+            "defaults": {
+              "cursor": null,
+              "direction": "outgoing",
+              "edge_types": [
+                "parent-child"
+              ],
+              "limit": 64
+            },
+            "kind": "relationships",
+            "rename": {
+              "task_id": "node_id"
+            }
+          },
+          "params_digest": "sha256:71ada282573c11b906fc677ecc2a96f996148879500cffc398dfb05eb1f53109",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "limit": {
+                "maximum": 64,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "project_id": {
+                "description": "Omitted: the attempt's project; another is refused",
+                "format": "uuid",
+                "type": "string"
+              },
+              "task_id": {
+                "description": "Omitted: the attempt's own task",
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/graph/read"
+          }
+        }
+      },
+      "summary": "A task's direct subtasks (its outgoing parent-child edges)",
+      "target": {
+        "param": "task_id",
+        "rule": "task"
+      }
+    },
+    {
+      "cli": [
+        "task",
         "comment",
         "add"
       ],
@@ -2734,6 +2819,37 @@
       "name": "task.comment.delete",
       "owner_only": false,
       "principals": {
+        "agent": {
+          "body": "params_with_api_version",
+          "params_digest": "sha256:75caef797b405fbf39daa5b26b4a1f1b90399ab19211c0fd1d2b95ab6b8a5633",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "comment_id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "expected_revision": {
+                "pattern": "^[1-9][0-9]{0,18}$",
+                "type": "string"
+              },
+              "operation_id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_id",
+              "comment_id",
+              "expected_revision"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/comments/delete"
+          }
+        },
         "owner": {
           "body": "action_request",
           "params_digest": "sha256:e561ef2ff272ef8afbc1d8b36aa6538a7082537f8c14dfee6da6b4a03514e23e",
@@ -2746,9 +2862,10 @@
           }
         }
       },
-      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "summary": "Delete a comment at its current revision (an agent deletes only its own)",
       "target": {
-        "rule": "subject"
+        "param": "comment_id",
+        "rule": "comment"
       }
     },
     {
@@ -2762,6 +2879,43 @@
       "name": "task.comment.edit",
       "owner_only": false,
       "principals": {
+        "agent": {
+          "body": "params_with_api_version",
+          "params_digest": "sha256:8a094b7c8d4fef41e3420ca667b3f34ac5f3e071bd1cb09748e755e90aa2f0b7",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "body": {
+                "maxLength": 16384,
+                "minLength": 1,
+                "type": "string"
+              },
+              "comment_id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "expected_revision": {
+                "pattern": "^[1-9][0-9]{0,18}$",
+                "type": "string"
+              },
+              "operation_id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_id",
+              "comment_id",
+              "expected_revision",
+              "body"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/comments/edit"
+          }
+        },
         "owner": {
           "body": "action_request",
           "params_digest": "sha256:5b7fc9d3ecdea5af0f711d1636a18cc4dba9c3669d20a971688175b7d42a89df",
@@ -2774,9 +2928,10 @@
           }
         }
       },
-      "summary": "Dashboard action (protocol/dashboard-actions/v1)",
+      "summary": "Edit a comment at its current revision (an agent edits only its own)",
       "target": {
-        "rule": "subject"
+        "param": "comment_id",
+        "rule": "comment"
       }
     },
     {
@@ -3092,6 +3247,57 @@
       "name": "task.history",
       "owner_only": false,
       "principals": {
+        "agent": {
+          "body": "graph_read",
+          "graph_query": {
+            "defaults": {
+              "cursor": null,
+              "limit": 20
+            },
+            "kind": "history",
+            "rename": {
+              "task_id": "node_id"
+            }
+          },
+          "params_digest": "sha256:c5a4e1ea8983c4ddf9c53eefed49cce08b2b18dc92bfb2b7013c19d46d4c5d45",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "cursor": {
+                "anyOf": [
+                  {
+                    "maxLength": 2048,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "limit": {
+                "maximum": 64,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "project_id": {
+                "description": "Omitted: the attempt's project; another is refused",
+                "format": "uuid",
+                "type": "string"
+              },
+              "task_id": {
+                "description": "Omitted: the attempt's own task",
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/graph/read"
+          }
+        },
         "owner": {
           "body": "query",
           "params_digest": "sha256:c5436209c157f6c68f3279e00241f53410369452254cfa885ece32eb1e464c85",
@@ -3281,6 +3487,37 @@
       "name": "task.show",
       "owner_only": false,
       "principals": {
+        "agent": {
+          "body": "graph_read",
+          "graph_query": {
+            "defaults": {},
+            "kind": "get",
+            "rename": {
+              "task_id": "node_id"
+            }
+          },
+          "params_digest": "sha256:c24c51140e0741bebc06b6394d178781909da44c10b37ea18f3948293f0552a9",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "project_id": {
+                "description": "Omitted: the attempt's project; another is refused",
+                "format": "uuid",
+                "type": "string"
+              },
+              "task_id": {
+                "description": "Omitted: the attempt's own task",
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/graph/read"
+          }
+        },
         "owner": {
           "body": "query",
           "params_digest": "sha256:c5436209c157f6c68f3279e00241f53410369452254cfa885ece32eb1e464c85",
@@ -3704,6 +3941,18 @@
       "name": "wait.list",
       "owner_only": false,
       "principals": {
+        "agent": {
+          "body": "params_with_api_version",
+          "params_digest": "sha256:cd1a463c46d6264134447db17a8c3c7abe5b9a2488c6d759fea66da1f96b133e",
+          "params_schema": {
+            "additionalProperties": false,
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/waits/list"
+          }
+        },
         "owner": {
           "body": "query",
           "params_digest": "sha256:269657f4c21d6ee908981a2774ca899b916501a5e791a9beebf1856c97949e85",
@@ -3726,7 +3975,7 @@
           }
         }
       },
-      "summary": "Registered waits",
+      "summary": "Registered waits (an agent's own attempt's)",
       "target": {
         "rule": "own"
       }
@@ -3768,6 +4017,27 @@
       "name": "wait.show",
       "owner_only": false,
       "principals": {
+        "agent": {
+          "body": "params_with_api_version",
+          "params_digest": "sha256:e5c84fcb3096774992938f68d68f62d0cff37bbec5568b1983d94f011df240db",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "wait_id": {
+                "format": "uuid",
+                "type": "string"
+              }
+            },
+            "required": [
+              "wait_id"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/waits/show"
+          }
+        },
         "owner": {
           "body": "query",
           "params_digest": "sha256:abc32a4c5d82fd011dbd30b12461081f4955fef9002c47c9b231d267d378f422",
@@ -3798,7 +4068,7 @@
           }
         }
       },
-      "summary": "One registered wait",
+      "summary": "One registered wait (an agent's own attempt's)",
       "target": {
         "rule": "own"
       }

@@ -56,15 +56,7 @@ pub(crate) async fn startup_input(
             })
             .collect(),
         more_comments: more.is_some(),
-        questions: questions
-            .into_iter()
-            .map(|(decision_id, state, question, answer)| thread::Question {
-                decision_id,
-                state,
-                question,
-                answer,
-            })
-            .collect(),
+        questions: questions.into_iter().map(Into::into).collect(),
         messages: mail
             .into_iter()
             .map(|(sender, body, ms)| thread::Message {

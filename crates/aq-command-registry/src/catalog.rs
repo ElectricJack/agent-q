@@ -47,6 +47,31 @@ const fn get(path: &'static str) -> Option<Route> {
 }
 
 const AGENT_TASK: &str = r#"{"type":"object","additionalProperties":false,"required":["operation_id","title"],"properties":{"operation_id":{"type":"string","format":"uuid"},"title":{"type":"string","minLength":1,"maxLength":512},"body":{"type":"string","maxLength":32768},"acceptance_criteria":{"type":"string","maxLength":8192},"labels":{"type":"array","maxItems":16,"items":{"type":"string","minLength":1,"maxLength":128}},"parent_id":{"anyOf":[{"type":"string","format":"uuid"},{"const":"self"},{"type":"null"}]},"priority":{"type":"integer","minimum":1,"maximum":300},"task_type":{"type":"string","minLength":1,"maxLength":128},"task_state":{"enum":["active","draft"]},"expected_project_revision":{"type":"string","pattern":"^[1-9][0-9]{0,18}$"},"profile_hint":{"type":"null","description":"An agent cannot choose the profile of a task it creates"},"intelligence_hint":{"type":"null","description":"An agent cannot choose the intelligence of a task it creates"}}}"#;
+/// An agent's task read: an optional `task_id` (the attempt's own task when
+/// omitted) and `project_id` (the attempt's project), plus `extra` fields.
+macro_rules! task_params {
+    ($extra:literal) => {
+        concat!(
+            r#"{"type":"object","additionalProperties":false,"properties":{"task_id":{"type":"string","format":"uuid","description":"Omitted: the attempt's own task"},"project_id":{"type":"string","format":"uuid","description":"Omitted: the attempt's project; another is refused"}"#,
+            $extra,
+            "}}"
+        )
+    };
+}
+/// The agent's scoped graph read of the task named by `task_id`.
+const fn graph_task(kind: &'static str, defaults: &'static str, params: &'static str) -> Route {
+    Route {
+        method: "POST",
+        path: "/v1/agent/graph/read",
+        body: Body::GraphRead(Some(kind), defaults),
+        params: Params::Inline(params),
+        rename: &[("node_id", "task_id")],
+    }
+}
+/// The agent's revisioned comment edit or delete: the comment and the
+/// revision it expects (the route takes them from `params`, not a subject).
+const COMMENT_EDIT: &str = r#"{"type":"object","additionalProperties":false,"required":["operation_id","comment_id","expected_revision","body"],"properties":{"operation_id":{"type":"string","format":"uuid"},"comment_id":{"type":"string","format":"uuid"},"expected_revision":{"type":"string","pattern":"^[1-9][0-9]{0,18}$"},"body":{"type":"string","minLength":1,"maxLength":16384}}}"#;
+const COMMENT_DELETE: &str = r#"{"type":"object","additionalProperties":false,"required":["operation_id","comment_id","expected_revision"],"properties":{"operation_id":{"type":"string","format":"uuid"},"comment_id":{"type":"string","format":"uuid"},"expected_revision":{"type":"string","pattern":"^[1-9][0-9]{0,18}$"}}}"#;
 const P: TargetRule = TargetRule::Project("project_id");
 const T: TargetRule = TargetRule::Task("task_id");
 const TASK: &[(&str, &str)] = &[("project", "project_id"), ("node", "task_id")];
@@ -129,20 +154,46 @@ pub fn catalog() -> Vec<CommandSpec> {
             "Tasks in a project",
             Some(Route::get("/api/human/projects/{project}/tasks", PROJ)),
         ),
-        task(
-            "task.show",
-            "/api/human/projects/{project}/tasks/{node}",
-            "One task",
+        agent(
+            task(
+                "task.show",
+                "/api/human/projects/{project}/tasks/{node}",
+                "One task",
+            ),
+            graph_task("get", "{}", task_params!("")),
         ),
+        CommandSpec {
+            agent: Some(graph_task(
+                "relationships",
+                r#"{"direction":"outgoing","edge_types":["parent-child"],"limit":64,"cursor":null}"#,
+                task_params!(r#","limit":{"type":"integer","minimum":1,"maximum":64}"#),
+            )),
+            ..read(
+                "task.children",
+                op::TASK_READ,
+                T,
+                "A task's direct subtasks (its outgoing parent-child edges)",
+                None,
+            )
+        },
         task(
             "task.graph.show",
             "/api/human/projects/{project}/tasks/{node}/graph",
             "A task's dependency graph",
         ),
-        task(
-            "task.history",
-            "/api/human/projects/{project}/tasks/{node}/history",
-            "A task's history",
+        agent(
+            task(
+                "task.history",
+                "/api/human/projects/{project}/tasks/{node}/history",
+                "A task's history",
+            ),
+            graph_task(
+                "history",
+                r#"{"limit":20,"cursor":null}"#,
+                task_params!(
+                    r#","limit":{"type":"integer","minimum":1,"maximum":64},"cursor":{"anyOf":[{"type":"string","minLength":1,"maxLength":2048},{"type":"null"}]}"#
+                ),
+            ),
         ),
         task(
             "task.summary",
@@ -165,7 +216,7 @@ pub fn catalog() -> Vec<CommandSpec> {
             read(
                 "comment.list",
                 op::COMMENT_READ,
-                TargetRule::OwnTask,
+                T,
                 "A task's comment thread, newest first",
                 Some(Route::get(
                     "/api/human/projects/{project}/tasks/{node}/comments",
@@ -175,9 +226,9 @@ pub fn catalog() -> Vec<CommandSpec> {
             Route::post(
                 "/v1/agent/comments/list",
                 Body::Versioned,
-                Params::Inline(
-                    r#"{"type":"object","additionalProperties":false,"properties":{"cursor":{"type":"string"},"limit":{"type":"integer","minimum":1,"maximum":100}}}"#,
-                ),
+                Params::Inline(task_params!(
+                    r#","cursor":{"type":"string"},"limit":{"type":"integer","minimum":1,"maximum":100}"#
+                )),
             ),
         ),
         agent(
@@ -193,6 +244,32 @@ pub fn catalog() -> Vec<CommandSpec> {
                 Params::Inline(
                     r#"{"type":"object","additionalProperties":false,"required":["operation_id","body"],"properties":{"operation_id":{"type":"string","format":"uuid"},"body":{"type":"string","minLength":1,"maxLength":16384}}}"#,
                 ),
+            ),
+        ),
+        agent(
+            mutation(
+                "task.comment.edit",
+                op::COMMENT_WRITE,
+                TargetRule::Comment("comment_id"),
+                "Edit a comment at its current revision (an agent edits only its own)",
+            ),
+            Route::post(
+                "/v1/agent/comments/edit",
+                Body::Versioned,
+                Params::Inline(COMMENT_EDIT),
+            ),
+        ),
+        agent(
+            mutation(
+                "task.comment.delete",
+                op::COMMENT_WRITE,
+                TargetRule::Comment("comment_id"),
+                "Delete a comment at its current revision (an agent deletes only its own)",
+            ),
+            Route::post(
+                "/v1/agent/comments/delete",
+                Body::Versioned,
+                Params::Inline(COMMENT_DELETE),
             ),
         ),
         read(
@@ -215,7 +292,7 @@ pub fn catalog() -> Vec<CommandSpec> {
             ),
             Route::post(
                 "/v1/agent/graph/read",
-                Body::GraphRead(Some("get")),
+                Body::GraphRead(Some("get"), "{}"),
                 Params::Inline(
                     r#"{"type":"object","additionalProperties":false,"required":["node_id"],"properties":{"node_id":{"type":"string","format":"uuid"}}}"#,
                 ),
@@ -231,7 +308,10 @@ pub fn catalog() -> Vec<CommandSpec> {
             ),
             Route::post(
                 "/v1/agent/graph/read",
-                Body::GraphRead(Some("search")),
+                Body::GraphRead(
+                    Some("search"),
+                    r#"{"kind_filter":null,"limit":20,"cursor":null}"#,
+                ),
                 Params::Inline(
                     r#"{"type":"object","additionalProperties":false,"required":["text"],"properties":{"text":{"type":"string","minLength":1,"maxLength":1024},"kind_filter":{"anyOf":[{"enum":["task","knowledge"]},{"type":"null"}]},"limit":{"type":"integer","minimum":1,"maximum":64},"cursor":{"anyOf":[{"type":"string"},{"type":"null"}]}}}"#,
                 ),
@@ -240,7 +320,7 @@ pub fn catalog() -> Vec<CommandSpec> {
         CommandSpec {
             agent: Some(Route::post(
                 "/v1/agent/graph/read",
-                Body::GraphRead(None),
+                Body::GraphRead(None, "{}"),
                 Params::Inline(
                     r#"{"type":"object","additionalProperties":false,"required":["query"],"properties":{"query":{"$ref":"protocol/agent-access/v1/schema.json#/$defs/ReadQuery"}}}"#,
                 ),
@@ -348,13 +428,34 @@ pub fn catalog() -> Vec<CommandSpec> {
                 "Acknowledge a continuation (a sealed lifecycle request)",
             )
         },
-        owner("wait.list", op::WAIT_READ, "Registered waits", "/api/waits"),
-        read(
-            "wait.show",
-            op::WAIT_READ,
-            TargetRule::Own,
-            "One registered wait",
-            Some(Route::get("/api/waits/{wait_id}", &[])),
+        agent(
+            owner(
+                "wait.list",
+                op::WAIT_READ,
+                "Registered waits (an agent's own attempt's)",
+                "/api/waits",
+            ),
+            Route::post(
+                "/v1/agent/waits/list",
+                Body::Versioned,
+                Params::Inline(r#"{"type":"object","additionalProperties":false}"#),
+            ),
+        ),
+        agent(
+            read(
+                "wait.show",
+                op::WAIT_READ,
+                TargetRule::Own,
+                "One registered wait (an agent's own attempt's)",
+                Some(Route::get("/api/waits/{wait_id}", &[])),
+            ),
+            Route::post(
+                "/v1/agent/waits/show",
+                Body::Versioned,
+                Params::Inline(
+                    r#"{"type":"object","additionalProperties":false,"required":["wait_id"],"properties":{"wait_id":{"type":"string","format":"uuid"}}}"#,
+                ),
+            ),
         ),
         CommandSpec {
             owner: Some(Route::post(

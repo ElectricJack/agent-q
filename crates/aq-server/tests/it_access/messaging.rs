@@ -61,6 +61,10 @@ pub(crate) async fn setup() -> Env {
 }
 /// `grants` is the spec 0006 grant set provisioned with the launch.
 pub(crate) async fn setup_with(grants: Option<Value>) -> Env {
+    setup_graph(grants, "http://127.0.0.1:9").await
+}
+/// As `setup_with`, with the agent graph routes reading from `graph_url`.
+pub(crate) async fn setup_graph(grants: Option<Value>, graph_url: &str) -> Env {
     let db = TestDb::create().await;
     let store = db.store().await;
     let pool = db.pool().await;
@@ -143,7 +147,7 @@ enabled=true
     .unwrap();
     let runtime = Runtime::new(&AgentAccessConfig {
         mutation_actor_id: None,
-        graph_url: "http://127.0.0.1:9".into(),
+        graph_url: graph_url.into(),
         graph_token_file: token_file,
         credential_ttl_ms: 10000,
     })

@@ -79,6 +79,42 @@
   {
     "args": [
       "task",
+      "children"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {}
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.children"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "task",
+      "history",
+      "--param",
+      "task_id=00000000-0000-4000-8000-0000000000b1"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "task_id": "00000000-0000-4000-8000-0000000000b1"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.history"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "task",
       "create",
       "--title",
       "Verify changelog links",
@@ -335,6 +371,26 @@
   {
     "args": [
       "comment",
+      "list",
+      "--task",
+      "00000000-0000-4000-8000-0000000000b1"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "task_id": "00000000-0000-4000-8000-0000000000b1"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/comment.list"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "comment",
       "edit",
       "00000000-0000-4000-8000-0000000000b3",
       "--body",
@@ -345,19 +401,12 @@
     "calls": [
       {
         "body": {
-          "expected_versions": {
-            "task_comment": "2"
-          },
           "operation_id": "<new-1>",
           "params": {
             "body": "Edited",
+            "comment_id": "00000000-0000-4000-8000-0000000000b3",
             "expected_revision": "2",
             "operation_id": "<new-1>"
-          },
-          "subject": {
-            "id": "00000000-0000-4000-8000-0000000000b3",
-            "revision": "2",
-            "type": "task_comment"
           }
         },
         "method": "POST",
@@ -377,18 +426,11 @@
     "calls": [
       {
         "body": {
-          "expected_versions": {
-            "task_comment": "3"
-          },
           "operation_id": "<new-1>",
           "params": {
+            "comment_id": "00000000-0000-4000-8000-0000000000b3",
             "expected_revision": "3",
             "operation_id": "<new-1>"
-          },
-          "subject": {
-            "id": "00000000-0000-4000-8000-0000000000b3",
-            "revision": "3",
-            "type": "task_comment"
           }
         },
         "method": "POST",
@@ -642,6 +684,79 @@
         },
         "method": "POST",
         "path": "/api/v1/commands/message.send"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "message",
+      "send",
+      "Hello, supervisor",
+      "--to",
+      "supervisor"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {}
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/whoami"
+      },
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "body": "Hello, supervisor",
+            "message_id": "<new-2>",
+            "operation_id": "<new-1>",
+            "recipient": {
+              "conversation_id": "00000000-0000-4000-8000-0000000000b8",
+              "kind": "global_supervisor"
+            },
+            "thread_id": "00000000-0000-4000-8000-0000000000b8"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/message.send"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "message",
+      "inbox",
+      "--to",
+      "session"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {}
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/whoami"
+      },
+      {
+        "body": {
+          "params": {
+            "after": "0",
+            "limit": 32,
+            "recipient": {
+              "attempt_id": "00000000-0000-4000-8000-0000000000a3",
+              "generation": 3,
+              "kind": "session",
+              "project_id": "00000000-0000-4000-8000-0000000000a2",
+              "session_id": "00000000-0000-4000-8000-0000000000a4",
+              "task_id": "00000000-0000-4000-8000-0000000000a1",
+              "workspace_id": "00000000-0000-4000-8000-0000000000a5"
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/message.inbox"
       }
     ],
     "mode": "channel"

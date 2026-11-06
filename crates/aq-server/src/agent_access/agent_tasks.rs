@@ -7,28 +7,8 @@ use super::grant_check::{AgentCaller, DISPATCHED, audit};
 use super::*;
 use crate::commands::refuse;
 use aq_agent_grants::{AuditEntry, Decision, Refusal, RefusalCode, Relation, Target};
+use aq_command_registry::agent_task::AgentTask as Body;
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Body {
-    api_version: u32,
-    operation_id: Uuid,
-    title: String,
-    #[serde(default)]
-    body: String,
-    #[serde(default)]
-    acceptance_criteria: String,
-    #[serde(default)]
-    labels: Vec<String>,
-    #[serde(default)]
-    parent_id: Option<Value>,
-    priority: Option<u16>,
-    task_type: Option<String>,
-    task_state: Option<String>,
-    expected_project_revision: Option<String>,
-    profile_hint: Option<Value>,
-    intelligence_hint: Option<Value>,
-}
 pub(super) fn machine_routes() -> Router<AppState> {
     Router::new().route("/v1/agent/tasks", post(create))
 }
@@ -90,11 +70,7 @@ async fn admit(
         };
         return Err(r);
     };
-    // §8: an agent cannot pick the profile or intelligence of a task it
-    // creates, so it cannot launch a child with more authority than its own.
-    if b.profile_hint.as_ref().is_some_and(|v| !v.is_null())
-        || b.intelligence_hint.as_ref().is_some_and(|v| !v.is_null())
-    {
+    if b.sets_hint() {
         let r = Refusal::scope_denied(spec.name, grant, a.grants.related(grant));
         let r = Refusal {
             message: "An agent cannot set profile_hint or intelligence_hint on a task it creates."
@@ -105,11 +81,7 @@ async fn admit(
         return Err(r);
     }
     let (project, own) = (a.ids.project_id, a.ids.task_id);
-    let parent = match &b.parent_id {
-        Some(Value::String(s)) if s == "self" => Some(own),
-        Some(v) if !v.is_null() => v.as_str().and_then(|s| s.parse().ok()),
-        _ => None,
-    };
+    let parent = b.parent(own);
     // Reserve the create against the quota; a replay of the same operation
     // finds its own row and is not counted again.
     let depth = match target {
@@ -152,12 +124,7 @@ async fn admit(
             .revision
             .to_string(),
     };
-    let payload = json!({"operation_id":b.operation_id,"expected_project_revision":revision,"title":b.title,"body":b.body,
-        "acceptance_criteria":b.acceptance_criteria,"labels":b.labels,"task_state":b.task_state.as_deref().unwrap_or("active"),
-        "parent_id":parent,"priority":b.priority,"task_type":b.task_type});
-    let request = json!({"operation_id":b.operation_id,"kind":"task.create","subject":{"type":"project","id":project,"revision":revision},
-        "expected_versions":{"project":revision},"payload":payload});
-    let request = serde_json::from_value(request).map_err(|_| {
+    let request = serde_json::from_value(b.action(project, own, &revision)).map_err(|_| {
         Refusal::error(
             RefusalCode::InvalidRequest,
             "task.create",
