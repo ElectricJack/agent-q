@@ -1412,3 +1412,14 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - (operation, scope) grants with a project ceiling and a no-escalation rule;
     - a default coding-agent set; explained refusals; launch context.
   - Six open questions for the owner. Opened in Sublime.
+- **20:10: owner approved spec 0006** ("All of your assumptions look correct to me"). Decisions are recorded in §13:
+  - subtasks are ready, with ≤5 per attempt and depth ≤2;
+  - knowledge reach is the whole project;
+  - subtasks only, no top-level tasks by default;
+  - messaging reaches the supervisor and the agent's own task tree;
+  - `aq` ships in sandboxes;
+  - project-level ceilings first.
+  - **Implementation started:**
+    - the server agent takes phases 0 (gap closure, refusal reasons, audit), 1 (Caller, command registry, `/api/v1/commands`, `whoami`, `commands.json`), 2 (grants) and 5 (startup thread), as stacked PRs;
+    - the worker agent takes phase 3, the per-attempt Unix-socket proxy holding the credential, plus the `/aq/channel` mount, fail-closed launch and the extended leak guard.
+  - Phase 4 (one CLI) starts when the phase-1 contract is published. Then phase 6, the live proof.
