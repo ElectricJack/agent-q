@@ -97,7 +97,7 @@ pub enum CapabilityVersion {
 #[serde(deny_unknown_fields)]
 pub struct Capability {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub operation_retention: Option<super::actions::OperationRetention>,
+    pub operation_retention: Option<OperationRetention>,
     pub name: String,
     pub version: CapabilityVersion,
     pub enabled: bool,
@@ -806,4 +806,21 @@ pub fn schema_bytes() -> Vec<u8> {
     let mut bytes = serde_json::to_vec_pretty(&schema()).expect("static schema encoding");
     bytes.push(b'\n');
     bytes
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct OperationRetention {
+    pub minimum_days: u16,
+    pub unresolved_indefinite: bool,
+    pub retired_ids_indefinite: bool,
+}
+impl Default for OperationRetention {
+    fn default() -> Self {
+        Self {
+            minimum_days: 90,
+            unresolved_indefinite: true,
+            retired_ids_indefinite: true,
+        }
+    }
 }

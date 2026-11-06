@@ -38,6 +38,12 @@ async fn call(state: AppState, headers: HeaderMap, body: Bytes, route: usize) ->
         Ok(p) => p,
         Err(error) => return error.into_response(),
     };
+    let path = ROUTES[route].0;
+    if let Err(refusal) =
+        super::super::grant_check::require(&state, &headers, &principal, path).await
+    {
+        return refusal;
+    }
     let request: wire::Request = match serde_json::from_slice(&body) {
         Ok(r) => r,
         Err(_) => return Error("invalid_request").into_response(),

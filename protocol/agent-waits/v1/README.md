@@ -20,3 +20,7 @@ These are the agent-facing durable wait routes served by `aq-server` (H4). Every
 - **Outcomes:** `satisfied`, `source_failed`, `cancelled` and `deadline_reached`. When a source is temporarily unreachable, the wait stays pending. Inspect shows the member's freshness and the hold reason.
 - **Ack:** an ack consumes the ready resume intent exactly once. A duplicate `admission_id` returns the original receipt. A stale continuation generation returns `stale_generation` and leaves the intent ready.
 - **Owner routes:** `GET /api/waits[?project_id=]` and `GET /api/waits/{wait_id}`. They require owner auth and are intended for the G10 views.
+
+## Grants (spec 0006 phase 0)
+
+Each route also requires the spec 0006 grant named in its `grant` field, sealed with the launch (`agent_launch_grants`). An attempt that does not hold it, or holds it at a scope that does not reach the target, is refused before any effect. The body is the closed agent-access-1 `ErrorResponse` (`unsupported_capability` for a missing grant, `scope_denied` for a scope or quota refusal) whose `message` names the command, the missing grant and the grants of the same family the attempt holds. A client that sends `X-AQ-Refusal-Version: 1` gets the structured refusal instead (`protocol/commands/v1/schema.json#/$defs/Refusal`). Every decision, allow or deny, is recorded in `command_audit`.

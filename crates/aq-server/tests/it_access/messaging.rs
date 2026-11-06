@@ -57,6 +57,10 @@ pub(crate) struct Env {
     node_token: String,
 }
 pub(crate) async fn setup() -> Env {
+    setup_with(None).await
+}
+/// `grants` is the spec 0006 grant set provisioned with the launch.
+pub(crate) async fn setup_with(grants: Option<Value>) -> Env {
     let db = TestDb::create().await;
     let store = db.store().await;
     let pool = db.pool().await;
@@ -165,7 +169,13 @@ enabled=true
             &admin,
             "/api/agent-access/provision",
             None,
-            Some(json!({"attempt_id":attempt_id,"profile":profile,"context":context}))
+            Some({
+                let mut body = json!({"attempt_id":attempt_id,"profile":profile,"context":context});
+                if let Some(grants) = grants {
+                    body["grants"] = grants;
+                }
+                body
+            })
         )
         .await
         .0,

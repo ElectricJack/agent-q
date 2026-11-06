@@ -67,6 +67,7 @@ async fn seal(
         version: i64::MAX,
         revision: i64::MAX,
         expires: 253402300799999,
+        grants: Default::default(),
     };
     graph::validate_launch(&p)?;
     p.issuance_response(&"a".repeat(47))?;

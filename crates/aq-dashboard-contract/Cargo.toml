@@ -1,0 +1,13 @@
+[package]
+name = "aq-dashboard-contract"
+version = "0.1.0"
+edition.workspace = true
+publish = false
+description = "dashboard-read-1 projection types (moved out of the aq-server lib)"
+
+[dependencies]
+schemars = { version = "1", features = ["uuid1"] }
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+aq-lifecycle-api = { path = "../aq-lifecycle-api", version = "=0.1.0" }
