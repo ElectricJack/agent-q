@@ -14,7 +14,7 @@ use aq_playbook_host::{
     runner::Intent,
 };
 use serde_json::{Map, Value, json};
-use sqlx::{Postgres, Row, Transaction};
+use sqlx::{PgConnection, PgExecutor, Postgres, Row, Transaction};
 use std::{collections::BTreeMap, sync::Arc, time::Duration};
 use uuid::Uuid;
 
@@ -932,9 +932,9 @@ impl Service {
                 // A catalog 2.0.0 check operation handle (judgments are not
                 // cancellable and fall through to refused).
                 if self.profile.is_host2()
-                    && let Some((check, subject)) = self.check_target(&handle).await?
+                    && let Ok(check) = Uuid::parse_str(&handle)
+                    && let Some(plan) = self.check_plan(&mut tx, check).await?
                 {
-                    let plan = json!({"check": check, "subject": subject});
                     self.record(&mut tx, id, revision, intent, &identity, PENDING, &plan)
                         .await?;
                     self.commit_fresh(tx, id, intent).await?;

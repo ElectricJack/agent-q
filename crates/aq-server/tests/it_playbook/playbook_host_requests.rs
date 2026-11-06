@@ -680,6 +680,64 @@ async fn check_request_cancel_completes_from_executor_stop() {
     ));
 }
 
+/// The bridge pool has two connections. operation.cancel of a check holds
+/// the namespace row lock in one of them and must not need the other: a
+/// concurrent bridge task may hold it, for example a judgment completion
+/// waiting on that same lock, and the cancel then failed with `Unknown`
+/// (pool acquire timeout).
+#[tokio::test]
+async fn check_cancel_needs_one_bridge_connection() {
+    let f = common::profiled::fixture().await;
+    common::profiled::insert(&f).await;
+    let pool = f.db.pool().await;
+    let checks = Arc::new(FakeChecks::default());
+    checks.pinned.lock().unwrap().insert(
+        "work-1".into(),
+        PinnedOutcome {
+            revision: 1,
+            required_checks: vec![PinnedCheck {
+                id: "slow".into(),
+                validator: validator(1),
+            }],
+        },
+    );
+    *checks.script.lock().unwrap() = BTreeMap::from([("slow".into(), CheckObservation::Running)]);
+    let h = host(&f, Some(checks.clone()), None).await;
+    let input = check_input("slow", &validator(1), 1);
+    let slow = h.accepted("check-1", "check.request", input).await;
+    // Occupy the other bridge connection outside any namespace lock: an
+    // operation.get of a candidate reference waits on a table lock held here.
+    let mut blocker = pool.begin().await.unwrap();
+    sqlx::query("LOCK TABLE playbook_integration_receipts IN ACCESS EXCLUSIVE MODE")
+        .execute(&mut *blocker)
+        .await
+        .unwrap();
+    let candidate = format!("aq.candidate/{}", Uuid::new_v4());
+    let busy = h.get(&candidate);
+    let cancel = async {
+        let waiting = "SELECT count(*) FROM pg_stat_activity WHERE datname=current_database() AND application_name='aq-playbook-bridge' AND wait_event_type='Lock'";
+        for _ in 0..1000 {
+            let n: i64 = sqlx::query_scalar(waiting).fetch_one(&pool).await.unwrap();
+            if n == 1 {
+                let r = h
+                    .run("cancel-1", "operation.cancel", json!({"handle": slow}))
+                    .await;
+                blocker.commit().await.unwrap();
+                return r;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        }
+        panic!("the bridge operation.get never waited on the table lock");
+    };
+    let (busy, cancel) = tokio::join!(busy, cancel);
+    assert_eq!(cancel.outcome, "accepted", "{cancel:?}");
+    assert_eq!(
+        *checks.cancels.lock().unwrap(),
+        [slow.parse::<Uuid>().unwrap()]
+    );
+    assert_eq!(busy.outcome, "refused", "{busy:?}");
+}
+
 fn judgment_input(question: &str, subject: Value) -> Value {
     json!({"budget": {"deadline_ms": 60000, "max_cost_microunits": 50000,
             "max_input_tokens": 8192, "max_output_tokens": 512},
