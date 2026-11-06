@@ -1429,3 +1429,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Retargeted phase 2 (#102, grants) to main.
   - Dispatched phase 4 (one CLI: `aqv2`/`aq` channel mode, `aq run <any command>`, `aq commands`, typed thin wrappers, refusal exit codes; the test is generated from `commands.json`).
   - Disk is at 75%.
+- **22:40:** merged aq-server #102 (42bc1cf4), agent channel phase 2: (operation, scope) grants, grant resolution with project ceilings, and agent subtask creation (`ready`, ≤5 per attempt, depth ≤2).
+  - Retargeted #103 to main. Its tested head already contained #102's final head, so the retarget changed nothing that CI had not seen.
+  - Then merged #103 (3da4351a), phase 5: the task thread (comments, questions, unread mail) as a separate `aq.task-thread/` startup input.
+    - The `ContextSnapshot` digest is unchanged.
+    - aq-worker does not pin startup provenances, so no worker re-pin is needed.
+  - Phase 4 one-CLI PR #104 is open, with CI 8/9 green.
+  - The phase 3 worker proxy is still in progress.
