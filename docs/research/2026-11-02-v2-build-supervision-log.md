@@ -1215,3 +1215,21 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - the search icon at larger text sizes.
   - **aq-dashboard #78 (3bf4bba5), the follow-up:** usage dropdown, phone More, shared outcome labels, the title validation split, `ApiError.serverMessage`.
   - Open: aq-dashboard #77 (adopting the core changes on Work/Results/Agents pages) and aq-server #97.
+- **08:30: merged aq-server #97 (a7110d22), the server QA fixes, all 9 checks green.**
+  - **Dev stack:** `dev-stack.py` sets `public_origin` from the published admin URL in both vault copies. Dev-only CSRF accepts the loopback alias (N-05).
+  - **Attribution (N-04):** `dev-service` writes are shown as the acting owner in human Graph reads.
+  - **Read capacity (ISSUE-001/WD-07/N-01):** a new bounded read queue (`read_gate.rs`, 2 s wait) replaces fail-fast.
+    - Graph reads: 4 running, 12 waiting.
+    - Playbook inspection: 2 running, 8 waiting.
+    - Terminal tail: waits for its lock, and its pool goes from 2 to 4.
+  - **Overview flapping (SO-01):** the results read held node locks that starved the attempts read past 250 ms; the reads are now sequential, with one retry.
+  - **Other fixes:**
+    - SPA 404 fallback (SO-02);
+    - media for profiled results (RA-03);
+    - retiring a retired record is rejected (N-03);
+    - every offline worker is an attention item (SO-06);
+    - `needs_you` = attention items (SO-07);
+    - unknown observations stay fresh for 5 s (SO-08);
+    - task-create title counted in bytes.
+  - **Not done:** WD-08 rejection reasons (needs a dashboard-actions schema change; spec 0004 item 10).
+  - **Ratchet raised for owner review:** aq-server lib line ratchet 110,953 → 111,153 (+200, two commits with reasons). The lib split is the scheduled remedy.
