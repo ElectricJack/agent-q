@@ -368,7 +368,7 @@ async fn overview_attention_lists_waiting_decision_and_failed_task() {
     assert!(decision["since"].is_null());
     assert!(decision["action"].is_null());
     assert_eq!(decision["project"]["id"], json!(project));
-    assert_eq!(body["data"]["counts"]["needs_you"]["value"], 1);
+    assert_eq!(body["data"]["counts"]["needs_you"]["value"], items.len());
     assert_eq!(body["data"]["counts"]["needs_you"]["accuracy"], "estimated");
     let retained = Box::pin(aq_server::profiled_execution::human_results::read_as(
         &env.f.state,
