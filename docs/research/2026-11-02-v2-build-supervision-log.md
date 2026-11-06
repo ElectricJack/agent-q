@@ -1436,3 +1436,15 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - aq-worker does not pin startup provenances, so no worker re-pin is needed.
   - Phase 4 one-CLI PR #104 is open, with CI 8/9 green.
   - The phase 3 worker proxy is still in progress.
+- **22:55:** the server channel agent finished phases 0, 1, 2 and 5.
+  - Full workspace runs passed: 1846/1846 on the phase 5 branch.
+  - The aq-server lib ratchet went from 111,111 to 109,602 lines by moving code into new crates (`aq-agent-grants`, `aq-command-registry`, `aq-task-thread`).
+  - **Spec deviation:** grants live in a new table `agent_launch_grants`, not in a column on `agent_launch_bindings`. A column would break the `settlement39` startup check, which pins that table's exact shape.
+  - Migrations are 0097 and 0098.
+  - **Known limits:**
+    - agents can't create task graphs yet (single `task.create` only);
+    - `task:subtree` counts only tasks that agents created;
+    - a reservation whose Graph write fails still uses up quota;
+    - denials appear only in `command_audit`, not in the dashboard.
+  - Removed the four finished worktrees (67 G). Disk is at 69%.
+  - Asked the phase 4 CLI agent to rebase #104 onto the new main and rerun CI before merging: #104 was green only against the old base, and #102 added registry commands that its generated tests had not seen.
