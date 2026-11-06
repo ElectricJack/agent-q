@@ -1360,3 +1360,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Note: the CI tests job was 16m and update-lifecycle 18m on #99, both over budget. To check against recent main runs.
 - **18:00: owner asked to make the task view "cleaner, more compact, closer to v1".**
   - Dispatched `style/task-view-compact`. It runs read-only side-by-side screenshots of v1 (http://127.0.0.1:5173) and v2, writes `compare.md` with concrete density targets, then implements on top of `parity/p1-repin`, scoped to the Work list and inspector. It produces before/after evidence for the owner.
+- **18:10: owner feedback on the style comparison.**
+  - **Global type step:** move one type step down on the ENTIRE dashboard, done at the token level so it stays consistent and fits more information.
+  - **Task view wrapping:** remove the line-wrapping of buttons and controls so rows are horizontally aligned and take less vertical space.
+  - Sent both to the style subagent: update `compare.md` and the change plan first, then implement, with no-wrap Playwright checks and before/after measurements. The owner reviews before merge.
