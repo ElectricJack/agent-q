@@ -1285,3 +1285,18 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Waiting on the owner:** MS1 sign-off, and approval of the raised aq-server lib ratchet (111,153).
 - **15:10: MS1 signed off by the owner** ("I'm good with MS1 at this point. Lets move forward with task parity now."). Recorded in MS1.md.
   - Next: task-view parity Phase 1 (aq-dashboard spec 0004).
+- **15:20: task-view parity Phase 1 started.** Spec 0004 is approved with the defaults: items 1–16 in three phases, comments stored in aq-server, Pause blocks new attempts only.
+  - **`parity/p1-comments` (aq-server):** the task comments model in a NEW crate, to respect the aq-server lib ratchet. It adds:
+    - a migration;
+    - the human read route and capabilities;
+    - `task.comment.add/edit/delete` actions;
+    - agent comment routes;
+    - context injection for later attempts if a path exists.
+    - It publishes the protocol early so the dashboard can build against it.
+  - **`parity/p1-inspector` (aq-dashboard):** Phase 1 items 1–8, 13 and 16. That covers:
+    - ID copy, readiness, the agent with Open terminal, attempts, history, hierarchy and dependency reasons, results, labels and Reprioritize;
+    - compact status-coloured list rows;
+    - the §3 layout (Expand, collapsible sections, sticky header);
+    - the comments UI, built last against the server contract.
+  - The aq-worker `aq-agent comment` client follows once the server contract merges.
+  - Then: a browser QA pass of the Phase 1 checklist, and owner verification.
