@@ -1136,3 +1136,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - The `aq-ms1d` stack is stopped; its data is kept.
   - Hand-off PR aq-server #95 (docs and scripts: the "Owner verification" section, D1 on by default, seed retires the E0 task, the stats sampler stop fixed) is in CI.
   - The dashboard Results view on stacks with results is still blocked by the pinned results-feedback schema rejecting the 4eef26ea fields. Dispatched a small dashboard re-pin, plus making a results contract mismatch degrade only that view.
+- **03:05:** merged aq-dashboard #71 (results-feedback re-pin; a results contract mismatch now degrades only the Results view) as d5c3bc4d.
+  - Rebuilt `dist` and restarted the `aq-ms1` and `aq-v2-local` servers. The Results page now loads on both stacks, and `aq-ms1` lists the real Claude results with their summaries, change lists and evidence.
+  - **New finding visible there:** the retry run's change set (task `…01d1`, published as 22a13087) includes `target/` build output (`target/debug/...`). The task's repo had no `.gitignore` covering `target`, and copy-back takes every file the agent leaves behind.
+  - Follow-up: copy-back/publication should exclude build outputs or honour a project ignore policy, and `cargo clean` should not be relied on. Added it to the MS1 known limits.
