@@ -1463,3 +1463,4 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - nothing has run end to end against a live server yet.
   - **Forwarded to the worker proxy agent:** the env, socket permission, header, query-string and sandbox-template requirements, including shipping `aq` as `/opt/aq/bin/aq` and inverting B7's never-ship-aq check.
   - **Dispatched a server follow-up agent** (`chan/server-followups`) for agent read routes (`task.show`, subtree reads, comment edit/delete, wait list/show) and the two `whoami` IDs, with matching CLI updates.
+- **23:18:** main CI for 3da4351a (#103) failed `tests`, again only on the host-cancel flake (the 4th occurrence). I didn't rerun it: the 58ffe77e run (#104) supersedes it, and fix PR #105 (`fix/host-cancel-flake`) is open and in CI.
