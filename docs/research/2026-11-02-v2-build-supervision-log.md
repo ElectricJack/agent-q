@@ -1320,3 +1320,22 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - The B7 in-sandbox runner/proxy design exists but isn't wired into any launch.
   - **Consequence:** no agent-side feature works from a real sandboxed agent yet — comments, F5 questions, waits and messaging all depend on this channel. MS1 never exercised it.
   - The Phase 1 checklist line "agent comment from a real run" is blocked on it.
+- **17:05: Phase 1 browser QA:** 55/68 pass, 6 fail, 4 blocked, 3 N/A. Copied IDs were verified by pasting the clipboard back into the page.
+  - **What passed:**
+    - ID copy, readiness/blocker, Open terminal, attempts, results, labels/Reprioritize;
+    - layout: Expand/fold/sticky;
+    - compact rows (34 px vs 74–98 px, 44 px on phone);
+    - comments add/edit/delete and paging past 50.
+  - **Majors:**
+    - (1) a task shows "Running" while its holding attempt was cancelled and stopped 13 h ago — `/work` readiness counts a stopped attempt that still holds the task;
+    - (2) on phone, the sticky header takes ~50% of the screen.
+  - **Minors:**
+    - comments start below the fold;
+    - focus hides under the sticky header;
+    - comment markdown has no links or quotes;
+    - comment edit conflicts overwrite silently on a second Save;
+    - the history actor is `dev-service`, and entries don't say what changed;
+    - results lack conclusion/outcome;
+    - focus is lost after dialogs.
+  - **Blocked:** parent/child data (none on the stack), and agent comments from a real run (sandbox agent channel).
+  - Dispatched `parity/p1-fixes` (dashboard) and `parity/p1-server-fixes` (server: a held-not-running readiness state, history attribution and change summaries, results outcome).
