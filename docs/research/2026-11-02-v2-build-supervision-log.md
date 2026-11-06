@@ -1464,3 +1464,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Forwarded to the worker proxy agent:** the env, socket permission, header, query-string and sandbox-template requirements, including shipping `aq` as `/opt/aq/bin/aq` and inverting B7's never-ship-aq check.
   - **Dispatched a server follow-up agent** (`chan/server-followups`) for agent read routes (`task.show`, subtree reads, comment edit/delete, wait list/show) and the two `whoami` IDs, with matching CLI updates.
 - **23:18:** main CI for 3da4351a (#103) failed `tests`, again only on the host-cancel flake (the 4th occurrence). I didn't rerun it: the 58ffe77e run (#104) supersedes it, and fix PR #105 (`fix/host-cancel-flake`) is open and in CI.
+- **23:26:** the flake agent found the root cause of the host-cancel "flake". It is a real server deadlock:
+  - `operation_cancel` held one of the playbook bridge's 2 pool connections in a `FOR UPDATE` transaction and read the operation on the second.
+  - A concurrent judgment completion waiting on the same row lock blocked it until a 500 ms timeout.
+  - Either the cancel failed with `PoolTimedOut`, or the judgment completion was lost.
+  - It reproduced in 33 of 160 runs under 4-core load, and in 0 of 160 after the fix (reads now go through the transaction), plus a deterministic regression test.
+  - PR #105, in CI. Retrospective lesson W78.
