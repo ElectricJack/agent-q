@@ -1423,3 +1423,5 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - the server agent takes phases 0 (gap closure, refusal reasons, audit), 1 (Caller, command registry, `/api/v1/commands`, `whoami`, `commands.json`), 2 (grants) and 5 (startup thread), as stacked PRs;
     - the worker agent takes phase 3, the per-attempt Unix-socket proxy holding the credential, plus the `/aq/channel` mount, fail-closed launch and the extended leak guard.
   - Phase 4 (one CLI) starts when the phase-1 contract is published. Then phase 6, the live proof.
+- **21:35:** merged aq-server #100 (3f59406d), agent channel phase 0: grant checks on the question/comment/wait routes, structured refusal reasons and audit rows. Retargeted the stacked phase-1 PR #101 (command registry) to main.
+  - Disk is at 74% (258 G free): several concurrent Rust builds plus target dirs.
