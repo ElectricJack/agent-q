@@ -1199,3 +1199,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **`pages-playbooks-knowledge`:** ISSUE-004–015, N-06.
   - Larger operator features (comments, lifecycle actions, result review) stay in the task-view parity work.
   - Plan once fixes land: merge, rebuild `aq-ms1`, re-run the QA plans, then owner MS1 sign-off.
+- **07:45: QA fixes merged so far.**
+  - aq-dashboard #75 (aa5501f9): Playbooks/Knowledge/Settings, 11 issues — knowledge restore, filters in URL, a11y, copy, phone tabs.
+  - aq-dashboard #74 (da1afac2): Overview/Search, 11 fixed and 2 partial — outcome labels, search scope, worker offline rows, counts, phone search, links.
+  - Routed cross-agent asks:
+    - **client-core:** SO-10/12/13/21, ISSUE-013 search icon, `projectsLoaded` prop.
+    - **server:** SO-06 only 1 of 4 offline workers reported, SO-07 `needs_you` counts only reviews, SO-01 still flapping.
+  - Open: aq-dashboard #76 (client-core) in CI, the server PR, and the Work/Results PR.
