@@ -1470,3 +1470,5 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Either the cancel failed with `PoolTimedOut`, or the judgment completion was lost.
   - It reproduced in 33 of 160 runs under 4-core load, and in 0 of 160 after the fix (reads now go through the transaction), plus a deterministic regression test.
   - PR #105, in CI. Retrospective lesson W78.
+- **23:29:** merged aq-server #105 (3dfc8463), the host-cancel deadlock fix, with all 9 checks green. The lib ratchet was lowered to 109,600. Removed its worktree.
+  - **Note:** the `tests` job still takes 15–19 minutes on main against its 10-minute budget. This is a known defect that was already recorded; no budget change.
