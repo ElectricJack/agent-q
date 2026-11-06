@@ -1,4 +1,5 @@
 //! Online attempt credentials, scoped graph reads, durable graph intent and mail.
+mod agent_tasks;
 mod contract;
 pub(crate) mod grant_check;
 mod graph;
@@ -340,6 +341,7 @@ pub fn machine_routes(state: AppState) -> Router<AppState> {
         .merge(waits::routes::machine_routes())
         .merge(questions::machine_routes())
         .merge(human::comments::machine_routes())
+        .merge(agent_tasks::machine_routes())
         .route("/v1/agent/context", get(context))
         .route("/v1/agent/graph/read", post(read))
         .with_state(state.clone())
@@ -399,8 +401,16 @@ impl Principal {
         self.bound(&body)?;
         Ok(body)
     }
+    /// `knowledge.read` at project scope reads the whole project's workspace
+    /// (owner decision 2), derived from the grants at launch (§6.3).
+    fn knowledge_wide(&self) -> bool {
+        use aq_agent_grants::Scope::{Project, ProjectSelf};
+        let g = self.grants.get(aq_agent_grants::op::KNOWLEDGE_READ);
+        g.is_some_and(|g| matches!(g.scope, ProjectSelf | Project(_)))
+    }
     fn readable(&self, id: &Value) -> bool {
         self.created.contains(id)
+            || self.knowledge_wide()
             || self.profile["read_scope"]["mode"] == "workspace"
             || self.profile["read_scope"]["record_ids"]
                 .as_array()
@@ -639,7 +649,11 @@ async fn authenticate_locked(
         version: row.get("credential_version"),
         revision: row.get("authority_revision"),
         expires,
-        grants: grant_check::sealed(row.get("grants"))?,
+        grants: grant_check::narrow(
+            state,
+            id(&row.get::<Value, _>("binding"), "project_id")?,
+            grant_check::sealed(row.get("grants"))?,
+        ),
     };
     if p.binding["generation"] != a.attempt.generation
         || p.binding["session_id"] != a.attempt.session_id.to_string()
@@ -691,9 +705,10 @@ async fn read_inner(state: AppState, headers: HeaderMap, request: Value) -> Resu
         "read.{}",
         q["kind"].as_str().ok_or(Error("invalid_request"))?
     );
-    if !p.profile["capabilities"]
-        .as_array()
-        .is_some_and(|c| c.contains(&json!(capability)))
+    if !p.knowledge_wide()
+        && !p.profile["capabilities"]
+            .as_array()
+            .is_some_and(|c| c.contains(&json!(capability)))
     {
         return Err(Error("unsupported_capability"));
     }

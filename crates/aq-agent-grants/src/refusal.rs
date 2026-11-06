@@ -27,9 +27,11 @@ pub enum RefusalCode {
     InvalidRequest,
     Unauthorized,
     Internal,
+    /// The attempt's command budget is spent for now; retry later.
+    Overloaded,
 }
 /// Every code, in the published order.
-pub const CODES: [RefusalCode; 12] = [
+pub const CODES: [RefusalCode; 13] = [
     RefusalCode::GrantMissing,
     RefusalCode::ScopeDenied,
     RefusalCode::OwnerOnly,
@@ -42,6 +44,7 @@ pub const CODES: [RefusalCode; 12] = [
     RefusalCode::InvalidRequest,
     RefusalCode::Unauthorized,
     RefusalCode::Internal,
+    RefusalCode::Overloaded,
 ];
 impl RefusalCode {
     pub fn as_str(self) -> &'static str {
@@ -58,6 +61,7 @@ impl RefusalCode {
             Self::InvalidRequest => "invalid_request",
             Self::Unauthorized => "unauthorized",
             Self::Internal => "internal",
+            Self::Overloaded => "overloaded",
         }
     }
     /// The closed agent-access-1 `ErrorResponse` code that carries this
@@ -69,6 +73,7 @@ impl RefusalCode {
             Self::UnknownCommand | Self::InvalidRequest => "invalid_request",
             Self::Unauthorized => "unauthorized",
             Self::Internal => "internal",
+            Self::Overloaded => "overloaded",
             Self::ScopeDenied | Self::QuotaExceeded | Self::ChannelRefused => "scope_denied",
             Self::SessionRevoked => "session_revoked",
             Self::SessionExpired => "session_expired",
@@ -80,6 +85,7 @@ impl RefusalCode {
             Self::UnknownCommand => 404,
             Self::InvalidRequest => 400,
             Self::Internal => 500,
+            Self::Overloaded => 503,
             _ => 403,
         }
     }

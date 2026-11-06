@@ -647,6 +647,7 @@ async fn project_policy_decisions_have_no_human_actor_and_recheck_installed_poli
             },
             retention_handle: Uuid::new_v4(),
             placement: None,
+            agent_grants: None,
         }],
     };
     let record = policy.project_policy_record(lineage.project_id).unwrap();
@@ -841,6 +842,7 @@ async fn policy_install_is_atomic_retains_tombstones_and_refuses_configuration_r
                 source: source.clone(),
                 retention_handle: Uuid::new_v4(),
                 placement: None,
+                agent_grants: None,
             },
             ProjectPolicy {
                 project_id: Uuid::new_v4(),
@@ -849,6 +851,7 @@ async fn policy_install_is_atomic_retains_tombstones_and_refuses_configuration_r
                 source,
                 retention_handle: Uuid::new_v4(),
                 placement: None,
+                agent_grants: None,
             },
         ],
     };
@@ -972,6 +975,7 @@ async fn committed_binding_installs_pending_policy_and_historical_ack_survives_r
             },
             retention_handle: Uuid::new_v4(),
             placement: None,
+            agent_grants: None,
         }],
     };
     let mut cfg = (*env.state.config).clone();

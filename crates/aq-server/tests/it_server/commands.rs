@@ -193,3 +193,14 @@ fn every_mounted_route_is_a_command_or_reviewed() {
         }
     }
 }
+
+#[test]
+fn the_command_surface_has_its_own_admission_class() {
+    use aq_server::admission::{Class, classify};
+    assert_eq!(classify("/api/v1/commands"), Class::AgentCommand);
+    assert_eq!(
+        classify("/api/v1/commands/task.create"),
+        Class::AgentCommand
+    );
+    assert_eq!(classify("/v1/agent/tasks"), Class::General);
+}

@@ -30,6 +30,7 @@ pub struct Admission {
     terminal_output: Semaphore,
     terminal_interactive: Semaphore,
     terminal_read: Semaphore,
+    agent_command: Semaphore,
 }
 impl Default for Admission {
     fn default() -> Self {
@@ -47,6 +48,7 @@ impl Default for Admission {
             terminal_output: Semaphore::new(4),
             terminal_interactive: Semaphore::new(8),
             terminal_read: Semaphore::new(4),
+            agent_command: Semaphore::new(32),
         }
     }
 }
@@ -65,6 +67,8 @@ pub enum Class {
     TerminalOutput,
     TerminalInteractive,
     TerminalRead,
+    /// `/api/v1/commands`: the command surface; per-attempt budgets apply inside.
+    AgentCommand,
 }
 pub(crate) fn execution_cancel_path(path: &str) -> bool {
     path.strip_prefix("/api/execution/attempts/")
@@ -77,6 +81,9 @@ pub(crate) fn agent_revoke_path(path: &str) -> bool {
         .is_some_and(|id| uuid::Uuid::parse_str(id).is_ok())
 }
 pub fn classify(path: &str) -> Class {
+    if path == "/api/v1/commands" || path.starts_with("/api/v1/commands/") {
+        return Class::AgentCommand;
+    }
     if path == "/v1/worker/profiled/material-presence" {
         return Class::MaterialPresence;
     }
@@ -263,6 +270,7 @@ pub async fn gate(
         Class::TerminalOutput => (&admission.terminal_output, Duration::from_secs(5)),
         Class::TerminalInteractive => (&admission.terminal_interactive, Duration::from_secs(5)),
         Class::TerminalRead => (&admission.terminal_read, Duration::from_secs(5)),
+        Class::AgentCommand => (&admission.agent_command, Duration::from_secs(20)),
     };
     let Ok(_permit) = slots.try_acquire() else {
         return busy(

@@ -234,3 +234,86 @@ fn published_fixtures_are_what_the_crate_produces() {
         .with_request(fixture.request_id.unwrap());
     assert_eq!(made, fixture);
 }
+
+#[test]
+fn default_coding_grants_follow_the_owner_decisions() {
+    let d = resolve::default_coding();
+    let sub = d.get(op::TASK_CREATE_SUBTASK).unwrap();
+    assert_eq!(sub.scope, Scope::TaskSubtree);
+    assert_eq!(
+        (sub.limits.max_created_tasks, sub.limits.max_depth),
+        (Some(5), Some(2))
+    );
+    assert_eq!(d.get(op::KNOWLEDGE_READ).unwrap().scope, Scope::ProjectSelf);
+    assert!(d.get(op::TASK_CREATE_PROJECT).is_none());
+    assert!(d.get(op::TASK_EDIT).is_none());
+    assert_eq!(d.get(op::MESSAGE_SEND).unwrap().scope, Scope::TaskSubtree);
+    assert_eq!(d.get(op::QUESTION_ASK).unwrap().scope, Scope::AttemptSelf);
+}
+
+#[test]
+fn resolution_applies_profile_ceiling_additions_and_inheritance() {
+    use resolve::{Permission, ProjectGrants, from_permissions, resolve};
+    let project = id(4);
+    let perms = [
+        Permission {
+            operation: "task.read",
+            scope_reference: &format!("project:{project}"),
+        },
+        Permission {
+            operation: "wait.show",
+            scope_reference: "attempt:self",
+        },
+        Permission {
+            operation: "source.write",
+            scope_reference: "repository:x",
+        },
+        Permission {
+            operation: "task.edit",
+            scope_reference: &format!("project:{}", id(5)),
+        },
+    ];
+    let profile = from_permissions(&perms, project);
+    assert_eq!(
+        profile,
+        vec![
+            Grant::new(op::TASK_READ, Scope::ProjectSelf),
+            Grant::new(op::WAIT_READ, Scope::AttemptSelf)
+        ]
+    );
+    let plain = resolve(&profile, &ProjectGrants::default(), None);
+    assert_eq!(plain, resolve::default_coding());
+    // The owner adds top-level creation for this project.
+    let widened = ProjectGrants {
+        ceiling: None,
+        add: vec![Grant::new(op::TASK_CREATE_PROJECT, Scope::ProjectSelf)],
+    };
+    let w = resolve(&profile, &widened, None);
+    assert!(w.get(op::TASK_CREATE_PROJECT).is_some());
+    // A ceiling narrows: no knowledge authoring, comments only on the own task.
+    let narrow = ProjectGrants {
+        ceiling: Some(vec![
+            Grant::new(op::TASK_READ, Scope::ProjectSelf),
+            Grant::new(op::COMMENT_WRITE, Scope::TaskSelf),
+            Grant::new(op::TASK_CREATE_SUBTASK, Scope::TaskSubtree).limited(Limits {
+                max_created_tasks: Some(1),
+                max_depth: None,
+            }),
+        ]),
+        add: vec![],
+    };
+    let n = resolve(&profile, &narrow, None);
+    assert_eq!(n.grants().len(), 3);
+    assert_eq!(n.get(op::COMMENT_WRITE).unwrap().scope, Scope::TaskSelf);
+    assert_eq!(
+        n.get(op::TASK_CREATE_SUBTASK).unwrap().limits,
+        Limits {
+            max_created_tasks: Some(1),
+            max_depth: Some(2)
+        }
+    );
+    // A child of an agent never exceeds its creator, even with an addition.
+    let child = resolve(&profile, &widened, Some(&n));
+    assert!(child.get(op::TASK_CREATE_PROJECT).is_none());
+    assert!(child.grants().len() <= n.grants().len());
+}

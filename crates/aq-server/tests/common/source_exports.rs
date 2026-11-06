@@ -47,6 +47,7 @@ pub async fn setup() -> (Fixture, Request, tempfile::TempDir) {
             },
             retention_handle: handle,
             placement: None,
+            agent_grants: None,
         }],
     };
     let policy = config.project_policy_record(project).unwrap();

@@ -1008,7 +1008,8 @@
       },
       "summary": "Acknowledge a message as received or read",
       "target": {
-        "rule": "own"
+        "param": "recipient",
+        "rule": "mailbox"
       }
     },
     {
@@ -1035,7 +1036,8 @@
       },
       "summary": "One message body, in bounded chunks",
       "target": {
-        "rule": "own"
+        "param": "recipient",
+        "rule": "mailbox"
       }
     },
     {
@@ -1073,7 +1075,8 @@
       },
       "summary": "A mailbox page",
       "target": {
-        "rule": "own"
+        "param": "recipient",
+        "rule": "mailbox"
       }
     },
     {
@@ -1111,7 +1114,8 @@
       },
       "summary": "Send mail to a task, session or supervisor mailbox",
       "target": {
-        "rule": "own"
+        "param": "recipient",
+        "rule": "mailbox"
       }
     },
     {
@@ -2785,6 +2789,92 @@
       "name": "task.create",
       "owner_only": false,
       "principals": {
+        "agent": {
+          "body": "params_with_api_version",
+          "params_digest": "sha256:ac8158a6171e45060ec887cc1c74657cefefe024b73e9106816905e0087c2015",
+          "params_schema": {
+            "additionalProperties": false,
+            "properties": {
+              "acceptance_criteria": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "body": {
+                "maxLength": 32768,
+                "type": "string"
+              },
+              "expected_project_revision": {
+                "pattern": "^[1-9][0-9]{0,18}$",
+                "type": "string"
+              },
+              "intelligence_hint": {
+                "description": "An agent cannot choose the intelligence of a task it creates",
+                "type": "null"
+              },
+              "labels": {
+                "items": {
+                  "maxLength": 128,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 16,
+                "type": "array"
+              },
+              "operation_id": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "parent_id": {
+                "anyOf": [
+                  {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  {
+                    "const": "self"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "priority": {
+                "maximum": 300,
+                "minimum": 1,
+                "type": "integer"
+              },
+              "profile_hint": {
+                "description": "An agent cannot choose the profile of a task it creates",
+                "type": "null"
+              },
+              "task_state": {
+                "enum": [
+                  "active",
+                  "draft"
+                ]
+              },
+              "task_type": {
+                "maxLength": 128,
+                "minLength": 1,
+                "type": "string"
+              },
+              "title": {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "operation_id",
+              "title"
+            ],
+            "type": "object"
+          },
+          "route": {
+            "method": "POST",
+            "path": "/v1/agent/tasks"
+          }
+        },
         "owner": {
           "body": "action_request",
           "params_digest": "sha256:44c0fc21cdd94ec3cec0afddab9b76cf8a23f1c5f582ea2ddb8357157f651701",

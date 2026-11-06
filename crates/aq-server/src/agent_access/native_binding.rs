@@ -13,8 +13,9 @@ pub(crate) async fn seal_locked(
     session: &aq_session_protocol::SessionIdentity,
     profile: &Value,
     context: &Value,
+    grants: &aq_agent_grants::GrantSet,
 ) -> std::result::Result<(), crate::error::AppError> {
-    seal(state, tx, session, profile, context)
+    seal(state, tx, session, profile, context, grants)
         .await
         .map_err(|_| {
             crate::error::AppError::Conflict(
@@ -28,6 +29,7 @@ async fn seal(
     session: &aq_session_protocol::SessionIdentity,
     profile: &Value,
     context: &Value,
+    grants: &aq_agent_grants::GrantSet,
 ) -> Result<()> {
     runtime(state)?;
     if !contract::valid("ResolvedProfile", profile) || !contract::valid("ContextSnapshot", context)
@@ -72,6 +74,9 @@ async fn seal(
     graph::validate_launch(&p)?;
     p.issuance_response(&"a".repeat(47))?;
     let inserted=sqlx::query("INSERT INTO agent_launch_bindings(attempt_id,node_id,binding,profile,context) VALUES($1,$2,$3,$4,$5) ON CONFLICT DO NOTHING").bind(a.attempt.attempt_id).bind(a.identity.node_id).bind(&binding).bind(profile).bind(context).execute(&mut **tx).await?.rows_affected();
+    if inserted == 1 && super::grant_check::grant_tables(state) {
+        super::grant_check::seal(tx, a.attempt.attempt_id, grants).await?;
+    }
     if inserted == 0 {
         let r=sqlx::query("SELECT binding,profile,context,revoked FROM agent_launch_bindings WHERE attempt_id=$1 FOR SHARE").bind(a.attempt.attempt_id).fetch_one(&mut **tx).await?;
         if r.get::<Value, _>("binding") != binding

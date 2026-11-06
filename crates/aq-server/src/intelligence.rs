@@ -1,6 +1,8 @@
 //! Central intelligence facts and deterministic selection. Provider RPCs are
 //! deliberately absent: availability is bounded authenticated observation.
-pub mod config;
+pub mod config {
+    pub use aq_intelligence_config::*;
+}
 mod feedback;
 mod inventory;
 pub mod login_import;

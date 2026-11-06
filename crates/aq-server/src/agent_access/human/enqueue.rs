@@ -98,7 +98,10 @@ impl Task {
     }
     fn operation(&self, c: &Current<'_>) -> Value {
         let mut m = json!({"aq:project_id":c.project});
-        if let Some(actor) = c.supervisor_actor {
+        if let Some((attempt, task)) = c.agent {
+            m["aq:agent_attempt_id"] = json!(attempt);
+            m["aq:agent_task_id"] = json!(task);
+        } else if let Some(actor) = c.supervisor_actor {
             m["aq:supervisor_actor_id"] = json!(actor);
             m["aq:supervisor_session_id"] = json!(c.actor);
         } else {

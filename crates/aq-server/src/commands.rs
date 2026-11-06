@@ -77,7 +77,7 @@ pub fn mount(inner: Router, state: AppState, listener: Listener) -> Router {
         .merge(inner)
 }
 
-fn refuse(r: Refusal, request_id: Uuid) -> Response {
+pub(crate) fn refuse(r: Refusal, request_id: Uuid) -> Response {
     let status = StatusCode::from_u16(r.code.status()).unwrap_or(StatusCode::FORBIDDEN);
     let body = r.with_request(request_id).body();
     (status, [("Cache-Control", "no-store")], Json(body)).into_response()
@@ -271,9 +271,28 @@ async fn invoke(
         return refuse(r, request_id);
     };
     let mut request = request;
+    // Per-attempt budgets (the AgentCommand class): held for the whole call.
+    let _permit = match &c {
+        Caller::Agent(a) => {
+            let budgets = aq_agent_grants::budget::shared();
+            let now = crate::execution::api::now(&state);
+            match budgets.acquire(a.ids.attempt_id, spec.kind == registry::Kind::Mutation, now) {
+                Ok(p) => Some(p),
+                Err(_) => {
+                    return error(
+                        RefusalCode::Overloaded,
+                        spec.name,
+                        "This attempt's command budget is spent; retry shortly.",
+                        request_id,
+                    );
+                }
+            }
+        }
+        _ => None,
+    };
     let binding = match &c {
         Caller::Agent(a) => {
-            let checked = a.authorize(spec, &mut request.params);
+            let checked = a.authorize(&state, spec, &mut request.params).await;
             audit(
                 &state,
                 &c,
@@ -373,22 +392,16 @@ async fn audit(
         Caller::Supervisor(p) => ("supervisor", p.session_id, None),
         Caller::Agent(a) => ("agent", a.ids.attempt_id, Some(a.ids)),
     };
-    let mut e = AuditEntry {
-        caller_kind: kind,
-        caller_id: id,
-        attempt_id: ids.map(|i| i.attempt_id),
-        task_id: ids.map(|i| i.task_id),
-        project_id: ids.map(|i| i.project_id),
-        command: spec.name.into(),
-        grant: spec.grant.map(Into::into),
-        target: target.map_or(json!({}), |t| t.audit()),
-        allowed: matches!(decision, Decision::Allow(_)),
-        reason_code: None,
+    let e = AuditEntry::caller(
+        kind,
+        id,
+        ids,
+        spec.name,
+        spec.grant,
+        target,
+        decision,
         operation_id,
         request_id,
-    };
-    if let Decision::Deny(r) = decision {
-        e.reason_code = Some(r.code.as_str());
-    }
+    );
     grants::audit(state, &e).await;
 }
