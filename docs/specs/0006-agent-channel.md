@@ -1,6 +1,6 @@
 # Agent channel: the `aq` CLI from inside a sandbox
 
-**Status:** Proposed design. The owner reviews it before implementation starts.
+**Status:** Approved by the owner on 2026-11-06 (decisions in §13). Implementation in progress.
 
 **Date:** 2026-11-06
 
