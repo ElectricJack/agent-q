@@ -1472,3 +1472,12 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - PR #105, in CI. Retrospective lesson W78.
 - **23:29:** merged aq-server #105 (3dfc8463), the host-cancel deadlock fix, with all 9 checks green. The lib ratchet was lowered to 109,600. Removed its worktree.
   - **Note:** the `tests` job still takes 15–19 minutes on main against its 10-minute budget. This is a known defect that was already recorded; no budget change.
+- **23:56:** merged aq-server #106 (6ecfd9bb), the channel server follow-ups.
+  - **New agent routes:** `task.show`, `task.history` and `task.children` (grant `task.read`, scoped by the task's relation to the attempt), `comment.list --task`, `comment edit`/`delete` on the attempt's own comments (new `Comment` target), and `wait.list`/`wait.show` (own attempt only).
+  - Task reads refuse knowledge nodes, so an agent can't use them to get around `knowledge.read`.
+  - `whoami` now returns `session_generation` and `supervisor_conversation_id`, and the CLI addresses the session and supervisor without `--to-json`.
+  - No default-grant change: the §6.6 coding default already covered these. The ratchet went to 109,597.
+  - **Still open:**
+    - `task:subtree` covers only tasks that agents created;
+    - the `task.graph.show`, `task.list` and summary reads have no agent route (left out on purpose, because the graph read would also return neighbouring knowledge records);
+    - `wait.show` for an agent's own wait isn't tested end to end.
