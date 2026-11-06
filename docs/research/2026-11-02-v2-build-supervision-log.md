@@ -1113,3 +1113,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - aq-worker `cargo test --workspace --all-features`: all passed.
     - clippy, fmt and the build budget are clean in both.
   - Waiting on CI for #94 and #41.
+- **01:05: MS1 server side merged to main.** aq-server #94 (`ms1/retry` 43fc613f) merged after all 9 CI checks went green, and main now has migration 0095.
+  - It covers: the server → node → docker-local Claude wiring, D3 completing on Success only, D1 fast-forward publication with source advance, B3 cancel, B4 retry, B5b closure settlement, require_container, the recipe pin, and the build ratchet raised to 110,953.
+  - The worker side, aq-worker #41, is still red: the `sandbox_runner` `login` tests have failed on two consecutive runs with "launch failed", including a Claude login test, while main has been green 3×. It is back with the subagent for a real cause.
+  - Merging the server first is safe: the new paths are only reached by the MS1 worker driver.
