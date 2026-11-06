@@ -355,12 +355,12 @@ impl Service {
         Ok(accepted)
     }
 
-    async fn load_operation(&self, operation: Uuid) -> Result<Option<Operation>> {
+    async fn load_operation(&self, db: impl PgExecutor<'_>, id: Uuid) -> Result<Option<Operation>> {
         let row = sqlx::query("SELECT command_name,intent_id,request,status,output FROM playbook_host_operations WHERE operation_id=$1 AND namespace_id=$2 AND generation=$3")
-            .bind(operation)
+            .bind(id)
             .bind(self.namespace.namespace_id)
             .bind(self.namespace.generation)
-            .fetch_optional(&self.pool)
+            .fetch_optional(db)
             .await?;
         Ok(row.map(|row| Operation {
             command: row.get("command_name"),
@@ -475,7 +475,7 @@ impl Service {
     /// operation (exactly once; a lost race returns the retained completion).
     /// `None` while the work is still open.
     pub(super) async fn observe_work(&self, operation: Uuid) -> Result<Option<HostResult>> {
-        let Some(op) = self.load_operation(operation).await? else {
+        let Some(op) = self.load_operation(&self.pool, operation).await? else {
             return Ok(None);
         };
         if op.command != "work.ensure" {
@@ -694,7 +694,7 @@ impl Service {
     /// Observes a running check once and completes it when the executor has
     /// stopped it. Returns the completion if there is one.
     async fn observe_check(&self, operation: Uuid) -> Result<Option<HostResult>> {
-        let Some(op) = self.load_operation(operation).await? else {
+        let Some(op) = self.load_operation(&self.pool, operation).await? else {
             return Ok(None);
         };
         if op.status != "running" {
@@ -760,20 +760,17 @@ impl Service {
             .map(Some)
     }
 
-    /// The check operation an operation.cancel handle names in this namespace
-    /// generation, with its subject. Judgment operations are not cancellable.
-    pub(super) async fn check_target(&self, handle: &str) -> Result<Option<(Uuid, Value)>> {
-        let Ok(operation) = Uuid::parse_str(handle) else {
-            return Ok(None);
-        };
-        let Some(op) = self.load_operation(operation).await? else {
-            return Ok(None);
-        };
-        if op.command != "check.request" {
-            return Ok(None);
-        }
-        let s = &op.request["subject"];
-        Ok(Some((operation, subject(text(s, "id")?, revision_of(s)?))))
+    /// The cancel plan of the check operation `id` (judgments are not cancellable), read in
+    /// the caller's tx: it holds the namespace lock, so a pool read here could deadlock.
+    pub(super) async fn check_plan(&self, c: &mut PgConnection, id: Uuid) -> Result<Option<Value>> {
+        Ok(match self.load_operation(c, id).await? {
+            Some(op) if op.command == "check.request" => {
+                let s = &op.request["subject"];
+                let at = subject(text(s, "id")?, revision_of(s)?);
+                Some(json!({"check": id, "subject": at}))
+            }
+            _ => None,
+        })
     }
 
     /// Asks the executor to stop a running check, then observes it once. The
@@ -782,10 +779,9 @@ impl Service {
     /// one still running is accepted. Idempotent: repeating it re-asks and
     /// re-observes, never completing twice.
     pub(super) async fn cancel_check(&self, operation: Uuid) -> Result<&'static str> {
-        let op = self
-            .load_operation(operation)
-            .await?
-            .ok_or(Error::Unknown)?;
+        let Some(op) = self.load_operation(&self.pool, operation).await? else {
+            return Err(Error::Unknown);
+        };
         if op.command != "check.request" {
             return Err(Error::Invalid);
         }
@@ -1169,7 +1165,9 @@ impl Service {
         if !self.profile.is_host2() {
             return Err(Error::Forbidden);
         }
-        let op = self.load_operation(handle).await?.ok_or(Error::Forbidden)?;
+        let Some(op) = self.load_operation(&self.pool, handle).await? else {
+            return Err(Error::Forbidden);
+        };
         if op.command != "decision.request" {
             return Err(Error::Forbidden);
         }
@@ -1235,7 +1233,7 @@ impl Service {
         let Ok(operation) = Uuid::parse_str(handle) else {
             return Ok(missing());
         };
-        let Some(op) = self.load_operation(operation).await? else {
+        let Some(op) = self.load_operation(&self.pool, operation).await? else {
             return Ok(missing());
         };
         let completion = if op.status != "running" {
