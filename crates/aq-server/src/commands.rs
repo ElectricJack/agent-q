@@ -405,3 +405,16 @@ async fn audit(
     );
     grants::audit(state, &e).await;
 }
+
+/// The commands an agent holding `grants` may run (`aq commands`).
+pub(crate) fn agent_commands(grants: &aq_agent_grants::GrantSet) -> Vec<String> {
+    let runnable = |c: &&registry::CommandSpec| {
+        c.agent.is_some() && !c.owner_only() && c.grant.is_none_or(|g| grants.get(g).is_some())
+    };
+    registry()
+        .commands()
+        .iter()
+        .filter(runnable)
+        .map(|c| c.name.to_string())
+        .collect()
+}

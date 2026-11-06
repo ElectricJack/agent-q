@@ -5,6 +5,7 @@ pub(crate) mod grant_check;
 mod graph;
 pub mod human;
 pub(crate) mod messaging;
+pub(crate) mod task_thread;
 pub use messaging::global as supervisor_conversation;
 mod mutations;
 pub(crate) mod native_binding;
