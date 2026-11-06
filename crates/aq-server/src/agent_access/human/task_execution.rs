@@ -95,6 +95,8 @@ fn rejected() -> Outcome {
 impl ActionKind for TaskCancel {
     type Payload = Execution;
     const KIND: &'static str = "task.cancel";
+    const GRANT: &'static str = "task.cancel";
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
     async fn authorize(
         &self,
         state: &AppState,
@@ -163,6 +165,8 @@ impl ActionKind for TaskCancel {
 impl ActionKind for TaskRetry {
     type Payload = Execution;
     const KIND: &'static str = "task.retry";
+    const GRANT: &'static str = "task.retry";
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
     async fn authorize(
         &self,
         state: &AppState,

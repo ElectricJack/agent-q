@@ -8,7 +8,7 @@ use std::fmt;
 use uuid::Uuid;
 
 pub mod refusal;
-pub use refusal::{Refusal, RefusalCode};
+pub use refusal::{CODES, Refusal, RefusalCode};
 
 /// The operations a grant can name (§6.2). Owner-only operations are listed
 /// separately in [`OWNER_ONLY`] and can never be held by an agent.
@@ -355,7 +355,8 @@ pub fn check(
     operation: &str,
     target: Target,
 ) -> Decision {
-    if owner_only(operation) {
+    // Anything outside the grantable vocabulary is owner-only: deny by default.
+    if owner_only(operation) || !grantable(operation) {
         return Decision::Deny(Refusal::owner_only(command, operation));
     }
     match grants.get(operation) {

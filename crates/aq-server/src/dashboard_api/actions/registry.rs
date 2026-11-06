@@ -11,6 +11,11 @@ pub trait ActionKind: Send + Sync + 'static {
     type Payload: DeserializeOwned + JsonSchema + Send + Sync;
     const KIND: &'static str;
     const VERSION: u32 = 1;
+    /// The operation a caller must hold (spec 0006 §4.2). An operation
+    /// outside the agent grant vocabulary makes the kind owner-only.
+    const GRANT: &'static str;
+    /// How the command's scope target is derived from the request.
+    const TARGET: aq_command_registry::TargetRule;
     /// Recheck current subject, scope and role on every request, including retry.
     async fn authorize(
         &self,
@@ -114,6 +119,7 @@ impl<T: ActionKind> Adapter for Typed<T> {
 pub struct Registry {
     adapters: BTreeMap<String, Arc<dyn Adapter>>,
     schemas: BTreeMap<String, Value>,
+    specs: Vec<aq_command_registry::ActionSpec>,
 }
 impl Registry {
     /// Payload must be a closed object schema and deny unknown fields in Serde.
@@ -132,10 +138,20 @@ impl Registry {
             return Err(ApiError::invalid());
         }
         self.schemas.insert(T::KIND.into(), schema);
+        self.specs.retain(|s| s.kind != T::KIND);
+        let (kind, grant, target) = (T::KIND, T::GRANT, T::TARGET);
+        self.specs.push(aq_command_registry::ActionSpec {
+            kind,
+            grant,
+            target,
+        });
         Ok(())
     }
     pub fn schemas(&self) -> &BTreeMap<String, Value> {
         &self.schemas
+    }
+    pub fn specs(&self) -> &[aq_command_registry::ActionSpec] {
+        &self.specs
     }
     pub(super) fn get(&self, kind: &str) -> Result<&Arc<dyn Adapter>, ApiError> {
         self.adapters.get(kind).ok_or_else(|| {
@@ -147,13 +163,4 @@ impl Registry {
         })
     }
 }
-pub(super) fn valid_kind(kind: &str) -> bool {
-    kind.len() <= 128
-        && kind.contains('.')
-        && kind.split('.').all(|part| {
-            part.as_bytes().first().is_some_and(u8::is_ascii_lowercase)
-                && part
-                    .bytes()
-                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
-        })
-}
+pub(super) use super::contract::valid_kind;

@@ -128,6 +128,11 @@ fn result(status: Status) -> Outcome {
 impl ActionKind for TaskCreate {
     type Payload = Create;
     const KIND: &'static str = "task.create";
+    const GRANT: &'static str = aq_agent_grants::op::TASK_CREATE_SUBTASK;
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::ParentTask {
+        field: "parent_id",
+        unparented: aq_agent_grants::op::TASK_CREATE_PROJECT,
+    };
     async fn authorize(
         &self,
         state: &AppState,

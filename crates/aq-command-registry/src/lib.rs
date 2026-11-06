@@ -1,0 +1,621 @@
+//! The AQ command registry (spec 0006 §4). Every command, read or mutation,
+//! is declared once here or by its `ActionKind`: its name, the grant it needs,
+//! how its scope target is derived, and how each principal reaches it.
+//!
+//! Dispatch is route-agnostic. A command names the existing route that serves
+//! it for each principal (the owner's REST read or the action union, the
+//! supervisor's machine action route, the agent's `/v1/agent/*` route), and
+//! `POST /api/v1/commands/{name}` builds that request from the command's
+//! `params` and forwards it in process. So a command runs the same handler,
+//! receipts and idempotency as its REST form, and adding a command needs no
+//! change to the CLI, the channel proxy or the worker.
+//!
+//! This crate is pure: aq-server authenticates the caller, resolves targets,
+//! forwards requests and records audit rows.
+use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value, json};
+use uuid::Uuid;
+
+mod catalog;
+pub mod routes;
+pub use catalog::catalog;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Kind {
+    Read,
+    Mutation,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Principal {
+    Owner,
+    Supervisor,
+    Agent,
+}
+impl Principal {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Owner => "owner",
+            Self::Supervisor => "supervisor",
+            Self::Agent => "agent",
+        }
+    }
+}
+
+/// How the scope target is derived from a request (§6.4).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TargetRule {
+    /// The caller's own attempt (its questions, waits, mail, identity).
+    Own,
+    /// The attempt's own task (its comment thread).
+    OwnTask,
+    /// The task named by this param.
+    Task(&'static str),
+    /// A create under the task named by `field`; with no parent the command
+    /// needs `unparented` (a project-level create) instead.
+    ParentTask {
+        field: &'static str,
+        unparented: &'static str,
+    },
+    /// The project named by this param (the binding's project when omitted).
+    Project(&'static str),
+    /// The request `subject` (a task, comment or knowledge record).
+    Subject,
+}
+impl TargetRule {
+    pub fn describe(&self) -> Value {
+        match self {
+            Self::Own => json!({"rule":"own"}),
+            Self::OwnTask => json!({"rule":"own_task"}),
+            Self::Task(f) => json!({"rule":"task","param":f}),
+            Self::ParentTask { field, unparented } => {
+                json!({"rule":"parent_task","param":field,"unparented_grant":unparented})
+            }
+            Self::Project(f) => json!({"rule":"project","param":f}),
+            Self::Subject => json!({"rule":"subject"}),
+        }
+    }
+}
+
+/// How a command's `params` become the body of the route that serves it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Body {
+    /// The body is `params`.
+    Params,
+    /// The body is `params` plus `"api_version":1`.
+    Versioned,
+    /// A GET: path segments come from `params`, every other param is a query
+    /// string value.
+    Query,
+    /// An agent-access-1 graph read: `{api_version, request_id, binding,
+    /// query}` where `query` is `params` (plus `kind` when given) with
+    /// omitted optional fields defaulted.
+    GraphRead(Option<&'static str>),
+    /// An agent-access-1 graph command: `params` plus the binding.
+    GraphCommand,
+    /// The action union: an `ActionRequest` whose payload is `params`.
+    Action,
+    /// Answered by the command surface itself (`whoami`).
+    Local,
+}
+
+/// Where a command's params schema comes from.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Params {
+    /// The action payload schema the `ActionKind` registers.
+    Action,
+    /// Generated from the route's path segments; any other scalar param is
+    /// passed as a query string value.
+    Path,
+    /// A published schema elsewhere in the repository.
+    Ref(&'static str),
+    /// An inline JSON Schema.
+    Inline(&'static str),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Route {
+    pub method: &'static str,
+    pub path: &'static str,
+    pub body: Body,
+    pub params: Params,
+    /// `{segment}` → param name, for segments whose param is named differently.
+    pub rename: &'static [(&'static str, &'static str)],
+}
+impl Route {
+    pub const fn action() -> Self {
+        Self {
+            method: "POST",
+            path: "/api/v1/actions",
+            body: Body::Action,
+            params: Params::Action,
+            rename: &[],
+        }
+    }
+    pub const fn get(path: &'static str, rename: &'static [(&'static str, &'static str)]) -> Self {
+        Self {
+            method: "GET",
+            path,
+            body: Body::Query,
+            params: Params::Path,
+            rename,
+        }
+    }
+    pub const fn post(path: &'static str, body: Body, params: Params) -> Self {
+        Self {
+            method: "POST",
+            path,
+            body,
+            params,
+            rename: &[],
+        }
+    }
+    pub const fn local() -> Self {
+        Self {
+            method: "POST",
+            path: "/api/v1/commands/whoami",
+            body: Body::Local,
+            params: Params::Inline(r#"{"type":"object","additionalProperties":false}"#),
+            rename: &[],
+        }
+    }
+    fn segments(&self) -> impl Iterator<Item = (&'static str, &'static str)> + '_ {
+        self.path.split('/').filter_map(|s| {
+            let seg = s.strip_prefix('{')?.strip_suffix('}')?;
+            let param = self
+                .rename
+                .iter()
+                .find(|(from, _)| *from == seg)
+                .map_or(seg, |(_, to)| *to);
+            Some((seg, param))
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CommandSpec {
+    pub name: &'static str,
+    pub kind: Kind,
+    /// The operation the caller must hold. `None` only for `whoami` and
+    /// operation lookups, which any authenticated caller may run on itself.
+    /// A grant outside the agent vocabulary makes the command owner-only.
+    pub grant: Option<&'static str>,
+    pub target: TargetRule,
+    pub summary: &'static str,
+    pub owner: Option<Route>,
+    pub supervisor: Option<Route>,
+    pub agent: Option<Route>,
+}
+impl CommandSpec {
+    pub fn route(&self, p: Principal) -> Option<&Route> {
+        match p {
+            Principal::Owner => self.owner.as_ref(),
+            Principal::Supervisor => self.supervisor.as_ref(),
+            Principal::Agent => self.agent.as_ref(),
+        }
+    }
+    pub fn owner_only(&self) -> bool {
+        self.grant
+            .is_some_and(|g| !aq_agent_grants::grantable(g) || aq_agent_grants::owner_only(g))
+    }
+    /// The CLI tokens: `aq task comment add` for `task.comment.add`.
+    pub fn cli(&self) -> Vec<String> {
+        self.name.split('.').map(|s| s.replace('_', "-")).collect()
+    }
+}
+
+/// A mutation as an `ActionKind` declares it: its kind, grant and target.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ActionSpec {
+    pub kind: &'static str,
+    pub grant: &'static str,
+    pub target: TargetRule,
+}
+
+/// The registry: the static catalog merged with the registered action kinds.
+#[derive(Debug, Clone)]
+pub struct Registry {
+    commands: Vec<CommandSpec>,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RegistryError(pub String);
+impl Registry {
+    /// Every action kind becomes a mutation command reached by the owner
+    /// through the action union. A catalog entry with the same name adds
+    /// the other principals' routes and must agree on the grant.
+    pub fn new(actions: &[ActionSpec]) -> Result<Self, RegistryError> {
+        let mut commands = catalog();
+        for a in actions {
+            match commands.iter_mut().find(|c| c.name == a.kind) {
+                Some(c) => {
+                    if c.grant != Some(a.grant) || c.kind != Kind::Mutation || c.owner.is_some() {
+                        return Err(RegistryError(format!(
+                            "{}: catalog and ActionKind disagree",
+                            a.kind
+                        )));
+                    }
+                    // The catalog's target is the agent-facing one (an agent
+                    // comments on its own task); the owner's action derives
+                    // its own subject.
+                    c.owner = Some(Route::action());
+                }
+                None => commands.push(CommandSpec {
+                    name: a.kind,
+                    kind: Kind::Mutation,
+                    grant: Some(a.grant),
+                    target: a.target,
+                    summary: "Dashboard action (protocol/dashboard-actions/v1)",
+                    owner: Some(Route::action()),
+                    supervisor: None,
+                    agent: None,
+                }),
+            }
+        }
+        commands.sort_by(|a, b| a.name.cmp(b.name));
+        for pair in commands.windows(2) {
+            if pair[0].name == pair[1].name {
+                return Err(RegistryError(format!("duplicate {}", pair[0].name)));
+            }
+        }
+        for c in &commands {
+            if !valid_name(c.name) {
+                return Err(RegistryError(format!("invalid name {}", c.name)));
+            }
+            let routes = [&c.owner, &c.supervisor, &c.agent];
+            if routes.iter().all(|r| r.is_none()) {
+                return Err(RegistryError(format!("{} has no route", c.name)));
+            }
+            if routes
+                .iter()
+                .copied()
+                .flatten()
+                .any(|r| r.params == Params::Action)
+                && !actions.iter().any(|a| a.kind == c.name)
+            {
+                return Err(RegistryError(format!(
+                    "{} is not a registered action",
+                    c.name
+                )));
+            }
+        }
+        Ok(Self { commands })
+    }
+    pub fn commands(&self) -> &[CommandSpec] {
+        &self.commands
+    }
+    pub fn get(&self, name: &str) -> Option<&CommandSpec> {
+        self.commands.iter().find(|c| c.name == name)
+    }
+}
+pub fn valid_name(name: &str) -> bool {
+    name.len() <= 128
+        && name.split('.').all(|part| {
+            part.as_bytes().first().is_some_and(u8::is_ascii_lowercase)
+                && part
+                    .bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'_')
+        })
+}
+
+/// `POST /api/v1/commands/{name}` body.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields)]
+pub struct CommandRequest {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub operation_id: Option<Uuid>,
+    /// `{type,id,revision?}` for an action whose subject is not derivable.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub subject: Option<Value>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub expected_versions: Option<Map<String, Value>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    #[serde(default)]
+    pub params: Map<String, Value>,
+}
+
+/// A request the command surface forwards to the route that serves it.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Forward {
+    pub method: &'static str,
+    pub uri: String,
+    pub body: Option<Value>,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BuildError(pub &'static str);
+
+/// Build the forwarded request. `binding` is the agent-access-1 binding for
+/// an agent caller (graph reads and commands carry it).
+pub fn forward(
+    spec: &CommandSpec,
+    route: &Route,
+    request: &CommandRequest,
+    binding: Option<&Value>,
+    request_id: Uuid,
+) -> Result<Forward, BuildError> {
+    let mut params = request.params.clone();
+    let mut uri = String::new();
+    for part in route.path.split('/').filter(|s| !s.is_empty()) {
+        uri.push('/');
+        match part.strip_prefix('{').and_then(|s| s.strip_suffix('}')) {
+            Some(seg) => {
+                let param = route.segments().find(|(s, _)| *s == seg).map(|(_, p)| p);
+                let value = params
+                    .remove(param.unwrap_or(seg))
+                    .ok_or(BuildError("missing path param"))?;
+                let text = scalar(&value).ok_or(BuildError("path param must be a scalar"))?;
+                if text.is_empty()
+                    || !text
+                        .bytes()
+                        .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_' || b == b':')
+                {
+                    return Err(BuildError("path param is not a plain identifier"));
+                }
+                uri.push_str(&text);
+            }
+            None => uri.push_str(part),
+        }
+    }
+    let body = match route.body {
+        Body::Local => None,
+        Body::Query => {
+            let mut first = true;
+            for (k, v) in &params {
+                let text = scalar(v).ok_or(BuildError("query param must be a scalar"))?;
+                uri.push(if first { '?' } else { '&' });
+                first = false;
+                uri.push_str(&encode(k));
+                uri.push('=');
+                uri.push_str(&encode(&text));
+            }
+            None
+        }
+        Body::Params => Some(Value::Object(params)),
+        Body::Versioned => {
+            params.insert("api_version".into(), json!(1));
+            Some(Value::Object(params))
+        }
+        Body::GraphRead(kind) => {
+            let binding = binding.ok_or(BuildError("graph reads need a binding"))?;
+            let mut query = if kind.is_none() {
+                match params.remove("query") {
+                    Some(Value::Object(q)) if params.is_empty() => q,
+                    _ => return Err(BuildError("graph.read takes one `query` object")),
+                }
+            } else {
+                params
+            };
+            if let Some(kind) = kind {
+                query.insert("kind".into(), json!(kind));
+                if kind == "search" {
+                    for (k, v) in [
+                        ("kind_filter", Value::Null),
+                        ("limit", json!(20)),
+                        ("cursor", Value::Null),
+                    ] {
+                        query.entry(k).or_insert(v);
+                    }
+                }
+            }
+            Some(json!({"api_version":1,"request_id":request_id,"binding":binding,"query":query}))
+        }
+        Body::GraphCommand => {
+            let binding = binding.ok_or(BuildError("graph commands need a binding"))?;
+            params.insert("api_version".into(), json!(1));
+            params.insert("binding".into(), binding.clone());
+            if let Some(op) = request.operation_id {
+                params.entry("operation_id").or_insert(json!(op));
+            }
+            if let Some(reason) = &request.reason {
+                params.entry("reason").or_insert(json!(reason));
+            }
+            Some(Value::Object(params))
+        }
+        Body::Action => {
+            let op = request
+                .operation_id
+                .or_else(|| {
+                    params
+                        .get("operation_id")
+                        .and_then(|v| v.as_str()?.parse().ok())
+                })
+                .ok_or(BuildError("a mutation needs an operation_id"))?;
+            let subject = request
+                .subject
+                .clone()
+                .ok_or(BuildError("an action needs a subject"))?;
+            let mut action = json!({"operation_id":op,"kind":spec.name,"subject":subject,
+                "expected_versions":request.expected_versions.clone().unwrap_or_default(),"payload":params});
+            if let Some(reason) = &request.reason {
+                action["reason"] = json!(reason);
+            }
+            Some(action)
+        }
+    };
+    Ok(Forward {
+        method: route.method,
+        uri,
+        body,
+    })
+}
+fn scalar(v: &Value) -> Option<String> {
+    match v {
+        Value::String(s) => Some(s.clone()),
+        Value::Number(n) => Some(n.to_string()),
+        Value::Bool(b) => Some(b.to_string()),
+        _ => None,
+    }
+}
+fn encode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for b in s.bytes() {
+        if b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_' | b'.' | b'~') {
+            out.push(b as char);
+        } else {
+            out.push_str(&format!("%{b:02X}"));
+        }
+    }
+    out
+}
+
+/// The params schema a principal's route takes.
+pub fn params_schema(
+    route: &Route,
+    action_schemas: &std::collections::BTreeMap<String, Value>,
+    name: &str,
+) -> Value {
+    match route.params {
+        Params::Action => action_schemas.get(name).cloned().unwrap_or(Value::Null),
+        Params::Ref(r) => json!({"$ref": r}),
+        Params::Inline(s) => serde_json::from_str(s).expect("static inline schema"),
+        Params::Path => {
+            let mut props = Map::new();
+            let mut required = Vec::new();
+            for (_, param) in route.segments() {
+                props.insert(
+                    param.into(),
+                    json!({"type":"string","minLength":1,"maxLength":128}),
+                );
+                required.push(json!(param));
+            }
+            json!({"type":"object","properties":props,"required":required,
+                "additionalProperties":{"type":["string","integer","boolean"]},
+                "description":"Path params as named; every other param is passed as a query string value."})
+        }
+    }
+}
+pub fn digest(value: &Value) -> String {
+    use sha2::{Digest, Sha256};
+    let mut v = value.clone();
+    v.sort_all_objects();
+    format!(
+        "sha256:{}",
+        hex::encode(Sha256::digest(serde_json::to_vec(&v).expect("json")))
+    )
+}
+
+/// `protocol/commands/v1/commands.json`: generated from the registry.
+pub fn document(
+    registry: &Registry,
+    action_schemas: &std::collections::BTreeMap<String, Value>,
+) -> Value {
+    let commands: Vec<Value> = registry
+        .commands()
+        .iter()
+        .map(|c| {
+            let mut principals = Map::new();
+            for p in [Principal::Owner, Principal::Supervisor, Principal::Agent] {
+                let Some(r) = c.route(p) else { continue };
+                let schema = params_schema(r, action_schemas, c.name);
+                let mut entry = json!({"route":{"method":r.method,"path":r.path},
+                    "body":body_name(r.body),"params_digest":digest(&schema)});
+                if matches!(r.params, Params::Ref(_) | Params::Inline(_) | Params::Path) {
+                    entry["params_schema"] = schema;
+                } else {
+                    entry["params_schema"] = json!({"$ref":format!("protocol/dashboard-actions/v1/schema.json#kind={}", c.name)});
+                }
+                principals.insert(p.as_str().into(), entry);
+            }
+            json!({"name":c.name,"kind":c.kind,"grant":c.grant,"owner_only":c.owner_only(),
+                "target":c.target.describe(),"summary":c.summary,"cli":c.cli(),"principals":principals})
+        })
+        .collect();
+    json!({
+        "version": 1,
+        "contract": "commands-1",
+        "generated_from": "aq-server command registry (crates/aq-command-registry and the registered ActionKinds); regenerate with `AQ_REGENERATE_COMMANDS=1 cargo nextest run -p aq-server --test it_server -E 'test(/^commands::/)'`",
+        "invoke": {"method":"POST","path":"/api/v1/commands/{name}","request":"#/$defs/CommandRequest in schema.json"},
+        "discover": {"method":"GET","path":"/api/v1/commands","query":{"all":"true also lists commands the caller cannot run, each with its missing grant"}},
+        "listeners": {"admin":"owner (Cloudflare Access)","machine":"agent (per-attempt aqa_ bearer, or the sandbox channel) and supervisor (F1b bearer)"},
+        "commands": commands
+    })
+}
+fn body_name(b: Body) -> &'static str {
+    match b {
+        Body::Params => "params",
+        Body::Versioned => "params_with_api_version",
+        Body::Query => "query",
+        Body::GraphRead(_) => "graph_read",
+        Body::GraphCommand => "graph_command",
+        Body::Action => "action_request",
+        Body::Local => "local",
+    }
+}
+
+#[cfg(test)]
+mod tests;
+
+/// The agent's scope target for `rule` (§6.4). Params gain defaults from
+/// the binding: an omitted `project_id` is the attempt's project and is
+/// removed before forwarding (agent routes take it from the binding), and a
+/// task param equal to the attempt's task is `Own`. `relation` resolves any
+/// other task against the attempt's task (its ancestry).
+pub fn agent_target(
+    rule: TargetRule,
+    params: &mut Map<String, Value>,
+    holder: aq_agent_grants::Holder,
+    own_task: Uuid,
+    relation: impl Fn(Uuid) -> aq_agent_grants::Relation,
+) -> Result<aq_agent_grants::Target, BuildError> {
+    use aq_agent_grants::{Relation, Target};
+    let id = |v: &Value| v.as_str().and_then(|s| s.parse::<Uuid>().ok());
+    let task = |t: Uuid| Target::Task {
+        project: holder.project,
+        relation: if t == own_task {
+            Relation::Own
+        } else {
+            relation(t)
+        },
+    };
+    Ok(match rule {
+        TargetRule::Own => Target::OwnAttempt,
+        TargetRule::OwnTask => task(own_task),
+        TargetRule::Project(field) => match params.remove(field) {
+            None => Target::Project(holder.project),
+            Some(v) => Target::Project(id(&v).ok_or(BuildError("project_id must be a UUID"))?),
+        },
+        TargetRule::Task(field) => match params.get(field) {
+            None => task(own_task),
+            Some(v) => task(id(v).ok_or(BuildError("task id must be a UUID"))?),
+        },
+        TargetRule::ParentTask { field, .. } => match params.get(field) {
+            Some(Value::Null) | None => Target::Project(holder.project),
+            Some(v) => {
+                let parent = id(v).ok_or(BuildError("parent id must be a UUID"))?;
+                // A child of `parent` sits one level below it.
+                match task(parent) {
+                    Target::Task {
+                        project,
+                        relation: Relation::Own,
+                    } => Target::Task {
+                        project,
+                        relation: Relation::Descendant(1),
+                    },
+                    Target::Task {
+                        project,
+                        relation: Relation::Descendant(d),
+                    } => Target::Task {
+                        project,
+                        relation: Relation::Descendant(d + 1),
+                    },
+                    other => other,
+                }
+            }
+        },
+        TargetRule::Subject => return Err(BuildError("this command takes no agent subject")),
+    })
+}
+/// The grant a `ParentTask` command needs for its target: the subtask grant
+/// under a parent, the project grant without one.
+pub fn required_grant(
+    spec: &CommandSpec,
+    target: &aq_agent_grants::Target,
+) -> Option<&'static str> {
+    match (spec.target, target) {
+        (TargetRule::ParentTask { unparented, .. }, aq_agent_grants::Target::Project(_)) => {
+            Some(unparented)
+        }
+        _ => spec.grant,
+    }
+}

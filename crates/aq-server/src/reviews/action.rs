@@ -92,6 +92,8 @@ fn project(view: &serde_json::Value) -> std::result::Result<Uuid, ApiError> {
 impl ActionKind for ResolveDecision {
     type Payload = Resolve;
     const KIND: &'static str = "decision.resolve";
+    const GRANT: &'static str = "decision.resolve";
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
     async fn authorize(
         &self,
         state: &AppState,

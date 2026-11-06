@@ -183,9 +183,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-command-registry"
+version = "0.1.0"
+dependencies = [
+ "aq-agent-grants",
+ "hex",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "uuid",
+]
+
+[[package]]
 name = "aq-dashboard-contract"
 version = "0.1.0"
 dependencies = [
+ "aq-admission 0.1.12",
  "aq-lifecycle-api",
  "schemars",
  "serde",
@@ -484,6 +497,7 @@ dependencies = [
  "aq-agent-api",
  "aq-agent-grants",
  "aq-central-authority",
+ "aq-command-registry",
  "aq-dashboard-contract",
  "aq-human-cursor",
  "aq-human-work",

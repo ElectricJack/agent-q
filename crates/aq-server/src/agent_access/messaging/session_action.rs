@@ -147,6 +147,8 @@ fn result(response: &Value) -> Outcome {
 impl ActionKind for SendSessionMessage {
     type Payload = SessionMessage;
     const KIND: &'static str = KIND;
+    const GRANT: &'static str = aq_agent_grants::op::MESSAGE_SEND;
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Own;
     async fn authorize(
         &self,
         state: &AppState,
@@ -268,6 +270,8 @@ fn nudge_session_id(
 impl ActionKind for NudgeSession {
     type Payload = SessionNudge;
     const KIND: &'static str = NUDGE_KIND;
+    const GRANT: &'static str = "session.nudge";
+    const TARGET: aq_command_registry::TargetRule = aq_command_registry::TargetRule::Subject;
     async fn authorize(
         &self,
         state: &AppState,

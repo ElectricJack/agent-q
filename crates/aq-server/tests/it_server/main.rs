@@ -10,6 +10,7 @@ mod common;
 
 mod authz;
 mod cli;
+mod commands;
 mod config;
 mod enrollment;
 mod execution;
