@@ -417,11 +417,13 @@ Phases are ordered by dependency. A phase is done when its acceptance passes.
 - **aq-worker B7 and `packaging/sandbox/README.md`.** The bundle ships `aq`. `aq-agent` is deprecated.
 - **agent-access-1 README.** Points to this spec for the command surface; the node recovery routes are unchanged.
 
-## 13. Open questions for the owner
+## 13. Owner decisions (2026-11-06)
 
-1. **Agent-created subtasks.** Should they be schedulable at once (`ready`), or created as `draft` until you approve them? And what defaults do you want for the per-attempt creation limit and the depth limit? v1 let worker sessions create tasks directly.
-2. **Default knowledge reach.** Should a coding agent read and search the whole project knowledge base (`knowledge.read @ project:self`, the v1 behaviour and needed for "queries to learn about knowledgebase information"), or only records linked to its task unless you widen it?
-3. **Top-level tasks.** Should agents be able to create top-level project tasks by default (`task.create.project`), or only subtasks, with top-level creation granted per project or per task?
-4. **Agent-to-agent messaging.** Should agents message any session in the same project by default, or only the supervisor and their own task, with peer messaging granted per project?
-5. **The name `aq` in sandboxes.** Is it acceptable to install the v2 CLI as `aq` inside sandboxes now (reversing B7's rule), while hosts keep `aqv2` until v1 retires?
-6. **Per-task grant overrides.** Do you want `task.agent_grants.set` and its dashboard control in the first delivery, or are project-level ceilings enough to start?
+The owner accepted every recommendation ("All of your assumptions look correct to me"):
+
+1. **Agent-created subtasks** are `ready` (schedulable at once). Defaults are at most 5 creations per attempt and a depth of 2 below the attempt's task. A playbook policy can switch them to `draft`-first.
+2. **Knowledge** reach is the whole project by default: `knowledge.read @ project:self`.
+3. **Top-level tasks:** agents create subtasks only by default. `task.create.project` is a grant made per project or per task.
+4. **Messaging** by default reaches the supervisor and the agent's own task tree. Peer messaging across the project is a grant.
+5. **The `aq` name:** the v2 CLI ships as `aq` inside sandboxes now, reversing B7's rule. Hosts keep `aqv2` until v1 retires.
+6. **Grant overrides:** project-level ceilings first. Per-task overrides (`task.agent_grants.set` and the dashboard control) come later.
