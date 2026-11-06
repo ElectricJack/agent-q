@@ -1,0 +1,5 @@
+
+== one attempt through the stack (node b1225fe8-604a-46a9-a88d-3b040cc6ba4e)  [02:33:04Z]
+{"event": "worker_binding", "repository_id": "e0000000-0000-4000-8000-000000000003", "mode": "worker", "at": "02:33:05Z"}
+native run: AttemptStopped; retained state preserved
+{"event": "run_native_exit", "exit_code": 0, "log": "/home/jkern/.local/share/aq-ms1/node/runs/run-20261106T023304Z.log", "materials_wiped": 1, "wall_seconds": 117.0}

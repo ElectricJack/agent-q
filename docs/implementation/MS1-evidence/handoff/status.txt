@@ -1,0 +1,10 @@
+aq-ms1-server-1	Up 16 minutes (healthy)	127.0.0.1:28080->8080/tcp, 127.0.0.1:28081->8081/tcp
+aq-ms1-aq-graph-1	Up 21 minutes (healthy)	127.0.0.1:28741->8741/tcp
+aq-ms1-aq-git-1	Up 21 minutes (healthy)	8080-8081/tcp
+aq-ms1-postgres-1	Up 21 minutes (healthy)	5432/tcp
+worker e0-local-development 9975d20c-6a26-497a-95b0-128b16c3f494 offline None
+worker ms1-node 188de335-4fc9-4e85-b15b-138f01999775 offline 2026-11-06T02:36:26.400064Z
+worker ms1-node-spare 085affc7-71d7-417c-8978-d5b18c1e51fe offline None
+worker ms1-desktop b1225fe8-604a-46a9-a88d-3b040cc6ba4e offline 2026-11-06T02:23:50.329458Z
+sandboxes on /run/user/1000/aq-sandbox/podman.sock: 1
+dashboard: http://127.0.0.1:28080/   worker API: http://127.0.0.1:28081   graph: http://127.0.0.1:28741

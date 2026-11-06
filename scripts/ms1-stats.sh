@@ -30,7 +30,9 @@ pidfile=${AQ_MS1_NODE_PIDFILE:-$HOME/.local/share/aq-ms1/worker/controller.pid}
   done
 ) &
 fast=$!
-trap 'kill $fast 2>/dev/null' EXIT INT TERM
+trap 'kill $fast 2>/dev/null' EXIT
+# A plain TERM handler would return to the loop and leave the sampler running.
+trap 'exit 0' INT TERM
 while :; do
   ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
   ids=$(docker ps -q --filter "label=com.docker.compose.project=$project")

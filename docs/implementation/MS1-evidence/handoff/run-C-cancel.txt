@@ -1,0 +1,9 @@
+
+== one attempt through the stack (node b1225fe8-604a-46a9-a88d-3b040cc6ba4e)  [02:30:16Z]
+{"event": "worker_binding", "repository_id": "e0000000-0000-4000-8000-000000000003", "mode": "worker", "at": "02:30:17Z"}
+2026-11-06T02:30:22.332203Z  INFO aq_worker::client: probe succeeded
+2026-11-06T02:31:17.581457Z  WARN aq_worker::native::runner::codex: owner cancellation observed; stopping the harness attempt_id=2f28ecd7-9d6c-548f-94e9-4560cb5bc38a cancellation=8e47f505-1314-41a6-aedf-9d995b722848
+2026-11-06T02:31:29.982763Z  WARN aq_worker::native::runner::claude_docker: attempt sandbox stop attempt_id=2f28ecd7-9d6c-548f-94e9-4560cb5bc38a sandbox=aq-188de3354fc94e85b15b138f01999775-2f28ecd79d6c548f94e94560cb5bc38a confirmed=true
+error: explicit local result claim absent; stopped attempt retained
+error: native execution unavailable or outcome unknown; preserve state for reconciliation
+{"event": "run_native_exit", "exit_code": 2, "log": "/home/jkern/.local/share/aq-ms1/node/runs/run-20261106T023017Z.log", "materials_wiped": 1, "wall_seconds": 73.3}

@@ -4,6 +4,229 @@ Task `stark-zenith-16.2`. Run on 2026-11-05, 05:00–05:35 UTC, on the owner's
 desktop (WSL2). Owner decision of 2026-11-04: the agent is **Claude Code**
 signed in with the owner's Claude subscription login (no API key), not Codex.
 
+## Owner verification
+
+MS1 is merged: aq-server `1ac43cb1` (#94), aq-worker `b82b08af` (#41). The
+`aq-ms1` stack was rebuilt from `origin/main` (aq-server `1185ec70`, aq-worker
+`b82b08af`) on 2026-11-06, 02:15–02:37 UTC, and the demo below ran on it once
+with real Claude Code.
+
+### What MS1 demonstrates
+
+On the owner's desktop (WSL2), with the owner's Claude subscription login and
+no API key:
+
+1. aq-graph tasks become AQ attempts. The node runs each one through
+   `aq-worker run-native`: Claude Code runs in a `docker-local` sandbox, edits
+   a worktree, and runs `cargo test`.
+2. The node retains the result commit in central aq-git. D3 accepts it,
+   and D1 publishes it to the project remote with a fast-forward of `main`.
+   Only then does D3 complete the task.
+3. A dependent task becomes ready only after that, and starts from its
+   predecessor's published commit.
+4. An owner cancel stops a running attempt. The sandbox is stopped and kept,
+   and nothing is reported or published.
+5. A failed attempt is reworked. Its partial commit is retained, and B4 admits
+   a replacement in a new sandbox. The replacement completes the task.
+6. The Claude token reaches the agent only as `CLAUDE_CODE_OAUTH_TOKEN` in the
+   sandbox environment, never in argv, logs or files that the stack keeps. A
+   token scan of the evidence, the node runs and the server log finds nothing.
+
+The remote is a local bare repository in the aq-git volume
+(`/var/lib/aq/remotes/aq-scratch.git`, cloned from `ElectricJack/aq-scratch`).
+Pushing to GitHub is not part of MS1 (see Known limits).
+
+### Evidence of the hand-off run
+
+Stack `aq-ms1`: <http://127.0.0.1:28080/>. Run-native node `ms1-node` =
+`188de335-4fc9-4e85-b15b-138f01999775`; spare enrollment `ms1-node-spare` =
+`085affc7-…`. Raw files (run logs as `run-*.txt`) are in
+[MS1-evidence/handoff/](MS1-evidence/handoff/). Wall times are from
+`run-native`.
+
+| Step | Task | Attempt | Result report | Outcome |
+| --- | --- | --- | --- | --- |
+| A: add `hello()` | `e0a20000-…-000000000011` | `ffa8b8c3-d38e-5113-a54d-afd9b8b56bd0` (40 s) | `753cae4f-7557-40f1-a010-3d62a3d0be76` | published `2e32645b` → **`6c43decb`**; D3 confirmed, Graph operation `3868c15c-60b3-4628-a7be-9647233abcb0`; task `completed` |
+| B: README line (blocked by A) | `e0a20000-…-000000000012` | `42f352c0-42d6-54a8-9082-43180971fcc1` (40 s) | `2c7241d7-bf68-4c5b-83ce-ceb1a3a5fe76` | started from **`6c43decb`**, published `6c43decb` → `e0ab6fe4`; D3 op `779dc8de-dab9-4e21-ba91-36a27df974fc` |
+| Cancel | `e0a20000-…-0000000001c1` | `2f28ecd7-9d6c-548f-94e9-4560cb5bc38a` | none | owner cancel at 02:31:12Z, cancellation `8e47f505-1314-41a6-aedf-9d995b722848` (`requested`); sandbox stopped and kept (`Exited (137)`); cancelled settlement recorded; nothing published; task stays held |
+| Fail | `e0a20000-…-0000000001d1` | `eabac549-fbf7-526d-a70b-ab6096251a77` (62 s) | `56b91d17-e4d9-4a25-bc19-5d746a350e14`, `failed` | Claude killed in its sandbox at 02:32:45Z after 3 of 6 files (operator-injected crash); D3 `rework_required`; replacement facts recorded (source retained, effects quiescent) |
+| Retry | same task | `4b995ff1-c9f0-5bd3-832a-d7ba9779abb3`, new sandbox (117 s) | `e7c5062a-e6d9-47a6-836c-ebe987ebfcf8`, `success` | "replacement attempt admitted within the lineage budget … attempts_started=1"; published `e0ab6fe4` → `22a13087` (all 6 files); D3 op `ff5aaeb3-87f6-442b-bf4d-92abbb24cf62` |
+| Measured run | `e0a20000-…-0000000001e1` | `9a5da87e-4e88-5473-868c-986193edacce` (40 s) | `f9ccb524-8339-40ea-bbc4-0d64d3e23667` | published `22a13087` → `38bee5f`; D3 op `540b438c-e74e-4a5b-9d31-b901020382a2` |
+
+The remote's `main` is now `38bee5f` → `22a13087` → `e0ab6fe4` → `6c43decb` →
+`2e32645b`: five fast-forwards, no merge commits.
+
+### Rerun each step
+
+The stack's own wrapper, `~/.local/share/aq-ms1/up.sh COMMAND`, runs
+`scripts/ms1-demo.sh` from `wt/ms1h-server`. It sets the aq-worker source
+(`wt/ms1h-worker`), its target directory and the credential
+(`owner-claude-subscription@2`, revision 2). D1 is the default in the script.
+New tasks use `scripts/ms1-task.py` with `AQ_MS1_HOME=~/.local/share/aq-ms1`
+and `AQ_DEV_GRAPH_URL=http://127.0.0.1:28741`.
+
+```sh
+U=~/.local/share/aq-ms1/up.sh
+$U status                      # 4 healthy containers, nodes, sandbox count, URLs
+$U graph                       # tasks A and B: state, version, ready
+$U publication                 # delivery evidence, source heads and the remote's main
+
+# Steps A and B: two dependent tasks, B builds on A's commit
+python3 scripts/ms1-task.py ID-B "title" "body"                 # create the dependent task first
+python3 scripts/ms1-task.py ID-A "title" "body" --blocks ID-B   # A blocks B
+$U run                         # runs A: Claude in a sandbox, retention, D1 publication, D3
+$U run                         # runs B, from A's published commit
+$U publication                 # two `applied` publications; B's expected_old is A's commit
+
+# Cancel: a slow task, then cancel its attempt while the sandbox runs
+python3 scripts/ms1-task.py ID-C "slow task" "Create 10 files, sleep 15 between them, then cargo test"
+$U run &                       # wait until `docker -H unix:///run/user/$(id -u)/aq-sandbox/podman.sock ps` shows the sandbox
+A=$(~/.local/share/aq-ms1/psql.sh -c "select attempt_id from execution_attempts where task_id='ID-C'")
+curl -sS -X POST -H 'Content-Type: application/json' -H 'X-AQ-Request: 1' \
+  -d "{\"operation_id\":\"$(cat /proc/sys/kernel/random/uuid)\",\"reason\":\"owner cancel\"}" \
+  http://127.0.0.1:28080/api/execution/attempts/$A/cancel
+
+# Fail, then retry: a slow task, kill Claude in its sandbox mid-run, then run again
+python3 scripts/ms1-task.py ID-D "slow task" "Create 6 files, sleep 10 between them, then cargo test"
+$U run &                       # after a few files:
+docker -H unix:///run/user/$(id -u)/aq-sandbox/podman.sock exec aq-NODE-ATTEMPT pkill -KILL -x claude
+$U run                         # the replacement, in a new sandbox; completes the task
+
+# Release the sandbox kept by the cancel (operator path, records the reason)
+~/.local/share/aq-ms1/runtime/aq-worker --config ~/.local/share/aq-ms1/node/config/worker.toml \
+  release-native-sandbox --native-config ~/.local/share/aq-ms1/node/config/native.json \
+  --attempt-id 2f28ecd7-9d6c-548f-94e9-4560cb5bc38a --reason "owner reviewed the cancel drill"
+
+# Memory and CPU around any run
+scripts/ms1-stats.sh /tmp/ms1-stats & $U run; kill %1; $U stats-summary /tmp/ms1-stats
+```
+
+**Fresh stack from scratch** (what the hand-off did). The dev vault and the
+seed's repository designation are immutable for a Compose project, so a
+stack keeps its first mode.
+
+1. `$U up`. If the copied `intelligence.toml` has `[result_media]`, first
+   create `/var/lib/aq/result-media` (0700, uid 10001) in the
+   `aq-ms1_dev_source` volume.
+2. `$U seed`: the local bare remote, the project, tasks A and B, and the
+   E0 placeholder task retired.
+3. `$U node-enroll ms1-node`, then `$U node` (writes `worker/node.json`; the
+   persistent controller it starts is fenced) and `$U node-stop`.
+4. `$U profiled`, `$U import-login`, then `echo $((REV+1)) >
+   ~/.local/share/aq-ms1/revision` and `$U profiled` again with credential
+   revision 2, then `$U import-login --replace`. The first import stages the
+   base file, which changes the registered credential state. Without the
+   second `profiled`, the server answers 409 "credential rotation/state change
+   requires increasing credential revision".
+5. Every later pinned change (`rebuild-worker.sh --driver`, a new server
+   image) needs a revision bump and `$U profiled` before `$U rebuild-server`.
+
+Incarnation 3 of `aq-ms1` (the B4/B5b runs of 2026-11-05) was archived to
+`~/.local/share/aq-ms1-inc3`, with `pg_dump`s of `agent_q` and `aq_graph` and
+tarballs of its volumes in `volumes-backup/`. Stack `aq-ms1d` (D1) is stopped
+and its data is kept (`docker compose -p aq-ms1d start` restarts it).
+
+### What to look at in the dashboard
+
+- **Overview** (`/`): counts of running, ready, need-you and recovering work.
+  "Needs your attention" lists the failed process results (the E0 placeholder
+  and the injected crash) and the offline workers.
+- **Work** (`/work`, choose "Local scratch development"): the five MS1
+  tasks. A, B, the retry task and the measured task are `Completed`. The
+  cancel task stays open, because a cancelled attempt has no retained source
+  to replace.
+- **Agents** (`/agents`): one row per attempt with harness `claude`, model
+  `claude-sonnet-5-5`, central state `Finished` and start and stop times. The
+  live state reads "State unknown" and "Controller unknown" (see Known limits).
+- **Results** (`/results`): **blocked**. It shows "Dashboard update
+  required". The server's `GET /api/v1/results` returns 200, but each item
+  carries `feedback_read_version` and `follow_up_submission`, and a nested
+  object carries `directly_following` (added by aq-server `4eef26ea` "Expose
+  additive Results feedback reload state"). The dashboard's pinned
+  `contracts/pinned/results-feedback/v1/schema.json` forbids additional
+  properties, so it rejects the page. The fix is a dashboard contract re-pin,
+  outside MS1's scope.
+
+### Step 6: Windows suspend drill
+
+The node-level helper:
+
+1. Start the persistent controller: `$U node`. `$U status` must show
+   `ms1-desktop online`. Note the time (`date -u`).
+2. Run `$U drill`. The first run rebuilds aq-worker's `claude_live` test
+   binary (a few minutes). When it prints `drill: sandbox aq-… running;
+   suspend Windows now`, choose Start → Power → Sleep at once.
+3. Wait at least 60 s, then wake the machine and log in. Leave the WSL
+   terminal alone until the drill finishes. It prints `drill: wall-clock gap of
+   N ms detected` after the wake.
+4. Check:
+   - **Timings:** `suspend_windows` (wall and monotonic gap) and `elapsed_ms`
+     in `~/.local/share/aq-ms1/evidence/drill-*/suspend-drill/suspend-drill.json`.
+   - **Continuation:** `runner_exit` `Exited(0)` means that the sandbox survived
+     and finished; `write_calls` 100 means no work was lost.
+   - **Reconnects:** `drill-*/controller.log` and `drill-*/server.log` around
+     the gap.
+   - **After the wake:** `$U status` shows a fresh `last_seen_at` and no
+     leftover sandbox.
+5. `$U node-stop`.
+
+The same drill with a real graph attempt:
+
+1. Create a slow task, as in the cancel step, but with about 20 files and
+   `sleep 15` between them. Run `$U run`.
+2. When the sandbox shows in `docker -H unix:///run/user/$(id -u)/aq-sandbox/podman.sock ps`,
+   suspend Windows. Wake it after at least 60 s.
+3. Observe one of three outcomes:
+   - **Continued:** `run-native` ends with `AttemptStopped` and the task
+     completes. `$U publication` shows the commit.
+   - **Expired:** the grant expired during sleep. The attempt is stopped, its
+     report is `failed` or missing, and the next `$U run` takes a B4
+     replacement in a new sandbox.
+   - **Held:** the run-native output says `retained state preserved` and the
+     task stays held. Run `aq-worker reconcile-native` on the node state;
+     `$U node-enroll` is the fallback for a wedged node.
+4. Record which outcome happened, the wall gap (`date -u` before and after)
+   and the server log (`docker logs --since 30m aq-ms1-server-1`).
+
+### Measured memory and CPU (hand-off run)
+
+`scripts/ms1-stats.sh` during the measured run (task `…01e1`), in
+[stats-summary.txt](MS1-evidence/handoff/stats-summary.txt):
+
+| Component | Peak memory | Max CPU |
+| --- | --- | --- |
+| postgres | 314.7 MiB (includes page cache after six runs) | 8.9% |
+| aq-server | 16.8 MiB | 8.1% |
+| aq-git | 8.0 MiB | 3.7% |
+| aq-graph | 6.3 MiB | 3.4% |
+| Stack total | 343.4 MiB | — |
+| Sandbox (Claude plus `cargo test` on a one-file crate) | 159.7 MiB (cgroup peak) | 23% of one core |
+
+Earlier figures (see [Memory and CPU](#memory-and-cpu)): a sandbox peaks at
+about 530 MiB with a trivial Rust build, and the node controller has 26.5 MiB
+RSS. A realistic Rust build has not been measured (E5).
+
+### Known limits and owners
+
+| Limit | Owner |
+| --- | --- |
+| Results view blocked by the pinned results-feedback schema (above) | aq-dashboard contract re-pin (G6 results-feedback) |
+| GitHub push: D1 publishes to a local bare remote; pushing to GitHub needs named credential profiles in the pinned aq-git and central credentials | A3b (`eager-grove-45.3`), D2 (`crisp-meadow-36.3`) |
+| The persistent `aq-worker run` controller is still fenced; attempts run through one-shot `run-native` | no open plan task (see [Missing integration](#missing-integration), item 1) |
+| No live session or terminal state reaches Agents ("State unknown", "Controller unknown") | not assigned |
+| A cancelled task stays held: B4 needs retained source, which a cancelled attempt never produced | B4 (`noble-summit-37.4`) |
+| Selection's 1-hour lineage budget refusal fails the poll instead of skipping the lineage | B4 |
+| Reviewer follow-up: `release_fence` is not scoped to its owner | B4 |
+| Reviewer follow-up: the sandbox-uncertain path skips recording retention, so such an attempt is never replaceable | B4, B5b (`noble-summit-37.6`) |
+| Reviewer follow-up: the S4 block (`replacement_after_unpublished_delivery_needs_new_source`) gives the owner no clear action | D1b (`crisp-meadow-36.2`) |
+| Reviewer follow-up: no test for a failed source-head compare-and-swap | D1b |
+| Reviewer follow-up: check whether delivered token material survives on a preserved sandbox disk | C5b (`calm-delta-18.8`) |
+| The two old wedged nodes (`c7caa999…`, `f051a29d…`, archived with incarnation 3) cannot be closed: old terminal qualifications and recipe identities are no longer installed | B5b/config |
+| Following external pushes to `main`; replay of a held result after a server restart; reconcile of an indeterminate publication; PR mode | D2, D1b |
+| Templates are unadmitted; the sandbox daemon is single-UID | C3c, I4a owner fix |
+
+Owner verification: pending
+
 ## Update 2026-11-05 (late): final-review fixes on `ms1/retry`
 
 The independent review of the converged head asked for these on
