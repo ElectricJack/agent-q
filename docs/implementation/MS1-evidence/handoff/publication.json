@@ -1,0 +1,211 @@
+{
+ "delivery_evidence": [
+  {
+   "attempt_id": "ffa8b8c3-d38e-5113-a54d-afd9b8b56bd0",
+   "evidence": {
+    "candidate": {
+     "algorithm": "sha1",
+     "hex": "6c43decb90318963b22f7ad8eb2009d931ec12ae"
+    },
+    "candidate_operation_id": "6b30c1d4-1395-5156-b0a1-cd79b1d6ff10",
+    "expected_old": {
+     "algorithm": "sha1",
+     "hex": "2e32645bab743729bfaeb0f2eec417c2ace7794b"
+    },
+    "owner": "aq.d1.default-policy-publication@1",
+    "phase": null,
+    "policy": {
+     "mode": "fast_forward",
+     "target": "refs/heads/main"
+    },
+    "publication_operation_id": "1d172275-5311-5dd3-96cd-b2a49801633b",
+    "report_id": "753cae4f-7557-40f1-a010-3d62a3d0be76",
+    "result": {
+     "acknowledged_at": "2026-11-06T02:29:02.044454918+00:00",
+     "new": {
+      "algorithm": "sha1",
+      "hex": "6c43decb90318963b22f7ad8eb2009d931ec12ae"
+     },
+     "old": {
+      "algorithm": "sha1",
+      "hex": "2e32645bab743729bfaeb0f2eec417c2ace7794b"
+     },
+     "outcome": "applied"
+    },
+    "source_head": {
+     "binding_generation": 1,
+     "candidate_operation_id": "6b30c1d4-1395-5156-b0a1-cd79b1d6ff10",
+     "oid": "6c43decb90318963b22f7ad8eb2009d931ec12ae",
+     "previous": "2e32645bab743729bfaeb0f2eec417c2ace7794b",
+     "project_id": "e0000000-0000-4000-8000-000000000002",
+     "publication_operation_id": "1d172275-5311-5dd3-96cd-b2a49801633b",
+     "repository_id": "e0000000-0000-4000-8000-000000000003",
+     "retention_handle": "6b30c1d4-1395-5156-b0a1-cd79b1d6ff10",
+     "schema_version": 1,
+     "sequence": 1,
+     "target": "refs/heads/main"
+    }
+   },
+   "recorded_at_ms": 1793932142103,
+   "source_operation_id": "d1351aa4-34c9-48a2-a71e-c5cdec9a5ad7",
+   "state": "published"
+  },
+  {
+   "attempt_id": "42f352c0-42d6-54a8-9082-43180971fcc1",
+   "evidence": {
+    "candidate": {
+     "algorithm": "sha1",
+     "hex": "e0ab6fe492b6bbc926390204ad0dff88c78104c9"
+    },
+    "candidate_operation_id": "b1d735ed-e2a6-5f0a-9ec6-3723982f972e",
+    "expected_old": {
+     "algorithm": "sha1",
+     "hex": "6c43decb90318963b22f7ad8eb2009d931ec12ae"
+    },
+    "owner": "aq.d1.default-policy-publication@1",
+    "phase": null,
+    "policy": {
+     "mode": "fast_forward",
+     "target": "refs/heads/main"
+    },
+    "publication_operation_id": "a945b24a-d593-59ba-be64-e3f556303776",
+    "report_id": "2c7241d7-bf68-4c5b-83ce-ceb1a3a5fe76",
+    "result": {
+     "acknowledged_at": "2026-11-06T02:29:50.446964105+00:00",
+     "new": {
+      "algorithm": "sha1",
+      "hex": "e0ab6fe492b6bbc926390204ad0dff88c78104c9"
+     },
+     "old": {
+      "algorithm": "sha1",
+      "hex": "6c43decb90318963b22f7ad8eb2009d931ec12ae"
+     },
+     "outcome": "applied"
+    },
+    "source_head": {
+     "binding_generation": 1,
+     "candidate_operation_id": "b1d735ed-e2a6-5f0a-9ec6-3723982f972e",
+     "oid": "e0ab6fe492b6bbc926390204ad0dff88c78104c9",
+     "previous": "6c43decb90318963b22f7ad8eb2009d931ec12ae",
+     "project_id": "e0000000-0000-4000-8000-000000000002",
+     "publication_operation_id": "a945b24a-d593-59ba-be64-e3f556303776",
+     "repository_id": "e0000000-0000-4000-8000-000000000003",
+     "retention_handle": "b1d735ed-e2a6-5f0a-9ec6-3723982f972e",
+     "schema_version": 1,
+     "sequence": 2,
+     "target": "refs/heads/main"
+    }
+   },
+   "recorded_at_ms": 1793932190504,
+   "source_operation_id": "993616ac-4559-4fbe-8c19-575e5c60dd0b",
+   "state": "published"
+  },
+  {
+   "attempt_id": "4b995ff1-c9f0-5bd3-832a-d7ba9779abb3",
+   "evidence": {
+    "candidate": {
+     "algorithm": "sha1",
+     "hex": "22a1308738bec5edf4127cb7105aa8ab1e20cde0"
+    },
+    "candidate_operation_id": "155c537c-2c66-5978-a695-3a5e7e306bc3",
+    "expected_old": {
+     "algorithm": "sha1",
+     "hex": "e0ab6fe492b6bbc926390204ad0dff88c78104c9"
+    },
+    "owner": "aq.d1.default-policy-publication@1",
+    "phase": null,
+    "policy": {
+     "mode": "fast_forward",
+     "target": "refs/heads/main"
+    },
+    "publication_operation_id": "03d356b2-410d-5ede-8b99-ac1c49879b47",
+    "report_id": "e7c5062a-e6d9-47a6-836c-ebe987ebfcf8",
+    "result": {
+     "acknowledged_at": "2026-11-06T02:35:02.467203775+00:00",
+     "new": {
+      "algorithm": "sha1",
+      "hex": "22a1308738bec5edf4127cb7105aa8ab1e20cde0"
+     },
+     "old": {
+      "algorithm": "sha1",
+      "hex": "e0ab6fe492b6bbc926390204ad0dff88c78104c9"
+     },
+     "outcome": "applied"
+    },
+    "source_head": {
+     "binding_generation": 1,
+     "candidate_operation_id": "155c537c-2c66-5978-a695-3a5e7e306bc3",
+     "oid": "22a1308738bec5edf4127cb7105aa8ab1e20cde0",
+     "previous": "e0ab6fe492b6bbc926390204ad0dff88c78104c9",
+     "project_id": "e0000000-0000-4000-8000-000000000002",
+     "publication_operation_id": "03d356b2-410d-5ede-8b99-ac1c49879b47",
+     "repository_id": "e0000000-0000-4000-8000-000000000003",
+     "retention_handle": "155c537c-2c66-5978-a695-3a5e7e306bc3",
+     "schema_version": 1,
+     "sequence": 3,
+     "target": "refs/heads/main"
+    }
+   },
+   "recorded_at_ms": 1793932502519,
+   "source_operation_id": "fb0b4d63-84d2-4cc0-afd0-cf5b73d05d40",
+   "state": "published"
+  },
+  {
+   "attempt_id": "9a5da87e-4e88-5473-868c-986193edacce",
+   "evidence": {
+    "candidate": {
+     "algorithm": "sha1",
+     "hex": "38bee5f4b1e29d367db0ade4c582e5accee7cdca"
+    },
+    "candidate_operation_id": "42bcc837-e0da-5eb4-aeee-c4458124cd5e",
+    "expected_old": {
+     "algorithm": "sha1",
+     "hex": "22a1308738bec5edf4127cb7105aa8ab1e20cde0"
+    },
+    "owner": "aq.d1.default-policy-publication@1",
+    "phase": null,
+    "policy": {
+     "mode": "fast_forward",
+     "target": "refs/heads/main"
+    },
+    "publication_operation_id": "f09c0615-ffba-5009-82fd-db117c58bb14",
+    "report_id": "f9ccb524-8339-40ea-bbc4-0d64d3e23667",
+    "result": {
+     "acknowledged_at": "2026-11-06T02:36:31.367256596+00:00",
+     "new": {
+      "algorithm": "sha1",
+      "hex": "38bee5f4b1e29d367db0ade4c582e5accee7cdca"
+     },
+     "old": {
+      "algorithm": "sha1",
+      "hex": "22a1308738bec5edf4127cb7105aa8ab1e20cde0"
+     },
+     "outcome": "applied"
+    },
+    "source_head": {
+     "binding_generation": 1,
+     "candidate_operation_id": "42bcc837-e0da-5eb4-aeee-c4458124cd5e",
+     "oid": "38bee5f4b1e29d367db0ade4c582e5accee7cdca",
+     "previous": "22a1308738bec5edf4127cb7105aa8ab1e20cde0",
+     "project_id": "e0000000-0000-4000-8000-000000000002",
+     "publication_operation_id": "f09c0615-ffba-5009-82fd-db117c58bb14",
+     "repository_id": "e0000000-0000-4000-8000-000000000003",
+     "retention_handle": "42bcc837-e0da-5eb4-aeee-c4458124cd5e",
+     "schema_version": 1,
+     "sequence": 4,
+     "target": "refs/heads/main"
+    }
+   },
+   "recorded_at_ms": 1793932591451,
+   "source_operation_id": "dcc09947-327b-4c04-bd9e-9b762189601b",
+   "state": "published"
+  }
+ ],
+ "remote_main": [
+  "38bee5f4b1e29d367db0ade4c582e5accee7cdca 22a1308738bec5edf4127cb7105aa8ab1e20cde0 Retained execution checkpoint",
+  "22a1308738bec5edf4127cb7105aa8ab1e20cde0 e0ab6fe492b6bbc926390204ad0dff88c78104c9 Retained execution checkpoint",
+  "e0ab6fe492b6bbc926390204ad0dff88c78104c9 6c43decb90318963b22f7ad8eb2009d931ec12ae Retained execution checkpoint",
+  "6c43decb90318963b22f7ad8eb2009d931ec12ae 2e32645bab743729bfaeb0f2eec417c2ace7794b Retained execution checkpoint",
+  "2e32645bab743729bfaeb0f2eec417c2ace7794b  Initial commit"
+ ]
+}

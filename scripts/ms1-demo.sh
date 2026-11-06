@@ -27,8 +27,8 @@
 #   run             one graph attempt through the stack: worker-side aq-git, then
 #                   `aq-worker run-native` with the Claude docker-local executor
 #                   (scripts/ms1-node-run.py); repeat for the next ready task
-#   remote | sync   (AQ_MS1_D1) local bare remote in the aq-git volume; central fetch
-#   publication    (AQ_MS1_D1) delivery evidence, source head and the remote's main
+#   remote | sync   (D1) local bare remote in the aq-git volume; central fetch
+#   publication    (D1) delivery evidence, source head and the remote's main
 #   status | down | node-stop
 #   all             up, seed, node, import-login, live, server-restart, gaps
 #
@@ -38,13 +38,13 @@
 # CLAUDE_CODE_OAUTH_TOKEN environment of the claude process.
 set -euo pipefail
 SRV=$(cd "$(dirname "$0")/.." && pwd)
-WORKER_SRC=${AQ_MS1_WORKER_SRC:-/home/jkern/dev/aq-platform/wt/ms1-worker}
+WORKER_SRC=${AQ_MS1_WORKER_SRC:-/home/jkern/dev/aq-platform/wt/ms1h-worker}
 DASH=${AQ_MS1_DASHBOARD:-/home/jkern/dev/aq-platform/aq-dashboard}
 # One stack per Compose project: AQ_MS1_PROJECT (default aq-ms1) names the
 # project, its state dir (~/.local/share/$AQ_MS1_PROJECT) and its server image
 # tag; AQ_MS1_ADMIN_PORT/AQ_MS1_WORKER_PORT/AQ_MS1_GRAPH_PORT its ports.
-# Example (the D1 stack): AQ_MS1_PROJECT=aq-ms1d AQ_MS1_ADMIN_PORT=38080
-#   AQ_MS1_WORKER_PORT=38081 AQ_MS1_GRAPH_PORT=38741 AQ_MS1_D1=1 scripts/ms1-demo.sh up
+# Example (a second stack): AQ_MS1_PROJECT=aq-ms1d AQ_MS1_ADMIN_PORT=38080
+#   AQ_MS1_WORKER_PORT=38081 AQ_MS1_GRAPH_PORT=38741 scripts/ms1-demo.sh up
 STACK=${AQ_MS1_PROJECT:-aq-ms1}
 ADMIN_PORT=${AQ_MS1_ADMIN_PORT:-28080} WORKER_PORT=${AQ_MS1_WORKER_PORT:-28081} GRAPH_PORT=${AQ_MS1_GRAPH_PORT:-28741}
 BASE=${AQ_MS1_HOME:-$HOME/.local/share/$STACK}
@@ -57,10 +57,13 @@ export AQ_DEV_ADMIN_PORT=$ADMIN_PORT AQ_DEV_WORKER_PORT=$WORKER_PORT AQ_DEV_GRAP
 export AQ_DEV_SERVER_URL=http://127.0.0.1:$ADMIN_PORT AQ_DEV_WORKER_URL=http://127.0.0.1:$WORKER_PORT
 export AQ_DEV_GRAPH_URL=http://127.0.0.1:$GRAPH_PORT
 export AQ_MS1_NODE_PIDFILE=$BASE/worker/controller.pid
-# AQ_MS1_D1=1: D1 publication. The scratch project uses a local bare remote
-# (cloned from ElectricJack/aq-scratch into the aq-git volume), a named-ref
-# source on main, delivery required by D3 and a fast-forward publication policy.
-D1=${AQ_MS1_D1:-}
+# D1 publication (default; AQ_MS1_D1=0 turns it off before the first seed).
+# The scratch project uses a local bare remote (cloned from
+# ElectricJack/aq-scratch into the aq-git volume), a named-ref source on main,
+# delivery required by D3 and a fast-forward publication policy. The seed's
+# repository designation is immutable, so a stack keeps the mode it was
+# seeded with.
+if [ "${AQ_MS1_D1:-1}" = 1 ]; then D1=1; export AQ_MS1_D1=1; else D1=; export AQ_MS1_D1=0; fi
 LOCAL_REMOTE=/var/lib/aq/remotes/aq-scratch.git
 export AQ_DEV_STATE_DIR=$BASE/state AQ_SECRETS_DIR=$BASE/secrets
 # Opt-in [intelligence] tables (the Claude subscription-login credential and
@@ -68,7 +71,11 @@ export AQ_DEV_STATE_DIR=$BASE/state AQ_SECRETS_DIR=$BASE/secrets
 # vault is immutable for a Compose project.
 INTELLIGENCE=${AQ_DEV_INTELLIGENCE_FILE:-$BASE/intelligence.toml}
 [ -f "$INTELLIGENCE" ] && export AQ_DEV_INTELLIGENCE_FILE=$INTELLIGENCE
-CREDENTIAL=${AQ_MS1_CREDENTIAL:-owner-claude-subscription@1}
+# ms1-profiled.py configures credential profile version 2. The first
+# import-login stages the base file, which changes the registered credential
+# state: rerun `profiled` with AQ_MS1_CREDENTIAL_REVISION=2 and a bumped
+# revision afterwards (MS1.md, Owner verification, fresh stack).
+CREDENTIAL=${AQ_MS1_CREDENTIAL:-owner-claude-subscription@2}
 CREDENTIAL_REVISION=${AQ_MS1_CREDENTIAL_REVISION:-1}
 # Own image tag: never retag agent-q-server:dev, which aq-v2-local runs.
 export AQ_SERVER_IMAGE=${AQ_SERVER_IMAGE:-agent-q-server:${STACK#aq-}}
@@ -136,7 +143,7 @@ cmd_node_enroll() {
 }
 
 cmd_run() {
-  say "one attempt through the stack (node $(sed -n 's/^node_id = "\(.*\)"/\1/p' "$W/worker.toml"))"
+  say "one attempt through the stack (node $(sed -n 's/^node_id = "\(.*\)"/\1/p' "$BASE/node/config/worker.toml"))"
   # Owner availability attestation for the subscription (selection max age 30 s).
   (cd "$SRV" && python3 scripts/ms1-profiled.py observe) > "$EVID/observe-last.json"
   [ -z "$D1" ] || cmd_sync > "$EVID/sync-last.json"
@@ -178,6 +185,9 @@ cmd_seed() {
   fi
   # The seed's settlement step recreates the server without the dashboard overlay.
   compose up -d --no-build --wait --wait-timeout 300 server
+  # The E0 placeholder task is ready too; retire it so runs take the MS1 tasks.
+  (cd "$SRV" && python3 scripts/ms1-task.py --retire e0000000-0000-4000-8000-000000000004 \
+     "E0 placeholder task, not part of the MS1 demo") || true
   say "two dependent graph tasks (A blocks B)"
   GRAPH_TOKEN_FILE=$AQ_SECRETS_DIR/graph_token python3 - "$TASK_A" "$TASK_B" <<'EOF' | tee "$EVID/graph-seed.json"
 import json, os, sys, urllib.request, urllib.error
