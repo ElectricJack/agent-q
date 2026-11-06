@@ -1273,3 +1273,13 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - WDR-05: dependency copy, and the picker greys out existing blockers;
     - Retry is disabled when a task never had an attempt.
   - #80 was merged with main locally (typecheck and 1034 unit tests pass), pushed, and is in CI.
+- **10:20: QA fix phase complete.**
+  - Merged aq-dashboard #80 (7920823e). Rebuilt the dashboard `dist` (`index-CSCSBDEV.js`) and restarted the `aq-ms1` server.
+  - **Spot-check in a live browser:**
+    - /results lists all results with no "update required" (RR-01 fixed);
+    - result detail loads;
+    - the Decisions badge shows no count, matching the empty inbox (RR-02 fixed);
+    - Overview reads "About 6 items need you".
+  - **QA totals:** first pass 274/368. The re-run was ~340/386 before the last two fix PRs (#79, #80), which addressed the blocker and the majors it found.
+  - **Deferred to task-view parity (spec 0004):** WD-08 rejection reasons, comments, lifecycle actions, result review.
+  - **Waiting on the owner:** MS1 sign-off, and approval of the raised aq-server lib ratchet (111,153).
