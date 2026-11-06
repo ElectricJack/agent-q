@@ -1283,3 +1283,5 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **QA totals:** first pass 274/368. The re-run was ~340/386 before the last two fix PRs (#79, #80), which addressed the blocker and the majors it found.
   - **Deferred to task-view parity (spec 0004):** WD-08 rejection reasons, comments, lifecycle actions, result review.
   - **Waiting on the owner:** MS1 sign-off, and approval of the raised aq-server lib ratchet (111,153).
+- **15:10: MS1 signed off by the owner** ("I'm good with MS1 at this point. Lets move forward with task parity now."). Recorded in MS1.md.
+  - Next: task-view parity Phase 1 (aq-dashboard spec 0004).

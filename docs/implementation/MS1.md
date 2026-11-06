@@ -218,7 +218,7 @@ RSS. A realistic Rust build has not been measured (E5).
 | Following external pushes to `main`; replay of a held result after a server restart; reconcile of an indeterminate publication; PR mode | D2, D1b |
 | Templates are unadmitted; the sandbox daemon is single-UID | C3c, I4a owner fix |
 
-Owner verification: pending
+Owner verification: **signed off by the owner on 2026-11-06** ("I'm good with MS1 at this point"), after the dashboard QA pass and fixes (aq-server #97; aq-dashboard #74–#80).
 
 ## Update 2026-11-05 (late): final-review fixes on `ms1/retry`
 
