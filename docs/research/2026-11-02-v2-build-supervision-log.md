@@ -1425,3 +1425,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Phase 4 (one CLI) starts when the phase-1 contract is published. Then phase 6, the live proof.
 - **21:35:** merged aq-server #100 (3f59406d), agent channel phase 0: grant checks on the question/comment/wait routes, structured refusal reasons and audit rows. Retargeted the stacked phase-1 PR #101 (command registry) to main.
   - Disk is at 74% (258 G free): several concurrent Rust builds plus target dirs.
+- **21:55:** merged aq-server #101 (a17d7420), agent channel phase 1: Caller, the command registry, `/api/v1/commands` invoke and discovery, `whoami`, and `commands.json` with drift and deny-by-default route tests.
+  - Retargeted phase 2 (#102, grants) to main.
+  - Dispatched phase 4 (one CLI: `aqv2`/`aq` channel mode, `aq run <any command>`, `aq commands`, typed thin wrappers, refusal exit codes; the test is generated from `commands.json`).
+  - Disk is at 75%.
