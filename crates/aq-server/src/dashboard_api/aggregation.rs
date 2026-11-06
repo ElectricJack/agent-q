@@ -213,11 +213,23 @@ pub(super) async fn overview(
         .iter()
         .map(|p| (p.label.id, p.label.clone()))
         .collect();
-    let (attempts, ready, reviews, results, settlements, operations) = tokio::join!(
-        Box::pin(bounded_source(
-            "attempts_and_workers",
-            attempts(state, runtime, &ids, &labels, truncated)
-        )),
+    // SO-01: results holds node row locks for its whole page while attempts
+    // locks each node with a 250 ms timeout. Run concurrently, attempts lost
+    // that wait on ~40% of reads, so these two sources run in turn.
+    let ((results, attempts), ready, reviews, settlements, operations) = tokio::join!(
+        Box::pin(async {
+            let results = bounded_source(
+                "results",
+                results(state, user, &projects, truncated, mounted.results),
+            )
+            .await;
+            let attempts = bounded_source(
+                "attempts_and_workers",
+                attempts(state, runtime, &ids, &labels, truncated),
+            )
+            .await;
+            (results, attempts)
+        }),
         Box::pin(bounded_source(
             "graph_ready",
             ready(state, &projects, truncated, mounted.graph)
@@ -225,10 +237,6 @@ pub(super) async fn overview(
         Box::pin(bounded_source(
             "reviews",
             reviews(state, runtime, user, &projects, truncated)
-        )),
-        Box::pin(bounded_source(
-            "results",
-            results(state, user, &projects, truncated, mounted.results)
         )),
         Box::pin(bounded_source(
             "settlement",

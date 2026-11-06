@@ -682,8 +682,9 @@ impl Store {
                     .clone()
                     .application_name("aq-terminal"),
             );
+        // Human tail/info/output reads and worker uploads (QA N-01: 2 was too few).
         let terminal_data_pool = PgPoolOptions::new()
-            .max_connections(2)
+            .max_connections(4)
             .acquire_timeout(Duration::from_secs(1))
             .after_connect(|connection, _| {
                 Box::pin(async move {

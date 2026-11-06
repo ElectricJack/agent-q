@@ -190,6 +190,7 @@ subject revision and the single `expected_versions` entry (`task` or
   objects with verdict `verified` or `disputed`. Graph may answer `forbidden`,
   which is `rejected`.
 - `knowledge.retire` requires a retirement reason and an optional successor;
+  retiring an already retired record is `rejected` and writes nothing.
   `knowledge.restore` restores an earlier `revision`.
 
 Graph writes use the idempotency key `aq-dashboard-action:{operation_id}` and a

@@ -23,6 +23,7 @@ pub mod profiled_execution;
 pub mod project_bindings;
 pub mod protected_storage;
 pub mod provider_accounts;
+pub mod read_gate;
 pub mod readiness;
 pub mod repository_onboarding;
 pub mod result_media;
@@ -162,8 +163,14 @@ async fn harden(req: Request, next: Next) -> Response {
     resp
 }
 
-async fn not_found() -> Response {
-    error::AppError::NotFound("no such route".into()).into_response()
+pub(crate) async fn not_found(
+    axum::extract::State(state): axum::extract::State<AppState>,
+    request: Request,
+) -> Response {
+    match dashboard_assets::browser_not_found(state, request).await {
+        Some(index) => index,
+        None => error::AppError::NotFound("no such route".into()).into_response(),
+    }
 }
 
 async fn method_not_allowed() -> Response {

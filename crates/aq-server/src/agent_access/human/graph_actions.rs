@@ -387,7 +387,8 @@ impl GraphPayload for KnowledgeRetire {
             && self.successor_id.is_none_or(|s| !s.is_nil())
     }
     fn operations(&self, c: &Current<'_>) -> ApiResult<Vec<Value>> {
-        if self.successor_id == Some(c.subject) {
+        // Retiring again would append a revision and overwrite the reason (N-03).
+        if self.successor_id == Some(c.subject) || c.node["retired"] != false {
             return Err(ApiError::invalid());
         }
         let mut patch = serde_json::Map::new();

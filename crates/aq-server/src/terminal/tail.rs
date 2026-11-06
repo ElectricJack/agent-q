@@ -62,6 +62,15 @@ async fn read_inner(
     let config = configured(state)?;
     let terminal = identity(state, id).await?;
     let mut tx = persistence::begin(state).await?;
+    // N-01: a ~5/s tail poll shares the node lock with its own info/watch reads
+    // and overview/result reads. Wait for it within the 3 s read deadline
+    // instead of failing at the pool's 100 ms lock timeout.
+    sqlx::query(
+        "SELECT set_config('lock_timeout','1s',true),set_config('statement_timeout','2s',true)",
+    )
+    .execute(&mut *tx)
+    .await
+    .map_err(|_| AppError::Internal)?;
     let view = authority::load_locked(
         state,
         &mut tx,

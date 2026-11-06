@@ -478,18 +478,19 @@ pub fn routes(driver: Arc<Driver>) -> Router<AppState> {
             get(definitions::loaded_definitions),
         )
         .layer(Extension(driver))
+        // 2 run (the bridge pool has 2 connections), 8 more wait briefly.
         .layer(axum::middleware::from_fn_with_state(
-            Arc::new(tokio::sync::Semaphore::new(2)),
+            Arc::new(crate::read_gate::ReadGate::new(2, 8)),
             read_gate,
         ))
 }
 async fn read_gate(
-    axum::extract::State(gate): axum::extract::State<Arc<tokio::sync::Semaphore>>,
+    axum::extract::State(gate): axum::extract::State<Arc<crate::read_gate::ReadGate>>,
     request: axum::extract::Request,
     next: axum::middleware::Next,
 ) -> axum::response::Response {
     use axum::response::IntoResponse;
-    let Ok(_permit) = gate.try_acquire() else {
+    let Some(_permits) = gate.enter().await else {
         let mut response = Error::Overloaded.into_response();
         response.headers_mut().insert(
             axum::http::header::CACHE_CONTROL,

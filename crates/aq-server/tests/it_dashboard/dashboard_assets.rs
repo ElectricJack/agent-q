@@ -436,3 +436,72 @@ async fn server_image_serves_pinned_dashboard_digest() {
         assert_eq!(headers["cache-control"], "no-store");
     }
 }
+#[tokio::test]
+async fn browser_navigation_to_an_unknown_page_loads_the_app_with_404() {
+    // QA SO-02: a hard-loaded unknown route showed the raw JSON 404.
+    let (_db, state) = state().await;
+    let root = bundle();
+    let assets = Arc::new(DashboardAssets::load(root.path()).unwrap());
+    let app = build_admin_router_with_dashboard(state.clone(), assets);
+    let api_only = build_admin_router(state);
+    let browse = |router: &Router, path: &str, email: Option<&str>| {
+        let mut builder =
+            Request::get(path).header("accept", "text/html,application/xhtml+xml,*/*;q=0.8");
+        if let Some(email) = email {
+            builder = builder.header("x-test-verified-email", email);
+        }
+        let response = router.clone().oneshot(builder.body(Body::empty()).unwrap());
+        async move {
+            let response = response.await.unwrap();
+            let status = response.status();
+            let headers = response.headers().clone();
+            let body = response
+                .into_body()
+                .collect()
+                .await
+                .unwrap()
+                .to_bytes()
+                .to_vec();
+            (status, headers, body)
+        }
+    };
+    for path in [
+        "/nonexistent",
+        "/overview/extra",
+        "/knowledge/a/b",
+        "/work/a%2fb",
+        "/settings/",
+    ] {
+        let (status, headers, body) = browse(&app, path, Some("owner@example.test")).await;
+        assert_eq!(status, StatusCode::NOT_FOUND, "{path}");
+        assert_eq!(
+            headers["content-type"], "text/html; charset=utf-8",
+            "{path}"
+        );
+        assert_eq!(body, INDEX, "{path}");
+    }
+    // API, machine and asset paths, non-browser clients, unauthenticated
+    // visitors and a router without a bundle keep the JSON answers.
+    for (router, path, email) in [
+        (&app, "/api/missing", Some("owner@example.test")),
+        (&app, "/api", Some("owner@example.test")),
+        (&app, "/v1/worker/missing", Some("owner@example.test")),
+        (&app, "/assets/missing.js", Some("owner@example.test")),
+        (&app, "/nonexistent", None),
+        (&api_only, "/nonexistent", Some("owner@example.test")),
+    ] {
+        let (status, headers, _) = browse(router, path, email).await;
+        assert_ne!(status, StatusCode::OK, "{path}");
+        assert_eq!(headers["content-type"], "application/json", "{path}");
+    }
+    let (status, headers, _) = request(
+        &app,
+        "GET",
+        "/nonexistent",
+        Some("owner@example.test"),
+        false,
+    )
+    .await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert_eq!(headers["content-type"], "application/json");
+}

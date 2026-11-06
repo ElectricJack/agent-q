@@ -329,3 +329,43 @@ async fn concurrent_first_logins_invited_viewer() {
         .unwrap();
     concurrent_first_logins(&h, &token("v1", "viewer@example.com")).await;
 }
+
+#[test]
+fn development_alone_accepts_the_loopback_alias_of_the_configured_origin() {
+    for (expected, alias) in [
+        ("http://127.0.0.1:28080", "http://localhost:28080"),
+        ("http://localhost:28080", "http://127.0.0.1:28080"),
+        ("http://127.0.0.1", "http://localhost"),
+    ] {
+        assert!(aq_server::authz::origin_allowed(
+            expected,
+            expected.as_bytes(),
+            false
+        ));
+        assert!(
+            aq_server::authz::origin_allowed(expected, alias.as_bytes(), true),
+            "{alias}"
+        );
+        assert!(
+            !aq_server::authz::origin_allowed(expected, alias.as_bytes(), false),
+            "{alias}"
+        );
+    }
+    for other in [
+        "http://localhost:8080",
+        "https://localhost:28080",
+        "http://localhost.evil:28080",
+        "http://127.0.0.2:28080",
+        "null",
+    ] {
+        assert!(
+            !aq_server::authz::origin_allowed("http://127.0.0.1:28080", other.as_bytes(), true),
+            "{other}"
+        );
+    }
+    assert!(!aq_server::authz::origin_allowed(
+        "https://aq.example.com",
+        b"http://localhost",
+        true
+    ));
+}

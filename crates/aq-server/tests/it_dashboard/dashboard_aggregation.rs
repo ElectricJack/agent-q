@@ -96,6 +96,14 @@ async fn quota_unknown_is_not_zero() {
     for field in ["used_percent", "used", "limit"] {
         assert!(window[field].is_null(), "{field}: {window}");
     }
+    // QA SO-08: a just-observed unknown window is not already stale.
+    let observed = &window["observation"];
+    let at = |k: &str| chrono::DateTime::parse_from_rfc3339(observed[k].as_str().unwrap()).unwrap();
+    assert_eq!(
+        (at("fresh_until") - at("observed_at")).num_milliseconds(),
+        5000,
+        "{observed}"
+    );
     assert!(!body.to_string().contains("private-search-canary"));
     let (_, other) = read(
         &app,

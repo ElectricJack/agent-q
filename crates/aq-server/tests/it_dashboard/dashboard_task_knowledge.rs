@@ -1255,3 +1255,91 @@ async fn enqueue_principal_migration_preserves_retired_tombstones() {
             .is_err()
     );
 }
+
+#[tokio::test]
+async fn retiring_a_retired_record_is_rejected_without_a_graph_write() {
+    // QA N-03: a second retirement used to append a revision and overwrite the reason.
+    let x = setup().await;
+    let id = Uuid::new_v4();
+    let mut retired = node(id, x.workspace(), "knowledge", 4);
+    retired["retired"] = json!(true);
+    retired["retirement_reason"] = json!("Superseded");
+    x.put(retired);
+    let op = Uuid::new_v4();
+    let (status, body) = x
+        .act(&action(
+            "knowledge.retire",
+            "knowledge",
+            id,
+            "4",
+            json!({"operation_id":op,"project_id":x.project(),"expected_version":"4","retirement_reason":"Again"}),
+        ))
+        .await;
+    assert_eq!(body["data"]["disposition"], "rejected", "{status} {body}");
+    assert!(x.posts().is_empty(), "nothing reaches Graph");
+}
+
+#[tokio::test]
+async fn human_reads_attribute_service_writes_to_the_acting_owner() {
+    // QA N-04: Graph records the one AQ mutation identity as creator and verifier.
+    let x = setup().await;
+    let op = Uuid::new_v4();
+    x.reply(
+        200,
+        change_set(vec![node(op, x.workspace(), "knowledge", 1)]),
+    );
+    let (_, body) = x
+        .act(&action(
+            "knowledge.author",
+            "project",
+            x.project(),
+            "1",
+            json!({"operation_id":op,"project_id":x.project(),"expected_project_revision":"1","title":"Original title","body":"Original body"}),
+        ))
+        .await;
+    assert_eq!(body["data"]["disposition"], "confirmed", "{body}");
+    let mut verified = x.graph.nodes.lock().unwrap()[&op].clone();
+    verified["version"] = json!(2);
+    verified["content_revision"] = json!(2);
+    verified["verification"] = json!("verified");
+    verified["last_verified_by"] = json!("dashboard-fixture-service");
+    verified["last_verified_at"] = json!("2026-01-02T00:00:00Z");
+    x.reply(200, change_set(vec![verified]));
+    let mut verify = action(
+        "knowledge.verify",
+        "knowledge",
+        op,
+        "1",
+        json!({"operation_id":Uuid::new_v4(),"project_id":x.project(),"expected_version":"1","verification":"verified",
+            "evidence":[{"source_id":"review-1","kind":"url","url":"https://example.test/review","observed_at":"2026-01-01T00:00:00Z","retained":false}]}),
+    );
+    verify["reason"] = json!("Reviewed");
+    let (_, body) = x.act(&verify).await;
+    assert_eq!(body["data"]["disposition"], "confirmed", "{body}");
+    let other = Uuid::new_v4();
+    x.put(node(other, x.workspace(), "knowledge", 1));
+    let read = |id: Uuid| {
+        let request = Request::get(format!(
+            "/api/human/projects/{}/knowledge/{id}",
+            x.project()
+        ))
+        .header("x-aq-dev-email", "owner@localhost")
+        .body(Body::empty())
+        .unwrap();
+        let app = aq_server::build_admin_router(x.f.state.clone());
+        async move {
+            let res = app.oneshot(request).await.unwrap();
+            assert_eq!(res.status(), StatusCode::OK);
+            let bytes = res.into_body().collect().await.unwrap().to_bytes();
+            serde_json::from_slice::<Value>(&bytes).unwrap()["data"].clone()
+        }
+    };
+    let record = read(op).await;
+    assert_eq!(record["created_by"], "owner@localhost", "{record}");
+    assert_eq!(record["last_verified_by"], "owner@localhost", "{record}");
+    let foreign = read(other).await;
+    assert_eq!(
+        foreign["created_by"], "fixture",
+        "other actors keep their attribution"
+    );
+}

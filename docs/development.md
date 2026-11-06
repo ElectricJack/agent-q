@@ -207,6 +207,29 @@ variable set, the server exits with status 2 unless the vault has
 such as `vault.example/` cannot be mounted into the production stack by
 mistake. `compose.dev.yaml` overrides it to `development`.
 
+The vault's `[server] public_origin` is the CSRF origin. `scripts/dev-stack.py
+prepare` derives it from `AQ_DEV_SERVER_URL` (else
+`http://127.0.0.1:$AQ_DEV_ADMIN_PORT`) when it first writes the vault, so a stack
+published on another port (MS1: 28080) accepts its own browser writes. A replay
+keeps the first origin. With `AQ_DEV_REPLACE_OPERATOR_SECTION=1` a new origin is
+written to both copies the server may read: `config.toml` and the settlement
+copy (`/vault/settlement/config.toml`). Dev auth alone also accepts the other
+loopback spelling of that origin (`localhost` for `127.0.0.1`, same port).
+
+## Human read capacity
+
+One dashboard page issues 3 to 6 reads at once. These gates queue a burst
+briefly (FIFO, at most 2 s, `crates/aq-server/src/read_gate.rs`) and refuse
+only real overload, with the retryable 503/429 each route already used:
+
+| Reads | Run at once | Also wait | Database pool |
+| --- | --- | --- | --- |
+| `/api/human/projects/...` (Graph tasks and knowledge) | 4 | 12 | 4 connections |
+| `/api/playbooks/inspection/...` | 2 | 8 | bridge pool, 2 |
+| `/api/v1/terminals/.../tail`, info, output | pool-bound | - | 4 connections; tail waits up to 1 s for the node lock |
+
+Playbook inspection no longer also takes the playbook work budget (2).
+
 ## Tests
 
 ```sh

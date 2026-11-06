@@ -1377,8 +1377,10 @@ async fn saturated_data_connections_do_not_block_metadata_control_ack_and_input_
         })
         .unwrap();
     let data = f.state.store.terminal_data_pool_for_testing();
-    let first = data.acquire().await.unwrap();
-    let second = data.acquire().await.unwrap();
+    let mut held = Vec::new();
+    for _ in 0..data.options().get_max_connections() {
+        held.push(data.acquire().await.unwrap());
+    }
     assert!(
         tokio::time::timeout(std::time::Duration::from_millis(50), data.acquire())
             .await
@@ -1493,7 +1495,7 @@ async fn saturated_data_connections_do_not_block_metadata_control_ack_and_input_
         .unwrap(),
         0
     );
-    drop((first, second));
+    drop(held);
     assert_eq!(
         service::receipt(
             &f.state,

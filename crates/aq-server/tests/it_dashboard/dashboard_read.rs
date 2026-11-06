@@ -61,6 +61,10 @@ async fn live_subset_bootstrap_and_exact_session_scope_are_truthful() {
     fixture_response("sessions", &list);
     let row = &list["data"]["items"][0];
     assert_eq!(row["observation"]["state"], "unknown");
+    // QA RA-16: an unknown observation made now is not already stale.
+    assert!(
+        row["observation"]["fresh_until"].as_str() > row["observation"]["observed_at"].as_str()
+    );
     assert_eq!(list["data"]["total"], json!({"value":1,"accuracy":"exact"}));
     let id = row["id"].as_str().unwrap();
     let (status, detail) = read(&app, &format!("/api/v1/sessions/{id}"), "owner@localhost").await;
