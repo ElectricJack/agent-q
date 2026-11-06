@@ -1252,3 +1252,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - **What happens:** /results and result detail show the app-wide "Dashboard update required".
     - **Cause:** #97 fixed RA-03, so the media listing now returns 200. Its response carries `max_clip_bytes`/`max_clip_duration_ms`, which aq-server added on Nov 4, and the dashboard's pinned human-result-media contract predates them. The contract failure escalates to the session-wide incompatible fence.
     - Dispatched an urgent fix: re-pin every drifted contract, and contain contract failures on non-essential reads to their card.
+- **09:30: shell/Overview re-run:** 72/85 pass (was 60/84). 21 of 23 SO issues fixed and 2 partial; N-05 fixed. It confirms the RR-01 blocker (the result media contract takes over the whole app; 7 fails).
+  - **New RR-02, major:** the Decisions badge reads "~6" but the inbox is empty. Since #97, `needs_you` counts every attention item while the badge still labels it decisions.
+  - **SO-08 partial:** observations are fresh for 5 s but polled every ~60 s, so the strip shows "Stale" ~90% of the time.
+  - Both were added to the urgent media-contract fix PR.
