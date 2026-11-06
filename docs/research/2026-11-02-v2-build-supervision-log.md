@@ -1364,3 +1364,11 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Global type step:** move one type step down on the ENTIRE dashboard, done at the token level so it stays consistent and fits more information.
   - **Task view wrapping:** remove the line-wrapping of buttons and controls so rows are horizontally aligned and take less vertical space.
   - Sent both to the style subagent: update `compare.md` and the change plan first, then implement, with no-wrap Playwright checks and before/after measurements. The owner reviews before merge.
+- **18:40: merged the Phase 1 server fixes and dashboard re-pin together.** aq-server #99 (d8aa31d4) and aq-dashboard #83 (877fe12a).
+  - **Fixes:**
+    - `held` readiness with reasons;
+    - history attributed to the acting owner, with change summaries;
+    - process outcome on results.
+  - **Tolerance (lesson W77):** unknown readiness/outcome/reason/field values render as "Unknown (x)" instead of failing the read.
+  - Rebuilding `aq-ms1`.
+  - The style pass (global type step down, no-wrap task view) is rebasing on main.
