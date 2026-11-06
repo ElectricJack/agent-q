@@ -1,0 +1,1224 @@
+[
+  {
+    "args": [
+      "whoami"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {}
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/whoami"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "commands"
+    ],
+    "calls": [
+      {
+        "body": null,
+        "method": "GET",
+        "path": "/api/v1/commands"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "commands",
+      "--all"
+    ],
+    "calls": [
+      {
+        "body": null,
+        "method": "GET",
+        "path": "/api/v1/commands?all=true"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "task",
+      "show"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {}
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.show"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "task",
+      "show",
+      "00000000-0000-4000-8000-0000000000b1"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "task_id": "00000000-0000-4000-8000-0000000000b1"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.show"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "task",
+      "create",
+      "--title",
+      "Verify changelog links",
+      "--parent",
+      "self"
+    ],
+    "calls": [
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "operation_id": "<new-1>",
+            "parent_id": "self",
+            "title": "Verify changelog links"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.create"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "task",
+      "create",
+      "--title",
+      "Draft one",
+      "--body",
+      "Body",
+      "--acceptance-criteria",
+      "Done",
+      "--label",
+      "docs",
+      "--parent",
+      "00000000-0000-4000-8000-0000000000b1",
+      "--draft",
+      "--priority",
+      "50"
+    ],
+    "calls": [
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "acceptance_criteria": "Done",
+            "body": "Body",
+            "labels": [
+              "docs"
+            ],
+            "operation_id": "<new-1>",
+            "parent_id": "00000000-0000-4000-8000-0000000000b1",
+            "priority": 50,
+            "task_state": "draft",
+            "title": "Draft one"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.create"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "task",
+      "create",
+      "--title",
+      "Unrelated top-level task"
+    ],
+    "calls": [
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "operation_id": "<new-1>",
+            "title": "Unrelated top-level task"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.create"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "task",
+      "graph",
+      "show",
+      "--param",
+      "task_id=00000000-0000-4000-8000-0000000000b1"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "task_id": "00000000-0000-4000-8000-0000000000b1"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.graph.show"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "knowledge",
+      "search",
+      "release checklist"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "text": "release checklist"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/knowledge.search"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "knowledge",
+      "search",
+      "release",
+      "--kind",
+      "knowledge",
+      "--limit",
+      "5",
+      "--cursor",
+      "c1"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "cursor": "c1",
+            "kind_filter": "knowledge",
+            "limit": 5,
+            "text": "release"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/knowledge.search"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "knowledge",
+      "show",
+      "00000000-0000-4000-8000-0000000000b2"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "node_id": "00000000-0000-4000-8000-0000000000b2"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/knowledge.show"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "knowledge",
+      "author",
+      "--title",
+      "Release checklist",
+      "--body",
+      "Run it.",
+      "--label",
+      "ops",
+      "--content-type",
+      "procedure"
+    ],
+    "calls": [
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "commands": [
+              {
+                "body": "Run it.",
+                "content_type": "procedure",
+                "id": "<new-2>",
+                "kind": "create_finding",
+                "labels": [
+                  "ops"
+                ],
+                "title": "Release checklist"
+              }
+            ],
+            "operation_id": "<new-1>"
+          },
+          "reason": "Finding recorded by the agent with `aq knowledge author`"
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/graph.command"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "comment",
+      "add",
+      "Found the checklist; following it."
+    ],
+    "calls": [
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "body": "Found the checklist; following it.",
+            "operation_id": "<new-1>"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.comment.add"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "comment",
+      "list",
+      "--limit",
+      "10"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "limit": 10
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/comment.list"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "comment",
+      "edit",
+      "00000000-0000-4000-8000-0000000000b3",
+      "--body",
+      "Edited",
+      "--revision",
+      "2"
+    ],
+    "calls": [
+      {
+        "body": {
+          "expected_versions": {
+            "task_comment": "2"
+          },
+          "operation_id": "<new-1>",
+          "params": {
+            "body": "Edited",
+            "expected_revision": "2",
+            "operation_id": "<new-1>"
+          },
+          "subject": {
+            "id": "00000000-0000-4000-8000-0000000000b3",
+            "revision": "2",
+            "type": "task_comment"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.comment.edit"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "comment",
+      "delete",
+      "00000000-0000-4000-8000-0000000000b3",
+      "--revision",
+      "3"
+    ],
+    "calls": [
+      {
+        "body": {
+          "expected_versions": {
+            "task_comment": "3"
+          },
+          "operation_id": "<new-1>",
+          "params": {
+            "expected_revision": "3",
+            "operation_id": "<new-1>"
+          },
+          "subject": {
+            "id": "00000000-0000-4000-8000-0000000000b3",
+            "revision": "3",
+            "type": "task_comment"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.comment.delete"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "question",
+      "ask",
+      "Should the notes include the deprecated API?"
+    ],
+    "calls": [
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "operation_id": "<new-1>",
+            "question": "Should the notes include the deprecated API?"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/question.ask"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "question",
+      "show",
+      "00000000-0000-4000-8000-0000000000b4"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "decision_id": "00000000-0000-4000-8000-0000000000b4"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/question.show"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "wait",
+      "register",
+      "--request",
+      "@REQUEST"
+    ],
+    "calls": [
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "body": {
+              "note": "lifecycle request"
+            },
+            "kind": "inspect"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/wait.register"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "wait",
+      "inspect",
+      "--request",
+      "@REQUEST"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "body": {
+              "note": "lifecycle request"
+            },
+            "kind": "inspect"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/wait.inspect"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "wait",
+      "ack",
+      "--request",
+      "@REQUEST"
+    ],
+    "calls": [
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "body": {
+              "note": "lifecycle request"
+            },
+            "kind": "inspect"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/wait.ack"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "wait",
+      "list"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {}
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/wait.list"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "wait",
+      "show",
+      "00000000-0000-4000-8000-0000000000b5"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "wait_id": "00000000-0000-4000-8000-0000000000b5"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/wait.show"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "message",
+      "send",
+      "Status: halfway"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {}
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/whoami"
+      },
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "body": "Status: halfway",
+            "message_id": "<new-2>",
+            "operation_id": "<new-1>",
+            "recipient": {
+              "kind": "task",
+              "project_id": "00000000-0000-4000-8000-0000000000a2",
+              "task_id": "00000000-0000-4000-8000-0000000000a1",
+              "workspace_id": "00000000-0000-4000-8000-0000000000a5"
+            },
+            "thread_id": "<new-3>"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/message.send"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "message",
+      "send",
+      "Need a review",
+      "--to",
+      "task:00000000-0000-4000-8000-0000000000b1"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {}
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/whoami"
+      },
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "body": "Need a review",
+            "message_id": "<new-2>",
+            "operation_id": "<new-1>",
+            "recipient": {
+              "kind": "task",
+              "project_id": "00000000-0000-4000-8000-0000000000a2",
+              "task_id": "00000000-0000-4000-8000-0000000000b1",
+              "workspace_id": "00000000-0000-4000-8000-0000000000a5"
+            },
+            "thread_id": "<new-3>"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/message.send"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "message",
+      "send",
+      "Question for you",
+      "--to",
+      "supervisor:00000000-0000-4000-8000-0000000000b8"
+    ],
+    "calls": [
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "body": "Question for you",
+            "message_id": "<new-2>",
+            "operation_id": "<new-1>",
+            "recipient": {
+              "conversation_id": "00000000-0000-4000-8000-0000000000b8",
+              "kind": "global_supervisor"
+            },
+            "thread_id": "00000000-0000-4000-8000-0000000000b8"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/message.send"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "message",
+      "inbox"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {}
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/whoami"
+      },
+      {
+        "body": {
+          "params": {
+            "after": "0",
+            "limit": 32,
+            "recipient": {
+              "kind": "task",
+              "project_id": "00000000-0000-4000-8000-0000000000a2",
+              "task_id": "00000000-0000-4000-8000-0000000000a1",
+              "workspace_id": "00000000-0000-4000-8000-0000000000a5"
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/message.inbox"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "message",
+      "body",
+      "00000000-0000-4000-8000-0000000000b6"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {}
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/whoami"
+      },
+      {
+        "body": {
+          "params": {
+            "max_bytes": 16384,
+            "message_id": "00000000-0000-4000-8000-0000000000b6",
+            "offset": "0",
+            "recipient": {
+              "kind": "task",
+              "project_id": "00000000-0000-4000-8000-0000000000a2",
+              "task_id": "00000000-0000-4000-8000-0000000000a1",
+              "workspace_id": "00000000-0000-4000-8000-0000000000a5"
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/message.body"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "message",
+      "ack",
+      "00000000-0000-4000-8000-0000000000b6",
+      "--read"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {}
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/whoami"
+      },
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "disposition": "read",
+            "message_id": "00000000-0000-4000-8000-0000000000b6",
+            "operation_id": "<new-1>",
+            "recipient": {
+              "kind": "task",
+              "project_id": "00000000-0000-4000-8000-0000000000a2",
+              "task_id": "00000000-0000-4000-8000-0000000000a1",
+              "workspace_id": "00000000-0000-4000-8000-0000000000a5"
+            }
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/message.ack"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "operation",
+      "show",
+      "00000000-0000-4000-8000-0000000000b7"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "operation_id": "00000000-0000-4000-8000-0000000000b7"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/operation.show"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "operations",
+      "show",
+      "00000000-0000-4000-8000-0000000000b7"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "operation_id": "00000000-0000-4000-8000-0000000000b7"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/operation.show"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "run",
+      "task.history",
+      "--param",
+      "task_id=00000000-0000-4000-8000-0000000000b1"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "task_id": "00000000-0000-4000-8000-0000000000b1"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.history"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "run",
+      "task.cancel",
+      "--subject",
+      "task:00000000-0000-4000-8000-0000000000b1:4",
+      "--reason",
+      "duplicate"
+    ],
+    "calls": [
+      {
+        "body": {
+          "expected_versions": {
+            "task": "4"
+          },
+          "operation_id": "<new-1>",
+          "params": {},
+          "reason": "duplicate",
+          "subject": {
+            "id": "00000000-0000-4000-8000-0000000000b1",
+            "revision": "4",
+            "type": "task"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.cancel"
+      }
+    ],
+    "mode": "channel"
+  },
+  {
+    "args": [
+      "whoami"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {}
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/whoami"
+      }
+    ],
+    "mode": "owner"
+  },
+  {
+    "args": [
+      "task",
+      "show",
+      "00000000-0000-4000-8000-0000000000b1",
+      "--project",
+      "00000000-0000-4000-8000-0000000000a2"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "project_id": "00000000-0000-4000-8000-0000000000a2",
+            "task_id": "00000000-0000-4000-8000-0000000000b1"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.show"
+      }
+    ],
+    "mode": "owner"
+  },
+  {
+    "args": [
+      "task",
+      "create",
+      "--title",
+      "Write launch notes",
+      "--project",
+      "00000000-0000-4000-8000-0000000000a2",
+      "--expected-project-revision",
+      "3",
+      "--parent",
+      "00000000-0000-4000-8000-0000000000b1",
+      "--label",
+      "docs"
+    ],
+    "calls": [
+      {
+        "body": {
+          "expected_versions": {
+            "project": "3"
+          },
+          "operation_id": "<new-1>",
+          "params": {
+            "acceptance_criteria": "",
+            "body": "",
+            "expected_project_revision": "3",
+            "labels": [
+              "docs"
+            ],
+            "operation_id": "<new-1>",
+            "parent_id": "00000000-0000-4000-8000-0000000000b1",
+            "task_state": "active",
+            "title": "Write launch notes"
+          },
+          "subject": {
+            "id": "00000000-0000-4000-8000-0000000000a2",
+            "revision": "3",
+            "type": "project"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.create"
+      }
+    ],
+    "mode": "owner"
+  },
+  {
+    "args": [
+      "knowledge",
+      "search",
+      "deploy",
+      "--kind",
+      "knowledge"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "q": "deploy",
+            "types": "knowledge"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/knowledge.search"
+      }
+    ],
+    "mode": "owner"
+  },
+  {
+    "args": [
+      "knowledge",
+      "show",
+      "00000000-0000-4000-8000-0000000000b2",
+      "--project",
+      "00000000-0000-4000-8000-0000000000a2"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "node_id": "00000000-0000-4000-8000-0000000000b2",
+            "project_id": "00000000-0000-4000-8000-0000000000a2"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/knowledge.show"
+      }
+    ],
+    "mode": "owner"
+  },
+  {
+    "args": [
+      "knowledge",
+      "author",
+      "--title",
+      "Deploy runbook",
+      "--body",
+      "Run the migration first.",
+      "--label",
+      "ops",
+      "--content-type",
+      "procedure",
+      "--project",
+      "00000000-0000-4000-8000-0000000000a2",
+      "--expected-project-revision",
+      "1"
+    ],
+    "calls": [
+      {
+        "body": {
+          "expected_versions": {
+            "project": "1"
+          },
+          "operation_id": "<new-1>",
+          "params": {
+            "body": "Run the migration first.",
+            "content_type": "procedure",
+            "expected_project_revision": "1",
+            "labels": [
+              "ops"
+            ],
+            "operation_id": "<new-1>",
+            "project_id": "00000000-0000-4000-8000-0000000000a2",
+            "title": "Deploy runbook"
+          },
+          "subject": {
+            "id": "00000000-0000-4000-8000-0000000000a2",
+            "revision": "1",
+            "type": "project"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/knowledge.author"
+      }
+    ],
+    "mode": "owner"
+  },
+  {
+    "args": [
+      "comment",
+      "add",
+      "Please also cover phones.",
+      "--task",
+      "00000000-0000-4000-8000-0000000000b1",
+      "--project",
+      "00000000-0000-4000-8000-0000000000a2"
+    ],
+    "calls": [
+      {
+        "body": {
+          "expected_versions": {},
+          "operation_id": "<new-1>",
+          "params": {
+            "body": "Please also cover phones.",
+            "operation_id": "<new-1>",
+            "project_id": "00000000-0000-4000-8000-0000000000a2"
+          },
+          "subject": {
+            "id": "00000000-0000-4000-8000-0000000000b1",
+            "type": "task"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.comment.add"
+      }
+    ],
+    "mode": "owner"
+  },
+  {
+    "args": [
+      "comment",
+      "list",
+      "--task",
+      "00000000-0000-4000-8000-0000000000b1",
+      "--project",
+      "00000000-0000-4000-8000-0000000000a2"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "project_id": "00000000-0000-4000-8000-0000000000a2",
+            "task_id": "00000000-0000-4000-8000-0000000000b1"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/comment.list"
+      }
+    ],
+    "mode": "owner"
+  },
+  {
+    "args": [
+      "comment",
+      "edit",
+      "00000000-0000-4000-8000-0000000000b3",
+      "--body",
+      "Edited",
+      "--revision",
+      "1",
+      "--project",
+      "00000000-0000-4000-8000-0000000000a2"
+    ],
+    "calls": [
+      {
+        "body": {
+          "expected_versions": {
+            "task_comment": "1"
+          },
+          "operation_id": "<new-1>",
+          "params": {
+            "body": "Edited",
+            "expected_revision": "1",
+            "operation_id": "<new-1>",
+            "project_id": "00000000-0000-4000-8000-0000000000a2"
+          },
+          "subject": {
+            "id": "00000000-0000-4000-8000-0000000000b3",
+            "revision": "1",
+            "type": "task_comment"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.comment.edit"
+      }
+    ],
+    "mode": "owner"
+  },
+  {
+    "args": [
+      "comment",
+      "delete",
+      "00000000-0000-4000-8000-0000000000b3",
+      "--revision",
+      "2",
+      "--project",
+      "00000000-0000-4000-8000-0000000000a2"
+    ],
+    "calls": [
+      {
+        "body": {
+          "expected_versions": {
+            "task_comment": "2"
+          },
+          "operation_id": "<new-1>",
+          "params": {
+            "expected_revision": "2",
+            "operation_id": "<new-1>",
+            "project_id": "00000000-0000-4000-8000-0000000000a2"
+          },
+          "subject": {
+            "id": "00000000-0000-4000-8000-0000000000b3",
+            "revision": "2",
+            "type": "task_comment"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.comment.delete"
+      }
+    ],
+    "mode": "owner"
+  },
+  {
+    "args": [
+      "question",
+      "show",
+      "00000000-0000-4000-8000-0000000000b4"
+    ],
+    "calls": [
+      {
+        "body": {
+          "params": {
+            "decision_id": "00000000-0000-4000-8000-0000000000b4"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/question.show"
+      }
+    ],
+    "mode": "owner"
+  },
+  {
+    "args": [
+      "message",
+      "send",
+      "Hello",
+      "--to",
+      "supervisor:00000000-0000-4000-8000-0000000000b8"
+    ],
+    "calls": [
+      {
+        "body": {
+          "operation_id": "<new-1>",
+          "params": {
+            "body": "Hello",
+            "message_id": "<new-2>",
+            "operation_id": "<new-1>",
+            "recipient": {
+              "conversation_id": "00000000-0000-4000-8000-0000000000b8",
+              "kind": "global_supervisor"
+            },
+            "thread_id": "00000000-0000-4000-8000-0000000000b8"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/message.send"
+      }
+    ],
+    "mode": "owner"
+  },
+  {
+    "args": [
+      "run",
+      "task.cancel",
+      "--subject",
+      "task:00000000-0000-4000-8000-0000000000b1:4",
+      "--param",
+      "project_id=00000000-0000-4000-8000-0000000000a2",
+      "--param",
+      "expected_version=4",
+      "--reason",
+      "duplicate"
+    ],
+    "calls": [
+      {
+        "body": {
+          "expected_versions": {
+            "task": "4"
+          },
+          "operation_id": "<new-1>",
+          "params": {
+            "expected_version": "4",
+            "operation_id": "<new-1>",
+            "project_id": "00000000-0000-4000-8000-0000000000a2"
+          },
+          "reason": "duplicate",
+          "subject": {
+            "id": "00000000-0000-4000-8000-0000000000b1",
+            "revision": "4",
+            "type": "task"
+          }
+        },
+        "method": "POST",
+        "path": "/api/v1/commands/task.cancel"
+      }
+    ],
+    "mode": "owner"
+  }
+]

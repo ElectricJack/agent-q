@@ -1,8 +1,153 @@
 # aqv2
 
-Human terminal access to the same AQ domain operations as the dashboard. Build
-with `cargo build --locked -p aqv2 --release`. The executable is always `aqv2`;
-v1 continues to own `aq` and `agent-queue`.
+The v2 command line: the owner's terminal and, inside a sandbox, the agent's
+channel to AQ (spec [0006](../../docs/specs/0006-agent-channel.md) §4). Build
+with `cargo build --locked -p aqv2 --release`.
+
+## Names
+
+One binary, installed under two names (owner decision 5):
+
+| Where | Installed as | Why |
+| --- | --- | --- |
+| Sandboxes | `/opt/aq/bin/aq` | The agent's CLI. |
+| Hosts | `aqv2` | v1 still owns `aq` and `agent-queue` on hosts. |
+
+The binary names itself after the name it was run as: run as `aq`, its help,
+usage and recovery hints say `aq`; under any other name they say `aqv2`.
+Nothing else changes. Releases publish a static build,
+`aqv2-x86_64-linux` (listed in `SHA256SUMS`), which runs in any image.
+
+## Modes
+
+The mode is chosen at startup:
+
+- **Owner mode:** `--origin https://aq.example` and
+  `--cf-access-token-file /absolute/private/access.jwt`, on the admin listener.
+- **Channel mode:** `AQ_CHANNEL=unix:/aq/channel/aq.sock`, inside a sandbox.
+  The CLI speaks HTTP/1.1 over that Unix socket and sends no credential: the
+  channel proxy behind the socket injects the attempt's credential. With
+  `AQ_CHANNEL` set, `--cf-access-token-file` and `--origin` are refused. A
+  missing socket is `channel_closed` (exit 13) before anything is sent.
+
+Both modes share the `aq-human-http` rules: bounded bodies, no redirects, no
+environment proxies, no automatic resend of a mutation, and never echoing raw
+error bodies or credential material. A channel request also sends no `Origin`.
+
+## Commands
+
+Every registered command (`protocol/commands/v1/commands.json`) runs through
+the generic command surface, `POST /api/v1/commands/{name}`:
+
+```text
+aq commands [--all]                  # what you may run (with each grant's scope); --all adds the rest and why
+aq whoami                            # attempt, task, project, grants, credential expiry
+aq run NAME [--param KEY=VALUE | --param KEY:=JSON]... [--params-file FILE|-]
+       [--subject TYPE:ID[:REVISION]] [--expect TYPE=REVISION]... [--reason TEXT]
+       [--operation-id UUID] [--describe]
+aq <cli tokens> [run flags]          # e.g. aq task graph show --param task_id=ID
+```
+
+- `run` sends `params`; a mutation gets a fresh `operation_id`, which is also
+  put into `params` when the command's params carry one. `--json` is the
+  output switch everywhere, so a params file is `--params-file` (spec §4.4
+  wrote `--json FILE`).
+- A command's CLI tokens (its `cli` field) also reach it. Tokens this binary
+  does not know are resolved through `GET /api/v1/commands?all=true`, and
+  `run` sends any name, so a command added to the server later needs no CLI
+  change.
+- `--describe` prints the built-in description (grant, target rule, params
+  schema per principal) without a connection.
+
+Typed subcommands are thin wrappers that build the same request. Params follow
+the route that serves the caller: the agent's route in channel mode, the
+owner's REST read or action-union payload in owner mode.
+
+```text
+aq task show [self|TASK_ID] [--project P]
+aq task create --title T [--body B|-] [--acceptance-criteria A] [--label L]... [--parent self|TASK_ID]
+               [--draft] [--priority N] [--task-type K] [--project P --expected-project-revision R]
+aq knowledge search TEXT [--kind task|knowledge] [--limit N] [--cursor C]
+aq knowledge show ID [--project P]
+aq knowledge author --title T [--body B|-] [--label L]... [--content-type note|fact|…] [--reason R]
+aq comment add BODY|- [--task T --project P]
+aq comment list [--task T --project P] [--limit N] [--cursor C]
+aq comment edit COMMENT --body B --revision R [--project P]
+aq comment delete COMMENT --revision R [--project P]
+aq question ask TEXT|-
+aq question show ID
+aq question wait ID [--timeout 300] [--interval 5]
+aq wait register|inspect|ack --request FILE|-
+aq wait list | aq wait show ID
+aq message send BODY|- [--to task|task:ID|supervisor:CONVERSATION | --to-json JSON] [--thread ID]
+aq message inbox [--to …] [--after 0] [--limit 32] [--thread ID]
+aq message body MESSAGE [--to …] [--offset 0] [--max-bytes 16384]
+aq message ack MESSAGE [--to …] [--read]
+aq operation show ID
+```
+
+- In a sandbox `self` is the attempt's task, `--parent self` makes a subtask,
+  a comment goes on the attempt's own task, and `--to task` is the attempt's
+  own task mailbox (from `whoami`). Owner mode needs the IDs the owner routes
+  take (`--project`, `--task`, `--expected-project-revision`).
+- `knowledge author` is a `create_finding` graph command for an agent and a
+  `knowledge.author` action for the owner.
+- `question wait` re-reads `question.show` until the state is `answered`,
+  within `--timeout` seconds (at most 3600). Each read is its own bounded
+  request. If the question is still open it exits 16 and the question stays
+  open.
+- The supervisor mailbox is addressed as `supervisor:CONVERSATION_ID` (the
+  `conversation_id` of a supervisor message you received). A session mailbox
+  needs `--to-json`: `whoami` does not yet return the session generation.
+
+The owner subcommands below (`tasks`, `decisions`, `messages`, `chat`,
+`workers`, `projects`) call owner routes on the admin listener and are refused
+in channel mode; `operations show` there is `operation show`.
+
+## Output and exit status
+
+`--json` prints one document: `{"schema_version":1,"data":…}` or
+`{"schema_version":1,"error":{…}}`, on stdout. Human output prints reads as
+formatted JSON, `commands` and `whoami` as text, and errors on stderr; server
+text is escaped so it cannot drive the terminal.
+
+A refusal (§6.8) keeps its published fields (`code`, `command`, `grant`,
+`held`, `message`, `effect`, `request_id`). Human output prints the message,
+the grant the command needs and what is held. A refusal is `not_applied`,
+so it has no recovery command.
+
+| Exit | Meaning |
+| --- | --- |
+| 0 | Success |
+| 1 | Any other error |
+| 2 | Invalid arguments |
+| 10 | Mutation pending or unknown: inspect the printed operation ID |
+| 11 | Mutation conflict |
+| 12 | Mutation rejected |
+| 13 | Transport failure or closed channel (a mutation's outcome may be unknown) |
+| 14 | Refused: `grant_missing`, `scope_denied`, `owner_only`, `quota_exceeded`, `session_revoked`, `session_expired`, `channel_refused`, `not_available`, `unauthorized` (kept from the aq-agent contract) |
+| 15 | Invalid server response |
+| 16 | A bounded wait ended before its condition |
+
+## Sandbox template
+
+What the sandbox runtime bundle ships (the aq-worker template owns the files):
+
+- the release asset `aqv2-x86_64-linux`, pinned by its SHA-256 from the
+  release's `SHA256SUMS`, installed as `/opt/aq/bin/aq` (mode 0755, owned by
+  root). B7's "never ship `aq`" check is inverted: the bundle must contain
+  `/opt/aq/bin/aq`.
+- `manifest.json` lists it as an executable entry (`name: "aq"`, its
+  version, `path: "/opt/aq/bin/aq"`, `sha256`, `bytes`).
+- `aq-agent` stays for one template generation as a wrapper that execs `aq`
+  (spec §9 step 3); `aq-agent result` becomes `aq result submit` in the worker.
+- No credential and no token file: the launch writes only
+  `AQ_CHANNEL=unix:/aq/channel/aq.sock` into `/aq/in/env`, and
+  `/opt/aq/bin` is on the agent's `PATH`. The runner note tells the agent
+  that `aq` is available and that `aq commands` lists what it may run.
+- The bundle checks: `aq --version` runs, and `aq --help` says `Usage: aq`.
+
+## Owner mode
 
 Supply `--origin https://aq.example` and
 `--cf-access-token-file /absolute/private/access.jwt`. The token file must be a

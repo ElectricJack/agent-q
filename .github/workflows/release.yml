@@ -183,6 +183,18 @@ jobs:
           cargo build --release --locked -p aq-updater --target x86_64-unknown-linux-musl
           cp target/x86_64-unknown-linux-musl/release/aq-updater dist/aq-updater-x86_64-linux
 
+      # The v2 CLI, static so any sandbox image can run it. The sandbox runtime
+      # bundle pins this asset by digest and installs it as /opt/aq/bin/aq;
+      # hosts install it as aqv2 while v1 owns `aq` (spec 0006 D1, owner
+      # decision 5). The binary names itself after the name it is run as.
+      - name: Build the v2 CLI (release, static)
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y --no-install-recommends musl-tools
+          CC_x86_64_unknown_linux_musl=musl-gcc \
+            cargo build --release --locked -p aqv2 --target x86_64-unknown-linux-musl
+          cp target/x86_64-unknown-linux-musl/release/aqv2 dist/aqv2-x86_64-linux
+
       # Exactly the hosts' check: the identity regexp and issuer, plus the
       # bindings aq-updater derives from the manifest itself
       # (--certificate-github-workflow-ref refs/tags/v<version> and
@@ -253,7 +265,7 @@ jobs:
         run: |
           cp release/manifest.json release/manifest.sigstore.json dist/
           cd dist
-          sha256sum manifest.json manifest.sigstore.json aq-updater-x86_64-linux >SHA256SUMS
+          sha256sum manifest.json manifest.sigstore.json aq-updater-x86_64-linux aqv2-x86_64-linux >SHA256SUMS
           cat >notes.md <<EOF
           Agent Q $VERSION, built from $GITHUB_SHA.
 
@@ -271,4 +283,4 @@ jobs:
           EOF
           gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag \
             --title "Agent Q $VERSION" --notes-file notes.md \
-            manifest.json manifest.sigstore.json aq-updater-x86_64-linux SHA256SUMS
+            manifest.json manifest.sigstore.json aq-updater-x86_64-linux aqv2-x86_64-linux SHA256SUMS

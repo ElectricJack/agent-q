@@ -16,6 +16,9 @@ use std::{
 };
 use tokio::sync::mpsc;
 
+#[path = "cli/channel.rs"]
+mod channel;
+
 struct Seen {
     method: String,
     path: String,
@@ -290,6 +293,7 @@ async fn server_refusals_and_unavailable_reads_do_not_leak_error_bodies() {
 #[test]
 fn binary_json_errors_and_help_are_usable() {
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_aqv2"))
+        .env_remove("AQ_CHANNEL")
         .args(["--help"])
         .output()
         .unwrap();
@@ -307,6 +311,7 @@ fn binary_json_errors_and_help_are_usable() {
         assert!(help.contains(group), "{group}");
     }
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_aqv2"))
+        .env_remove("AQ_CHANNEL")
         .args([
             "--origin",
             "https://aq.example",
@@ -630,6 +635,7 @@ fn binary_reports_parse_and_auth_errors_as_json() {
         ],
     ] {
         let output = std::process::Command::new(env!("CARGO_BIN_EXE_aqv2"))
+            .env_remove("AQ_CHANNEL")
             .args(args)
             .output()
             .unwrap();
@@ -724,6 +730,7 @@ async fn review_regression_preserves_project_not_found() {
 #[test]
 fn review_regression_positional_json_text_keeps_human_output() {
     let output = std::process::Command::new(env!("CARGO_BIN_EXE_aqv2"))
+        .env_remove("AQ_CHANNEL")
         .args(["messages", "send", "--", "--json"])
         .output()
         .unwrap();

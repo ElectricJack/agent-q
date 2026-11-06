@@ -1,0 +1,28 @@
+principal: agent
+COMMAND                        KIND     GRANT @ SCOPE                      CLI
+task.show                      read     task.read @ project:self           aqv2 task show
+    A task
+whoami                         read     (none needed)                      aqv2 whoami
+    Who the caller is
+
+not runnable:
+task.cancel                    mutation task.cancel (owner_only)           aqv2 task cancel
+    Cancel a task\u{1b}[31m
+
+principal: agent
+attempt    00000000-0000-4000-8000-0000000000a3
+task       00000000-0000-4000-8000-0000000000a1
+project    00000000-0000-4000-8000-0000000000a2
+session    00000000-0000-4000-8000-0000000000a4
+workspace  00000000-0000-4000-8000-0000000000a5
+profile    aq.coding
+credential expires 2026-11-06T12:00:00+00:00 (version 1, authority revision 1)
+grants:
+  comment.write @ task:subtree
+  task.create.subtask @ task:subtree (max_created_tasks=5, max_depth=2)
+  task.read @ project:self
+
+refused (grant_missing): task.create needs task.create.project
+This agent does not hold the `task.create.project` grant that `task.create` needs (holds: task.create.subtask @ task:subtree). Use `aq question ask` to request it.
+held: task.create.subtask @ task:subtree (max_created_tasks=5, max_depth=2)
+request_id: 5d2c1e3a-8f1b-4c6e-9a7d-2b3c4d5e6f70

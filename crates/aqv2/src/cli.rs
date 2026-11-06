@@ -2,18 +2,34 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 use std::path::PathBuf;
 use uuid::Uuid;
 
+pub const AFTER_HELP: &str = "\
+Modes:
+  owner    --origin https://aq.example --cf-access-token-file /private/access.jwt
+  channel  AQ_CHANNEL=unix:/aq/channel/aq.sock (inside a sandbox; no credential is sent)
+
+Every registered command runs through `run NAME`; `commands` lists what you may run.
+
+Exit status:
+  0 success, 1 other error, 2 invalid arguments,
+  10 mutation pending or unknown (inspect the printed operation ID), 11 conflict, 12 rejected,
+  13 transport failure or closed channel, 14 refused (grant, scope, owner-only, quota, session),
+  15 invalid server response, 16 wait ended before its condition";
+
 #[derive(Parser)]
 #[command(
     name = "aqv2",
     version,
-    about = "Human access to AQ v2 domain operations"
+    about = "AQ v2 command line: the owner's terminal and the agent's channel",
+    after_help = AFTER_HELP
 )]
 pub struct Cli {
+    /// Owner mode: the AQ admin origin (not with AQ_CHANNEL).
     #[arg(long, global = true)]
     pub origin: Option<String>,
     /// Absolute path to an owner-only Cloudflare Access JWT file.
     #[arg(long, global = true)]
     pub cf_access_token_file: Option<PathBuf>,
+    /// Print one JSON document: {"schema_version":1,"data"|"error":…}.
     #[arg(long, global = true)]
     pub json: bool,
     #[command(flatten)]
@@ -27,18 +43,59 @@ pub struct Commands {
 }
 #[derive(Subcommand)]
 pub enum Command {
+    /// Invoke any registered command: `run task.show --param task_id=ID`.
+    Run(RunArgs),
+    /// List the commands you may run, with the scope of each grant.
+    #[command(name = "commands")]
+    Discover {
+        /// Also list the commands you cannot run, each with the reason.
+        #[arg(long)]
+        all: bool,
+    },
+    /// Who you are to AQ: attempt, task, project, grants and credential expiry.
+    Whoami,
+    /// Tasks: show, create (`--parent self` for a subtask).
+    #[command(subcommand)]
+    Task(crate::typed::Task),
+    /// Knowledge: search, show, author.
+    #[command(subcommand)]
+    Knowledge(crate::typed::Knowledge),
+    /// A task's comments: add, list, edit, delete.
+    #[command(subcommand)]
+    Comment(crate::typed::Comment),
+    /// Questions to the owner: ask, show, wait (bounded).
+    #[command(subcommand)]
+    Question(crate::typed::Question),
+    /// Your attempt's H4 wait: register, inspect, ack; list, show.
+    #[command(subcommand)]
+    Wait(crate::typed::Wait),
+    /// Mailboxes: send, inbox, body, ack.
+    #[command(subcommand)]
+    Message(crate::typed::Message),
+    /// Inspect an operation by ID after an uncertain outcome.
+    #[command(subcommand)]
+    Operation(crate::typed::Operation),
+    /// Any other command by its CLI tokens (commands.json `cli`), e.g. `task graph show`.
+    #[command(external_subcommand)]
+    External(Vec<String>),
+    /// Owner: task overview and lists (admin listener).
     #[command(subcommand)]
     Tasks(Tasks),
+    /// Owner: review decisions.
     #[command(subcommand)]
     Decisions(Decisions),
+    /// Owner: the supervisor conversation's messages.
     #[command(subcommand)]
     Messages(Messages),
     /// Read the supervisor conversation, or send and wait for a reply.
     Chat(Chat),
+    /// Owner: workers.
     #[command(subcommand)]
     Workers(Workers),
+    /// Owner: projects.
     #[command(subcommand)]
     Projects(Projects),
+    /// Owner: inspect an action-union operation.
     #[command(subcommand)]
     Operations(Operations),
 }
@@ -163,7 +220,62 @@ pub enum Operations {
     Show { id: Uuid },
 }
 
+/// `run NAME [flags]`.
+#[derive(Args)]
+pub struct RunArgs {
+    /// The command name, e.g. `task.create` (see `commands`).
+    pub name: String,
+    #[command(flatten)]
+    pub flags: RunFlags,
+}
+/// How `run` builds the CommandRequest (protocol/commands/v1 `CommandRequest`).
+#[derive(Args, Default)]
+pub struct RunFlags {
+    /// A param: `KEY=VALUE` (a string) or `KEY:=JSON` (any JSON value). Repeatable.
+    #[arg(long = "param", short = 'p', value_name = "KEY=VALUE|KEY:=JSON")]
+    pub params: Vec<String>,
+    /// A JSON object of params from a file, or `-` for stdin; `--param` adds to it.
+    #[arg(long, value_name = "FILE|-")]
+    pub params_file: Option<String>,
+    /// The action subject of an action-union mutation.
+    #[arg(long, value_name = "TYPE:ID[:REVISION]")]
+    pub subject: Option<String>,
+    /// An expected version (defaults to the subject's revision). Repeatable.
+    #[arg(long = "expect", value_name = "TYPE=REVISION")]
+    pub expect: Vec<String>,
+    #[arg(long)]
+    pub reason: Option<String>,
+    /// Reuse an operation ID (to inspect a replay); a mutation otherwise gets a fresh one.
+    #[arg(long)]
+    pub operation_id: Option<Uuid>,
+    /// Print the built-in description of the command (grant, target, params) and exit.
+    #[arg(long)]
+    pub describe: bool,
+}
+
 impl Command {
+    /// The subcommand group's name, for messages.
+    pub fn group(&self) -> &'static str {
+        match self {
+            Self::Tasks(_) => "tasks",
+            Self::Decisions(_) => "decisions",
+            Self::Messages(_) => "messages",
+            Self::Chat(_) => "chat",
+            Self::Workers(_) => "workers",
+            Self::Projects(_) => "projects",
+            Self::Operations(_) => "operations",
+            _ => "command",
+        }
+    }
+    /// How a successful result is shown without `--json`.
+    pub fn render(&self) -> crate::render::Render {
+        use crate::render::Render;
+        match self {
+            Self::Discover { .. } => Render::Commands,
+            Self::Whoami => Render::Whoami,
+            _ => Render::Json,
+        }
+    }
     pub fn unsupported(&self) -> Option<&'static str> {
         match self {
             Self::Tasks(Tasks::Cancel { .. }) => Some("task cancellation"),
