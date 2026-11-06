@@ -1140,3 +1140,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Rebuilt `dist` and restarted the `aq-ms1` and `aq-v2-local` servers. The Results page now loads on both stacks, and `aq-ms1` lists the real Claude results with their summaries, change lists and evidence.
   - **New finding visible there:** the retry run's change set (task `…01d1`, published as 22a13087) includes `target/` build output (`target/debug/...`). The task's repo had no `.gitignore` covering `target`, and copy-back takes every file the agent leaves behind.
   - Follow-up: copy-back/publication should exclude build outputs or honour a project ignore policy, and `cargo clean` should not be relied on. Added it to the MS1 known limits.
+- **03:15: MS1 ready for owner verification.**
+  - Merged hand-off PR aq-server #95 (7214c3d5, all 9 green). MS1.md has the "Owner verification" section, now updated: Results loads, and the `target/` copy-back is a known limit.
+  - The stack runs at http://127.0.0.1:28080 from aq-server/aq-worker main.
+  - Owner verification: pending.
