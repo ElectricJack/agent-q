@@ -190,6 +190,11 @@ pub async fn compile(
     if harnesses.is_empty() || harnesses.len() > 16 {
         return Err(refused());
     }
+    // Spec 0006 §7: the task thread follows the assignment, optional under the budget.
+    let task = context.revision.task_id;
+    let thread =
+        crate::agent_access::task_thread::startup_input(state, record.binding.project_id, task)
+            .await;
     let mut candidates = Vec::new();
     let mut policies = Vec::new();
     for harness in harnesses {
@@ -246,6 +251,7 @@ pub async fn compile(
                 .as_ref()
                 .map(|r| r.context())
                 .into_iter()
+                .chain(thread.clone())
                 .collect(),
             overrides: vec![],
         };

@@ -234,3 +234,62 @@ async fn poll_rejects_chosen_scope_duplicate_fields_and_oversized_body_before_ad
         .unwrap();
     assert_eq!(admin.status(), 404);
 }
+
+/// Spec 0006 §7: the task's thread follows the assignment in the startup
+/// context, as an optional input under the startup budget.
+#[tokio::test]
+async fn startup_context_carries_the_task_thread() {
+    let c = setup().await;
+    let pool = &c.env.env.pool;
+    let thread = aq_task_comments::Thread {
+        project_id: c.env.lineage.project_id,
+        task_id: c.env.lineage.task_id,
+    };
+    let author = aq_task_comments::Author::System {
+        component: "test".into(),
+    };
+    let now = chrono::Utc::now();
+    aq_task_comments::add(
+        pool,
+        Uuid::new_v4(),
+        thread,
+        &author,
+        "Found the release checklist.",
+        now,
+    )
+    .await
+    .unwrap();
+    let (status, body) = poll(&c).await;
+    assert_eq!(status, 200, "{body}");
+    let manifest: Value = sqlx::query_scalar("SELECT launch_manifest FROM profiled_launches")
+        .fetch_one(pool)
+        .await
+        .unwrap();
+    let refs = manifest["context"]["references"].as_array().unwrap();
+    let thread = refs
+        .iter()
+        .find(|r| {
+            r["provenance"]
+                .as_str()
+                .unwrap()
+                .starts_with("aq.task-thread/")
+        })
+        .unwrap_or_else(|| panic!("no task thread in {refs:?}"));
+    assert_eq!(thread["required"], false);
+    let bytes = thread["bytes"].as_u64().unwrap() as usize;
+    assert!(bytes > 0 && bytes <= aq_task_thread::BUDGET_BYTES);
+    // The assignment comes first.
+    let order: Vec<&str> = refs
+        .iter()
+        .map(|r| r["provenance"].as_str().unwrap())
+        .collect();
+    let task = order
+        .iter()
+        .position(|p| p.starts_with("aq.authorized-task-context/"))
+        .unwrap();
+    let thread = order
+        .iter()
+        .position(|p| p.starts_with("aq.task-thread/"))
+        .unwrap();
+    assert!(task < thread, "{order:?}");
+}

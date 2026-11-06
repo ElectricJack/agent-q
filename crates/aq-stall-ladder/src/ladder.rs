@@ -1,8 +1,8 @@
 //! The pure, deterministic stall ladder. [`step`] decides at most one intent
 //! from the persisted episode and fresh evidence; [`apply`] folds the effect's
 //! outcome back in. Neither reads a clock or performs I/O.
-use super::evidence::{Evidence, Explanation, InputState};
-use super::policy::ExecutionPolicy;
+use crate::evidence::{Evidence, Explanation, InputState};
+use crate::policy::ExecutionPolicy;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -144,7 +144,7 @@ pub struct Episode {
 impl Episode {
     pub fn open(attempt_id: Uuid, lineage_id: Uuid, policy: &ExecutionPolicy, now: u64) -> Self {
         Self {
-            episode_id: super::episode_id(attempt_id),
+            episode_id: crate::episode_id(attempt_id),
             attempt_id,
             lineage_id,
             policy_version: policy.version,
@@ -348,7 +348,7 @@ pub fn apply(ep: &mut Episode, intent: &Intent, outcome: &Outcome, now: u64) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::stall::evidence::{Admission, Evidence, InputState, is_progress};
+    use crate::evidence::{Admission, Evidence, InputState, is_progress};
     use aq_accounting::wire::{ObservationKind, TextRole};
 
     const MIN: u64 = 60_000;

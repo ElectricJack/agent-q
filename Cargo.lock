@@ -547,7 +547,9 @@ dependencies = [
  "aq-session-api",
  "aq-session-host",
  "aq-session-protocol",
+ "aq-stall-ladder",
  "aq-task-comments",
+ "aq-task-thread",
  "aq-terminal-relay",
  "aq-terminal-relay-protocol",
  "aq-wait-engine",
@@ -647,6 +649,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-stall-ladder"
+version = "0.1.0"
+dependencies = [
+ "aq-accounting",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
 name = "aq-supervisor-host"
 version = "0.1.0"
 dependencies = [
@@ -688,6 +700,13 @@ dependencies = [
  "sha2 0.10.9",
  "sqlx",
  "sqlx-postgres",
+ "uuid",
+]
+
+[[package]]
+name = "aq-task-thread"
+version = "0.1.0"
+dependencies = [
  "uuid",
 ]
 

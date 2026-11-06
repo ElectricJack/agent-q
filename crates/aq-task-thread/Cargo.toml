@@ -1,0 +1,9 @@
+[package]
+name = "aq-task-thread"
+version = "0.1.0"
+edition.workspace = true
+publish = false
+description = "The bounded task-thread block of an attempt's startup context (spec 0006 §7)"
+
+[dependencies]
+uuid.workspace = true
