@@ -48,6 +48,8 @@ const CAPABILITIES: &[&str] = &[
     "human.graph.read",
     "human.overview.tasks.read",
     "tasks.read",
+    "tasks.comments.read",
+    "tasks.comments.write",
     "tasks.create",
     "tasks.edit",
     "tasks.reprioritize",

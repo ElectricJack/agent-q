@@ -260,3 +260,41 @@ Named acceptance tests:
 
 - `cargo test --locked --workspace supervisor_creates_graph_with_dependencies_idempotently`
 - `cargo test --locked -p aq-server --test it_dashboard dashboard_actions::session_message_send_enqueues_to_bound_session_mailbox`
+
+## Task comment kinds
+
+Task comments (aq-dashboard spec 0004 §4.1) are an aq-server model keyed by
+`(project_id, task_id)`, not Graph content. The thread is read with
+`GET /api/human/projects/{p}/tasks/{t}/comments` (human-graph-1). Owner
+bootstrap advertises `tasks.comments.write@1`, which also requires
+`dashboard.actions`.
+
+- `task.comment.add`: subject `{type:"task",id:<task UUID>}` with **no**
+  revision and empty `expected_versions`. Payload `{operation_id, project_id,
+  body}`. The task must be a live Graph task in the project. The new comment's
+  ID equals the operation ID.
+- `task.comment.edit`: subject `{type:"task_comment",id:<comment UUID>,
+  revision:R}`, `expected_versions {task_comment:R}`. Payload `{operation_id,
+  project_id, expected_revision:R, body}`.
+- `task.comment.delete`: same subject and versions. Payload `{operation_id,
+  project_id, expected_revision:R}`. Delete is a tombstone: the body is cleared
+  and the comment keeps its place in the thread.
+
+`body` is Markdown: nonblank, at most 16384 UTF-8 bytes, no control characters
+other than tab, line feed and carriage return (schema `maxLength` counts
+characters and is an upper bound). Revisions are positive decimal strings.
+
+- A confirmed operation's receipt is `[{type:"task_comment",id,revision}]`, the
+  revision that operation produced; affected entities are that comment and
+  `{type:"task",id}`.
+- A stale `expected_revision` is `conflict` with `current_versions
+  {task_comment:<live>}`; nothing is written.
+- An owner may edit or delete only comments they wrote. Anything else is refused
+  before admission with 403 `comment_not_author` ("Only the owner who wrote a
+  comment can edit or delete it"). Editing or deleting an already deleted comment
+  is refused with 409 `comment_deleted`, except that a replay of the operation
+  that deleted it still returns its confirmed receipt. A comment outside the
+  project is a neutral 404.
+- Replaying an operation ID returns its retained disposition (journal), and the
+  comment store keeps one record per operation so lookup can reconcile an
+  interrupted dispatch. A different request under the same ID is 409.

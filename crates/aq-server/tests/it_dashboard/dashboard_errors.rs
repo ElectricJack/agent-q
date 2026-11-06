@@ -1,4 +1,6 @@
-use super::*;
+//! The human v1 error envelope and normalization (moved from the lib's unit tests).
+use aq_server::dashboard_api::errors::{ApiError, normalize_errors};
+use axum::{http::StatusCode, response::IntoResponse};
 
 #[derive(Clone)]
 struct LogWriter(std::sync::Arc<std::sync::Mutex<Vec<u8>>>);
@@ -28,11 +30,13 @@ async fn redacted_refusals_log_the_returned_request_id_and_safe_source_class() {
     let app = Router::new()
         .route(
             "/api/v1/invalid",
-            get(|| async { crate::error::AppError::BadRequest("PRIVATE_BODY_SENTINEL".into()) }),
+            get(|| async {
+                aq_server::error::AppError::BadRequest("PRIVATE_BODY_SENTINEL".into())
+            }),
         )
         .route(
             "/api/v1/internal",
-            get(|| async { crate::error::AppError::Internal }),
+            get(|| async { aq_server::error::AppError::Internal }),
         )
         .layer(from_fn(normalize_errors));
     for (path, expected, source) in [

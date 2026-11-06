@@ -55,6 +55,9 @@
         },
         {
           "$ref": "#/components/schemas/HumanSummary"
+        },
+        {
+          "$ref": "#/components/schemas/HumanComments"
         }
       ]
     }
@@ -1253,6 +1256,143 @@
           "scope",
           "implementation",
           "delivery"
+        ],
+        "additionalProperties": false
+      },
+      "HumanComment": {
+        "description": "One task comment. A deleted comment is a tombstone: body null, deleted_at set. The comment ID of an added comment is its operation ID.",
+        "type": "object",
+        "properties": {
+          "comment_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "task_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "author": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "owner",
+                  "agent",
+                  "supervisor",
+                  "system"
+                ]
+              },
+              "user_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              },
+              "display_name": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "maxLength": 320
+              },
+              "session_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              },
+              "attempt_id": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "format": "uuid"
+              }
+            },
+            "required": [
+              "kind",
+              "user_id",
+              "display_name",
+              "session_id",
+              "attempt_id"
+            ],
+            "additionalProperties": false
+          },
+          "body": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1,
+            "maxLength": 16384
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "edited_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "deleted_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "revision": {
+            "type": "string",
+            "pattern": "^[1-9][0-9]{0,18}$"
+          },
+          "can_edit": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "comment_id",
+          "task_id",
+          "author",
+          "body",
+          "created_at",
+          "edited_at",
+          "deleted_at",
+          "revision",
+          "can_edit"
+        ],
+        "additionalProperties": false
+      },
+      "HumanComments": {
+        "type": "object",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "items": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+              "$ref": "#/components/schemas/HumanComment"
+            }
+          },
+          "next_cursor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 4096
+          }
+        },
+        "required": [
+          "task_id",
+          "items",
+          "next_cursor"
         ],
         "additionalProperties": false
       }

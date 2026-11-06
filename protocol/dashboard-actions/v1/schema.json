@@ -1453,6 +1453,128 @@
         {
           "properties": {
             "kind": {
+              "const": "task.comment.add"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:task.comment.add:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "description": "`task.comment.add`: the subject is `{type:\"task\",id}` with no revision.",
+              "properties": {
+                "body": {
+                  "description": "Markdown, at most 16 KiB.",
+                  "maxLength": 16384,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "body"
+              ],
+              "title": "AddComment",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "task.comment.delete"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:task.comment.delete:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "description": "`task.comment.delete`: the subject is `{type:\"task_comment\",id,revision}`.",
+              "properties": {
+                "expected_revision": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_revision"
+              ],
+              "title": "DeleteComment",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
+              "const": "task.comment.edit"
+            },
+            "payload": {
+              "$id": "urn:aq:dashboard-actions:1:task.comment.edit:payload",
+              "$schema": "https://json-schema.org/draft/2020-12/schema",
+              "additionalProperties": false,
+              "description": "`task.comment.edit`: the subject is `{type:\"task_comment\",id,revision}`.",
+              "properties": {
+                "body": {
+                  "maxLength": 16384,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "expected_revision": {
+                  "pattern": "^[1-9][0-9]{0,18}$",
+                  "type": "string"
+                },
+                "operation_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "project_id": {
+                  "format": "uuid",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "operation_id",
+                "project_id",
+                "expected_revision",
+                "body"
+              ],
+              "title": "EditComment",
+              "type": "object"
+            }
+          },
+          "required": [
+            "kind",
+            "payload"
+          ]
+        },
+        {
+          "properties": {
+            "kind": {
               "const": "task.create"
             },
             "payload": {

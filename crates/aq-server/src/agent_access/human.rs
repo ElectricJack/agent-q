@@ -1,5 +1,6 @@
 //! Owner-authorized read projection. Graph service credentials never leave AQ.
 mod commands;
+pub(crate) mod comments;
 pub(crate) use commands::action::TaskCreate;
 mod cursor;
 pub(crate) mod enqueue;
@@ -112,6 +113,10 @@ pub fn routes(state: &AppState) -> Router<AppState> {
         .route(
             "/api/human/projects/{project}/tasks/{node}/summary",
             get(work::summary),
+        )
+        .route(
+            "/api/human/projects/{project}/tasks/{node}/comments",
+            get(comments::read),
         )
         .route("/api/human/projects/{project}/knowledge", get(knowledge))
         .route(

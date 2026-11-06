@@ -9,6 +9,7 @@
 mod common;
 
 mod agent_access;
+mod agent_task_comments;
 mod graph_mutations;
 mod image_labels;
 mod intelligence;

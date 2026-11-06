@@ -3,7 +3,7 @@ pub mod actions;
 mod aggregation;
 mod capacity;
 pub mod contract;
-pub mod cursor;
+pub use aq_human_cursor as cursor;
 pub mod errors;
 pub mod quota;
 mod runtime;

@@ -1,0 +1,17 @@
+{
+  "operation_id": "00000000-0000-4000-8000-000000000503",
+  "kind": "task.comment.delete",
+  "subject": {
+    "type": "task_comment",
+    "id": "00000000-0000-4000-8000-000000000501",
+    "revision": "2"
+  },
+  "expected_versions": {
+    "task_comment": "2"
+  },
+  "payload": {
+    "operation_id": "00000000-0000-4000-8000-000000000503",
+    "project_id": "00000000-0000-4000-8000-000000000010",
+    "expected_revision": "2"
+  }
+}

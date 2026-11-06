@@ -178,6 +178,3 @@ fn preserve_protocol_headers(original: &Response, mut normalized: Response) -> R
     }
     normalized
 }
-#[cfg(test)]
-#[path = "error_tests.rs"]
-mod tests;

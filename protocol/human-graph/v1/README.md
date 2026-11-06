@@ -10,6 +10,7 @@ Routes:
 - `GET /api/human/projects/{project}/tasks/{task}/work`
 - `GET /api/human/projects/{project}/tasks/{task}/history?cursor=...`
 - `GET /api/human/projects/{project}/tasks/{task}/summary`
+- `GET /api/human/projects/{project}/tasks/{task}/comments?limit=50&cursor=...`
 - `GET /api/human/projects/{project}/knowledge?limit=25&cursor=...&q=...`
 - `GET /api/human/projects/{project}/knowledge/{node}?revision=1`
 
@@ -38,3 +39,17 @@ These additions serve the dashboard Work view. Counts are decimal strings.
 - **Attached execution (X12).** `execution`, and each entry of a task page's `executions`, is `{task_id,attempt_id,session_id,status}` for the `profiled_v1` attempt holding the task in this project. Pages list only tasks that have one.
 - **History timeline (X13).** History data is `{task_id,items,next_cursor,attempts,attempts_truncated}`. `items` are Graph history entries (25 per page): sequence, entry id, category, operation, actor, reason and time, with the entry payload excluded. The cursor is the same encrypted, bound cursor that lists use. `attempts` holds up to 16 of the task's recorded attempts, with the holding attempt first. Validated result bodies and the latest result stay with the G6 Results feed (`GET /api/v1/results?task_id=`).
 - **Per-scope completion (X11).** Summary data is `{task_id,scope:"descendants",implementation:{total,by_state,complete},delivery}`. It counts the live task descendants in a bounded Graph tree (depth 5, limit 200, 1 MiB). `complete` is false when any level was truncated. Delivery belongs to D1, and until D1 has a human read model it is reported as `{state:"unavailable",owner:"D1"}`.
+
+## Task comments (aq-dashboard spec 0004 §4.1)
+
+`GET /api/human/projects/{project}/tasks/{task}/comments?limit=N&cursor=...` reads the task's comment thread. Comments are an aq-server model keyed by `(project_id, task_id)`, not Graph content (`crates/aq-task-comments`, table `task_comments`). Bootstrap advertises `tasks.comments.read@1` (owner with a configured Graph runtime) and `tasks.comments.write@1` (also requires dashboard actions).
+
+- Data is `HumanComments`: `{task_id, items, next_cursor}`. `items` are `HumanComment`s, newest first (insertion order). `limit` defaults to 50 and is 1-100; anything else is 400.
+- A comment is `{comment_id, task_id, author, body, created_at, edited_at, deleted_at, revision, can_edit}`.
+  - `author` is `{kind, user_id, display_name, session_id, attempt_id}`, with every key present. `kind` is `owner`, `agent`, `supervisor` or `system`. Owners carry `user_id` and their current email as `display_name`. Agents carry `session_id` and `attempt_id` (link `/agents/{session_id}`). Supervisors carry `session_id`; system authors carry their component name as `display_name`.
+  - `body` is Markdown, at most 16 KiB. A deleted comment is a tombstone that keeps its position: `body` is null and `deleted_at` is set.
+  - `revision` is a positive decimal string. Edit and delete target it exactly.
+  - `can_edit` is true only for the requesting owner's own live comments. Owners can edit or delete only comments they wrote.
+- `next_cursor` is the same encrypted, bound cursor as lists (actor, project, project revision, workspace, task and limit). Because comment pages are keyset positions, a comment cursor expires after 10 minutes instead of 30 seconds; it still becomes invalid after a server restart or project binding change (409: restart from the first page).
+- The read does not consult Graph: an unknown task returns an empty thread.
+- Writes are `dashboard-actions-1` kinds `task.comment.add`, `task.comment.edit` and `task.comment.delete` (see that contract). Agents add and read their own task's thread through `protocol/agent-comments/v1`.

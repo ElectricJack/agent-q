@@ -19,7 +19,7 @@ use serde_json::{Value, json};
 use std::sync::Arc;
 use tower::ServiceExt;
 use uuid::Uuid;
-async fn send(
+pub(crate) async fn send(
     app: &Router,
     path: &str,
     token: Option<&str>,
@@ -45,17 +45,18 @@ async fn send(
     let bytes = r.into_body().collect().await.unwrap().to_bytes();
     (status, serde_json::from_slice(&bytes).unwrap())
 }
-struct Env {
+/// Also the agent-credential fixture for `agent_task_comments`.
+pub(crate) struct Env {
     db: TestDb,
-    pool: sqlx::PgPool,
-    app: Router,
+    pub(crate) pool: sqlx::PgPool,
+    pub(crate) app: Router,
     admin: Router,
-    token: String,
-    binding: Value,
+    pub(crate) token: String,
+    pub(crate) binding: Value,
     time: Arc<std::sync::atomic::AtomicI64>,
     node_token: String,
 }
-async fn setup() -> Env {
+pub(crate) async fn setup() -> Env {
     let db = TestDb::create().await;
     let store = db.store().await;
     let pool = db.pool().await;

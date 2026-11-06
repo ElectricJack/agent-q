@@ -32,6 +32,9 @@ impl Codec {
         }
     }
     pub fn encode(&self, b: &Binding, upstream: &str, now: i64) -> Result<String> {
+        self.encode_for(b, upstream, now, 30000)
+    }
+    pub fn encode_for(&self, b: &Binding, upstream: &str, now: i64, ttl: u64) -> Result<String> {
         if upstream.is_empty() || upstream.len() > 256 || upstream.chars().any(char::is_control) {
             return Err(unavailable());
         }
@@ -42,7 +45,7 @@ impl Codec {
                 "graph_owner_snapshot",
                 upstream,
                 now,
-                now.checked_add(30000).ok_or_else(unavailable)?,
+                now.checked_add(ttl).ok_or_else(unavailable)?,
             )
             .map_err(|_| unavailable())
     }

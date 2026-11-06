@@ -338,6 +338,7 @@ pub fn machine_routes(state: AppState) -> Router<AppState> {
         .merge(mutations::machine_routes())
         .merge(waits::routes::machine_routes())
         .merge(questions::machine_routes())
+        .merge(human::comments::machine_routes())
         .route("/v1/agent/context", get(context))
         .route("/v1/agent/graph/read", post(read))
         .with_state(state.clone())
