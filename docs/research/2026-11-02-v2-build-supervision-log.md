@@ -1397,3 +1397,18 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - the design: one CLI, a generic proxy channel, server-side grants enforced uniformly, new commands agent-usable by declaring a grant;
     - a live proof scenario and open questions.
   - The owner reviews the spec before implementation.
+- **19:45: agent-channel spec written,** `docs/specs/0006-agent-channel.md` (8f987c05).
+  - **Findings:**
+    - no channel exists today;
+    - questions, comments and waits check no grants;
+    - real attempts resolve a read-only grant set;
+    - refusals are generic;
+    - owner mutations already use one generic `/api/v1/actions` route.
+  - **Recommended design:**
+    - one CLI (`aqv2` becomes `aq` in the sandbox) with a server command registry, exposed as invoke and list routes plus a contract;
+    - new commands become agent-usable by declaring a grant;
+    - one uniform authorizer, deny-by-default;
+    - a worker-run per-attempt proxy over a mounted socket that holds the credential, so no AQ secret sits in the sandbox;
+    - (operation, scope) grants with a project ceiling and a no-escalation rule;
+    - a default coding-agent set; explained refusals; launch context.
+  - Six open questions for the owner. Opened in Sublime.
