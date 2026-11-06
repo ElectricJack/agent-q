@@ -36,7 +36,6 @@ async fn gate(State(budget): State<Arc<Budget>>, request: Request, next: Next) -
 }
 pub fn routes(driver: Arc<Driver>) -> Router<AppState> {
     Router::new()
-        .merge(super::inspection::routes(driver.clone()))
         .route("/api/playbooks/status", get(status))
         .route("/api/playbooks/bindings/{id}", get(binding))
         .route("/api/playbooks/grants", post(grant))
@@ -58,7 +57,7 @@ pub fn routes(driver: Arc<Driver>) -> Router<AppState> {
         .route("/api/playbooks/stop", post(stop))
         .layer(DefaultBodyLimit::max(65536))
         .merge(artifact_routes())
-        .layer(Extension(driver))
+        .layer(Extension(driver.clone()))
         .layer(middleware::from_fn_with_state(
             Arc::new(Budget {
                 work: Semaphore::new(2),
@@ -66,6 +65,8 @@ pub fn routes(driver: Arc<Driver>) -> Router<AppState> {
             }),
             gate,
         ))
+        // Inspection reads have their own queued gate, not the work budget.
+        .merge(super::inspection::routes(driver))
 }
 impl IntoResponse for Error {
     fn into_response(self) -> Response {

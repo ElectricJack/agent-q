@@ -368,7 +368,7 @@ async fn overview_attention_lists_waiting_decision_and_failed_task() {
     assert!(decision["since"].is_null());
     assert!(decision["action"].is_null());
     assert_eq!(decision["project"]["id"], json!(project));
-    assert_eq!(body["data"]["counts"]["needs_you"]["value"], 1);
+    assert_eq!(body["data"]["counts"]["needs_you"]["value"], items.len());
     assert_eq!(body["data"]["counts"]["needs_you"]["accuracy"], "estimated");
     let retained = Box::pin(aq_server::profiled_execution::human_results::read_as(
         &env.f.state,
@@ -489,6 +489,50 @@ async fn overview_attention_lists_waiting_decision_and_failed_task() {
             .as_array()
             .unwrap()
             .is_empty()
+    );
+    env.peer.abort();
+}
+
+#[tokio::test]
+async fn overview_attempts_source_survives_a_node_lock_held_during_the_results_read() {
+    // QA SO-01: the results and attempts sources lock the same node rows; run
+    // together, attempts lost its 250 ms lock wait and flapped to unknown.
+    let env = Box::pin(review_env_for_outcome(1, None, false, true)).await;
+    let app = aq_server::build_admin_router(env.f.state.clone());
+    let pool = env.f.db.pool().await;
+    let mut held = pool.begin().await.unwrap();
+    sqlx::query("SELECT id FROM nodes WHERE id=$1 FOR UPDATE")
+        .bind(env.report.identity.node_id)
+        .execute(&mut *held)
+        .await
+        .unwrap();
+    let reading =
+        tokio::spawn(async move { overview_as(&app, "/api/v1/overview", "owner@localhost").await });
+    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+    held.commit().await.unwrap();
+    let body = reading.await.unwrap();
+    let sources = body["data"]["sources"].as_array().unwrap();
+    assert!(
+        sources
+            .iter()
+            .any(|v| v["source"] == "results" && v["total"]["value"] == 1),
+        "{body}"
+    );
+    assert!(
+        sources
+            .iter()
+            .any(|v| v["source"] == "attempts" && v["total"]["value"] == 1),
+        "{body}"
+    );
+    assert!(
+        !sources
+            .iter()
+            .any(|v| v["source"] == "attempts_and_workers"),
+        "{body}"
+    );
+    assert!(
+        body["data"]["counts"]["recovering"]["value"].is_number(),
+        "{body}"
     );
     env.peer.abort();
 }

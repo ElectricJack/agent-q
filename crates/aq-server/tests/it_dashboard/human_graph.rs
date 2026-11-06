@@ -394,3 +394,36 @@ async fn actual_graph_tasks_dependencies_knowledge_revisions_and_cursor_scope() 
     child.kill().await.unwrap();
     child.wait().await.unwrap();
 }
+
+#[tokio::test(start_paused = true)]
+async fn read_gate_queues_a_page_burst_and_still_refuses_overload() {
+    // QA ISSUE-001/WD-07: the 3rd concurrent read used to fail immediately.
+    use aq_server::read_gate::ReadGate;
+    let gate = ReadGate::new(2, 4);
+    let first = gate.enter().await.unwrap();
+    let second = gate.enter().await.unwrap();
+    let release = async {
+        tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        drop((first, second));
+    };
+    let (_, third, fourth, fifth, sixth, seventh) = tokio::join!(
+        release,
+        gate.enter(),
+        gate.enter(),
+        gate.enter(),
+        gate.enter(),
+        gate.enter()
+    );
+    assert!(
+        third.is_some() && fourth.is_some(),
+        "queued reads run when slots free"
+    );
+    assert!(
+        fifth.is_none() && sixth.is_none(),
+        "a wait beyond QUEUE_WAIT is refused"
+    );
+    assert!(
+        seventh.is_none(),
+        "beyond running + queued is refused at once"
+    );
+}

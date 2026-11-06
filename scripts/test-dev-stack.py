@@ -16,7 +16,8 @@ def command(tmp_path, *args, extra=None):
     env = dict(os.environ, AQ_DEV_STATE_DIR=str(tmp_path / "state"),
                AQ_SECRETS_DIR=str(tmp_path / "secrets"))
     for key in ("AQ_VAULT_DIR", "DEV_SCRATCH_REPO_URL", "DEV_SCRATCH_BASE_BRANCH",
-                "DEV_SCRATCH_CREDENTIAL_REF"):
+                "DEV_SCRATCH_CREDENTIAL_REF", "AQ_DEV_SERVER_URL", "AQ_DEV_ADMIN_PORT",
+                "AQ_DEV_INTELLIGENCE_FILE", "AQ_DEV_REPLACE_OPERATOR_SECTION"):
         env.pop(key, None)
     env.update(extra or {})
     return subprocess.run(["python3", str(ROOT / "scripts/dev-stack.py"), *args],
@@ -265,3 +266,38 @@ def test_operator_section_may_carry_profiled_execution_and_be_replaced_explicitl
     assert command(tmp_path, "prepare", extra=dict(extra, AQ_DEV_REPLACE_OPERATOR_SECTION="1")).returncode != 0
     section.write_text('[profiled_execution]\nrevision = 1\n')
     assert command(tmp_path / "fresh", "prepare", extra=extra).returncode != 0
+
+
+def test_public_origin_follows_the_published_admin_url_in_both_vault_copies(tmp_path):
+    """QA 2026-11-06 section 1: vault.example's 127.0.0.1:8080 origin made the CSRF
+    guard refuse every browser write on a stack published on another port."""
+    import tomllib
+
+    def origin(path):
+        return tomllib.loads(path.read_text())["server"]["public_origin"]
+
+    first = command(tmp_path, "prepare")
+    assert first.returncode == 0, first.stderr
+    vault = Path(json.loads(first.stdout)["AQ_VAULT_DIR"])
+    assert origin(vault / "config.toml") == "http://127.0.0.1:8080"
+    port = command(tmp_path / "port", "prepare", extra=dict(AQ_DEV_ADMIN_PORT="38080"))
+    assert port.returncode == 0, port.stderr
+    assert origin(Path(json.loads(port.stdout)["AQ_VAULT_DIR"]) / "config.toml") == "http://127.0.0.1:38080"
+    published = dict(AQ_DEV_SERVER_URL="http://127.0.0.1:28080/")
+    for bad in ("ftp://127.0.0.1:28080", "http://127.0.0.1:28080/app", "http://u:p@127.0.0.1:1",
+                "http://127.0.0.1:x"):
+        refused = command(tmp_path / "bad", "prepare", extra=dict(AQ_DEV_SERVER_URL=bad))
+        assert refused.returncode != 0 and "AQ_DEV_SERVER_URL" in refused.stderr, bad
+    # The settlement copy (/vault/settlement/config.toml in the volume) is
+    # config.toml plus [playbooks]; an origin change rewrites both, explicitly.
+    (vault / "playbooks.toml").write_text((vault / "config.toml").read_text() + "[playbooks]\nenabled = true\n")
+    # A replay keeps the first origin (smoke stacks learn ephemeral ports later).
+    assert command(tmp_path, "prepare", extra=published).returncode == 0
+    assert origin(vault / "config.toml") == "http://127.0.0.1:8080"
+    replaced = command(tmp_path, "prepare", extra=dict(published, AQ_DEV_REPLACE_OPERATOR_SECTION="1"))
+    assert replaced.returncode == 0, replaced.stderr
+    assert origin(vault / "config.toml") == "http://127.0.0.1:28080"
+    settlement = tomllib.loads((vault / "playbooks.toml").read_text())
+    assert settlement["server"]["public_origin"] == "http://127.0.0.1:28080"
+    assert settlement["playbooks"] == {"enabled": True}
+    assert command(tmp_path, "prepare", extra=published).returncode == 0

@@ -67,7 +67,7 @@ impl Create {
             )
             || v.revision().is_err()
             || v.title.trim().is_empty()
-            || v.title.chars().count() > 512
+            || v.title.len() > 512
             || v.title.chars().any(char::is_control)
             || v.body.contains('\0')
             || v.acceptance_criteria.contains('\0')

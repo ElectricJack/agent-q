@@ -134,7 +134,7 @@ one key (`project`, `decision` or `conversation`), matching both the subject's
 revision string and the payload's expected revision. The subject type uses that
 same key and its ID is the actual project, decision or conversation UUID.
 
-- `task.create` uses `human-task-create-1`: title at most 512 characters, body
+- `task.create` uses `human-task-create-1`: title at most 512 UTF-8 bytes, body
   32768 UTF-8 bytes, acceptance criteria 8192 bytes, at most 16 distinct labels,
   and `draft` or `active`. The Graph task ID equals the operation ID. A confirmed
   operation references the validated Graph change set and exact task revision.
@@ -172,7 +172,9 @@ subject revision and the single `expected_versions` entry (`task` or
 `project` subject. A stale version returns a `conflict` whose operation carries
 `current_versions` with the live Graph version; nothing is written.
 
-- `task.edit` patches title, body, acceptance criteria or labels.
+- `task.edit` patches title, body, acceptance criteria or labels. Every task
+  and knowledge title (create, edit, author, correct) is 1 to 512 UTF-8 bytes,
+  Graph's cap; schema `maxLength` values count characters and are upper bounds.
 - `task.reprioritize` writes Graph metadata `aq:priority` (integer in
   -1,000,000..1,000,000, higher first) and preserves other metadata keys.
 - `task.dependency.add` adds a `blocks` edge from `blocker_id`;
@@ -190,6 +192,7 @@ subject revision and the single `expected_versions` entry (`task` or
   objects with verdict `verified` or `disputed`. Graph may answer `forbidden`,
   which is `rejected`.
 - `knowledge.retire` requires a retirement reason and an optional successor;
+  retiring an already retired record is `rejected` and writes nothing.
   `knowledge.restore` restores an earlier `revision`.
 
 Graph writes use the idempotency key `aq-dashboard-action:{operation_id}` and a

@@ -79,6 +79,36 @@ def intelligence_section():
     return "\n" + text if text.endswith("\n") else "\n" + text + "\n"
 
 
+def public_origin():
+    """The CSRF origin is the published admin URL (AQ_DEV_SERVER_URL), never
+    vault.example's 127.0.0.1:8080: a stack on another port would refuse every
+    browser write (QA 2026-11-06 section 1)."""
+    port = os.environ.get("AQ_DEV_ADMIN_PORT", "8080")
+    url = urllib.parse.urlsplit(os.environ.get("AQ_DEV_SERVER_URL") or f"http://127.0.0.1:{port}")
+    try:
+        url.port
+    except ValueError:
+        url = None
+    if (url is None or url.scheme not in ("http", "https") or not url.hostname or url.username
+            or url.password or url.query or url.fragment or url.path not in ("", "/")):
+        raise ValueError("AQ_DEV_SERVER_URL must be an http(s) origin such as http://127.0.0.1:28080")
+    return f"{url.scheme}://{url.netloc}"
+
+
+def origin_line(config):
+    lines = config.split("\n")
+    matches = [i for i, line in enumerate(lines) if line.startswith("public_origin = ")]
+    if len(matches) != 1:
+        raise ValueError("development vault needs exactly one [server] public_origin")
+    return lines, matches[0]
+
+
+def with_origin(config, origin):
+    lines, index = origin_line(config)
+    lines[index] = f'public_origin = "{origin}"'
+    return "\n".join(lines)
+
+
 def prepare():
     state, secret, vault = paths()
     for directory in (state, secret, vault,
@@ -103,7 +133,14 @@ def prepare():
         keys={"dev-engine-1": secrets.token_hex(32)})).encode())
     private_file(secret / "playbook_bridge_key", secrets.token_bytes(32))
     private_file(secret / "terminal_protection_key", secrets.token_bytes(32))
-    config = (ROOT / "vault.example/config.toml").read_text()
+    origin = public_origin()
+    target = vault / "config.toml"
+    if target.exists() and os.environ.get("AQ_DEV_REPLACE_OPERATOR_SECTION") != "1":
+        # A replay keeps the stack's first origin (smoke stacks publish
+        # ephemeral ports only after `up`); explicit replacement applies a new one.
+        lines, index = origin_line(target.read_text())
+        origin = lines[index].removeprefix("public_origin = ").strip('"')
+    config = with_origin((ROOT / "vault.example/config.toml").read_text(), origin)
     config += '''
 [agent_access]
 graph_url = "http://aq-graph:8741"
@@ -121,14 +158,15 @@ file = "/run/aq-dev/terminal_protection_key"
 '''
     generated = config
     config += intelligence_section()
-    target = vault / "config.toml"
     if target.exists() and target.read_text() != config:
         # MS1: an operator may replace only the appended operator section of an
         # existing vault (revisioned [intelligence]/[profiled_execution]); every
         # generated table must be byte-identical.
+        # The origin follows the published URL, so an older vault with the
+        # template origin is updated here too, in both copies.
         previous = target.read_text()
         if not (os.environ.get("AQ_DEV_REPLACE_OPERATOR_SECTION") == "1"
-                and previous.startswith(generated)):
+                and with_origin(previous, origin).startswith(generated)):
             raise ValueError("development vault differs from generated configuration; preserve it and use a new AQ_DEV_STATE_DIR")
         # The settlement config is config.toml plus [playbooks]: carry it over.
         playbooks = vault / "playbooks.toml"

@@ -431,3 +431,23 @@ async fn inspection_revocation_and_foreign_subscription_never_return_tail() {
         1
     );
 }
+#[tokio::test]
+async fn tail_waits_for_a_briefly_held_node_lock_instead_of_failing() {
+    // QA N-01: the ~5/s tail poll failed (retryable 503) whenever another read
+    // held the node row longer than the pool's 100 ms lock timeout.
+    let c = Box::pin(setup()).await;
+    let (id, _) = watch(&c, c.actor, 15000).await;
+    let pool = c.f.c.env.env.pool.clone();
+    let mut held = pool.begin().await.unwrap();
+    sqlx::query("SELECT id FROM nodes WHERE id=$1 FOR UPDATE")
+        .bind(c.f.prepared.original.identity.node_id)
+        .execute(&mut *held)
+        .await
+        .unwrap();
+    let release = async {
+        tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+        held.commit().await.unwrap();
+    };
+    let (_, reply) = tokio::join!(release, read(&c, c.actor, id, 0));
+    assert_eq!(reply.unwrap().availability, Availability::NotRetained);
+}

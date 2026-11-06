@@ -349,3 +349,47 @@ async fn opt_in_phase_metadata_refuses_changed_nominal_terminal_origin() {
     tx.commit().await.unwrap();
     assert_eq!(get(&f, &path).await.0, StatusCode::OK);
 }
+#[tokio::test]
+async fn phase_result_without_uploads_lists_an_empty_media_page() {
+    // QA RA-03: media association was 404 for every phase-origin (MS1) result.
+    use aq_server::result_media::{config::MediaConfig, runtime::Runtime};
+    use std::os::unix::fs::PermissionsExt;
+    let (f, report) = Box::pin(ready()).await;
+    let auth = terminal::auth(&f).await;
+    let receipt = results::record(&f.c.env.env.state, &auth, &report)
+        .await
+        .unwrap();
+    let state = f.c.env.env.state.clone();
+    let root = tempfile::Builder::new()
+        .permissions(std::fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
+    let media = Runtime::start(
+        state.clone(),
+        &MediaConfig {
+            root: root.path().into(),
+            storage_id: Uuid::new_v4(),
+            uploads_enabled: false,
+        },
+    )
+    .await
+    .unwrap();
+    let app = aq_server::build_admin_router_with_optional_owners(state, None, None, None, Some(media.clone()));
+    let response = app
+        .oneshot(
+            Request::builder()
+                .uri(format!("{}/media", detail(&report, receipt.report_digest.as_str(), false)))
+                .header("x-aq-dev-email", "owner@localhost")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let page: Value = serde_json::from_slice(&to_bytes(response.into_body(), 262144).await.unwrap()).unwrap();
+    assert_eq!(page["items"], json!([]));
+    assert_eq!(page["binding"]["report_id"], json!(report.report_id));
+    assert_eq!(page["binding"]["report_revision"], receipt.report_digest.as_str());
+    assert_eq!(page["binding"]["coverage"], "recorded_legacy_native_only");
+    media.shutdown().await.unwrap();
+}

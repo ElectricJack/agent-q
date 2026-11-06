@@ -111,13 +111,29 @@ fn csrf_check(
     }
     if let Some(origin) = headers.get("origin") {
         let expected = state.config.server.public_origin.trim_end_matches('/');
-        if origin.as_bytes() != expected.as_bytes() {
+        let development = matches!(state.config.auth, crate::config::AuthConfig::Dev { .. });
+        if !origin_allowed(expected, origin.as_bytes(), development) {
             return Err(AppError::CsrfRejected(
                 "request origin is not allowed".into(),
             ));
         }
     }
     Ok(())
+}
+
+/// The exact configured origin. Development auth alone also accepts its other
+/// loopback spelling (127.0.0.1 and localhost, same scheme and port; QA N-05).
+pub fn origin_allowed(expected: &str, origin: &[u8], development: bool) -> bool {
+    let alias = |from: &str, to: &str| {
+        let (scheme, rest) = expected.split_once("://")?;
+        let port = rest.strip_prefix(from)?;
+        (port.is_empty() || port.starts_with(':')).then(|| format!("{scheme}://{to}{port}"))
+    };
+    origin == expected.as_bytes()
+        || (development
+            && alias("127.0.0.1", "localhost")
+                .or_else(|| alias("localhost", "127.0.0.1"))
+                .is_some_and(|alias| origin == alias.as_bytes()))
 }
 
 /// Middleware applying [`csrf_check`]; layer it with `from_fn_with_state`.

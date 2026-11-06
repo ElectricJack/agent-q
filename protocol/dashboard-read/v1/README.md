@@ -11,7 +11,12 @@ synthetic owned SQL projection responses, never evidence of a native process.
 
 Session identities are historical immutable bindings. Overview counts come from
 bounded owner observations; missing owners produce unknown counts and explicit
-partial coverage. Session activity remains unknown until its owning projection
+partial coverage. `needs_you` counts the returned attention items (decisions,
+failed results, offline workers, uncertain operations); it is unknown while the
+decision owner is unavailable and estimated while any source is partial. The
+decision count alone is the `reviews` source total. In the all-projects view
+every enrolled offline worker is attention; one without recorded work in a
+listed project has `project: null`. Session activity remains unknown until its owning projection
 is connected. Authorization
 revision is a decimal cache partition derived from current role and a bounded
 visibility set, not a database revision. A changed partition refuses cursor

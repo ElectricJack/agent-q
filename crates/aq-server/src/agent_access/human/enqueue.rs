@@ -78,7 +78,7 @@ impl Task {
     fn valid(&self) -> bool {
         !self.id.is_nil()
             && !self.title.trim().is_empty()
-            && self.title.chars().count() <= 512
+            && self.title.len() <= 512
             && !self.title.chars().any(char::is_control)
             && self.body.len() <= 32768
             && !self.body.contains('\0')

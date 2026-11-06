@@ -72,9 +72,9 @@ pub(super) async fn binding(
             crate::error::AppError::NotFound(_) => Error::NotFound,
             _ => Error::Owner,
         })?;
-    if result.origin != crate::profiled_execution::results::RecordedOrigin::LegacyPrepareV1
-        || result.receipt.report_digest.as_str() != revision.as_str()
-    {
+    // RA-03: every recorded origin the results views publish (legacy prepare,
+    // phase execution, phase refresh) has the same report binding fields.
+    if result.receipt.report_digest.as_str() != revision.as_str() {
         return Err(Error::NotFound);
     }
     let id = |value| media::Id::new(value).map_err(|_| Error::Owner);

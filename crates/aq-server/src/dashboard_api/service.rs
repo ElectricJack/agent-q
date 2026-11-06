@@ -828,10 +828,11 @@ pub(super) async fn session(
         project,
         profile,
         authority: "remote".into(),
+        // Fresh "unknown" for one envelope interval, never instantly stale (RA-16).
         observation: ProcessObservation {
             state: "unknown".into(),
             observed_at: timestamp(now)?,
-            fresh_until: timestamp(now)?,
+            fresh_until: timestamp(now.saturating_add(5000))?,
         },
         wait: None,
         controller: Controller {

@@ -213,11 +213,28 @@ pub(super) async fn overview(
         .iter()
         .map(|p| (p.label.id, p.label.clone()))
         .collect();
-    let (attempts, ready, reviews, results, settlements, operations) = tokio::join!(
-        Box::pin(bounded_source(
-            "attempts_and_workers",
-            attempts(state, runtime, &ids, &labels, truncated)
-        )),
+    // SO-01: results holds node row locks for its whole page while attempts
+    // locks each node with a 250 ms timeout. Run concurrently, attempts lost
+    // that wait on ~40% of reads, so these two sources run in turn.
+    let ((results, attempts), ready, reviews, settlements, operations) = tokio::join!(
+        Box::pin(async {
+            let results = bounded_source(
+                "results",
+                results(state, user, &projects, truncated, mounted.results),
+            )
+            .await;
+            // Another request (a sessions or terminal read) may still hold one
+            // node briefly: retry once within the same source budget.
+            let all = scope.project().is_none();
+            let attempts = bounded_source("attempts_and_workers", async {
+                match attempts(state, runtime, &ids, &labels, truncated, all).await {
+                    Err(_) => attempts(state, runtime, &ids, &labels, truncated, all).await,
+                    done => done,
+                }
+            })
+            .await;
+            (results, attempts)
+        }),
         Box::pin(bounded_source(
             "graph_ready",
             ready(state, &projects, truncated, mounted.graph)
@@ -225,10 +242,6 @@ pub(super) async fn overview(
         Box::pin(bounded_source(
             "reviews",
             reviews(state, runtime, user, &projects, truncated)
-        )),
-        Box::pin(bounded_source(
-            "results",
-            results(state, user, &projects, truncated, mounted.results)
         )),
         Box::pin(bounded_source(
             "settlement",
@@ -271,6 +284,7 @@ pub(super) async fn overview(
             unavailable("blocked_tasks", "blocked_task_owner_not_mounted"),
         ],
     };
+    let decisions = reviews.needs_you.is_some();
     for c in [attempts, ready, reviews, results, settlements, operations] {
         data.sources.extend(c.sources);
         data.attention.extend(c.attention);
@@ -279,6 +293,16 @@ pub(super) async fn overview(
     if truncated {
         data.sources
             .push(unavailable("projects", "project_sample_truncated"));
+    }
+    // SO-07: "need you" counts the attention list it heads, not only decisions
+    // (the decision count stays the `reviews` source total). Unknown while the
+    // decision owner is; estimated while any source is partial or unknown.
+    if decisions {
+        let complete = data
+            .sources
+            .iter()
+            .all(|s| matches!(s.coverage.state, Completeness::Complete));
+        data.counts.needs_you = total(data.attention.len(), !complete);
     }
     // Re-read bindings after all owner awaits. A different workspace/name/revision
     // must never be attached to observations made against the original binding.
@@ -388,12 +412,52 @@ async fn ready(
     Ok(c)
 }
 
+const WORKER: &str = "SELECT id,name,worker_version,protocol_version,enrolled_at,last_seen_at,revoked_at,xmin::text AS revision FROM nodes WHERE id=$1 AND revoked_at IS NULL";
+const WORKERS: &str = "SELECT id,name,worker_version,protocol_version,enrolled_at,last_seen_at,revoked_at,xmin::text AS revision FROM nodes WHERE revoked_at IS NULL ORDER BY id LIMIT 101";
+fn offline(
+    state: &AppState,
+    w: &sqlx::postgres::PgRow,
+    project: Option<ProjectRef>,
+) -> Result<Option<AttentionItem>> {
+    let seen: Option<chrono::DateTime<chrono::Utc>> = w.get("last_seen_at");
+    let worker = crate::store::Node {
+        id: w.get("id"),
+        name: w.get("name"),
+        worker_version: w.get("worker_version"),
+        protocol_version: w.get::<i32, _>("protocol_version") as u32,
+        enrolled_at: w.get("enrolled_at"),
+        last_seen_at: seen,
+        revoked_at: w.get("revoked_at"),
+    };
+    let after = Duration::from_secs(state.config.workers.offline_after_secs);
+    if crate::admin_api::worker_status(&worker, (state.clock)(), after) != "offline" {
+        return Ok(None);
+    }
+    let since = seen
+        .map(|at| {
+            timestamp((at.timestamp_millis() as u64).saturating_add(after.as_millis() as u64))
+        })
+        .transpose()?;
+    Ok(Some(attention(
+        AttentionKind::WorkerOffline,
+        reference("worker", worker.id, Revision(w.get("revision")).into()),
+        project,
+        "Worker offline",
+        if seen.is_some() {
+            "Heartbeat exceeds the configured offline threshold"
+        } else {
+            "No heartbeat has been observed"
+        },
+        since,
+    )))
+}
 async fn attempts(
     state: &AppState,
     runtime: &Runtime,
     ids: &[Uuid],
     labels: &BTreeMap<Uuid, ProjectRef>,
     truncated: bool,
+    installation: bool,
 ) -> Result<Contribution> {
     let mut transaction = tx(runtime).await?;
     let rows = sqlx::query("SELECT attempt_id,node_id FROM execution_attempts WHERE (CASE WHEN kind='profiled_v1' THEN state#>>'{offer,manifest,bindings,project_id}' ELSE state#>>'{offer,spec,project_id}' END)=ANY($1) ORDER BY attempt_id LIMIT 101")
@@ -435,46 +499,14 @@ async fn attempts(
         {
             recovering += 1;
         }
-        let worker = sqlx::query("SELECT id,name,worker_version,protocol_version,enrolled_at,last_seen_at,revoked_at,xmin::text AS revision FROM nodes WHERE id=$1 AND revoked_at IS NULL").bind(node).fetch_optional(&mut *transaction).await?;
-        if let Some(w) = worker {
-            let seen: Option<chrono::DateTime<chrono::Utc>> = w.get("last_seen_at");
-            let worker = crate::store::Node {
-                id: node,
-                name: w.get("name"),
-                worker_version: w.get("worker_version"),
-                protocol_version: w.get::<i32, _>("protocol_version") as u32,
-                enrolled_at: w.get("enrolled_at"),
-                last_seen_at: seen,
-                revoked_at: w.get("revoked_at"),
-            };
-            if crate::admin_api::worker_status(
-                &worker,
-                (state.clock)(),
-                Duration::from_secs(state.config.workers.offline_after_secs),
-            ) == "offline"
-            {
-                let pin = Revision(w.get("revision")).into();
-                workers.insert(
-                    (node, v.project_id),
-                    attention(
-                        AttentionKind::WorkerOffline,
-                        reference("worker", node, pin),
-                        labels.get(&v.project_id).cloned(),
-                        "Worker offline",
-                        if seen.is_some() {
-                            "Heartbeat exceeds the configured offline threshold"
-                        } else {
-                            "No heartbeat has been observed"
-                        },
-                        seen.map(|at| {
-                            timestamp((at.timestamp_millis() as u64).saturating_add(
-                                state.config.workers.offline_after_secs.saturating_mul(1000),
-                            ))
-                        })
-                        .transpose()?,
-                    ),
-                );
-            }
+        let worker = sqlx::query(WORKER)
+            .bind(node)
+            .fetch_optional(&mut *transaction)
+            .await?;
+        if let Some(w) = worker
+            && let Some(item) = offline(state, &w, labels.get(&v.project_id).cloned())?
+        {
+            workers.insert((node, Some(v.project_id)), item);
         }
         transaction.commit().await?;
     }
@@ -486,13 +518,30 @@ async fn attempts(
         more,
         None,
     )?);
+    // SO-06: across all projects every enrolled offline worker is attention,
+    // not only those linked to retained attempts (those keep their project).
+    let mut nodes_more = false;
+    if installation {
+        let mut transaction = tx(runtime).await?;
+        let rows = sqlx::query(WORKERS).fetch_all(&mut *transaction).await?;
+        transaction.commit().await?;
+        nodes_more = rows.len() > MEMBERS;
+        for w in rows.iter().take(MEMBERS) {
+            let id: Uuid = w.get("id");
+            if !workers.keys().any(|(node, _)| *node == id)
+                && let Some(item) = offline(state, w, None)?
+            {
+                workers.insert((id, None), item);
+            }
+        }
+    }
     c.sources.push(source(
         "workers",
         None,
         stamp(state)?,
         workers.len(),
-        more,
-        Some("association_from_retained_attempts"),
+        more || nodes_more,
+        (!installation).then_some("association_from_retained_attempts"),
     )?);
     c.attention.extend(workers.into_values());
     c.running = (!unknown_running).then(|| total(running, more));

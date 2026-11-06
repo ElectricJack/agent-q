@@ -6,7 +6,7 @@ use axum::{
     Router,
     body::{Body, Bytes},
     extract::{FromRequestParts, Request, State},
-    http::{HeaderValue, header},
+    http::{HeaderValue, Method, StatusCode, header},
     response::{IntoResponse, Response},
     routing::get,
 };
@@ -301,27 +301,61 @@ fn asset_cache_control(name: &str) -> &'static str {
         "no-cache"
     }
 }
+/// SO-02: a hard-loaded unknown page outside `/api`, `/v1` and `/assets` gets
+/// the app's index (status 404), which renders its own "Page not found". API
+/// calls and clients that do not accept HTML keep the JSON 404.
+pub(crate) async fn browser_not_found(state: AppState, request: Request) -> Option<Response> {
+    let index = request
+        .extensions()
+        .get::<Arc<DashboardAssets>>()?
+        .files
+        .get("index.html")?
+        .clone();
+    let path = request.uri().path();
+    let accepts_html = request
+        .headers()
+        .get(header::ACCEPT)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|v| v.contains("text/html"));
+    if !matches!(*request.method(), Method::GET | Method::HEAD)
+        || !accepts_html
+        || ["/api", "/v1", "/assets"].iter().any(|p| {
+            path.strip_prefix(p)
+                .is_some_and(|r| r.is_empty() || r.starts_with('/'))
+        })
+    {
+        return None;
+    }
+    let mut response = serve(&index, &state, request).await.into_response();
+    if response.status().is_success() {
+        *response.status_mut() = StatusCode::NOT_FOUND;
+    }
+    Some(response)
+}
+async fn serve(asset: &Asset, state: &AppState, request: Request) -> Result<Response, AppError> {
+    let (mut parts, _) = request.into_parts();
+    CurrentUser::from_request_parts(&mut parts, state).await?;
+    let mut response = Body::from(asset.bytes.clone()).into_response();
+    response
+        .headers_mut()
+        .insert(header::CONTENT_TYPE, HeaderValue::from_static(asset.mime));
+    response
+        .headers_mut()
+        .insert(header::CONTENT_LENGTH, HeaderValue::from(asset.bytes.len()));
+    response.headers_mut().insert(
+        header::CACHE_CONTROL,
+        HeaderValue::from_static(asset.cache_control),
+    );
+    Ok(response)
+}
 fn handler(asset: Asset, spa_route: bool) -> axum::routing::MethodRouter<AppState> {
     get(move |State(state): State<AppState>, request: Request| {
         let asset = asset.clone();
         async move {
             if spa_route && !spa(request.uri().path()) {
-                return Err(AppError::NotFound("no such route".into()));
+                return crate::not_found(State(state), request).await;
             }
-            let (mut parts, _) = request.into_parts();
-            CurrentUser::from_request_parts(&mut parts, &state).await?;
-            let mut response = Body::from(asset.bytes.clone()).into_response();
-            response
-                .headers_mut()
-                .insert(header::CONTENT_TYPE, HeaderValue::from_static(asset.mime));
-            response
-                .headers_mut()
-                .insert(header::CONTENT_LENGTH, HeaderValue::from(asset.bytes.len()));
-            response.headers_mut().insert(
-                header::CACHE_CONTROL,
-                HeaderValue::from_static(asset.cache_control),
-            );
-            Ok::<Response, AppError>(response)
+            serve(&asset, &state, request).await.into_response()
         }
     })
 }

@@ -96,6 +96,14 @@ async fn quota_unknown_is_not_zero() {
     for field in ["used_percent", "used", "limit"] {
         assert!(window[field].is_null(), "{field}: {window}");
     }
+    // QA SO-08: a just-observed unknown window is not already stale.
+    let observed = &window["observation"];
+    let at = |k: &str| chrono::DateTime::parse_from_rfc3339(observed[k].as_str().unwrap()).unwrap();
+    assert_eq!(
+        (at("fresh_until") - at("observed_at")).num_milliseconds(),
+        5000,
+        "{observed}"
+    );
     assert!(!body.to_string().contains("private-search-canary"));
     let (_, other) = read(
         &app,
@@ -128,7 +136,15 @@ async fn overview_empty_and_bounded_project_sources_are_truthful() {
     assert_eq!(empty["data"]["counts"]["running"]["accuracy"], "exact");
     assert!(empty["data"]["counts"]["ready"]["value"].is_null());
     assert!(empty["data"]["counts"]["needs_you"]["value"].is_null());
-    assert!(empty["data"]["attention"].as_array().unwrap().is_empty());
+    // The fixture's enrolled worker has never sent a heartbeat (SO-06).
+    assert!(
+        empty["data"]["attention"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|v| v["kind"] == "worker_offline" && v["project"].is_null()),
+        "{empty}"
+    );
     common::profiled::insert(&f).await;
     let pool = f.db.pool().await;
     for _ in 0..9 {
@@ -322,6 +338,42 @@ async fn overview_workers_use_configured_threshold_and_project_association() {
     )
     .await;
     assert!(!excluded.to_string().contains(&f.node.node_id.to_string()));
+    // QA SO-06: an offline worker with no recorded work is installation-wide
+    // attention in the all-projects view only.
+    let idle = uuid::Uuid::new_v4();
+    sqlx::query("INSERT INTO nodes(id,name,credential_hash,worker_version,protocol_version,enrolled_at,last_seen_at) VALUES($1,'idle',$2,'1',1,to_timestamp(0),to_timestamp(0))")
+        .bind(idle)
+        .bind(idle.to_string())
+        .execute(&pool)
+        .await
+        .unwrap();
+    let (_, body) = read(&app, "/api/v1/overview").await;
+    let attention = body["data"]["attention"].as_array().unwrap();
+    let item = attention
+        .iter()
+        .find(|v| v["subject"]["id"] == json!(idle))
+        .expect("unassociated offline worker");
+    assert_eq!(item["kind"], "worker_offline");
+    assert!(item["project"].is_null());
+    assert_eq!(
+        attention
+            .iter()
+            .filter(|v| v["subject"]["id"] == json!(f.node.node_id))
+            .count(),
+        1,
+        "an associated worker is listed once, with its project"
+    );
+    // No review owner is mounted here, so the count stays unknown, never zero.
+    assert!(body["data"]["counts"]["needs_you"]["value"].is_null());
+    let (_, scoped) = read(
+        &app,
+        &format!(
+            "/api/v1/overview?scope=project:{}",
+            f.selection.lineage.project_id
+        ),
+    )
+    .await;
+    assert!(!scoped.to_string().contains(&idle.to_string()));
 }
 
 #[tokio::test]

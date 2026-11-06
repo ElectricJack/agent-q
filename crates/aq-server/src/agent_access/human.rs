@@ -26,7 +26,6 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sqlx::{PgPool, Row, postgres::PgPoolOptions};
 use std::{sync::Arc, time::Duration};
-use tokio::sync::Semaphore;
 use uuid::Uuid;
 type Result<T> = std::result::Result<T, AppError>;
 fn invalid() -> AppError {
@@ -41,9 +40,12 @@ fn conflict() -> AppError {
 fn stamp(state: &AppState) -> i64 {
     (state.clock)().timestamp_millis()
 }
+/// Human Graph reads: 4 run (one per pooled connection), 12 more wait up to
+/// [`crate::read_gate::QUEUE_WAIT`]; see docs/development.md "Read capacity".
+const RUNNING: usize = 4;
 pub struct ReadRuntime {
     pool: PgPool,
-    gate: Semaphore,
+    gate: crate::read_gate::ReadGate,
     cursors: cursor::Codec,
 }
 impl ReadRuntime {
@@ -51,14 +53,14 @@ impl ReadRuntime {
     pub(crate) fn with_pool(pool: PgPool) -> Self {
         Self {
             pool,
-            gate: Semaphore::new(2),
+            gate: crate::read_gate::ReadGate::new(RUNNING, 12),
             cursors: cursor::Codec::new(),
         }
     }
     pub(crate) fn new(state: &AppState) -> Self {
         Self {
             pool: PgPoolOptions::new()
-                .max_connections(2)
+                .max_connections(RUNNING as u32)
                 .acquire_timeout(Duration::from_millis(500))
                 .connect_lazy_with(
                     state
@@ -69,7 +71,7 @@ impl ReadRuntime {
                         .clone()
                         .application_name("aq-human-graph-read"),
                 ),
-            gate: Semaphore::new(2),
+            gate: crate::read_gate::ReadGate::new(RUNNING, 12),
             cursors: cursor::Codec::new(),
         }
     }
@@ -120,7 +122,7 @@ pub fn routes(state: &AppState) -> Router<AppState> {
         .layer(middleware::from_fn_with_state(runtime, gate))
 }
 async fn gate(State(r): State<Arc<ReadRuntime>>, request: Request, next: Next) -> Response {
-    let Ok(_permit) = r.gate.try_acquire() else {
+    let Some(_permits) = r.gate.enter().await else {
         return unavailable().into_response();
     };
     match tokio::time::timeout(Duration::from_secs(5), next.run(request)).await {
@@ -341,12 +343,64 @@ async fn fence_records(r: &ReadRuntime, actor: &User, records: &[ProjectRecord])
     tx.commit().await.map_err(|_| unavailable())?;
     Ok(())
 }
+/// QA N-04: Graph attributes every AQ write to the one configured mutation
+/// identity. Show the AQ account whose operation created (operation ID = node
+/// ID) or last verified the record instead; other attributions are unchanged.
+async fn attribute(state: &AppState, r: &ReadRuntime, data: &mut Value) -> Result<()> {
+    fn records<'a>(v: &'a mut Value, out: &mut Vec<&'a mut serde_json::Map<String, Value>>) {
+        match v {
+            Value::Array(items) => items.iter_mut().for_each(|i| records(i, out)),
+            Value::Object(o) => {
+                if o.contains_key("created_by") && o.get("id").is_some_and(Value::is_string) {
+                    out.push(o)
+                } else {
+                    o.values_mut().for_each(|i| records(i, out))
+                }
+            }
+            _ => {}
+        }
+    }
+    let Some(service) = state
+        .agent_access
+        .as_deref()
+        .and_then(|rt| rt.mutation_actor.clone())
+    else {
+        return Ok(());
+    };
+    let mut found = Vec::new();
+    records(data, &mut found);
+    let by_service =
+        |o: &serde_json::Map<String, Value>, k: &str| o.get(k) == Some(&json!(service));
+    found.retain(|o| by_service(o, "created_by") || by_service(o, "last_verified_by"));
+    let ids: Vec<Uuid> = found
+        .iter()
+        .filter_map(|o| o["id"].as_str()?.parse().ok())
+        .collect();
+    if ids.is_empty() {
+        return Ok(());
+    }
+    let rows: Vec<(Uuid, Option<String>, Option<String>)> = sqlx::query_as("SELECT n.id,(SELECT u.email FROM users u WHERE u.id=COALESCE((SELECT d.owner_id FROM dashboard_operations d WHERE d.operation_id=n.id),(SELECT h.actor_id FROM human_graph_operations h WHERE h.operation_id=n.id))),(SELECT u.email FROM dashboard_operations d JOIN users u ON u.id=d.owner_id WHERE d.kind='knowledge.verify' AND d.disposition IN ('confirmed','unknown') AND d.response->'subject_refs'->0->>'id'=n.id::text ORDER BY d.updated_at DESC LIMIT 1) FROM unnest($1::uuid[]) AS n(id)")
+        .bind(&ids).fetch_all(&r.pool).await.map_err(|_| unavailable())?;
+    for o in found {
+        let row = rows.iter().find(|row| o["id"] == json!(row.0));
+        for (key, human) in [
+            ("created_by", row.and_then(|r| r.1.as_ref())),
+            ("last_verified_by", row.and_then(|r| r.2.as_ref())),
+        ] {
+            if let Some(email) = human.filter(|_| by_service(o, key)) {
+                o.insert(key.into(), json!(email));
+            }
+        }
+    }
+    Ok(())
+}
 async fn finish(
     state: &AppState,
     r: &ReadRuntime,
     a: Access,
-    data: Value,
+    mut data: Value,
 ) -> Result<Json<Envelope>> {
+    attribute(state, r, &mut data).await?;
     fence_records(r, &a.actor, std::slice::from_ref(&a.record)).await?;
     let now = stamp(state);
     if now < a.requested || now - a.requested >= 5000 {

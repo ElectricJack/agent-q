@@ -105,6 +105,9 @@ an arbitrary response URL. HTTP routes and headers are mediated by AQ.
   is current retrieval policy. Lowering configuration cannot rewrite an existing
   intent's deadlines or immutable receipt. Unsupported native-report coverage
   is rejected; every binding explicitly declares recorded_legacy_native_only.
+  That frozen coverage name covers every recorded native report origin the
+  results views publish (legacy prepare, phase execution and phase refresh), so
+  a report with no uploads lists an empty page rather than 404.
 
 ## Clips (X26)
 

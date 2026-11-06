@@ -61,11 +61,9 @@ fn time(ms: u64) -> Option<Timestamp> {
 fn observation(now: u64, known: bool) -> Option<Observation> {
     Some(Observation {
         observed_at: time(now)?,
-        fresh_until: time(if known {
-            now.checked_add(CACHE_MS)?
-        } else {
-            now
-        })?,
+        // An "unknown" answer is itself fresh for one envelope interval; equal
+        // timestamps rendered "Stale, observed 0s ago" (QA SO-08).
+        fresh_until: time(now.checked_add(if known { CACHE_MS } else { 5_000 })?)?,
         source: if known {
             "codex_chatgpt_usage"
         } else {
