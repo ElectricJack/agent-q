@@ -1372,3 +1372,17 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Tolerance (lesson W77):** unknown readiness/outcome/reason/field values render as "Unknown (x)" instead of failing the read.
   - Rebuilding `aq-ms1`.
   - The style pass (global type step down, no-wrap task view) is rebasing on main.
+- **19:00: style pass ready for owner review.** aq-dashboard #84 (`style/task-view-compact`, 6b9ab17) is green and deployed as a preview on `aq-ms1`.
+  - **Global type scale one step down:** body 16→14, meta 14→13, headings 16/18/20, set in tokens. 127 fixed px sizes across 23 files now use tokens, so the text-size preference scales everywhere. Controls are 36 px on desktop and 44 px on touch.
+  - **Task view:** quiet section labels; rows kept on one line with ellipsis at 1440 and 1024; 3-line attempts.
+  - **Measured:**
+
+    | Measure | Before | After |
+    |---|---|---|
+    | Inspector top to first comment, desktop | 485 px | 376 px |
+    | Inspector top to first comment, phone | 685 px | 525 px |
+    | Inspector total (desktop) | 2375 px | 1739 px |
+    | Rows per screen, 1440 wide | 13 | 16 |
+    | Rows per screen, 1024 wide | 9 | 12 |
+
+  - Waiting on the owner to merge or adjust.
