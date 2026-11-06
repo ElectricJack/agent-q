@@ -68,7 +68,7 @@ pub fn message(conversation: Uuid, revision: String, body: &str) -> ActionReques
     )
 }
 // Request files are bounded regular files; links and pipes are not opened.
-fn payload(path: &Path) -> Result<Value> {
+pub(crate) fn payload(path: &Path) -> Result<Value> {
     let bad = || {
         error(
             "invalid_request_file",

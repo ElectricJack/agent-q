@@ -87,8 +87,10 @@ impl RawResponse {
 pub struct Client {
     http: reqwest::Client,
     origin: Url,
-    origin_header: HeaderValue,
-    auth_header: (HeaderName, HeaderValue),
+    /// None on a channel: there is no browser origin to assert.
+    origin_header: Option<HeaderValue>,
+    /// None on a channel: the proxy behind the socket holds the credential.
+    auth_header: Option<(HeaderName, HeaderValue)>,
     limits: Limits,
 }
 impl std::fmt::Debug for Client {
@@ -168,19 +170,56 @@ impl Write for Bounded {
         Ok(())
     }
 }
+fn valid_limits(limits: &Limits) -> bool {
+    !(limits.max_request_bytes == 0
+        || limits.max_request_bytes > 1048576
+        || limits.max_response_bytes == 0
+        || limits.max_response_bytes > 8388608
+        || limits.timeout.is_zero()
+        || limits.timeout > Duration::from_secs(30))
+}
+fn builder(limits: &Limits) -> reqwest::ClientBuilder {
+    reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .retry(reqwest::retry::never())
+        .no_proxy()
+        .timeout(limits.timeout)
+        .connect_timeout(limits.timeout.min(Duration::from_secs(5)))
+}
 impl Client {
+    /// A client for the sandbox AQ channel (spec 0006 §4.1, §5): plain HTTP/1.1
+    /// over a local Unix socket. It sends no credential and no `Origin`; the
+    /// channel proxy behind the socket injects the attempt's credential. The
+    /// socket path must be absolute. Every other rule (bounds, no redirects,
+    /// no proxies, no retries) is the same as [`Client::new`].
+    pub fn channel(socket: &std::path::Path, limits: Limits) -> Result<Self, Error> {
+        if !valid_limits(&limits)
+            || !socket.is_absolute()
+            || socket.as_os_str().len() > 107
+            || socket
+                .components()
+                .any(|c| matches!(c, std::path::Component::ParentDir))
+        {
+            return Err(Error::Configuration);
+        }
+        let http = builder(&limits)
+            .unix_socket(socket)
+            .build()
+            .map_err(|_| Error::Configuration)?;
+        Ok(Self {
+            http,
+            origin: Url::parse("http://localhost/").map_err(|_| Error::Configuration)?,
+            origin_header: None,
+            auth_header: None,
+            limits,
+        })
+    }
     pub fn new(
         origin: &str,
         authentication: Authentication,
         limits: Limits,
     ) -> Result<Self, Error> {
-        if limits.max_request_bytes == 0
-            || limits.max_request_bytes > 1048576
-            || limits.max_response_bytes == 0
-            || limits.max_response_bytes > 8388608
-            || limits.timeout.is_zero()
-            || limits.timeout > Duration::from_secs(30)
-        {
+        if !valid_limits(&limits) {
             return Err(Error::Configuration);
         }
         let url = Url::parse(origin).map_err(|_| Error::Configuration)?;
@@ -193,12 +232,7 @@ impl Client {
         {
             return Err(Error::Configuration);
         }
-        let builder = reqwest::Client::builder()
-            .redirect(reqwest::redirect::Policy::none())
-            .retry(reqwest::retry::never())
-            .no_proxy()
-            .timeout(limits.timeout)
-            .connect_timeout(limits.timeout.min(Duration::from_secs(5)));
+        let builder = builder(&limits);
         let (auth_header, builder) = match authentication {
             Authentication::CfAccessTokenFile(path) => {
                 if url.scheme() != "https" {
@@ -244,8 +278,8 @@ impl Client {
         Ok(Self {
             http: builder.build().map_err(|_| Error::Configuration)?,
             origin: url,
-            origin_header,
-            auth_header,
+            origin_header: Some(origin_header),
+            auth_header: Some(auth_header),
             limits,
         })
     }
@@ -344,7 +378,9 @@ impl Client {
         reject_errors: bool,
     ) -> Result<RawResponse, Error> {
         let mut headers = HeaderMap::new();
-        headers.insert(self.auth_header.0.clone(), self.auth_header.1.clone());
+        if let Some((name, value)) = &self.auth_header {
+            headers.insert(name.clone(), value.clone());
+        }
         headers.insert(
             reqwest::header::ACCEPT,
             HeaderValue::from_static("application/json"),
@@ -354,7 +390,9 @@ impl Client {
                 HeaderName::from_static("x-aq-request"),
                 HeaderValue::from_static("1"),
             );
-            headers.insert(reqwest::header::ORIGIN, self.origin_header.clone());
+            if let Some(origin) = &self.origin_header {
+                headers.insert(reqwest::header::ORIGIN, origin.clone());
+            }
         }
         let mut request = self.http.request(method, url).headers(headers);
         if let Some(body) = body {
@@ -421,6 +459,49 @@ mod tests {
             request
         });
         (origin, task)
+    }
+    // Channel mode (spec 0006 §4.1): HTTP over a Unix socket with no
+    // credential, no Origin and no development identity; the proxy adds them.
+    #[tokio::test]
+    async fn channel_speaks_http_over_a_unix_socket_without_credentials() {
+        let dir = tempfile::tempdir().unwrap();
+        let socket = dir.path().join("aq.sock");
+        let listener = tokio::net::UnixListener::bind(&socket).unwrap();
+        let task = tokio::spawn(async move {
+            let (mut stream, _) = listener.accept().await.unwrap();
+            let mut bytes = vec![0; 8192];
+            let mut n = 0;
+            while !bytes[..n].windows(4).any(|v| v == b"\r\n\r\n") {
+                let read = stream.read(&mut bytes[n..]).await.unwrap();
+                assert!(read > 0);
+                n += read;
+            }
+            let body = b"HTTP/1.1 200 OK\r\nContent-Length: 11\r\n\r\n{\"ok\":true}";
+            stream.write_all(body).await.unwrap();
+            String::from_utf8_lossy(&bytes[..n]).to_lowercase()
+        });
+        let client = Client::channel(&socket, Limits::default()).unwrap();
+        let value: serde_json::Value = client
+            .post_json("/api/v1/commands/whoami", &serde_json::json!({}))
+            .await
+            .unwrap();
+        assert_eq!(value["ok"], true);
+        let raw = task.await.unwrap();
+        assert!(
+            raw.starts_with("post /api/v1/commands/whoami http/1.1"),
+            "{raw}"
+        );
+        assert!(raw.contains("x-aq-request: 1"));
+        for header in ["authorization", "origin:", "cf-access", "x-aq-dev-email"] {
+            assert!(!raw.contains(header), "{header} in {raw}");
+        }
+        assert_eq!(
+            Client::channel(std::path::Path::new("relative.sock"), Limits::default()).unwrap_err(),
+            Error::Configuration
+        );
+        let missing = Client::channel(&dir.path().join("gone.sock"), Limits::default()).unwrap();
+        let result: Result<serde_json::Value, _> = missing.get_json("/api/v1/commands", &[]).await;
+        assert_eq!(result.unwrap_err(), Error::Transport);
     }
     #[tokio::test]
     async fn mutation_sends_same_origin_and_csrf_headers_and_never_follows_redirect() {

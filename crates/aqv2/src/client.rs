@@ -22,7 +22,7 @@ pub fn http_error(err: aq_human_http::Error) -> Value {
     }
     value
 }
-fn response(value: aq_human_http::JsonResponse) -> Result<Value> {
+pub(crate) fn response(value: aq_human_http::JsonResponse) -> Result<Value> {
     if (200..300).contains(&value.status) {
         return Ok(value.body);
     }
@@ -93,7 +93,7 @@ fn page(page: &Page) -> Vec<(String, String)> {
     }
     query
 }
-fn validate_receipt(value: &Value, id: Uuid) -> Result<()> {
+pub(crate) fn validate_receipt(value: &Value, id: Uuid) -> Result<()> {
     let invalid = || {
         with_operation(
             error(
