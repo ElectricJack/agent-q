@@ -1123,3 +1123,16 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Final step:** the `ms1/retry` subagent rebuilds `aq-ms1` from main, runs the full demo once with a real Claude agent (A→B with publication, cancel, fail→retry), consolidates to one demo stack, and opens an `ms1/handoff` PR with the owner verification section in MS1.md: rerun commands, the suspend drill, measurements and known limits.
 - **02:20:** main CI after #94 failed one test: `it_playbook::playbook_host_requests::check_request_cancel_completes_from_executor_stop`, where host_dispatch returned `Unknown`. It is the same test that flaked after #88 on 11-05, so it is recurring and timing-sensitive. Reran the failed job.
   - Recorded as a flaky-test follow-up, with `native_cancellation::native_cancel_owner_validation…` and `real_adapter_pilots` (timeout under full-suite load).
+- **02:40: MS1 hand-off run on `aq-ms1`, rebuilt from main** (aq-server 1185ec70, aq-worker b82b08af; the old stack's data is archived in `~/.local/share/aq-ms1-inc3`).
+  - The full demo ran with real Claude Code:
+    - A published 2e32645b → 6c43decb;
+    - B started from 6c43decb and published → e0ab6fe4;
+    - a cancel stopped and kept its sandbox, with nothing published;
+    - a failed attempt (Claude killed after 3/6 files) was reworked, and its replacement in a new sandbox published → 22a13087;
+    - a measured run published → 38bee5f.
+  - Five fast-forwards on `main`, no merge commits.
+  - Memory: stack 343 MiB, sandbox peak 160 MiB at ~23% of a core.
+  - Token scan clean.
+  - The `aq-ms1d` stack is stopped; its data is kept.
+  - Hand-off PR aq-server #95 (docs and scripts: the "Owner verification" section, D1 on by default, seed retires the E0 task, the stats sampler stop fixed) is in CI.
+  - The dashboard Results view on stacks with results is still blocked by the pinned results-feedback schema rejecting the 4eef26ea fields. Dispatched a small dashboard re-pin, plus making a results contract mismatch degrade only that view.
