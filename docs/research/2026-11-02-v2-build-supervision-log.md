@@ -1158,3 +1158,19 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - aq-server #96: a regression test that Overview result subjects resolve on the results route.
   - The combined build was already deployed to `aq-ms1` at the owner's request, before the merge, so they could test without waiting for CI.
   - **QA:** four parallel subagents are running a full dashboard test plan and live-browser execution: shell/Overview/Search, Work/Decisions, Results/Agents, and Playbooks/Knowledge/Supervisor/Settings. Output goes to `aq-platform/qa/2026-11-06/`.
+- **05:00: QA pass (4 groups) finished; a stack config bug was blocking every dashboard write.**
+  - **Totals:**
+
+    | Group | Cases | Pass | Fail | Issues |
+    |---|---|---|---|---|
+    | shell/Overview | 84 | 60 | 20 | 23 |
+    | Work/Decisions | 118 | 93 | 16 | 13 |
+    | Results/Agents | 87 | 63 | 19 | 21 |
+    | Playbooks/Knowledge/Supervisor/Settings | 79 | 58 | 17 | 15 |
+
+  - **Root cause of the many 403s:** `public_origin` in the `aq-ms1` vault was `http://127.0.0.1:8080` (from `vault.example`), but the stack is served on 28080. So every browser POST failed `csrf_rejected` "request origin is not allowed": task create and actions, knowledge authoring, decision resolve, and the terminal watch. The `aq-v2-local` stack (18080) had the same defect, so the owner could never write from the dashboard on either stack.
+    - The server reads `/vault/settlement/config.toml` when present, not `/vault/config.toml`.
+    - Fixed both copies in the `aq-ms1_dev_vault` volume (backups `*.bak-20261106`) and restarted the server; a browser POST now passes CSRF (422 on an empty body).
+    - Root-cause fix pending: `scripts/dev-stack.py` and the MS1 scripts must derive `public_origin` from the published admin URL.
+  - **Second app-wide failure mode:** any single 403 or 404 on an action or link replaces the whole dashboard with "Access denied" (SO-03, WD-05, WD-12, RA-01).
+  - Dispatched a re-test of every write-related case after the origin fix.
