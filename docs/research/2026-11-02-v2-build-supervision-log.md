@@ -1144,3 +1144,8 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Merged hand-off PR aq-server #95 (7214c3d5, all 9 green). MS1.md has the "Owner verification" section, now updated: Results loads, and the `target/` copy-back is a known limit.
   - The stack runs at http://127.0.0.1:28080 from aq-server/aq-worker main.
   - Owner verification: pending.
+- **04:10: the owner reported Results showing nothing on `aq-ms1` (28080).**
+  - **Investigation:** in a fresh browser, navigating via the nav, the Latest tab lists all 6 MS1 results; the API returns 6 for `mode=latest`. HTML is served `no-cache` with the current bundle (`index-C3KH5HCu.js`).
+  - The "Needs review" and "Following" tabs are empty (API returns 0 for both), even though every result is "Unreviewed/Submitted". That is a likely confusion, or a gap: unreviewed results don't appear under Needs review. A tab opened before the 03:05 bundle rebuild and server restart would also show the old bundle until reloaded.
+  - Asked the owner which tab, and to hard-reload.
+  - Owner approved consolidating to one stack: stopped `aq-v2-local` (18080) with its data kept. `aq-ms1` (28080) is the only stack now.
