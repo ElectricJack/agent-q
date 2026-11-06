@@ -1191,3 +1191,11 @@ Each entry records what was observed, the action taken, and anything waiting on 
     1. the client lets a single 403/404 take over the app;
     2. server read capacity is 2 per owner (playbooks 429, graph 503, terminal 503) with no client retry.
   - **Suggested fix order:** dev-stack origin, error containment, read capacity and retry, data errors, then operator capabilities via spec 0004, then minor/cosmetic.
+- **06:40: owner: "Lets do the QA pass next, and then I'll sign off on MS1"** (meaning: fix the QA findings, then sign off). Dispatched five fix subagents in parallel, sharing the rules in `qa/2026-11-06/FIX-RULES.md`:
+  - **`server`:** dev-stack `public_origin` from the published URL; a dev-only loopback alias in the CSRF check; `dev-service` attribution; read capacity for playbooks, graph and terminal; overview flapping; SPA fallback for unknown routes; media for profiled results; knowledge retire idempotency; stale-at-0s observations.
+  - **`client-core`:** error containment (no app-wide "Access denied"), retry and backoff policy, terminal reconnect and polling, per-page titles, the stale-data age indicator, focus management.
+  - **`pages-overview`:** SO-04/05/06/07/09/11/12/15/16/17/18/19/20/21/22.
+  - **`pages-work-results`:** WD-01/02/03/06/08/09(minimal)/10/13, honest Cancel/Retry labels, RA-04/06/07/08/09/11/12/13/14/17–21, N-07.
+  - **`pages-playbooks-knowledge`:** ISSUE-004–015, N-06.
+  - Larger operator features (comments, lifecycle actions, result review) stay in the task-view parity work.
+  - Plan once fixes land: merge, rebuild `aq-ms1`, re-run the QA plans, then owner MS1 sign-off.
