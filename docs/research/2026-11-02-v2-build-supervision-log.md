@@ -1233,3 +1233,16 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - task-create title counted in bytes.
   - **Not done:** WD-08 rejection reasons (needs a dashboard-actions schema change; spec 0004 item 10).
   - **Ratchet raised for owner review:** aq-server lib line ratchet 110,953 → 111,153 (+200, two commits with reasons). The lib split is the scheduled remedy.
+- **08:45: all QA fix PRs merged.** Last was aq-dashboard #77 (35e9bff5), the Work/Decisions/Results/Agents fixes:
+  - task id and copy; dependency picker by title;
+  - honest "Cancel attempt"/"Retry attempt" with reasons; "Open full task" removed;
+  - Message drawer enabled;
+  - Results tabs, labels, summaries, empty states; unknown state shown as "not reported";
+  - adopted the core `RetainedNotice`, retry default and refusal copy.
+
+  The full set: aq-server #97, aq-dashboard #74–#78.
+  - **Remaining small follow-ups:**
+    - the shell Decisions badge reads `counts.needs_you`; it should read the reviews source total;
+    - Overview "Work is moving in N projects" should count only projects with running > 0;
+    - WD-08 rejection reasons belong to spec 0004 item 10.
+  - Rebuilding `aq-ms1` from main (aq-server a72825df, dashboard 35e9bff), then re-running the QA plans.
