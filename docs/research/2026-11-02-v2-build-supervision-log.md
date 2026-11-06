@@ -1117,3 +1117,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - It covers: the server → node → docker-local Claude wiring, D3 completing on Success only, D1 fast-forward publication with source advance, B3 cancel, B4 retry, B5b closure settlement, require_container, the recipe pin, and the build ratchet raised to 110,953.
   - The worker side, aq-worker #41, is still red: the `sandbox_runner` `login` tests have failed on two consecutive runs with "launch failed", including a Claude login test, while main has been green 3×. It is back with the subagent for a real cause.
   - Merging the server first is safe: the new paths are only reached by the MS1 worker driver.
+- **02:25: MS1 merged to main in both repos.**
+  - aq-worker #41 merged as b82b08af, after c84270d and two consecutive green CI runs (rerun deliberately to rule out a lucky pass). c84270d makes CI show sandbox launch errors and removes guardian timing races.
+  - aq-server #94 merged earlier as 1ac43cb1.
+  - **Final step:** the `ms1/retry` subagent rebuilds `aq-ms1` from main, runs the full demo once with a real Claude agent (A→B with publication, cancel, fail→retry), consolidates to one demo stack, and opens an `ms1/handoff` PR with the owner verification section in MS1.md: rerun commands, the suspend drill, measurements and known limits.
