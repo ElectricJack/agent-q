@@ -1105,3 +1105,11 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - aq-server `it_profiled` `result_source_owner_requires_a_real_retained_transfer…` overflows its stack (SIGABRT) at opt-level 0;
     - aq-worker `sandbox_runner` `login::completion_wipes_login_before_retention` returns Preserved("launch failed") instead of Finished.
   - Sent both to the `ms1/retry` subagent, asking for the full suites to run before pushing.
+- **00:45: CI-failure fixes pushed** (aq-server `ms1/retry` 43fc613f, aq-worker 5fef5ea).
+  - **aq-server:** the stack overflow happens in the shared fixture's DB setup, before any MS1 path. The test body uses about 390 KiB of stack at opt-level 0, just under the 2 MiB thread default. It now runs on a 16 MiB thread via `common::on_large_stack`; production code is unchanged.
+  - **aq-worker:** `login::completion_wipes_login_before_retention` is a pre-existing intermittent failure. It also failed on two Nov 5 main merges before any `ms1/retry` change, and passed 12/12 locally. The runner now logs the launch error it used to discard.
+  - **Full suites:**
+    - aq-server nextest: 1786 of 1787 passed. `real_adapter_pilots` timed out under full-suite load and passes alone.
+    - aq-worker `cargo test --workspace --all-features`: all passed.
+    - clippy, fmt and the build budget are clean in both.
+  - Waiting on CI for #94 and #41.
