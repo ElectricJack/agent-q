@@ -25,6 +25,9 @@ struct Graph {
     contexts: Arc<Mutex<HashMap<Uuid, Value>>>,
     trees: Arc<Mutex<HashMap<Uuid, Value>>>,
     cursors: Arc<Mutex<Vec<Option<String>>>>,
+    /// A first history page served instead of the synthetic one.
+    history: Arc<Mutex<Option<Value>>>,
+    revisions: Arc<Mutex<HashMap<u64, Value>>>,
 }
 fn reply(status: u16, body: &Value) -> Response {
     Response::builder()
@@ -63,6 +66,9 @@ async fn read_history(
 ) -> Response {
     let cursor = q.get("cursor").cloned();
     g.cursors.lock().unwrap().push(cursor.clone());
+    if let Some(page) = g.history.lock().unwrap().clone() {
+        return reply(200, &page);
+    }
     let entry = |n: u64| {
         json!({"sequence":n,"entry_id":Uuid::new_v4(),"category":"lifecycle","actor_id":"fixture",
         "operation":"set_task_state","reason":null,"change_set_id":Uuid::new_v4(),
@@ -75,6 +81,13 @@ async fn read_history(
         ),
         Some(_) => reply(200, &json!({"items":[],"next_cursor":null})),
     }
+}
+
+async fn read_revision(
+    State(g): State<Graph>,
+    Path((_, _, n)): Path<(Uuid, Uuid, u64)>,
+) -> Response {
+    found(g.revisions.lock().unwrap().get(&n))
 }
 
 fn task(id: Uuid, w: Uuid, title: &str, state: &str) -> Value {
@@ -125,6 +138,10 @@ async fn setup() -> Fixture {
         .route("/v1/workspaces/{w}/nodes/{id}/context", get(read_context))
         .route("/v1/workspaces/{w}/nodes/{id}/tree", get(read_tree))
         .route("/v1/workspaces/{w}/nodes/{id}/history", get(read_history))
+        .route(
+            "/v1/workspaces/{w}/nodes/{id}/revisions/{n}",
+            get(read_revision),
+        )
         .with_state(graph.clone());
     let server = tokio::spawn(async move {
         axum::serve(listener, app).await.unwrap();
@@ -373,4 +390,130 @@ async fn summary_counts_descendant_completion_and_marks_truncation() {
     assert_eq!(s["implementation"]["by_state"]["active"], "1");
     assert_eq!(s["implementation"]["complete"], false);
     assert_eq!(s["delivery"]["state"], "unavailable");
+}
+
+#[tokio::test]
+async fn work_reports_a_stopped_holding_attempt_as_held_with_its_reason() {
+    // QA P1-01: the MS1 cancel drill's attempt was cancelled and stopped, but
+    // keeps the task claim; readiness said `running`.
+    use aq_server::execution::{
+        authority::hot::{HotState, LaunchOwner},
+        profiled::{Status, Stop},
+    };
+    let x = setup().await;
+    let w = x.w();
+    let held = x.held();
+    let attempt = x.f.profiled.offer.binding.attempt_id;
+    x.graph.contexts.lock().unwrap().insert(
+        held,
+        context(&task(held, w, "Held", "active"), vec![], vec![], false),
+    );
+    let running = x.get(&format!("/tasks/{held}/work")).await;
+    assert_eq!(running["readiness"]["state"], "running");
+    assert_eq!(running["readiness"]["reasons"], json!([]));
+
+    let pool = x.f.db.pool().await;
+    let mut hot = HotState::from_compat(&x.f.profiled).unwrap();
+    sqlx::query("INSERT INTO profiled_authority_hot(attempt_id,state,record_revision,authority_revision,grant_revision) VALUES($1,$2,1,1,0)")
+        .bind(attempt).bind(json!(hot)).execute(&pool).await.unwrap();
+    hot.status = Status::Finished;
+    hot.owner = Some(LaunchOwner {
+        guardian_id: Uuid::new_v4(),
+        launch_id: Uuid::new_v4(),
+        reservation_id: Uuid::new_v4(),
+    });
+    hot.stop = Stop::Stopped {
+        receipt: common::profiled::artifact("stop", b"stop"),
+    };
+    hot.cancellation_id = Some(Uuid::new_v4());
+    hot.revoked = true;
+    sqlx::query("UPDATE profiled_authority_hot SET state=$2 WHERE attempt_id=$1")
+        .bind(attempt)
+        .bind(json!(hot))
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let held_work = x.get(&format!("/tasks/{held}/work")).await;
+    let readiness = &held_work["readiness"];
+    assert_eq!(readiness["state"], "held", "{held_work}");
+    assert_eq!(
+        readiness["reasons"][0]["code"],
+        "cancelled_attempt_holds_task"
+    );
+    assert_eq!(readiness["reasons"][0]["attempt_id"], json!(attempt));
+    assert_eq!(held_work["execution"]["status"], "finished");
+}
+
+#[tokio::test]
+async fn history_entries_say_what_changed() {
+    // QA P1-08: entries named only the operation and category.
+    let x = setup().await;
+    let w = x.w();
+    let held = x.held();
+    let blocker = Uuid::new_v4();
+    let snapshot = |revision: u64, priority: i64, title: &str| {
+        let mut n = task(held, w, title, "active");
+        n["content_revision"] = json!(revision);
+        n["metadata"] = json!({"aq:priority": priority});
+        n
+    };
+    x.graph
+        .nodes
+        .lock()
+        .unwrap()
+        .insert(held, task(held, w, "Held", "active"));
+    x.graph.revisions.lock().unwrap().insert(
+        1,
+        json!({"node":snapshot(1, 0, "Held"),"links":null,"relationships_available":false}),
+    );
+    let entry = |n: u64, category: &str, operation: &str, data: Value| {
+        json!({"sequence":n,"entry_id":Uuid::new_v4(),"category":category,"actor_id":"fixture",
+            "operation":operation,"reason":null,"change_set_id":Uuid::new_v4(),
+            "data":data,"created_at":"2026-01-01T00:00:00Z"})
+    };
+    *x.graph.history.lock().unwrap() = Some(json!({"items":[
+        entry(5, "revision", "updated", snapshot(2, 5, "Held")),
+        entry(6, "lifecycle", "transitioned", json!({"from":"active","to":"completed","version":3})),
+        entry(7, "edge", "added", edge(w, blocker, held, "blocks")),
+        entry(8, "lifecycle", "set_task_state", json!({"secret":"must-not-escape"})),
+    ],"next_cursor":null}));
+    let h = x.get(&format!("/tasks/{held}/history")).await;
+    let items = h["items"].as_array().unwrap();
+    assert_eq!(
+        items[0]["change"]["fields"],
+        json!([{"field":"priority","from":"0","to":"5"}])
+    );
+    assert_eq!(
+        items[0]["change"]["complete"], true,
+        "revision 1 read from Graph"
+    );
+    assert_eq!(items[1]["change"]["summary"], "active → completed");
+    assert_eq!(
+        items[2]["change"]["edge"],
+        json!({"edge_type":"blocks","direction":"incoming","node_id":blocker})
+    );
+    assert_eq!(items[3]["change"], Value::Null);
+}
+
+#[test]
+fn work_and_history_examples_match_the_schema() {
+    let schema: Value = serde_json::from_str(include_str!(
+        "../../../../protocol/human-graph/v1/schema.json"
+    ))
+    .unwrap();
+    for example in [
+        include_str!("../../../../protocol/human-graph/v1/examples/work.json"),
+        include_str!("../../../../protocol/human-graph/v1/examples/history.json"),
+    ] {
+        let body: Value = serde_json::from_str(example).unwrap();
+        assert!(aq_agent_api::check(&schema, &schema, &body), "{body}");
+    }
+    // An unknown readiness state or hold code is rejected.
+    let mut work: Value = serde_json::from_str(include_str!(
+        "../../../../protocol/human-graph/v1/examples/work.json"
+    ))
+    .unwrap();
+    work["data"]["readiness"]["reasons"][0]["code"] = json!("held_for_fun");
+    assert!(!aq_agent_api::check(&schema, &schema, &work));
 }

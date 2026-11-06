@@ -34,6 +34,7 @@ struct Graph {
     receipts: Receipts,
     timeout_after_commit: Arc<AtomicBool>,
     committed: Arc<tokio::sync::Notify>,
+    history: Arc<Mutex<Option<Value>>>,
 }
 fn graph_response(status: u16, body: &Value) -> Response {
     Response::builder()
@@ -114,6 +115,11 @@ async fn mutate(State(g): State<Graph>, headers: HeaderMap, bytes: Bytes) -> Res
     graph_response(status, &reply)
 }
 
+async fn read_history(State(g): State<Graph>) -> Response {
+    let page = g.history.lock().unwrap().clone();
+    graph_response(200, &page.unwrap_or(json!({"items":[],"next_cursor":null})))
+}
+
 struct Fixture {
     f: common::profiled::Fixture,
     graph: Graph,
@@ -133,6 +139,7 @@ async fn setup() -> Fixture {
     let url = format!("http://{}/", listener.local_addr().unwrap());
     let app = Router::new()
         .route("/v1/workspaces/{w}/nodes/{id}", get(read_node))
+        .route("/v1/workspaces/{w}/nodes/{id}/history", get(read_history))
         .route("/v1/workspaces/{w}/mutations", post(mutate))
         .with_state(graph.clone());
     let server = tokio::spawn(async move {
@@ -1341,5 +1348,64 @@ async fn human_reads_attribute_service_writes_to_the_acting_owner() {
     assert_eq!(
         foreign["created_by"], "fixture",
         "other actors keep their attribution"
+    );
+}
+
+#[tokio::test]
+async fn task_history_attributes_dashboard_writes_to_the_acting_owner() {
+    // QA P1-07: history named the service identity for the owner's reprioritize.
+    let x = setup().await;
+    let task = x.f.selection.lineage.task_id;
+    x.put(node(task, x.workspace(), "task", 5));
+    let mut updated = node(task, x.workspace(), "task", 6);
+    updated["metadata"]["aq:priority"] = json!(7);
+    x.reply(200, change_set(vec![updated.clone()]));
+    let op = Uuid::new_v4();
+    let (status, body) = x
+        .act(&action(
+            "task.reprioritize",
+            "task",
+            task,
+            "5",
+            json!({"operation_id":op,"project_id":x.project(),"expected_version":"5","priority":7}),
+        ))
+        .await;
+    assert_eq!(body["data"]["disposition"], "confirmed", "{status} {body}");
+    let set = body["data"]["receipt_refs"][0]["id"].clone();
+    let mut before = node(task, x.workspace(), "task", 5);
+    before["content_revision"] = json!(5);
+    let entry = |n: u64, actor: &str, change_set: Value, data: Value| {
+        json!({"sequence":n,"entry_id":Uuid::new_v4(),"category":"revision","actor_id":actor,
+            "operation":"updated","reason":format!("AQ dashboard action task.reprioritize {op}"),
+            "change_set_id":change_set,"data":data,"created_at":chrono::Utc::now().to_rfc3339()})
+    };
+    *x.graph.history.lock().unwrap() = Some(json!({"items":[
+        entry(1, "dashboard-fixture-service", json!(Uuid::new_v4()), before),
+        entry(2, "dashboard-fixture-service", set, updated),
+    ],"next_cursor":null}));
+    let res = aq_server::build_admin_router(x.f.state.clone())
+        .oneshot(
+            Request::get(format!(
+                "/api/human/projects/{}/tasks/{task}/history",
+                x.project()
+            ))
+            .header("x-aq-dev-email", "owner@localhost")
+            .body(Body::empty())
+            .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(res.status(), StatusCode::OK);
+    let bytes = res.into_body().collect().await.unwrap().to_bytes();
+    let page: Value = serde_json::from_slice(&bytes).unwrap();
+    let items = &page["data"]["items"];
+    assert_eq!(items[1]["actor_id"], "owner@localhost", "{page}");
+    assert_eq!(
+        items[0]["actor_id"], "dashboard-fixture-service",
+        "a change set no owner operation confirmed keeps Graph's actor"
+    );
+    assert_eq!(
+        items[1]["change"]["fields"],
+        json!([{"field":"priority","from":null,"to":"7"}])
     );
 }

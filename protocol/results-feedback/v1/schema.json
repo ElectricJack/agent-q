@@ -1070,6 +1070,16 @@
         "coverage"
       ]
     },
+    "ProcessOutcome": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failed",
+        "cancelled",
+        "expired",
+        "unknown"
+      ]
+    },
     "Quality": {
       "type": "string",
       "enum": [
@@ -1268,6 +1278,17 @@
             "$ref": "#/$defs/RevisionRef"
           }
         },
+        "process_outcome": {
+          "description": "The worker-reported process outcome; absent from older servers.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProcessOutcome"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "report_id": {
           "type": "string",
           "format": "uuid"
@@ -1285,6 +1306,7 @@
           "minimum": 0
         },
         "summary": {
+          "description": "The worker's conclusion, as recorded in the native report.",
           "type": "string"
         }
       },

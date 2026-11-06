@@ -1,0 +1,35 @@
+{
+  "contract": "human-graph-1",
+  "project": {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "name": "Contract fixture",
+    "revision": "1",
+    "workspace_id": "00000000-0000-0000-0000-000000000002"
+  },
+  "observed_at": "2026-11-06T00:00:00Z",
+  "data": {
+    "task_id": "00000000-0000-0000-0000-000000000003",
+    "task_state": "active",
+    "version": "4",
+    "readiness": {
+      "state": "held",
+      "blockers": [],
+      "complete": true,
+      "reasons": [
+        {
+          "code": "cancelled_attempt_holds_task",
+          "attempt_id": "00000000-0000-0000-0000-000000000004",
+          "status": "finished",
+          "message": "The attempt was cancelled and has stopped, but it still holds the task: a cancelled attempt keeps its retained source for a replacement (B4). The claim is released when the task is retried or the owner abandons the attempt."
+        }
+      ]
+    },
+    "parent": null,
+    "execution": {
+      "task_id": "00000000-0000-0000-0000-000000000003",
+      "attempt_id": "00000000-0000-0000-0000-000000000004",
+      "session_id": "00000000-0000-0000-0000-000000000005",
+      "status": "finished"
+    }
+  }
+}

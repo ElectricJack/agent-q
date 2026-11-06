@@ -616,6 +616,7 @@ pub(super) async fn detail(state: &AppState, user: &User, p: &Pin) -> Result<Det
                 base: m.source_base,
             },
             summary: m.conclusion,
+            process_outcome: serde_json::from_value(json!(m.process_outcome)).ok(),
             submitted_at_ms: p.submitted as u64,
             parent_results,
             capture_policy: p.policy.clone(),

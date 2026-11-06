@@ -123,3 +123,14 @@ No new write route, SQL migration, Graph status lookup or action-union change is
 introduced. The valid, invalid, replay and compatibility fixtures cover the
 additions, exact retained origins and legacy decoding. Runtime tests cover reload,
 principal partitioning, revision isolation, replay and real Graph creation/linking.
+
+## Additive read field: process outcome (2026-11-06)
+
+`revision.process_outcome` is the worker-reported process outcome of the native
+report: `success`, `failed`, `cancelled`, `expired` or `unknown`. It is the value
+`GET /api/human/results` exposes as `process_outcome`. It is the worker's claim
+about its process, not acceptance, settlement or task completion.
+`revision.summary` is the report's conclusion (`conclusion` in
+`/api/human/results`). The field is optional and absent from older servers; the
+read version marker stays `results-feedback-1.1`. Strict readers that reject
+unknown fields must update their decoder, as for 1.1.

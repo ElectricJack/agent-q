@@ -276,7 +276,11 @@ pub struct ResultRevision {
     pub revision: String,
     pub attempt_id: Uuid,
     pub source: Source,
+    /// The worker's conclusion, as recorded in the native report.
     pub summary: String,
+    /// The worker-reported process outcome; absent from older servers.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub process_outcome: Option<aq_admission::transport::ProcessOutcome>,
     pub submitted_at_ms: u64,
     pub parent_results: Vec<RevisionRef>,
     pub capture_policy: CapturePolicy,
