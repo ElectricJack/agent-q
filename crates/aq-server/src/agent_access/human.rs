@@ -16,6 +16,7 @@ use crate::{
     project_bindings::{self, domain::ProjectRecord},
     store::User,
 };
+use aq_human_work::{buckets, count};
 use axum::{
     Extension, Json, Router,
     extract::{Path, Query, Request, State},
@@ -744,26 +745,6 @@ async fn context(s: &AppState, w: Uuid, id: Uuid) -> Result<Value> {
     }
     Ok(raw)
 }
-/// Task-state bucket for omitted and summary counts; an unset state is `unknown`.
-fn bucket(state: &Value) -> &'static str {
-    match state.as_str() {
-        Some("draft") => "draft",
-        Some("active") => "active",
-        Some("completed") => "completed",
-        Some("canceled") => "canceled",
-        _ => "unknown",
-    }
-}
-fn buckets() -> serde_json::Map<String, Value> {
-    ["draft", "active", "completed", "canceled", "unknown"]
-        .into_iter()
-        .map(|k| (k.to_owned(), json!(0)))
-        .collect()
-}
-fn count(map: &mut serde_json::Map<String, Value>, state: &Value) {
-    let slot = map.entry(bucket(state)).or_insert(json!(0));
-    *slot = json!(slot.as_u64().unwrap_or(0) + 1);
-}
 /// Parent of `id` from a present `parent-child` edge (source is the parent).
 fn parent(raw: &Value, w: Uuid, id: Uuid) -> Result<Value> {
     let Some(edge) = raw["edges"].as_array().into_iter().flatten().find(|e| {
@@ -841,27 +822,7 @@ async fn graph(
             hidden_edges += 1;
             continue;
         }
-        let mut e = serde_json::Map::new();
-        for k in ["id", "source", "target", "edge_type", "description"] {
-            e.insert(k.into(), edge[k].clone());
-        }
-        for k in ["version", "source_revision", "target_revision"] {
-            e.insert(
-                k.into(),
-                if edge[k].is_null() && k != "version" {
-                    Value::Null
-                } else {
-                    json!(
-                        edge[k]
-                            .as_u64()
-                            .filter(|n| *n > 0)
-                            .ok_or_else(unavailable)?
-                            .to_string()
-                    )
-                },
-            );
-        }
-        edges.push(Value::Object(e));
+        edges.push(aq_human_work::edge(edge).ok_or_else(unavailable)?);
     }
     let hidden_task_count: u64 = hidden_tasks.values().filter_map(Value::as_u64).sum();
     let shown = (nodes.len() - 1) as u64;
@@ -877,7 +838,7 @@ async fn graph(
         a,
         json!({"root_id":id,"parent":parent,"nodes":nodes,"edges":edges,"truncated":truncated,
             "omitted":{"tasks":hidden_task_count.to_string(),
-                "tasks_by_state":hidden_tasks.into_iter().map(|(k,v)|(k,json!(v.as_u64().unwrap_or(0).to_string()))).collect::<serde_json::Map<_,_>>(),
+                "tasks_by_state":aq_human_work::decimal(hidden_tasks),
                 "other_nodes":hidden_other.to_string(),"edges":hidden_edges.to_string(),
                 "exact":!upstream_truncated},
             "expansion":expansion}),

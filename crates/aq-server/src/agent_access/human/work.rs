@@ -55,48 +55,31 @@ pub(super) async fn work(
     let raw = context(&s, w, id).await?;
     let root = node(&raw["node"], w, "task")?;
     let complete = !raw["truncated"].as_bool().ok_or_else(unavailable)?;
-    let nodes = raw["nodes"].as_array().ok_or_else(unavailable)?;
-    let mut blockers = Vec::new();
-    for e in raw["edges"].as_array().ok_or_else(unavailable)? {
-        if e["edge_type"] != "blocks" || e["deleted"] != false || e["target"] != json!(id) {
-            continue;
-        }
-        let source = nodes
-            .iter()
-            .find(|n| n["id"] == e["source"] && n["deleted"] == false);
-        let (title, state) = match source {
-            Some(n) => (n["title"].clone(), n["task_state"].clone()),
-            None => (Value::Null, Value::Null),
-        };
-        let satisfied = match state.as_str() {
-            Some("completed") => json!(true),
-            Some(_) => json!(false),
-            None => Value::Null,
-        };
-        blockers.push(json!({"edge_id":e["id"],"id":e["source"],"title":title,"task_state":state,"satisfied":satisfied}));
-        if blockers.len() >= 64 {
-            break;
-        }
-    }
+    let blockers = aq_human_work::blockers(&raw, id).ok_or_else(unavailable)?;
     let execution = executions(&r.pool, p, &[id])
         .await?
         .pop()
         .unwrap_or(Value::Null);
-    let open = blockers.iter().any(|b| b["satisfied"] != true);
-    let state = match root["task_state"].as_str() {
-        Some(s @ ("completed" | "canceled" | "draft")) => s,
-        _ if !execution.is_null() => "running",
-        _ if open => "waiting",
-        _ if !complete => "unknown",
-        _ => "ready",
+    // QA P1-01: a stopped attempt that keeps the claim is `held`, not running.
+    let hold = match execution["attempt_id"].as_str().and_then(|a| a.parse().ok()) {
+        Some(attempt) => sqlx::query_scalar::<_, Value>("SELECT COALESCE(h.state,e.state) FROM execution_attempts e LEFT JOIN profiled_authority_hot h USING(attempt_id) WHERE e.attempt_id=$1")
+            .bind(attempt).fetch_optional(&r.pool).await.map_err(|_| unavailable())?
+            .map(|state| aq_human_work::Hold::from_authority(attempt, &state)),
+        None => None,
     };
+    let readiness = aq_human_work::readiness(
+        root["task_state"].as_str(),
+        hold.as_ref(),
+        blockers,
+        complete,
+    );
     let parent = parent(&raw, w, id)?;
     finish(
         &s,
         &r,
         a,
         json!({"task_id":id,"task_state":root["task_state"],"version":root["version"],
-            "readiness":{"state":state,"blockers":blockers,"complete":complete},
+            "readiness":readiness,
             "parent":parent,"execution":execution}),
     )
     .await
@@ -161,13 +144,30 @@ pub(super) async fn history(
     if rows.len() > usize::from(HISTORY_LIMIT) {
         return Err(unavailable());
     }
+    // QA P1-08: say what changed; the oldest revision diffs against Graph's prior one.
+    let prior = match aq_human_work::predecessor(rows, id) {
+        Some(n) => runtime(&s)?
+            .human_get(
+                &format!("/v1/workspaces/{w}/nodes/{id}/revisions/{n}"),
+                &[],
+                1_000_000,
+            )
+            .await
+            .ok()
+            .filter(|v| contract::upstream_valid("RevisionSnapshot", v))
+            .map(|v| v["node"].clone()),
+        None => None,
+    };
+    let changes = aq_human_work::changes(rows, id, prior.as_ref());
+    let actors = actors(&s, &r, id, rows).await?;
     let items: Vec<Value> = rows
         .iter()
-        .map(|h| {
+        .zip(changes.into_iter().zip(actors))
+        .map(|(h, (change, actor))| {
             Ok(json!({
                 "sequence": h["sequence"].as_u64().filter(|n| *n > 0).ok_or_else(unavailable)?.to_string(),
                 "entry_id": h["entry_id"], "category": h["category"], "operation": h["operation"],
-                "actor_id": h["actor_id"], "reason": h["reason"], "created_at": h["created_at"],
+                "actor_id": actor, "reason": h["reason"], "created_at": h["created_at"], "change": change,
             }))
         })
         .collect::<Result<_>>()?;
@@ -211,6 +211,44 @@ pub(super) async fn history(
     .await
 }
 
+/// QA P1-07: Graph names AQ's one mutation identity as every AQ write's actor.
+/// An entry in a change set that an owner's journalled operation confirmed
+/// (dashboard action or task create), or the creation of a task an owner's
+/// operation created (#97), names that owner's email instead.
+async fn actors(s: &AppState, r: &ReadRuntime, task: Uuid, rows: &[Value]) -> Result<Vec<Value>> {
+    let mut out: Vec<Value> = rows.iter().map(|h| h["actor_id"].clone()).collect();
+    let Some(service) = s
+        .agent_access
+        .as_deref()
+        .and_then(|rt| rt.mutation_actor.clone())
+    else {
+        return Ok(out);
+    };
+    let ours = |h: &Value| h["actor_id"] == json!(service);
+    let sets: Vec<Uuid> = rows
+        .iter()
+        .filter(|h| ours(h))
+        .filter_map(|h| h["change_set_id"].as_str()?.parse().ok())
+        .collect();
+    if sets.is_empty() {
+        return Ok(out);
+    }
+    let found: Vec<(Option<Uuid>, String)> = sqlx::query_as("SELECT c.cs,u.email FROM unnest($1::uuid[]) AS c(cs) JOIN users u ON u.id=COALESCE((SELECT d.owner_id FROM dashboard_operations d WHERE d.disposition='confirmed' AND d.response->'receipt_refs' @> jsonb_build_array(jsonb_build_object('type','graph_change_set','id',c.cs::text)) LIMIT 1),(SELECT h.actor_id FROM human_graph_operations h WHERE h.raw_receipt->>'change_set_id'=c.cs::text LIMIT 1)) UNION ALL SELECT NULL,u.email FROM users u WHERE u.id=COALESCE((SELECT d.owner_id FROM dashboard_operations d WHERE d.operation_id=$2),(SELECT h.actor_id FROM human_graph_operations h WHERE h.operation_id=$2))")
+        .bind(&sets).bind(task).fetch_all(&r.pool).await.map_err(|_| unavailable())?;
+    for (h, actor) in rows.iter().zip(out.iter_mut()).filter(|(h, _)| ours(h)) {
+        let set = found
+            .iter()
+            .find(|f| f.0.is_some() && h["change_set_id"] == json!(f.0));
+        let created = found
+            .iter()
+            .find(|f| f.0.is_none() && h["operation"] == "created" && h["category"] != "edge");
+        if let Some((_, email)) = set.or(created) {
+            *actor = json!(email);
+        }
+    }
+    Ok(out)
+}
+
 /// `GET .../tasks/{node}/summary`: completion counts over the task's bounded
 /// structural subtree (Graph tree, depth 5). Delivery is owned by D1 and is
 /// reported as unavailable rather than fabricated.
@@ -240,29 +278,8 @@ pub(super) async fn summary(
         return Err(unavailable());
     }
     node(&tree["node"], w, "task")?;
-    let mut counts = buckets();
-    let mut complete = true;
-    let mut seen = std::collections::BTreeSet::from([id.to_string()]);
-    let mut stack = vec![&tree];
-    while let Some(t) = stack.pop() {
-        complete &= t["truncated"] == false;
-        for child in t["children"].as_array().ok_or_else(unavailable)? {
-            let n = &child["node"];
-            if n["workspace_id"] != json!(w) {
-                return Err(unavailable());
-            }
-            let cid = n["id"].as_str().ok_or_else(unavailable)?;
-            if seen.insert(cid.to_owned()) && n["kind"] == "task" && n["deleted"] == false {
-                count(&mut counts, &n["task_state"]);
-            }
-            stack.push(child);
-        }
-    }
-    let total: u64 = counts.values().filter_map(Value::as_u64).sum();
-    let counts: serde_json::Map<_, _> = counts
-        .into_iter()
-        .map(|(k, v)| (k, json!(v.as_u64().unwrap_or(0).to_string())))
-        .collect();
+    let (counts, total, complete) =
+        aq_human_work::descendants(&tree, w, id).ok_or_else(unavailable)?;
     finish(
         &s,
         &r,

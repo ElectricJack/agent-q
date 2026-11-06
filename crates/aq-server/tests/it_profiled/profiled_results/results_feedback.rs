@@ -71,6 +71,15 @@ async fn feedback_comments_replay_history_resolution_and_feeds() {
     let (code, detail) = send(&app, "GET", &root, Value::Null).await;
     assert_eq!(code, StatusCode::OK, "{detail}");
     assert_eq!(detail["data"]["assessment"]["acceptance"], "unreviewed");
+    // QA P1-09: the read carries the report's conclusion and process outcome.
+    assert_eq!(
+        detail["data"]["revision"]["summary"],
+        json!(report.conclusion)
+    );
+    assert_eq!(
+        detail["data"]["revision"]["process_outcome"],
+        json!(report.outcome)
+    );
     let id = Uuid::new_v4();
     let body = json!({"operation_id":id,"expected_version":"1","body":"Fix the caption","anchor":{"kind":"result"},"follow":true});
     let path = format!("{root}/comments");

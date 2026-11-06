@@ -596,5 +596,83 @@
       ],
       "next_cursor": null
     }
+  },
+  {
+    "name": "process-outcome-is-enumerated",
+    "type": "Detail",
+    "value": {
+      "result": {
+        "id": "00000000-0000-4000-8000-000000000002",
+        "version": "1",
+        "project_id": "00000000-0000-4000-8000-000000000005",
+        "task_id": "00000000-0000-4000-8000-000000000006",
+        "current_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "revision": {
+        "report_id": "00000000-0000-4000-8000-000000000002",
+        "revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "attempt_id": "00000000-0000-4000-8000-000000000008",
+        "source": {
+          "repository_id": "00000000-0000-4000-8000-000000000009",
+          "base": {
+            "format": "sha1",
+            "hex": "cccccccccccccccccccccccccccccccccccccccc"
+          }
+        },
+        "summary": "completed",
+        "process_outcome": "passed",
+        "submitted_at_ms": 1000000,
+        "parent_results": [],
+        "capture_policy": {
+          "revision": "1",
+          "requirements": [
+            {
+              "id": "desktop",
+              "policy_revision": "1",
+              "kind": "image",
+              "scenario": "results",
+              "steps": [
+                "Open Results"
+              ],
+              "viewport": {
+                "width_css": 1280,
+                "height_css": 800,
+                "dpr_milli": 1000
+              },
+              "environment": "test",
+              "count": 1,
+              "required": true,
+              "applicability": "Results changed",
+              "gate_binding": "completion"
+            }
+          ]
+        },
+        "artifacts": [],
+        "check_refs": [],
+        "evidence_refs": [],
+        "addressed_feedback": []
+      },
+      "assessment": {
+        "version": "1",
+        "result_revision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "evidence": {
+          "satisfied": false,
+          "requirements": [
+            {
+              "requirement_id": "desktop",
+              "policy_revision": "1",
+              "required": true,
+              "state": "missing",
+              "artifact_ids": [],
+              "waiver_id": null
+            }
+          ]
+        },
+        "artifacts": [],
+        "acceptance": "unreviewed",
+        "observed_at_ms": 1000000,
+        "unresolved_review": false
+      }
+    }
   }
 ]

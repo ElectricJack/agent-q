@@ -979,6 +979,7 @@
                   "completed",
                   "canceled",
                   "running",
+                  "held",
                   "waiting",
                   "unknown",
                   "ready"
@@ -1033,12 +1034,20 @@
               },
               "complete": {
                 "type": "boolean"
+              },
+              "reasons": {
+                "type": "array",
+                "maxItems": 4,
+                "items": {
+                  "$ref": "#/components/schemas/HumanHoldReason"
+                }
               }
             },
             "required": [
               "state",
               "blockers",
-              "complete"
+              "complete",
+              "reasons"
             ],
             "additionalProperties": false
           },
@@ -1109,6 +1118,16 @@
                 "created_at": {
                   "type": "string",
                   "format": "date-time"
+                },
+                "change": {
+                  "anyOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/components/schemas/HumanHistoryChange"
+                    }
+                  ]
                 }
               },
               "required": [
@@ -1118,7 +1137,8 @@
                 "operation",
                 "actor_id",
                 "reason",
-                "created_at"
+                "created_at",
+                "change"
               ],
               "additionalProperties": false
             }
@@ -1393,6 +1413,139 @@
           "task_id",
           "items",
           "next_cursor"
+        ],
+        "additionalProperties": false
+      },
+      "HumanHoldReason": {
+        "type": "object",
+        "description": "Why a task whose holding attempt no longer runs is still held.",
+        "properties": {
+          "code": {
+            "enum": [
+              "cancelled_attempt_holds_task",
+              "attempt_stopped_not_released",
+              "attempt_finished_stop_unconfirmed"
+            ]
+          },
+          "attempt_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "message": {
+            "type": "string",
+            "maxLength": 512
+          }
+        },
+        "required": [
+          "code",
+          "attempt_id",
+          "status",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "HumanHistoryChange": {
+        "type": "object",
+        "description": "What one history entry changed. Values are given only for task state, priority, content type, retired and deleted.",
+        "properties": {
+          "summary": {
+            "type": "string",
+            "maxLength": 512
+          },
+          "fields": {
+            "type": "array",
+            "maxItems": 16,
+            "items": {
+              "type": "object",
+              "properties": {
+                "field": {
+                  "enum": [
+                    "title",
+                    "body",
+                    "acceptance_criteria",
+                    "labels",
+                    "priority",
+                    "metadata",
+                    "task_state",
+                    "provenance",
+                    "content_type",
+                    "retired",
+                    "retirement_reason",
+                    "successor_id",
+                    "valid_from",
+                    "valid_until",
+                    "review_at",
+                    "deleted"
+                  ]
+                },
+                "from": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 64
+                },
+                "to": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 64
+                }
+              },
+              "required": [
+                "field",
+                "from",
+                "to"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "edge": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "edge_type": {
+                    "type": "string",
+                    "maxLength": 64
+                  },
+                  "direction": {
+                    "enum": [
+                      "incoming",
+                      "outgoing"
+                    ]
+                  },
+                  "node_id": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "edge_type",
+                  "direction",
+                  "node_id"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "complete": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "summary",
+          "fields",
+          "edge",
+          "complete"
         ],
         "additionalProperties": false
       }

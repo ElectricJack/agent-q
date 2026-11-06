@@ -1,0 +1,147 @@
+{
+  "contract": "human-graph-1",
+  "project": {
+    "id": "00000000-0000-0000-0000-000000000001",
+    "name": "Contract fixture",
+    "revision": "1",
+    "workspace_id": "00000000-0000-0000-0000-000000000002"
+  },
+  "observed_at": "2026-11-06T00:01:00Z",
+  "data": {
+    "task_id": "00000000-0000-0000-0000-000000000003",
+    "items": [
+      {
+        "sequence": "1",
+        "entry_id": "00000000-0000-0000-0000-000000000101",
+        "category": "revision",
+        "operation": "created",
+        "actor_id": "owner@localhost",
+        "reason": "AQ human task create 00000000-0000-0000-0000-000000000003",
+        "created_at": "2026-11-06T00:00:01Z",
+        "change": {
+          "summary": "created",
+          "fields": [],
+          "edge": null,
+          "complete": true
+        }
+      },
+      {
+        "sequence": "2",
+        "entry_id": "00000000-0000-0000-0000-000000000102",
+        "category": "lifecycle",
+        "operation": "created",
+        "actor_id": "owner@localhost",
+        "reason": "AQ human task create 00000000-0000-0000-0000-000000000003",
+        "created_at": "2026-11-06T00:00:02Z",
+        "change": {
+          "summary": "created as active",
+          "fields": [
+            {
+              "field": "task_state",
+              "from": null,
+              "to": "active"
+            }
+          ],
+          "edge": null,
+          "complete": true
+        }
+      },
+      {
+        "sequence": "3",
+        "entry_id": "00000000-0000-0000-0000-000000000103",
+        "category": "revision",
+        "operation": "updated",
+        "actor_id": "owner@localhost",
+        "reason": "AQ dashboard action task.reprioritize 00000000-0000-0000-0000-000000000007",
+        "created_at": "2026-11-06T00:00:03Z",
+        "change": {
+          "summary": "priority 0 → 5",
+          "fields": [
+            {
+              "field": "priority",
+              "from": "0",
+              "to": "5"
+            }
+          ],
+          "edge": null,
+          "complete": true
+        }
+      },
+      {
+        "sequence": "4",
+        "entry_id": "00000000-0000-0000-0000-000000000104",
+        "category": "edge",
+        "operation": "added",
+        "actor_id": "owner@localhost",
+        "reason": "AQ dashboard action task.dependency.add 00000000-0000-0000-0000-000000000008",
+        "created_at": "2026-11-06T00:00:04Z",
+        "change": {
+          "summary": "added blocks from 00000000",
+          "fields": [],
+          "edge": {
+            "edge_type": "blocks",
+            "direction": "incoming",
+            "node_id": "00000000-0000-0000-0000-000000000006"
+          },
+          "complete": true
+        }
+      },
+      {
+        "sequence": "5",
+        "entry_id": "00000000-0000-0000-0000-000000000105",
+        "category": "revision",
+        "operation": "links_changed",
+        "actor_id": "owner@localhost",
+        "reason": "AQ dashboard action task.dependency.add 00000000-0000-0000-0000-000000000008",
+        "created_at": "2026-11-06T00:00:05Z",
+        "change": {
+          "summary": "links changed",
+          "fields": [],
+          "edge": null,
+          "complete": true
+        }
+      },
+      {
+        "sequence": "6",
+        "entry_id": "00000000-0000-0000-0000-000000000106",
+        "category": "lifecycle",
+        "operation": "transitioned",
+        "actor_id": "aq-settlement",
+        "reason": "Human-reviewed retained result 00000000-0000-0000-0000-000000000009",
+        "created_at": "2026-11-06T00:00:06Z",
+        "change": {
+          "summary": "active → completed",
+          "fields": [
+            {
+              "field": "task_state",
+              "from": "active",
+              "to": "completed"
+            }
+          ],
+          "edge": null,
+          "complete": true
+        }
+      },
+      {
+        "sequence": "7",
+        "entry_id": "00000000-0000-0000-0000-000000000107",
+        "category": "lifecycle",
+        "operation": "set_task_state",
+        "actor_id": "legacy-importer",
+        "reason": null,
+        "created_at": "2026-11-06T00:00:07Z",
+        "change": null
+      }
+    ],
+    "next_cursor": null,
+    "attempts": [
+      {
+        "attempt_id": "00000000-0000-0000-0000-000000000004",
+        "session_id": "00000000-0000-0000-0000-000000000005",
+        "holds_task": true,
+        "status": "finished"
+      }
+    ],
+    "attempts_truncated": false
+  }
+}
