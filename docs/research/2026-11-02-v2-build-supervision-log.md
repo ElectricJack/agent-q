@@ -1311,3 +1311,12 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - rebuilding `aq-ms1` from main (migration 0096, new dashboard);
     - the aq-worker `aq-agent comment add|list` client.
   - Then: a browser QA pass of the Phase 1 checklist, and owner verification.
+- **16:50: merged aq-worker #42 (45b49745), the `aq-agent comment add|list` client.**
+  - It validates, is idempotent by operation id, supports cursor paging, pins `vendor/agent-comments-v1`, and adds `X-AQ-Request: 1` on body requests.
+  - **Major platform gap found: agents inside the MS1 docker-local sandbox have NO agent-access channel to aq-server.**
+    - The sandbox driver issues no per-attempt agent credential and uploads no state dir.
+    - The server listens on host loopback 28080, which a bridge-networked container can't reach, and the client refuses non-loopback plain HTTP.
+    - The template's `/opt/aq/bin/aq-agent` is stale.
+    - The B7 in-sandbox runner/proxy design exists but isn't wired into any launch.
+  - **Consequence:** no agent-side feature works from a real sandboxed agent yet — comments, F5 questions, waits and messaging all depend on this channel. MS1 never exercised it.
+  - The Phase 1 checklist line "agent comment from a real run" is blocked on it.
