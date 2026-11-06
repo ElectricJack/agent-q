@@ -1152,3 +1152,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
 - **04:25: owner-reported dashboard bugs on `aq-ms1`.**
   1. "Unexpected Application Error! Unable to preload CSS …" came from the stopped 18080 stack. It also happens whenever `dist` is rebuilt or the server restarts under an open tab, because hashed route chunks are replaced. Dispatched a dashboard fix: `vite:preloadError` triggers one guarded reload, then a friendly "updated or unreachable — Reload" state, and the router gets an `errorElement` so the raw React Router error page never shows.
   2. An Overview "Recorded process result" link returned "This item does not exist". The overview attention links use the revision `sha256:<hex>`, the results detail route only accepts bare `<hex>` (404 vs 200), and the Results list reports bare hex. Dispatched a fix to make one canonical revision form across both contracts, with a test that the overview links resolve.
+- **04:50: owner-reported dashboard fixes merged.**
+  - aq-dashboard #73 (9a3f3cc6): chunk and preload errors get one guarded reload, then a friendly state, plus a route `errorElement`.
+  - aq-dashboard #72 (7f5ed69f): `subjectPath()` strips `sha256:` for result links. The cause was a mismatch between contracts: dashboard-read uses `sha256:` refs and results-feedback routes use bare hex. Its first CI run failed on a test that pinned the old broken href; I fixed the test (cd71070).
+  - aq-server #96: a regression test that Overview result subjects resolve on the results route.
+  - The combined build was already deployed to `aq-ms1` at the owner's request, before the merge, so they could test without waiting for CI.
+  - **QA:** four parallel subagents are running a full dashboard test plan and live-browser execution: shell/Overview/Search, Work/Decisions, Results/Agents, and Playbooks/Knowledge/Supervisor/Settings. Output goes to `aq-platform/qa/2026-11-06/`.
