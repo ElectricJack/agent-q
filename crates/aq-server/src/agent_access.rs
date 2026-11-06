@@ -359,7 +359,6 @@ struct Provision {
     attempt_id: Uuid,
     profile: Value,
     context: Value,
-    /// Spec 0006 grants sealed with the launch; absent holds none.
     #[serde(default)]
     grants: Option<Vec<aq_agent_grants::Grant>>,
 }

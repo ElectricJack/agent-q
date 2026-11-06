@@ -4,7 +4,7 @@
 use super::*;
 use aq_agent_grants::{AttemptIds, AuditEntry, Decision, GrantSet, Holder, Refusal};
 
-/// Seal `grants` beside a new launch binding, in its transaction.
+/// Seal `grants` beside a new launch binding, in its transaction. No row holds none.
 pub(super) async fn seal(
     tx: &mut Transaction<'_, Postgres>,
     attempt: Uuid,
@@ -20,7 +20,6 @@ pub(super) async fn seal(
     .await?;
     Ok(())
 }
-/// The sealed grants. No row (sealed before grants existed) holds none.
 pub(super) fn sealed(column: Option<Value>) -> Result<GrantSet> {
     column.map_or(Ok(GrantSet::empty()), |v| {
         GrantSet::new(serde_json::from_value(v)?).map_err(|_| Error("internal"))
