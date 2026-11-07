@@ -1595,3 +1595,11 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - the legacy synthetic `execution.rs` stop doesn't revoke (dev fixtures only).
   - **Main CI:** the run for 9041e6f4 was cancelled, likely by the concurrency group when I reran 9809dc5e's recovery job. I'll rerun it when the queue clears.
   - The remaining channel phase is phase 7, migrating off `aq-agent`.
+- **03:33:** aq-worker main CI for 56bf1fba (#45) failed `tests` in one test, `driver::blocked_fixture_is_killed_and_reaped_on_cancellation`. The worker command exited with "Resource temporarily unavailable (os error 11)", an EAGAIN on the runner.
+  - #45 passed the same tests on its PR run, and the test doesn't touch the channel or the bundle. Reran the failed job.
+  - The aq-worker flakes seen today:
+    - guardian `spawn_boundary_crashes_never_duplicate_and_recover_owned_writers` (on #45);
+    - `native_materials` expiry (on #44);
+    - this one.
+  - A second occurrence of any of them gets a root-cause task (W78).
+  - aq-server main: 9f488dc0 (#108) passed, including the recovery matrix. The 9809dc5e rerun is in progress.
