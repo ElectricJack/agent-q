@@ -27,11 +27,14 @@ pub enum RefusalCode {
     InvalidRequest,
     Unauthorized,
     Internal,
-    /// The attempt's command budget is spent for now; retry later.
+    /// The attempt's command budget is spent for now; retry later. Also the
+    /// server's agent access is not configured or is unavailable.
     Overloaded,
+    /// The request names an agent API version this server does not speak.
+    UnsupportedApiVersion,
 }
 /// Every code, in the published order.
-pub const CODES: [RefusalCode; 13] = [
+pub const CODES: [RefusalCode; 14] = [
     RefusalCode::GrantMissing,
     RefusalCode::ScopeDenied,
     RefusalCode::OwnerOnly,
@@ -45,6 +48,7 @@ pub const CODES: [RefusalCode; 13] = [
     RefusalCode::Unauthorized,
     RefusalCode::Internal,
     RefusalCode::Overloaded,
+    RefusalCode::UnsupportedApiVersion,
 ];
 impl RefusalCode {
     pub fn as_str(self) -> &'static str {
@@ -62,6 +66,7 @@ impl RefusalCode {
             Self::Unauthorized => "unauthorized",
             Self::Internal => "internal",
             Self::Overloaded => "overloaded",
+            Self::UnsupportedApiVersion => "unsupported_api_version",
         }
     }
     /// The closed agent-access-1 `ErrorResponse` code that carries this
@@ -77,6 +82,20 @@ impl RefusalCode {
             Self::ScopeDenied | Self::QuotaExceeded | Self::ChannelRefused => "scope_denied",
             Self::SessionRevoked => "session_revoked",
             Self::SessionExpired => "session_expired",
+            Self::UnsupportedApiVersion => "unsupported_api_version",
+        }
+    }
+    /// The refusal for an agent-access authentication error code. Only a
+    /// rejected credential is `unauthorized` (401), so nothing else can
+    /// provoke the worker's credential re-issue.
+    pub fn from_agent_access(code: &str) -> Self {
+        match code {
+            "session_revoked" => Self::SessionRevoked,
+            "session_expired" => Self::SessionExpired,
+            "unauthorized" | "stale_generation" => Self::Unauthorized,
+            "unsupported_api_version" => Self::UnsupportedApiVersion,
+            "overloaded" => Self::Overloaded,
+            _ => Self::Internal,
         }
     }
     pub fn status(self) -> u16 {
@@ -86,6 +105,7 @@ impl RefusalCode {
             Self::InvalidRequest => 400,
             Self::Internal => 500,
             Self::Overloaded => 503,
+            Self::UnsupportedApiVersion => 426,
             _ => 403,
         }
     }
@@ -145,6 +165,12 @@ impl Refusal {
             "This agent holds `{grant}` only as {}; the target of `{command}` is outside that scope. {ASK}",
             held_text(&held)
         );
+        Self::new(RefusalCode::ScopeDenied, command, grant, held, message)
+    }
+    /// The parent of an agent's create is not recorded as a task of the
+    /// caller's project in the Graph (`aq:project_id`).
+    pub fn parent_outside_project(command: &str, grant: &str, held: Vec<Grant>) -> Self {
+        let message = "The parent task is not recorded as a task of this project (its Graph aq:project_id does not match), so a subtask cannot be created under it.".into();
         Self::new(RefusalCode::ScopeDenied, command, grant, held, message)
     }
     pub fn owner_only(command: &str, grant: &str) -> Self {

@@ -23,12 +23,9 @@ pub(crate) async fn agent_caller(
     state: &AppState,
     headers: &HeaderMap,
 ) -> std::result::Result<AgentCaller, RefusalCode> {
-    let p = authenticate(state, headers).await.map_err(|e| match e.0 {
-        "session_revoked" => RefusalCode::SessionRevoked,
-        "session_expired" => RefusalCode::SessionExpired,
-        "internal" => RefusalCode::Internal,
-        _ => RefusalCode::Unauthorized,
-    })?;
+    let p = authenticate(state, headers)
+        .await
+        .map_err(|e| RefusalCode::from_agent_access(e.0))?;
     Ok(AgentCaller {
         ids: ids(&p).map_err(|_| RefusalCode::Internal)?,
         grants: p.grants.clone(),

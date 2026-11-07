@@ -461,14 +461,13 @@ mod tests {
         .unwrap();
         let c = &f["context"];
         let mut p = Principal {
-            created: Vec::new(),
             binding: c["binding"].clone(),
             profile: c["profile"].clone(),
             context: c["context"].clone(),
             version: 1,
             revision: 1,
             expires: 1,
-            grants: Default::default(),
+            ..Default::default()
         };
         p.profile["max_response_bytes"] = json!(1024);
         let op = Uuid::new_v4();

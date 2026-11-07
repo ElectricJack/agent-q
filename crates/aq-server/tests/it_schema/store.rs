@@ -57,7 +57,10 @@ async fn refuses_unknown_future_migration() {
     let db = TestDb::create().await;
     drop(db.store().await);
     let pool = db.pool().await;
-    sqlx::query("INSERT INTO schema_migrations (version) VALUES (99)")
+    // One past the newest migration this binary knows.
+    let future = aq_server::STATE_FORMAT_VERSION + 1;
+    sqlx::query("INSERT INTO schema_migrations (version) VALUES ($1)")
+        .bind(i64::from(future))
         .execute(&pool)
         .await
         .unwrap();
@@ -66,9 +69,9 @@ async fn refuses_unknown_future_migration() {
         matches!(
             err,
             StoreError::IncompatibleState {
-                found: 99,
+                found,
                 supported
-            } if supported == aq_server::STATE_FORMAT_VERSION
+            } if found == future && supported == aq_server::STATE_FORMAT_VERSION
         ),
         "{err:?}"
     );

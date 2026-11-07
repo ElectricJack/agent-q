@@ -334,3 +334,70 @@ fn resolution_applies_profile_ceiling_additions_and_inheritance() {
     assert!(child.get(op::TASK_CREATE_PROJECT).is_none());
     assert!(child.grants().len() <= n.grants().len());
 }
+
+#[test]
+fn only_a_rejected_credential_is_unauthorized() {
+    for (code, refusal, status) in [
+        ("unauthorized", RefusalCode::Unauthorized, 401),
+        ("stale_generation", RefusalCode::Unauthorized, 401),
+        ("session_revoked", RefusalCode::SessionRevoked, 401),
+        ("session_expired", RefusalCode::SessionExpired, 401),
+        (
+            "unsupported_api_version",
+            RefusalCode::UnsupportedApiVersion,
+            426,
+        ),
+        ("overloaded", RefusalCode::Overloaded, 503),
+        ("internal", RefusalCode::Internal, 500),
+        ("invalid_request", RefusalCode::Internal, 500),
+    ] {
+        assert_eq!(RefusalCode::from_agent_access(code), refusal, "{code}");
+        assert_eq!(refusal.status(), status, "{code}");
+    }
+}
+
+#[test]
+fn parent_child_edges_follow_the_task_read_scope() {
+    let set = |scope: &str| {
+        GrantSet::new(vec![
+            serde_json::from_value(serde_json::json!({"operation":"task.read","scope":scope}))
+                .unwrap(),
+        ])
+        .unwrap()
+    };
+    let (pc, refs) = (
+        serde_json::json!("parent-child"),
+        serde_json::json!("references"),
+    );
+    let profile = vec![refs.clone()];
+    let empty = GrantSet::empty();
+    // The profile's own types are readable whatever the grants.
+    assert!(empty.edge_readable(Some(&profile), &refs, Some((false, false))));
+    // parent-child outside the profile needs task.read reaching the parent.
+    assert!(!empty.edge_readable(Some(&profile), &pc, None));
+    for (scope, own, below, readable) in [
+        ("project:self", false, false, true),
+        ("task:subtree", true, false, true),
+        ("task:subtree", false, true, true),
+        ("task:subtree", false, false, false),
+        ("task:self", true, false, true),
+        ("task:self", false, true, false),
+    ] {
+        let g = set(scope);
+        assert!(
+            g.edge_readable(Some(&profile), &pc, None),
+            "{scope}: type check"
+        );
+        assert_eq!(
+            g.edge_readable(Some(&profile), &pc, Some((own, below))),
+            readable,
+            "{scope} own={own} below={below}"
+        );
+        assert!(!g.edge_readable(
+            Some(&profile),
+            &serde_json::json!("blocks"),
+            Some((true, true))
+        ));
+    }
+    assert!(set("task:subtree").reads_subtree() && !set("task:self").reads_subtree());
+}

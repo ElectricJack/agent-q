@@ -62,14 +62,13 @@ async fn seal(
         return Err(Error("invalid_request"));
     }
     let p = Principal {
-        created: vec![],
         binding: binding.clone(),
         profile: profile.clone(),
         context: context.clone(),
         version: i64::MAX,
         revision: i64::MAX,
         expires: 253402300799999,
-        grants: Default::default(),
+        ..Default::default()
     };
     graph::validate_launch(&p)?;
     p.issuance_response(&"a".repeat(47))?;

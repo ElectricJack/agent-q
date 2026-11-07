@@ -64,11 +64,9 @@ async fn admit(
     if DISPATCHED.try_with(|_| ()).is_err() {
         audit(state, &entry(&decision)).await;
     }
-    let Decision::Allow(held) = decision else {
-        let Decision::Deny(r) = decision else {
-            unreachable!()
-        };
-        return Err(r);
+    let held = match decision {
+        Decision::Allow(held) => held,
+        Decision::Deny(r) => return Err(r),
     };
     if b.sets_hint() {
         let r = Refusal::scope_denied(spec.name, grant, a.grants.related(grant));
@@ -131,5 +129,12 @@ async fn admit(
             "The task is malformed.",
         )
     })?;
-    Ok(super::human::enqueue::supervisor::agent_create(state, a.ids, request).await)
+    match super::human::enqueue::supervisor::agent_create(state, a.ids, request).await {
+        Err(e) if e.status() == axum::http::StatusCode::FORBIDDEN => {
+            let r = Refusal::parent_outside_project(spec.name, grant, a.grants.related(grant));
+            audit(state, &entry(&Decision::Deny(r.clone()))).await;
+            Err(r)
+        }
+        result => Ok(result.unwrap_or_else(axum::response::IntoResponse::into_response)),
+    }
 }

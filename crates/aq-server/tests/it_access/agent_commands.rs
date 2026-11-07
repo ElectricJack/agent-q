@@ -2,9 +2,13 @@
 //! agent reaches its commands through `/api/v1/commands` with the same
 //! grants, refusals and audit as the `/v1/agent/*` routes; the owner reaches
 //! the same handlers as the REST routes.
-use crate::messaging::{send, setup_graph, setup_with};
+use crate::messaging::{send, setup_graph, setup_graph_with, setup_with};
 use axum::http::StatusCode;
 use serde_json::{Value, json};
+use std::sync::{
+    Arc, Mutex,
+    atomic::{AtomicBool, Ordering},
+};
 use uuid::Uuid;
 
 fn grants() -> Value {
@@ -366,12 +370,377 @@ async fn agent_task_creation_is_scoped_limited_and_cannot_escalate() {
     assert!(denials >= 5, "{denials}");
 }
 
+/// A native launch lists only the edge types its startup projection held, so
+/// a task launched with no subtasks has no `parent-child` edge type. Its
+/// `task.read` grant still reads its children (`task.children`), which the
+/// command surface publishes as runnable (found in the spec 0006 phase 6
+/// live proof: every `task.children` was refused with `scope_denied`).
+#[tokio::test]
+async fn task_children_reads_parent_child_edges_for_a_native_profile() {
+    let (url, graph) = fake_graph().await;
+    let native = |profile: &mut Value, context: &mut Value| {
+        profile["read_scope"]["edge_types"] = json!(["references"]);
+        context["edges"]
+            .as_array_mut()
+            .unwrap()
+            .retain(|e| e["edge_type"] == "references");
+    };
+    let e = setup_graph_with(
+        Some(json!([{"operation":"task.read","scope":"project:self"}])),
+        &url,
+        None,
+        native,
+    )
+    .await;
+    let (status, children) = send(
+        &e.app,
+        "/api/v1/commands/task.children",
+        Some(&e.token),
+        Some(json!({"params":{}})),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{children}");
+    let edges = children["result"]["edges"].as_array().unwrap();
+    assert_eq!(edges.len(), 1, "{children}");
+    assert_eq!(edges[0]["edge_type"], "parent-child");
+    assert_eq!(edges[0]["target"], TASK_3);
+    // Without task.read the edge type stays outside the profile.
+    let e = setup_graph_with(
+        Some(json!([{"operation":"knowledge.read","scope":"project:self"}])),
+        &url,
+        None,
+        native,
+    )
+    .await;
+    let (status, body) = send(
+        &e.app,
+        "/api/v1/commands/graph.read",
+        Some(&e.token),
+        Some(
+            json!({"params":{"query":{"kind":"relationships","node_id":e.binding["task_id"],
+            "direction":"outgoing","edge_types":["parent-child"],"limit":64,"cursor":null}}}),
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "{body}");
+    graph.abort();
+
+    // Which parent-child edges come back follows the task.read scope: here
+    // the attempt's own task is the child of task 3. Its parent edge
+    // (source task 3) is readable at project:self, not at task:self, even
+    // though knowledge.read reads every record of the project.
+    let (url, graph) = fake_graph_with(|data| {
+        for e in data["context"]["edges"].as_array_mut().unwrap() {
+            if e["edge_type"] == "parent-child" {
+                let source = e["source"].clone();
+                e["source"] = e["target"].clone();
+                e["target"] = source;
+            }
+        }
+    })
+    .await;
+    let parents = |scope: &'static str| {
+        let url = url.clone();
+        async move {
+            let e = setup_graph_with(
+                Some(json!([
+                    {"operation":"task.read","scope":scope},
+                    {"operation":"knowledge.read","scope":"project:self"}
+                ])),
+                &url,
+                None,
+                native,
+            )
+            .await;
+            let (status, body) = send(
+                &e.app,
+                "/api/v1/commands/graph.read",
+                Some(&e.token),
+                Some(json!({"params":{"query":{"kind":"relationships","node_id":e.binding["task_id"],
+                    "direction":"incoming","edge_types":["parent-child"],"limit":64,"cursor":null}}})),
+            )
+            .await;
+            assert_eq!(status, StatusCode::OK, "{body}");
+            body["result"]["edges"].as_array().unwrap().len()
+        }
+    };
+    assert_eq!(parents("project:self").await, 1);
+    assert_eq!(parents("task:self").await, 0);
+    assert_eq!(parents("task:subtree").await, 0);
+    graph.abort();
+}
+
+/// A Graph standing in for aq-graph's node read and mutation routes: tasks
+/// are served with `aq:project_id` (unless `bare`), and a mutation commits
+/// the posted operations, recording each body.
+async fn creating_graph(
+    workspace: Value,
+    project: Value,
+    bare: Arc<AtomicBool>,
+    posted: Arc<Mutex<Vec<Value>>>,
+) -> (String, tokio::task::JoinHandle<()>) {
+    let node = move |id: &Value, title: &str, metadata: Value| {
+        json!({"id":id,"workspace_id":workspace,"kind":"task","version":1,"content_revision":1,"title":title,
+            "body":"","acceptance_criteria":"","labels":[],"metadata":metadata,"task_state":"active",
+            "verification":"unverified","provenance":[],"retired":false,"deleted":false,
+            "created_at":"2026-11-07T00:00:00Z","updated_at":"2026-11-07T00:00:00Z","created_by":"dev-service",
+            "last_verified_by":null,"last_verified_at":null,"retirement_reason":null,"content_type":"note",
+            "summary":null,"summary_of_revision":null,"valid_from":null,"valid_until":null,"review_at":null,
+            "successor_id":null})
+    };
+    let app = axum::Router::new().fallback(
+        move |method: axum::http::Method, uri: axum::http::Uri, body: axum::body::Bytes| {
+            let (node, project, bare, posted) =
+                (node.clone(), project.clone(), bare.clone(), posted.clone());
+            async move {
+                let path = uri.path().to_owned();
+                let reply = if method == axum::http::Method::POST && path.ends_with("/mutations") {
+                    let request: Value = serde_json::from_slice(&body).unwrap();
+                    posted.lock().unwrap().push(request.clone());
+                    let results: Vec<Value> = request["operations"].as_array().unwrap().iter().map(|op| {
+                        if op["op"] == "create_node" {
+                            node(&op["id"], op["title"].as_str().unwrap(), op["metadata"].clone())
+                        } else {
+                            json!({"id":op["id"],"workspace_id":node(&op["id"],"x",json!({}))["workspace_id"],
+                                "source":op["source"],"target":op["target"],"edge_type":op["edge_type"],
+                                "source_revision":null,"target_revision":null,"version":1,"deleted":false,
+                                "created_at":"2026-11-07T00:00:00Z","description":null})
+                        }
+                    }).collect();
+                    json!({"change_set_id":Uuid::new_v4(),"results":results})
+                } else {
+                    let id = json!(path.rsplit('/').next().unwrap());
+                    let metadata = if bare.load(Ordering::SeqCst) {
+                        json!({})
+                    } else {
+                        json!({"aq:project_id":project})
+                    };
+                    node(&id, "Draft release notes for X", metadata)
+                };
+                ([("X-AQ-Graph-API-Version", "1")], axum::Json(reply))
+            }
+        },
+    );
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let url = format!("http://{}", listener.local_addr().unwrap());
+    (
+        url,
+        tokio::spawn(async move { axum::serve(listener, app).await.unwrap() }),
+    )
+}
+
+/// An agent creates a subtask end to end: the grant check, the quota
+/// reservation, the journal row under the attempt's own principal and the
+/// Graph write. Before migration 0099 the journal bound every non-user
+/// principal to a supervisor session, so the insert failed its foreign key and
+/// every agent create was refused (503) before the Graph write. The earlier
+/// test stopped short of the journal (spec 0006 phase 6 live proof found it).
+#[tokio::test]
+async fn agent_creates_a_subtask_end_to_end() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../../../protocol/agent-access/v1/fixtures/base.json"
+    ))
+    .unwrap();
+    let base = &fixture["context"]["binding"];
+    let (workspace, project) = (base["workspace_id"].clone(), base["project_id"].clone());
+    let bare = Arc::new(AtomicBool::new(false));
+    let posted = Arc::new(Mutex::new(Vec::new()));
+    let (url, graph) = creating_graph(
+        workspace.clone(),
+        project.clone(),
+        bare.clone(),
+        posted.clone(),
+    )
+    .await;
+    let e = setup_graph_with(
+        Some(json!([
+            {"operation":"task.create.subtask","scope":"task:subtree","limits":{"max_created_tasks":5,"max_depth":2}},
+            {"operation":"task.read","scope":"project:self"}
+        ])),
+        &url,
+        Some("dev-service"),
+        |_, _| {},
+    )
+    .await;
+    let attempt = Uuid::parse_str(e.binding["attempt_id"].as_str().unwrap()).unwrap();
+    let own = e.binding["task_id"].clone();
+    let observed = json!({"repository_id":Uuid::from_u128(2),"graph_workspace_id":workspace,
+        "repository_adapter_reference":"aq.git.configured","graph_adapter_reference":"aq.graph.configured",
+        "repository":"verified","graph":"verified","repository_generation":1,"observed_at_ms":1,"expires_at_ms":i64::MAX});
+    let binding = json!({"schema_version":1,"project_id":project,"name":"Agent channel fixture","enabled":true,
+        "repository_id":Uuid::from_u128(2),"repository_binding_generation":1,
+        "repository_adapter_reference":"aq.git.configured","graph_adapter_reference":"aq.graph.configured",
+        "graph_workspace_id":workspace,"catalog_digest":"a".repeat(64),"allowed_agent_profiles":[],
+        "allowed_intelligence_profiles":[],"allowed_execution_profiles":[],"allowed_node_ids":[],
+        "allowed_worker_groups":[],"allowed_environments":[],
+        "policy":{"identity":"project-policy","revision":"1","digest":"b".repeat(64)},"context":[],
+        "ceilings":{"permissions":[],"context_bytes":8192,"wall_time_ms":60000,"memory_bytes":268435456,
+            "cpu_millis":60000,"process_limit":8,"cost_limit_microunits":null,"currency":null,
+            "require_hard_cost_enforcement":false}});
+    sqlx::query("INSERT INTO project_execution_bindings(project_id,revision,binding,validated_at_ms,binding_observation) VALUES($1,1,$2,1,$3)")
+        .bind(Uuid::parse_str(project.as_str().unwrap()).unwrap()).bind(&binding).bind(&observed)
+        .execute(&e.pool).await.unwrap();
+    let create = |params: Value| {
+        let (app, token) = (e.app.clone(), e.token.clone());
+        async move {
+            send(
+                &app,
+                "/api/v1/commands/task.create",
+                Some(&token),
+                Some(json!({"params":params})),
+            )
+            .await
+        }
+    };
+    let op = Uuid::new_v4();
+    let (status, body) = create(json!({"operation_id":op,"title":"Verify changelog links",
+        "body":"Created by the agent.","parent_id":"self"}))
+    .await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    assert_eq!(body["data"]["disposition"], "confirmed", "{body}");
+    // Journaled under the attempt's own principal domain.
+    let row: (Option<Uuid>, Option<Uuid>, Option<Uuid>, String) = sqlx::query_as(
+        "SELECT owner_id,supervisor_session_id,agent_attempt_id,kind FROM dashboard_operations WHERE operation_id=$1",
+    )
+    .bind(op)
+    .fetch_one(&e.pool)
+    .await
+    .unwrap();
+    assert_eq!(row, (None, None, Some(attempt), "task.create".into()));
+    // The Graph write: an active task with the agent's attribution, under
+    // the attempt's own task.
+    let posted = posted.lock().unwrap().clone();
+    assert_eq!(posted.len(), 1);
+    let ops = posted[0]["operations"].as_array().unwrap();
+    let created = ops.iter().find(|o| o["op"] == "create_node").unwrap();
+    assert_eq!(created["id"], json!(op));
+    assert_eq!(created["task_state"], "active");
+    assert_eq!(created["metadata"]["aq:agent_attempt_id"], json!(attempt));
+    assert_eq!(created["metadata"]["aq:project_id"], project);
+    assert!(
+        ops.iter().any(|o| o["op"] == "add_edge"
+            && o["edge_type"] == "parent-child"
+            && o["source"] == own
+            && o["target"] == json!(op)),
+        "{posted:?}"
+    );
+    let depth: Option<i32> =
+        sqlx::query_scalar("SELECT depth FROM agent_created_tasks WHERE task_id=$1")
+            .bind(op)
+            .fetch_one(&e.pool)
+            .await
+            .unwrap();
+    assert_eq!(depth, Some(1));
+    // A parent the Graph does not record as a task of this project is a
+    // §6.8 refusal with the reason, not a bare 403, and nothing is written.
+    bare.store(true, Ordering::SeqCst);
+    let (status, body) =
+        create(json!({"operation_id":Uuid::new_v4(),"title":"x","parent_id":"self"})).await;
+    assert_eq!(status, StatusCode::FORBIDDEN, "{body}");
+    assert_eq!(body["code"], "scope_denied", "{body}");
+    assert_eq!(body["grant"], "task.create.subtask");
+    assert_eq!(body["effect"], "not_applied");
+    assert!(
+        body["message"].as_str().unwrap().contains("aq:project_id"),
+        "{body}"
+    );
+    graph.abort();
+}
+
+/// One command-surface call as the agent, with an optional agent API version.
+async fn whoami_as(app: &axum::Router, token: &str, version: Option<&str>) -> (StatusCode, Value) {
+    use http_body_util::BodyExt;
+    use tower::ServiceExt;
+    let mut b = axum::http::Request::builder()
+        .method("POST")
+        .uri("/api/v1/commands/whoami")
+        .header("content-type", "application/json")
+        .header("authorization", format!("Bearer {token}"));
+    if let Some(v) = version {
+        b = b.header("X-AQ-Agent-API-Version", v);
+    }
+    let body = axum::body::Body::from(json!({"params":{}}).to_string());
+    let r = app.clone().oneshot(b.body(body).unwrap()).await.unwrap();
+    let status = r.status();
+    let bytes = r.into_body().collect().await.unwrap().to_bytes();
+    (status, serde_json::from_slice(&bytes).unwrap())
+}
+
+/// On the command surface a 401 means only that the credential was rejected,
+/// so the worker's re-issue probe cannot be provoked by anything else: an
+/// unsupported agent API version is 426 and agent access that is not
+/// configured is 503, both as §6.8 refusals.
+#[tokio::test]
+async fn command_surface_401_means_only_a_rejected_credential() {
+    let e = setup_with(Some(
+        json!([{"operation":"task.read","scope":"project:self"}]),
+    ))
+    .await;
+    let code = |b: &Value| b["code"].as_str().unwrap_or_default().to_string();
+    let (status, body) = whoami_as(&e.app, &e.token, None).await;
+    assert_eq!(status, StatusCode::OK, "{body}");
+    let (status, body) = whoami_as(&e.app, &e.token, Some("2")).await;
+    assert_eq!(
+        (status, code(&body)),
+        (
+            StatusCode::UPGRADE_REQUIRED,
+            "unsupported_api_version".into()
+        ),
+        "{body}"
+    );
+    assert_eq!(body["effect"], "not_applied");
+    let forged = format!("aqa_{}", "A".repeat(43));
+    let (status, body) = whoami_as(&e.app, &forged, None).await;
+    assert_eq!(
+        (status, code(&body)),
+        (StatusCode::UNAUTHORIZED, "unauthorized".into()),
+        "{body}"
+    );
+    // The same server without its agent access runtime.
+    let config: aq_server::config::Config = toml::from_str(
+        r#"format_version=1
+environment="development"
+[server]
+admin_bind="127.0.0.1:0"
+worker_bind="127.0.0.1:0"
+public_origin="http://127.0.0.1:8080"
+[auth]
+mode="dev"
+dev_email="owner@localhost"
+[bootstrap]
+owner_email="owner@localhost"
+enabled=true
+"#,
+    )
+    .unwrap();
+    let state = aq_server::AppState {
+        identity: aq_server::identity::verifier_from_config(&config.auth, reqwest::Client::new()),
+        config: Arc::new(config),
+        store: e.db.store().await,
+        clock: Arc::new(chrono::Utc::now),
+        agent_access: None,
+        source_retention: None,
+    };
+    let app = aq_server::build_worker_router(state);
+    let (status, body) = whoami_as(&app, &e.token, None).await;
+    assert_eq!(
+        (status, code(&body)),
+        (StatusCode::SERVICE_UNAVAILABLE, "overloaded".into()),
+        "{body}"
+    );
+}
+
 /// A graph standing in for aq-graph: the agent-access qualified fixture.
 async fn fake_graph() -> (String, tokio::task::JoinHandle<()>) {
-    let data: Value = serde_json::from_str(include_str!(
+    fake_graph_with(|_| {}).await
+}
+/// `fake_graph` serving an edited copy of the fixture.
+async fn fake_graph_with(edit: impl FnOnce(&mut Value)) -> (String, tokio::task::JoinHandle<()>) {
+    let mut data: Value = serde_json::from_str(include_str!(
         "../../../../protocol/agent-access/v1/fixtures/qualified-graph.json"
     ))
     .unwrap();
+    edit(&mut data);
     let app = axum::Router::new().fallback(move |uri: axum::http::Uri| {
         let data = data.clone();
         async move {

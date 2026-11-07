@@ -47,7 +47,7 @@ pub(crate) async fn send(
 }
 /// Also the agent-credential fixture for `agent_task_comments`.
 pub(crate) struct Env {
-    db: TestDb,
+    pub(crate) db: TestDb,
     pub(crate) pool: sqlx::PgPool,
     pub(crate) app: Router,
     pub(crate) admin: Router,
@@ -65,6 +65,17 @@ pub(crate) async fn setup_with(grants: Option<Value>) -> Env {
 }
 /// As `setup_with`, with the agent graph routes reading from `graph_url`.
 pub(crate) async fn setup_graph(grants: Option<Value>, graph_url: &str) -> Env {
+    setup_graph_with(grants, graph_url, None, |_, _| {}).await
+}
+/// `setup_graph` with the launch profile and startup context edited first,
+/// for example to the shape a native launch resolves, and optionally a
+/// configured Graph mutation actor (the service identity creates use).
+pub(crate) async fn setup_graph_with(
+    grants: Option<Value>,
+    graph_url: &str,
+    mutation_actor_id: Option<&str>,
+    edit: impl FnOnce(&mut Value, &mut Value),
+) -> Env {
     let db = TestDb::create().await;
     let store = db.store().await;
     let pool = db.pool().await;
@@ -104,10 +115,15 @@ pub(crate) async fn setup_graph(grants: Option<Value>, graph_url: &str) -> Env {
             .unwrap()
             .push(json!(cap));
     }
-    let context = fixture["context"]["context"].clone();
+    let mut context = fixture["context"]["context"].clone();
+    let original_context = context.clone();
+    edit(&mut profile, &mut context);
     let mut binding = fixture["context"]["binding"].clone();
     binding["node_id"] = json!(node.id);
     binding["profile_digest"] = json!(tokens::verifier(&profile.to_string()));
+    if context != original_context {
+        binding["context_digest"] = json!(tokens::verifier(&context.to_string()));
+    }
     let boot = binding["boot_id"].clone();
     let identity = json!({"node_id":node.id,"boot_id":boot});
     let attempt = json!({"attempt_id":binding["attempt_id"],"session_id":binding["session_id"],"generation":1});
@@ -146,7 +162,7 @@ enabled=true
     )
     .unwrap();
     let runtime = Runtime::new(&AgentAccessConfig {
-        mutation_actor_id: None,
+        mutation_actor_id: mutation_actor_id.map(String::from),
         graph_url: graph_url.into(),
         graph_token_file: token_file,
         credential_ttl_ms: 10000,

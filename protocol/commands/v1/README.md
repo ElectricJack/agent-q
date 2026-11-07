@@ -85,7 +85,8 @@ its ID.
 Every refusal and error on the command surface is a `Refusal` body. The
 grant codes are below; the surface's own errors are `unknown_command` (404),
 `not_available` (403), `invalid_request` (400), `unauthorized` (401) and
-`internal` (500), and `overloaded` (503, retryable). Errors from the route that serves a command are that
+`internal` (500), `overloaded` (503, retryable; also agent access not configured) and
+`unsupported_api_version` (426: the request names an agent API version the server does not speak). Errors from the route that serves a command are that
 route's errors; the command surface asks the `/v1/agent/*` routes for the
 structured refusal (`X-AQ-Refusal-Version: 1`).
 
@@ -197,7 +198,7 @@ same family the caller holds. It never names or confirms any other record.
 | `quota_exceeded` | A grant limit such as `max_created_tasks` was reached | 403 |
 | `session_revoked` / `session_expired` | The attempt's credential is no longer valid | 401 |
 | `channel_refused` | The sandbox channel proxy refused the path (aq-worker) | 403 |
-| `unknown_command` / `not_available` / `invalid_request` / `unauthorized` / `internal` | Command-surface errors (above) | 404 / 403 / 400 / 401 / 500 |
+| `unknown_command` / `not_available` / `invalid_request` / `unauthorized` / `internal` / `unsupported_api_version` | Command-surface errors (above); `unauthorized` (401) means only that the credential was rejected | 404 / 403 / 400 / 401 / 500 / 426 |
 
 On the `/v1/agent/*` question, comment and wait routes the structured body is
 returned when the request carries `X-AQ-Refusal-Version: 1`. Without it those
