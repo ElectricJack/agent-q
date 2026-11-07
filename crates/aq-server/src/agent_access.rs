@@ -364,9 +364,10 @@ struct Provision {
     #[serde(default)]
     grants: Option<Vec<aq_agent_grants::Grant>>,
 }
-#[derive(Clone)]
+#[derive(Clone, Default)]
 struct Principal {
     created: Vec<Value>,
+    subtree: Vec<Value>, // tasks below the attempt's task, for task.read @ task:subtree
     binding: Value,
     profile: Value,
     context: Value,
@@ -407,6 +408,11 @@ impl Principal {
         use aq_agent_grants::Scope::{Project, ProjectSelf};
         let g = self.grants.get(aq_agent_grants::op::KNOWLEDGE_READ);
         g.is_some_and(|g| matches!(g.scope, ProjectSelf | Project(_)))
+    }
+    fn edge_readable(&self, kind: &Value, source: Option<&Value>) -> bool {
+        let at = |s: &Value| (s == &self.binding["task_id"], self.subtree.contains(s));
+        let types = self.profile["read_scope"]["edge_types"].as_array();
+        self.grants.edge_readable(types, kind, source.map(at))
     }
     fn readable(&self, id: &Value) -> bool {
         self.created.contains(id)
@@ -478,14 +484,13 @@ async fn provision(
         return Err(Error("invalid_request"));
     }
     let principal = Principal {
-        created: Vec::new(),
         binding: binding.clone(),
         profile: request.profile.clone(),
         context: request.context.clone(),
         version: i64::MAX,
         revision: i64::MAX,
         expires: 253402300799999,
-        grants: Default::default(),
+        ..Default::default()
     };
     graph::validate_launch(&principal)?;
     let grants = request
@@ -593,14 +598,13 @@ async fn issue(
     let token = secret("aqa_");
 
     let p = Principal {
-        created: Vec::new(),
         binding: row.get("binding"),
         profile: row.get("profile"),
         context: row.get("context"),
         version: old + 1,
         revision: row.get("authority_revision"),
         expires,
-        grants: Default::default(),
+        ..Default::default()
     };
     let body = p.issuance_response(&token)?;
     sqlx::query("UPDATE agent_launch_bindings SET credential_version=$2,credential_verifier=$3,credential_expires_at_ms=$4 WHERE attempt_id=$1").bind(request.attempt.attempt_id).bind(old+1).bind(crate::tokens::verifier(&token)).bind(expires as i64).execute(&mut *tx).await?;
@@ -642,7 +646,6 @@ async fn authenticate_locked(
         return Err(Error("session_expired"));
     }
     let mut p = Principal {
-        created: Vec::new(),
         binding: row.get("binding"),
         profile: row.get("profile"),
         context: row.get("context"),
@@ -654,6 +657,7 @@ async fn authenticate_locked(
             id(&row.get::<Value, _>("binding"), "project_id")?,
             grant_check::sealed(row.get("grants"))?,
         ),
+        ..Default::default()
     };
     if p.binding["generation"] != a.attempt.generation
         || p.binding["session_id"] != a.attempt.session_id.to_string()
@@ -664,6 +668,10 @@ async fn authenticate_locked(
     if p.profile["read_scope"]["include_created_by_attempt"] == true {
         let records: Vec<Uuid> = sqlx::query_scalar("SELECT record_id FROM agent_created_records WHERE attempt_id=$1 ORDER BY record_id LIMIT 256").bind(attempt).fetch_all(&mut **tx).await?;
         p.created = records.into_iter().map(|id| json!(id)).collect();
+    }
+    if p.grants.reads_subtree() {
+        let tasks: Vec<Uuid> = sqlx::query_scalar("SELECT task_id FROM agent_created_tasks WHERE root_task_id=$1 AND project_id=$2 ORDER BY task_id LIMIT 256").bind(id(&p.binding, "task_id")?).bind(id(&p.binding, "project_id")?).fetch_all(&mut **tx).await?;
+        p.subtree = tasks.into_iter().map(|id| json!(id)).collect();
     }
     Ok(p)
 }
@@ -788,14 +796,13 @@ mod tests {
     fn context_and_issuance_budgets_include_profile_binding_and_credentials() {
         let c = fixture()["context"].clone();
         let mut p = Principal {
-            created: Vec::new(),
             binding: c["binding"].clone(),
             profile: c["profile"].clone(),
             context: c["context"].clone(),
             version: 1,
             revision: 1,
             expires: 1,
-            grants: Default::default(),
+            ..Default::default()
         };
         let snapshot_bytes = canonical(&p.context).unwrap().len();
         p.profile["max_response_bytes"] = json!(snapshot_bytes.max(1024) + 10);

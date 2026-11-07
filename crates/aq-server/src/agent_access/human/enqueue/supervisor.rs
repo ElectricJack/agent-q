@@ -218,7 +218,7 @@ pub(crate) async fn agent_create(
     state: &AppState,
     ids: aq_agent_grants::AttemptIds,
     request: ActionRequest,
-) -> axum::response::Response {
+) -> std::result::Result<axum::response::Response, ApiError> {
     use axum::response::IntoResponse;
     let (attempt, task, project) = (ids.attempt_id, ids.task_id, ids.project_id);
     let run = async {
@@ -243,8 +243,6 @@ pub(crate) async fn agent_create(
         let op = actions::submit_scoped(state, &r, &user, request).await?;
         ApiResult::Ok(actions::response(state, op))
     };
-    match run.await {
-        Ok(response) => (actions::operation_status(&response.data), Json(response)).into_response(),
-        Err(error) => error.into_response(),
-    }
+    run.await
+        .map(|response| (actions::operation_status(&response.data), Json(response)).into_response())
 }

@@ -234,6 +234,36 @@ impl GrantSet {
     pub fn get(&self, operation: &str) -> Option<&Grant> {
         self.0.iter().find(|g| g.operation == operation)
     }
+    /// Whether an agent reads a Graph edge of type `kind`: the launch
+    /// profile's edge types, plus `parent-child` edges whose parent `task.read`
+    /// reaches, given as (the attempt's own task, a task created below it);
+    /// `parent: None` checks the type only. A native profile lists only the
+    /// edge types of its startup projection, so without this `task.children`
+    /// could not read the subtasks an attempt creates (spec 0006 §6.2).
+    pub fn edge_readable(
+        &self,
+        profile_types: Option<&Vec<serde_json::Value>>,
+        kind: &serde_json::Value,
+        parent: Option<(bool, bool)>,
+    ) -> bool {
+        if profile_types.is_some_and(|t| t.contains(kind)) {
+            return true;
+        }
+        let scope = self.get(op::TASK_READ).map(|g| &g.scope);
+        kind == "parent-child"
+            && match (scope, parent) {
+                (None, _) => false,
+                (Some(_), None) | (Some(Scope::ProjectSelf | Scope::Project(_)), _) => true,
+                (Some(Scope::TaskSubtree), Some((own, below))) => own || below,
+                (Some(Scope::TaskSelf), Some((own, _))) => own,
+                _ => false,
+            }
+    }
+    /// `task.read` at `task:subtree`: reads need the tasks created below.
+    pub fn reads_subtree(&self) -> bool {
+        self.get(op::TASK_READ)
+            .is_some_and(|g| g.scope == Scope::TaskSubtree)
+    }
     /// Grants of the same family (`task.create.*` for `task.create.project`),
     /// for a refusal's `held` list. Never reveals anything but the caller's
     /// own authority.

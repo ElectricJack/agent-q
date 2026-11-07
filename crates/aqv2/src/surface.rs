@@ -79,7 +79,11 @@ pub fn refusal(body: &Value) -> Option<Value> {
     let known = crate::REFUSED.contains(&code)
         || matches!(
             code,
-            "unknown_command" | "invalid_request" | "internal" | "overloaded"
+            "unknown_command"
+                | "invalid_request"
+                | "internal"
+                | "overloaded"
+                | "unsupported_api_version"
         );
     let message = body["message"]
         .as_str()

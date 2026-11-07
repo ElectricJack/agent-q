@@ -91,7 +91,8 @@
         "invalid_request",
         "unauthorized",
         "internal",
-        "overloaded"
+        "overloaded",
+        "unsupported_api_version"
       ]
     },
     "Refusal": {

@@ -53,9 +53,7 @@ fn edge(p: &Principal, raw: &Value) -> Result<Option<Value>> {
     }
     if !p.readable(&raw["source"])
         || !p.readable(&raw["target"])
-        || !p.profile["read_scope"]["edge_types"]
-            .as_array()
-            .is_some_and(|a| a.contains(&raw["edge_type"]))
+        || !p.edge_readable(&raw["edge_type"], Some(&raw["source"]))
     {
         return Ok(None);
     }
@@ -90,10 +88,7 @@ pub(super) fn validate_launch(p: &Principal) -> Result<()> {
     for e in list(&p.context, "edges")? {
         p.require(&e["source"])?;
         p.require(&e["target"])?;
-        if !p.profile["read_scope"]["edge_types"]
-            .as_array()
-            .is_some_and(|a| a.contains(&e["edge_type"]))
-        {
+        if !p.edge_readable(&e["edge_type"], None) {
             return Err(Error("scope_denied"));
         }
     }
@@ -297,11 +292,9 @@ pub(super) async fn read(state: &AppState, p: &Principal, q: &Value) -> Result<V
         }
         "context" | "relationships" => {
             if kind == "relationships"
-                && !list(q, "edge_types")?.iter().all(|t| {
-                    p.profile["read_scope"]["edge_types"]
-                        .as_array()
-                        .is_some_and(|a| a.contains(t))
-                })
+                && !list(q, "edge_types")?
+                    .iter()
+                    .all(|t| p.edge_readable(t, None))
             {
                 return Err(Error("scope_denied"));
             }
@@ -524,14 +517,13 @@ mod tests {
         .unwrap();
         let c = &f["context"];
         Principal {
-            created: Vec::new(),
             binding: c["binding"].clone(),
             profile: c["profile"].clone(),
             context: c["context"].clone(),
             version: 1,
             revision: 1,
             expires: 1,
-            grants: Default::default(),
+            ..Default::default()
         }
     }
     fn graph() -> Value {
