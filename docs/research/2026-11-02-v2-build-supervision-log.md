@@ -1531,3 +1531,14 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - concurrent sweeps can remove a just-claimed directory;
     - the `stale_version` signal isn't monotonic.
   - Asked the phase 6 agent to rebase `chan/worker-aq-cli` onto main.
+- **02:04:** merged two follow-ups.
+  - **aq-server #107 (9809dc5e):** graph cursors now use the prefix `aqc_`, so the worker leak guard no longer sees them as credentials.
+    - Cursors are looked up by sha256 of the whole string, so old `aqa_` cursors still work until they expire.
+    - No protocol change, no re-pins.
+  - **aq-worker #44 (f7d09c2e):** the proxy follow-ups.
+    - 401-triggered re-issues back off exponentially (5 s up to 320 s), and a caller-chosen API version header never triggers one.
+    - The sweep now checks dev and inode before removing.
+    - The `stale_version` signal is monotonic.
+    - A `native_materials` expiry flake appeared once on #44 CI, then passed on rerun. Watching for a recurrence.
+  - Asked the phase 6 agent to fold the `agent_caller` refusal mapping into its server PR: `unsupported_api_version` becomes its own refusal instead of 401, and a missing runtime becomes `Overloaded`.
+  - aq-worker #45 (`aq` in the sandbox) is held until the proof report.
