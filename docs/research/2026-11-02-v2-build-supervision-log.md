@@ -1626,3 +1626,6 @@ Each entry records what was observed, the action taken, and anything waiting on 
     1. Is a boat agent launch planned?
     2. Spec §5.3 in-VM custody, or a node relay over the Boat API (≥0.5 s per call)?
     3. Should the boat Access token be path-restricted?
+- **04:50:** #110's first run failed an unrelated test, `it_phase phase_terminal_closure::wrong_origin_checkpoint_or_current_credential_cannot_change_phase_authority`, with `UpdatesUnavailable("scoped material owner temporarily unavailable")` during fixture setup. It is the first recorded occurrence; the rerun passed.
+  - Merged aq-server #110 (604291ea), which fixes main's red `profiled_stopped` test.
+  - Phase 7 is next. #111 rebases onto main for a green run. Draft aq-worker #46 has `aqv2` placeholder-pinned to #111's head (52e68a52, sha256 11112671…, reproducible); the real runtime bundle passes every check, including the `aq-agent result` mapping. Only its re-pin to #111's merge commit remains.
