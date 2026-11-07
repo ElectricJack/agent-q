@@ -420,20 +420,73 @@ async fn sql_rejects_digest_only_physical_substitution_and_receipt_without_atomi
 /// stayed live until its TTL (found by the spec 0006 phase 6 live proof).
 #[tokio::test]
 async fn normal_stop_revokes_the_agent_credential_and_replays_idempotently() {
+    use std::os::unix::fs::PermissionsExt;
     use tower::ServiceExt;
     let (f, start) = setup(true).await;
     let auth = context(&f).await;
     started::record(&f.state, &auth, &start).await.unwrap();
     let pool = f.db.pool().await;
     let attempt = start.binding.attempt_id;
+    let aq_admission::SessionIdentity::Remote {
+        boot_id,
+        assignment_generation,
+        session_id,
+        ..
+    } = start.binding.session
+    else {
+        panic!("profiled attempts run remotely")
+    };
+    let task: uuid::Uuid =
+        sqlx::query_scalar("SELECT task_id FROM execution_attempts WHERE attempt_id=$1")
+            .bind(attempt)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    let launch = json!({"attempt_id":attempt,"task_id":task,"project_id":f.selection.lineage.project_id,
+        "session_id":session_id,"generation":assignment_generation,"boot_id":boot_id});
     let token = format!("aqa_{}", "A".repeat(43));
-    sqlx::query("INSERT INTO agent_launch_bindings(attempt_id,node_id,binding,profile,context,credential_version,credential_verifier,credential_expires_at_ms) VALUES($1,$2,'{}','{}','{}',1,$3,$4)")
-        .bind(attempt).bind(f.node.node_id).bind(aq_server::tokens::verifier(&token))
+    sqlx::query("INSERT INTO agent_launch_bindings(attempt_id,node_id,binding,profile,context,credential_version,credential_verifier,credential_expires_at_ms) VALUES($1,$2,$3,'{}','{}',1,$4,$5)")
+        .bind(attempt).bind(f.node.node_id).bind(&launch).bind(aq_server::tokens::verifier(&token))
         .bind((NOW + 600_000) as i64).execute(&pool).await.unwrap();
     let binding = || async {
         sqlx::query_as::<_, (bool, Option<String>, Option<i64>, i64)>("SELECT revoked,credential_verifier,credential_expires_at_ms,credential_version FROM agent_launch_bindings WHERE attempt_id=$1")
             .bind(attempt).fetch_one(&pool).await.unwrap()
     };
+    // The command surface with an agent-access runtime, as a server with agent
+    // access configured has; without one it answers 503 before it reads the
+    // credential. Authentication never calls the graph origin.
+    let dir = tempfile::tempdir().unwrap();
+    let graph_token = dir.path().join("graph-token");
+    std::fs::write(&graph_token, "g".repeat(32)).unwrap();
+    std::fs::set_permissions(&graph_token, std::fs::Permissions::from_mode(0o600)).unwrap();
+    let mut agent_state = f.state.clone();
+    agent_state.agent_access = Some(Arc::new(
+        aq_server::agent_access::Runtime::new(&aq_server::agent_access::AgentAccessConfig {
+            graph_url: "http://127.0.0.1:9/".into(),
+            graph_token_file: graph_token,
+            credential_ttl_ms: 10_000,
+            mutation_actor_id: None,
+        })
+        .await
+        .unwrap(),
+    ));
+    let commands = aq_server::build_worker_router(agent_state);
+    let whoami = || async {
+        commands
+            .clone()
+            .oneshot(
+                axum::http::Request::post("/api/v1/commands/whoami")
+                    .header("authorization", format!("Bearer {token}"))
+                    .header("content-type", "application/json")
+                    .body(axum::body::Body::from(r#"{"params":{}}"#))
+                    .unwrap(),
+            )
+            .await
+            .unwrap()
+            .status()
+    };
+    // Before the stop the channel's credential is accepted.
+    assert_eq!(whoami().await, axum::http::StatusCode::OK);
     let request = stop_request(&start);
     let receipt = stopped::record(&f.state, &auth, &request).await.unwrap();
     assert_eq!(state(&f, &start).await["status"], "finished");
@@ -446,18 +499,8 @@ async fn normal_stop_revokes_the_agent_credential_and_replays_idempotently() {
         revoked.3, 2,
         "the credential version moves past the revoked one"
     );
-    // The channel's credential is refused: the command surface answers 401.
-    let response = aq_server::build_worker_router(f.state.clone())
-        .oneshot(
-            axum::http::Request::post("/api/v1/commands/whoami")
-                .header("authorization", format!("Bearer {token}"))
-                .header("content-type", "application/json")
-                .body(axum::body::Body::from(r#"{"params":{}}"#))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(response.status(), axum::http::StatusCode::UNAUTHORIZED);
+    // After it the same credential is refused: the command surface answers 401.
+    assert_eq!(whoami().await, axum::http::StatusCode::UNAUTHORIZED);
     // A replayed stop returns the same receipt and revokes nothing again.
     assert_eq!(
         json!(stopped::record(&f.state, &auth, &request).await.unwrap()),
