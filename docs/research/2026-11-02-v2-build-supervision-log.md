@@ -1542,3 +1542,13 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - A `native_materials` expiry flake appeared once on #44 CI, then passed on rerun. Watching for a recurrence.
   - Asked the phase 6 agent to fold the `agent_caller` refusal mapping into its server PR: `unsupported_api_version` becomes its own refusal instead of 401, and a missing runtime becomes `Overloaded`.
   - aq-worker #45 (`aq` in the sandbox) is held until the proof report.
+- **02:18:** aq-server #108 (`fix/agent-task-children`) is open and in CI. It adds:
+  - migration 0099, an agent journal principal, which fixes the 503 on agent subtask creation, plus an end-to-end create test;
+  - a §6.8 refusal for a parent outside the project;
+  - parent-child edge reads scoped by `task.read`;
+  - 401 meaning credential-only, with a new `unsupported_api_version` code (426).
+  - Dashboard and worker don't pin `commands/v1`, so no re-pins.
+- **New proof finding:** a normal attempt stop does not revoke the agent credential. In proof attempts 03606b35 and 2cb65ea4, `agent_launch_bindings` still showed `revoked=f` with the verifier present after AttemptStopped; only the TTL ended them.
+  - **Cause:** `journal::record_stopped` (the profiled and phase-terminal stop paths) never runs the revoke. Only cancellation, closure and stopped-disposition do. Spec §5.4 and §11 require revocation on close.
+  - The worker channel did close on stop.
+  - Dispatched a fix that revokes inside `record_stopped` in the same transaction, with no migration (`fix/revoke-on-stop`), and audits the other terminal paths.
