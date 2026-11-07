@@ -478,7 +478,11 @@ enabled=true
         .await;
         assert_eq!(partial["result"]["coverage"]["status"], "partial");
         let cursor = first["result"]["next_cursor"].clone();
-        assert!(cursor.as_str().unwrap().starts_with("aqa_"));
+        // aq-worker's leak guard refuses agent output holding an `aqa_` credential
+        // shape, so a cursor an agent prints must never look like one.
+        let opaque = cursor.as_str().unwrap();
+        assert!(opaque.starts_with("aqc_") && !opaque.starts_with("aqa_"));
+        assert_eq!(opaque.len(), 47);
         assert_ne!(cursor, "visible-two");
         let mut next = paged.clone();
         next["cursor"] = cursor.clone();
@@ -504,6 +508,25 @@ enabled=true
         .await;
         assert_eq!(status, StatusCode::OK, "{second}");
         assert!(second["result"]["next_cursor"].is_null());
+        // A cursor issued before the `aqc_` prefix (`aqa_`) is still honoured: the
+        // server looks cursors up by the verifier of the whole opaque string.
+        let legacy = format!("aqa_{}", &opaque[4..]);
+        sqlx::query("UPDATE agent_read_cursors SET verifier=$1 WHERE verifier=$2")
+            .bind(tokens::verifier(&legacy))
+            .bind(tokens::verifier(opaque))
+            .execute(&pool)
+            .await
+            .unwrap();
+        next["cursor"] = json!(legacy);
+        let (status, legacy_page) = send(
+            &app,
+            "/v1/agent/graph/read",
+            Some(new_agent),
+            Some(request(next.clone())),
+        )
+        .await;
+        assert_eq!(status, StatusCode::OK, "{legacy_page}");
+        assert_eq!(legacy_page["result"], second["result"]);
         // An in-flight graph read releases central locks. Cancellation/expiry must
         // be observed after the graph barrier, before projecting any response.
         for expire in [true, false] {

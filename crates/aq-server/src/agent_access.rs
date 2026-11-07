@@ -300,15 +300,14 @@ fn canonical(value: &Value) -> Result<Vec<u8>> {
 fn digest(value: &Value) -> Result<String> {
     aq_agent_api::digest(value).map_err(|_| Error("invalid_request"))
 }
-fn secret() -> String {
-    use base64::Engine;
+/// A random bearer-sized token. Only agent credentials use `aqa_`: aq-worker refuses
+/// agent output holding `aqa_` + 43 characters. Cursors use `aqc_`.
+fn secret(prefix: &str) -> String {
+    use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
     use rand::RngCore;
     let mut b = [0u8; 32];
     rand::rngs::OsRng.fill_bytes(&mut b);
-    format!(
-        "aqa_{}",
-        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(b)
-    )
+    format!("{prefix}{}", URL_SAFE_NO_PAD.encode(b))
 }
 fn id(v: &Value, key: &str) -> Result<Uuid> {
     v[key]
@@ -591,7 +590,7 @@ async fn issue(
     if expires <= now(&state) {
         return Err(Error("session_expired"));
     }
-    let token = secret();
+    let token = secret("aqa_");
 
     let p = Principal {
         created: Vec::new(),

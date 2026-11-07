@@ -1034,7 +1034,8 @@ async fn recovery_cursor_freezes_membership_and_serializes_its_finite_quota() {
     .await;
     assert_eq!(status, StatusCode::OK, "{page}");
     assert_eq!(page["operations"][0]["operation_id"], first["operation_id"]);
-    assert!(page["next_cursor"].is_string());
+    let opaque = page["next_cursor"].as_str().unwrap();
+    assert!(opaque.starts_with("aqc_") && !opaque.starts_with("aqa_"));
     // A later UUID sorts below previous IDs but is beyond the frozen membership.
     let mut concurrent = correction(&e);
     concurrent["operation_id"] = json!(uid(1));
