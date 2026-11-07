@@ -1639,3 +1639,13 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Agent channel spec 0006 is done except the deferred parts:**
     - step 5, removing `/v1/agent/*` and `aq-agent`, waits until no supported template ships `aq-agent`;
     - the boat channel waits on three owner questions.
+- **05:21:** the phase 7 agent's final report.
+  - **§9 mapping:** nothing was missing; two tests were added, including a shared receipt between a legacy route and its command.
+  - **`aq result submit`:** ported from `aq-agent-client` onto the vendored `aq-agent-result-local` contract, and byte-identical to `aq-agent result` by a shared golden file.
+  - **Boat:** a design note recommends spec §5.3 in-VM runner custody; it waits on the owner.
+  - **Retirement checklist** is in aq-worker `docs/implementation/0006-P7.md`, in order:
+    1. drop the wrapper and rebuild the templates;
+    2. verify every pinned template digest lacks `aq-agent`;
+    3. remove the client from aq-worker;
+    4. unmount `/v1/agent/*` while keeping its handlers reachable in-process.
+  - **Open:** the report says aq-server CI has no musl job for `aqv2`, which conflicts with #104's claim that it does; to be checked. Host packaging still ships `aq-agent` until checklist step 1.
