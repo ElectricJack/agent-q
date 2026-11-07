@@ -1524,3 +1524,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
     1. Every agent subtask create gets a 503: the journal insert violates `dashboard_operations_supervisor_session_id_fkey`. Migration 0061 binds non-user principals to `central_session_generations`, but the agent principal is the attempt ID. The phase 2 test never exercised a successful create.
     2. `task.children` always returns 403: the native profile's `read_scope.edge_types` lacks parent-child.
   - The agent is fixing both on `fix/agent-task-children`, with migration 0099. I approved proving the fix on a separate disposable stack, aq-ms1p6, rather than migrating the owner's aq-ms1 database ahead of the merge.
+- **01:48:** the scoped re-review of #43's fixes (`84bda0e..f9161f5`) found every finding fixed (1, 2, 4–9) and no new credential exposure.
+  - Merged aq-worker #43 (020a2743), agent channel phase 3: the per-attempt proxy, fail-closed launch and the leak guard.
+  - **The re-review's new non-blocking items, handed to the fixer as `chan/proxy-followups`:**
+    - the sandbox can force a credential rotation every 5 s by provoking a 401;
+    - concurrent sweeps can remove a just-claimed directory;
+    - the `stale_version` signal isn't monotonic.
+  - Asked the phase 6 agent to rebase `chan/worker-aq-cli` onto main.
