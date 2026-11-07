@@ -1610,3 +1610,6 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - wire the boat runner channel, or write a design note if that is large (§10);
     - write a deprecation note and removal checklist only; `/v1/agent/*` and `aq-agent` stay until no supported template ships them (step 5).
   - The phase 6 open items are folded in: the deny audit row's grant, `package-sandbox.py` mtime 0, the `Dockerfile.runtime` touch step, and the legacy `execution.rs` revoke.
+- **04:04:** **aq-server main is red.** On 9041e6f4, #109's new test `profiled_stopped::normal_stop_revokes_the_agent_credential_and_replays_idempotently` gets 503 where it expects 401.
+  - **Cause:** the two PRs interacted. #108 maps "agent-access runtime not configured" to `Overloaded` (503), and #109's `it_profiled` fixture has no agent-access runtime. Each PR was green on its own base, and I merged them back to back because they touched no common files.
+  - Dispatched a test-fixture fix (`fix/revoke-test-agent-runtime`) that keeps the 401 assertion and configures the runtime. Told the phase 7 agent to ignore this failure.
