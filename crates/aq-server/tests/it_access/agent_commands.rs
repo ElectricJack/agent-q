@@ -598,15 +598,16 @@ async fn agent_creates_a_subtask_end_to_end() {
     .await;
     assert_eq!(status, StatusCode::OK, "{body}");
     assert_eq!(body["data"]["disposition"], "confirmed", "{body}");
-    // Journaled under the attempt's own principal domain.
-    let row: (Option<Uuid>, Option<Uuid>, Option<Uuid>, String) = sqlx::query_as(
-        "SELECT owner_id,supervisor_session_id,agent_attempt_id,kind FROM dashboard_operations WHERE operation_id=$1",
+    // Journaled under the attempt's own principal domain: neither an owner
+    // nor a supervisor session.
+    let row: (Uuid, Option<Uuid>, Option<Uuid>, String) = sqlx::query_as(
+        "SELECT principal_id,owner_id,supervisor_session_id,kind FROM dashboard_operations WHERE operation_id=$1",
     )
     .bind(op)
     .fetch_one(&e.pool)
     .await
     .unwrap();
-    assert_eq!(row, (None, None, Some(attempt), "task.create".into()));
+    assert_eq!(row, (attempt, None, None, "task.create".into()));
     // The Graph write: an active task with the agent's attribution, under
     // the attempt's own task.
     let posted = posted.lock().unwrap().clone();
