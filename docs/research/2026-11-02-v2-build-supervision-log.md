@@ -1559,3 +1559,6 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - Both were green on current main and touch no common files.
   - Rebuilding aq-ms1's server from 9041e6f4 for proof run 3, which covers subtask create, `task children`, revocation on stop and the startup thread.
   - aq-worker #45 holds the P6 evidence. It is green apart from one push-run flake, the guardian `spawn_boundary_crashes_never_duplicate_and_recover_owned_writers`; the PR run passed.
+- **03:04:** main CI for 9809dc5e (#107) failed the distributed recovery failure matrix: the `old-result-after-replacement` case logged "recovery: timed out waiting for durable result".
+  - The matrix builds a pinned, vendored worker, not aq-worker main. #107 changes only the cursor prefix, and it passed this job on its own PR.
+  - This is the first time this case has been recorded failing. Reran the failed job (run 42327350015), and I'm watching the #108 and #109 main runs. A second occurrence gets a root-cause task, per W78.
