@@ -1629,3 +1629,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
 - **04:50:** #110's first run failed an unrelated test, `it_phase phase_terminal_closure::wrong_origin_checkpoint_or_current_credential_cannot_change_phase_authority`, with `UpdatesUnavailable("scoped material owner temporarily unavailable")` during fixture setup. It is the first recorded occurrence; the rerun passed.
   - Merged aq-server #110 (604291ea), which fixes main's red `profiled_stopped` test.
   - Phase 7 is next. #111 rebases onto main for a green run. Draft aq-worker #46 has `aqv2` placeholder-pinned to #111's head (52e68a52, sha256 11112671…, reproducible); the real runtime bundle passes every check, including the `aq-agent result` mapping. Only its re-pin to #111's merge commit remains.
+- **05:11:** merged aq-server #111 (85070006), agent channel phase 7 server side.
+  - It was rebased onto 604291ea, the main tip, and CI was 9/9 green on head 6040745f.
+  - It adds `aq result submit` and `aq result status`, §9 mapping tests, the audit row's correct grant, the legacy stop revoke, and deprecation notes.
+  - aq-worker #46 now re-pins `aqv2` to 85070006.
