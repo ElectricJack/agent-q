@@ -1552,3 +1552,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Cause:** `journal::record_stopped` (the profiled and phase-terminal stop paths) never runs the revoke. Only cancellation, closure and stopped-disposition do. Spec §5.4 and §11 require revocation on close.
   - The worker channel did close on stop.
   - Dispatched a fix that revokes inside `record_stopped` in the same transaction, with no migration (`fix/revoke-on-stop`), and audits the other terminal paths.
+- **03:03:** #108's first CI run failed one test, `dashboard_task_knowledge::enqueue_principal_migration_preserves_retired_tombstones`.
+  - **Cause:** 0099 added a column, and adding a column changes every existing row's `to_jsonb`, which breaks the immutable tombstone identity.
+  - **Fix:** 0099 is now a third CHECK branch that adds no column and rewrites no rows. The test is unchanged.
+  - Merged aq-server #108 (9f488dc0) and #109 (9041e6f4). #109 makes a normal stop revoke the agent credential in the stop transaction; all five terminal paths now share `journal::revoke`.
+  - Both were green on current main and touch no common files.
+  - Rebuilding aq-ms1's server from 9041e6f4 for proof run 3, which covers subtask create, `task children`, revocation on stop and the startup thread.
+  - aq-worker #45 holds the P6 evidence. It is green apart from one push-run flake, the guardian `spawn_boundary_crashes_never_duplicate_and_recover_owned_writers`; the PR run passed.
