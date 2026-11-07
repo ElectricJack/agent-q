@@ -1481,3 +1481,13 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - `task:subtree` covers only tasks that agents created;
     - the `task.graph.show`, `task.list` and summary reads have no agent route (left out on purpose, because the graph read would also return neighbouring knowledge records);
     - `wait.show` for an agent's own wait isn't tested end to end.
+- **01:04:** the worker proxy agent (phase 3) had been idle for about 90 minutes and never answered two status requests. Its transcript stopped at 23:31, during a server-proof harness setup. I stopped it.
+  - **aq-worker #43 is green.** It adds:
+    - the new `aq-agent-channel` crate, a per-attempt Unix-socket proxy that holds the `aqa_` credential and forwards only the agent command surface;
+    - the `/aq/channel` mount and `AQ_CHANNEL` in `/aq/in/env`;
+    - fail-closed launch (the profile's `agent_channel` defaults to `required`);
+    - an `aqa_` leak guard.
+    - Live evidence uses curl inside a real container.
+  - **Not in #43:** shipping `aq` in the sandbox template (B7 inversion), `AQ_CHANNEL` in the Bash tool's environment, and a live run against the real server.
+  - **Compatibility:** after it lands, a Claude docker-local node whose server cannot issue agent credentials stops launching.
+  - Because #43 handles credentials, I dispatched an independent security and correctness review before merging it. It covers leaks, path and request-smuggling bypass, header stripping, lifecycle, socket permissions, fail-closed launch and issuance compatibility.
