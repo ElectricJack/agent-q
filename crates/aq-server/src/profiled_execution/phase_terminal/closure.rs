@@ -154,7 +154,7 @@ async fn record_inner(
         return Err(conflict());
     }
     sqlx::query("UPDATE admission_material_leases SET state='revoked' WHERE prospective_attempt_id=$1 AND state IN ('pending','admitted')").bind(r.binding.attempt_id).execute(&mut *tx).await.map_err(database)?;
-    sqlx::query("UPDATE agent_launch_bindings SET revoked=true,credential_verifier=NULL,credential_expires_at_ms=NULL,credential_version=credential_version+1,authority_revision=authority_revision+1 WHERE attempt_id=$1").bind(r.binding.attempt_id).execute(&mut *tx).await.map_err(database)?;
+    super::super::journal::revoke(&mut tx, r.binding.attempt_id).await?;
     loaded.hot.status = Status::Cancelling;
     loaded.hot.revoked = true;
     loaded

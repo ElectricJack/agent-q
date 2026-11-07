@@ -184,8 +184,7 @@ pub async fn abandon(
         .map_err(db)?;
     // Close launch-scoped access; retained source and unresolved effects keep
     // their existing owner records and are never declared quiescent here.
-    sqlx::query("UPDATE agent_launch_bindings SET revoked=true,credential_verifier=NULL,credential_expires_at_ms=NULL,credential_version=credential_version+1,authority_revision=authority_revision+1 WHERE attempt_id=$1")
-        .bind(attempt).execute(&mut *tx).await.map_err(db)?;
+    super::journal::revoke(&mut tx, attempt).await?;
     tx.commit().await.map_err(db)?;
     Ok(receipt)
 }
