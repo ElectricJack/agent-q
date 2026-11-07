@@ -1,0 +1,14 @@
+{
+  "repository": "https://github.com/ElectricJack/aq-worker",
+  "commit": "56bf1fba78730f2ab8131a911f253daf2fb55826",
+  "path": "crates/aq-agent-result-local",
+  "version": "0.1.0",
+  "note": "Copied with git archive; Cargo.toml.upstream is the original manifest. Refresh by copying the crate again at a new commit.",
+  "sha256": {
+    "Cargo.toml.upstream": "781d793e64c87d5a846326991430719d091112d5fbbcf1dc608ee85ba1516ae1",
+    "README.md": "e3386c62c3f581279da2d85b0ec55e9ac70cfda6bcbc011bf60024a3303d7609",
+    "artifacts/contract.json": "4fe711c405ead85b55a54de2d7446b2c106c4b8809b16bc57497ba2af1d35ef9",
+    "artifacts/startup.md": "667d48a537baa35335fb3da1e589846e9d294a2bc24a8df58cf682181b15229a",
+    "src/lib.rs": "dfc6b685c5ce0ba8615618d2113f9bc7fe15c30e9144634086bf321baceeb566"
+  }
+}

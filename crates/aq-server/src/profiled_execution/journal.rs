@@ -72,9 +72,12 @@ pub(super) async fn record_stopped(
     .await?;
     revoke(tx, request.evidence.binding.attempt_id).await
 }
-/// Revoke the attempt's agent credential (0006 §5.4): stop, closure, cancellation, disposition.
+/// Revoke the attempt's agent credential (0006 §5.4): stop, closure, cancellation, disposition; legacy fixture stop and cancellation via `revoke_if`.
 pub(super) async fn revoke(tx: &mut Transaction<'_, Postgres>, a: Uuid) -> Result<(), AppError> {
-    sqlx::query("UPDATE agent_launch_bindings SET revoked=true,credential_verifier=NULL,credential_expires_at_ms=NULL,credential_version=credential_version+1,authority_revision=authority_revision+1 WHERE attempt_id=$1").bind(a).execute(&mut **tx).await.map(drop).map_err(db)
+    revoke_if(tx, a, true).await.map_err(db)
+}
+pub async fn revoke_if(tx: &mut Transaction<'_, Postgres>, a: Uuid, on: bool) -> sqlx::Result<()> {
+    sqlx::query("UPDATE agent_launch_bindings SET revoked=true,credential_verifier=NULL,credential_expires_at_ms=NULL,credential_version=credential_version+1,authority_revision=authority_revision+1 WHERE attempt_id=$1 AND $2").bind(a).bind(on).execute(&mut **tx).await.map(drop)
 }
 async fn record(
     tx: &mut Transaction<'_, Postgres>,

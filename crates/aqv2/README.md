@@ -109,6 +109,40 @@ aq operation show ID
   no open supervisor conversation, is refused before sending (exit 2); any
   other mailbox takes `--to-json`.
 
+### Result claim (worker-local)
+
+```text
+aq result submit --request-file "$AQ_AGENT_RESULT_DIR/submissions/request.json"
+aq result status
+```
+
+`result` is not a server command and opens no connection (spec 0006 §9
+step 4). It replaces `aq-agent result` with the same contract,
+`aq-agent-result-local-1` (vendored from aq-worker as
+`vendor/aq-agent-result-local-0.1.0`), and the same files and output:
+
+- The outbox is the attempt's private directory named by
+  `AQ_AGENT_RESULT_DIR`, installed by the worker (0700, owned by the agent's
+  uid, `binding.json`, `presence.json` and `owner.lock` from the worker, only
+  `submissions/` writable). An absent variable or an unsafe directory is
+  refused; nothing falls back to another path.
+- The request is `{"schema_version":1,"conclusion":"…"}` (one nonblank line,
+  at most 512 bytes) in a regular, unlinked file of at most 4 KiB. The CLI adds
+  the worker's binding; the request cannot name operations, stops or receipts.
+- `submit` publishes one original claim (`submissions/submission.json`, create
+  only, never replaced) and waits at most two seconds, capped by the original
+  execution deadline, for the worker's acknowledgment. The same claim again is
+  a replay; a different one is a conflict and the original is kept.
+- Output is the local result document on stdout (`--json` wraps it as
+  `{"schema_version":1,"data":…}`), with `aq-agent result`'s exit statuses:
+  0 ready or recorded, 10 pending (inspect `phase`), 11 conflict, 13 needs
+  reconciliation or outcome unknown, 15 unusable channel or request (a fixed
+  `invalid_contract_or_private_state` document on stderr, never a path or a
+  raw error).
+- `tests/golden/result.json` pins every step. aq-worker checks `aq-agent
+  result` against the same file, so the bundle's `aq-agent` wrapper
+  (`exec aq "$@"`) keeps `aq-agent result submit|status` working unchanged.
+
 The owner subcommands below (`tasks`, `decisions`, `messages`, `chat`,
 `workers`, `projects`) call owner routes on the admin listener and are refused
 in channel mode; `operations show` there is `operation show`.
@@ -149,7 +183,8 @@ What the sandbox runtime bundle ships (the aq-worker template owns the files):
 - `manifest.json` lists it as an executable entry (`name: "aq"`, its
   version, `path: "/opt/aq/bin/aq"`, `sha256`, `bytes`).
 - `aq-agent` stays for one template generation as a wrapper that execs `aq`
-  (spec §9 step 3); `aq-agent result` becomes `aq result submit` in the worker.
+  (spec §9 step 3); `aq-agent result` is now `aq result submit|status`
+  (above), which the wrapper reaches unchanged.
 - No credential and no token file: the launch writes only
   `AQ_CHANNEL=unix:/aq/channel/aq.sock` into `/aq/in/env`, and
   `/opt/aq/bin` is on the agent's `PATH`. The runner note tells the agent

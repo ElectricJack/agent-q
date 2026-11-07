@@ -1,5 +1,7 @@
 # Agent waits v1
 
+> **Deprecated (spec 0006 §9, phase 7).** These `/v1/agent/*` routes are kept only while a supported sandbox template ships `aq-agent`. Agents call the same handlers through the registry commands named in `routes.json` (`POST /api/v1/commands/{name}`, `protocol/commands/v1`). The removal checklist is in aq-worker `docs/implementation/0006-P7.md`.
+
 These are the agent-facing durable wait routes served by `aq-server` (H4). Every request and response is the `aq-lifecycle-api` envelope. The schemas live in `crates/aq-lifecycle-api/artifacts/request.schema.json` and `response.schema.json`.
 
 - `routes.json` maps each lifecycle route to its command, capability and fixture, and lists the two agent read routes.

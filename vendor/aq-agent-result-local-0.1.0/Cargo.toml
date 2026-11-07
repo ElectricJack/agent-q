@@ -1,0 +1,18 @@
+# Vendored from aq-worker crates/aq-agent-result-local at
+# 56bf1fba78730f2ab8131a911f253daf2fb55826 (source.json). Only this manifest
+# differs from upstream (Cargo.toml.upstream): workspace inheritance is
+# replaced with the same versions, and aq-session-protocol points at the
+# vendored copy, so the contract types and digests are byte-identical.
+[package]
+name = "aq-agent-result-local"
+version = "0.1.0"
+edition = "2024"
+publish = false
+description = "Pure bounded local agent result claim contract; no execution authority"
+
+[dependencies]
+aq-session-protocol = { path = "../aq-session-protocol-0.1.0", version = "=0.1.0" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = { version = "1", features = ["uuid1"] }
+uuid = { version = "1", features = ["v4", "serde"] }

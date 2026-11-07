@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use sqlx::{Postgres, Row, Transaction};
 use uuid::Uuid;
 
-use crate::store::Store;
+use crate::{profiled_execution::journal::revoke_if, store::Store};
 
 pub mod api;
 pub mod authority;
@@ -210,7 +210,8 @@ async fn save_attempt(tx: &mut Transaction<'_, Postgres>, state: &AttemptState) 
         .bind(holds)
         .execute(&mut **tx)
         .await?;
-    Ok(())
+    let s = state.stopped || state.cancellation_id.is_some(); // revokes the agent credential
+    Ok(revoke_if(tx, state.offer.attempt.attempt_id, s).await?)
 }
 
 /// Source evidence is admitted from durable central receipts, never a worker's

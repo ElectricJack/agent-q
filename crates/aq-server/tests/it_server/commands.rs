@@ -204,3 +204,96 @@ fn the_command_surface_has_its_own_admission_class() {
     );
     assert_eq!(classify("/v1/agent/tasks"), Class::General);
 }
+
+/// Spec 0006 §9 step 2: every `/v1/agent/*` route the server mounts is the
+/// agent route of a registry command, so `/api/v1/commands/{name}` reaches the
+/// same handler (and so the same domain function, receipts and idempotency).
+/// The one exception is `/v1/agent/context`, superseded by `whoami` and
+/// reviewed as `agent_legacy`. The §9 table is checked row by row.
+#[test]
+fn section_9_maps_every_agent_route_to_its_registry_command() {
+    let registry = aq_server::commands::registry();
+    let agent_route = |name: &str| {
+        let c = registry
+            .get(name)
+            .unwrap_or_else(|| panic!("{name} is not registered"));
+        c.agent
+            .map(|r| (r.method, r.path))
+            .unwrap_or_else(|| panic!("{name} has no agent route"))
+    };
+    let table: &[(&str, &[(&str, &str)])] = &[
+        (
+            "comments",
+            &[
+                ("task.comment.add", "/v1/agent/comments"),
+                ("comment.list", "/v1/agent/comments/list"),
+            ],
+        ),
+        (
+            "questions",
+            &[
+                ("question.ask", "/v1/agent/questions"),
+                ("question.show", "/v1/agent/questions/show"),
+            ],
+        ),
+        (
+            "waits",
+            &[
+                ("wait.register", "/v1/agent/waits/register"),
+                ("wait.inspect", "/v1/agent/waits/inspect"),
+                ("wait.ack", "/v1/agent/waits/ack"),
+            ],
+        ),
+        (
+            "messages",
+            &[
+                ("message.send", "/v1/agent/messages/send"),
+                ("message.inbox", "/v1/agent/messages/inbox"),
+                ("message.ack", "/v1/agent/messages/ack"),
+                ("message.body", "/v1/agent/messages/body"),
+            ],
+        ),
+        (
+            "graph",
+            &[
+                ("knowledge.search", "/v1/agent/graph/read"),
+                ("knowledge.show", "/v1/agent/graph/read"),
+                ("graph.read", "/v1/agent/graph/read"),
+                ("graph.command", "/v1/agent/graph/commands"),
+            ],
+        ),
+        ("context", &[("whoami", "/api/v1/commands/whoami")]),
+    ];
+    for (row, commands) in table {
+        for (name, path) in *commands {
+            assert_eq!(agent_route(name).1, *path, "§9 {row}: {name}");
+        }
+    }
+    let served: BTreeSet<&str> = registry
+        .commands()
+        .iter()
+        .filter_map(|c| c.agent.map(|r| r.path))
+        .collect();
+    let agent: Vec<String> = mounted()
+        .into_keys()
+        .filter(|p| p.starts_with("/v1/agent/"))
+        .collect();
+    assert!(
+        agent.len() >= 19,
+        "the scan found the agent routes: {agent:?}"
+    );
+    for path in &agent {
+        if path == "/v1/agent/context" {
+            let reviewed = routes::reviewed()
+                .into_iter()
+                .find(|r| &r.path == path)
+                .unwrap();
+            assert_eq!(reviewed.class, Class::AgentLegacy, "{path}");
+            continue;
+        }
+        assert!(
+            served.contains(path.as_str()),
+            "{path} has no registry command (spec 0006 §9 step 2)"
+        );
+    }
+}
