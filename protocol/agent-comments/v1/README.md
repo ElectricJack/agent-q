@@ -1,5 +1,7 @@
 # Agent comments v1
 
+> **Deprecated (spec 0006 §9, phase 7).** These `/v1/agent/*` routes are kept only while a supported sandbox template ships `aq-agent`. Agents call the same handlers through the registry commands named in `routes.json` (`POST /api/v1/commands/{name}`, `protocol/commands/v1`). The removal checklist is in aq-worker `docs/implementation/0006-P7.md`.
+
 These are the agent-facing task comment routes served by `aq-server` (aq-dashboard spec 0004 §4.1). An agent leaves findings on its own task, the way v1's `aq task comment` works, and reads the task's thread, including comments left for earlier attempts. `routes.json` lists the routes, bodies and error codes; the unit test `agent_comment_routes_match_contract` checks the route table against it. The model is `crates/aq-task-comments`.
 
 ## Rules

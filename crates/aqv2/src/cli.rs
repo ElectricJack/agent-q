@@ -13,7 +13,9 @@ Exit status:
   0 success, 1 other error, 2 invalid arguments,
   10 mutation pending or unknown (inspect the printed operation ID), 11 conflict, 12 rejected,
   13 transport failure or closed channel, 14 refused (grant, scope, owner-only, quota, session),
-  15 invalid server response, 16 wait ended before its condition";
+  15 invalid server response, 16 wait ended before its condition
+  `result submit|status` (worker-local) keeps aq-agent's: 0 ready or recorded, 10 pending,
+  11 conflict, 13 needs reconciliation or unknown, 15 unusable channel or request";
 
 #[derive(Parser)]
 #[command(
@@ -75,6 +77,10 @@ pub enum Command {
     /// Inspect an operation by ID after an uncertain outcome.
     #[command(subcommand)]
     Operation(crate::typed::Operation),
+    /// Your attempt's local result claim: submit, status (AQ_AGENT_RESULT_DIR;
+    /// not a server command). Other `result …` tokens are registry commands.
+    #[command(subcommand)]
+    Result(ResultCommand),
     /// Any other command by its CLI tokens (commands.json `cli`), e.g. `task graph show`.
     #[command(external_subcommand)]
     External(Vec<String>),
@@ -218,6 +224,22 @@ pub enum Projects {
 #[derive(Subcommand)]
 pub enum Operations {
     Show { id: Uuid },
+}
+
+/// `result submit|status`: the worker-local result channel (spec 0006 §9 step 4).
+#[derive(Subcommand)]
+pub enum ResultCommand {
+    /// Publish the one original local claim; exit 10 means pending (inspect `phase`).
+    Submit {
+        /// The bounded request: {"schema_version":1,"conclusion":"…"}.
+        #[arg(long)]
+        request_file: PathBuf,
+    },
+    /// Read the worker's acknowledgment and recovery data; triggers no effects.
+    Status,
+    /// The registry's `result …` commands (`result show`, `result list`, …).
+    #[command(external_subcommand)]
+    Command(Vec<String>),
 }
 
 /// `run NAME [flags]`.

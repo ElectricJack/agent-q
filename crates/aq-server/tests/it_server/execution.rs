@@ -1877,3 +1877,62 @@ async fn legacy_report_history_prevents_nonstart_release_after_projection_downgr
         ErrorCode::IdConflict,
     );
 }
+
+/// The legacy fixture path revokes the attempt's agent credential (B7
+/// `/api/agent-access/provision` serves only these attempts) when it is
+/// cancelled or reports a stop, through the same `journal::revoke` statement
+/// as the profiled stop paths (spec 0006 §5.4, aq-server #109 follow-up).
+#[tokio::test]
+async fn legacy_cancellation_and_stop_revoke_the_agent_credential() {
+    let h = Harness::new().await;
+    let pool = h.db.pool().await;
+    let token = format!("aqa_{}", "B".repeat(43));
+    let bind = |attempt: Uuid| {
+        let (pool, token) = (pool.clone(), token.clone());
+        async move {
+            sqlx::query("INSERT INTO agent_launch_bindings(attempt_id,node_id,binding,profile,context,credential_version,credential_verifier,credential_expires_at_ms) VALUES($1,$2,'{}','{}','{}',1,$3,$4)")
+                .bind(attempt).bind(h.identity.node_id).bind(verifier(&token)).bind((NOW + 600_000) as i64)
+                .execute(&pool).await.unwrap();
+        }
+    };
+    let state = |attempt: Uuid| {
+        let pool = pool.clone();
+        async move {
+            sqlx::query_as::<_, (bool, Option<String>, Option<i64>, i64)>("SELECT revoked,credential_verifier,credential_expires_at_ms,credential_version FROM agent_launch_bindings WHERE attempt_id=$1")
+                .bind(attempt).fetch_one(&pool).await.unwrap()
+        }
+    };
+    let revoked = (true, None, None, 2);
+    // A stop reported in the result.
+    let offer = h.offer(Uuid::new_v4()).await;
+    let attempt = offer.attempt.attempt_id;
+    bind(attempt).await;
+    h.store
+        .execution_accept(&acceptance(&offer), NOW)
+        .await
+        .unwrap();
+    let live = state(attempt).await;
+    assert_eq!(
+        (live.0, live.1.is_some()),
+        (false, true),
+        "running keeps it"
+    );
+    h.store
+        .execution_result(&report(&offer), NOW + 1)
+        .await
+        .unwrap();
+    assert_eq!(state(attempt).await, revoked);
+    // A cancellation, before any stop is known.
+    let offer = h.offer(Uuid::new_v4()).await;
+    let attempt = offer.attempt.attempt_id;
+    bind(attempt).await;
+    h.store
+        .execution_accept(&acceptance(&offer), NOW)
+        .await
+        .unwrap();
+    h.store
+        .execution_cancel(attempt, Uuid::new_v4(), "owner cancelled")
+        .await
+        .unwrap();
+    assert_eq!(state(attempt).await, revoked);
+}

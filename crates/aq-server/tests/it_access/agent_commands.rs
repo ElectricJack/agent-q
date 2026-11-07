@@ -214,6 +214,52 @@ async fn agent_invokes_commands_through_their_routes_once_audited() {
     assert_eq!(status, StatusCode::FORBIDDEN, "{body}");
 }
 
+/// Spec 0006 §9 step 2: a command and its `/v1/agent/*` route run one domain
+/// function, so an operation started on either surface has one receipt: the
+/// replay through the other returns it, and a changed body conflicts.
+#[tokio::test]
+async fn a_legacy_route_and_its_command_share_one_receipt() {
+    let e = setup_with(Some(grants())).await;
+    let op = Uuid::new_v4();
+    let text = "Recorded through the legacy route.";
+    let legacy_body = json!({"api_version":1,"operation_id":op,"body":text});
+    let (status, legacy) = send(
+        &e.app,
+        "/v1/agent/comments",
+        Some(&e.token),
+        Some(legacy_body),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{legacy}");
+    let invoke = |body: &str| {
+        let request = json!({"params":{"operation_id":op,"body":body}});
+        send(
+            &e.app,
+            "/api/v1/commands/task.comment.add",
+            Some(&e.token),
+            Some(request),
+        )
+    };
+    let (status, replay) = invoke(text).await;
+    assert_eq!(status, StatusCode::OK, "{replay}");
+    assert_eq!(replay, legacy, "the command replays the legacy receipt");
+    let (status, body) = invoke("Something else").await;
+    assert_eq!(
+        (status, body["code"].clone()),
+        (StatusCode::CONFLICT, json!("id_conflict")),
+        "{body}"
+    );
+    let list = json!({"params":{"limit":10}});
+    let (_, page) = send(
+        &e.app,
+        "/api/v1/commands/comment.list",
+        Some(&e.token),
+        Some(list),
+    )
+    .await;
+    assert_eq!(page["items"].as_array().unwrap().len(), 1, "{page}");
+}
+
 #[tokio::test]
 async fn owner_commands_reach_the_same_handlers() {
     let e = setup_with(Some(grants())).await;
@@ -302,6 +348,20 @@ async fn agent_task_creation_is_scoped_limited_and_cannot_escalate() {
     );
     assert_eq!(body["grant"], "task.create.project");
     assert_eq!(body["held"][0]["operation"], "task.create.subtask");
+    // Its audit row names the grant the refusal names, not the command's
+    // default `task.create.subtask` (spec 0006 phase 6 proof, item 9).
+    let grants = || async {
+        sqlx::query_as::<_, (String, Option<String>, Option<String>)>("SELECT decision,reason_code,grant_operation FROM command_audit WHERE attempt_id=$1 AND command='task.create' ORDER BY recorded_at_ms,audit_id")
+            .bind(attempt).fetch_all(&e.pool).await.unwrap()
+    };
+    let deny = |grant: &str| {
+        (
+            "deny".to_string(),
+            Some("grant_missing".to_string()),
+            Some(grant.to_string()),
+        )
+    };
+    assert_eq!(grants().await, vec![deny("task.create.project")]);
     // A parent outside the subtree.
     let (status, body) =
         create(json!({"operation_id":Uuid::new_v4(),"title":"x","parent_id":Uuid::new_v4()})).await;
@@ -351,6 +411,19 @@ async fn agent_task_creation_is_scoped_limited_and_cannot_escalate() {
             .await
             .unwrap();
     assert_eq!(depth, Some(2));
+    // An admitted subtask create records the grant it used.
+    let allowed = grants()
+        .await
+        .into_iter()
+        .filter(|r| r.0 == "allow")
+        .collect::<Vec<_>>();
+    assert!(!allowed.is_empty());
+    assert!(
+        allowed
+            .iter()
+            .all(|r| r.2.as_deref() == Some("task.create.subtask")),
+        "{allowed:?}"
+    );
     // Quota: three created by this attempt; a fourth is refused.
     let (status, body) =
         create(json!({"operation_id":Uuid::new_v4(),"title":"x","parent_id":"self"})).await;

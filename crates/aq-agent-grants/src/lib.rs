@@ -493,6 +493,17 @@ pub struct AuditEntry {
     pub operation_id: Option<Uuid>,
     pub request_id: Uuid,
 }
+/// The grant an audit row names: the one actually required (a refusal's
+/// `grant`) or used (an agent's matched grant), not the command's default.
+/// `task.create` defaults to `task.create.subtask`, but a top-level create
+/// needs `task.create.project`, and its refusal and audit row say so.
+fn audited_grant(agent: bool, default: Option<&str>, decision: &Decision) -> Option<String> {
+    match decision {
+        Decision::Deny(r) if r.grant.is_some() => r.grant.clone(),
+        Decision::Allow(g) if agent && default.is_some() => Some(g.operation.clone()),
+        _ => default.map(Into::into),
+    }
+}
 /// The attempt a decision was made for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AttemptIds {
@@ -521,7 +532,7 @@ impl AuditEntry {
             task_id: ids.map(|i| i.task_id),
             project_id: ids.map(|i| i.project_id),
             command: command.into(),
-            grant: grant.map(Into::into),
+            grant: audited_grant(ids.is_some(), grant, decision),
             target: target.map_or(serde_json::json!({}), Target::audit),
             allowed: matches!(decision, Decision::Allow(_)),
             reason_code: match decision {

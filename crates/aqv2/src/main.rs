@@ -34,6 +34,11 @@ async fn main() -> std::process::ExitCode {
         }
     };
     let json_output = json_output || cli.json;
+    if let aqv2::cli::Command::Result(command) = &cli.commands.command
+        && !matches!(command, aqv2::cli::ResultCommand::Command(_))
+    {
+        return result(command, json_output);
+    }
     let render = cli.commands.command.render();
     match aqv2::run(cli).await {
         Ok(value) => {
@@ -63,6 +68,30 @@ async fn main() -> std::process::ExitCode {
             std::process::ExitCode::from(code)
         }
     }
+}
+/// `result submit|status` is worker-local: it needs no connection, and it prints
+/// the local result document with `aq-agent result`'s exit statuses (0 ready or
+/// recorded, 10 pending, 11 conflict, 13 needs reconciliation or unknown, 15
+/// unusable channel or request).
+fn result(command: &aqv2::cli::ResultCommand, json_output: bool) -> std::process::ExitCode {
+    use aqv2::cli::ResultCommand as R;
+    let submit = match command {
+        R::Submit { request_file } => Some(request_file.as_path()),
+        R::Status | R::Command(_) => None,
+    };
+    let (value, code, key) = match aqv2::result::run(submit) {
+        Ok(o) => (o.value, o.exit_code, "data"),
+        // Never a raw parser, filesystem or path error.
+        Err(_) => (aqv2::result::refused(), 15, "error"),
+    };
+    if json_output {
+        print_json(json!({"schema_version":1, key:value}));
+    } else if code == 15 {
+        eprintln!("{value}");
+    } else {
+        println!("{value}");
+    }
+    std::process::ExitCode::from(code)
 }
 fn print_json(value: Value) {
     println!("{}", value);

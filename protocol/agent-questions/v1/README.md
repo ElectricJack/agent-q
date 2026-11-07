@@ -1,5 +1,7 @@
 # Agent questions v1
 
+> **Deprecated (spec 0006 §9, phase 7).** These `/v1/agent/*` routes are kept only while a supported sandbox template ships `aq-agent`. Agents call the same handlers through the registry commands named in `routes.json` (`POST /api/v1/commands/{name}`, `protocol/commands/v1`). The removal checklist is in aq-worker `docs/implementation/0006-P7.md`.
+
 These are the agent-facing question routes served by `aq-server` (F5). An agent asks its owner one question and waits for the answer. `routes.json` lists the routes, their bodies and their error codes. The unit test `question_routes_match_contract` checks the route table against it.
 
 ## Rules

@@ -1,5 +1,7 @@
 # Scoped agent graph access v1
 
+> **Deprecated (spec 0006 §9, phase 7).** Agents reach AQ through the generic command surface, `POST /api/v1/commands/{name}` (`protocol/commands/v1`), with the `aq` CLI in channel mode. Every `/v1/agent/*` route below is the agent route of a registry command (`context` is superseded by `whoami`), so it runs the same handler with the same receipts and idempotency. The routes and the `aq-agent` client stay only while a supported sandbox template still ships `aq-agent` (the deprecated wrapper that execs `aq`). They are then removed, except the node recovery routes (`/v2/worker/agent-operations/query` and `/retry`), and this contract is superseded for them. The removal checklist is in aq-worker `docs/implementation/0006-P7.md`.
+
 API-01 publishes this contract for AQ-06/AQ-07 and WRK-05. The daemon implements the scoped server routes; owning implementation evidence qualifies their behavior separately. JSON Schema 2020-12 (`schema.json`, identifier `urn:agent-q:agent-access:1`) is the public type boundary; `openapi.json` describes twelve machine HTTP routes, including the messaging extension below. `client_types.py` contains generated Python type declarations for developer/client tooling. The validator and fixture oracle are developer-only, with no production SDK, authentication implementation or runtime dependency implied. Rust and other clients can generate types from the public schemas.
 
 | Method/path | Authority and purpose |

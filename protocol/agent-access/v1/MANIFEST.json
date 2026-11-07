@@ -3,15 +3,15 @@
   "major": 1,
   "status": "Finite daemon gateway implemented and locally qualified; full product/harness integration and production client qualification remain pending. No release/deployment claim.",
   "inventory_algorithm": "SHA256 of canonical sorted JSON map of relative paths to SHA256 and byte size; excludes MANIFEST.json and Python caches",
-  "inventory_sha256": "046734729f254931a666e72dbfa4bf02e58a9776ea128508d1ea8b7174809db7",
+  "inventory_sha256": "66faac2daa9bfa458a7298791811a2e3b9fd217568f6582ca417b7b0562aa5af",
   "files": {
     ".gitignore": {
       "sha256": "e99f6ee4eb88882ea6589ecb717e10a41401763241b246b6821bc091cfe2227e",
       "bytes": 20
     },
     "v1/README.md": {
-      "sha256": "8fe58c41712d259e4963005653b59cf306a716b6c41f61f0a9910d92b79176ed",
-      "bytes": 17671
+      "sha256": "fa2160f6a5efdf96fe800f664f9bf9cce30987ed26a781381f64bf25eab7177a",
+      "bytes": 18408
     },
     "v1/build_fixtures.py": {
       "sha256": "2eb4d5405a0de6d79b10e636e086f39de1a82f8dd666c3ef711ca9bf85f7df69",

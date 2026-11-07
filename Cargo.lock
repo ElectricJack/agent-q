@@ -158,6 +158,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "aq-agent-result-local"
+version = "0.1.0"
+dependencies = [
+ "aq-session-protocol",
+ "schemars",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
 name = "aq-central-authority"
 version = "0.1.0"
 dependencies = [
@@ -787,7 +798,10 @@ dependencies = [
 name = "aqv2"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "aq-agent-result-local",
  "aq-human-http",
+ "aq-session-protocol",
  "axum",
  "clap",
  "nix",

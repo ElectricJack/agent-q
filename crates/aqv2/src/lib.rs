@@ -17,6 +17,7 @@ mod client;
 mod input;
 mod json;
 pub mod render;
+pub mod result;
 mod surface;
 mod typed;
 pub mod wire;
@@ -189,6 +190,19 @@ async fn dispatch(ctx: &Ctx, command: &cli::Command) -> Result<Value> {
         C::Message(c) => typed::message(ctx, c).await,
         C::Operation(c) => typed::operation(ctx, c).await,
         C::External(tokens) => surface::external(ctx, tokens).await,
+        C::Result(cli::ResultCommand::Command(rest)) => {
+            let tokens: Vec<String> = std::iter::once("result".into())
+                .chain(rest.iter().cloned())
+                .collect();
+            surface::external(ctx, &tokens).await
+        }
+        C::Result(_) => Err(error(
+            "unsupported",
+            &format!(
+                "`{} result submit|status` runs as its own process",
+                program()
+            ),
+        )),
         C::Operations(cli::Operations::Show { id }) if ctx.mode == Mode::Channel => {
             typed::operation(ctx, &Operation::Show { id: *id }).await
         }

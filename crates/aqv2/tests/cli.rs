@@ -18,6 +18,8 @@ use tokio::sync::mpsc;
 
 #[path = "cli/channel.rs"]
 mod channel;
+#[path = "cli/result.rs"]
+mod result;
 
 struct Seen {
     method: String,
