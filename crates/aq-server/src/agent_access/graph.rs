@@ -223,7 +223,7 @@ async fn cursor_save(
     if upstream.len() > 8192 {
         return Err(Error("overloaded"));
     }
-    let cursor = secret();
+    let cursor = secret("aqc_");
     // A bounded per-attempt cursor cache prevents unbounded server-side token storage.
     let mut tx = state.store.pool.begin().await?;
     sqlx::query("SELECT attempt_id FROM agent_launch_bindings WHERE attempt_id=$1 FOR UPDATE")

@@ -47,6 +47,11 @@ upstream errors, metadata, provenance and actor fields are never forwarded.
 Search/history filter before paging, with opaque centrally stored cursors bound
 to attempt, credential version, authority revision and exact query/budget.
 Rotation invalidates cursors. Per-attempt live cursors are capped at 128.
+Cursors (graph reads and node operation recovery) start with `aqc_`. Only agent
+credentials start with `aqa_`, because aq-worker refuses agent output holding
+an `aqa_` credential shape. The server looks a cursor up by the verifier of the
+whole string and never checks its prefix, so an `aqa_` cursor issued before the
+change still works until it expires.
 
 Scans, response bytes, upstream calls and request duration are bounded. A context
 or relationship scan may return explicit partial coverage with no continuation;

@@ -127,7 +127,7 @@ A revoked enrolled node cannot use recovery; the installation owner can inspect
 and reconcile under the recorded service binding.
 
 Node recovery returns statuses and receipts, never original graph bodies or service
-credentials. Lists contain at most 64 operations. Opaque five-minute cursors bind
+credentials. Lists contain at most 64 operations. Opaque five-minute `aqc_` cursors bind
 node, complete attempt identity, limit and monotonic operation sequence. Their
 membership upper bound is captured while holding the same node fence used by
 admission; later operations, including lower UUIDs, belong to a new listing. Status

@@ -379,7 +379,7 @@ async fn recover_rows(
         if count >= 128 {
             return Err(Error("overloaded"));
         }
-        let token = secret();
+        let token = secret("aqc_");
         sqlx::query("INSERT INTO agent_operation_cursors(verifier,node_id,attempt_id,query_digest,after_sequence,upper_sequence,expires_at_ms) VALUES($1,$2,$3,$4,$5,$6,$7)").bind(crate::tokens::verifier(&token)).bind(node.id).bind(attempt).bind(digest(&json!({"node":node.id,"attempt":request["attempt"],"limit":limit}))?).bind(rows.last().unwrap().get::<i64,_>("operation_seq")).bind(upper).bind(now(state).saturating_add(300000) as i64).execute(&mut *tx).await?;
         Some(token)
     } else {
