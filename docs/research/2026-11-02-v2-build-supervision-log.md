@@ -1491,3 +1491,17 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Not in #43:** shipping `aq` in the sandbox template (B7 inversion), `AQ_CHANNEL` in the Bash tool's environment, and a live run against the real server.
   - **Compatibility:** after it lands, a Claude docker-local node whose server cannot issue agent credentials stops launching.
   - Because #43 handles credentials, I dispatched an independent security and correctness review before merging it. It covers leaks, path and request-smuggling bypass, header stripping, lifecycle, socket permissions, fail-closed launch and issuance compatibility.
+- **01:16:** owner said "continue". Dispatched a phase 3b and phase 6 agent (`chan/worker-aq-cli`, stacked on #43): `aq` in the sandbox, `AQ_CHANNEL` in the Bash tool's env, a rebuild of aq-ms1 from main, and the live Claude proof.
+  - **Review of aq-worker #43 (head 84bda0e):** the security goal holds; no credential exposure and no node-route reach.
+  - **Blocking:**
+    1. `Upstream` rejects every server_url except `https://host` and `http://127.0.0.1:port`, including the owner's `local` node (`host.docker.internal`).
+    2. Cloudflare Access headers are never passed to issuance or the channel.
+  - **High:** aq-server graph cursors are `aqa_` plus 43 characters, the credential shape, so the leak guard would discard a paginated search.
+  - **Follow-ups:**
+    - a lost rotation response closes the channel;
+    - a request racing a rotation gets 401;
+    - revocation shows as `unauthorized`;
+    - `Cookie` and `Set-Cookie` pass through;
+    - a mount alias can overlap the channel root;
+    - a sweep can race an open.
+  - Dispatched a fix agent for #43 (fast-forward fix commits only, so the stacked branch rebases cleanly) and a server agent for a new cursor prefix (`fix/cursor-prefix`). The re-review will judge only the fix commits.
