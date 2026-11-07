@@ -1509,3 +1509,18 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - **Finding 1:** the channel now accepts exactly what the node's own `NativeClient` accepts: `https` to any host, `http` only to numeric loopback. The fixer reports the node itself already refuses plaintext non-loopback URLs such as `host.docker.internal`, so the owner's `local` enrollment can't run Claude docker-local today regardless of the channel. That is a pre-existing limit, not a channel regression.
   - **Finding 2:** Access headers are now threaded through a new `NodeLink`, but `ClaudeDockerExecutor` already refused Access enrollments (93d34d9) because the terminal relay lacks Access support. A separate follow-up is needed.
   - Dispatched a scoped re-review of the fix commits only. aq-server #107 (cursor prefix) is in CI.
+- **01:46:** phase 6 live proof, first runs. A real Claude agent ran on the rebuilt aq-ms1 stack (main 1e5ea1cf) through the real channel.
+  - **Passing:**
+    - `AQ_CHANNEL` and `/opt/aq/bin/aq` reach Claude's Bash tool;
+    - `whoami` returns grants and the supervisor ID;
+    - `aq commands --all` (the query string passes the proxy);
+    - task show, knowledge search/show, and comment add/list;
+    - question ask and wait, answered by the owner;
+    - a top-level create is refused (exit 14, `grant_missing`, `task.create.project`);
+    - message to the supervisor;
+    - `command_audit` rows for both allow and deny.
+  - **Part A** is on `chan/worker-aq-cli`: `aq` ships at `/opt/aq/bin/aq`, the B7 check is inverted, `aq-agent` is a wrapper, and the musl `aqv2` is pinned at e058e7d7 and reproducible.
+  - **Two server bugs** block step 4:
+    1. Every agent subtask create gets a 503: the journal insert violates `dashboard_operations_supervisor_session_id_fkey`. Migration 0061 binds non-user principals to `central_session_generations`, but the agent principal is the attempt ID. The phase 2 test never exercised a successful create.
+    2. `task.children` always returns 403: the native profile's `read_scope.edge_types` lacks parent-child.
+  - The agent is fixing both on `fix/agent-task-children`, with migration 0099. I approved proving the fix on a separate disposable stack, aq-ms1p6, rather than migrating the owner's aq-ms1 database ahead of the merge.
