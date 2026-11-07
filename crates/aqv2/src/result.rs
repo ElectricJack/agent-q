@@ -181,11 +181,12 @@ impl PrivateDir {
             f.write_all(bytes)?;
             f.sync_all()?;
             // Linux is the qualified platform. Refuse rather than fall back to
-            // a replacing rename if NOREPLACE is unavailable.
-            let d = self.dir.as_raw_fd();
-            let renamed = unsafe {
-                libc::renameat2(d, temp.as_ptr(), d, dest.as_ptr(), libc::RENAME_NOREPLACE)
-            };
+            // a replacing rename if NOREPLACE is unavailable. The raw syscall,
+            // because the static musl build's libc has no `renameat2` wrapper.
+            let d = self.dir.as_raw_fd() as libc::c_long;
+            let (from, to) = (temp.as_ptr(), dest.as_ptr());
+            let no_replace = libc::RENAME_NOREPLACE as libc::c_long;
+            let renamed = unsafe { libc::syscall(libc::SYS_renameat2, d, from, d, to, no_replace) };
             if renamed < 0 {
                 return Err(std::io::Error::last_os_error().into());
             }
