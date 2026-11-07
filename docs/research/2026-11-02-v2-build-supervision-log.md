@@ -1562,3 +1562,36 @@ Each entry records what was observed, the action taken, and anything waiting on 
 - **03:04:** main CI for 9809dc5e (#107) failed the distributed recovery failure matrix: the `old-result-after-replacement` case logged "recovery: timed out waiting for durable result".
   - The matrix builds a pinned, vendored worker, not aq-worker main. #107 changes only the cursor prefix, and it passed this job on its own PR.
   - This is the first time this case has been recorded failing. Reran the failed job (run 42327350015), and I'm watching the #108 and #109 main runs. A second occurrence gets a root-cause task, per W78.
+- **03:18:** **Agent channel phase 6 live proof: every acceptance item passes.** Run 3 used a real Claude Code agent in a docker-local sandbox on aq-ms1, rebuilt from main 9041e6f4.
+  - **Agent commands:**
+    1. `whoami` shows 15 grants and the supervisor ID.
+    2. `task show self` works.
+    3. Knowledge search and show work.
+    4. A subtask lands active and ready under its parent, and `task children` lists it.
+    5. A comment is attributed to the agent.
+    6. A question is asked, answered, and `question wait` returns it. The owner answer was supplied by the supervisor and labelled as such.
+    7. A top-level create is refused (exit 14, `grant_missing`).
+    8. A message reaches the supervisor.
+  - **Server and log checks:**
+    - 13 `command_audit` rows, both allow and deny;
+    - the proxy log has no headers;
+    - zero `aqa_` or Claude-token strings anywhere;
+    - the socket is removed at close;
+    - the binding is `revoked=t` with the verifier NULL after the stop;
+    - the startup thread carried the owner comment;
+    - 0099 is applied.
+  - Merged aq-worker #45 (56bf1fba). It ships `aq` at `/opt/aq/bin/aq`, with `aqv2` pinned at e058e7d7 (sha256 eef04c98…, reproducible), the B7 check inverted and `aq-agent` as a wrapper. It also fixes a pre-existing bundle break (`boat_materialize.py` was not exported).
+  - **Stack changes:**
+    - the node runs aq-worker from #45, with a backup in `~/.local/share/aq-ms1/backup-pre-0006-p6/`;
+    - the template image is `aq-template-unadmitted@sha256:057ae952…`;
+    - the profiled revision is 16;
+    - the measurements were re-run, because they were 43 h old against a 24 h limit and every offer was refused;
+    - the proof subtask is retired;
+    - QA data is untouched.
+  - **Open:**
+    - the deny audit row records `task.create.subtask`, but the refusal names `task.create.project`;
+    - `package-sandbox.py` sets mtime 0 on every file, so BuildKit can reuse a stale file of the same size;
+    - the `Dockerfile.runtime` `/worker/target` cache has no touch step (an AGENTS.md rule);
+    - the legacy synthetic `execution.rs` stop doesn't revoke (dev fixtures only).
+  - **Main CI:** the run for 9041e6f4 was cancelled, likely by the concurrency group when I reran 9809dc5e's recovery job. I'll rerun it when the queue clears.
+  - The remaining channel phase is phase 7, migrating off `aq-agent`.
