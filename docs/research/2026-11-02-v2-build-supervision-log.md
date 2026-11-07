@@ -1613,3 +1613,16 @@ Each entry records what was observed, the action taken, and anything waiting on 
 - **04:04:** **aq-server main is red.** On 9041e6f4, #109's new test `profiled_stopped::normal_stop_revokes_the_agent_credential_and_replays_idempotently` gets 503 where it expects 401.
   - **Cause:** the two PRs interacted. #108 maps "agent-access runtime not configured" to `Overloaded` (503), and #109's `it_profiled` fixture has no agent-access runtime. Each PR was green on its own base, and I merged them back to back because they touched no common files.
   - Dispatched a test-fixture fix (`fix/revoke-test-agent-runtime`) that keeps the 401 assertion and configures the runtime. Told the phase 7 agent to ignore this failure.
+- **04:24:** fix PR #110 for the red main is test-only: the `profiled_stopped` revoke test gets an agent-access runtime and keeps its 401 assertion. It is in CI.
+  - Phase 7 aq-server PR #111 (`chan/p7-server`) is open:
+    - `aq result submit` and `aq result status` against the worker-local result contract, byte-identical to `aq-agent result` (shared golden file);
+    - §9 mapping tests (nothing was missing);
+    - the deny audit row now records `task.create.project`;
+    - the legacy `execution.rs` stop revokes;
+    - deprecation notes.
+  - **Merge order:** #110, then green main, then #111 rebased and green, then the worker re-pin. These merges are sequential because of W82.
+  - **Boat channel not built.** There is no boat agent launch at all today: boat uses `UnavailableProvider`, and `sandbox_driver` is docker-local only. Node-held credential custody is impossible for a remote VM.
+  - Three owner questions raised:
+    1. Is a boat agent launch planned?
+    2. Spec §5.3 in-VM custody, or a node relay over the Boat API (≥0.5 s per call)?
+    3. Should the boat Access token be path-restricted?
