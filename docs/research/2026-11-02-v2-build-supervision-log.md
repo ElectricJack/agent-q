@@ -1603,3 +1603,10 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - this one.
   - A second occurrence of any of them gets a root-cause task (W78).
   - aq-server main: 9f488dc0 (#108) passed, including the recovery matrix. The 9809dc5e rerun is in progress.
+- **03:49:** main CI reruns are green for 9809dc5e (#107) and 9f488dc0 (#108). The recovery-matrix timeout was a single occurrence. The rerun for 9041e6f4 (#109) is in progress. aq-worker main 56bf1fba (#45) is green after the flake rerun.
+  - Dispatched agent channel phase 7, the migration (`chan/p7-server` and `chan/p7-worker`):
+    - check that every `/v1/agent/*` route has its registry command (§9 step 2);
+    - add `aq result submit` against the worker-local result channel, with the `aq-agent result` wrapper mapping to it and the bundle `aqv2` pin bumped (step 4);
+    - wire the boat runner channel, or write a design note if that is large (§10);
+    - write a deprecation note and removal checklist only; `/v1/agent/*` and `aq-agent` stay until no supported template ships them (step 5).
+  - The phase 6 open items are folded in: the deny audit row's grant, `package-sandbox.py` mtime 0, the `Dockerfile.runtime` touch step, and the legacy `execution.rs` revoke.
