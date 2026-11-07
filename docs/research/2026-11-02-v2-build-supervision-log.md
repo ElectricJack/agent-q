@@ -1505,3 +1505,7 @@ Each entry records what was observed, the action taken, and anything waiting on 
     - a mount alias can overlap the channel root;
     - a sweep can race an open.
   - Dispatched a fix agent for #43 (fast-forward fix commits only, so the stacked branch rebases cleanly) and a server agent for a new cursor prefix (`fix/cursor-prefix`). The re-review will judge only the fix commits.
+- **01:41:** the #43 fixes were pushed as a fast-forward (`84bda0e..f9161f5`), with CI green. Findings 1, 2 and 4–9 are addressed.
+  - **Finding 1:** the channel now accepts exactly what the node's own `NativeClient` accepts: `https` to any host, `http` only to numeric loopback. The fixer reports the node itself already refuses plaintext non-loopback URLs such as `host.docker.internal`, so the owner's `local` enrollment can't run Claude docker-local today regardless of the channel. That is a pre-existing limit, not a channel regression.
+  - **Finding 2:** Access headers are now threaded through a new `NodeLink`, but `ClaudeDockerExecutor` already refused Access enrollments (93d34d9) because the terminal relay lacks Access support. A separate follow-up is needed.
+  - Dispatched a scoped re-review of the fix commits only. aq-server #107 (cursor prefix) is in CI.
