@@ -1633,3 +1633,9 @@ Each entry records what was observed, the action taken, and anything waiting on 
   - It was rebased onto 604291ea, the main tip, and CI was 9/9 green on head 6040745f.
   - It adds `aq result submit` and `aq result status`, §9 mapping tests, the audit row's correct grant, the legacy stop revoke, and deprecation notes.
   - aq-worker #46 now re-pins `aqv2` to 85070006.
+- **05:20:** merged aq-worker #46 (cd95777c), agent channel phase 7 worker side.
+  - The bundle `aqv2` is pinned to aq-server 85070006: sha256 11112671…, 5,679,368 bytes, the same digest from two clean builds. The `aq-agent result` wrapper maps to `aq result submit`.
+  - It also fixes the `package-sandbox.py` mtime and adds the `Dockerfile.runtime` cache touch step (per the agent's report).
+  - **Agent channel spec 0006 is done except the deferred parts:**
+    - step 5, removing `/v1/agent/*` and `aq-agent`, waits until no supported template ships `aq-agent`;
+    - the boat channel waits on three owner questions.
