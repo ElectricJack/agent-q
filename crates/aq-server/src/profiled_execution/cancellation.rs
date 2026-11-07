@@ -147,8 +147,7 @@ pub async fn cancel(
                 .await
                 .map_err(db)?;
             // Revoke launch-scoped access without claiming its writer stopped.
-            sqlx::query("UPDATE agent_launch_bindings SET revoked=TRUE,credential_verifier=NULL,credential_expires_at_ms=NULL,credential_version=credential_version+1,authority_revision=authority_revision+1 WHERE attempt_id=$1")
-                .bind(attempt).execute(&mut *tx).await.map_err(db)?;
+            super::journal::revoke(&mut tx, attempt).await?;
         }
         if matches!(hot.status, Status::Offered | Status::Preparing) && hot.grant.is_none() {
             super::no_grant::close_locked(state, &mut tx, node, attempt, hot.cancellation_id)

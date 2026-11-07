@@ -29,16 +29,8 @@ pub async fn record_prepared(
     revision: u64,
     digest: &Digest,
 ) -> Result<(), AppError> {
-    record(
-        tx,
-        binding,
-        owner,
-        Some(grant),
-        "prepared",
-        revision,
-        digest,
-    )
-    .await
+    let g = Some(grant);
+    record(tx, binding, owner, g, "prepared", revision, digest).await
 }
 pub(super) async fn record_started(
     tx: &mut Transaction<'_, Postgres>,
@@ -77,7 +69,12 @@ pub(super) async fn record_stopped(
         revision,
         digest,
     )
-    .await
+    .await?;
+    revoke(tx, request.evidence.binding.attempt_id).await
+}
+/// Revoke the attempt's agent credential (0006 §5.4): stop, closure, cancellation, disposition.
+pub(super) async fn revoke(tx: &mut Transaction<'_, Postgres>, a: Uuid) -> Result<(), AppError> {
+    sqlx::query("UPDATE agent_launch_bindings SET revoked=true,credential_verifier=NULL,credential_expires_at_ms=NULL,credential_version=credential_version+1,authority_revision=authority_revision+1 WHERE attempt_id=$1").bind(a).execute(&mut **tx).await.map(drop).map_err(db)
 }
 async fn record(
     tx: &mut Transaction<'_, Postgres>,

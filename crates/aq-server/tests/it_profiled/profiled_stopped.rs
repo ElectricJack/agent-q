@@ -413,3 +413,55 @@ async fn sql_rejects_digest_only_physical_substitution_and_receipt_without_atomi
     );
     assert_eq!(state(&f, &start).await["stop"]["kind"], "running");
 }
+
+/// A normal stop revokes the attempt's agent credential in the stop
+/// transaction (spec 0006 §5.4), so the agent channel's credential is refused
+/// afterwards, and a replayed stop changes nothing. Before this the verifier
+/// stayed live until its TTL (found by the spec 0006 phase 6 live proof).
+#[tokio::test]
+async fn normal_stop_revokes_the_agent_credential_and_replays_idempotently() {
+    use tower::ServiceExt;
+    let (f, start) = setup(true).await;
+    let auth = context(&f).await;
+    started::record(&f.state, &auth, &start).await.unwrap();
+    let pool = f.db.pool().await;
+    let attempt = start.binding.attempt_id;
+    let token = format!("aqa_{}", "A".repeat(43));
+    sqlx::query("INSERT INTO agent_launch_bindings(attempt_id,node_id,binding,profile,context,credential_version,credential_verifier,credential_expires_at_ms) VALUES($1,$2,'{}','{}','{}',1,$3,$4)")
+        .bind(attempt).bind(f.node.node_id).bind(aq_server::tokens::verifier(&token))
+        .bind((NOW + 600_000) as i64).execute(&pool).await.unwrap();
+    let binding = || async {
+        sqlx::query_as::<_, (bool, Option<String>, Option<i64>, i64)>("SELECT revoked,credential_verifier,credential_expires_at_ms,credential_version FROM agent_launch_bindings WHERE attempt_id=$1")
+            .bind(attempt).fetch_one(&pool).await.unwrap()
+    };
+    let request = stop_request(&start);
+    let receipt = stopped::record(&f.state, &auth, &request).await.unwrap();
+    assert_eq!(state(&f, &start).await["status"], "finished");
+    let revoked = binding().await;
+    assert_eq!(
+        (revoked.0, revoked.1.as_deref(), revoked.2),
+        (true, None, None)
+    );
+    assert_eq!(
+        revoked.3, 2,
+        "the credential version moves past the revoked one"
+    );
+    // The channel's credential is refused: the command surface answers 401.
+    let response = aq_server::build_worker_router(f.state.clone())
+        .oneshot(
+            axum::http::Request::post("/api/v1/commands/whoami")
+                .header("authorization", format!("Bearer {token}"))
+                .header("content-type", "application/json")
+                .body(axum::body::Body::from(r#"{"params":{}}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), axum::http::StatusCode::UNAUTHORIZED);
+    // A replayed stop returns the same receipt and revokes nothing again.
+    assert_eq!(
+        json!(stopped::record(&f.state, &auth, &request).await.unwrap()),
+        json!(receipt)
+    );
+    assert_eq!(binding().await, revoked);
+}
